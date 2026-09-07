@@ -45,7 +45,8 @@ REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
-REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions'}
+REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
+                   'semantic_content'}
 MAX_COMMAND_BYTES = 1_048_576
 
 

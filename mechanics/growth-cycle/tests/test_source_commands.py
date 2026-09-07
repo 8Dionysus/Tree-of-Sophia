@@ -801,9 +801,15 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
-        for kind in ('crosscutting-concept', 'conception'):
+        contents = {
+            'thesis': {'proposition': 'A synthetic hypothetical proposition.', 'assertion_force': 'hypothetical'},
+            'argument': {'reconstruction_note': 'A synthetic partial account.', 'coverage': 'partial'},
+            'inference-step': {'transition_account': 'A synthetic transition.', 'reasoning_mode': 'reductio'},
+            'objection': {'challenge_account': 'The synthetic transition is under examination.'},
+        }
+        for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -819,6 +825,9 @@ class HistoricalCreationTests(unittest.TestCase):
                                      'notes': {'language': 'ru', 'script': 'Cyrl'}},
                     semantic_scope={'scope_note': 'Только синтетическая проверка.',
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
+                if kind in contents:
+                    source.update(schema_version='tos_thought_description_record_v1',
+                                  semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
                 request.pop('claims')
                 prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
                     'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
@@ -830,12 +839,16 @@ class HistoricalCreationTests(unittest.TestCase):
                 revise_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
                     'authority_ref', 'allowed_form_ids', 'expires_at', 'record_id', 'profile_type_id')}
                 revise_config.update(schema_version=commands.PROFILE_REVISION_CONFIG,
-                    allowed_operations=['record.revise'], allowed_fields=['notes'])
+                    allowed_operations=['record.revise'], allowed_fields=['notes', 'semantic_content'])
                 owner.write_text(json.dumps(revise_config))
                 proposal = {'fields': {'notes': 'Уточнённое описание того же условного предмета; не исторический факт.'},
                             'forms': request['forms'], 'reason': 'Correct description, not semantic transformation.'}
+                if kind in contents:
+                    wording = next(iter(contents[kind]))
+                    proposal['fields']['semantic_content'] = {**source['semantic_content'],
+                        wording: source['semantic_content'][wording] + ' Corrected wording of the same test referent.'}
                 for fields in ({'semantic_scope': {**source['semantic_scope'], 'identity_criterion': 'A different subject'}},
-                               {'record_id': 'tos.conception.another'}, {'notes': ''}):
+                               {'record_id': 'tos.conception.another'}, {'notes': ''}, {'semantic_content': {}}):
                     with self.assertRaises((PermissionError, ValueError)):
                         commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
                             'operation': 'prepare-revise', **proposal, 'fields': fields})
@@ -851,6 +864,12 @@ class HistoricalCreationTests(unittest.TestCase):
                 graph, _, _ = fixture.historical_knowledge(root, rebuild())
                 node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
+                if kind in contents:
+                    self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
+                    previous = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                        'operation': 'inspect-version', 'source': prepared['source']})
+                    self.assertEqual(previous['record'], source)
+                    self.assertEqual((root / previous['files'][kind + '.json']['archive_path']).read_bytes(), original)
                 self.assertTrue(all(v['state'] == 'ready' and v['admission'] is None for v in node['attributes']['human_forms']))
                 owner.write_text(json.dumps(config))
                 self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])

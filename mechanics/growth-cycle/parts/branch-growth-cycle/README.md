@@ -577,7 +577,11 @@ It does not
 create or migrate an undeclared source format.
 `allowed_operations` is a subset of `["record.revise"]` and `allowed_fields`
 is a subset of `preferred_label`, `variant_labels`, `notes`, `field_languages`,
-`source_refs`, `extensions`. Changing an allowed value is an explicit authored
+`source_refs`, `extensions`, `semantic_content`. The latter is available only
+when the exact source schema permits it, as in thought-description profiles;
+older profiles still reject it. The independently selected grant must name
+the field. `semantic_scope` and its referent criterion remain immutable in
+this correction route. Changing an allowed value is an explicit authored
 correction, not a judgment by the serializer. Unselected fields and all
 unselected companion bytes stay unchanged, including unknown extensions.
 

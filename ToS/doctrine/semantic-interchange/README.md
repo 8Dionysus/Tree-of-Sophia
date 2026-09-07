@@ -172,6 +172,74 @@ This closes a metadata extension seam, not the complete Foundation profile
 grammar. The synthetic `fixture-document` in the reader test is not an actual
 letter, historical evidence, a material artifact or source admission.
 
+## Reasoning objects, contextual roles and addressed objections
+
+Entity registry version 10 adds Thesis, Argument, InferenceStep and Objection
+as specific SemanticObjects, without reclassifying existing canon nodes.
+They use the same `semantic-metadata-v1` source/create/read/revise/form route.
+`thought-description-record.schema.json` composes the shared source metadata
+and semantic scope constraints; it adds a required `semantic_content` with
+its own language/script and the following substantive fields:
+
+| Kind | Required account | Boundary |
+| --- | --- | --- |
+| Thesis / Тезис | `proposition`, `assertion_force` | a proposition under examination, not its research Claim, truth or endorsement |
+| Argument / Аргумент | `reconstruction_note`, `coverage` | a reasoning reconstruction, possibly partial; not merely a label or a proof of soundness |
+| InferenceStep / Шаг вывода | `transition_account`, `reasoning_mode` | a described inferential transition, not executable inference code or historical chronology |
+| Objection / Возражение | `challenge_account` | a reasoned challenge, not automatic negation of its target or proof that it succeeds |
+
+`coverage` is `partial`, `claimed_complete` or `unknown`: even claimed
+completeness remains a research posture, not a serializer verdict. Force and
+reasoning mode preserve the source's wording without requiring one logical
+school's taxonomy. Unknown nested fields remain source data, never commands.
+Descriptions need a source-visible assessment for substantive adequacy.
+
+Names and notes carry the complete semantic scope **and content** as mandatory
+reading context. A hypothetical premise must not appear as an unconditional
+fact after a short label is selected. The seven named content properties in
+the registry support semantic-ID queries through the ordinary catalog and
+snapshot-bound property filter. They do not require a kind-specific reader.
+The separately delegated correction route may update `semantic_content` only
+where the source schema and grant allow it, retaining exact previous bytes
+and rebuilding forms; it cannot change the referent criterion or admission.
+A changed account of the *same* referent is distinct from historical thought
+change or a new referent, which need their own subject and grounded relations.
+
+Relation registry version 9 adds the following reified source Claims:
+
+| Predicate | Subject → object | Meaning and limit |
+| --- | --- | --- |
+| `conception_has_thesis` | Conception → Thesis | scoped membership, not universal endorsement or truth |
+| `argument_for_thesis` | Argument → Thesis | offered support, not a successful proof |
+| `argument_has_step` | Argument → InferenceStep | `qualifiers.step_position` is a required nonnegative integer position in this reconstruction, not an absolute date |
+| `step_has_premise` | InferenceStep → Thesis | premise role in this transition, possibly granted only hypothetically |
+| `step_has_conclusion` | InferenceStep → Thesis | proposed conclusion role here, not established logical consequence |
+| `objection_to_thesis` | Objection → Thesis | challenge to this proposition; use this to challenge a premise as content |
+| `objection_to_step` | Objection → InferenceStep | challenge to the transition, distinct from challenging its premise |
+| `objection_to_argument` | Objection → Argument | challenge to the specified reasoning structure as a whole |
+| `objection_to_conception` | Objection → Conception | challenge to specified commitments of a situated account |
+| `objection_developed_by_argument` | Objection → Argument | reasoning develops the challenge; the referents stay distinct |
+| `thought_expressed_in` | Thesis/Argument/InferenceStep/Objection → Work/Expression/Document | interpreted expression, not an exact occurrence anchor, authorship or literal quotation |
+| `thought_attributed_to` | Thesis/Argument/InferenceStep/Objection → Agent/Organization | scoped attribution, not the research Claim maker or exclusive authorship |
+
+Premise and conclusion are relational roles, not new universal entity classes.
+One thesis may fill different roles in different steps. No global acyclicity,
+one-author rule or universal cardinality is imposed. A partially reconstructed
+argument may lack known steps or premises; unknown content is not silently
+invented to complete a graph. Rival step positions live in separate qualified
+Claims rather than overwriting one another. All twelve predicates have
+specific endpoints, both reading directions, mandatory statement/basis and
+ordinary evidence, provenance, uncertainty and separate assessment. They add
+no unconditional edges and infer neither logical validity nor historical truth.
+
+`claims.create` applies a bounded reasoning batch atomically through the
+existing source-owner writer. A malformed or unauthorized member prevents the
+whole batch; replay returns the same receipt. Endpoint versions and source
+contracts are bound at preparation. The read-only access boundary stays intact.
+Synthetic tests cover these boundaries and the connected argument/objection
+route; real source-grounded reasoning examples, exact occurrence links and
+their substantive assessment remain required Foundation work.
+
 ## Concepts, situated conceptions and transformations
 
 Entity registry version 9 adds `CrosscuttingConcept` as a subtype of the

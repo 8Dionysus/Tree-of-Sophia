@@ -34,6 +34,136 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_thought_predicates_have_specific_roles_targets_and_bidirectional_wording(self):
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        profiles = SourceClaimProfiles(REPO_ROOT)
+        cases = [('conception_has_thesis', 'conception', 'thesis'),
+                 ('argument_for_thesis', 'argument', 'thesis'),
+                 ('objection_to_thesis', 'objection', 'thesis'),
+                 ('objection_to_argument', 'objection', 'argument'),
+                 ('objection_to_conception', 'objection', 'conception'),
+                 ('objection_developed_by_argument', 'objection', 'argument')]
+        for kind in ('thesis', 'argument', 'inference-step', 'objection'):
+            cases.extend([('thought_expressed_in', kind, target) for target in ('work', 'expression', 'document', 'letter')])
+            cases.extend([('thought_attributed_to', kind, target) for target in ('agent', 'organization')])
+        objects = {f'tos.{kind}.synthetic': {'record_type': kind} for kind in
+                   {part for _, left, right in cases for part in (left, right)} | {'place'}}
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_semantic_relation_claim_v1', 'claim_id': 'tos.claim.synthetic-thought',
+                'claim_version': 1, 'claim_type': 'relation', 'assertion_layer': 'semantic_interpretation',
+                'subject_ref': f'tos.{left}.synthetic', 'predicate': predicate, 'object': f'tos.{right}.synthetic',
+                'evidence_refs': ['test:synthetic'], 'provenance_event_ref': 'tos.event.synthetic',
+                'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic'},
+                'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'Только синтетическая проверка.', 'statement_language': 'ru',
+                    'statement_script': 'Cyrl', 'relation_basis': 'Test structure only.', 'negated': True}}
+            with self.subTest(predicate=predicate, left=left, right=right):
+                profiles.validate(claim, objects)
+                for field in ('subject_ref', 'object'):
+                    with self.assertRaises(SourceProfileError):
+                        profiles.validate({**claim, field: 'tos.place.synthetic'}, objects)
+                for basis in ('', ' ', None):
+                    with self.assertRaises(SourceProfileError):
+                        profiles.validate({**claim, 'qualifiers': {**claim['qualifiers'], 'relation_basis': basis}}, objects)
+                relation = profiles.relations[predicate]
+                self.assertFalse(relation['transitive'])
+                for language in ('ru', 'en'):
+                    self.assertTrue(relation['labels'][language].strip())
+                    self.assertTrue(relation['inverse_labels'][language].strip())
+
+    def test_thought_profiles_keep_argument_roles_and_objection_targets_source_bound(self):
+        """Synthetic reasoning checks structure, never validity or attribution."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        profiles = SourceRecordProfiles(REPO_ROOT)
+        contents = {
+            'thesis': {'proposition': 'Synthetic premise or conclusion, not asserted history.', 'assertion_force': 'hypothetical'},
+            'argument': {'reconstruction_note': 'Synthetic partial reconstruction.', 'coverage': 'partial'},
+            'inference-step': {'transition_account': 'Synthetic transition under examination.', 'reasoning_mode': 'reductio'},
+            'objection': {'challenge_account': 'The transition may not follow even if the premise is granted.'},
+        }
+        for kind in contents:
+            self.assertEqual(profiles.profiles[kind]['reader'], 'semantic-metadata-v1')
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record',
+                         'semantic-relation-claim', 'thought-relation-claim', 'source-claim-record',
+                         'semantic-relation-type-registry'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            from source_commands import prepare_metadata_change, _apply
+            from knowledge_assessment import Record
+            subjects = {}
+            for kind, content in contents.items():
+                source = {**copy.deepcopy(history[0][1]), 'schema_version': 'tos_thought_description_record_v1',
+                    'record_type': kind, 'record_id': 'tos.' + kind + '.synthetic',
+                    'preferred_label': 'Условный объект мысли', 'notes': 'Только проверка структуры, не исторический факт.',
+                    'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                        'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                    'semantic_scope': {'scope_note': 'Synthetic test only.', 'identity_criterion': 'The same test referent.',
+                                       'language': 'en', 'script': 'Latn'},
+                    'semantic_content': {**content, 'language': 'en', 'script': 'Latn'}}
+                profiles.validate(kind, source)
+                for changes in ({'semantic_content': {}}, {'record_id': 'tos.claim.synthetic'}, {'notes': ' '}):
+                    with self.subTest(kind=kind, changes=changes), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, {**source, **changes})
+                path = root / f'ToS/source-witnesses/semantic-descriptions/{kind}-synthetic/{kind}.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(source, ensure_ascii=False))
+                change = prepare_metadata_change(source, None, 'test:thought-profiles',
+                    form_id='tos.form.' + kind + '-synthetic', field_id='metadata.source-note')
+                forms = _apply(None, Record.from_payload(source['record_id'], 1, source), [change])
+                path.with_name(kind + '.human-forms.json').write_text(json.dumps(forms))
+                subjects[kind] = source
+            proposed = []
+            for predicate, left, right in (
+                ('argument_has_step', 'argument', 'inference-step'),
+                ('step_has_premise', 'inference-step', 'thesis'),
+                ('step_has_conclusion', 'inference-step', 'thesis'),
+                ('objection_to_step', 'objection', 'inference-step'),
+            ):
+                proposed.append({**copy.deepcopy(claims[0]), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': 'tos.claim.synthetic-' + predicate.replace('_', '-'),
+                    'subject_ref': subjects[left]['record_id'], 'predicate': predicate,
+                    'object': subjects[right]['record_id'], 'assertion_layer': 'semantic_interpretation',
+                    'qualifiers': {'statement': 'Synthetic structural interpretation only.', 'statement_language': 'en',
+                        'statement_script': 'Latn', 'relation_basis': 'A fixture, not an inference of validity.',
+                        **({'step_position': 0} if predicate == 'argument_has_step' else {})}})
+            path.with_name('source-claims.jsonl').write_text(''.join(json.dumps(c) + '\n' for c in proposed))
+            reader = SourceClaimProfiles(root)
+            objects = {source['record_id']: source for source in subjects.values()}
+            for claim in proposed:
+                reader.validate(claim, objects)
+                with self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, 'object': real[0]['record_id']}, {**objects, real[0]['record_id']: real[0]})
+            unpositioned = copy.deepcopy(proposed[0]); unpositioned['qualifiers'].pop('step_position')
+            with self.assertRaises(SourceProfileError):
+                reader.validate(unpositioned, objects)
+            graph, _, _ = self.historical_knowledge(root, rebuild())
+            from tos_access.knowledge import focus_knowledge_node, select_human_forms, execute_knowledge_lens
+            for kind, property_id, value in (
+                ('thesis', 'tos.property.thesis-proposition', contents['thesis']['proposition']),
+                ('thesis', 'tos.property.thesis-assertion-force', 'hypothetical'),
+                ('argument', 'tos.property.argument-reconstruction', contents['argument']['reconstruction_note']),
+                ('argument', 'tos.property.argument-coverage', 'partial'),
+                ('inference-step', 'tos.property.inference-transition', contents['inference-step']['transition_account']),
+                ('inference-step', 'tos.property.inference-mode', 'reductio'),
+                ('objection', 'tos.property.objection-challenge', contents['objection']['challenge_account']),
+            ):
+                result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                    'lens_id': 'synthetic-thought-property', 'node_query': {'filters': [
+                        {'property_id': property_id, 'op': 'eq', 'value': value}]},
+                    'relation_query': {'enabled': False}, 'detail': 'full'})
+                self.assertEqual([n['entity_id'] for n in result['nodes']], [subjects[kind]['record_id']])
+            for source in subjects.values():
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+                context = select_human_forms(node, 'ru')['roles']['hover']['packet']['context']
+                self.assertTrue(any(c['binding']['pointer'] == '/semantic_content' and c['value'] == source['semantic_content'] for c in context))
+            focused = focus_knowledge_node(graph, subjects['objection']['record_id'], depth=2)
+            self.assertIn(subjects['inference-step']['record_id'], {n['entity_id'] for n in focused['nodes']})
+            for claim in proposed:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+
     @contextmanager
     def historical_fixture(self):
         """Synthetic history associations to unchanged real bibliographic identities.

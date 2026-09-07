@@ -17,6 +17,78 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_argument_chain_creation_is_atomic_scoped_and_source_bound(self):
+        with self.creation() as (root, owner, config, base, request, rebuild, fixture):
+            for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record',
+                         'semantic-relation-claim', 'thought-relation-claim'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            content = {
+                'thesis': {'proposition': 'Synthetic hypothesis only.', 'assertion_force': 'hypothetical'},
+                'argument': {'reconstruction_note': 'Synthetic reconstruction only.', 'coverage': 'partial'},
+                'inference-step': {'transition_account': 'Synthetic transition only.', 'reasoning_mode': 'reductio'},
+                'objection': {'challenge_account': 'This synthetic transition is disputed.'},
+            }
+            subjects = {}
+            for kind, detail in content.items():
+                source = {'schema_version': 'tos_thought_description_record_v1', 'record_type': kind,
+                    'record_id': 'tos.' + kind + '.synthetic-command', 'record_version': 1,
+                    'preferred_label': 'Условный предмет мысли', 'notes': 'Синтетическое описание, не исторический факт.',
+                    'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                        'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                    'semantic_scope': {'scope_note': 'Synthetic test only.', 'identity_criterion': 'Same test referent.',
+                                       'language': 'en', 'script': 'Latn'},
+                    'semantic_content': {**detail, 'language': 'en', 'script': 'Latn'},
+                    'identity_status': 'provisional', 'source_refs': base['evidence_refs'],
+                    'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim',
+                    'visibility': 'public_metadata_only'}
+                path = root / f'ToS/source-witnesses/semantic-descriptions/synthetic-{kind}/{kind}.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(source))
+                subjects[kind] = source
+            claims = []
+            for predicate, left, right in (('argument_has_step', 'argument', 'inference-step'),
+                    ('step_has_premise', 'inference-step', 'thesis'),
+                    ('step_has_conclusion', 'inference-step', 'thesis'),
+                    ('objection_to_step', 'objection', 'inference-step')):
+                claims.append({**copy.deepcopy(base), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': 'tos.claim.synthetic-command-' + predicate.replace('_', '-'),
+                    'subject_ref': subjects[left]['record_id'], 'object': subjects[right]['record_id'],
+                    'predicate': predicate, 'assertion_layer': 'semantic_interpretation',
+                    'qualifiers': {'statement': 'Условная спорная реконструкция, не признанный вывод.',
+                        'statement_language': 'ru', 'statement_script': 'Cyrl',
+                        'relation_basis': 'Synthetic execution test; no logical validity asserted.',
+                        **({'step_position': 0} if predicate == 'argument_has_step' else {})}})
+            config.update(allowed_claim_ids=[c['claim_id'] for c in claims],
+                allowed_predicates=[c['predicate'] for c in claims],
+                allowed_subject_refs=sorted({c['subject_ref'] for c in claims}),
+                allowed_object_refs=sorted({c['object'] for c in claims}))
+            owner.write_text(json.dumps(config))
+            preview_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': claims}
+            bad = copy.deepcopy(preview_request)
+            bad['claims'][0]['qualifiers'].pop('step_position')
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, bad)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            preview = commands.run_local_command(owner, preview_request)
+            request.update(claims=claims, expected_configuration=preview['owner_configuration'],
+                expected_dependencies=preview['expected_dependencies'], expected_inputs=preview['source_bindings'])
+            # One invalid member cannot leave the other three published.
+            bad = copy.deepcopy(request)
+            bad['claims'][-1]['object'] = subjects['thesis']['record_id']
+            with self.assertRaises((ValueError, commands.JournalConflict)):
+                commands.run_local_command(owner, bad)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            nodes = {node['entity_id']: node for node in graph['nodes']}
+            for claim in claims:
+                self.assertEqual(nodes[claim['claim_id']]['attributes']['source_claim'], claim)
+            for source in subjects.values():
+                self.assertEqual(nodes[source['record_id']]['attributes']['source_record'], source)
+
     def test_semantic_claim_creation_uses_shared_writer_and_keeps_exact_source_scope(self):
         with self.creation() as (root, owner, config, claim, request, rebuild, graph_fixture):
             for name in ('source-metadata-record', 'semantic-description-record', 'semantic-relation-claim'):
