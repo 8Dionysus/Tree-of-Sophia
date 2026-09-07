@@ -13,6 +13,8 @@
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/semantic-description-record.schema.json",
     "ToS/contracts/semantic-relation-claim.schema.json",
+    "ToS/contracts/social-body-record.schema.json",
+    "ToS/contracts/social-relation-claim.schema.json",
     "ToS/contracts/source-relation-claim.schema.json",
     "ToS/contracts/thought-description-record.schema.json",
     "ToS/contracts/thought-practice-record.schema.json",
@@ -29,6 +31,9 @@
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
     "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "social-group": "ToS/source-witnesses/catalog/social-groups.jsonl",
+    "community": "ToS/source-witnesses/catalog/communities.jsonl",
+    "institutional-body": "ToS/source-witnesses/catalog/institutional-bodies.jsonl",
     "thought-method": "ToS/source-witnesses/catalog/thought-methods.jsonl",
     "thought-operation": "ToS/source-witnesses/catalog/thought-operations.jsonl",
     "thought-move": "ToS/source-witnesses/catalog/thought-moves.jsonl",
@@ -59,7 +64,7 @@
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
-    "agent": 42,
+    "agent": 48,
     "place": 4,
     "organization": 11,
     "work": 40,
@@ -68,6 +73,9 @@
     "collection": 3,
     "item": 21,
     "link": 5,
+    "social-group": 1,
+    "community": 1,
+    "institutional-body": 2,
     "thought-method": 1,
     "thought-operation": 1,
     "thought-move": 1,
@@ -95,10 +103,10 @@
     "letter": 1,
     "historical-event": 1,
     "artifact": 18,
-    "object_total": 233,
-    "claim": 285,
-    "total": 518
+    "object_total": 243,
+    "claim": 297,
+    "total": 540
   },
-  "catalog_sha256": "4a2587ba0cd81782c2d609e98114f768cef97dc387cae4775577d72a47342b5b",
+  "catalog_sha256": "9f418b050aca8a3047bb0ead81f7afa04d548890d3290ec5ae87f41cd41b7720",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

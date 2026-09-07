@@ -454,6 +454,68 @@ explains the additive subtype and source/review boundary. These contracts and
 synthetic tests do not alone complete the real concept-history route, precise
 occurrence/argument/objection grammar, or substantive assessment of examples.
 
+## Social bodies and source-attributed relationships
+
+Entity registry version 13 adds `SocialGroup` and `InstitutionalBody` under
+the existing collective `Organization` identity family, and `Community`
+under `SocialGroup`. Group membership is not mere classification by a shared
+attribute. Community adds continuing shared practice or belonging; an
+institutional body has organized roles and continuity and is not its building.
+These are historical research referents, not canon nodes or atlas categories.
+Existing `Tradition`, `SchoolTradition` and `Institution` navigation types and
+their IDs retain their meanings. Intellectual school, tradition and movement
+profiles are still a separate requirement; none is implemented by renaming a
+social group.
+
+`social-body-record` composes the common metadata and description fields.
+Its `semantic_scope` field names the scope and continuity criterion of the
+research description; reuse of that field does not make the subject a
+`SemanticObject`. Group account and membership boundary are inherited by
+Community, which additionally requires a shared-practice account. Institutional
+description requires its organized-role account. Names and notes alone do not
+replace these fields. Descriptive quality and identity remain assessable,
+not proved by nonempty strings. Ordinary `source.create`, `record.revise`,
+forms, catalog, both graph carriers and semantic property filters use the
+existing `corpus-metadata-v1` profile reader, without per-kind Python dispatch.
+Ancestry-aware queries retain one subject ID across the subtype and its bases.
+Full scope/content is mandatory human-form context; no source assertion or
+membership is inferred from the description or generated carrier.
+
+The source-navigation adapter also carries adjacent human forms for the eight
+native Corpus families, matching the source-claims carrier. It validates the
+native source schema, typed identity and catalog digest before binding forms.
+Source changes without matching catalog refresh fail; refreshed source with old
+forms exposes their stale state rather than dropping them or reusing wording.
+Native Link and Artifact formats do not acquire a Corpus form adapter through
+this change. Default focus therefore need not lose a person's existing forms
+merely because it selects the navigation carrier.
+
+Relation registry version 12 adds eight `identity-relation-v1` predicates:
+
+| Predicate | Subject → object | What is not inferred |
+| --- | --- | --- |
+| `social_member_of` | Agent/Organization → Organization | permanent membership, unanimous belief, membership in a similarly named school |
+| `learned_from` | Agent → Agent | this teacher relationship from reading a text alone; causal influence |
+| `studied_at` | Agent → InstitutionalBody | graduation, qualification, residence |
+| `taught_at` | Agent → InstitutionalBody | a particular employment title, discipline or institutional endorsement |
+| `collaborated_with` | Agent/Organization ↔ Agent/Organization | collaboration from co-presence or equal responsibility |
+| `corresponded_with` | Agent/Organization ↔ Agent/Organization | a whole exchange from one unsent/addressed letter, delivery or reading |
+| `friendship_with` | Agent ↔ Agent | agreement, influence or reciprocal self-description |
+| `conflicted_with` | Agent/Organization ↔ Agent/Organization | equal fault or permanent opposition on all issues |
+
+The shared `social-relation-claim` schema requires the attributed statement,
+wording language/script, relation basis, social scope and historical time-scope
+note. Unknown bounds must be stated explicitly. That note is preserved prose,
+not an automatically normalized or sortable temporal assertion. Symmetry means
+the described relation connects both parties, not that its source perspectives
+or responsibilities are interchangeable. No predicate is transitive; none
+creates a second reverse Claim, an influence edge or global membership closure.
+Negation, dispute, counterevidence and source qualifications stay with each
+Claim. Initial records/Claims and forms grant no assessment or admission.
+Correction retains earlier source versions; changing the referent, identity
+criterion, type or permission remains outside ordinary description correction.
+Reader rollback does not remove new source records or their creation history.
+
 ## Documents and declared source claims
 
 Entity registry version 8 adds Document under the broader IntellectualObject

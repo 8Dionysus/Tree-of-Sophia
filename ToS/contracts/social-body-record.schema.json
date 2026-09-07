@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/social-body-record.schema.json",
+  "title": "Source-described social groups, communities and institutional bodies",
+  "description": "Correctable descriptions of historical collective identities; membership, activity, role and intellectual affinity remain separate Claims. Shared schema field names describe research scope, not a retyping into the SemanticObject family.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_social_body_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "social-group",
+            "community",
+            "institutional-body"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "social-group"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.social-group\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.social-group\\."
+          },
+          "semantic_content": {
+            "required": [
+              "group_account",
+              "membership_boundary"
+            ],
+            "properties": {
+              "group_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What holds this collective together; mere similarity of members is insufficient."
+              },
+              "membership_boundary": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "How membership is understood and where it is unknown or disputed; this is not a list of accepted members."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "community"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.community\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.community\\."
+          },
+          "semantic_content": {
+            "required": [
+              "group_account",
+              "membership_boundary",
+              "community_practice"
+            ],
+            "properties": {
+              "group_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What holds this collective together; mere similarity of members is insufficient."
+              },
+              "membership_boundary": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "How membership is understood and where it is unknown or disputed; this is not a list of accepted members."
+              },
+              "community_practice": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The continuing interaction or practice grounding this community, not proof of unanimous belief."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "institutional-body"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.institutional-body\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.institutional-body\\."
+          },
+          "semantic_content": {
+            "required": [
+              "institutional_account"
+            ],
+            "properties": {
+              "institutional_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The organized roles and continuity by which this particular institutional body is described."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

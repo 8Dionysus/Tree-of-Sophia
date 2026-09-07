@@ -801,6 +801,11 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        social = {
+            'social-group': {'group_account': 'A synthetic collective, not a class of similar people.', 'membership_boundary': 'Participation in this test activity.'},
+            'community': {'group_account': 'A synthetic community.', 'membership_boundary': 'Continuing participation.', 'community_practice': 'Repeated shared inquiry.'},
+            'institutional-body': {'institutional_account': 'A synthetic body with organized roles; not its building.'},
+        }
         practices = {
             'thought-method': {'method_account': 'Synthetic inquiry method, not executable code.', 'applicability_conditions': ['Only within the test assumptions.']},
             'thought-operation': {'operation_account': 'Provisionally grant a synthetic condition.', 'prerequisites': ['Suspend actuality claims.']},
@@ -830,10 +835,11 @@ class HistoricalCreationTests(unittest.TestCase):
             'objection': {'challenge_account': 'The synthetic transition is under examination.'},
             **topics,
             **practices,
+            **social,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -850,10 +856,11 @@ class HistoricalCreationTests(unittest.TestCase):
                     semantic_scope={'scope_note': 'Только синтетическая проверка.',
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
-                    source.update(schema_version=('tos_thought_practice_record_v1' if kind in practices else
+                    source.update(schema_version=('tos_social_body_record_v1' if kind in social else
+                                  'tos_thought_practice_record_v1' if kind in practices else
                                   'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics or kind in practices:
+                if kind in topics or kind in practices or kind in social:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
@@ -893,10 +900,11 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics or kind in practices:
+                    if kind in topics or kind in practices or kind in social:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
                         for field in contents[kind]:
                             property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
+                                else 'social-group' if kind == 'community' and field in {'group_account', 'membership_boundary'}
                                 else 'rhetorical-figure' if kind == 'metaphor' and field == 'figure_account' else kind)
                             value = proposal['fields']['semantic_content'][field]
                             lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',

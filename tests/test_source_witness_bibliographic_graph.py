@@ -34,6 +34,85 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_social_bodies_and_relationships_preserve_collective_and_claim_boundaries(self):
+        """Synthetic source contracts, not historical membership or influence evidence."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records, relations = SourceRecordProfiles(REPO_ROOT), SourceClaimProfiles(REPO_ROOT)
+        contents = {
+            'social-group': {'group_account': 'A synthetic joint activity.', 'membership_boundary': 'Participation, not shared names.'},
+            'community': {'group_account': 'A synthetic research circle.', 'membership_boundary': 'Continuing participation.', 'community_practice': 'Regular shared inquiry.'},
+            'institutional-body': {'institutional_account': 'A synthetic institution with organized teaching roles.'},
+        }
+        for kind, content in contents.items():
+            source = {'schema_version': 'tos_social_body_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic-social', 'record_version': 1,
+                'preferred_label': 'Условный коллектив', 'notes': 'Только синтетическая проверка.',
+                'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'}, 'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-social'], 'external_identifiers': [], 'visibility': 'public_metadata_only',
+                'semantic_scope': {'scope_note': 'This test only.', 'identity_criterion': 'The same collective, not its place or name.', 'language': 'en', 'script': 'Latn'},
+                'semantic_content': {**content, 'language': 'en', 'script': 'Latn', 'unknown': {'instruction': 'Do not execute source content.', 'values': [None, False]}}}
+            records.validate(kind, source)
+            self.assertEqual(records.profiles[kind]['reader'], 'corpus-metadata-v1')
+            ancestry = relations.ancestry('tos.entity.' + kind)
+            self.assertIn('tos.entity.organization', ancestry)
+            self.assertNotIn('tos.entity.semantic-object', ancestry)
+            self.assertNotIn('tos.entity.navigation-object', ancestry)
+            for field in (*content, 'language', 'script'):
+                invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+            for field in content:
+                for value in (' ', [], None):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'][field] = value
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+            for change in ({'record_id': 'tos.organization.synthetic-social'}, {'record_type': 'institution'},
+                           {'semantic_scope': {}}, {'allowed_operations': ['source.create']}):
+                with self.assertRaises(SourceProfileError):
+                    records.validate(kind, {**source, **change})
+        cases = [('social_member_of', 'agent', 'community'), ('social_member_of', 'social-group', 'institutional-body'),
+            ('learned_from', 'agent', 'agent'), ('studied_at', 'agent', 'institutional-body'),
+            ('taught_at', 'agent', 'institutional-body'), ('collaborated_with', 'agent', 'community'),
+            ('corresponded_with', 'organization', 'agent'), ('friendship_with', 'agent', 'agent'),
+            ('conflicted_with', 'institutional-body', 'social-group')]
+        objects = {f'tos.{kind}.synthetic-social': {'record_type': kind}
+                   for kind in (*contents, 'agent', 'organization', 'place', 'tradition', 'institution')}
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_social_relation_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-social', 'claim_version': 1,
+                'subject_ref': f'tos.{left}.synthetic-social', 'predicate': predicate, 'object': f'tos.{right}.synthetic-social',
+                'assertion_layer': 'scholarly_report', 'evidence_refs': ['test:synthetic-social'],
+                'provenance_event_ref': 'tos.event.synthetic-social', 'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic-test'},
+                'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'A synthetic, source-attributed relationship only.', 'statement_language': 'en',
+                    'statement_script': 'Latn', 'relation_basis': 'A synthetic explicit report, not graph proximity.',
+                    'social_scope': 'Only the specified test activity.', 'time_scope_note': 'Historical bounds unknown; not the capture time.',
+                    'uninterpreted': [False, None]}}
+            with self.subTest(predicate=predicate):
+                relations.validate(claim, objects)
+                self.assertFalse(relations.relations[predicate]['transitive'])
+                for field in ('statement', 'statement_language', 'statement_script', 'relation_basis', 'social_scope', 'time_scope_note'):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate(invalid, objects)
+                for field in ('statement', 'relation_basis', 'social_scope', 'time_scope_note'):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'][field] = ' '
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate(invalid, objects)
+                for endpoint in ('subject_ref', 'object'):
+                    for wrong in ('place', 'tradition', 'institution'):
+                        with self.assertRaises(SourceProfileError):
+                            relations.validate({**claim, endpoint: f'tos.{wrong}.synthetic-social'}, objects)
+                relations.validate({**claim, 'epistemic_status': 'disputed'}, objects)
+                relations.validate({**claim, 'qualifiers': {**claim['qualifiers'], 'negated': True}}, objects)
+        # A study institution is not any collective; friendship is not an institution's role.
+        for predicate, left, right in [('studied_at', 'agent', 'community'), ('taught_at', 'organization', 'institutional-body'),
+                                       ('learned_from', 'agent', 'institutional-body'), ('friendship_with', 'agent', 'organization')]:
+            with self.assertRaises(SourceProfileError):
+                relations.validate({**claim, 'predicate': predicate, 'subject_ref': f'tos.{left}.synthetic-social',
+                                    'object': f'tos.{right}.synthetic-social'}, objects)
+
     def test_practice_profiles_keep_hypotheses_figures_and_values_non_executable(self):
         """Synthetic source-to-reader grammar, not assessment of a philosophy."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
@@ -434,6 +513,79 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         entities, relations = [json.loads((root / 'ToS/doctrine/semantic-interchange' / name).read_text())
                                for name in ('entity-types.v1.json', 'relation-types.v1.json')]
         return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
+
+    def test_native_metadata_forms_survive_both_carriers_and_stale_source_is_not_hidden(self):
+        """Source -> navigation -> shared reader must not drop native forms."""
+        import tos_corpus_index_common as corpus_builder
+        from build_source_witness_catalog import collect_records
+        sys.path.insert(0, str(REPO_ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'))
+        from source_commands import prepare_metadata_change, _apply
+        from knowledge_assessment import Record
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            organization = {'schema_version': 'tos_corpus_record_v1', 'record_type': 'organization',
+                'record_id': 'tos.organization.synthetic-form-test', 'record_version': 1,
+                'preferred_label': 'Тестовая организация', 'notes': 'Только синтетический пример.',
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-native-form'], 'external_identifiers': []}
+            org_path = root / 'ToS/source-witnesses/organizations/synthetic-form-test/organization.json'
+            org_path.parent.mkdir(parents=True)
+            org_path.write_text(json.dumps(organization))
+            sources = []
+            for kind in ('agent', 'place', 'organization', 'work'):
+                entry = collect_records(root)[kind][0]
+                path = root / entry['source_record_ref']
+                source = json.loads(path.read_text())
+                source.update(preferred_label='Тестовая запись ' + kind,
+                    notes='Синтетическая проверка формы, не новое историческое описание.',
+                    field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                        'notes': {'language': 'ru', 'script': 'Cyrl', 'unknown_qualification': [None, False]}},
+                    record_version=source['record_version'] + 1)
+                path.write_text(json.dumps(source, ensure_ascii=False))
+                changes = [prepare_metadata_change(source, None, 'test:native-form',
+                    form_id='tos.form.synthetic-native-' + kind + '-' + role, field_id=field)
+                    for role, field in (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+                forms = _apply(None, Record.from_payload(source['record_id'], source['record_version'], source), changes)
+                path.with_name(path.stem + '.human-forms.json').write_text(json.dumps(forms))
+                sources.append((path, source))
+            projection = rebuild()
+            _, entities, relations = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import build_knowledge_graph, select_human_forms, focus_knowledge_node
+
+            def navigation():
+                with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                    return corpus_builder.build_source_navigation([])
+
+            combined = build_knowledge_graph({'source_navigation': navigation()}, {}, projection, entities, relations)
+            for path, source in sources:
+                carriers = [n for n in combined['nodes'] if n['entity_id'] == source['record_id']]
+                self.assertEqual({n['source_graph'] for n in carriers}, {'source-navigation', 'source-claims'})
+                packets = []
+                for carrier in carriers:
+                    self.assertEqual(carrier['attributes']['source_record'], source)
+                    selection = select_human_forms(carrier, 'ru')
+                    self.assertEqual(selection['roles']['name']['packet']['display_text'], source['preferred_label'])
+                    packet = selection['roles']['hover']['packet']
+                    self.assertEqual(packet['display_text'], source['notes'])
+                    self.assertIsNone(packet['admission'])
+                    self.assertTrue(any(c['value'] == source['field_languages']['notes'] for c in packet['context']))
+                    packets.append(packet)
+                self.assertEqual(*packets)
+                focus = focus_knowledge_node(combined, source['record_id'], depth=1)
+                center = next(n for n in focus['nodes'] if n['id'] == focus['focus']['node_id'])
+                self.assertEqual(select_human_forms(center, 'ru')['roles']['hover']['packet'], packets[0])
+
+            path, source = sources[0]
+            newer = {**source, 'record_version': source['record_version'] + 1, 'notes': 'Исправленная тестовая запись.'}
+            path.write_text(json.dumps(newer, ensure_ascii=False))
+            # A stale catalog cannot supply a digest for forms over new source bytes.
+            with self.assertRaisesRegex(ValueError, 'digest'):
+                navigation()
+            projection = rebuild()
+            combined = build_knowledge_graph({'source_navigation': navigation()}, {}, projection, entities, relations)
+            for carrier in (n for n in combined['nodes'] if n['entity_id'] == source['record_id']):
+                self.assertEqual(carrier['attributes']['source_record'], newer)
+                self.assertEqual({f['state'] for f in carrier['attributes']['human_forms']}, {'stale'})
+                self.assertIsNone(select_human_forms(carrier, 'ru')['roles']['hover']['packet'])
 
     def test_documentary_claims_keep_roles_carrier_and_historical_context_distinct(self):
         from source_record_profiles import SourceClaimProfiles, SourceProfileError

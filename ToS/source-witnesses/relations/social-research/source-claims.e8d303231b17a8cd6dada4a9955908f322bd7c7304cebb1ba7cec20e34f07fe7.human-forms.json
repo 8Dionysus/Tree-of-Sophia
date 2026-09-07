@@ -1,0 +1,82 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.social-research-schlick-hans-hahn-founding-collaboration",
+    "version": 1,
+    "digest": "sha256:d1ace15f7ef5ca7cb92bef187768010887b26c74710d78b47d90f2fbb6505620"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:d1ace15f7ef5ca7cb92bef187768010887b26c74710d78b47d90f2fbb6505620",
+            "id": "tos.claim.social-research-schlick-hans-hahn-founding-collaboration",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:d1ace15f7ef5ca7cb92bef187768010887b26c74710d78b47d90f2fbb6505620",
+            "id": "tos.claim.social-research-schlick-hans-hahn-founding-collaboration",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.social-research-schlick-hans-hahn-founding-collaboration.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:d1ace15f7ef5ca7cb92bef187768010887b26c74710d78b47d90f2fbb6505620",
+        "id": "tos.claim.social-research-schlick-hans-hahn-founding-collaboration",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "social-research:20260907:statement:social-research-schlick-hans-hahn-founding-collaboration",
+      "request_digest": "sha256:4d351c941951a33a103a246c3931ad72947657b48c086d3020c2dbc9a9c9e10a",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:126f3a7252e4ea14f47c64982738e60e8d01fb2ee6f328d03b714ed8a3894190",
+      "recorded_at": "2026-09-07T15:46:32.436355+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:5edf4ff161fa42b7c13b0eae7d0ac765d26251e5cfa323d42f8f12d69bc64f7e",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:2fc1c9b36d58d64dc628a5592eedfc5e90ab960fff55ba84f3d64e8b2a92a09e",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:669b0884c85f0cfe83da2613803289b5ffcd9792d513379a0133137b399c238a",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:a6effb9f6339c237a994334df7389e04892a5ba7ddd54b4552b2e3dc78fae088",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/social-relation-claim.schema.json": "sha256:ea2397de217e69662e76ead4efa8f19b0566f1e3cf0e13d252cf0261e2bbbfb2"
+      },
+      "source": {
+        "id": "tos.claim.social-research-schlick-hans-hahn-founding-collaboration",
+        "version": 1,
+        "digest": "sha256:d1ace15f7ef5ca7cb92bef187768010887b26c74710d78b47d90f2fbb6505620"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.social-research-schlick-hans-hahn-founding-collaboration.statement-ru",
+          "version": 1,
+          "digest": "sha256:efc932bedcfb221354a38269f01ecb63b6080cf9852ad41089c114c6ad7fb1ca"
+        }
+      ]
+    }
+  ]
+}

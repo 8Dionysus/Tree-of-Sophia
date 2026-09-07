@@ -12,7 +12,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
-                                         load_artifact_record, RECORD_FILES, ADAPTED_RECORD_FILES)
+                                         load_artifact_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES)
 from source_witness_human_forms import load_metadata_forms
 from source_record_profiles import SourceRecordProfiles
 
@@ -728,6 +728,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
         catalog_manifest = load_json(catalog_manifest_path)
         artifact_validators = {}
         profiles = SourceRecordProfiles(REPO_ROOT)
+        corpus_validator = Draft202012Validator(load_json(REPO_ROOT / 'ToS/contracts/corpus-record.schema.json'))
         allowed_files = {**RECORD_FILES, **profiles.catalog_files, **ADAPTED_RECORD_FILES}
         for record_type, file_ref in sorted(catalog_manifest.get("record_files", {}).items()):
             if (record_type not in allowed_files
@@ -744,11 +745,19 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
                 if record_type == 'artifact' and entry != artifact_catalog_entry(
                         REPO_ROOT, source_record, source_ref, artifact_validators):
                     raise ValueError(f'{source_ref}: physical artifact catalog/source mapping drifted')
+                native_metadata = record_type in RECORD_FILES and record_type != 'link'
+                if native_metadata:
+                    if (not corpus_validator.is_valid(source_record)
+                            or source_record.get('record_id') != record_id
+                            or source_record.get('record_type') != record_type):
+                        raise ValueError(f'{source_ref}: native metadata catalog/source identity drifted')
+                    if hashlib.sha256(canonical_json(source_record).encode('utf-8')).hexdigest() != entry.get('record_sha256'):
+                        raise ValueError(f'{source_ref}: native metadata catalog/source digest drifted')
                 properties = dict(source_record)
                 properties["source_record"] = dict(source_record)
                 if record_type == 'artifact':
                     properties.update(artifact_display_fields(source_record))
-                if record_type in profiles.profiles:
+                if record_type in profiles.profiles or native_metadata:
                     forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
                     if forms is not None:
                         forms_ref, _forms_raw, materialized = forms

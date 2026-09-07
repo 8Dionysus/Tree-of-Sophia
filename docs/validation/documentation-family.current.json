@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4055,
+    "tracked_surface_count": 4124,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 724,
+    "excluded_tracked_path_count": 739,
     "human_scope": {
-      "bytes": 5283711,
-      "count": 993,
+      "bytes": 5304976,
+      "count": 995,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3886996,
-          "count": 584,
-          "lines": 65568
+          "bytes": 3908261,
+          "count": 586,
+          "lines": 65893
         }
       },
-      "lines": 91405
+      "lines": 91730
     },
     "surface_kind_counts": {
       "executable": 233,
-      "human": 1018,
-      "structured": 2804
+      "human": 1020,
+      "structured": 2871
     },
-    "tracked_path_count": 4779,
-    "tracked_surface_count": 4055,
+    "tracked_path_count": 4863,
+    "tracked_surface_count": 4124,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 584,
-        "structured": 2720
+        "human": 586,
+        "structured": 2787
       },
-      "tracked_surface_bytes": 223157697,
-      "tracked_surface_count": 3308
+      "tracked_surface_bytes": 225072195,
+      "tracked_surface_count": 3377
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 862077,
+      "tracked_surface_bytes": 862861,
       "tracked_surface_count": 214
     },
     {
@@ -240,7 +240,7 @@
         "executable": 108,
         "human": 2
       },
-      "tracked_surface_bytes": 3701191,
+      "tracked_surface_bytes": 3702029,
       "tracked_surface_count": 110
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1479955,
+      "tracked_surface_bytes": 1492524,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f0e62dc0cb3d7504295e3a1d94c635ac20c6b3f7320aa63ef3fba9ed473fbdb8",
+  "tracked_surface_digest": "acbffe8daeadd331ee582a2cd8866af49d14c75abd20ecc10ed0cf54299d3284",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "8dafdbdb64b57239067a1089511be8ba267c3c982d5a57de81aeba7f6fe72334",
+      "sha256": "f62b67caab98fe9b6d6b2f373fc9ef2c7bca24d357006cfaceb337cbcab3441e",
       "surface_kind": "structured"
     },
     {
@@ -3704,6 +3704,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4691,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/social-body-record.schema.json",
+      "sha256": "2c0b22f1233fc8387ea41aaeece0c08b569d859ef85bf374008c30cec45621ab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2582,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/social-relation-claim.schema.json",
+      "sha256": "ea2397de217e69662e76ead4efa8f19b0566f1e3cf0e13d252cf0261e2bbbfb2",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 14126,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4088,11 +4104,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7538641,
+      "bytes": 7879884,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "8ce87bb8eeff6cd4c9b749ec9317eb4ce4e3bb7dbbb7a768a148f35ac8342b2d",
+      "sha256": "622814dc311229aad5b3e77062756d2c4d95448f702d4ec6af41d0269c211edf",
       "surface_kind": "structured"
     },
     {
@@ -4168,11 +4184,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 57825837,
+      "bytes": 59139118,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "169cc3afdfb64d065ac6d66cac9210e5633a16a789a7832d0e64837537c9e2ac",
+      "sha256": "ea7c6c131a37857513bca173b3261e679dfec0e28640e40385797b3f33cad2ae",
       "surface_kind": "structured"
     },
     {
@@ -4248,11 +4264,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 70562,
+      "bytes": 71674,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "0e166edc933d5cb79a7bcd56eeb4c1ba6082ea96a25d7f24e96d34e1053cfa24",
+      "sha256": "c5c2777575a9579faf0da9e959255bc117160e7785604b302c655d6c1735a9fa",
       "surface_kind": "human"
     },
     {
@@ -4368,11 +4384,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 48127,
+      "bytes": 52472,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "a5e5563aa74615fc830f240014a0bf1f5105c2a0a4c9876b92d88fd5ee09fef0",
+      "sha256": "b9e104694ec9e327ec8cf70f359d87cd85f0c7fa7b573a1cb3cf2c07044d6685",
       "surface_kind": "human"
     },
     {
@@ -4384,19 +4400,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 119863,
+      "bytes": 128291,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "44f66f427900462367df6c879d0906f6834e1a1604ab7c5a8d9d5b550afc4f2b",
+      "sha256": "669b0884c85f0cfe83da2613803289b5ffcd9792d513379a0133137b399c238a",
       "surface_kind": "structured"
     },
     {
-      "bytes": 201797,
+      "bytes": 214131,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "245483de93578952558e76259b93e87749a6f316f743eed4d7832ce3d6a3893d",
+      "sha256": "5edf4ff161fa42b7c13b0eae7d0ac765d26251e5cfa323d42f8f12d69bc64f7e",
       "surface_kind": "structured"
     },
     {
@@ -18448,6 +18464,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 9398,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-social-profiles-and-reader-review.md",
+      "sha256": "57027be171054484876c4b019fb69baeeff017cce3a002b50a30202ff3e1eed5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5717,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-social-source-reading.md",
+      "sha256": "2c7a6cd6fb1f7645dd3e1182c980a46a523ba3368de0aede7f644439f7d7b647",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 2450,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18528,11 +18560,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 82748,
+      "bytes": 83441,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "f3b264a4e0e26fca19634a9a294eb85b896af33e943d825b462178e7619098b3",
+      "sha256": "bd32d38610673b7414332de4a80f9728d22fb23b1fd53fa2225d33bb92e5b01f",
       "surface_kind": "human"
     },
     {
@@ -18896,6 +18928,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6197,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/franz-overbeck/agent.human-forms.json",
+      "sha256": "a1388dc34988b13dd27e2cca1a8c8b4dd03c9d1e6d15b6d62fd3759702eee4a3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1233,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/franz-overbeck/agent.json",
+      "sha256": "87b517975440f2f84b737d19c737057c67a411bfbc28a5b703cfc72222f8ad44",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/franz-overbeck/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/franz-overbeck/source-create-receipt.json",
+      "sha256": "b52c113512b1242ecbceee12fc3fe000daee2e3fc4b888d142d7d87934de9014",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1727,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/franz-overbeck/source-create-request.json",
+      "sha256": "f1fdb9506a32bf9eee74be0ce807079ba54759efaa27b8733fea8aefc1ed23bb",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6972,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18909,6 +18981,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
       "sha256": "49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6263,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/friedrich-ritschl/agent.human-forms.json",
+      "sha256": "c7b42f77c04dae1f5f98ab6704b0b7da67724b4f09ca4129cc3e0ea70601bca1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1293,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/friedrich-ritschl/agent.json",
+      "sha256": "74ab4abbad3c1f2e47299b4b9a8577000613953f6d4c9fb560148a3da645f820",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/friedrich-ritschl/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1414,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/friedrich-ritschl/source-create-receipt.json",
+      "sha256": "54310257b2544ae250855348844af2688abcc0c702155f453af1b6c18717ee93",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/friedrich-ritschl/source-create-request.json",
+      "sha256": "d12e5d31023556d618689a7d16c7f9595597572aac6523d18afdf17a226a9b0a",
       "surface_kind": "structured"
     },
     {
@@ -18941,6 +19053,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/graham-cunningham/agent.json",
       "sha256": "63231573cc2344522506ad77eebe6e632baef019c6add8027c67bbef4a25c8a1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6087,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/hans-hahn/agent.human-forms.json",
+      "sha256": "759bf136d4a10a5984518e5c1573a1be2c6995d2e770b4b326ba19a478e77dcd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1157,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/hans-hahn/agent.json",
+      "sha256": "18d798d7d436f9f77750bfd4c12c574103efc7b739d940ede4b3cdac7fe95c63",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/hans-hahn/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1390,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/hans-hahn/source-create-receipt.json",
+      "sha256": "21d295491bbc9d7b266dbe15accbc9c4809f350afc8387c5dc32545cf9efd404",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1631,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/hans-hahn/source-create-request.json",
+      "sha256": "496738acad112f563a6b68d2835c57dd1d2947a8ad93b242e3a1ce4509f7fc12",
       "surface_kind": "structured"
     },
     {
@@ -19168,6 +19320,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6197,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/moritz-schlick/agent.human-forms.json",
+      "sha256": "fa328a730d8101785cfaf3df6c208e9ef2b45ae04d5b4ca3b062c9aa4df02694",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1181,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/moritz-schlick/agent.json",
+      "sha256": "4ac6b32efa60e9f5a945f7059e7af62b82ce8320a07adb037474c260a50ec81b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/moritz-schlick/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/moritz-schlick/source-create-receipt.json",
+      "sha256": "a60b30ebe1fc17956bef49aca470eb31f19cceb7ea45fa34a4ca3503cb136eb1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/moritz-schlick/source-create-request.json",
+      "sha256": "c2218c674f762c50ba396805f483ed706eb20ac69887a9716e13dd367a8c7dd6",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6936,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19213,6 +19405,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/niek-veldhuis/agent.json",
       "sha256": "7291e980f11cec2ed30b4a5845dd61b249cef088099e27543c9ebdb81fc403fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6153,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/otto-neurath/agent.human-forms.json",
+      "sha256": "bb6d4f68a6063274b8bda759f89c89025bd64cb2ec332bc6cd2b75f309e67358",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1174,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/otto-neurath/agent.json",
+      "sha256": "f50e84ade0e5a18fbf98a7bca4afbdcb986fa3da706183a367c5d6c3aa70d8ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/otto-neurath/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/otto-neurath/source-create-receipt.json",
+      "sha256": "060321a100b2d00c82bb7a9a2f215728257705b0884d31e8f90263d0135fd18f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1660,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/otto-neurath/source-create-request.json",
+      "sha256": "7062cdef3bcd59880f003e32d4cb665334235e767269724157a67856caf76fab",
       "surface_kind": "structured"
     },
     {
@@ -19293,6 +19525,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/raoul-richter/agent.json",
       "sha256": "58a4db9b7185796eceb74b415733be1a44729457876c70d353aa6a73ea28152a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6197,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/richard-wagner/agent.human-forms.json",
+      "sha256": "2e11fa251afbc2264b21b89591283ebb11bc84554f93bafd976963b2862e2a83",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1199,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/richard-wagner/agent.json",
+      "sha256": "f1b3a139105b75f0e547fb8332bf796275b852b3a4aa4a3279c0a7dcdd139c8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/richard-wagner/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1405,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/richard-wagner/source-create-receipt.json",
+      "sha256": "a98627add19d70fbcf2ba99de4fb607634c8c4692a5dd22115ad88375032ed66",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1693,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/richard-wagner/source-create-request.json",
+      "sha256": "d54e6a301b353a51fb5dffcb7ca7704cc4b40cfe6b9329f5d0ff75d01527b2e3",
       "surface_kind": "structured"
     },
     {
@@ -19928,11 +20200,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 4684,
+      "bytes": 5087,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "c8190cc36b7e71ba80c7a7f93f67606989f0dc4273fe827db6a8f0afdb005874",
+      "sha256": "ffbc75db8e0230c5c7bbaf95b2e17537e0662411f7784c7733d9823a99148170",
       "surface_kind": "structured"
     },
     {
@@ -22576,6 +22848,126 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3842,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.33e0b5161ddbeef412385daa0368d08436a9999a0ba614a707d6f570cad16ff2.human-forms.json",
+      "sha256": "a1206aa26a4eef07c14099c97d7e8978cdf91c1afc6995d58cbb05ae755efe97",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3802,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.3bb1cf9a2379aa60e35fd1d2a58e0aef0dff126ebb69b08b2c43b42a1424e62e.human-forms.json",
+      "sha256": "245908bc241485a894847f380aaa5c5b35161e660f3abe95d9b956581142c127",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3866,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.713aa04f5a81f0d1dfed7097b07519aea0ec1833bb3637d925b644b183c6a1d1.human-forms.json",
+      "sha256": "91e6cadc255bae887b8131da64137d5617783d4255d3afe893c15d4cfb3c9bca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3754,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.863d414aba9c2e221f2f0e9bda74a771e8cd574a9897c20574bb15bd09538b1e.human-forms.json",
+      "sha256": "5065cb39caadcbbf25c8e801b2d3e3e6c274c27af1741fdcb40e837eb2c83ee7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3882,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.9182806f7952dbc476e10adac8a09fbab92efe01f4ed33c8e81e594b9333d542.human-forms.json",
+      "sha256": "03e861530d29196cb73850d70ef437545fd91c3c547463d02bb4a9dac64f54cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3834,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.966242b81e4e65269d54282713c02d58e5a65e1d5590fd7c82f327cce7545a55.human-forms.json",
+      "sha256": "b9fbcaad670929cc9a76c27b4c33471e0341c9f933d1dab18b270c8a893ae030",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3914,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.b09b1aec0485f3ced02c4b49a364a5dd63293f97ebd46145225b3ea7a90368ee.human-forms.json",
+      "sha256": "e1bf456e282aa1a1dd2a52ca32f723d774f59181a691b254b6176e478d8bb838",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3762,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.e563a35d61fdd4ea6c3ca6906485207d3da15a9ca0353cb88dcfb03f3c49e264.human-forms.json",
+      "sha256": "e8aa446f46bf5fa57ce47c7a752eda377fa794bd95c5b970a67076a664505231",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3770,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.e7abaeb7c6da856451f316a481cc966340f82ffd3f16d991dbb4fc12e913385f.human-forms.json",
+      "sha256": "870e07068b260f3df0eaf2e3ab52ac6f00a9128b9c8e9c6614e0067a245a80b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3890,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.e8d303231b17a8cd6dada4a9955908f322bd7c7304cebb1ba7cec20e34f07fe7.human-forms.json",
+      "sha256": "998b196747398811cac3f2f1cc9989ba36f528f3b7404656fba50509aea2e582",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3834,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.fb83bb084d010548b4266efaef711f3a2c968cb83c3b354b51c14c72d59cf78f.human-forms.json",
+      "sha256": "d1de2fb0ce7f76b4fc423b032c1f303638ce8e1e66031b68d283af3643d8f115",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3778,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-claims.fdc4f54217373f815babbaf01b3fd115146959db66ddcaa7afc926092af0c58d.human-forms.json",
+      "sha256": "e8c6483d1ef5d3b078094347b59121378d510cba467809768453ada4973f80ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7510,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-create-receipt.json",
+      "sha256": "b687a2db933afa6bf7f5f440da1615c76cb55e18dbc3f6be9e2470ce95c15ef2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 30130,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/social-research/source-create-request.json",
+      "sha256": "5297dc38f58c5abe72d730cf81583914d9df7fa5fa369e86517fb085c7393fe5",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1578,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -24541,6 +24933,166 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/reader-1899-rnl-rusneb-fragment-pdf-parts.server-import.json",
       "sha256": "dd0bacd8b4188665d5ee95505855ab7b09f2ce534adad35d004b2e51d17efd5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8167,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/community-vienna-circle-schlick/community.human-forms.json",
+      "sha256": "67e61367d72706befd622198ca885e09ba531fc10e48646d8d723d57f21c0aa2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2750,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/community-vienna-circle-schlick/community.json",
+      "sha256": "48deae43a04404426686c67f2cad1f770ca914603e88e51520c8986a9a481d7b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/community-vienna-circle-schlick/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1463,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/community-vienna-circle-schlick/source-create-receipt.json",
+      "sha256": "f2262a508f419ece9839ae51314c022738386a65ebc057ccf05ea3dd5eea3c92",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3216,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/community-vienna-circle-schlick/source-create-request.json",
+      "sha256": "e2caedf1383b3fe8cba73f992b29910b2725fae911ff9109343cf7ebf06a0255",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8279,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-basel/institutional-body.human-forms.json",
+      "sha256": "d5dc4b1c577e8a18c39f2c94ae57642cc25cae9bda245136115998a175469ca1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-basel/institutional-body.json",
+      "sha256": "6b73b73a569ebca5100636dbab11f85413cdcc340560096b96d8de2017b2b51c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-basel/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1502,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-basel/source-create-receipt.json",
+      "sha256": "e02fb243697029c475b5f9f4e83b1543e74302eb4da9c57287924ac2f1eb1af0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2744,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-basel/source-create-request.json",
+      "sha256": "c4e2f225af6b8d409d31621e7ae38c06f8be87c95eddd1ef8f7c0315cee58193",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8335,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-leipzig/institutional-body.human-forms.json",
+      "sha256": "1b23d9ae9fa21cb5367beba6926e7cda69ce899be14eb5377f4f89059ed42b88",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2180,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-leipzig/institutional-body.json",
+      "sha256": "ab2133730382e488c28fbf415f2996ced9cee1bcdb354b56abb64114fb5121c4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-leipzig/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1508,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-leipzig/source-create-receipt.json",
+      "sha256": "d3cd25ca70636b73b92e0dfa645c24ce4fee509bd34cb91e4987f5942cbb78bb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2682,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/institutional-body-university-leipzig/source-create-request.json",
+      "sha256": "6969e6c46afe4e8d5ec41dde4504d5c34a3a5d2696364f0fd588262806d68a20",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8727,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/social-group-leipzig-philological-society-nietzsche/social-group.human-forms.json",
+      "sha256": "6a34fc2dd7fe08e1aade5118f83d4a55d8c4da9f7a4fb0bbe16275806881b2ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2599,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/social-group-leipzig-philological-society-nietzsche/social-group.json",
+      "sha256": "834f03b6746bb208bebd0aff91d265c49dc871b0fb99e797d6d4762283204e98",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/social-group-leipzig-philological-society-nietzsche/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/social-group-leipzig-philological-society-nietzsche/source-create-receipt.json",
+      "sha256": "768de56806597f757631069083a57d122884aa3b0ca1cc9e0613392d75e043cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3151,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/social-bodies/social-group-leipzig-philological-society-nietzsche/source-create-request.json",
+      "sha256": "7505078972e7951e668771463cec6fd33408641a8defff92237c47e7c1f30fdd",
       "surface_kind": "structured"
     },
     {
@@ -30720,11 +31272,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 93511,
+      "bytes": 94295,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "3fcaa67073f4dd82b1a1d55a7b7b1f040128953cf4c52f354f3a68d310080b51",
+      "sha256": "0685d71cc67f0e4582af9bd62d6a75e25d6f77fdad5ccf5f988687aa263ec938",
       "surface_kind": "executable"
     },
     {
@@ -31936,11 +32488,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 46855,
+      "bytes": 47693,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/tos_corpus_index_common.py",
-      "sha256": "6fb03f2287bfc52741543e418c81548011b2c7baf9f12410f811a50e5da5d6a4",
+      "sha256": "eba73e23e36e189034bf821ab2fc645604cefcd41e7c043b4cf0fb2f73f4523a",
       "surface_kind": "executable"
     },
     {
@@ -32544,11 +33096,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 168232,
+      "bytes": 180801,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "8d872086dc6b5823faa317a422f8c57df4a057213e0a23ac5b7df871b7d44fab",
+      "sha256": "d3d9b9f0fd08684ca377631291a771cea3081167646152a08dcfc753263a9df5",
       "surface_kind": "executable"
     },
     {
