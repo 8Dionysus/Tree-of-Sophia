@@ -405,8 +405,26 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
     }
   }
   let frontier = [...selectedNodeIds];
+  let identityExpansionLimited = false;
   const traversedRelationIds = new Set<string>();
   for (let depth = 0; depth < spec.traversal.depth; depth += 1) {
+    if (spec.traversal.profile === 'overview' && frontier.length) {
+      const origins = new Map<string, string>();
+      const headers = await rows<{id: string; entity_id: string}>(db,
+        'SELECT id,entity_id FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id', JSON.stringify(frontier));
+      for (const node of headers) if (node.entity_id.startsWith('tos.') && !origins.has(node.entity_id)) origins.set(node.entity_id, node.id);
+      const remaining = spec.limits.nodes - selectedNodeIds.size;
+      const aliases = origins.size ? await rows<{id: string; entity_id: string}>(db,
+        `SELECT n.id,n.entity_id FROM knowledge_nodes n WHERE ${source.sql}
+         AND n.entity_id IN (SELECT value FROM json_each(?)) AND n.id NOT IN (SELECT value FROM json_each(?))
+         ORDER BY n.id LIMIT ?`, ...source.bindings, JSON.stringify([...origins.keys()]), JSON.stringify([...selectedNodeIds]), remaining + 1) : [];
+      if (aliases.length > remaining) identityExpansionLimited = true;
+      for (const node of aliases.slice(0, remaining)) {
+        selectedNodeIds.add(node.id);
+        inclusion.nodes[node.id] = {kind: 'identity-carrier', via_node_id: origins.get(node.entity_id), entity_id: node.entity_id, depth};
+        frontier.push(node.id);
+      }
+    }
     const relationHeaders = spec.relation_query.enabled ? await localRelationHeaders(db, relationWhere,
       frontier, spec.traversal.direction, orderClause("r", spec.composition.sort_relations, "relation")) : [];
     const current = new Set(frontier);
@@ -468,6 +486,7 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
     matched_nodes: matchedNodes + (focusNode && focusSelectorMatches === 0 ? 1 : 0),
     matched_relations: matchedRelations,
     eligible_relations: eligibleRelations,
+    identity_expansion_limited: identityExpansionLimited,
   }, focusNode?.id ?? null, inclusion);
 }
 

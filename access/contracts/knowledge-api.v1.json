@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_knowledge_api_v1",
-  "execution_version": "tos-lens-execution-v3",
+  "execution_version": "tos-lens-execution-v4",
   "owner": "Tree-of-Sophia/access",
   "purpose": "transport-neutral backend contract for human and agent construction of bounded read-only knowledge lenses",
   "data_contracts": {
@@ -50,7 +50,7 @@
     },
     {
       "operation_id": "tos.knowledge.focus",
-      "profiles": {"default": "overview", "all": "includes detailed text units, anchors and record-production links; the same limits apply", "overview": "excludes dense text-unit/anchor membership and typed record-maker/provenance links; exact predicate and relation-type exclusions are published in the catalog; shared record production is not semantic proximity"},
+      "profiles": {"default": "overview", "all": "exact carrier traversal including detailed text units, anchors and record-production links; the same limits apply", "overview": "source-filtered carriers of one declared ToS ID expand at zero distance before a relation hop, within node budgets; excludes dense text-unit/anchor membership and typed record-maker/provenance links; shared record production is not semantic proximity"},
       "http": {"method": "GET", "path": "/api/knowledge/focus/{node_id}"},
       "mcp_tool": "tos_knowledge_focus",
       "cli": "tos knowledge focus",

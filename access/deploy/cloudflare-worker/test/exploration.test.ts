@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {ADJACENCY_SQL, exploreD1, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
+import {ADJACENCY_SQL, IDENTITY_SQL, exploreD1, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
 import {knowledgeScene, type Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
@@ -24,7 +24,7 @@ async function init(db: D1Database, g: ReturnType<typeof graph>, migrated = true
     db.prepare('CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,from_id TEXT,to_id TEXT,source_graph TEXT,predicate_id TEXT,json TEXT)'),
     db.prepare("INSERT INTO edge_meta VALUES ('data_revision',0,?)").bind(JSON.stringify({sha256: g.source_revision})),
     db.prepare("INSERT INTO edge_meta VALUES ('knowledge_exploration_top',0,?)").bind(JSON.stringify({source_revision:g.source_revision, authority_boundary:{writes_to_tree:false}})),
-    ...g.nodes.map((n: {id:string;source_graph:string}) => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?)').bind(n.id,n.id,n.id,n.source_graph,JSON.stringify(n))),
+    ...g.nodes.map((n: {id:string;source_graph:string;entity_id?:string}) => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?)').bind(n.id,n.entity_id??n.id,n.id,n.source_graph,JSON.stringify(n))),
     ...g.relations.map((r: {id:string;from_id:string;to_id:string;source_graph:string;predicate_id:string}) => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?)').bind(r.id,r.from_id,r.to_id,r.source_graph,r.predicate_id,JSON.stringify(r))),
   ]);
   if (migrated) await db.batch(migration.split(/\n(?=CREATE |INSERT )/).map(s => db.prepare(s)));
@@ -49,6 +49,40 @@ function membership(pages: Awaited<ReturnType<typeof collect>>) {
   };
 }
 
+test('overview identity steps are resumable, zero distance, filtered and promote shorter queued paths', async () => {
+  for (const shorter of [false, true]) {
+    const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
+    try {
+      const db = await mf.getD1Database('DB'), g = graph(5);
+      const entities = shorter ? ['focus','bridge','shared','shared','target'] : ['person','person','claim','work','work'];
+      g.nodes.forEach((n: Item, i: number) => {n.entity_id = 'tos.test.' + entities[i];});
+      const pairs = shorter ? [['0','1'],['0','2'],['1','3'],['3','4']] : [['2','1'],['2','3']];
+      g.relations = pairs.map(([from_id,to_id],i) => ({...g.relations[0],id:String(i),from_id,to_id}));
+      await init(db,g);
+      for (const profile of ['overview','all']) for (const size of [1,3]) {
+        const query = {focus_node_id:'0',max_depth:2,profile,page_nodes:size,page_relations:1};
+        const expected = python("from tos_access.exploration import ExplorationService;p=json.load(sys.stdin);s=ExplorationService(lambda:p['graph'],work_limit=2);r=s.explore(p['query']);out=[r]\nwhile r['page']['next_cursor']:\n r=s.explore({'cursor':r['page']['next_cursor']});out.append(r)\nprint(json.dumps(out))",{graph:g,query});
+        const pages = await collect(db,query);
+        assert.deepEqual(membership(pages),membership(expected));
+        const found = new Set(pages.flatMap(p => (p.nodes as {id:string}[]).map(n => n.id)));
+        assert.equal(found.has(shorter?'4':'3'),profile==='overview');
+        for (const p of pages) {
+          assert.ok((p.nodes as unknown[]).length <= 1 + size + 2);
+          assert.ok((p.page as {work_units:number}).work_units <= 512);
+        }
+      }
+      g.nodes[1].source_graph = 'source-claims';
+      await db.prepare('UPDATE knowledge_nodes SET source_graph=?,json=? WHERE id=?').bind('source-claims',JSON.stringify(g.nodes[1]),'1').run();
+      const filtered = await collect(db,{focus_node_id:'0',sources:['philosophy'],max_depth:2,page_nodes:1});
+      assert.ok(filtered.every(p => (p.nodes as {source_graph:string}[]).every(n => n.source_graph==='philosophy')));
+      const plan = await db.prepare('EXPLAIN QUERY PLAN '+IDENTITY_SQL).bind('0','[]','',JSON.stringify(['philosophy'])).all<{detail:string}>();
+      assert.match(plan.results.map(r=>r.detail).join('\n'),/knowledge_nodes_identity_seek.*entity_id=\? AND id>\?/);
+      await db.exec('DROP INDEX knowledge_nodes_identity_seek');
+      assert.equal((await explorationCapabilitiesD1(db)).available, false);
+    } finally {await mf.dispose();}
+  }
+});
+
 test('D1 exploration conserves Python BFS order across direction, depth, size and cycles', async () => {
   const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
   try {
@@ -69,6 +103,19 @@ test('D1 exploration conserves Python BFS order across direction, depth, size an
     const details = plan.results.map(r=>r.detail).join('\n');
     assert.match(details,/knowledge_relations_from_seek.*from_id=\? AND id>\?/);
     assert.match(details,/knowledge_relations_to_seek.*to_id=\? AND id>\?/);
+  } finally {await mf.dispose();}
+});
+
+test('many carriers of one identity do not cause quadratic D1 expansion work', async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
+  try {
+    const db = await mf.getD1Database('DB'), g = graph(64);
+    g.relations = [];
+    g.nodes.forEach((n: Item) => {n.entity_id = 'tos.test.one-subject';});
+    await init(db,g);
+    const pages = await collect(db,{focus_node_id:'0',max_depth:1,page_nodes:7});
+    assert.equal(membership(pages).nodes.length,64);
+    assert.ok(pages.reduce((sum,p) => sum + (p.page as {work_units:number}).work_units,0) <= 4 * 64 + 1);
   } finally {await mf.dispose();}
 });
 
@@ -127,10 +174,12 @@ test('actual Worker HTTP continuation survives isolate restart and concurrent re
     const fresh=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
     await db.prepare('UPDATE knowledge_exploration_checkpoints SET expires=0 WHERE token=?').bind(fresh.page.next_cursor).run();
     assert.equal((await post({cursor:fresh.page.next_cursor})).status,410);
-    const oldExecution=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
-    await db.prepare("UPDATE knowledge_exploration_checkpoints SET version='tos-exploration-d1-execution-v1' WHERE token=?")
-      .bind(oldExecution.page.next_cursor).run();
-    assert.equal((await post({cursor:oldExecution.page.next_cursor})).status,409);
+    for (const version of [1, 2, 3]) {
+      const oldExecution=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
+      await db.prepare('UPDATE knowledge_exploration_checkpoints SET version=? WHERE token=?')
+        .bind(`tos-exploration-d1-execution-v${version}`,oldExecution.page.next_cursor).run();
+      assert.equal((await post({cursor:oldExecution.page.next_cursor})).status,409);
+    }
   } finally {await mf.dispose();rmSync(directory,{recursive:true,force:true});}
 });
 

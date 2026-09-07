@@ -15,11 +15,11 @@ from collections import OrderedDict, defaultdict
 
 from .knowledge import (
     KNOWLEDGE_SOURCES, OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, _lens_carrier,
-    _resolve_focus_node, _stable_digest, knowledge_scene,
+    _resolve_focus_node, _stable_digest, knowledge_scene, _identity_carrier_groups,
 )
 from .lens_pagination import KnowledgeRevisionConflict
 
-EXECUTION_VERSION = "tos-exploration-execution-v3"
+EXECUTION_VERSION = "tos-exploration-execution-v4"
 
 
 class ExplorationExpired(ValueError):
@@ -37,7 +37,8 @@ def exploration_capabilities():
                    "work_per_page": 512, "session_nodes": 10000, "session_relations": 20000},
         "restart_survival": False, "writes_to_tree": False,
         "continuation": "opaque-cursor-only; fixed query and page sizes",
-        "ordering": "breadth-first, relation-id ascending per expanded node",
+        "ordering": "zero-distance declared identity carriers before relation-id ordered edges; all profile uses carrier BFS",
+        "identity_expansion": "overview only; source-filtered declared tos.* IDs; page and session node budgets apply",
         "runtime": "local", "other_runtimes": "discover-on-target",
     }
 
@@ -102,6 +103,7 @@ class ExplorationService:
         if graph is self.graph:
             return
         self.nodes = {n["id"]: n for n in graph["nodes"]}
+        self.carrier_groups = _identity_carrier_groups(graph['nodes'])
         self.relations = {r["id"]: r for r in graph["relations"]}
         self.adjacency = defaultdict(list)
         for relation in sorted(graph["relations"], key=lambda r: r["id"]):
@@ -164,6 +166,8 @@ class ExplorationService:
                 query["focus_node_id"] = focus["id"]
                 expires = now + self.ttl
                 state = {"query": query, "queue": [[focus["id"], 0]], "head": 0, "offset": 0,
+                         "identity_offset": 0, "identity_added": 0,
+                         "expanded_entities": [],
                          "seen_nodes": [focus["id"]], "seen_relations": [], "page_number": 0}
             result, state = self._advance(state)
             next_cursor = secrets.token_hex(32) if result["status"] == "paused" else None
@@ -189,15 +193,56 @@ class ExplorationService:
         emitted = []
         seen_nodes, seen_relations = set(state["seen_nodes"]), set(state["seen_relations"])
         node_reasons = {focus: {"kind": "focus"}}
+        promoted = set()
+        expanded_entities = set(state['expanded_entities'])
         edge_reasons = {}
         work = 0
         limit_reason = None
         while state["head"] < len(state["queue"]) and work < self.work_limit:
             current, depth = state["queue"][state["head"]]
             adjacent = self.adjacency[current]
+            # Identity expansion is a source-filtered zero-distance operation,
+            # not an invented relation. Its pending position is checkpointed.
+            entity = self.nodes[current].get('entity_id')
+            aliases = self.carrier_groups.get(entity, []) if query['profile'] == 'overview' and entity not in expanded_entities else []
+            if depth < query['max_depth'] and state['identity_offset'] < len(aliases):
+                alias = aliases[state['identity_offset']]
+                work += 1
+                if alias in seen_nodes or self.nodes[alias]['source_graph'] not in query['sources']:
+                    if alias in seen_nodes:
+                        position = next(i for i, (id, _) in enumerate(state['queue']) if id == alias)
+                        if state['queue'][position][1] > depth:
+                            if alias not in promoted and len(primary) + len(promoted) >= query['page_nodes']:
+                                break
+                            state['queue'].pop(position)
+                            state['queue'].insert(state['head'] + 1 + state['identity_added'], [alias, depth])
+                            state['identity_added'] += 1
+                            promoted.add(alias)
+                            node_reasons[alias] = {'kind': 'identity-carrier', 'via_node_id': current,
+                                                   'entity_id': entity, 'depth': depth}
+                    state['identity_offset'] += 1
+                    continue
+                if len(seen_nodes) >= self.node_limit:
+                    limit_reason = 'session_nodes'
+                    break
+                if len(primary) + len(promoted) >= query['page_nodes']:
+                    break
+                state['identity_offset'] += 1
+                seen_nodes.add(alias)
+                state['seen_nodes'].append(alias)
+                state['queue'].insert(state['head'] + 1 + state['identity_added'], [alias, depth])
+                state['identity_added'] += 1
+                primary.append(alias)
+                node_reasons[alias] = {'kind': 'identity-carrier', 'via_node_id': current,
+                                       'entity_id': entity, 'depth': depth}
+                continue
+            if aliases and depth < query['max_depth'] and entity not in expanded_entities:
+                expanded_entities.add(entity)
+                state['expanded_entities'].append(entity)
             if depth >= query["max_depth"] or state["offset"] == len(adjacent):
                 state["head"] += 1
                 state["offset"] = 0
+                state['identity_offset'] = state['identity_added'] = 0
                 work += 1
                 continue
             edge = self.relations[adjacent[state["offset"]]]
@@ -218,7 +263,7 @@ class ExplorationService:
             if len(seen_relations) >= self.relation_limit or (new_node and len(seen_nodes) >= self.node_limit):
                 limit_reason = "session_relations" if len(seen_relations) >= self.relation_limit else "session_nodes"
                 break
-            if len(emitted) >= query["page_relations"] or (new_node and len(primary) >= query["page_nodes"]):
+            if len(emitted) >= query["page_relations"] or (new_node and len(primary) + len(promoted) >= query["page_nodes"]):
                 break  # Keep this edge pending, including when the node page is full.
             state["offset"] += 1
             seen_relations.add(edge["id"])
@@ -233,7 +278,7 @@ class ExplorationService:
                 node_reasons[target] = {"kind": "traversal", "via_node_id": current,
                                         "via_relation_id": edge["id"], "depth": depth + 1}
         state["page_number"] += 1
-        selected = set(primary) | {focus}
+        selected = set(primary) | promoted | {focus}
         for id in emitted:
             selected.update((self.relations[id]["from_id"], self.relations[id]["to_id"]))
         for id in selected - node_reasons.keys():

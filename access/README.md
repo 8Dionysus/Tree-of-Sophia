@@ -154,9 +154,9 @@ does not discover other carriers, widen a query, compact Claim paths, change
 admission or bypass a page budget. Its work/storage are bounded by the returned
 packet, with sorting at most O((nodes + relations) log(nodes + relations)).
 Older packets may lack `scene`; consumers must then preserve exact carrier
-vertices, not invent a grouping heuristic. Execution v3 fingerprints/checkpoints
-separate this delivery from older cached responses. UI adoption and
-identity-aware neighborhood traversal are separate consumer/query changes.
+vertices, not invent a grouping heuristic. Current execution v4
+fingerprints/checkpoints separate identity-aware traversal from older cached
+responses. UI adoption and compact Claim paths remain separate changes.
 
 ## Constructor boundaries
 
@@ -269,7 +269,37 @@ Start with:
 
 Continue by sending **only** `{"cursor": "<page.next_cursor>"}` to the same
 server. Query and page sizes stay fixed; changing filters starts a new walk.
-Relation IDs are ordered within each expanded node; first discovery uses BFS.
+Relation IDs are ordered within each expanded carrier. In `overview`, before
+expanding a carrier below `max_depth`, other source-filtered carriers of the
+same declared `tos.*` entity are discovered at zero distance. The inclusion
+reason is `identity-carrier`, not an invented relation or accepted `same_as`.
+Names and fallback IDs never create this operation. It does not follow
+similarity, reviewer agreement or shared record production.
+
+Pending identity expansion is checkpointed and consumes the work budget.
+Each identity group is expanded once. Newly found carriers count against the
+same node/page/session limits and precede positive-distance steps. If an
+already queued carrier is found at a shorter depth, it is moved forward; a
+bounded context-node update reports the improved reason without repeating
+its primary discovery. `page_nodes` bounds primary discoveries plus these
+updates. An inclusion origin may name a carrier delivered on an earlier
+page; it is an exact ID in the bound snapshot. At `max_depth=0` no identity
+expansion occurs. `all` retains the exact-carrier BFS.
+
+Bounded overview lenses use the same zero-distance identity rule before each
+relation depth. Their ordinary raw-node limit remains in force; if identity
+expansion is cut off, `counts.identity_expansion_limited` and a warning say so.
+Use resumable exploration or narrower sources rather than treating the
+bounded result as exhaustive. Path-condition joins still follow exact
+declared relation steps; zero-distance identity does not silently alter a
+caller-authored path predicate or turn a Claim path into a direct assertion.
+
+Worker execution v4 additionally requires `knowledge_nodes_identity_seek`
+from the idempotent exploration migration. It reads identities in bounded
+32-row indexed pages, using the same 24-query per-page ceiling as adjacency.
+Old cached states require a fresh query; applying the migration does not
+modify source records or grant deployment authority.
+
 Only edges expanded from nodes below `max_depth` belong to this neighborhood,
 not all possible edges between visible boundary nodes. `sources` applies to
 both endpoints and relations. `overview` uses the focus profile's exclusions.

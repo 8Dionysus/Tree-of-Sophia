@@ -139,6 +139,14 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       const scene = pure.scene as {vertices: {node_ids: string[]}[]};
       assert.equal(scene.vertices.filter(v => v.node_ids.includes('philosophy:a'))[0]!.node_ids.length, 2);
     }
+    for (const profile of ['overview', 'all']) for (const size of [1, 3]) {
+      const spec = {...focused, traversal: {depth: 1, profile}, limits: {nodes: size}};
+      const pure = await executeKnowledgeLens(carriers, spec);
+      assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      assert.deepEqual(pure, python(spec, carriers));
+      assert.equal(pure.nodes.some(n => n.id === 'philosophy:c'), profile === 'overview' && size > 1);
+      assert.equal((pure.counts as {identity_expansion_limited:boolean}).identity_expansion_limited, profile === 'overview' && size === 1);
+    }
     await db.prepare('UPDATE knowledge_nodes SET entity_id=?, json=? WHERE id=?')
       .bind(graph.nodes[1]!.entity_id, JSON.stringify(graph.nodes[1]), graph.nodes[1]!.id).run();
     const whole = await executeKnowledgeLens(graph, focused);

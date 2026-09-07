@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import heapq
 import json
 import random
 import sys
@@ -61,6 +62,54 @@ def reference(graph, query):
 
 
 class ExplorationTests(unittest.TestCase):
+    def test_identity_expansion_matches_zero_one_distance_across_pages_and_cycles(self):
+        # Independent shortest-path oracle; synthetic topology only, not ToS facts.
+        for seed in range(5):
+            graph = graph_for(size=8, seed=seed)
+            for node in graph['nodes']:
+                node['entity_id'] = 'tos.test.subject.' + str((int(node['id']) + seed) % 3)
+            for direction in ('either', 'outgoing', 'incoming'):
+                for max_depth in (1, 2, 3):
+                    distances, expected_edges = {'0': 0}, set()
+                    queue = [(0, '0')]
+                    while queue:
+                        depth, current = heapq.heappop(queue)
+                        if depth != distances[current] or depth >= max_depth: continue
+                        own_entity = graph['nodes'][int(current)]['entity_id']
+                        candidates = [(n['id'], depth) for n in graph['nodes'] if n['entity_id'] == own_entity]
+                        for edge in graph['relations']:
+                            if direction != 'incoming' and edge['from_id'] == current:
+                                candidates.append((edge['to_id'], depth + 1)); expected_edges.add(edge['id'])
+                            if direction != 'outgoing' and edge['to_id'] == current:
+                                candidates.append((edge['from_id'], depth + 1)); expected_edges.add(edge['id'])
+                        for target, distance in candidates:
+                            if distance < distances.get(target, max_depth + 1):
+                                distances[target] = distance
+                                heapq.heappush(queue, (distance, target))
+                    for size in (1, 3):
+                        with self.subTest(seed=seed, direction=direction, depth=max_depth, size=size):
+                            pages = self.collect(ExplorationService(lambda: graph, work_limit=5),
+                                {'focus_node_id': '0', 'max_depth': max_depth, 'direction': direction,
+                                 'page_nodes': size, 'page_relations': size})
+                            primary = [id for p in pages for id in p['page']['primary_node_ids']]
+                            edges = [r['id'] for p in pages for r in p['relations']]
+                            self.assertEqual(set(primary), set(distances))
+                            self.assertEqual(set(edges), expected_edges)
+                            self.assertEqual(len(primary), len(set(primary)))
+                            self.assertEqual(len(edges), len(set(edges)))
+                            self.assertTrue(all(len(p['nodes']) <= 1 + 3 * size for p in pages))
+                            self.assertTrue(all(p['page']['work_units'] <= 5 for p in pages))
+
+    def test_identity_carriers_are_expanded_once_not_quadratically(self):
+        for size in (16, 32, 64):
+            graph = graph_for(size=size)
+            graph['relations'] = []
+            for node in graph['nodes']: node['entity_id'] = 'tos.test.one-subject'
+            pages = self.collect(ExplorationService(lambda: graph, work_limit=32),
+                                 {'focus_node_id': '0', 'max_depth': 1, 'page_nodes': 7})
+            self.assertEqual(sum(len(p['page']['primary_node_ids']) for p in pages), size)
+            self.assertLessEqual(sum(p['page']['work_units'] for p in pages), 4 * size + 1)
+
     def collect(self, service, query):
         page = service.explore(query)
         pages = []

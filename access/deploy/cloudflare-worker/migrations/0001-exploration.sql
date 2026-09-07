@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS knowledge_exploration_checkpoints (
 CREATE INDEX IF NOT EXISTS knowledge_exploration_expiry ON knowledge_exploration_checkpoints(expires);
 CREATE INDEX IF NOT EXISTS knowledge_relations_from_seek ON knowledge_relations(from_id, id);
 CREATE INDEX IF NOT EXISTS knowledge_relations_to_seek ON knowledge_relations(to_id, id);
+CREATE INDEX IF NOT EXISTS knowledge_nodes_identity_seek ON knowledge_nodes(entity_id, id);
 CREATE TRIGGER IF NOT EXISTS knowledge_exploration_revision_insert AFTER INSERT ON edge_meta
 WHEN NEW.key = 'data_revision' BEGIN
   UPDATE knowledge_exploration_clock SET epoch = epoch + 1 WHERE singleton = 1;

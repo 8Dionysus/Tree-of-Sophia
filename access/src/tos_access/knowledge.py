@@ -2992,6 +2992,15 @@ def knowledge_scene(nodes, relations, focus_node_id=None):
             'authority': 'presentation-mapping-not-semantic-admission'}
 
 
+def _identity_carrier_groups(nodes):
+    groups = {}
+    for node in nodes:
+        entity = node.get('entity_id')
+        if isinstance(entity, str) and entity.startswith('tos.'):
+            groups.setdefault(entity, []).append(node['id'])
+    return {entity: sorted(ids) for entity, ids in groups.items()}
+
+
 def _resolve_focus_node(nodes: list[dict[str, Any]], requested_id: str | None) -> dict[str, Any] | None:
     if requested_id is None:
         return None
@@ -3064,6 +3073,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     nodes = [item for item in _objects(graph.get("nodes")) if item.get("source_graph") in sources]
     relations = [item for item in _objects(graph.get("relations")) if item.get("source_graph") in sources]
     all_nodes_by_id = {str(item["id"]): item for item in nodes}
+    carrier_groups = _identity_carrier_groups(nodes) if spec['traversal']['profile'] == 'overview' else {}
     focus_node = _resolve_focus_node(nodes, spec["seed"]["focus_node_id"])
     selected_ids = set(spec["seed"]["node_ids"])
     text_query = str(spec["seed"]["text_query"]).lower()
@@ -3119,10 +3129,25 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     relation_candidates = _sort_items(relation_candidates, spec["composition"]["sort_relations"])
 
     frontier = list(selected_nodes)
+    identity_expansion_limited = False
     traversed_relation_ids: set[str] = set()
     for depth in range(spec["traversal"]["depth"]):
+        origins = {}
+        for node_id in sorted(frontier):
+            entity = all_nodes_by_id[node_id].get('entity_id')
+            if entity in carrier_groups:
+                origins.setdefault(entity, node_id)
+        aliases = sorted({id for entity in origins for id in carrier_groups[entity]} - selected_nodes.keys())
+        for node_id in aliases:
+            if len(selected_nodes) >= spec['limits']['nodes']:
+                identity_expansion_limited = True
+                break
+            node = all_nodes_by_id[node_id]
+            selected_nodes[node_id] = node
+            inclusion[node_id] = {'kind': 'identity-carrier', 'via_node_id': origins[node['entity_id']],
+                                  'entity_id': node['entity_id'], 'depth': depth}
+            frontier.append(node_id)
         next_frontier: list[str] = []
-        frontier_set = set(frontier)
         for relation in relation_candidates:
             relation_id = str(relation["id"])
             touched = False
@@ -3191,7 +3216,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     truncated_nodes = max(0, len(matched_node_ids) - spec["limits"]["nodes"])
     truncated_relations = max(0, eligible_relation_count - len(final_relations))
     fingerprint_material = {
-        "execution_version": "tos-lens-execution-v3",
+        "execution_version": "tos-lens-execution-v4",
         "source_revision": graph.get("source_revision"),
         "lens": {k: v for k, v in spec.items() if k != 'pagination'},
         "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],
@@ -3228,6 +3253,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
             "groups": len(groups),
             "truncated_nodes": truncated_nodes,
             "truncated_relations": truncated_relations,
+            "identity_expansion_limited": identity_expansion_limited,
             "missing_node_summaries": missing_node_summaries,
             "missing_relation_explanations": missing_relation_explanations,
             "nodes_without_source_summary": nodes_without_source_summary,
@@ -3235,6 +3261,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
         },
         "source_refs": refs,
         "warnings": [
+            *(['identity carrier expansion reached the node budget; use resumable exploration or narrower sources'] if identity_expansion_limited else []),
             *( [f"{missing_node_summaries} nodes expose an explicit missing-summary state"] if missing_node_summaries else [] ),
             *( [f"{missing_relation_explanations} relations expose an explicit missing-explanation state"] if missing_relation_explanations else [] ),
             *( [f"{nodes_without_source_summary} nodes use transparent metadata synthesis because no source summary is projected"] if nodes_without_source_summary else [] ),
@@ -3814,7 +3841,7 @@ def knowledge_catalog(
                            "maximum_relations": 100, "context_endpoints_may_repeat": True,
                            "changed_query_or_snapshot_http_status": 409},
             "neighborhood_profiles": [
-                {"profile": "overview", "definition": "Bibliographic and conceptual overview; dense text units, anchors and record-maker/provenance links are inspected separately. Shared record production does not establish semantic proximity.", "excluded_predicates": sorted(OVERVIEW_EXCLUDED_PREDICATES), "excluded_relation_type_ids": sorted(OVERVIEW_EXCLUDED_RELATION_TYPES)},
+                {"profile": "overview", "definition": "Bibliographic and conceptual overview; dense text units, anchors and record-maker/provenance links are inspected separately. Shared record production does not establish semantic proximity. Source-filtered carriers of one declared ToS entity expand at zero distance before a relation hop, within node budgets.", "identity_expansion": "declared-tos-entity-id-zero-distance", "excluded_predicates": sorted(OVERVIEW_EXCLUDED_PREDICATES), "excluded_relation_type_ids": sorted(OVERVIEW_EXCLUDED_RELATION_TYPES)},
                 {"profile": "all", "definition": "All declared relation kinds, including detailed text structure; result limits still apply.", "excluded_predicates": []},
             ],
             "sources": list(KNOWLEDGE_SOURCES),

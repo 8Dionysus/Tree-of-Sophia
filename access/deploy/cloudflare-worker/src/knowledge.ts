@@ -8,19 +8,20 @@ const CARRIER_SOURCE_PRIORITY: Record<string, number> = {
   'candidate-intake': 4, repository: 5, 'semantic-interchange': 6,
 };
 
-// Presentation identity only. The enclosing packet owns exact records,
-// revisions, wording and inspection; this does not adjudicate same_as claims.
-export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: string | null = null) {
-  const groups = new Map<string, {entity_id: string | null; nodes: Item[]}>();
-  const byNode = new Map<string, string>();
-  const compare = (a: string, b: string) => {
+function compareIds(a: string, b: string) {
     const left = Array.from(a), right = Array.from(b);
     for (let i = 0; i < Math.min(left.length, right.length); i++) {
       const delta = left[i]!.codePointAt(0)! - right[i]!.codePointAt(0)!;
       if (delta) return delta;
     }
     return left.length - right.length;
-  };
+}
+
+// Presentation identity only. The enclosing packet owns exact records,
+// revisions, wording and inspection; this does not adjudicate same_as claims.
+export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: string | null = null) {
+  const groups = new Map<string, {entity_id: string | null; nodes: Item[]}>();
+  const byNode = new Map<string, string>();
   for (const node of nodes) {
     const entity = typeof node.entity_id === 'string' && node.entity_id.startsWith('tos.') ? node.entity_id : null;
     const id = entity ? 'tos-scene:entity:' + entity : 'tos-scene:carrier:' + String(node.id);
@@ -28,15 +29,15 @@ export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: st
     if (!groups.has(id)) groups.set(id, {entity_id: entity, nodes: []});
     groups.get(id)!.nodes.push(node);
   }
-  const vertices = [...groups].sort(([a], [b]) => compare(a, b)).map(([id, group]) => {
+  const vertices = [...groups].sort(([a], [b]) => compareIds(a, b)).map(([id, group]) => {
     const ordered = group.nodes.slice().sort((a, b) =>
       (CARRIER_SOURCE_PRIORITY[String(a.source_graph)] ?? 99) - (CARRIER_SOURCE_PRIORITY[String(b.source_graph)] ?? 99)
-      || compare(String(a.id), String(b.id)));
-    return {id, entity_id: group.entity_id, node_ids: group.nodes.map(n => String(n.id)).sort(compare),
+      || compareIds(String(a.id), String(b.id)));
+    return {id, entity_id: group.entity_id, node_ids: group.nodes.map(n => String(n.id)).sort(compareIds),
       representative_node_id: String(ordered[0]!.id)};
   });
   const arcs: {relation_id: string; from_id: string; to_id: string}[] = [], collapsed: string[] = [];
-  for (const relation of relations.slice().sort((a, b) => compare(String(a.id), String(b.id)))) {
+  for (const relation of relations.slice().sort((a, b) => compareIds(String(a.id), String(b.id)))) {
     const left = byNode.get(String(relation.from_id)), right = byNode.get(String(relation.to_id));
     if (!left || !right) throw new Error('scene relation endpoint missing from returned packet');
     if (left === right && relation.relation_type_id === 'tos.relation.projects') collapsed.push(String(relation.id));
@@ -650,6 +651,7 @@ export type LensExecutionCounts = {
   matched_nodes: number;
   matched_relations: number;
   eligible_relations: number;
+  identity_expansion_limited: boolean;
 };
 
 export async function finalizeKnowledgeLens(
@@ -708,7 +710,7 @@ export async function finalizeKnowledgeLens(
   const truncatedNodes = Math.max(0, executionCounts.matched_nodes - spec.limits.nodes);
   const truncatedRelations = Math.max(0, executionCounts.eligible_relations - finalRelations.length);
   const fingerprint = await digest({
-    execution_version: "tos-lens-execution-v3",
+    execution_version: "tos-lens-execution-v4",
     source_revision: sourceRevision,
     lens: Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'pagination')),
     nodes: finalNodes.map((item) => [item.id, item.content_revision ?? ""]),
@@ -746,6 +748,7 @@ export async function finalizeKnowledgeLens(
     },
     source_refs: sourceRefs,
     warnings: [
+      ...(executionCounts.identity_expansion_limited ? ['identity carrier expansion reached the node budget; use resumable exploration or narrower sources'] : []),
       ...(missingNodeSummaries ? [`${missingNodeSummaries} nodes expose an explicit missing-summary state`] : []),
       ...(missingRelationExplanations ? [`${missingRelationExplanations} relations expose an explicit missing-explanation state`] : []),
       ...(nodesWithoutSourceSummary ? [`${nodesWithoutSourceSummary} nodes use transparent metadata synthesis because no source summary is projected`] : []),
@@ -866,8 +869,29 @@ export async function executeKnowledgeLens(graph: KnowledgeGraph, specValue: unk
   );
 
   let frontier = [...selectedNodes.keys()];
+  let identityExpansionLimited = false;
+  const carrierGroups = new Map<string, string[]>();
+  if (spec.traversal.profile === 'overview') for (const node of nodes) {
+    if (!node.entity_id?.startsWith('tos.')) continue;
+    if (!carrierGroups.has(node.entity_id)) carrierGroups.set(node.entity_id, []);
+    carrierGroups.get(node.entity_id)!.push(node.id);
+  }
   const traversed = new Set<string>();
   for (let depth = 0; depth < spec.traversal.depth; depth += 1) {
+    const origins = new Map<string, string>();
+    for (const id of frontier.slice().sort(compareIds)) {
+      const entity = allNodes.get(id)!.entity_id;
+      if (carrierGroups.has(entity) && !origins.has(entity)) origins.set(entity, id);
+    }
+    const aliases = [...new Set([...origins.keys()].flatMap(entity => carrierGroups.get(entity)!))]
+      .filter(id => !selectedNodes.has(id)).sort(compareIds);
+    for (const id of aliases) {
+      if (selectedNodes.size >= spec.limits.nodes) { identityExpansionLimited = true; break; }
+      const node = allNodes.get(id)!;
+      selectedNodes.set(id, node);
+      inclusion.nodes[id] = {kind: 'identity-carrier', via_node_id: origins.get(node.entity_id), entity_id: node.entity_id, depth};
+      frontier.push(id);
+    }
     const current = new Set(frontier);
     const next: string[] = [];
     for (const relation of relationCandidates) {
@@ -923,6 +947,7 @@ export async function executeKnowledgeLens(graph: KnowledgeGraph, specValue: unk
     matched_nodes: matchedNodeIds.size,
     matched_relations: relationCandidates.length,
     eligible_relations: eligibleRelations,
+    identity_expansion_limited: identityExpansionLimited,
   }, focusNode?.id ?? null, inclusion);
 }
 

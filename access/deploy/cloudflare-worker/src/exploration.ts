@@ -2,7 +2,7 @@ import { HttpError, parseItem, type Item } from './common.ts';
 import { OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, knowledgeScene } from './knowledge.ts';
 import { nodesByIds, relationsByIds, resolveFocusNodeD1 } from './knowledge-store.ts';
 
-const VERSION = 'tos-exploration-d1-execution-v3';
+const VERSION = 'tos-exploration-d1-execution-v4';
 const SOURCES = ['philosophy', 'canon', 'candidate-intake', 'source-navigation', 'source-claims', 'semantic-interchange', 'repository'];
 const TTL = 900_000;
 const MAX_BYTES = 1_048_576;
@@ -12,7 +12,10 @@ type Query = {
   direction: 'either' | 'incoming' | 'outgoing'; profile: 'overview' | 'all';
   max_depth: number; page_nodes: number; page_relations: number;
 };
-type State = {query: Query; queue: [string, number][]; head: number; after: string | null; seen_relations: string[]; page_number: number};
+type State = {query: Query; queue: [string, number][]; head: number; after: string | null;
+  identity_after: string | null; identity_complete: boolean; identity_added: number;
+  identity_entity: string | null; expanded_entities: string[];
+  seen_relations: string[]; page_number: number};
 type Snapshot = {epoch: number; revision: string; source_revision: string; authority_boundary: Item};
 type Checkpoint = {token: string; expires: number; epoch: number; version: string; state: string | null; response: string | null};
 type Header = {id: string; from_id: string; to_id: string; source_graph: string; predicate_id: string; relation_type_id: string | null; from_source: string | null; to_source: string | null};
@@ -72,7 +75,8 @@ async function snapshot(db: D1Database): Promise<Snapshot> {
 
 export async function explorationCapabilitiesD1(db: D1Database): Promise<Item> {
   const required = ['knowledge_exploration_clock', 'knowledge_exploration_checkpoints', 'knowledge_exploration_revision_insert',
-    'knowledge_exploration_revision_update', 'knowledge_exploration_revision_delete', 'knowledge_relations_from_seek', 'knowledge_relations_to_seek'];
+    'knowledge_exploration_revision_update', 'knowledge_exploration_revision_delete', 'knowledge_relations_from_seek', 'knowledge_relations_to_seek',
+    'knowledge_nodes_identity_seek'];
   const count = await db.prepare('SELECT count(*) AS count FROM sqlite_master WHERE name IN (SELECT value FROM json_each(?))')
     .bind(JSON.stringify(required)).first<number>('count');
   let available = count === required.length;
@@ -87,7 +91,8 @@ export async function explorationCapabilitiesD1(db: D1Database): Promise<Item> {
     limits: {depth: 10, page_nodes: 100, page_relations: 100, work_per_page: 512,
       adjacency_queries_per_page: ADJACENCY_QUERIES, session_nodes: 10000, session_relations: 20000},
     continuation: 'opaque-cursor-only; fixed query and page sizes',
-    ordering: 'breadth-first, relation-id ascending per expanded node',
+    ordering: 'zero-distance declared identity carriers before relation-id ordered edges; all profile uses carrier BFS',
+    identity_expansion: 'overview only; source-filtered declared tos.* IDs; page and session node budgets apply',
     reason: available ? null : 'apply exploration migration and build compatible read-model metadata'};
 }
 
@@ -104,22 +109,68 @@ export const ADJACENCY_SQL = `SELECT r.id,r.from_id,r.to_id,r.source_graph,r.pre
   JOIN knowledge_relations r ON r.id=ids.id
   LEFT JOIN knowledge_nodes f ON f.id=r.from_id LEFT JOIN knowledge_nodes t ON t.id=r.to_id ORDER BY r.id`;
 
+export const IDENTITY_SQL = `SELECT id,entity_id FROM knowledge_nodes INDEXED BY knowledge_nodes_identity_seek
+  WHERE entity_id=(SELECT entity_id FROM knowledge_nodes WHERE id=? AND substr(entity_id,1,4)='tos.'
+                  AND entity_id NOT IN (SELECT value FROM json_each(?)))
+    AND id>? AND source_graph IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT 32`;
+
 async function advance(db: D1Database, state: State, snap: Snapshot) {
   const q = state.query, focus = q.focus_node_id;
   const primary = state.page_number === 0 ? [focus] : [];
   const emitted: string[] = [], selected = new Set<string>([focus]);
+  const promoted = new Set<string>();
   const nodes = new Set(state.queue.map(([id]) => id)), edges = new Set(state.seen_relations);
   const nodeReasons: Record<string, Item> = {[focus]: {kind: 'focus'}}, edgeReasons: Record<string, Item> = {};
   let work = 0, reads = 0, limit: string | null = null;
   let cached: Header[] = [], cachedNode: string | null = null;
+  let identities: {id: string; entity_id: string}[] = [], identityNode: string | null = null;
   while (state.head < state.queue.length && work < 512) {
     const [current, depth] = state.queue[state.head]!;
-    if (depth >= q.max_depth) { state.head++; state.after = null; work++; continue; }
+    if (depth >= q.max_depth) {
+      state.head++; state.after = null; state.identity_after = null; state.identity_complete = false; state.identity_added = 0; state.identity_entity = null;
+      work++; continue;
+    }
+    if (q.profile === 'overview' && !state.identity_complete) {
+      if (identityNode !== current || !identities.length) {
+        if (reads >= ADJACENCY_QUERIES) break;
+        const packet = await db.prepare(IDENTITY_SQL).bind(current, JSON.stringify(state.expanded_entities), state.identity_after ?? '', JSON.stringify(q.sources))
+          .all<{id: string; entity_id: string}>();
+        identities = packet.results; identityNode = current; reads++;
+        if (!identities.length) {
+          state.identity_complete = true;
+          if (state.identity_entity !== null && !state.expanded_entities.includes(state.identity_entity)) state.expanded_entities.push(state.identity_entity);
+          work++; continue;
+        }
+      }
+      const alias = identities[0]!;
+      state.identity_entity = alias.entity_id;
+      work++;
+      if (nodes.has(alias.id)) {
+        const position = state.queue.findIndex(([id]) => id === alias.id);
+        if (state.queue[position]![1] > depth) {
+          if (!promoted.has(alias.id) && primary.length + promoted.size >= q.page_nodes) break;
+          state.queue.splice(position, 1);
+          state.queue.splice(state.head + 1 + state.identity_added, 0, [alias.id, depth]);
+          state.identity_added++; promoted.add(alias.id); selected.add(alias.id);
+          nodeReasons[alias.id] = {kind: 'identity-carrier', via_node_id: current, entity_id: alias.entity_id, depth};
+        }
+      } else {
+        if (nodes.size >= 10000) { limit = 'session_nodes'; break; }
+        if (primary.length + promoted.size >= q.page_nodes) break;
+        nodes.add(alias.id); primary.push(alias.id);
+        state.queue.splice(state.head + 1 + state.identity_added, 0, [alias.id, depth]); state.identity_added++;
+        nodeReasons[alias.id] = {kind: 'identity-carrier', via_node_id: current, entity_id: alias.entity_id, depth};
+      }
+      state.identity_after = alias.id; identities.shift(); continue;
+    }
     if (cachedNode !== current || !cached.length) {
       if (reads >= ADJACENCY_QUERIES) break;
       const packet = await db.prepare(ADJACENCY_SQL).bind(current, state.after ?? '', current, state.after ?? '').all<Header>();
       cached = packet.results; cachedNode = current; reads++;
-      if (!cached.length) { state.head++; state.after = null; work++; continue; }
+      if (!cached.length) {
+        state.head++; state.after = null; state.identity_after = null; state.identity_complete = false; state.identity_added = 0; state.identity_entity = null;
+        work++; continue;
+      }
     }
     const edge = cached[0]!;
     const target = edge.from_id === current ? edge.to_id : edge.from_id;
@@ -133,7 +184,7 @@ async function advance(db: D1Database, state: State, snap: Snapshot) {
     if (!eligible) { state.after = edge.id; cached.shift(); continue; }
     const fresh = !nodes.has(target);
     if (edges.size >= 20000 || fresh && nodes.size >= 10000) { limit = edges.size >= 20000 ? 'session_relations' : 'session_nodes'; break; }
-    if (emitted.length >= q.page_relations || fresh && primary.length >= q.page_nodes) break;
+    if (emitted.length >= q.page_relations || fresh && primary.length + promoted.size >= q.page_nodes) break;
     state.after = edge.id; cached.shift(); edges.add(edge.id); state.seen_relations.push(edge.id); emitted.push(edge.id);
     selected.add(edge.from_id); selected.add(edge.to_id);
     edgeReasons[edge.id] = {kind: 'traversal', via_node_id: current, depth: depth + 1};
@@ -189,7 +240,9 @@ export async function exploreD1(db: D1Database, request: unknown): Promise<Item>
     const focus = await resolveFocusNodeD1(db, query!.focus_node_id, query!.sources);
     if (!focus) bad('unknown exploration focus');
     query!.focus_node_id = focus.id;
-    state = {query: query!, queue: [[focus.id, 0]], head: 0, after: null, seen_relations: [], page_number: 0};
+    state = {query: query!, queue: [[focus.id, 0]], head: 0, after: null,
+      identity_after: null, identity_complete: false, identity_added: 0, identity_entity: null, expanded_entities: [],
+      seen_relations: [], page_number: 0};
   }
   const result = await advance(db, state, snap);
   const next = result.status === 'paused' ? token() : null;

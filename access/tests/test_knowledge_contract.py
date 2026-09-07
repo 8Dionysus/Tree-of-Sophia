@@ -29,6 +29,84 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_overview_crosses_identity_carriers_without_a_relation_hop(self):
+        from tos_access.exploration import ExplorationService
+        graph = build_knowledge_graph(*self.fixture())
+        node, edge = graph['nodes'][0], graph['relations'][0]
+        graph['nodes'] = [{**node, 'id': id, 'native_id': id, 'entity_id': entity, 'source_graph': source}
+                          for id, entity, source in [
+                              ('p-nav', 'tos.agent.p', 'source-navigation'),
+                              ('p-claim', 'tos.agent.p', 'source-claims'),
+                              ('assertion', 'tos.claim.c', 'source-claims'),
+                              ('w-claim', 'tos.work.w', 'source-claims'),
+                              ('w-nav', 'tos.work.w', 'source-navigation')]]
+        graph['relations'] = [
+            {**edge, 'id': id, 'from_id': 'assertion', 'to_id': target, 'source_graph': 'source-claims',
+             'predicate_id': predicate, 'relation_type_id': relation_type}
+            for id, target, predicate, relation_type in [
+                ('c-object', 'p-claim', 'has_object', 'tos.relation.has-object'),
+                ('c-subject', 'w-claim', 'has_subject', 'tos.relation.has-subject')]]
+        before = copy.deepcopy(graph)
+        for center, other in [('p-nav', 'w-claim'), ('w-nav', 'p-claim')]:
+            for profile in ['overview', 'all']:
+                spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'identity-depth', 'explain': True,
+                        'seed': {'focus_node_id': center}, 'node_query': {'enabled': False},
+                        'traversal': {'depth': 2, 'profile': profile}}
+                result = execute_knowledge_lens(graph, spec)
+                ids = {n['id'] for n in result['nodes']}
+                self.assertEqual(other in ids, profile == 'overview')
+                if profile == 'overview':
+                    carrier = center.replace('-nav', '-claim')
+                    self.assertEqual(result['inclusion']['nodes'][carrier],
+                                     {'kind': 'identity-carrier', 'via_node_id': center,
+                                      'entity_id': next(n['entity_id'] for n in graph['nodes'] if n['id'] == center), 'depth': 0})
+                    self.assertEqual(result['inclusion']['nodes'][other]['depth'], 2)
+                service = ExplorationService(lambda: graph, work_limit=2)
+                page = service.explore({'focus_node_id': center, 'max_depth': 2, 'profile': profile,
+                                        'page_nodes': 1, 'page_relations': 1})
+                found = set(); primary = []
+                for _ in range(80):
+                    found.update(n['id'] for n in page['nodes'])
+                    primary.extend(page['page']['primary_node_ids'])
+                    self.assertLessEqual(page['page']['work_units'], 2)
+                    if not page['page']['next_cursor']: break
+                    cursor = page['page']['next_cursor']
+                    page = service.explore({'cursor': cursor})
+                    self.assertEqual(service.explore({'cursor': cursor}), page)
+                else: self.fail('identity continuation did not terminate')
+                self.assertEqual(other in found, profile == 'overview')
+                self.assertEqual(len(primary), len(set(primary)))
+        limited = execute_knowledge_lens(graph, {**spec, 'seed': {'focus_node_id': 'p-nav'},
+                    'traversal': {'depth': 2, 'profile': 'overview'}, 'limits': {'nodes': 1}})
+        self.assertTrue(limited['counts']['identity_expansion_limited'])
+        self.assertEqual(len(limited['nodes']), 1)
+        excluded = execute_knowledge_lens(graph, {**spec, 'sources': ['source-navigation'],
+                    'traversal': {'depth': 2, 'profile': 'overview'}})
+        self.assertEqual([n['id'] for n in excluded['nodes']], ['w-nav'])
+        for n in graph['nodes']: n['entity_id'] = 'shared-fallback'
+        self.assertEqual(len(focus_knowledge_node(graph, 'p-nav', depth=2, profile='overview')['nodes']), 1)
+        self.assertEqual(before['relations'], graph['relations'])
+
+    def test_identity_shorter_path_promotes_an_already_queued_carrier(self):
+        from tos_access.exploration import ExplorationService
+        graph = build_knowledge_graph(*self.fixture())
+        node, edge = graph['nodes'][0], graph['relations'][0]
+        graph['nodes'] = [{**node, 'id': id, 'native_id': id, 'entity_id': 'tos.test.' + entity}
+                          for id, entity in [('focus', 'f'), ('bridge', 'b'), ('early', 'shared'),
+                                             ('late', 'shared'), ('target', 't')]]
+        graph['relations'] = [{**edge, 'id': id, 'from_id': left, 'to_id': right}
+                              for id, left, right in [('1', 'focus', 'bridge'), ('2', 'focus', 'early'),
+                                                      ('3', 'bridge', 'late'), ('4', 'late', 'target')]]
+        service = ExplorationService(lambda: graph, work_limit=2)
+        page = service.explore({'focus_node_id': 'focus', 'max_depth': 2, 'page_nodes': 1, 'page_relations': 1})
+        ids = set()
+        for _ in range(80):
+            ids.update(n['id'] for n in page['nodes'])
+            if page['page']['next_cursor'] is None: break
+            page = service.explore({'cursor': page['page']['next_cursor']})
+        else: self.fail('promoted identity continuation did not terminate')
+        self.assertIn('target', ids)
+
     def test_scene_groups_only_declared_identity_and_preserves_exact_carriers(self):
         graph = build_knowledge_graph(*self.fixture())
         prototype, edge = graph['nodes'][0], graph['relations'][0]
