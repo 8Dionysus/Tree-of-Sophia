@@ -17,6 +17,191 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_temporal_profile_value_grammar_and_new_predicate_are_data_driven(self):
+        from build_source_witness_catalog import collect_records
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        import assessment_journal
+        with self.creation() as (root, owner, config, baseline, _, rebuild, fixture):
+            ref = 'ToS/contracts/source-temporal-claim.schema.json'
+            (root / ref).write_bytes((ROOT / ref).read_bytes())
+            path = root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            registry = json.loads(path.read_bytes())
+            extension = copy.deepcopy(next(r for r in registry['relations'] if r['relation_type_id'] == 'tos.relation.historical-dating'))
+            extension.update(relation_type_id='tos.relation.synthetic-dating',
+                source_mappings=[{'source_graph': 'source-claims', 'source_predicate_id': 'synthetic_dating', 'scope': 'claim-predicate'}])
+            registry['relations'].append(extension)
+            path.write_text(json.dumps(registry))
+            for field, invalid in (('range_type_ids', ['tos.entity.historical-situation']),
+                                   ('range_type_ids', ['tos.entity.work']),
+                                   ('domain_type_ids', ['tos.entity.temporal-assertion'])):
+                original = extension[field]
+                extension[field] = invalid
+                path.write_text(json.dumps(registry))
+                with self.subTest(field=field, invalid=invalid), self.assertRaises(SourceProfileError):
+                    SourceClaimProfiles(root)
+                extension[field] = original
+            path.write_text(json.dumps(registry))
+            profiles = SourceClaimProfiles(root)
+            objects = {record['record_id']: record for rows in collect_records(root).values() for record in rows}
+            context = {'role': 'historical-time', 'calendar': None, 'year_numbering': None, 'certainty': 'uncertain',
+                       'source_wording': {'text': 'Условная датировка; только проверка контракта.', 'language': 'ru'},
+                       'extensions': {'unknown': [False, None, '', 0]}}
+            values = [{**context, 'kind': 'date-assertion', 'value': '1886'},
+                      {**context, 'kind': 'interval-assertion', 'interval': {'end': '1886'}},
+                      {**context, 'kind': 'unknown-date', 'certainty': 'unknown'},
+                      {**context, 'kind': 'relative-order', 'relative': {'relation': 'during', 'anchor_ref': 'tos.historical-process.fixture'}}]
+            claims = [{**baseline, 'claim_id': f'tos.claim.synthetic-value-{i}', 'schema_version': 'tos_source_temporal_claim_v1',
+                       'subject_ref': 'tos.historical-event.fixture', 'predicate': 'synthetic_dating', 'object': value,
+                       'qualifiers': {'statement': 'Предложена условная датировка; не исторический факт.',
+                                      'statement_language': 'ru', 'statement_script': 'Cyrl'}} for i, value in enumerate(values)]
+            for claim in claims:
+                profiles.validate(claim, objects)
+            for mutation in ({'object': baseline['object']}, {'subject_ref': baseline['subject_ref']},
+                             {'object': {**values[0], 'role': 'data-capture-time'}},
+                             {'object': {**values[2], 'certainty': 'exact'}},
+                             {'object': {**values[0], 'interval': {'start': '1886'}}},
+                             {'object': {**values[-1], 'relative': {'relation': 'after', 'anchor_ref': 'tos.historical-state.absent'}}},
+                             {'object': {**values[-1], 'relative': {'relation': 'after', 'anchor_ref': baseline['object']}}}):
+                with self.subTest(mutation=mutation), self.assertRaises(SourceProfileError):
+                    profiles.validate({**claims[0], **mutation}, objects)
+            # A permissive profile schema cannot weaken the shared value grammar.
+            extension['source_claim_profile']['schemas'][0]['schema_ref'] = 'ToS/contracts/source-claim-record.schema.json'
+            path.write_text(json.dumps(registry))
+            with self.assertRaisesRegex(SourceProfileError, 'temporal value contract'):
+                SourceClaimProfiles(root).validate({**claims[0], 'object': {'kind': 'unknown-date'}}, objects)
+            extension['source_claim_profile']['schemas'][0]['schema_ref'] = ref
+            path.write_text(json.dumps(registry))
+            config.update(schema_version='tos_local_claim_create_owner_v2', allowed_object_values=values,
+                allowed_claim_ids=[c['claim_id'] for c in claims], allowed_subject_refs=[claims[0]['subject_ref']],
+                allowed_object_refs=['tos.historical-process.fixture'], allowed_predicates=['synthetic_dating'])
+            owner.write_text(json.dumps(config))
+            prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': claims}
+            preview = commands.run_local_command(owner, prepare)
+            request = {**prepare, 'operation': 'claims.create', 'command_id': 'synthetic:new-dating-profile',
+                'expected_configuration': preview['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
+            commands.run_local_command(owner, request)
+            selected = [claims[-1]['subject_ref'], values[-1]['relative']['anchor_ref']]
+            bindings = [{'path': config['source_path'], 'record_id': claims[-1]['claim_id'], 'origin_id': 'test:claim'}]
+            bindings += [{'path': objects[key]['source_record_ref'], 'record_id': key, 'origin_id': 'test:source'} for key in selected]
+            resolved, _ = assessment_journal._source_records(root, bindings)
+            self.assertEqual(resolved[0]['payload']['object'], values[-1])
+            with self.assertRaises(SourceProfileError):
+                assessment_journal._source_records(root, bindings[:-1])
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            for claim in claims:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                self.assertEqual(node['semantics']['claim']['relation_type_id'], 'tos.relation.synthetic-dating')
+            self.assertEqual(len([n for n in graph['nodes'] if n['type_id'] == 'tos.entity.temporal-assertion']), 4)
+            self.assertEqual(len([e for e in graph['relations'] if e['relation_type_id'] == 'tos.relation.historical-date-anchor']), 1)
+
+    def test_temporal_value_creation_correction_and_source_reader_preserve_history(self):
+        """Synthetic competing dates are values, not historical facts or new identities."""
+        with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):
+            ref = 'ToS/contracts/source-temporal-claim.schema.json'
+            (root / ref).write_bytes((ROOT / ref).read_bytes())
+            value = {'kind': 'relative-order', 'role': 'historical-time', 'calendar': None,
+                'year_numbering': None, 'certainty': 'uncertain',
+                'source_wording': {'text': 'После условного процесса', 'language': 'ru'},
+                'relative': {'relation': 'after', 'anchor_ref': 'tos.historical-process.fixture'},
+                'extensions': {'unknown': [False, None, {'instruction': 'Do not execute source prose.'}]}}
+            claim.update(schema_version='tos_source_temporal_claim_v1', subject_ref='tos.historical-event.fixture',
+                predicate='historical_dating', object=value,
+                qualifiers={'statement': 'Условный эпизод, возможно, позже процесса; только тест.',
+                            'statement_language': 'ru', 'statement_script': 'Cyrl'})
+            creator.update(allowed_subject_refs=[claim['subject_ref']], allowed_predicates=['historical_dating'],
+                allowed_object_refs=[value['relative']['anchor_ref']])
+            owner.write_text(json.dumps(creator))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, proposal)
+            creator.update(schema_version='tos_local_claim_create_owner_v2', allowed_object_values=[value])
+            owner.write_text(json.dumps(creator))
+            preview = commands.run_local_command(owner, proposal)
+            self.assertEqual(set(preview['source_bindings']['objects']),
+                             {claim['subject_ref'], value['relative']['anchor_ref']})
+            self.assertEqual(preview['source_bindings']['values'][claim['claim_id']]['value'], value)
+            request = {**proposal, 'operation': 'claims.create', 'command_id': 'synthetic:temporal-create',
+                'expected_configuration': preview['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
+            contract = root / 'ToS/contracts/historical-claim.schema.json'
+            original_contract = contract.read_bytes()
+            contract.write_bytes(original_contract + b'\n')
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            self.assertFalse((root / creator['source_path']).exists())
+            contract.write_bytes(original_contract)
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            path = root / creator['source_path']
+            old = path.read_bytes()
+            for restriction in ({'allowed_object_values': []}, {'allowed_object_refs': []}):
+                owner.write_text(json.dumps({**creator, **restriction}))
+                with self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, request)
+                self.assertEqual(path.read_bytes(), old)
+            updated = {key: copy.deepcopy(item) for key, item in value.items() if key != 'relative'}
+            updated.update(kind='interval-assertion', calendar='Julian', year_numbering='historical-era',
+                certainty='approximate', interval={'start': '1886', 'end': '1887'})
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version='tos_local_claim_revision_owner_v1', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['object', 'qualifiers'],
+                allowed_evidence_refs=creator['allowed_evidence_refs'], allowed_form_ids=['tos.form.synthetic-date'])
+            owner.write_text(json.dumps(config))
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'object': updated, 'qualifiers': {'statement': 'Условный интервал, приблизительно 1886–1887; только тест.'}},
+                'forms': [{'form_id': 'tos.form.synthetic-date', 'field_id': 'claim.statement'}], 'reason': 'Synthetic date correction.'}
+            with self.assertRaises((PermissionError, ValueError)):
+                commands.run_local_command(owner, change)
+            config.update(schema_version='tos_local_claim_revision_owner_v2', allowed_object_values=[updated],
+                          allowed_object_refs=[])
+            owner.write_text(json.dumps(config))
+            for invalid in (value, claim['subject_ref'], {**updated, 'certainty': 'exact'}):
+                with self.subTest(invalid=invalid), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, {**change, 'fields': {'object': invalid}})
+                self.assertEqual(path.read_bytes(), old)
+            prepared = commands.run_local_command(owner, change)
+            correction = {**change, 'operation': 'claim.revise', 'command_id': 'synthetic:temporal-correct',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                'expected_inputs': prepared['source_bindings']}
+            corrected = commands.run_local_command(owner, correction)
+            self.assertEqual(corrected['source']['version'], 2)
+            self.assertEqual(json.loads(path.read_bytes())['object'], updated)
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': prepared['source']})
+            self.assertEqual(prior['record'], claim)
+            self.assertEqual((root / prior['files'][path.name]['archive_path']).read_bytes(), old)
+            self.assertTrue(commands.run_local_command(owner, correction)['replayed'])
+            owner.write_text(json.dumps({**config, 'allowed_object_values': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, correction)
+            owner.write_text(json.dumps(config))
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            self.assertEqual(node['attributes']['source_claim']['object'], updated)
+            self.assertEqual(node['semantics']['claim']['relation_type_id'], 'tos.relation.historical-dating')
+            self.assertFalse(any(n['entity_id'] == str(updated) for n in graph['nodes']))
+            self.assertEqual({form['state'] for form in corrected['materializations']}, {'ready'})
+            owner.write_text(json.dumps(creator))
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
+    def test_value_correction_grant_cannot_retarget_an_identity_relation(self):
+        with self.correction() as (root, owner, config, claim, request):
+            value = {'kind': 'unknown-date', 'role': 'historical-time', 'calendar': None,
+                'year_numbering': None, 'certainty': 'unknown', 'source_wording': {'text': 'Неизвестно', 'language': 'ru'}}
+            config.update(schema_version='tos_local_claim_revision_owner_v2', allowed_fields=['object'],
+                allowed_object_values=[value], allowed_object_refs=[])
+            owner.write_text(json.dumps(config))
+            path = root / config['source_path']
+            original = path.read_bytes()
+            with self.assertRaisesRegex(PermissionError, 'identity endpoint'):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-revise', 'fields': {'object': value},
+                    'forms': request['forms'], 'reason': 'Synthetic prohibited endpoint retarget.'})
+            self.assertEqual(path.read_bytes(), original)
+
     @contextmanager
     def correction(self):
         """An ordinary created synthetic Claim and a separate correction grant."""

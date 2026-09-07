@@ -18,6 +18,7 @@
     "ToS/contracts/social-body-record.schema.json",
     "ToS/contracts/social-relation-claim.schema.json",
     "ToS/contracts/source-relation-claim.schema.json",
+    "ToS/contracts/source-temporal-claim.schema.json",
     "ToS/contracts/thought-description-record.schema.json",
     "ToS/contracts/thought-practice-record.schema.json",
     "ToS/contracts/thought-relation-claim.schema.json",
@@ -65,6 +66,7 @@
     "conception": "ToS/source-witnesses/catalog/conceptions.jsonl",
     "letter": "ToS/source-witnesses/catalog/letters.jsonl",
     "historical-event": "ToS/source-witnesses/catalog/historical-events.jsonl",
+    "historical-process": "ToS/source-witnesses/catalog/historical-processes.jsonl",
     "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl"
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
@@ -110,11 +112,12 @@
     "conception": 4,
     "letter": 1,
     "historical-event": 1,
+    "historical-process": 1,
     "artifact": 18,
-    "object_total": 250,
-    "claim": 304,
-    "total": 554
+    "object_total": 251,
+    "claim": 306,
+    "total": 557
   },
-  "catalog_sha256": "40e375ab279a9c456faab13bf5fa192f2dee1ed850c6d33f4b47650f8944a2ad",
+  "catalog_sha256": "b8bd0fe4eaa48f55b89008a0f2f0258f677b6136793f6c3160e72fb33e5c7f74",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

@@ -21,11 +21,12 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
 
 
 def configuration(config):
+    values_allowed = config['schema_version'] == source.CLAIM_VALUE_CONFIG
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
         'source_path', 'authority_ref', 'expires_at', 'provenance_event_id', 'allowed_operations',
         'allowed_claim_ids', 'allowed_subject_refs', 'allowed_object_refs', 'allowed_predicates',
-        'allowed_evidence_refs'})
-    if (config['schema_version'] != source.CLAIM_CONFIG or type(config['uid']) is not int
+        'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set()))
+    if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -39,6 +40,8 @@ def configuration(config):
                 or any(not isinstance(value, str) or not value.strip() for value in values)
                 or len(set(values)) != len(values)):
             raise ValueError('claim delegation scope must be a bounded list of unique identifiers')
+    if values_allowed:
+        validate_value_scope(config)
     if (set(config['allowed_operations']) - {OPERATION}
             or any(not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value)
                    for value in config['allowed_claim_ids'])
@@ -60,6 +63,24 @@ def configuration(config):
     return config, source._digest(source._canonical(config)), root / relative
 
 
+def validate_value_scope(config):
+    values = config['allowed_object_values']
+    if (not isinstance(values, list) or len(values) > 32 or any(not isinstance(value, dict) for value in values)
+            or len({source._canonical(value) for value in values}) != len(values)):
+        raise ValueError('value delegation requires at most 32 distinct exact JSON objects')
+
+
+def value_is_delegated(config, value):
+    """Exact data allowlist, not executable matching expressions or entity scope."""
+    if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG}
+            or not isinstance(value, dict)
+            or source._canonical(value) not in {source._canonical(v) for v in config['allowed_object_values']}):
+        return False
+    relative = value.get('relative')
+    return (relative is None or isinstance(relative, dict)
+            and relative.get('anchor_ref') in config['allowed_object_refs'])
+
+
 def _scope(config, claims):
     """Current scope applies before preparation and even to an exact replay."""
     if OPERATION not in config['allowed_operations']:
@@ -71,7 +92,8 @@ def _scope(config, claims):
         if (not isinstance(claim, dict) or not isinstance(claim.get('claim_id'), str)
                 or claim['claim_id'] not in config['allowed_claim_ids']
                 or claim.get('subject_ref') not in config['allowed_subject_refs']
-                or claim.get('object') not in config['allowed_object_refs']
+                or not (isinstance(claim.get('object'), str) and claim['object'] in config['allowed_object_refs']
+                        or value_is_delegated(config, claim.get('object')))
                 or claim.get('predicate') not in config['allowed_predicates']
                 or not isinstance(claim.get('maker'), dict)
                 or claim['maker'].get('agent_ref') != config['principal_id']
@@ -141,13 +163,18 @@ def _ground_claims(config, claims, *, initial):
     if len(raw) > source.MAX_COMMAND_BYTES:
         raise ValueError('initial claim stream exceeds its bounded byte budget')
     source_bindings = {'objects': {}, 'evidence': {}}
-    for identity in sorted({claim[field] for claim in claims for field in ('subject_ref', 'object')}):
+    for identity in sorted({identity for claim in claims for identity in profiles.identity_refs(claim)}):
         entry = objects[identity]
         source_raw = source._read(root / entry['source_record_ref'], source.MAX_SET_BYTES)
         payload = source._json_object(source_raw)
         source_bindings['objects'][identity] = {'source_ref': entry['source_record_ref'],
             'source_sha256': source._digest(source_raw), 'canonical_record_sha256': 'sha256:' + entry['record_sha256'],
             'schema_version': payload.get('schema_version'), 'record_version': payload.get('record_version')}
+    values = {claim['claim_id']: {'value': claim['object'], 'sha256': source._digest(source._canonical(claim['object'])),
+        'type_ids': profiles.relations[claim['predicate']]['range_type_ids']}
+        for claim in claims if profiles.is_temporal(claim)}
+    if values:
+        source_bindings['values'] = values
     for node in evidence:
         source_bindings['evidence'][node['properties']['evidence_ref']] = {
             'source_ref': node['source_ref'], 'source_sha256': 'sha256:' + node['source_sha256'],
@@ -251,6 +278,7 @@ def run_command(owner_config, config, configuration_digest, path, request):
             'allowed_operations': config['allowed_operations'], 'target_exists': target.exists(),
             'allowed_claim_ids': config['allowed_claim_ids'], 'allowed_subject_refs': config['allowed_subject_refs'],
             'allowed_object_refs': config['allowed_object_refs'], 'allowed_evidence_refs': config['allowed_evidence_refs'],
+            **({'allowed_object_values': config['allowed_object_values']} if 'allowed_object_values' in config else {}),
             'source_claim_profiles': {predicate: profiles.profiles[predicate] for predicate in config['allowed_predicates']},
             'expected_revision': None, 'creation_provenance_event_id': config['provenance_event_id'],
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False}

@@ -720,6 +720,26 @@ during, overlaps) and a resolved historical `anchor_ref`. Unknown dates have
 none of those absolute/relative values. Open bounds are absence, not infinity.
 Additional uninterpreted fields live in `extensions` and survive inspection.
 
+The declared `historical-temporal-v1` source Claim reader now carries this same
+value grammar in `source-claims.jsonl` using `tos_source_temporal_claim_v1`.
+It requires a historical-situation domain and a temporal-assertion range, not
+an identity object or a general semantic category of time. The new schema
+composes the existing `historicalDate` definition rather than replacing the
+legacy historical adapter. It adds a source-authored qualified statement with
+explicit language/script for the common Claim forms. Date profile extensions
+cannot weaken the shared value grammar. Newly registered dating predicates
+use the same source, assessment, graph and access readers, including relative
+anchor navigation; no per-predicate Python branch is required.
+
+The [shared command](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-source-claim-creation)
+creates and corrects these values only with separate v2 exact-value delegation.
+It preserves source/evidence bindings, uncertainty, original attribution,
+immutable predecessor bytes and all current source-copy forms. A value remains
+Claim-scoped, not a new Date identity. The v1 identity-only creation and
+descriptive-only correction grants retain their old scope. Legacy
+`historical-claims.jsonl` remains under its original adapter and does not gain
+revision history by reinterpretation.
+
 For example, the **synthetic, not historical evidence** value
 `{"kind":"date-assertion","role":"historical-time","calendar":null,"year_numbering":null,"certainty":"approximate","value":"1883","source_wording":{"text":"Около 1883 года — тест","language":"ru"}}`
 remains searchable and inspectable, but has no invented numerical bounds.

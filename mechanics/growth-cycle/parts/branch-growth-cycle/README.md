@@ -683,8 +683,9 @@ automatic retirement of abandoned staging remain separate Growth work.
 
 The same `source_commands.py --owner-config /absolute/owner.json` entrypoint
 dispatches separately delegated `claims.create` to `scripts/source_claim_commands.py`.
-It creates one atomic package of up to 32 declared identity-relation Claims
-over existing subjects/objects, including different subjects in the same batch.
+It creates one atomic package of up to 32 declared source Claims
+over existing subjects and identity or explicitly delegated temporal values,
+including different subjects and profiles in the same batch.
 It neither creates those identities nor revises existing Claims. Read-only
 access remains separate; a metadata/form delegation does not grant this route.
 
@@ -698,6 +699,13 @@ The protected `tos_local_claim_create_owner_v1` configuration has exactly:
 - `allowed_subject_refs`, `allowed_object_refs`, `allowed_evidence_refs`: at
   most 128 exact values each. Evidence citation permission must already be
   authorized by the source owner; this allowlist is not rights clearance.
+
+`tos_local_claim_create_owner_v2` has those same fields plus the required
+`allowed_object_values`: at most 32 distinct exact JSON objects. Only v2 can
+delegate temporal value objects; old v1 grants retain identity-only scope.
+For a relative date, its `anchor_ref` must additionally appear in
+`allowed_object_refs` and resolve as a historical situation. Source prose,
+schema declarations and the ability to inspect a value do not grant writes.
 
 The request uses `schema_version: tos_local_source_command_v1`:
 
@@ -717,6 +725,10 @@ not merely an opaque digest. The broader dependency digest also binds the
 catalog inputs, consumed profiles/schemas, evidence, anchors, provenance and
 implementation. Changes before or during staging conflict. This still scans
 source metadata; it does not prove an incremental or indexed writer.
+Temporal `source_bindings.values` separately names each Claim's exact value,
+digest and declared range types. The identity bindings contain the subject and
+any relative anchor, never a fabricated identity for the value. This distinction
+also applies to the independently selected assessment source adapter.
 
 Every Claim must have a delegated ID, predicate, endpoints and maker; its exact
 schema and inherited domain/range must pass the shared profile reader. Initial
@@ -787,7 +799,7 @@ quality. Declared Claim corrections use the separate operation below.
 
 `scripts/claim_revisions.py` implements `claim.revise` through the same explicit
 source command entrypoint. The selected Claim keeps its ID, predicate,
-endpoints, assertion layer, original maker/provenance and initial review flag.
+identity endpoints, assertion layer, original maker/provenance and initial review flag.
 Its `claim_version` advances once. The correction issuer and reason belong to
 the new history receipt; the original maker is origin attribution, not a claim
 that the original actor authored every later correction. Assessment, identity
@@ -805,6 +817,18 @@ still constrains their values. A qualifier patch merges its explicit top-level
 keys and preserves unmentioned keys. Other selected fields are replaced as
 explicit values. New or changed evidence lists require the independent exact
 allowlist. Unchanged evidence remains checked and source-bound.
+
+`tos_local_claim_revision_owner_v2` adds required `allowed_object_values` and
+`allowed_object_refs` (the same bounded exact-value and anchor scopes as create
+v2). It may include `object` in `allowed_fields` for correction of a declared
+temporal value. Both old and new objects must be values, never identity
+endpoints; the shared temporal contract and exact predicate profile still
+apply. A date, interval, relative order or unknown can be corrected without
+changing Claim identity, but independently competing dating judgments retain
+separate Claim IDs. An object correction replaces the complete explicitly
+supplied value; callers preserve unknown extensions in that value. The old
+complete value remains retained in the exact predecessor archive. A v1 grant
+cannot gain this operation through a new source schema or a replay.
 
 Requests use `tos_local_source_command_v1` and the record-correction grammar:
 

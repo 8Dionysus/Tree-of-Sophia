@@ -20,10 +20,13 @@ MODULE_REF = 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_rev
 
 
 def configuration(config):
+    values_allowed = config['schema_version'] == source.CLAIM_VALUE_REVISION_CONFIG
+    allowed_fields = FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
         'authority_ref', 'expires_at', 'claim_id', 'allowed_operations', 'allowed_fields',
-        'allowed_evidence_refs', 'allowed_form_ids'})
-    if (config['schema_version'] != source.CLAIM_REVISION_CONFIG
+        'allowed_evidence_refs', 'allowed_form_ids'}
+        | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set()))
+    if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -31,13 +34,17 @@ def configuration(config):
             or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['claim_id'])):
         raise PermissionError('Claim correction delegation is invalid or expired')
     for key, maximum, allowed in (('allowed_operations', 1, {OPERATION}),
-            ('allowed_fields', len(FIELDS), FIELDS), ('allowed_evidence_refs', 128, None),
-            ('allowed_form_ids', 32, None)):
+            ('allowed_fields', len(allowed_fields), allowed_fields), ('allowed_evidence_refs', 128, None),
+            ('allowed_form_ids', 32, None),
+            *([('allowed_object_refs', 128, None)] if values_allowed else [])):
         values = config[key]
         if (not isinstance(values, list) or len(values) > maximum
                 or any(not isinstance(v, str) or not v.strip() for v in values)
                 or len(set(values)) != len(values) or allowed is not None and set(values) - allowed):
             raise ValueError('invalid bounded Claim correction scope')
+    if values_allowed:
+        from source_claim_commands import validate_value_scope
+        validate_value_scope(config)
     if any(not re.fullmatch(r'tos\.form\.[a-z0-9][a-z0-9._-]*', v) for v in config['allowed_form_ids']):
         raise ValueError('invalid delegated Claim form identity')
     root, relative = Path(config['source_root']), Path(config['source_path'])
@@ -70,8 +77,10 @@ def _subject(record):
 
 
 def _advance(record, fields):
-    if not isinstance(fields, dict) or not fields or set(fields) - FIELDS:
+    if not isinstance(fields, dict) or not fields or set(fields) - (FIELDS | {'object'}):
         raise PermissionError('Claim correction cannot change identity, endpoints, layer, maker or admission')
+    if 'object' in fields and (not isinstance(record.get('object'), dict) or not isinstance(fields['object'], dict)):
+        raise PermissionError('Claim correction cannot change an identity endpoint into a value or conversely')
     changes = dict(fields)
     if 'qualifiers' in changes:
         if not isinstance(changes['qualifiers'], dict):
@@ -170,6 +179,10 @@ def _scope(config, request):
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):
         raise PermissionError('Claim correction fields exceed the delegated scope')
+    if 'object' in fields:
+        from source_claim_commands import value_is_delegated
+        if not value_is_delegated(config, fields['object']):
+            raise PermissionError('Claim value correction is not explicitly delegated')
     for name in ('evidence_refs', 'counterevidence_refs'):
         if name in fields and (not isinstance(fields[name], list)
                 or any(not isinstance(ref, str) or ref not in config['allowed_evidence_refs'] for ref in fields[name])):
@@ -253,6 +266,8 @@ def run_command(owner, config, configuration_digest, path, request):
             'revision': packages._revision(files), 'command_operations': ['describe', 'prepare-revise', OPERATION, 'inspect-version'],
             'supported_operations': [OPERATION], 'allowed_operations': config['allowed_operations'],
             'allowed_fields': config['allowed_fields'], 'allowed_form_ids': config['allowed_form_ids'],
+            **({key: config[key] for key in ('allowed_object_values', 'allowed_object_refs')}
+               if 'allowed_object_values' in config else {}),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False,
             'materializations': source.materialize_claim_forms(record, payload, access_allowed=True) if payload else []}
 

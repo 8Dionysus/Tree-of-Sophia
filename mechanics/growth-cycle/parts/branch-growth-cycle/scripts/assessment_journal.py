@@ -491,8 +491,8 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
         # not inline shadows or discovered by crawling the surrounding corpus.
         objects = {item['id']: item['payload'] for item in resolved if 'record_type' in item['payload']}
         paths = {binding['record_id']: Path(binding['path']) for binding in bindings}
-        endpoint_ids = {item['payload'][field] for item in resolved if item['id'] in declared_claims
-                        for field in ('subject_ref', 'object')}
+        endpoint_ids = {identity for item in resolved if item['id'] in declared_claims
+                        for identity in claim_profiles.identity_refs(item['payload'])}
         native_validator = None
         for identifier in endpoint_ids & objects.keys():
             body = objects[identifier]

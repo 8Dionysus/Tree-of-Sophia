@@ -984,7 +984,7 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles)
         if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
             claim_profiles.validate(claim, objects)
-        if claim.get('predicate') in HISTORICAL_PREDICATES:
+        elif claim.get('predicate') in HISTORICAL_PREDICATES:
             _validate_historical_claim(claim, objects, historical_contract)
         claim_id = str(claim["claim_id"])
         subject_ref = str(claim["subject_ref"])
@@ -1111,7 +1111,9 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             claim,
             objects=objects,
         )
-        if claim['predicate'] == 'historical_dating' and claim['object'].get('relative'):
+        temporal = (claim_profiles.is_temporal(claim) if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME
+                    else claim['predicate'] == 'historical_dating')
+        if temporal and claim['object'].get('relative'):
             identity_edges.append(('has_historical_date_anchor', claim['object']['relative']['anchor_ref']))
         for edge_kind, normalized_ref in identity_edges:
             normalized_node = _identity_node(objects[normalized_ref])

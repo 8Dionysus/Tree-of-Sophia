@@ -891,7 +891,8 @@ def _epistemic(item: dict[str, Any], default_authority: str | None = None) -> di
     }
 
 
-def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None) -> str:
+def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
+                       source_profile: dict[str, Any] | None = None) -> str:
     properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
     node_kind = _string(item.get("node_kind")) or "knowledge-object"
     if node_kind == "identity":
@@ -900,6 +901,8 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None)
         return "provenance-event"
     if node_kind != "literal":
         return node_kind
+    if source_profile and source_profile.get('reader') == 'historical-temporal-v1':
+        return 'temporal-assertion'
     value = properties.get("value")
     if claim_predicate == "provision_activity" or (
         isinstance(value, dict) and _string(value.get("provision_kind"))
@@ -1584,7 +1587,9 @@ def build_knowledge_graph(
     }
     for item in bibliographic_nodes:
         native = _string(item.get("node_id")) or "unnamed"
-        source_kind_id = _source_claim_kind(item, claim_predicates_by_object.get(native))
+        predicate = claim_predicates_by_object.get(native)
+        relation = relation_entries.get(relation_mappings.get(('source-claims', predicate, 'claim-predicate')), {})
+        source_kind_id = _source_claim_kind(item, predicate, relation.get('source_claim_profile'))
         material = dict(item)
         material["graph_layers"] = sorted({*_strings(item.get("graph_layers")), "bibliographic-claim"})
         nodes.append(

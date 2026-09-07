@@ -45,6 +45,8 @@ REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
+CLAIM_VALUE_CONFIG = 'tos_local_claim_create_owner_v2'
+CLAIM_VALUE_REVISION_CONFIG = 'tos_local_claim_revision_owner_v2'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
@@ -70,10 +72,10 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
-    if config.get('schema_version') == CLAIM_CONFIG:
+    if config.get('schema_version') in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG}:
         from source_claim_commands import configuration
         return configuration(config)
-    if config.get('schema_version') == CLAIM_REVISION_CONFIG:
+    if config.get('schema_version') in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG}:
         from claim_revisions import configuration
         return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
@@ -925,10 +927,10 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
-    if config['schema_version'] == CLAIM_CONFIG:
+    if config['schema_version'] in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG}:
         from source_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] == CLAIM_REVISION_CONFIG:
+    if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG}:
         from claim_revisions import run_command
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:
