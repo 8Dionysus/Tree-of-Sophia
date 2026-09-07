@@ -356,6 +356,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/source-claim-record.schema.json", "ToS/contracts/source-relation-claim.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
+      "reads": ["independently protected Claim creation delegation and bounded request", "existing source objects/claims, selected metadata evidence, anchors, provenance, exact profile/schema and implementation dependencies"],
+      "writes": ["one new flat source relation package: initial Claim stream, canonical request, environment, serialization provenance and receipt", "shared source writer lock and invocation-local staging outside source-witnesses"],
+      "side_effects": "bounded local-account atomic no-replace Claim package publication; exact replay, current-scope and input checks; no existing source overwrite, semantic assessment, admission, model invocation, graph publication or deployment",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

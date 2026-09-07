@@ -580,3 +580,71 @@ migrating every existing reader. The accepted cost is bounded package copying
 and Linux-specific exchange, not global corpus copying or an indexed writer.
 General multi-subject changes, other record families, claim correction and
 automatic retirement of abandoned staging remain separate Growth work.
+
+### Declared source Claim creation
+
+The same `source_commands.py --owner-config /absolute/owner.json` entrypoint
+dispatches separately delegated `claims.create` to `scripts/source_claim_commands.py`.
+It creates one atomic package of up to 32 declared identity-relation Claims
+over existing subjects/objects, including different subjects in the same batch.
+It neither creates those identities nor revises existing Claims. Read-only
+access remains separate; a metadata/form delegation does not grant this route.
+
+The protected `tos_local_claim_create_owner_v1` configuration has exactly:
+
+- `uid`, `principal_id`, `maker_type`, `source_root`, `authority_ref`, `expires_at`;
+- `source_path`: `ToS/source-witnesses/relations/<new-package>/source-claims.jsonl`;
+- `provenance_event_id`: one new `tos.event.*` identity;
+- `allowed_operations`: a subset of `["claims.create"]`;
+- `allowed_claim_ids` and `allowed_predicates`: at most 32 exact values each;
+- `allowed_subject_refs`, `allowed_object_refs`, `allowed_evidence_refs`: at
+  most 128 exact values each. Evidence citation permission must already be
+  authorized by the source owner; this allowlist is not rights clearance.
+
+The request uses `schema_version: tos_local_source_command_v1`:
+
+- `describe` returns the actual delegated operations, exact scope, source
+  Claim descriptors, configuration digest and target existence.
+- `prepare-create` adds `claims` and returns prepared file digests,
+  `expected_dependencies` and `source_bindings`, without source writes.
+- `claims.create` adds `claims`, `command_id`, `expected_configuration`,
+  `expected_revision: null`, `expected_dependencies` and `expected_inputs`
+  (the exact prepared `source_bindings`). Unrecognized request fields fail.
+
+Selected object bindings retain source path, raw and canonical record digests,
+source schema version and record version when the native shape has one; absent
+native record versions stay null. Evidence bindings retain path, digest, line
+when relevant and evidence kind. These values travel in the request and receipt,
+not merely an opaque digest. The broader dependency digest also binds the
+catalog inputs, consumed profiles/schemas, evidence, anchors, provenance and
+implementation. Changes before or during staging conflict. This still scans
+source metadata; it does not prove an incremental or indexed writer.
+
+Every Claim must have a delegated ID, predicate, endpoints and maker; its exact
+schema and inherited domain/range must pass the shared profile reader. Initial
+version is 1, review posture is unreviewed, visibility is public metadata, and
+assessment/supersession are not granted. Evidence and counterevidence must be
+authorized and resolve through the existing source reader; alternative Claim
+IDs must resolve in existing sources or this complete batch. Unknown source
+extensions are retained, never executed. One bad member rejects the whole batch.
+
+Publication is five files: `source-claims.jsonl`, `source-create-request.json`,
+`source-create-environment.json`, `source-create-provenance.jsonl` and
+`source-create-receipt.json`. Shared account/path checks, source lock, fsync and
+Linux no-replace directory commit are reused. Capture names the actual Claim
+serializer and both implementation modules; it remains unsigned pre-commit
+buffer serialization, not upstream research or content assessment. The 1 MiB
+request/Claim-stream ceilings do not reserve host storage.
+
+Exact replay rechecks current delegation and verifies the original request,
+Claim refs, selected source bindings, file closure and every stored byte digest.
+It returns the old receipt, not current admission. Occupied destinations,
+symlinks, corrupted receipts and reused identities fail closed. Abrupt loss
+leaves any uncommitted staging outside source scanners; retry does not delete
+it. A lost response after commit returns the same receipt without republishing.
+Uncooperative same-account editors must still remain quiescent during the
+transaction; this is not a sandbox or a cross-file reader snapshot.
+
+Claim correction/history, scoped assessment/admission and human-form production
+remain their own operations. Initial creation alone does not complete Growth,
+all subject profiles, source quality, publication or the full foundation.

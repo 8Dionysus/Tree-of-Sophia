@@ -873,6 +873,21 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "separately delegated declared Claim creation with exact selected input bindings, multi-subject atomic batches, source/schema freshness, current scope, collision and corruption refusals, process-loss recovery and CLI replay; no semantic admission or historical truth",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
+      "failure_route": "Fix the source Claim adapter or declared profile contract without widening write authority or discarding source history.",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/tests/test_source_revisions.py",
       "home": "mechanics/growth-cycle/tests",
       "home_scope": "mechanic-level",

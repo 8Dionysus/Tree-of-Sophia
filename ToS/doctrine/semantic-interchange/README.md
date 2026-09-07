@@ -222,7 +222,11 @@ retained historical schema/layer routes and no silent predicate/reader reuse.
 Reading a valid claim does not substantively assess or admit it. This first
 claim-profile reader handles identity endpoints, not arbitrary literal values,
 temporal objects, new inference rules, claim-writing permissions or automatic
-assessment. Those need their own implemented contracts; the metadata and
+assessment. A separately delegated [source-owner `claims.create`](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-source-claim-creation)
+now writes initial bounded Claim batches using these same profile rules,
+exact input bindings and atomic source publication. The reader does not grant
+that permission. Revision and assessment still need their own integration;
+the metadata and
 claim reader alone do not finish the documentary or other Foundation profiles.
 
 ## Physical artifacts: existing-source adapter

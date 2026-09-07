@@ -1,4 +1,4 @@
-"""Explicit source-owner commands for forms and declared metadata subjects.
+"""Explicit source-owner commands for forms, metadata subjects and claims.
 
 The independently selected protected configuration delegates local-account
 source writing, not semantic admission. Source prose cannot choose a path,
@@ -40,6 +40,7 @@ CREATION_OPERATION = 'historical.create'
 CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historical_create_owner_v2'}
 PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
+CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions'}
 MAX_COMMAND_BYTES = 1_048_576
 
@@ -63,6 +64,9 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
+    if config.get('schema_version') == CLAIM_CONFIG:
+        from source_claim_commands import configuration
+        return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') == PROFILE_CONFIG
     revision = config.get('schema_version') == REVISION_CONFIG
@@ -499,7 +503,8 @@ def _validator_for_provenance(root):
         root / 'ToS/contracts/provenance-event-v2.schema.json', MAX_SET_BYTES)))
 
 
-def _capture_creation_provenance(config, request, files, started_at, started_ns):
+def _capture_creation_provenance(config, request, files, started_at, started_ns,
+                                 *, procedure_name=None, additional_software_refs=()):
     """Capture buffer serialization, not upstream research or future publication.
 
     The event and its hash-bearing receipt travel with the atomic directory.
@@ -551,9 +556,10 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns)
             'role': 'executor', 'responsibility_posture': 'performed',
             'evidence_binding': {'ref': script_ref, 'sha256': script_hash},
             'human_evidence_status': 'not_applicable'}],
-        'method': {'procedure': {'name': ('source-profile-metadata-serialization' if config['schema_version'] == PROFILE_CONFIG
-                                        else 'historical-source-metadata-serialization'), 'version': '2',
-            'purpose': 'Serialize supplied source metadata and source-copy forms without judging their content.'},
+        'method': {'procedure': {'name': (procedure_name or ('source-profile-metadata-serialization' if config['schema_version'] == PROFILE_CONFIG
+                                        else 'historical-source-metadata-serialization')), 'version': '2',
+            'purpose': 'Serialize supplied source records without judging their content.' if procedure_name else
+                       'Serialize supplied source metadata and source-copy forms without judging their content.'},
             'command_capture': {'disclosure': 'withheld_digest_only', 'argv': None,
                 'argv_sha256': _digest(_canonical(sys.argv))[7:],
                 'withholding_reason': 'Process argv can contain private owner configuration paths; request is bound separately.'},
@@ -585,6 +591,12 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns)
         'authority_boundary': {'validator_role': 'mechanics_and_closure_only_not_truth',
             'claims_not_established': ['execution_truth', 'content_truth', 'source_fidelity', 'translation_quality',
                 'semantic_correctness', 'rights_clearance', 'human_review', 'publication_authority', 'canon_authority']}}
+    # Internal source-module refs, never request/config-selected executables.
+    for ref in additional_software_refs:
+        event['method']['software_components'].append({'name': ref, 'version': '1',
+            'role': 'source-command-adapter', 'artifact_ref': ref,
+            'artifact_sha256': _digest(_read(ROOT / ref, MAX_SET_BYTES))[7:],
+            'verification_status': 'verified'})
     _validator_for_provenance(Path(config['source_root'])).validate(event)
     files['source-create-provenance.jsonl'] = _canonical(event) + b'\n'
 
@@ -724,6 +736,9 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
+    if config['schema_version'] == CLAIM_CONFIG:
+        from source_claim_commands import run_command
+        return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == REVISION_CONFIG:
