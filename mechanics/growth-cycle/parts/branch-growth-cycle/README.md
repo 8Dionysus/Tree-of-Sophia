@@ -284,7 +284,10 @@ reader state. Conflicts require fresh discovery, not overwriting another
 writer's revision. Historical form sets without command receipts are supported
 without inventing past authorization.
 
-A sibling `.<set-name>.writer.lock` coordinates command writers with a
+A stable source-root `.historical-create.writer.lock` is acquired before the
+sibling `.<set-name>.writer.lock`. The former also coordinates whole-package
+source revision, so exchanging a directory cannot split active writer locks.
+Both coordinate cooperating local command writers with a
 five-second bounded wait (`JournalBusy` means retry, not restart/delete).
 Lock and unpublished staging files are local operation state, not corpus
 records or files to include in a source commit.
@@ -433,3 +436,96 @@ refusals, competing writers, process loss before commit, response loss after
 commit, and restart/replay. They do not establish a real historical episode,
 atomic revisions of an existing subject, all-profile growth or real-agent
 assessment quality.
+
+### Versioned source correction
+
+`tos_local_source_revision_owner_v1` independently delegates `record.revise`
+through the same `source_commands.py` CLI. Its fields match the form-owner
+configuration, plus exact `record_id` and `allowed_fields`. This adapter
+currently understands the existing historical record schema only; the exact
+typed basename and public-metadata visibility are required. It does not
+revise claims, identities, rights, visibility or assessment decisions.
+`allowed_operations` is a subset of `["record.revise"]` and `allowed_fields`
+is a subset of `preferred_label`, `variant_labels`, `notes`, `field_languages`,
+`source_refs`, `extensions`. Changing an allowed value is an explicit authored
+correction, not a judgment by the serializer. Unselected fields and all
+unselected companion bytes stay unchanged, including unknown extensions.
+
+The request has `schema_version: tos_local_source_command_v1`:
+
+- `describe` returns the current exact `source`, whole-package `revision`,
+  `owner_configuration`, allowed fields/operations/forms and materializations.
+- `prepare-revise` adds `fields` (nonempty field-value patch), `forms`
+  (`{form_id, field_id}` selections) and a bounded authored `reason`.
+  It returns the next source/form refs, prepared materializations and
+  `expected_dependencies`, without creating locks, archives or source files.
+- `record.revise` adds `command_id`, `expected_source`, `expected_revision`,
+  `expected_configuration`, `expected_dependencies`, copied from preparation.
+  Source ID/type stay fixed and `record_version` advances exactly once.
+  Every current form must have an explicit successor selection, validated by
+  the actual source-copy reader; at least one name remains required. Old forms
+  retain their exact prior source refs. This adapter does not automatically
+  reinterpret freeform/template proposals or carry old assessment admission
+  to a changed source digest.
+- `inspect-version` adds exact `source: {id, version, digest}` and returns
+  `record`, `inspected_source` and the archived byte bindings for a predecessor
+  in committed history. Path selection is derived from the configured subject,
+  never taken from submitted prose. Current source remains available through
+  the ordinary reader; an uncommitted archive is not an addressable revision.
+
+The active package stays at the original source path. Before any replacement,
+the complete old flat package is durably stored under
+`ToS/source-witnesses/.record-revisions/<subject-hash>-<package-hash>/`.
+`manifest.json` binds original filenames, exact source ref, file sizes/digests
+and content-addressed `.blob` files. These are tracked source-history bytes,
+not a cache or another current corpus. The blob suffix prevents old record or
+provenance filenames from becoming duplicate current identities in existing
+scanners. `inspect-version` verifies every retained byte and reconstructs the
+successor from its retained request; a missing/corrupt archive fails closed.
+Initial creation receipts and provenance remain unchanged historical records,
+whose exact original output bytes can now be returned through this archive.
+
+`source-revision-history.json` in the current package records the complete
+canonical request, its digest, issuer/delegation, reason, exact predecessor
+and successor, dependency digest, form results and archive locator. The receipt
+grants no admission and does not impersonate upstream research/model execution.
+Existing historical claims, maker and provenance are not upgraded because a
+record description was corrected. Exact retries return the original receipt
+plus fresh current reader state; current scope revocation still applies.
+
+After the stored archive is independently byte-checked, record, forms and
+history are staged together outside the source scanner under
+`ToS/.source-revision-*.pending`. Linux `renameat2(RENAME_EXCHANGE)` publishes
+one complete directory namespace; there is no multi-file copying fallback.
+The stable corpus writer lock covers creation, form-only writes and revision.
+Readers opening several files independently still need snapshot/currentness
+checks: directory exchange is not a transaction over an already-running
+catalog traversal. Access stays read-only and builders/publication are separate.
+Uncooperative editors and older writers must remain quiescent; final package,
+configuration and implementation/schema rereads detect observed drift, not a
+sandbox against hostile same-account code.
+
+An ordinary exception removes only this invocation's uncommitted staging, or
+an exact old staging copy already verified against the retained archive.
+Abrupt process loss may leave an inactive staging directory; retry neither
+publishes nor deletes it. If loss follows exchange, the current history proves
+the commit and a retry returns it without rewriting. An archive published
+before a failed commit remains retained but uncommitted; a retry with the same
+old package verifies and reuses it. Recovery must inspect these exact artifacts,
+not infer a live writer from their existence or delete committed history.
+
+The adapter bounds a flat package to 64 regular files, 2 MiB per file and
+8 MiB total; nested directories and symlinks are refused, not skipped. The
+archive permits its one additional manifest. History stops at 128 revisions,
+and form-history limits may bind earlier. No history is truncated. The caller
+must obtain host capacity accounting for a large write; these ceilings do not
+reserve storage or authorize publication. Reverting wording uses another
+successor correction; switching a derived reader does not erase source history.
+
+This representation was chosen to retain compatibility with existing source
+paths while correcting related record/forms atomically. Separate file renames
+would expose partial changes; a new pointer-only source store would require
+migrating every existing reader. The accepted cost is bounded package copying
+and Linux-specific exchange, not global corpus copying or an indexed writer.
+General multi-subject changes, other record families, claim correction and
+automatic retirement of abandoned staging remain separate Growth work.

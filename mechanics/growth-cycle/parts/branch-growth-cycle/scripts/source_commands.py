@@ -1,4 +1,4 @@
-"""Explicit source-owner commands for forms and initial historical subjects.
+"""Explicit source-owner commands for forms and versioned historical subjects.
 
 The independently selected protected configuration delegates local-account
 source writing, not semantic admission. Source prose cannot choose a path,
@@ -38,6 +38,8 @@ from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_me
 OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
 CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historical_create_owner_v2'}
+REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
+REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions'}
 MAX_COMMAND_BYTES = 1_048_576
 
 
@@ -61,18 +63,21 @@ def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
     creation = config.get('schema_version') in CREATION_CONFIGS
+    revision = config.get('schema_version') == REVISION_CONFIG
     captures_provenance = config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
           | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set())
+          | ({'record_id', 'allowed_fields'} if revision else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
             or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
         raise PermissionError('source-command delegation is invalid or expired')
-    for key, allowed in (('allowed_operations', (CREATION_OPERATION,) if creation else OPERATIONS), ('allowed_form_ids', None)):
+    operations = (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
+    for key, allowed in (('allowed_operations', operations), ('allowed_form_ids', None)):
         values = config[key]
         if (not isinstance(values, list) or len(values) > 32
                 or any(not isinstance(value, str) for value in values)
@@ -80,6 +85,13 @@ def _configuration(path):
                 or any(value not in allowed if allowed else not re.fullmatch(r'tos\.form\.[a-z0-9][a-z0-9._-]*', value)
                        for value in values)):
             raise ValueError('invalid source-command delegation scope')
+    if revision:
+        values = config['allowed_fields']
+        if (not isinstance(values, list) or any(not isinstance(value, str) or value not in REVISION_FIELDS for value in values)
+                or len(set(values)) != len(values)
+                or not isinstance(config['record_id'], str)
+                or not re.fullmatch(r'tos\.historical-(event|process|state)\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])):
+            raise ValueError('invalid source revision identity or field scope')
     if creation:
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(r'tos\.historical-(event|process|state)\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
@@ -101,7 +113,7 @@ def _configuration(path):
             or any(part in ('payload', 'local-content') for part in relative.parts)
             or relative.suffix != '.json' or relative.name.endswith('.human-forms.json')):
         raise PermissionError('source-command target must be explicit source metadata')
-    if creation and (relative.name != config['record_id'].split('.')[1] + '.json'
+    if (creation or revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
     return config, _digest(_canonical(config)), root / relative
@@ -168,6 +180,8 @@ def _snapshot(source_path):
         _validate_history(payload)
         if payload['subject']['id'] != subject.id:
             raise JournalCorruption('source and form set have different subjects')
+    if _read(source_path, MAX_COMMAND_BYTES) != source_raw:
+        raise JournalConflict('source changed while reading adjacent forms')
     return source_raw, source, subject, target, raw, payload
 
 
@@ -591,7 +605,7 @@ def _create_historical(owner_config, config, configuration, source_path, request
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('command identity must contain one to 256 characters')
     request_digest = _digest(_canonical(request))
-    # This lock coordinates new identities across all cooperating create callers.
+    # Stable corpus lock coordinates creation, form writers and source revisions.
     with _locked(root / 'ToS/source-witnesses/historical-create'):
         _, current_digest, current_path = _configuration(owner_config)
         if current_path != source_path or current_digest != configuration:
@@ -646,13 +660,16 @@ def _create_historical(owner_config, config, configuration, source_path, request
 
 
 def run_local_command(owner_config: Path, request: dict):
-    """One selected owner route: form-set change or no-replace subject creation."""
+    """One independently delegated source owner route; never semantic admission."""
     if not isinstance(request, dict) or len(_canonical(request)) > MAX_COMMAND_BYTES:
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
     if config['schema_version'] in CREATION_CONFIGS:
         return _create_historical(owner_config, config, configuration, source_path, request)
+    if config['schema_version'] == REVISION_CONFIG:
+        from source_revisions import run_revision
+        return run_revision(owner_config, config, configuration, source_path, request)
     operation = request.get('operation')
     fields = {'schema_version', 'operation'}
     if operation == 'apply':
@@ -698,7 +715,7 @@ def run_local_command(owner_config: Path, request: dict):
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('command identity must contain one to 256 characters')
     request_digest = _digest(_canonical(request))
-    with _locked(snapshot[3]):
+    with _locked(Path(config['source_root']) / 'ToS/source-witnesses/historical-create'), _locked(snapshot[3]):
         config, configuration, current_source_path = _configuration(owner_config)
         if current_source_path != source_path:
             raise JournalConflict('owner source route changed before the transaction')

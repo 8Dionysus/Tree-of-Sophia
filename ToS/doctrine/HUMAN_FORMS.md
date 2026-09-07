@@ -163,6 +163,7 @@ immutable account of the original serialization, not a mutable currentness seal.
 
 The existing bibliographic graph builder carries the materializations and
 adjacent source return in identity properties, with the set's input digest.
+
 This route uses already public bibliographic metadata, not payload text or
 private source layers. It has no growth-command or publication authority.
 Each set is bounded at 2 MiB input, 32 current forms and 256 KiB output.
@@ -176,6 +177,13 @@ copies, not a new translation, historical assessment or complete Forms profile.
 Its original-name ID is not language-context evidence. The current metadata
 adapter does not yet supply this context; adding it requires source-owned
 metadata and successor form bindings, not a reader heuristic.
+
+The separately delegated `record.revise` adapter can now publish a historical
+source correction and all selected source-copy successors together. It retains
+the exact preceding package and form lineage; an old assessment does not bind
+the new source digest. The operation and byte-history contract live in
+`mechanics/growth-cycle/parts/branch-growth-cycle/README.md`, not in read-only
+access or a new source ontology.
 
 ## Source commands and retained change history
 
