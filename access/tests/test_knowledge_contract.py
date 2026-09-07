@@ -29,6 +29,38 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_overview_does_not_infer_proximity_from_shared_record_maker(self):
+        from tos_access.exploration import ExplorationService
+        graph = build_knowledge_graph(*self.fixture())
+        prototype = graph['nodes'][0]
+        graph['nodes'] = [{**prototype, 'id': id, 'native_id': id, 'entity_id': 'tos.test.' + id}
+                          for id in ('claim', 'subject', 'maker', 'unrelated')]
+        edge = graph['relations'][0]
+        graph['relations'] = [
+            {**edge, 'id': 'subject-edge', 'from_id': 'claim', 'to_id': 'subject',
+             'predicate_id': 'has_subject', 'relation_type_id': 'tos.relation.has-subject'},
+            {**edge, 'id': 'maker-edge', 'from_id': 'claim', 'to_id': 'maker',
+             'predicate_id': 'made_by', 'relation_type_id': 'tos.relation.made-by'},
+            {**edge, 'id': 'other-edge', 'from_id': 'unrelated', 'to_id': 'maker',
+             'predicate_id': 'made_by', 'relation_type_id': 'tos.relation.made-by'},
+        ]
+        for technical_type in ('tos.relation.made-by', 'tos.relation.generated-by'):
+            for relation in graph['relations'][1:]:
+                relation['relation_type_id'] = technical_type
+            for profile, expected in [('overview', {'claim', 'subject'}),
+                                      ('all', {'claim', 'subject', 'maker', 'unrelated'})]:
+                with self.subTest(technical_type=technical_type, profile=profile):
+                    result = focus_knowledge_node(graph, 'claim', depth=2, profile=profile)
+                    self.assertEqual({n['id'] for n in result['nodes']}, expected)
+                    page = ExplorationService(lambda: graph).explore(
+                        {'focus_node_id': 'claim', 'max_depth': 2, 'profile': profile})
+                    self.assertEqual({n['id'] for n in page['nodes']}, expected)
+            # A raw predicate spelling alone does not classify an unknown extension.
+            for relation in graph['relations'][1:]:
+                relation['relation_type_id'] = 'tos.relation.related'
+            result = focus_knowledge_node(graph, 'claim', depth=2)
+            self.assertEqual({n['id'] for n in result['nodes']}, {'claim', 'subject', 'maker', 'unrelated'})
+
     def human_form_node(self):
         subject = {'id': 'tos.record.form-fixture', 'version': 1, 'digest': 'sha256:' + 'a' * 64}
         packet = {'schema_version': 'tos_human_form_materialization_v1',

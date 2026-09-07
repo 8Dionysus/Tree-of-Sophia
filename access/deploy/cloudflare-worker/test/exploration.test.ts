@@ -69,6 +69,28 @@ test('D1 exploration conserves Python BFS order across direction, depth, size an
   } finally {await mf.dispose();}
 });
 
+test('overview exploration excludes typed record provenance but not unknown predicate spellings', async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
+  try {
+    const db = await mf.getD1Database('DB'), g = graph(3);
+    g.relations = [
+      {...g.relations[0], id:'maker-a',from_id:'0',to_id:'1',predicate_id:'made_by',relation_type_id:'tos.relation.made-by'},
+      {...g.relations[0], id:'maker-b',from_id:'2',to_id:'1',predicate_id:'made_by',relation_type_id:'tos.relation.made-by'},
+    ];
+    await init(db,g);
+    for (const relationType of ['tos.relation.made-by','tos.relation.generated-by','tos.relation.related']) {
+      for (const edge of g.relations) {
+        edge.relation_type_id=relationType;
+        await db.prepare('UPDATE knowledge_relations SET json=? WHERE id=?').bind(JSON.stringify(edge),edge.id).run();
+      }
+      for (const profile of ['overview','all']) {
+        const pages=await collect(db,{focus_node_id:'0',max_depth:2,profile,page_nodes:1,page_relations:1});
+        assert.deepEqual(membership(pages).nodes, profile==='overview'&&relationType!=='tos.relation.related'?['0']:['0','1','2']);
+      }
+    }
+  } finally {await mf.dispose();}
+});
+
 test('actual Worker HTTP continuation survives isolate restart and concurrent retries', async () => {
   const bundle = await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
   const directory = mkdtempSync(join(tmpdir(),'tos-exploration-'));
@@ -102,6 +124,10 @@ test('actual Worker HTTP continuation survives isolate restart and concurrent re
     const fresh=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
     await db.prepare('UPDATE knowledge_exploration_checkpoints SET expires=0 WHERE token=?').bind(fresh.page.next_cursor).run();
     assert.equal((await post({cursor:fresh.page.next_cursor})).status,410);
+    const oldExecution=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
+    await db.prepare("UPDATE knowledge_exploration_checkpoints SET version='tos-exploration-d1-execution-v1' WHERE token=?")
+      .bind(oldExecution.page.next_cursor).run();
+    assert.equal((await post({cursor:oldExecution.page.next_cursor})).status,409);
   } finally {await mf.dispose();rmSync(directory,{recursive:true,force:true});}
 });
 

@@ -1,8 +1,8 @@
 import { HttpError, parseItem, type Item } from './common.ts';
-import { OVERVIEW_EXCLUDED_PREDICATES } from './knowledge.ts';
+import { OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES } from './knowledge.ts';
 import { nodesByIds, relationsByIds, resolveFocusNodeD1 } from './knowledge-store.ts';
 
-const VERSION = 'tos-exploration-d1-execution-v1';
+const VERSION = 'tos-exploration-d1-execution-v2';
 const SOURCES = ['philosophy', 'canon', 'candidate-intake', 'source-navigation', 'source-claims', 'semantic-interchange', 'repository'];
 const TTL = 900_000;
 const MAX_BYTES = 1_048_576;
@@ -15,7 +15,7 @@ type Query = {
 type State = {query: Query; queue: [string, number][]; head: number; after: string | null; seen_relations: string[]; page_number: number};
 type Snapshot = {epoch: number; revision: string; source_revision: string; authority_boundary: Item};
 type Checkpoint = {token: string; expires: number; epoch: number; version: string; state: string | null; response: string | null};
-type Header = {id: string; from_id: string; to_id: string; source_graph: string; predicate_id: string; from_source: string | null; to_source: string | null};
+type Header = {id: string; from_id: string; to_id: string; source_graph: string; predicate_id: string; relation_type_id: string | null; from_source: string | null; to_source: string | null};
 
 function bad(message: string): never { throw new HttpError(400, message); }
 function expired(): never { throw new HttpError(410, 'exploration expired or was evicted; restart from focus'); }
@@ -94,6 +94,7 @@ export async function explorationCapabilitiesD1(db: D1Database): Promise<Item> {
 // Two covering adjacency seeks avoid scanning/sorting the entire incident list
 // at a high-degree node. UNION removes a self-loop's duplicate occurrence.
 export const ADJACENCY_SQL = `SELECT r.id,r.from_id,r.to_id,r.source_graph,r.predicate_id,
+    json_extract(r.json,'$.relation_type_id') AS relation_type_id,
     f.source_graph AS from_source,t.source_graph AS to_source
   FROM (SELECT id FROM (SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from_seek
            WHERE from_id=? AND id>? ORDER BY id LIMIT 32)
@@ -127,7 +128,8 @@ async function advance(db: D1Database, state: State, snap: Snapshot) {
       && edge.from_source !== null && edge.to_source !== null && q.sources.includes(edge.from_source) && q.sources.includes(edge.to_source)
       && (q.direction !== 'outgoing' || edge.from_id === current) && (q.direction !== 'incoming' || edge.to_id === current)
       && (!q.predicate_ids.length || q.predicate_ids.includes(edge.predicate_id))
-      && (q.profile !== 'overview' || !OVERVIEW_EXCLUDED_PREDICATES.includes(edge.predicate_id));
+      && (q.profile !== 'overview' || (!OVERVIEW_EXCLUDED_PREDICATES.includes(edge.predicate_id)
+        && !OVERVIEW_EXCLUDED_RELATION_TYPES.includes(edge.relation_type_id ?? '')));
     if (!eligible) { state.after = edge.id; cached.shift(); continue; }
     const fresh = !nodes.has(target);
     if (edges.size >= 20000 || fresh && nodes.size >= 10000) { limit = edges.size >= 20000 ? 'session_relations' : 'session_nodes'; break; }

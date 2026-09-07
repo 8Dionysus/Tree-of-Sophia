@@ -14,12 +14,12 @@ import time
 from collections import OrderedDict, defaultdict
 
 from .knowledge import (
-    KNOWLEDGE_SOURCES, OVERVIEW_EXCLUDED_PREDICATES, _lens_carrier,
+    KNOWLEDGE_SOURCES, OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, _lens_carrier,
     _resolve_focus_node, _stable_digest,
 )
 from .lens_pagination import KnowledgeRevisionConflict
 
-EXECUTION_VERSION = "tos-exploration-execution-v1"
+EXECUTION_VERSION = "tos-exploration-execution-v2"
 
 
 class ExplorationExpired(ValueError):
@@ -209,7 +209,8 @@ class ExplorationService:
                         and (query["direction"] != "outgoing" or edge["from_id"] == current)
                         and (query["direction"] != "incoming" or edge["to_id"] == current)
                         and (not query["predicate_ids"] or edge["predicate_id"] in query["predicate_ids"])
-                        and (query["profile"] != "overview" or edge["predicate_id"] not in OVERVIEW_EXCLUDED_PREDICATES))
+                        and (query["profile"] != "overview" or (edge["predicate_id"] not in OVERVIEW_EXCLUDED_PREDICATES
+                             and edge.get("relation_type_id") not in OVERVIEW_EXCLUDED_RELATION_TYPES)))
             if not eligible:
                 state["offset"] += 1
                 continue

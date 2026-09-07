@@ -105,6 +105,15 @@ node limit, and relation limit. A raw LensSpec can also set
 `seed.focus_node_id`; its result always repeats the resolved center separately
 from the ordinary node array.
 
+The default `overview` neighborhood does not traverse record-production
+relations (`tos.relation.made-by`, `tos.relation.generated-by`). A common maker
+or serialization event is not a semantic relationship between the recorded
+subjects. Exact node/relation inspection and `profile=all` retain those links;
+Claim subjects, objects and evidence remain available in overview. The catalog
+publishes exact exclusions. Unknown relations are not classified by their label
+or native predicate spelling. Exploration uses the same rule; its v2 execution
+version invalidates checkpoints from the earlier traversal semantics.
+
 Local search prepares JSON substring documents once for the current immutable
 knowledge snapshot. Repeated queries do not serialize the entire graph again;
 filters, exact/prefix ranking, metadata matches and pagination retain the same

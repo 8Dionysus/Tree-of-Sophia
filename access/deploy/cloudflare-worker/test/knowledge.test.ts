@@ -108,6 +108,22 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.deepEqual((joinedResult.nodes as {id:string}[]).map(n=>n.id), ['philosophy:a']);
     const focused = {...base, seed: {focus_node_id: 'philosophy:a'}, node_query: {enabled: false}, traversal: {depth: 2}};
     assert.deepEqual(await executeKnowledgeLensD1(db, focused), await executeKnowledgeLens(graph, focused));
+    // A shared record maker/provenance event is not semantic proximity.
+    // Exact inspection and the full technical profile still expose the edge.
+    for (const relationType of ['tos.relation.made-by', 'tos.relation.generated-by']) {
+      const technical = structuredClone(graph);
+      technical.relations[0]!.relation_type_id = relationType;
+      await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
+        .bind(relationType, JSON.stringify(technical.relations[0]), technical.relations[0]!.id).run();
+      for (const profile of ['overview', 'all']) {
+        const spec = {...focused, traversal: {depth: 2, profile}};
+        const pure = await executeKnowledgeLens(technical, spec);
+        assert.deepEqual(pure.nodes.map(n => n.id), profile === 'overview' ? ['philosophy:a'] : graph.nodes.map(n => n.id));
+        assert.deepEqual(await executeKnowledgeLensD1(db, spec), pure);
+      }
+    }
+    await db.prepare('UPDATE knowledge_relations SET relation_type_id=?, json=? WHERE id=?')
+      .bind(graph.relations[0]!.relation_type_id, JSON.stringify(graph.relations[0]), graph.relations[0]!.id).run();
     const python = (spec: unknown) => JSON.parse(execFileSync('python3', ['-c',
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph,spec}), encoding:'utf8'}));

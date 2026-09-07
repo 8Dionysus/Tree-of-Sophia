@@ -43,6 +43,7 @@ MAX_NODE_LIMIT = 1000
 MAX_RELATION_LIMIT = 2000
 MAX_GROUP_LIMIT = 200
 OVERVIEW_EXCLUDED_PREDICATES = {"has_text_unit", "has_anchor", "anchored_in", "annotation_member"}
+OVERVIEW_EXCLUDED_RELATION_TYPES = {"tos.relation.made-by", "tos.relation.generated-by"}
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _ATTRIBUTE_FIELD = re.compile(r"^(?:attributes|semantics)\.[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 _UNSAFE_PATH_SEGMENTS = {"__proto__", "prototype", "constructor"}
@@ -3078,6 +3079,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
             for item in relations
             if _matches_group(item, spec["relation_query"])
             and (spec['traversal']['profile'] != 'overview' or item.get('predicate_id') not in OVERVIEW_EXCLUDED_PREDICATES)
+            and (spec['traversal']['profile'] != 'overview' or item.get('relation_type_id') not in OVERVIEW_EXCLUDED_RELATION_TYPES)
             and (
                 not spec["traversal"]["predicate_ids"]
                 or item.get("predicate_id") in set(spec["traversal"]["predicate_ids"])
@@ -3778,7 +3780,7 @@ def knowledge_catalog(
                            "maximum_relations": 100, "context_endpoints_may_repeat": True,
                            "changed_query_or_snapshot_http_status": 409},
             "neighborhood_profiles": [
-                {"profile": "overview", "definition": "Bibliographic and conceptual overview; dense text-unit and anchor membership is expanded separately.", "excluded_predicates": sorted(OVERVIEW_EXCLUDED_PREDICATES)},
+                {"profile": "overview", "definition": "Bibliographic and conceptual overview; dense text units, anchors and record-maker/provenance links are inspected separately. Shared record production does not establish semantic proximity.", "excluded_predicates": sorted(OVERVIEW_EXCLUDED_PREDICATES), "excluded_relation_type_ids": sorted(OVERVIEW_EXCLUDED_RELATION_TYPES)},
                 {"profile": "all", "definition": "All declared relation kinds, including detailed text structure; result limits still apply.", "excluded_predicates": []},
             ],
             "sources": list(KNOWLEDGE_SOURCES),

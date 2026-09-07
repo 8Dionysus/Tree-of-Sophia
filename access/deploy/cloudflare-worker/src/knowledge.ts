@@ -116,6 +116,7 @@ export type LensSpec = {
 
 const SOURCES = ["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"] as const;
 export const OVERVIEW_EXCLUDED_PREDICATES = ["has_text_unit", "has_anchor", "anchored_in", "annotation_member"];
+export const OVERVIEW_EXCLUDED_RELATION_TYPES = ["tos.relation.made-by", "tos.relation.generated-by"];
 const OPERATORS = ["eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte"] as const;
 const LAYOUTS = ["auto", "organic", "timeline", "flow", "evidence", "semantic", "infrastructure", "hierarchical", "radial", "matrix"] as const;
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
@@ -811,7 +812,8 @@ export async function executeKnowledgeLens(graph: KnowledgeGraph, specValue: unk
   const relationCandidates = sortItems(
     spec.relation_query.enabled
       ? relations.filter((item) => matchesGroup(item, spec.relation_query) && (predicateSet.size === 0 || predicateSet.has(item.predicate_id))
-        && (spec.traversal.profile !== "overview" || !OVERVIEW_EXCLUDED_PREDICATES.includes(item.predicate_id)))
+        && (spec.traversal.profile !== "overview" || (!OVERVIEW_EXCLUDED_PREDICATES.includes(item.predicate_id)
+          && !OVERVIEW_EXCLUDED_RELATION_TYPES.includes(item.relation_type_id))))
       : [],
     spec.composition.sort_relations,
   );

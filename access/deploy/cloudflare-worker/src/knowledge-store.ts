@@ -4,6 +4,7 @@ import {
   focusLensSpec,
   normalizeLensSpec,
   OVERVIEW_EXCLUDED_PREDICATES,
+  OVERVIEW_EXCLUDED_RELATION_TYPES,
   type FocusKnowledgeOptions,
   type KnowledgeNode,
   type KnowledgeRelation,
@@ -362,6 +363,7 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
   }
   if (spec.traversal.profile === "overview") {
     relationParts.push({sql: "r.predicate_id NOT IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(OVERVIEW_EXCLUDED_PREDICATES)]});
+    relationParts.push({sql: "r.relation_type_id NOT IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(OVERVIEW_EXCLUDED_RELATION_TYPES)]});
   }
   const relationWhere = joinFragments(relationParts);
 
