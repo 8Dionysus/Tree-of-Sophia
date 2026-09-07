@@ -126,7 +126,7 @@
           "type": "object", "additionalProperties": false, "required": ["relation", "anchor_ref"],
           "properties": {
             "relation": {"enum": ["before", "after", "during", "overlaps"]},
-            "anchor_ref": {"type": "string", "pattern": "^tos\\.(historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+            "anchor_ref": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Identity syntax only. The consuming profile must resolve the exact historical-situation type through its registry; syntax never establishes that type."}
           }
         },
         "extensions": {"type": "object"}
@@ -142,7 +142,10 @@
   "allOf": [
     {
       "if": {"properties": {"predicate": {"const": "historical_dating"}}},
-      "then": {"properties": {"object": {"$ref": "#/$defs/historicalDate"}}}
+      "then": {"properties": {"object": {"allOf": [
+        {"$ref": "#/$defs/historicalDate"},
+        {"properties": {"relative": {"properties": {"anchor_ref": {"pattern": "^tos\\.(historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}}}}}
+      ]}}}
     },
     {
       "if": {

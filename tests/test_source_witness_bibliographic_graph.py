@@ -34,6 +34,179 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_historical_context_profiles_keep_biography_period_and_cohort_distinct(self):
+        """Synthetic source contracts; no historical or causal acceptance."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records, relations = SourceRecordProfiles(REPO_ROOT), SourceClaimProfiles(REPO_ROOT)
+        contents = {
+            'biographical-episode': {'episode_account': 'A bounded occurrence.', 'biographical_relevance': 'Its documented place in a life.'},
+            'biographical-phase': {'phase_account': 'A described life phase.', 'phase_boundary_basis': 'Research boundaries, not mandatory universal stages.'},
+            'historical-period': {'period_account': 'A historically situated periodization.', 'periodization_basis': 'Specific developments, not an arbitrary date interval.'},
+            'historical-generation': {'generation_account': 'A described cohort.', 'cohort_basis': 'Shared historical experience, not institutional membership.'},
+            'historical-environment': {'environment_account': 'A scoped configuration of conditions.', 'educational_account': 'A teaching arrangement.'},
+            'life-circumstance': {'circumstance_account': 'A documented condition.', 'documented_relevance': 'Limited relevance to the life.', 'evidence_limitations': 'Not a diagnosis or causal interpretation.'},
+        }
+        for kind, content in contents.items():
+            source = {'schema_version': 'tos_historical_context_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic-context', 'record_version': 1,
+                'preferred_label': 'Условный исторический предмет', 'notes': 'Только синтетическая проверка.',
+                'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'}, 'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-context'], 'external_identifiers': [], 'visibility': 'public_metadata_only',
+                'semantic_scope': {'scope_note': 'This test only.', 'identity_criterion': 'Same research referent, not its label or description version.', 'language': 'en', 'script': 'Latn'},
+                'semantic_content': {**content, 'language': 'en', 'script': 'Latn', 'unknown': {'values': [None, False]}}}
+            records.validate(kind, source)
+            ancestry = relations.ancestry('tos.entity.' + kind)
+            self.assertIn('tos.entity.identity', ancestry)
+            for excluded in ('semantic-object', 'temporal-object', 'organization', 'navigation-object'):
+                self.assertNotIn('tos.entity.' + excluded, ancestry)
+            self.assertEqual('tos.entity.historical-situation' in ancestry, kind != 'historical-generation')
+            self.assertEqual('tos.entity.historical-event' in ancestry, kind == 'biographical-episode')
+            for field in (*content, 'language', 'script'):
+                invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+            for field in content:
+                invalid = copy.deepcopy(source); invalid['semantic_content'][field] = ' '
+                with self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+            for update in ({'record_id': 'tos.historical-event.synthetic-context'}, {'semantic_scope': {}},
+                           {'schema_version': 'tos_historical_record_v1'}, {'admission': 'accepted'}):
+                with self.assertRaises(SourceProfileError):
+                    records.validate(kind, {**source, **update})
+            if kind == 'historical-environment':
+                for domain in ('political', 'economic', 'cultural', 'religious', 'educational', 'scientific_technological'):
+                    alternate = copy.deepcopy(source)
+                    alternate['semantic_content'].pop('educational_account')
+                    alternate['semantic_content'][domain + '_account'] = 'A source-described condition, not causal influence.'
+                    records.validate(kind, alternate)
+        cases = [('biographical_subject', 'biographical-episode', 'agent'),
+                 ('biographical_subject', 'biographical-phase', 'agent'),
+                 ('biographical_subject', 'life-circumstance', 'agent'),
+                 ('phase_contains_episode', 'biographical-phase', 'biographical-episode'),
+                 ('generation_member', 'historical-generation', 'agent'),
+                 ('generation_in_period', 'historical-generation', 'historical-period'),
+                 ('situation_in_period', 'biographical-phase', 'historical-period'),
+                 ('contextualized_by_environment', 'institutional-body', 'historical-environment'),
+                 ('contextualized_by_environment', 'work', 'historical-environment'),
+                 ('contextualized_by_environment', 'historical-event', 'historical-environment'),
+                 ('conception_in_environment', 'conception', 'historical-environment'),
+                 ('circumstance_during_phase', 'life-circumstance', 'biographical-phase'),
+                 ('historical_participant', 'biographical-episode', 'institutional-body'),
+                 ('historical_place', 'historical-environment', 'place')]
+        objects = {f'tos.{kind}.synthetic-context': {'record_type': kind}
+                   for kind in (*contents, 'agent', 'institutional-body', 'work', 'conception', 'place', 'historical-event')}
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_historical_context_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-context', 'claim_version': 1,
+                'subject_ref': f'tos.{left}.synthetic-context', 'predicate': predicate, 'object': f'tos.{right}.synthetic-context',
+                'assertion_layer': 'scholarly_report', 'evidence_refs': ['test:synthetic-context'],
+                'provenance_event_ref': 'tos.event.synthetic-context', 'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic-test'},
+                'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'A synthetic, source-attributed relationship only.', 'statement_language': 'en',
+                    'statement_script': 'Latn', 'relation_basis': 'Explicit synthetic report, not graph proximity.',
+                    'context_scope': 'Only the specified research scope.', 'time_scope_note': 'Bounds unknown; not capture time.',
+                    'participation_role': 'documented institutional participant', 'uninterpreted': [False, None]}}
+            with self.subTest(predicate=predicate):
+                relations.validate(claim, objects)
+                self.assertFalse(relations.relations[predicate]['transitive'])
+                for field in ('statement', 'statement_language', 'statement_script', 'relation_basis', 'context_scope', 'time_scope_note'):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate(invalid, objects)
+                relations.validate({**claim, 'epistemic_status': 'disputed'}, objects)
+                for endpoint in ('subject_ref', 'object'):
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate({**claim, endpoint: 'tos.place.synthetic-context' if endpoint == 'subject_ref' else 'tos.work.synthetic-context'}, objects)
+                if predicate == 'historical_participant':
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'].pop('participation_role')
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate(invalid, objects)
+
+    def test_biographical_context_relative_dates_round_trip_without_temporal_identity_coercion(self):
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        from source_commands import prepare_metadata_change, _apply
+        from knowledge_assessment import Record
+        import tos_corpus_index_common as corpus_builder
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'historical-context-record',
+                         'source-claim-record', 'source-temporal-claim', 'historical-context-claim',
+                         'semantic-relation-type-registry'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            sources = []
+            for kind, content in (
+                    ('biographical-phase', {'phase_account': 'Synthetic phase.', 'phase_boundary_basis': 'A scoped test phase.'}),
+                    ('biographical-episode', {'episode_account': 'Synthetic episode.', 'biographical_relevance': 'Synthetic relevance.'}),
+                    ('historical-generation', {'generation_account': 'Synthetic cohort.', 'cohort_basis': 'Not an organization or an interval.'})):
+                source = copy.deepcopy(history[0][1])
+                source.update(schema_version='tos_historical_context_record_v1', record_type=kind,
+                    record_id=f'tos.{kind}.synthetic-context', preferred_label='Тест: ' + kind,
+                    field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'}, 'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                    semantic_scope={'scope_note': 'Only this synthetic test.', 'identity_criterion': 'Same research referent.', 'language': 'en', 'script': 'Latn'},
+                    semantic_content={**content, 'language': 'en', 'script': 'Latn', 'unknown': [False, None]})
+                path = root / f'ToS/source-witnesses/history/context/{kind}.json'
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(source, ensure_ascii=False))
+                changes = [prepare_metadata_change(source, None, 'test:context',
+                    form_id=f'tos.form.context-{kind}-{role}', field_id=field)
+                    for role, field in (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+                forms = _apply(None, Record.from_payload(source['record_id'], 1, source), changes)
+                path.with_name(kind + '.human-forms.json').write_text(json.dumps(forms))
+                sources.append(source)
+            phase, episode, generation = sources
+            value = {'kind': 'relative-order', 'role': 'historical-time', 'calendar': None,
+                     'year_numbering': None, 'certainty': 'uncertain',
+                     'source_wording': {'text': 'В пределах условной фазы; точные даты неизвестны.', 'language': 'ru'},
+                     'relative': {'relation': 'during', 'anchor_ref': phase['record_id']}, 'extensions': {'unknown': [False, None]}}
+            claim = {**claims[0], 'schema_version': 'tos_source_temporal_claim_v1',
+                'claim_id': 'tos.claim.context-relative', 'subject_ref': episode['record_id'],
+                'predicate': 'historical_dating', 'object': value,
+                'qualifiers': {'statement': 'Synthetic relative dating only.', 'statement_language': 'en', 'statement_script': 'Latn'}}
+            path = root / 'ToS/source-witnesses/history/context/source-claims.jsonl'
+            path.write_text(json.dumps(claim, ensure_ascii=False) + '\n')
+            projection = rebuild()
+            graph, entities, relations = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import (build_knowledge_graph, focus_knowledge_node,
+                                              select_human_forms, validate_knowledge_semantics)
+            report = validate_knowledge_semantics(graph, entities, relations)
+            self.assertTrue(report['valid'], report['violations'])
+            for source in sources:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+                self.assertNotIn('time', node['semantics'])
+                self.assertEqual(node['display']['title']['default'], source['preferred_label'])
+                forms = select_human_forms(node, 'ru')
+                self.assertEqual(forms['roles']['name']['packet']['display_text'], source['preferred_label'])
+                self.assertEqual(forms['roles']['hover']['packet']['display_text'], source['notes'])
+                self.assertIsNone(forms['roles']['hover']['packet']['admission'])
+            temporal = next(n for n in graph['nodes'] if n['type_id'] == 'tos.entity.temporal-assertion')
+            self.assertEqual(temporal['semantics']['time']['raw'], value)
+            self.assertNotIn('sort_start', temporal['semantics']['time'])
+            self.assertNotIn('sort_end', temporal['semantics']['time'])
+            for focus, expected in ((episode, phase), (phase, episode)):
+                result = focus_knowledge_node(graph, focus['record_id'], depth=2)
+                self.assertIn(expected['record_id'], {n['entity_id'] for n in result['nodes']})
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            nav_graph = build_knowledge_graph({'source_navigation': navigation}, {}, {}, entities, relations)
+            for source in sources:
+                node = next(n for n in nav_graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+            reader = SourceClaimProfiles(root)
+            objects = {s['record_id']: s for s in (*sources, *real)}
+            for invalid_anchor in (generation['record_id'], real[0]['record_id'], 'tos.biographical-phase.missing'):
+                invalid = copy.deepcopy(claim); invalid['object']['relative']['anchor_ref'] = invalid_anchor
+                with self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+            with self.assertRaises(SourceProfileError):
+                reader.validate({**claim, 'subject_ref': generation['record_id']}, objects)
+            # Legacy carrier does not silently gain the new anchor vocabulary.
+            path.unlink()
+            claims.append({**claims[0], 'claim_id': 'tos.claim.legacy-new-anchor', 'predicate': 'historical_dating', 'object': value})
+            with self.assertRaisesRegex(BibliographicGraphBuildError, 'schema violation'):
+                rebuild()
+
     def test_intellectual_formations_do_not_collapse_into_groups_or_atlas_routes(self):
         """Synthetic contracts for historical formations, not historical judgments."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

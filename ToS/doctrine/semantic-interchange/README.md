@@ -677,6 +677,67 @@ artifacts. Evidence-bearing document/carrier relationships, artifact growth,
 and fully assessed multilingual forms are still required for the complete
 profile.
 
+## Biography, periodization, generations and historical environment
+
+Registry version 15 declares six content-bearing historical profiles through
+the existing `corpus-metadata-v1` reader. Their schema is
+[`historical-context-record.schema.json`](../../contracts/historical-context-record.schema.json).
+They retain the shared source metadata, language-tagged account, research
+scope and continuity criterion. Changing the description does not change the
+referent; changing its identity criterion is not an ordinary correction.
+
+| Profile | Historical distinction and required account |
+| --- | --- |
+| BiographicalEpisode → HistoricalEvent | Bounded occurrence and its documented biographical relevance, not an entire life. |
+| BiographicalPhase → HistoricalSituation | A described life phase and its boundary basis; not necessarily one event or homogeneous process. |
+| HistoricalPeriod → HistoricalSituation | A situated periodization through specified developments or configurations, with its basis; not a numeric interval or universal epoch. |
+| HistoricalGeneration → Identity | A cohort and the criterion that identifies it; not automatically an interacting group, Organization, or interval. |
+| HistoricalEnvironment → HistoricalState | A scoped configuration and at least one substantive political, economic, cultural, religious, educational or scientific-technological account. |
+| LifeCircumstance → HistoricalState | A documented condition, its relevance and evidence limits; bodily circumstances are optional and attributed, not retrospectively diagnosed. |
+
+The six environment domains are independently discoverable content properties,
+not combinatorial subclasses. A record need not claim knowledge of all six;
+unfilled domains remain unknown, not absent. These records are historical
+identities, not authored semantic Context/State nodes. Inheritance only supplies
+compatible vocabulary and operations; it is not historical acceptance.
+
+[`historical-context-claim.schema.json`](../../contracts/historical-context-claim.schema.json)
+requires a language-tagged statement, relation basis, context scope and time
+note. Unknown time bounds may be stated explicitly; prose is not a sortable
+date. Registered domain/range and inverse labels are executable for:
+
+- `biographical_subject`: episode, phase or circumstance → Agent;
+- `phase_contains_episode`: phase → episode;
+- `generation_member`: generation → Agent, by the declared cohort criterion;
+- `generation_in_period`: generation → period;
+- `situation_in_period`: historical situation → period;
+- `contextualized_by_environment`: Agent, Organization, historical situation,
+  IntellectualObject or IntellectualFormation → environment;
+- `conception_in_environment`: situated Conception → environment, through the
+  semantic relation reader rather than retyping its endpoint;
+- `circumstance_during_phase`: circumstance → phase, without asserting that
+  the condition held throughout the phase.
+
+None is transitive or an influence/causality shortcut. Contextual association
+and periodization do not derive chronological containment. Participation and
+place reuse `historical_participant` and `historical_place` through this same
+Claim schema; a participant still requires an explicit `participation_role`.
+Legacy `historical-claims.jsonl` remains on its original schema and adapter.
+Dating reuses the separate temporal Claim profile below. Its relative anchor
+must resolve to a registry-declared HistoricalSituation, including a new
+historical subtype; a generation or person is not such an anchor. The shared
+value schema checks ID syntax and the reader checks type and existence.
+The old carrier retains its three original anchor kinds. Exact previous schema
+bytes remain in the contract history rather than rewriting provenance inputs.
+
+These profiles use the ordinary separately scoped `source.create`,
+`record.revise`, `claims.create`, `claim.revise` and source-copy form routes;
+the registry is not a grant of write or assessment authority. Both source
+readers retain all account fields and unknown extensions. Tests protect the
+profile/schema boundary, relative-date anchoring, reverse navigation and
+language-selected forms. Synthetic examples do not prove real historical
+content, biography-lens completeness, assessment quality or UI acceptance.
+
 ## Historical situations: source profile
 
 Registry version 4 introduces `historical-event`, `historical-process`, and
