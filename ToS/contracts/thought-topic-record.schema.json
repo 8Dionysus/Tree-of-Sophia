@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/thought-topic-record.schema.json",
+  "title": "Source-described inquiry, stance and conceptual differentiation",
+  "description": "Correctable semantic descriptions with explicit continuity and content. A problem, question, answer, stance, grouping, aspect and category are not interchangeable. Relations, attribution, historical transformation and assessment remain distinct grounded claims.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "required": [
+        "semantic_content"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_thought_topic_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "aspect",
+            "philosophical-category",
+            "problem",
+            "problem-family",
+            "question",
+            "position",
+            "distinction",
+            "opposition"
+          ]
+        },
+        "semantic_content": {
+          "type": "object",
+          "required": [
+            "language",
+            "script"
+          ],
+          "properties": {
+            "language": {
+              "anyOf": [
+                {
+                  "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "script": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "aspect"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.aspect\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.aspect\\."
+          },
+          "semantic_content": {
+            "required": [
+              "perspective_account"
+            ],
+            "properties": {
+              "perspective_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What this perspective selects and leaves aside; the subject viewed through it is linked by separate grounded claims."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "philosophical-category"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.philosophical-category\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.philosophical-category\\."
+          },
+          "semantic_content": {
+            "required": [
+              "category_account"
+            ],
+            "properties": {
+              "category_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What is organized or distinguished by this category, within the declared philosophical scope."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "problem"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.problem\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.problem\\."
+          },
+          "semantic_content": {
+            "required": [
+              "problem_statement",
+              "inquiry_stakes"
+            ],
+            "properties": {
+              "problem_statement": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The substantive tension or difficulty being investigated; its being recorded does not prove that all authors share it."
+              },
+              "inquiry_stakes": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Why resolving or reframing this difficulty matters within the stated inquiry, not a compulsory project value."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "problem-family"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.problem-family\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.problem-family\\."
+          },
+          "semantic_content": {
+            "required": [
+              "grouping_basis"
+            ],
+            "properties": {
+              "grouping_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What makes the grouped difficulties belong together while preserving their differences; membership is not inferred from spelling."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "question"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.question\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.question\\."
+          },
+          "semantic_content": {
+            "required": [
+              "question_text",
+              "presupposition_account"
+            ],
+            "properties": {
+              "question_text": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The interrogative content, including conditions and scope."
+              },
+              "presupposition_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The presuppositions attributed to the question, or an explicit account of what is unknown. Recording them does not accept them."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "position"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.position\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.position\\."
+          },
+          "semantic_content": {
+            "required": [
+              "stance_account"
+            ],
+            "properties": {
+              "stance_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The commitments or refusals that distinguish this stance, including uncertainty and limits."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "distinction"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.distinction\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.distinction\\."
+          },
+          "semantic_content": {
+            "required": [
+              "differentiation_criterion"
+            ],
+            "properties": {
+              "differentiation_criterion": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "In which respect the terms are differentiated; neither shared names nor graph separation supplies this criterion."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "opposition"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.opposition\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.opposition\\."
+          },
+          "semantic_content": {
+            "required": [
+              "differentiation_criterion",
+              "opposition_basis"
+            ],
+            "properties": {
+              "differentiation_criterion": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "In which respect the terms are differentiated."
+              },
+              "opposition_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Why the terms are treated as opposed and with what limits; logical incompatibility requires its own argument."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

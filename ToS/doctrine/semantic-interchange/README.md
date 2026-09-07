@@ -237,8 +237,73 @@ existing source-owner writer. A malformed or unauthorized member prevents the
 whole batch; replay returns the same receipt. Endpoint versions and source
 contracts are bound at preparation. The read-only access boundary stays intact.
 Synthetic tests cover these boundaries and the connected argument/objection
-route; real source-grounded reasoning examples, exact occurrence links and
-their substantive assessment remain required Foundation work.
+route. The [JGB freedom research](../../review-ledger/2026-09-07-jgb-freedom-reader-review.md)
+also traverses the actual corpus reader; exact occurrence links and substantive
+assessment remain required Foundation work.
+
+## Inquiry, stances and conceptual differentiation
+
+Entity registry version 11 adds eight source-described profiles through the
+same semantic metadata route. `thought-topic-record.schema.json` reuses the
+common identity, source, language, substantive-notes and continuity rules.
+Each profile adds the following mandatory semantic content, with its own
+language/script; all of that content accompanies short human forms.
+
+| Profile | Required content | Distinction retained |
+| --- | --- | --- |
+| Aspect / Аспект | `perspective_account` | a dimension of examination, not a duplicate concept or conception |
+| PhilosophicalCategory / Философская категория | `category_account` | an organizing philosophical category, not a technical datatype or a commitment imposed on the core |
+| Problem / Проблема | `problem_statement`, `inquiry_stakes` | an inquiry's difficulty and stakes, not its question wording or answer |
+| ProblemFamily / Семейство проблем | `grouping_basis` | an explicit grouping of distinguishable problems, not one problem under many names |
+| Question / Вопрос | `question_text`, `presupposition_account` | an interrogative formulation whose presuppositions need not be accepted |
+| Position / Позиция | `stance_account` | a stance with commitments and limits, not its holder or a record status |
+| Distinction / Различение | `differentiation_criterion` | a differentiation in a stated respect, not necessarily an exhaustive partition |
+| Opposition / Оппозиция | `differentiation_criterion`, `opposition_basis` | a subtype of Distinction; opposition is not automatically contradiction, succession or social conflict |
+
+The ten content properties are discoverable by `tos.property.*` IDs in
+the ordinary catalog and execute in the same snapshot-bound node/path filter.
+Opposition inherits the Distinction differentiation property; it does not need
+a second ID for the same criterion merely because it is a subtype.
+This introduces no new reader branch, UI screen or kind-specific writer.
+`source.create` and separately authorized `record.revise` use the selected
+profile schema, exact dependencies, predecessor retention and the existing
+transaction boundaries. A revision can correct the account but cannot change
+the referent criterion, type, identity, source schema or admission. Unknown
+nested semantic fields survive as uninterpreted source data, not executable
+instructions. Nonempty wording is only a structural requirement, not a
+substantive adequacy assessment.
+
+Relation registry version 10 adds ten specific, nontransitive reified Claims:
+
+| Predicate | Subject → object | Scope |
+| --- | --- | --- |
+| `problem_family_member` | ProblemFamily → Problem | explicit grouping basis, not identity or exhaustive coverage |
+| `problem_has_question` | Problem → Question | articulation, not acceptance of presuppositions |
+| `question_proposed_answer` | Question → Thesis | proposed answer, not established truth |
+| `position_has_thesis` | Position → Thesis | specified commitment, with separate holder attribution |
+| `position_addresses_problem` | Position → Problem | engagement, not successful resolution |
+| `conception_has_aspect` | Conception → Aspect | perspective on this situated account |
+| `aspect_of_concept` | Aspect → CrosscuttingConcept | the perspective's crosscutting subject |
+| `category_organizes_concept` | PhilosophicalCategory → CrosscuttingConcept | philosophical organization, not runtime classification |
+| `distinction_first_term` | Distinction (including Opposition) → CrosscuttingConcept/Conception/PhilosophicalCategory/Thesis/Position/Aspect | first term is a contextual role, not temporal priority or superiority |
+| `distinction_second_term` | same domain/range | second term is a contextual role, not temporal succession or inferiority |
+
+`thought_expressed_in` and `thought_attributed_to` also admit these eight
+profiles with the same limited meanings described above. Attribution to an
+agent is still distinct from the maker of the researcher Claim and does not
+establish endorsement or exclusive authorship. All relationships retain source,
+statement language, explicit relation basis, uncertainty, provenance, review
+posture and both reading directions. Partial and competing term/membership
+Claims can coexist. No global two-term completeness, exhaustive family tree,
+one-holder cardinality or graph-wide acyclicity is inferred. The type hierarchy
+itself remains acyclic. Substantive comparison must examine the term Claims
+and differentiation criterion together, not treat any drawn line as a proof.
+
+Existing canonical and atlas Concept, Method, institution and category-like
+records are not silently retyped into these source profiles. Their source
+identity and existing mappings remain authoritative until an explicit mapping
+or revision is reviewed. This section defines an executable extension, not a
+claim that the whole Foundation thought domain or its real assessment is done.
 
 ## Concepts, situated conceptions and transformations
 

@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3871,
+    "tracked_surface_count": 3948,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 678,
+    "excluded_tracked_path_count": 698,
     "human_scope": {
-      "bytes": 5244550,
-      "count": 989,
+      "bytes": 5263048,
+      "count": 991,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3847835,
-          "count": 580,
-          "lines": 64997
+          "bytes": 3866333,
+          "count": 582,
+          "lines": 65270
         }
       },
-      "lines": 90834
+      "lines": 91107
     },
     "surface_kind_counts": {
       "executable": 233,
-      "human": 1014,
-      "structured": 2624
+      "human": 1016,
+      "structured": 2699
     },
-    "tracked_path_count": 4549,
-    "tracked_surface_count": 3871,
+    "tracked_path_count": 4646,
+    "tracked_surface_count": 3948,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 580,
-        "structured": 2540
+        "human": 582,
+        "structured": 2615
       },
-      "tracked_surface_bytes": 220588931,
-      "tracked_surface_count": 3124
+      "tracked_surface_bytes": 221637783,
+      "tracked_surface_count": 3201
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 857403,
+      "tracked_surface_bytes": 859882,
       "tracked_surface_count": 214
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1464632,
+      "tracked_surface_bytes": 1471341,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "bb9b011625c2ae2514708df90a557a6185e5bed5d056e0c9eeef565733cd1f56",
+  "tracked_surface_digest": "ebfb537b0e6f3221804785cfcedb78fd4c86089342a81ae5eb1b39f8f34be218",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -3848,6 +3848,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 9826,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/thought-topic-record.schema.json",
+      "sha256": "96bde8378d39f55a8c20fc111322885f3383e4bf5d71d596c3bc2c2a343031b9",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 12918,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -4072,11 +4080,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6336650,
+      "bytes": 6818796,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "74aaf1ea557cf24bfdb52b34aa70ce5a09ac3e1de49bb9d5e768df71bfea8124",
+      "sha256": "d63c2c21d192c02bf816ebd511a1b77327385af1a07d1b19775c2b17d6616a8d",
       "surface_kind": "structured"
     },
     {
@@ -4152,11 +4160,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 57308758,
+      "bytes": 57523502,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "81dd801bee94dbf9af1038d6c48c6f64e6de3754a6248ce8e537c6cb20fd541f",
+      "sha256": "5e4edac6aa081a7af9ab039fc116d7ec652b3d309c60aa6893db1080cfe695a1",
       "surface_kind": "structured"
     },
     {
@@ -4232,11 +4240,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 68530,
+      "bytes": 69459,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "a2621350f9df607af83e4c61ab8b303c959eae7bf73a32fe97d89fd7e67bdb70",
+      "sha256": "e1936511a09af207d316f8168bea716103411f44e68a31fb9cf9d1a91738abce",
       "surface_kind": "human"
     },
     {
@@ -4352,11 +4360,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 37160,
+      "bytes": 42292,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "6c29a03cd292e77d260c29352d2c6866240eb94ab22e8a0337ad237edab7c353",
+      "sha256": "11d40a2a4f1184bd19d1a2ea3d0bf7445447468236bc8d22cb16a124d63f6d06",
       "surface_kind": "human"
     },
     {
@@ -4368,19 +4376,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 79792,
+      "bytes": 95256,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "1e61e5e7b89db254228eb8b71ec4e02a6c49d5dc0c6d69e67b5ff799b84700db",
+      "sha256": "0a4870c61b92d74c4cac46dff9812f373af95caf17d85c9041eb1913b7f0782e",
       "surface_kind": "structured"
     },
     {
-      "bytes": 163424,
+      "bytes": 179852,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "1046413b8d72be8a9eba33fc0aeb185696b225e36d5b32688d45cf48d9398418",
+      "sha256": "d02ebd63794e1bc7001eda88e936ca4add743b6d5d5982789ef9c43b237db393",
       "surface_kind": "structured"
     },
     {
@@ -18304,6 +18312,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 7707,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-inquiry-profiles-and-reader-review.md",
+      "sha256": "1db740ac4c03156efc0d81eb2d24a8a671ac3382201dfc4f2787f62f03573293",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 5512,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18317,6 +18333,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
       "sha256": "23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4730,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+      "sha256": "b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
       "surface_kind": "human"
     },
     {
@@ -19880,11 +19904,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2858,
+      "bytes": 3644,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "aa9f5be33e29c58d853e6555d64f517f7eea5f2c57e1d21775c889787d034803",
+      "sha256": "e870e2ced33a1aa6172a2f12a3c7efc61793d43361dae55305e772abc4a35155",
       "surface_kind": "structured"
     },
     {
@@ -21984,6 +22008,198 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.0dbe05ff4061520e702b9d7007b8c1a6c77b50de3ce612cee9adcd0eabb7fdfd.human-forms.json",
+      "sha256": "8a461953b5e10508348e5a2479a31a3ba2009efe7316d56830b9017c40199f2a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4079,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.1c22de8faecac2062f17f084a1f8c47657d70fa7fc2684f68d7f442a03d20e7e.human-forms.json",
+      "sha256": "85aa04d3295a4316e4f3cde33242e8f9c2b40a408e0cef8eef1a45ff878a5dab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3991,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.22ce9df6bf0503a4a466adade7f291ace6cd2f699b94a2633e393a053ecc1593.human-forms.json",
+      "sha256": "3feb856e3d10f3a6eedb912217ae3278c1915ecb0482ea373177a884c7af79ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3712,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.2fdd1b31bf1536923a9e4a90beea332c39e6d80539f160e8d378ce6f6f7ee511.human-forms.json",
+      "sha256": "ba2521c57c039c483506f6f5cfa6a13ce48317df47e8aeb23a548270d6ee9ddc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4087,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.32e16e97336b392d2b55e800e63d7bc60d931fcff6a0db4b8e3f961bfa4daf2e.human-forms.json",
+      "sha256": "21ea12c6e4e07cb190aca98d7f6c0e9ae02a55089034f21ca21180eed295e9f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3999,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.3de331b52e2b47da893b8a6725ec948590404a52969559a7a5396166e5d9da4d.human-forms.json",
+      "sha256": "b85bb7420b872b94c04643021cdad197b065fd7b71bd8fd9007362c0acd50367",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3688,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.3e36a3e04f1786c3b2110a19fbf9e7ac852db2d622ed5c66a148e495c75b37f7.human-forms.json",
+      "sha256": "5b868f180f5f9333e0474f83d3a89291c4e92b42f1a3b6620af411e3a974c95e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3712,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.4ed8553d53c18f8aa6e31d6ef17d48b20fa8b6c89c099a708d525e6f110e7c92.human-forms.json",
+      "sha256": "3b839705f2a1424b39fef2a4564f118fb01adba726d3ed112d361a306f495667",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3664,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.62d9a300c6a88dc80b009deb248fa1e7c766ae5c1b1e266e2c99aaaf68c7ffbc.human-forms.json",
+      "sha256": "f4d78970d485ad76a331457fee2cb441b5e58b1f3b7da54038828637d5e8db58",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3648,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.64061eaf0e755d316e3a666d9bc8229478b269d820ff212bdc141671c5a7be68.human-forms.json",
+      "sha256": "fa7933c70476dc0310cb9b1147058969c2a68ab168d085b516c10a2efef17193",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.733429228822e570548b6cc40317e9e1613c2aa3e6d76afd575e66507f6169e0.human-forms.json",
+      "sha256": "e71ea1196292207204ebb53e014711cc353669eb572e6391bb4bbafa9bd95575",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3656,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.82ca18eaacb600fb14298450e29e8b2ab490c2329d6aeca3d5ab79da078d3168.human-forms.json",
+      "sha256": "fc9d3e789ad45a4964cf94b0b83e35aadcbdc47dffd227d8706f2d1810adaa39",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.9a84de1f7d0e87c8b8fcddcb7bcbd4d1e7e6ada5a1da5d4fc6594282e7b492de.human-forms.json",
+      "sha256": "898400073225cec82f79daf9c0274147db424e37176591f29fed90d1fc058a6c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3704,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.c03b11cb08e7d4492aa3b953cc1cbf3ee2804d91725e7eeeac4e9917918d77a9.human-forms.json",
+      "sha256": "0a30f61c8977d6d1cc5154494e857c5ab9cb12e4a494ccdc9802e0d2b7a3aaeb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3664,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.d056c5c5acfedd817d00fa1a7f16610eebce0f4d160b0fafa0f930a61e8a96e0.human-forms.json",
+      "sha256": "449169ca7fece4ff31794b968ab260343bbb816d7ea714a932d9d787c6d2a51c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3720,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.d059b6fcce3a0ef44b1c54fa20e6207228710eab2b76e7e2c3a884a858c6624a.human-forms.json",
+      "sha256": "1fc3195689f7e74d1b336ba2c84f1cbabde53d1d0f602f562ce2ac4f16d0b19c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.d2f1c4df303546fd913927eb283bb0877e76c5bc5e5bb8e9518d94e296fa7173.human-forms.json",
+      "sha256": "be62033c68753a2f8bbb3b5a58a3484241e2576a46ccd27d70cf3e36a7fa198e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3704,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.d91e0a6b5b53cb1c88ffcd5caf567371f5cd8695868d2a9368f8a99af8ff9456.human-forms.json",
+      "sha256": "1687855061eeca671e2e1d2c9589dc4d365dadcea90fe337f807b534c2fdb4dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3951,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.de1bc4c9c2dc6ff4163d28df5e389807cb23c585e3d77f328c980122faab8386.human-forms.json",
+      "sha256": "d9512e961e1d2cdb36f7b8b98183fc6aca7036483d8e945fcfd3c3ff16aabbba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.dea9b1c88b353d464315773a834870cb3e2dfca54384c00ef1cd4f919b8597a7.human-forms.json",
+      "sha256": "2f7ef1a18d9657b89c2b5b29e8caad5525aa2a9aecb35e6024c3bae70c02d2d2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3720,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.fc42326d25858c338e2006ebb66cb6e19c5ebb23fd51807b555a5928bb82261a.human-forms.json",
+      "sha256": "43f347e3b3dd6ad612a040945e9968245e7194b06fd9c5bbbe843cb32377d0c6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 12717,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-create-receipt.json",
+      "sha256": "bef35656bd2b45f14b7c4e05dccab069adb2555873852dbf536654eb95278054",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 41356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-create-request.json",
+      "sha256": "8e065dd0a287bfe5fea9f9410518b099a7c032beca3de315daa5d3f5100934bc",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3501,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22440,6 +22656,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8167,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/aspect.human-forms.json",
+      "sha256": "90db1736dfdb2549906d2688020ed8eb84ac553442e09729c16baa7dfdbe6647",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2280,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/aspect.json",
+      "sha256": "11335e1145f854cb3886a55f2172420d23a01f7bffa8bcaa0c8abe916dc36114",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1458,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/source-create-receipt.json",
+      "sha256": "9858fa5bbebe9d50a0cade616f303132e008dd0d5651b10f739aea1b62c75f75",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2749,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/source-create-request.json",
+      "sha256": "66ddba5c39e83e28ba9fb00e8800509fa01f599b4588894fa44932493f6158db",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7375,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22600,6 +22856,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8755,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/distinction.human-forms.json",
+      "sha256": "07ed82c4676f1c3c7afaa415478c90c797b0de043b351cfa554b46e30dd5b197",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/distinction.json",
+      "sha256": "52a7c2f3f803377b7ede1ce6f334ebbf05b3d7fe6f88e6ebd35572b5886a22d0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1536,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/source-create-receipt.json",
+      "sha256": "52879e53d5f1f2342cead5b3970d5a1be2d84e8c7eeeb572fa15a19c701a75e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3080,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/source-create-request.json",
+      "sha256": "eb10b5756be2fb4b39e308be80e5a64b1e69ed4ee8382fc86933760c9728bca1",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8475,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22717,6 +23013,326 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/semantic-descriptions/objection-against-reversal-jgb21/source-create-request.json",
       "sha256": "3cd9138581c71010d7022b989d4f909a38f6bc5e8608fc09574d79ec03d40294",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8783,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/opposition.human-forms.json",
+      "sha256": "e57e76ea7c9f13143bac131fd6334205ff7c4d4d27eb45301b38e0da3af60996",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/opposition.json",
+      "sha256": "a2d947558088b2861310047a0c9753780500ff3db0ddbec7f04b99dbc3eb86b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1536,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/source-create-receipt.json",
+      "sha256": "2890a0315256cfa962da211dbab72d368a4848f4f2adcece197bf4dba9c42f4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3119,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/source-create-request.json",
+      "sha256": "4e81b8d7c2f313a92c0d202689c0b642056daa3637933e508f20c527b73329f9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9063,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/philosophical-category.human-forms.json",
+      "sha256": "83213d64c1f985f849ad90be726d4df1f5e108ec8897094aae142709b7d97adf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/philosophical-category.json",
+      "sha256": "2e315806ba881731eba1903dd634015d9896cfcbff70886a325e7567796644e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1602,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/source-create-receipt.json",
+      "sha256": "15df9477a5556e1e072220259c9bce058a5dcc9838072687f54776448f36df46",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3068,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/source-create-request.json",
+      "sha256": "4d1a80fc5600f80c1f0b99dc0f74c4523fde397d1309b0df63bf4b3a3202a9a2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8363,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/position.human-forms.json",
+      "sha256": "ebaa3f532c6c379621f7dc25fe82b4bca0e907f6bad199b072831af2878ccc6e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2382,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/position.json",
+      "sha256": "de89ad8e27aeb8641cba5fddb084db604ed4d55d99ceda5ab74bf44b2905ca8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1485,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/source-create-receipt.json",
+      "sha256": "76f6d318a98dc5e8429fd780891ca65bd173807417e101eb64d167befda4e7cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2879,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/source-create-request.json",
+      "sha256": "5b76d9e045839c581d43e4afbbd446f0dfba5aa40329f4837f3e3a83984f61d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8223,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-experienced-willing-jgb19/problem.human-forms.json",
+      "sha256": "5d992bc412700aebe2a94f4aa43fd69e2dd4b7db72f3422ff09a74e1552bffbc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2425,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-experienced-willing-jgb19/problem.json",
+      "sha256": "fb7865dbc9b315d638eed43291f9a4b0701d1c8367bf63205606677acd65bc84",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-experienced-willing-jgb19/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1467,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-experienced-willing-jgb19/source-create-receipt.json",
+      "sha256": "c56da3396ebc58559f64efe3c2a8a819ea0055205d2916b06149016cee49c9f8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2896,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-experienced-willing-jgb19/source-create-request.json",
+      "sha256": "8cd97fef60b4a7876477e77e419bb42fb9b500010e6602f34b091c598464b7e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8419,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/problem-family.human-forms.json",
+      "sha256": "e73500780985eb2e52b8213831c82f7726b961e97179d10583f821423c4daa02",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2622,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/problem-family.json",
+      "sha256": "6ee024c164fb2026ce07416e062df04c63fd13459f26600359aa753c7c1d7642",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1509,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/source-create-receipt.json",
+      "sha256": "39c5523f7b256a73361189536181b2cb25616c194f2d6a80f1f2fb7bcdb69f46",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3122,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/source-create-request.json",
+      "sha256": "26fad3e552649e5cfdf607af8f36f67c50f9ed327c485366f5801fbcd5018812",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8335,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.human-forms.json",
+      "sha256": "d9b7a8aad5bef567f51c606f187971c62a358466e82eb8ea343367516b23a58a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2451,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+      "sha256": "e8e7298376663dd200f5b20d0048a409ecc0d3fe8962cda4342954588cd51d51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/source-create-receipt.json",
+      "sha256": "9d050da49696455f14937b0cb78a510f635b6b61bcaa38d13b8bfbe417eeb046",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2938,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/source-create-request.json",
+      "sha256": "d46c089a1134f615ee8f0820ee84c1d87825798b7359df5d0628514da13832c7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8391,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/question.human-forms.json",
+      "sha256": "8aff516399dc1629f123c9157aeddb346b8a8019250aa578fa034b67e9261a4a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2506,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/question.json",
+      "sha256": "7aa47824830e6e5186a91f97a0f14a8cfd843b5205e3174bbabd5b69b7b88bbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1488,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/source-create-receipt.json",
+      "sha256": "8e2a36859a624272fedf454e53538326ce3a22af317ee2a98b1ebe1282fe88bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3001,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/source-create-request.json",
+      "sha256": "f009eead299461fd07e2a4a090e5d41c4510c6cb846fbf43843dbea4d0746978",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8419,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/question.human-forms.json",
+      "sha256": "c3cfa695c3b50fbbb056ed3b439d623daa18d655877e8d06ccd77463ce747e6e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2554,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/question.json",
+      "sha256": "dead57c7e343438dd681ecf3d0112ac64dd784638b84ccdeb0ca1fde84f66403",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/source-create-receipt.json",
+      "sha256": "8f1ad687ed25d426564669aeefda8228c5686699ea2261bb741014a7a13b5fa0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3053,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/source-create-request.json",
+      "sha256": "a8d6f6f7ec3cd83d6a11cc90716c2479f9e133217753e979722311cd74c6bb37",
       "surface_kind": "structured"
     },
     {
@@ -29248,11 +29864,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 88837,
+      "bytes": 91316,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "728b1421d72cfbae2b4f8822f818453acac9291f7eb7d145aeb3de75763fe4d5",
+      "sha256": "c23cc8bc92e2e8a177a707b0c8c6493d1dc095f2961d1c00cae0e47a50a89514",
       "surface_kind": "executable"
     },
     {
@@ -31072,11 +31688,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 152909,
+      "bytes": 159618,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "8014f143ceb63f83bf41ec8c426ec0e18e22548eb3de6a6112a2a6beb319b055",
+      "sha256": "63cbcf3a5762e23a46cc9a082518fd38544dee49eceed34357c2619aa908c53d",
       "surface_kind": "executable"
     },
     {

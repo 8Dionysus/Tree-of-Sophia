@@ -15,7 +15,8 @@
     "ToS/contracts/semantic-relation-claim.schema.json",
     "ToS/contracts/source-relation-claim.schema.json",
     "ToS/contracts/thought-description-record.schema.json",
-    "ToS/contracts/thought-relation-claim.schema.json"
+    "ToS/contracts/thought-relation-claim.schema.json",
+    "ToS/contracts/thought-topic-record.schema.json"
   ],
   "record_files": {
     "agent": "ToS/source-witnesses/catalog/agents.jsonl",
@@ -27,6 +28,14 @@
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
     "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "aspect": "ToS/source-witnesses/catalog/aspects.jsonl",
+    "philosophical-category": "ToS/source-witnesses/catalog/philosophical-categories.jsonl",
+    "problem": "ToS/source-witnesses/catalog/problems.jsonl",
+    "problem-family": "ToS/source-witnesses/catalog/problem-families.jsonl",
+    "question": "ToS/source-witnesses/catalog/questions.jsonl",
+    "position": "ToS/source-witnesses/catalog/positions.jsonl",
+    "distinction": "ToS/source-witnesses/catalog/distinctions.jsonl",
+    "opposition": "ToS/source-witnesses/catalog/oppositions.jsonl",
     "thesis": "ToS/source-witnesses/catalog/theses.jsonl",
     "argument": "ToS/source-witnesses/catalog/arguments.jsonl",
     "inference-step": "ToS/source-witnesses/catalog/inference-steps.jsonl",
@@ -48,6 +57,14 @@
     "collection": 3,
     "item": 21,
     "link": 5,
+    "aspect": 1,
+    "philosophical-category": 1,
+    "problem": 2,
+    "problem-family": 1,
+    "question": 2,
+    "position": 1,
+    "distinction": 1,
+    "opposition": 1,
     "thesis": 4,
     "argument": 1,
     "inference-step": 2,
@@ -57,10 +74,10 @@
     "letter": 1,
     "historical-event": 1,
     "artifact": 18,
-    "object_total": 209,
-    "claim": 233,
-    "total": 442
+    "object_total": 219,
+    "claim": 254,
+    "total": 473
   },
-  "catalog_sha256": "a3a9091e3506d8501a2b6b22e431794c6919fa7ac89d1e389e46d7159a5fc37e",
+  "catalog_sha256": "d410ac8f0c0b01afcbe3b5d34a2828d9f92904ce6250d976ef2be0a51763cf83",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

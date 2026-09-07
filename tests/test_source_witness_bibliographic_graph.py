@@ -34,6 +34,91 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_inquiry_profiles_keep_questions_stances_and_distinctions_separate(self):
+        """Synthetic inquiry grammar; no historical or philosophical verdict."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records = SourceRecordProfiles(REPO_ROOT)
+        relations = SourceClaimProfiles(REPO_ROOT)
+        contents = {
+            'aspect': {'perspective_account': 'A synthetic perspective, not a duplicate conception.'},
+            'philosophical-category': {'category_account': 'A synthetic category of time, not a date datatype.'},
+            'problem': {'problem_statement': 'A synthetic difficulty.', 'inquiry_stakes': 'Why this test inquiry asks it.'},
+            'problem-family': {'grouping_basis': 'Related test problems, not identical problems.'},
+            'question': {'question_text': 'What would count as an answer?', 'presupposition_account': 'The possibility of an answer is not established.'},
+            'position': {'stance_account': 'A synthetic refusal of one proposed answer.'},
+            'distinction': {'differentiation_criterion': 'The sense in which the test terms differ.'},
+            'opposition': {'differentiation_criterion': 'A synthetic contrast.', 'opposition_basis': 'An opposition, not proved contradiction.'},
+        }
+        for kind, content in contents.items():
+            source = {'schema_version': 'tos_thought_topic_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic-inquiry', 'record_version': 1,
+                'preferred_label': 'Условный предмет исследования', 'variant_labels': [],
+                'notes': 'Синтетический пример структуры, не исторический факт.',
+                'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                    'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-inquiry'], 'external_identifiers': [],
+                'visibility': 'public_metadata_only',
+                'semantic_scope': {'scope_note': 'Only this synthetic test.', 'identity_criterion': 'The same test referent.',
+                                   'language': 'en', 'script': 'Latn'},
+                'semantic_content': {**content, 'language': 'en', 'script': 'Latn', 'x-unknown': [False, None]}}
+            records.validate(kind, source)
+            for field in content:
+                invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+                invalid['semantic_content'][field] = ' '
+                with self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+            for change in ({'record_id': 'tos.claim.synthetic-inquiry'}, {'semantic_scope': {}},
+                           {'record_type': 'thesis'}, {'schema_version': 'tos_thought_topic_record_v99'}):
+                with self.subTest(kind=kind, change=change), self.assertRaises(SourceProfileError):
+                    records.validate(kind, {**source, **change})
+        cases = [
+            ('problem_family_member', 'problem-family', 'problem'),
+            ('problem_has_question', 'problem', 'question'),
+            ('question_proposed_answer', 'question', 'thesis'),
+            ('position_has_thesis', 'position', 'thesis'),
+            ('position_addresses_problem', 'position', 'problem'),
+            ('conception_has_aspect', 'conception', 'aspect'),
+            ('aspect_of_concept', 'aspect', 'crosscutting-concept'),
+            ('category_organizes_concept', 'philosophical-category', 'crosscutting-concept'),
+            ('distinction_first_term', 'distinction', 'conception'),
+            ('distinction_second_term', 'distinction', 'thesis'),
+            ('distinction_first_term', 'opposition', 'conception'),
+            ('distinction_second_term', 'opposition', 'conception'),
+        ]
+        for kind in contents:
+            cases.extend([('thought_expressed_in', kind, 'work'), ('thought_attributed_to', kind, 'agent')])
+        objects = {f'tos.{kind}.synthetic-inquiry': {'record_type': kind}
+                   for kind in {part for _, left, right in cases for part in (left, right)} | {'place'}}
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_semantic_relation_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-inquiry', 'claim_version': 1,
+                'subject_ref': f'tos.{left}.synthetic-inquiry', 'predicate': predicate,
+                'object': f'tos.{right}.synthetic-inquiry', 'assertion_layer': 'semantic_interpretation',
+                'evidence_refs': ['test:synthetic-inquiry'], 'provenance_event_ref': 'tos.event.synthetic-inquiry',
+                'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic-test'},
+                'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'Только проверка различений.', 'statement_language': 'ru',
+                               'statement_script': 'Cyrl', 'relation_basis': 'Synthetic structure, not a verdict.'}}
+            with self.subTest(predicate=predicate, left=left, right=right):
+                relations.validate(claim, objects)
+                for endpoint in ('subject_ref', 'object'):
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate({**claim, endpoint: 'tos.place.synthetic-inquiry'}, objects)
+                with self.assertRaises(SourceProfileError):
+                    relations.validate({**claim, 'qualifiers': {**claim['qualifiers'], 'relation_basis': ''}}, objects)
+                relation = relations.relations[predicate]
+                self.assertFalse(relation['transitive'])
+                for language in ('ru', 'en'):
+                    self.assertTrue(relation['labels'][language])
+                    self.assertTrue(relation['inverse_labels'][language])
+        # An answer must be a thesis, not the question repeated as its own answer.
+        with self.assertRaises(SourceProfileError):
+            relations.validate({**claim, 'subject_ref': 'tos.question.synthetic-inquiry',
+                'predicate': 'question_proposed_answer', 'object': 'tos.question.synthetic-inquiry'}, objects)
+
     def test_thought_predicates_have_specific_roles_targets_and_bidirectional_wording(self):
         from source_record_profiles import SourceClaimProfiles, SourceProfileError
         profiles = SourceClaimProfiles(REPO_ROOT)
