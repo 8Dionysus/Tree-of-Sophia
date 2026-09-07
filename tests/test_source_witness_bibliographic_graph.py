@@ -116,6 +116,151 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                                for name in ('entity-types.v1.json', 'relation-types.v1.json')]
         return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
 
+    def test_physical_artifacts_keep_native_identity_source_and_non_authority(self):
+        """Real existing metadata copied into an isolated reader; no new facts."""
+        from build_source_witness_catalog import collect_records
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            originals = []
+            for ref in (
+                'ToS/source-witnesses/artifacts/proto-cuneiform/uruk/w-12256-i-k-l-o/artifact-witness.json',
+                'ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/artifact-witness.json',
+            ):
+                path = root / ref
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((REPO_ROOT / ref).read_bytes())
+                source = json.loads(path.read_bytes())
+                originals.append((ref, source))
+                for planting_ref in source['philosophy_planting_refs']:
+                    planting_path = root / planting_ref
+                    planting_path.parent.mkdir(parents=True, exist_ok=True)
+                    planting_path.write_bytes((REPO_ROOT / planting_ref).read_bytes())
+                schema_ref = source['$schema'].split('tree-of-sophia.local/')[1]
+                (root / schema_ref).write_bytes((REPO_ROOT / schema_ref).read_bytes())
+            entries = collect_records(root)['artifact']
+            self.assertEqual({item['record_id'] for item in entries},
+                             {source['artifact_id'] for _, source in originals})
+            projection = rebuild()
+            self.assertIn('physical-artifact', projection['graph_layers'])
+            knowledge, _, _ = self.historical_knowledge(root, projection)
+            import tos_corpus_index_common as corpus_builder
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                diagnostics = []
+                navigation = corpus_builder.build_source_navigation(diagnostics)
+            self.assertEqual(diagnostics, [])
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node, validate_knowledge_semantics
+            registries = [json.loads((root / 'ToS/doctrine/semantic-interchange' / name).read_bytes())
+                          for name in ('entity-types.v1.json', 'relation-types.v1.json')]
+            combined = build_knowledge_graph({'source_navigation': navigation}, {}, projection, *registries)
+            semantic_report = validate_knowledge_semantics(combined, *registries)
+            self.assertTrue(semantic_report['valid'], semantic_report['violations'])
+            wrong_kind = copy.deepcopy(navigation)
+            for item in wrong_kind['nodes']:
+                if item['node_kind'] == 'artifact':
+                    item['node_kind'] = 'place'
+            with self.assertRaisesRegex(ValueError, 'range .*outside'):
+                build_knowledge_graph({'source_navigation': wrong_kind}, {}, projection, *registries)
+            for ref, source in originals:
+                node = next(node for node in projection['nodes']
+                            if node['properties'].get('identity_ref') == source['artifact_id'])
+                self.assertEqual(node['properties']['source_record'], source)
+                self.assertEqual(node['properties']['identity_kind'], 'artifact')
+                self.assertIsNone(node['properties']['identity_status'])
+                self.assertEqual(node['properties']['preferred_label'], source['custody']['inventory_numbers'][0])
+                self.assertEqual(node['properties']['label_source_pointer'], '/custody/inventory_numbers/0')
+                self.assertFalse(node['properties']['authority']['source_text_admitted'])
+                self.assertFalse(node['properties']['authority']['graph_authority'])
+                self.assertFalse(any(node['node_id'] in (edge['from_id'], edge['to_id'])
+                                     for edge in projection['edges']))
+                found = [item for item in knowledge['nodes']
+                         if item['attributes'].get('source_record') == source]
+                self.assertEqual(len(found), 1)
+                self.assertEqual(found[0]['type_id'], 'tos.entity.artifact')
+                self.assertEqual(found[0]['display']['summary']['default'], source['path_identity']['note'])
+                self.assertEqual(found[0]['epistemic']['review_posture'], source['authority']['review_status'])
+                self.assertNotIn('time', found[0]['semantics'])
+                from tos_access.knowledge import focus_knowledge_node, select_human_forms
+                focus = focus_knowledge_node(knowledge, source['artifact_id'], depth=2)
+                self.assertEqual([item['entity_id'] for item in focus['nodes']], [source['artifact_id']])
+                self.assertEqual(focus['relations'], [])
+                self.assertNotEqual(select_human_forms(found[0])['roles']['hover']['state'], 'ready')
+                self.assertEqual(json.loads((root / ref).read_bytes()), source)
+                shared = [item for item in combined['nodes'] if item['entity_id'] == source['artifact_id']]
+                self.assertEqual(len(shared), 2)
+                self.assertEqual({item['type_id'] for item in shared}, {'tos.entity.artifact'})
+                self.assertTrue(all(item['attributes']['source_record'] == source for item in shared))
+                selected = focus_knowledge_node(combined, source['artifact_id'], depth=1)
+                centered = next(item for item in selected['nodes'] if item['id'] == selected['focus']['node_id'])
+                self.assertEqual(centered['display']['title']['default'], source['custody']['inventory_numbers'][0])
+                self.assertEqual(centered['display']['summary']['default'], source['path_identity']['note'])
+
+    def test_artifact_adapter_refuses_private_unknown_tampered_or_duplicate_metadata(self):
+        from build_source_witness_catalog import collect_records, CatalogBuildError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            ref = 'ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/artifact-witness.json'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            source = json.loads((REPO_ROOT / ref).read_bytes())
+            schema_ref = 'ToS/contracts/artifact-source-witness-v2.schema.json'
+            (root / schema_ref).write_bytes((REPO_ROOT / schema_ref).read_bytes())
+            for mutate in (
+                lambda value: value['authority'].update(visibility='local_only'),
+                lambda value: value['authority'].update(source_text_admitted=True),
+                lambda value: value.update(schema_version='unrecognized'),
+                lambda value: value.update(artifact_id='tos.work.not-an-artifact'),
+                lambda value: value['custody'].update(inventory_numbers=[]),
+            ):
+                candidate = copy.deepcopy(source)
+                mutate(candidate)
+                path.write_text(json.dumps(candidate))
+                with self.subTest(candidate=candidate.get('schema_version')):
+                    with self.assertRaises(CatalogBuildError):
+                        collect_records(root)
+            path.write_text(json.dumps(source))
+            rebuild()
+            catalog = root / 'ToS/source-witnesses/catalog/artifacts.jsonl'
+            entry = json.loads(catalog.read_bytes())
+            for key, replacement in (('preferred_label', 'Invented title'), ('record_id', 'tos.artifact.other'),
+                                     ('identity_status', 'verified'), ('label_source_pointer', '/artifact_id'),
+                                     ('source_record_ref', '/tmp/outside-artifact-witness.json')):
+                bad = {**entry, key: replacement}
+                catalog.write_text(json.dumps(bad) + '\n')
+                with self.subTest(field=key), self.assertRaises(BibliographicGraphBuildError):
+                    build_payload(root)
+            catalog.write_text(json.dumps(entry) + '\n')
+            duplicate = path.parent / 'duplicate' / path.name
+            duplicate.parent.mkdir()
+            duplicate.write_bytes(path.read_bytes())
+            with self.assertRaisesRegex(CatalogBuildError, 'duplicate'):
+                collect_records(root)
+            duplicate.unlink()
+            duplicate.symlink_to(path)
+            with self.assertRaisesRegex(CatalogBuildError, 'non-symlink'):
+                collect_records(root)
+            duplicate.unlink()
+            path.write_bytes(b' ' * 1_048_577)
+            with self.assertRaisesRegex(CatalogBuildError, 'budget'):
+                collect_records(root)
+
+    def test_artifact_null_identity_assessment_does_not_relax_corpus_entries(self):
+        from jsonschema import Draft202012Validator
+        from build_source_witness_catalog import artifact_catalog_entry
+        schema = json.loads((REPO_ROOT / 'ToS/contracts/source-witness-catalog.schema.json').read_bytes())
+        validator = Draft202012Validator(schema['$defs']['entry'])
+        ref = 'ToS/source-witnesses/artifacts/egyptian/unknown/papyrus-berlin-p3024/artifact-witness.json'
+        entry = artifact_catalog_entry(REPO_ROOT, json.loads((REPO_ROOT / ref).read_bytes()), ref)
+        validator.validate(entry)
+        for mutate in (lambda item: item.update(identity_status='verified'),
+                       lambda item: item.update(source_schema_ref='ToS/contracts/historical-record.schema.json'),
+                       lambda item: item.pop('label_source_pointer'),
+                       lambda item: item.update(record_type='work')):
+            bad = copy.deepcopy(entry)
+            mutate(bad)
+            self.assertFalse(validator.is_valid(bad))
+        ordinary = json.loads((REPO_ROOT / 'ToS/source-witnesses/catalog/works.jsonl').read_text().splitlines()[0])
+        validator.validate(ordinary)
+        ordinary['identity_status'] = None
+        self.assertFalse(validator.is_valid(ordinary))
+
     def test_provenance_v2_is_preserved_without_retyping_activity_as_historical_time(self):
         with self.historical_fixture() as (root, history, real, claims, rebuild):
             ref = 'ToS/contracts/provenance-event-v2.schema.json'
@@ -201,6 +346,15 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                                  if item['binding']['pointer'] == '/field_languages/notes'),
                              event['field_languages']['notes'])
             self.assertNotIn('language_context', selected['packet'])
+            import tos_corpus_index_common as corpus_builder
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            from tos_access.knowledge import build_knowledge_graph
+            both = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            default_focus = focus_knowledge_node(both, event['record_id'], depth=1)
+            centered = next(item for item in default_focus['nodes'] if item['id'] == default_focus['focus']['node_id'])
+            self.assertEqual(centered['type_id'], 'tos.entity.historical-event')
+            self.assertEqual(select_human_forms(centered, 'ru')['roles']['hover']['packet'], selected['packet'])
             result = focus_knowledge_node(graph, event['record_id'], depth=2)
             self.assertTrue({target['record_id'] for target in real}.issubset(
                 {item['entity_id'] for item in result['nodes']}))
@@ -563,7 +717,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         manifest = json.loads((REPO_ROOT / 'ToS/source-witnesses/catalog/catalog.manifest.json').read_bytes())
         historical = any(manifest['counts'].get(kind, 0) for kind in
                          ('historical-event', 'historical-process', 'historical-state'))
-        self.assertEqual(payload["graph_layers"], ['bibliographic', 'historical'] if historical else ['bibliographic'])
+        self.assertEqual(payload["graph_layers"], ['bibliographic', *(['historical'] if historical else []),
+                         *(['physical-artifact'] if manifest['counts'].get('artifact') else [])])
         self.assertEqual(payload["review_counts"], Counter(entry['review_status'] for entry in entries))
         self.assertEqual(payload["visibility_counts"], Counter(entry['visibility'] for entry in entries))
         self.assertEqual(

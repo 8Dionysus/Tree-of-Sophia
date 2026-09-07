@@ -33,6 +33,7 @@ from build_source_witness_catalog import (
     CLAIM_CATALOG_PATH,
     RECORD_FILES,
     OPTIONAL_RECORD_FILES,
+    ADAPTED_RECORD_FILES,
     SOURCE_BASENAMES,
     SOURCE_ROOT,
     CatalogBuildError,
@@ -15308,7 +15309,8 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         entry_class = validator_for(entry_schema)
         entry_class.check_schema(entry_schema)
         entry_validator = entry_class(entry_schema, format_checker=FormatChecker())
-        record_files = {**RECORD_FILES, **{kind: filename for kind, filename in OPTIONAL_RECORD_FILES.items()
+        record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
+                                         {**OPTIONAL_RECORD_FILES, **ADAPTED_RECORD_FILES}.items()
                                          if kind in (catalog_manifest or {}).get('record_files', {})}}
         for filename in record_files.values():
             catalog_path = repo_root / CATALOG_ROOT / filename

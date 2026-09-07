@@ -25,7 +25,8 @@
     "record_schema_ref": {"const": "ToS/contracts/corpus-record.schema.json"},
     "claim_schema_ref": {"const": "ToS/contracts/claim-packet.schema.json"},
     "extension_schema_refs": {"type": "array", "minItems": 1, "uniqueItems": true,
-      "items": {"enum": ["ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json"]}},
+      "items": {"enum": ["ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json",
+                         "ToS/contracts/artifact-source-witness.schema.json", "ToS/contracts/artifact-source-witness-v2.schema.json"]}},
     "record_files": {
       "type": "object",
       "additionalProperties": false,
@@ -42,7 +43,8 @@
         "link": {"const": "ToS/source-witnesses/catalog/links.jsonl"},
         "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
         "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
-        "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"}
+        "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"},
+        "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"}
       }
     },
     "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
@@ -76,6 +78,7 @@
         "historical-event": {"type": "integer", "minimum": 0},
         "historical-process": {"type": "integer", "minimum": 0},
         "historical-state": {"type": "integer", "minimum": 0},
+        "artifact": {"type": "integer", "minimum": 0},
         "object_total": {"type": "integer", "minimum": 1},
         "claim": {"type": "integer", "minimum": 0},
         "total": {"type": "integer", "minimum": 1}
@@ -100,11 +103,14 @@
       ],
       "properties": {
         "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
-        "source_schema_ref": {"const": "ToS/contracts/historical-record.schema.json"},
+        "source_schema_ref": {"enum": ["ToS/contracts/historical-record.schema.json",
+                                       "ToS/contracts/artifact-source-witness.schema.json",
+                                       "ToS/contracts/artifact-source-witness-v2.schema.json"]},
+        "label_source_pointer": {"const": "/custody/inventory_numbers/0"},
         "record_id": {"type": "string", "minLength": 1},
-        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link", "historical-event", "historical-process", "historical-state"]},
+        "record_type": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link", "historical-event", "historical-process", "historical-state", "artifact"]},
         "preferred_label": {"type": "string", "minLength": 1},
-        "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
+        "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded", null]},
         "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
         "record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "links": {
@@ -116,7 +122,23 @@
             ]
           }
         }
-      }
+      },
+      "allOf": [{
+        "if": {"properties": {"record_type": {"const": "artifact"}}},
+        "then": {
+          "required": ["source_schema_ref", "label_source_pointer"],
+          "properties": {
+            "identity_status": {"type": "null"},
+            "record_id": {"pattern": "^tos\\.artifact\\."},
+            "source_schema_ref": {"enum": ["ToS/contracts/artifact-source-witness.schema.json", "ToS/contracts/artifact-source-witness-v2.schema.json"]}
+          }
+        },
+        "else": {
+          "properties": {"identity_status": {"type": "string"},
+                         "source_schema_ref": {"const": "ToS/contracts/historical-record.schema.json"}},
+          "not": {"required": ["label_source_pointer"]}
+        }
+      }]
     },
     "claim_entry": {
       "type": "object",

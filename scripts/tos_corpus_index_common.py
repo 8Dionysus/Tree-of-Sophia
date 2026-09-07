@@ -11,6 +11,9 @@ import subprocess
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
+                                         load_artifact_record, OPTIONAL_RECORD_FILES, canonical_json)
+from source_witness_human_forms import load_metadata_forms
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -722,15 +725,40 @@ def build_source_navigation(diagnostics: list[dict[str, str]]) -> dict[str, Any]
     catalog_manifest_path = catalog_root / "catalog.manifest.json"
     if catalog_manifest_path.is_file():
         catalog_manifest = load_json(catalog_manifest_path)
+        artifact_validators = {}
+        historical_validator = None
         for record_type, file_ref in sorted(catalog_manifest.get("record_files", {}).items()):
             for entry in _jsonl(REPO_ROOT / str(file_ref)):
                 record_id = str(entry.get("record_id") or "")
                 source_ref = str(entry.get("source_record_ref") or "")
                 if not record_id or not source_ref:
                     continue
-                source_record = load_json(REPO_ROOT / source_ref)
+                source_record = (load_artifact_record(REPO_ROOT, source_ref) if record_type == 'artifact'
+                                 else load_json(REPO_ROOT / source_ref))
+                if record_type == 'artifact' and entry != artifact_catalog_entry(
+                        REPO_ROOT, source_record, source_ref, artifact_validators):
+                    raise ValueError(f'{source_ref}: physical artifact catalog/source mapping drifted')
                 properties = dict(source_record)
                 properties["source_record"] = dict(source_record)
+                if record_type == 'artifact':
+                    properties.update(artifact_display_fields(source_record))
+                if record_type in OPTIONAL_RECORD_FILES:
+                    if historical_validator is None:
+                        from source_witness_bibliographic_graph_common import historical_schema_validator
+                        historical_validator = historical_schema_validator(REPO_ROOT)
+                    if (entry.get('source_schema_ref') != 'ToS/contracts/historical-record.schema.json'
+                            or not historical_validator.is_valid(source_record)
+                            or source_record.get('record_id') != record_id
+                            or source_record.get('record_type') != record_type
+                            or source_record.get('visibility') not in {'public', 'public_metadata_only'}
+                            or hashlib.sha256(canonical_json(source_record).encode('utf-8')).hexdigest()
+                            != entry.get('record_sha256')):
+                        raise ValueError(f'{source_ref}: invalid, stale or nonpublic historical record')
+                    forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
+                    if forms is not None:
+                        forms_ref, _forms_raw, materialized = forms
+                        properties.update(human_forms=materialized, human_forms_source_ref=forms_ref,
+                                          source_sha256=entry['record_sha256'])
                 properties.update(dict(entry.get("links") or {}))
                 variant_labels = source_record.get("variant_labels")
                 if isinstance(variant_labels, list):

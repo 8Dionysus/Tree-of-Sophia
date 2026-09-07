@@ -48,6 +48,7 @@ source-witnesses/
 │   ├── collections.jsonl
 │   ├── items.jsonl
 │   ├── links.jsonl
+│   ├── artifacts.jsonl                    # native physical IDs; no book-ladder coercion
 │   └── claims.jsonl                       # generated source-returnable relation index
 ├── relations/                             # corpus-wide identity-ladder assertions
 │   ├── work-expression/

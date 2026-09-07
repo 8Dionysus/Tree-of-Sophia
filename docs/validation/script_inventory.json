@@ -543,6 +543,9 @@
       "organ_lane": "projection/generated",
       "owner_surface": "ToS/source-witnesses/README.md",
       "source_truth": [
+        "ToS/source-witnesses/artifacts/**/artifact-witness.json",
+        "ToS/contracts/artifact-source-witness.schema.json",
+        "ToS/contracts/artifact-source-witness-v2.schema.json",
         "ToS/source-witnesses/**/agent.json",
         "ToS/source-witnesses/**/work.json",
         "ToS/source-witnesses/**/expression.json",
@@ -563,7 +566,7 @@
         "ToS/contracts/source-witness-catalog.schema.json"
       ],
       "reads": [
-        "tracked source-witness corpus identity and bibliographic claim records"
+        "tracked source-witness corpus identity and bibliographic claim records; native artifacts/**/artifact-witness.json under the exact artifact v1/v2 schemas"
       ],
       "writes": [
         "ToS/source-witnesses/catalog/*.jsonl and catalog.manifest.json unless --check is used"
@@ -669,6 +672,9 @@
         "ToS/contracts/historical-claim.schema.json",
         "ToS/contracts/knowledge-assessment.schema.json",
         "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/contracts/artifact-source-witness.schema.json",
+        "ToS/contracts/artifact-source-witness-v2.schema.json",
+        "ToS/source-witnesses/artifacts/**/artifact-witness.json",
         "ToS/source-witnesses/**/historical-claims.jsonl"
       ],
       "reads": [
@@ -2268,7 +2274,14 @@
       "organ_lane": "shared-library",
       "owner_surface": "ToS/contracts/tos-corpus-index.schema.json",
       "source_truth": [
-        "ToS/contracts/tos-corpus-index.schema.json"
+        "ToS/contracts/tos-corpus-index.schema.json",
+        "ToS/source-witnesses/artifacts/**/artifact-witness.json",
+        "ToS/contracts/artifact-source-witness.schema.json",
+        "ToS/contracts/artifact-source-witness-v2.schema.json",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/source-witnesses/**/historical-*.json",
+        "ToS/source-witnesses/**/*.human-forms.json"
       ],
       "reads": [
         "ToS/source_home.manifest.json",

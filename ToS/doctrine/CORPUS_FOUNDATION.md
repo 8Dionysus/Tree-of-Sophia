@@ -68,6 +68,11 @@ membership or a stable Q-number supports return and comparison; it does not
 make the reconstruction an ancient original or its readings semantically
 fixed.
 
+The [physical-artifact adapter](semantic-interchange/README.md#physical-artifacts-existing-source-adapter)
+projects native v1/v2 artifact metadata into the shared catalog and exact
+focus/inspection reader without replacing the authored record or inventing
+relations to Works, texts, composites or visual representations.
+
 Responsibility claims retain their role-specific subject and Agent object:
 Work author, Expression translator, Edition editor, paratext author, designer,
 publisher, copyist, corrector, and rights holder are not interchangeable

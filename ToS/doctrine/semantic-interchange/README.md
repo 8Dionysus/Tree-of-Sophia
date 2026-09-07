@@ -90,6 +90,59 @@ visible gaps. Broad legacy relation families retain native predicates; mapping
 coverage does not prove their philosophical endpoint semantics. Tightening such
 source assertions requires source-visible review, not inference from labels.
 
+## Physical artifacts: existing-source adapter
+
+Entity registry version 6 maps the existing `tos.artifact.*` identity to
+`tos.entity.artifact`, a physical identity rather than a Work, transcription,
+catalog record, reconstruction or digital representation. The native
+`artifact-witness.json` v1/v2 records remain authoritative and unchanged; the
+adapter does not rewrite them into `tos_corpus_record_v1`.
+
+The catalog's optional `artifacts.jsonl` binds `artifact_id` to `record_id`
+without changing its value, and records the exact source schema and canonical
+source digest. The first declared custody inventory number is an attributed
+navigation label (`label_source_pointer`), not a newly assessed preferred name.
+`identity_status=null` explicitly means that these source schemas have no
+Corpus identity-assessment field; the artifact's separate native
+`authority.review_status` remains intact. Null is not admitted for ordinary
+Corpus catalog entries.
+
+The existing graph and access focus/inspection routes expose the full native
+record, exact copies of its identity-boundary note and review/visibility
+metadata, and the pointers behind those display fields. They do not infer
+edges from custody, dates, inventory schemes, reported joins, visual links,
+genre or planting refs. Metadata display is not assessed human-form admission;
+source language and script of that display remain unknown when undeclared.
+Adjacent metadata form sets currently require a Corpus-shaped subject and are
+not yet an artifact form-production route.
+
+The corpus-index source-navigation reader uses that same adapter, replacing
+its previous ID-only planting placeholder while retaining the exact navigation
+node ID and authored planting edges. Both navigation and claim-graph carriers
+map to the same artifact type and persistent entity ID. Their existing
+`projects` relation records representation, not historical `same_as`; no focus
+priority or UI-side label heuristic is changed.
+Relation registry version 6 explicitly includes Artifact in the range of
+`grounds-source-backlog-anchor`, matching the existing artifact alternative in
+`philosophy-source-planting.schema.json`; unrelated types remain outside that
+range. This structural planting link is not a carrier/text or historical claim.
+The same registry version maps the three existing historical families in
+source-navigation as well as source-claims. The navigation reader validates
+their exact source schema, ID, family, digest and visibility before using the
+same adjacent-form materializer. Default focus therefore does not lose the
+historical type or source-bound forms when both carriers become available.
+
+Unknown schema versions, nonpublic metadata, source/catalog mapping drift,
+duplicate IDs, symlink paths and records above 1 MiB are refused. Refusal does
+not delete or silently normalize source. The catalog and graph builders can
+regenerate this disposable adapter; rolling back the reader leaves the
+physical-source records and any newer research untouched. The native source
+validator still owns artifact/rights/provenance reference closure. This adapter
+neither downloads media nor admits its use, and adds no write command for
+artifacts. Evidence-bearing document/carrier relationships, artifact growth,
+and fully assessed multilingual forms are still required for the complete
+profile.
+
 ## Historical situations: source profile
 
 Registry version 4 introduces `historical-event`, `historical-process`, and

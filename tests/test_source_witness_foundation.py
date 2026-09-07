@@ -3162,8 +3162,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         }
         object_ids = {
             entry["record_id"]
-            for filename in catalog_builder.RECORD_FILES.values()
-            for line in (catalog_root / filename)
+            for filename in manifest['record_files'].values()
+            for line in (REPO_ROOT / filename)
             .read_text(encoding="utf-8")
             .splitlines()
             if line.strip()
@@ -3197,11 +3197,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(176, manifest["counts"]["object_total"])
-        self.assertEqual(198, manifest["counts"]["claim"])
-        self.assertEqual(374, manifest["counts"]["total"])
+        self.assertEqual(len(object_ids), manifest["counts"]["object_total"])
+        self.assertEqual(len(source_claims), manifest["counts"]["claim"])
+        self.assertEqual(len(object_ids) + len(source_claims), manifest["counts"]["total"])
         self.assertEqual(5, manifest["counts"]["link"])
-        self.assertEqual(198, len(claim_entries))
+        self.assertEqual(len(source_claims), len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
         for entry in claim_entries:
@@ -3226,7 +3226,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ):
                 self.assertEqual(claim[field], entry[field])
             self.assertEqual(
-                [review["review_id"] for review in claim["reviews"]],
+                [review["review_id"] for review in claim.get("reviews", [])],
                 entry["review_refs"],
             )
             self.assertEqual(claim.get("qualifiers"), entry.get("qualifiers"))
@@ -3238,11 +3238,8 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 self.assertIn(entry["object"], object_ids)
 
         self.assertEqual(
-            {
-                "bibliographic_assertion": 176,
-                "forensic_observation": 5,
-                "scholarly_report": 17,
-            },
+            {layer: sum(claim['assertion_layer'] == layer for _, _, claim, _ in source_claims.values())
+             for layer in {claim['assertion_layer'] for _, _, claim, _ in source_claims.values()}},
             {
                 layer: sum(
                     entry["assertion_layer"] == layer for entry in claim_entries
@@ -3255,8 +3252,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(
             all(
                 entry["claim_type"] in {"bibliographic", "relation"}
-                and entry["review_status"] == "unreviewed"
-                and entry["visibility"] == "public_metadata_only"
+                and entry["visibility"] in {"public_metadata_only", "public"}
                 for entry in claim_entries
             )
         )

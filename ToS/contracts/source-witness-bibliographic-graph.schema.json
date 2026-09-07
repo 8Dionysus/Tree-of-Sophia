@@ -95,7 +95,8 @@
             },
             "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
             "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
-            "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"}
+            "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"},
+            "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"}
           }
         }
       }
@@ -111,7 +112,9 @@
       }
     },
     "graph_layers": {
-      "enum": [["bibliographic"], ["bibliographic", "historical"]]
+      "enum": [["bibliographic"], ["bibliographic", "historical"],
+               ["bibliographic", "physical-artifact"],
+               ["bibliographic", "historical", "physical-artifact"]]
     },
     "relation_model": {
       "type": "object",

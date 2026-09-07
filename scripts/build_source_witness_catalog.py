@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator, FormatChecker
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = Path("ToS/source-witnesses")
@@ -32,6 +34,11 @@ OPTIONAL_RECORD_FILES = {
     "historical-event": "historical-events.jsonl",
     "historical-process": "historical-processes.jsonl",
     "historical-state": "historical-states.jsonl",
+}
+ADAPTED_RECORD_FILES = {"artifact": "artifacts.jsonl"}
+ARTIFACT_SCHEMAS = {
+    'tos_artifact_source_witness_v1': 'ToS/contracts/artifact-source-witness.schema.json',
+    'tos_artifact_source_witness_v2': 'ToS/contracts/artifact-source-witness-v2.schema.json',
 }
 SOURCE_BASENAMES = {
     record_type: f"{record_type}.json"
@@ -75,6 +82,75 @@ class CatalogBuildError(RuntimeError):
 
 def canonical_json(payload: object) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def artifact_catalog_entry(repo_root: Path, payload: dict, relative: str,
+                           validators: dict | None = None) -> dict:
+    """Project native physical identity; never manufacture a Corpus record.
+
+    Inventory wording is an attributed navigation label, not an assessed title.
+    A missing identity assessment remains null rather than inferred from the
+    legacy metadata review state. All native fields stay in the source record.
+    """
+    schema_ref = ARTIFACT_SCHEMAS.get(payload.get('schema_version'))
+    if schema_ref is None:
+        raise CatalogBuildError(f'{relative}: unsupported physical artifact source schema')
+    validators = {} if validators is None else validators
+    if schema_ref not in validators:
+        schema = json.loads((repo_root / schema_ref).read_text(encoding='utf-8'))
+        validators[schema_ref] = Draft202012Validator(schema, format_checker=FormatChecker())
+    if not validators[schema_ref].is_valid(payload):
+        raise CatalogBuildError(f'{relative}: invalid or nonpublic physical artifact metadata')
+    return {
+        'schema_version': 'tos_source_witness_catalog_entry_v1',
+        'source_schema_ref': schema_ref,
+        'record_id': payload['artifact_id'],
+        'record_type': 'artifact',
+        'preferred_label': payload['custody']['inventory_numbers'][0],
+        'label_source_pointer': '/custody/inventory_numbers/0',
+        'identity_status': None,
+        'source_record_ref': relative,
+        'record_sha256': hashlib.sha256(canonical_json(payload).encode('utf-8')).hexdigest(),
+        'links': {},
+    }
+
+
+def load_artifact_record(repo_root: Path, relative: str) -> dict:
+    """Bound a public metadata read to the physical-artifact owner subtree."""
+    ref = Path(relative)
+    if (ref.is_absolute() or '..' in ref.parts or ref.name != 'artifact-witness.json'
+            or not ref.is_relative_to(SOURCE_ROOT / 'artifacts')):
+        raise CatalogBuildError('physical artifact source path is outside its owner subtree')
+    path = repo_root / ref
+    if path.is_symlink() or not path.is_file() or path.resolve() != path.absolute():
+        raise CatalogBuildError(f'{relative}: artifact source must be a regular non-symlink path')
+    with path.open('rb') as handle:
+        raw = handle.read(1_048_577)
+    if len(raw) > 1_048_576:
+        raise CatalogBuildError(f'{relative}: artifact metadata exceeds 1 MiB budget')
+    try:
+        payload = json.loads(raw)
+    except (ValueError, UnicodeError) as exc:
+        raise CatalogBuildError(f'{relative}: invalid physical artifact JSON') from exc
+    if not isinstance(payload, dict):
+        raise CatalogBuildError(f'{relative}: physical artifact record must be an object')
+    return payload
+
+
+def artifact_display_fields(payload: dict) -> dict:
+    """Exact field copies shared by the two readers of a validated artifact."""
+    return {
+        'description': payload['path_identity']['note'],
+        'review_status': payload['authority']['review_status'],
+        'visibility': payload['authority']['visibility'],
+        'label_source_pointer': '/custody/inventory_numbers/0',
+        'metadata_field_sources': {
+            'preferred_label': '/custody/inventory_numbers/0',
+            'description': '/path_identity/note',
+            'review_status': '/authority/review_status',
+            'visibility': '/authority/visibility',
+        },
+    }
 
 
 def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any]]]:
@@ -126,6 +202,17 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
                 }
             )
 
+    artifacts, validators = [], {}
+    for path in sorted((source_root / 'artifacts').rglob('artifact-witness.json')):
+        relative = path.relative_to(repo_root).as_posix()
+        payload = load_artifact_record(repo_root, relative)
+        entry = artifact_catalog_entry(repo_root, payload, relative, validators)
+        if entry['record_id'] in seen_ids:
+            raise CatalogBuildError(f"{relative}: duplicate record_id {entry['record_id']!r}")
+        seen_ids[entry['record_id']] = relative
+        artifacts.append(entry)
+    if artifacts:
+        records['artifact'] = artifacts
     for entries in records.values():
         entries.sort(key=lambda entry: entry["record_id"])
     return {kind: entries for kind, entries in records.items()
@@ -224,7 +311,8 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
     outputs: dict[Path, str] = {}
     digest_parts: list[str] = []
 
-    record_files = {**RECORD_FILES, **{kind: filename for kind, filename in OPTIONAL_RECORD_FILES.items()
+    record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
+                                    {**OPTIONAL_RECORD_FILES, **ADAPTED_RECORD_FILES}.items()
                                     if kind in records}}
     for record_type, filename in record_files.items():
         lines = [canonical_json(entry) for entry in records[record_type]]
@@ -252,7 +340,7 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
         **({'extension_schema_refs': sorted({entry['source_schema_ref']
                                             for entries in [*records.values(), claims] for entry in entries
                                             if 'source_schema_ref' in entry})}
-           if any(kind in records for kind in OPTIONAL_RECORD_FILES)
+           if any(kind in records for kind in (*OPTIONAL_RECORD_FILES, *ADAPTED_RECORD_FILES))
            or any('source_schema_ref' in entry for entry in claims) else {}),
         "record_files": {
             record_type: (CATALOG_ROOT / filename).as_posix()
