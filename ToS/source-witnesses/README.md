@@ -30,6 +30,8 @@ source-witnesses/
 │   └── <historical-organization>/organization.json
 ├── social-bodies/                          # source-described groups, communities, institutions
 │   └── <kind>-<subject>/<kind>.json         # separate membership and activity Claims
+├── intellectual-formations/               # schools, traditions and movements, not atlas categories
+│   └── <kind>-<subject>/<kind>.json         # source-described continuity, separate association Claims
 ├── links/                                  # first-class observed web/API/file routes
 │   └── <provider>/<object>/<route>/link.json
 ├── discovery/                              # reviewed candidate queue + ordered query/result evidence

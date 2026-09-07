@@ -464,8 +464,8 @@ institutional body has organized roles and continuity and is not its building.
 These are historical research referents, not canon nodes or atlas categories.
 Existing `Tradition`, `SchoolTradition` and `Institution` navigation types and
 their IDs retain their meanings. Intellectual school, tradition and movement
-profiles are still a separate requirement; none is implemented by renaming a
-social group.
+profiles use the distinct formation contract below; none is implemented by
+renaming a social group.
 
 `social-body-record` composes the common metadata and description fields.
 Its `semantic_scope` field names the scope and continuity criterion of the
@@ -515,6 +515,51 @@ Claim. Initial records/Claims and forms grant no assessment or admission.
 Correction retains earlier source versions; changing the referent, identity
 criterion, type or permission remains outside ordinary description correction.
 Reader rollback does not remove new source records or their creation history.
+
+## Intellectual formations: schools, traditions and movements
+
+Entity registry v14 adds the abstract identity family `IntellectualFormation`
+and three source-described profiles: `IntellectualSchool`,
+`IntellectualTradition`, and `IntellectualMovement`. A school has a specified
+teaching/inquiry lineage; a tradition has historical transmission through
+reinterpretation and discontinuities; a movement has a shared historical
+direction or undertaking. These are not individual thought moves, doctrine
+versions, automatically closed social groups, buildings or atlas routes.
+Existing Tradition/SchoolTradition navigation IDs retain their meanings.
+
+`intellectual-formation-record` composes common source metadata, description
+scope and content-language fields. All profiles require a formation account
+and their own lineage, transmission or orientation account. The common
+`formation-account`, `formation-scope-note` and `formation-identity-criterion`
+properties inherit through the abstract family. Each profile's specific
+content property is queryable by semantic ID. Source-copy forms carry the
+complete declared scope and content, not merely the label. A nonempty account
+does not certify research quality.
+
+The existing corpus metadata reader supplies `source.create`, correction,
+forms, catalog and both graph carriers; no new executable or per-kind reader
+branch is selected by these declarations. Correcting wording retains subject
+identity and exact predecessor bytes. Changing its continuity criterion,
+referent or kind is not an ordinary description correction.
+
+Relation registry v13 adds four non-transitive reified predicates:
+
+| Predicate | Subject → object | Required distinction |
+| --- | --- | --- |
+| `intellectually_associated_with` | Agent/Organization → IntellectualFormation | source-attributed association, not social membership, universal endorsement or causality |
+| `school_in_tradition` | IntellectualSchool → IntellectualTradition | grounded historical placement, not shared identity or exhaustive classification |
+| `movement_reworks_tradition` | IntellectualMovement → IntellectualTradition | specified reworking, not mere resemblance or an unchanged inherited doctrine |
+| `formation_articulated_in` | IntellectualFormation → IntellectualObject | specified articulation, not the view of every participant or a physical carrier |
+
+All require a statement with wording language/script, relation basis,
+intellectual scope and historical time note. Scholar reports and research
+interpretations remain distinct assertion layers. The scope is queryable as
+`claim-formation-scope`; existing Claim basis and time-note properties are
+reused. Direction and reverse reading remain explicit without creating another
+Claim. Unknown historical limits remain wording, not normalized date keys.
+These profiles do not supply substantive assessment, admission, canon,
+publication or access rights. Rolling back the derived reader leaves their
+authored records and histories intact.
 
 ## Documents and declared source claims
 

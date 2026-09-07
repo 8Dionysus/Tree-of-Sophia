@@ -148,18 +148,22 @@ def _configuration(path):
                 or relative.name != profile['source_basename'] or len(relative.parts) < 5
                 or 'catalog' in relative.parts):
             raise PermissionError('profile writing requires its delegated identity and typed source path')
+        if (corpus_creation and config['record_type'] == 'work'
+                and relative.is_relative_to('ToS/source-witnesses/works/friedrich-nietzsche')):
+            raise PermissionError('the Nietzsche Work source home requires its stronger authorship and chronology closure')
     return config, _digest(_canonical(config)), root / relative
 
 
 def _configured_corpus_profile(config):
     """Existing standalone native identities, not role subclasses or a new ontology.
 
-    Bibliographic objects with mandatory related records retain their stronger
-    creation routes until a multi-subject transaction can keep those in sync.
+    A provisional Work can start with an explicitly empty expression-claim
+    list. Realizations and mandatory related objects are not inferred or
+    created by this metadata transaction.
     """
     kind = config.get('record_type')
-    if not isinstance(kind, str) or kind not in {'agent', 'place', 'organization'}:
-        raise PermissionError('native creation requires a standalone Agent, Place or Organization')
+    if not isinstance(kind, str) or kind not in {'agent', 'place', 'organization', 'work'}:
+        raise PermissionError('native creation requires a standalone Agent, Place, Organization or initial Work')
     return {'record_type': kind, 'id_prefix': f'tos.{kind}.', 'source_basename': kind + '.json',
             'schema_ref': 'ToS/contracts/corpus-record.schema.json', 'schema_version': 'tos_corpus_record_v1',
             'source_scope': 'public_metadata_only'}
@@ -442,10 +446,22 @@ def _initial_source_record(config, source, profiles=None):
         schema = _json_object(_read(Path(config['source_root']) / profile['schema_ref'], MAX_COMMAND_BYTES))
         Draft202012Validator.check_schema(schema)
         Draft202012Validator(schema).validate(source)
+        # Corpus requires this field for Work. An empty initial list records
+        # no supplied expression assertions; it does not mean none exist.
+        link_fields = set(METADATA_LINK_FIELDS)
+        if profile['record_type'] == 'work':
+            work_fields = {'schema_version', 'record_type', 'record_id', 'record_version', 'preferred_label',
+                'variant_labels', 'field_languages', 'identity_status', 'source_refs', 'external_identifiers',
+                'same_as_posture', 'notes', 'supersedes_ref', 'expression_claim_refs'}
+            if set(source) - work_fields:
+                raise PermissionError('initial Work creation owns identity metadata, not realization or publication fields')
+            if source['expression_claim_refs'] != []:
+                raise PermissionError('initial standalone Work cannot assert expression closure')
+            link_fields.remove('expression_claim_refs')
         if (source['record_type'] != profile['record_type'] or source['record_id'] != config['record_id']
                 or source['record_version'] != 1 or source.get('supersedes_ref') is not None
                 or source['identity_status'] != 'provisional' or source['same_as_posture'] != 'no_equivalence_claim'
-                or any(key in source for key in METADATA_LINK_FIELDS)
+                or any(key in source for key in link_fields)
                 or any(value['status'] != 'unverified' for key in ('variant_labels', 'external_identifiers')
                        for value in source.get(key, []))):
             raise PermissionError('native creation requires a provisional standalone identity without accepted attributions')

@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4124,
+    "tracked_surface_count": 4173,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 739,
+    "excluded_tracked_path_count": 751,
     "human_scope": {
-      "bytes": 5304976,
-      "count": 995,
+      "bytes": 5323457,
+      "count": 997,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -81,9 +81,9 @@
           "lines": 49
         },
         "mechanics": {
-          "bytes": 200960,
+          "bytes": 201560,
           "count": 155,
-          "lines": 4646
+          "lines": 4655
         },
         "memo": {
           "bytes": 4538,
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3908261,
-          "count": 586,
-          "lines": 65893
+          "bytes": 3926142,
+          "count": 588,
+          "lines": 66171
         }
       },
-      "lines": 91730
+      "lines": 92017
     },
     "surface_kind_counts": {
       "executable": 233,
-      "human": 1020,
-      "structured": 2871
+      "human": 1022,
+      "structured": 2918
     },
-    "tracked_path_count": 4863,
-    "tracked_surface_count": 4124,
+    "tracked_path_count": 4924,
+    "tracked_surface_count": 4173,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 586,
-        "structured": 2787
+        "human": 588,
+        "structured": 2834
       },
-      "tracked_surface_bytes": 225072195,
-      "tracked_surface_count": 3377
+      "tracked_surface_bytes": 225596518,
+      "tracked_surface_count": 3426
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 862861,
+      "tracked_surface_bytes": 867552,
       "tracked_surface_count": 214
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1492524,
+      "tracked_surface_bytes": 1499715,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "acbffe8daeadd331ee582a2cd8866af49d14c75abd20ecc10ed0cf54299d3284",
+  "tracked_surface_digest": "ad5ca7331e4377fdb0ed9d524a5545bac81220a3f5042b628ba39efb94c29725",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "f62b67caab98fe9b6d6b2f373fc9ef2c7bca24d357006cfaceb337cbcab3441e",
+      "sha256": "1b30a4db5a72034e62cb82d0949c255b63fe40084ca466737fe664abe80e9f86",
       "surface_kind": "structured"
     },
     {
@@ -3128,6 +3128,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2468,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/formation-relation-claim.schema.json",
+      "sha256": "85a67de9cae49ba5771efde9d8569b675c0aa0cbfa2f5c101316135571282ba1",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8856,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3237,6 +3245,14 @@
       "family_id": "tos",
       "path": "ToS/contracts/human-form.schema.json",
       "sha256": "784c9ea1253a5d12fa3010372759e87c42da309c10003024741d313604d5cd14",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4370,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/intellectual-formation-record.schema.json",
+      "sha256": "42a0cc3be031f1a7215882ba9ee84c905be9636fb4898eb6992dbad74edcb076",
       "surface_kind": "structured"
     },
     {
@@ -4104,11 +4120,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7879884,
+      "bytes": 8098320,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "622814dc311229aad5b3e77062756d2c4d95448f702d4ec6af41d0269c211edf",
+      "sha256": "6a3f13b1d90fc19f49812d6ef3efaf50645415848e7c5ebfbd2351fb20d0d9e1",
       "surface_kind": "structured"
     },
     {
@@ -4184,11 +4200,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59139118,
+      "bytes": 59261660,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "ea7c6c131a37857513bca173b3261e679dfec0e28640e40385797b3f33cad2ae",
+      "sha256": "a21e12da0a5284e9148d2fca7befba5746a25d710bbf6ec4e9ed566d5bb44607",
       "surface_kind": "structured"
     },
     {
@@ -4240,11 +4256,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 32308,
+      "bytes": 32905,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "573b0668b48f0e81f8306465825f0727f3505b35932aa30d0fe6c09c3836c2f0",
+      "sha256": "3dd63da5ac94a7164af5b0b476f1806d401ea3464fcd75b0a07aecdd41e968ab",
       "surface_kind": "human"
     },
     {
@@ -4264,11 +4280,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 71674,
+      "bytes": 73647,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "c5c2777575a9579faf0da9e959255bc117160e7785604b302c655d6c1735a9fa",
+      "sha256": "4e683eeade958182d84ab66b8b8e0cd676d3b01ba3f5d83ef75d4aa45492c8e2",
       "surface_kind": "human"
     },
     {
@@ -4384,11 +4400,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 52472,
+      "bytes": 55486,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "b9e104694ec9e327ec8cf70f359d87cd85f0c7fa7b573a1cb3cf2c07044d6685",
+      "sha256": "a9376c5a2950331778fcf75664e30cedb5331f81604aedf78671bb7bfb47b4b7",
       "surface_kind": "human"
     },
     {
@@ -4400,19 +4416,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 128291,
+      "bytes": 136889,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "669b0884c85f0cfe83da2613803289b5ffcd9792d513379a0133137b399c238a",
+      "sha256": "1495cc60656256ec9c76af3d236ba16288b43d978ca5bcd8d874d2bb522bc245",
       "surface_kind": "structured"
     },
     {
-      "bytes": 214131,
+      "bytes": 220855,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "5edf4ff161fa42b7c13b0eae7d0ac765d26251e5cfa323d42f8f12d69bc64f7e",
+      "sha256": "3b19d5c3b6362da36c6b73713ba8b3d6f8ece4b5df05d56fad8d9bd5d17a4dbb",
       "surface_kind": "structured"
     },
     {
@@ -18344,6 +18360,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 8850,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-intellectual-formations-and-reader-review.md",
+      "sha256": "4fc14c054dc7350015098f9ed6210c4a7f9e7e26471f366ab370632d45e18998",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3228,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-intellectual-formations-source-reading.md",
+      "sha256": "97c253d4f1e92acd92a2933383d962b5da85a447a22b42bdb27cff9ec468bf0b",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 5512,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18560,11 +18592,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 83441,
+      "bytes": 83660,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "bd32d38610673b7414332de4a80f9728d22fb23b1fd53fa2225d33bb92e5b01f",
+      "sha256": "25c87418fffc88b75e9070fc127e3c151e59ce3a9ca4c794fdade40ef26f9b7f",
       "surface_kind": "human"
     },
     {
@@ -19208,6 +19240,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6198,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/justus-lipsius/agent.human-forms.json",
+      "sha256": "8f2cd842d367a6d791e7f9e65769c2efb409b9784ac82ac158f31d3050344a81",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1169,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/justus-lipsius/agent.json",
+      "sha256": "f19a4cbbf5430198ad7979003ed71760121237f03d7b01fd829d1baa31ff0a2a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/justus-lipsius/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1408,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/justus-lipsius/source-create-receipt.json",
+      "sha256": "214d340fe7aaf8505d82b64bf7580b8e36f861e2944b4227663229564aa0e9cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1667,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/justus-lipsius/source-create-request.json",
+      "sha256": "fdadc15474c751d1ef3f157016c15e95a340fd25cdb15fb5fd9c88180d0b7577",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6828,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19661,6 +19733,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/agents/yuliy-antonovsky/agent.json",
       "sha256": "1c8e1429063ce7ee4d40ff3a5b4db6fe3607b6b3e48e0167929f1680a8254125",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6198,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/zeno-of-citium/agent.human-forms.json",
+      "sha256": "a603589bf097fa97e9ede9b1ae2a6fc03a78e6671c36f63c06d0bf38723be6ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1166,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/zeno-of-citium/agent.json",
+      "sha256": "9a68085d6d35191712f7ad4d1a2f584622b9493a8f7673bf43317456b42f5dcb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/zeno-of-citium/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1408,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/zeno-of-citium/source-create-receipt.json",
+      "sha256": "e270a68a3d3790daba19080542c03e96cdec4b3cdafbf928ae92e5af3b7592ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1664,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/agents/zeno-of-citium/source-create-request.json",
+      "sha256": "9d5f673a405be7520650d987540b3ae38c7f94071712f47f20c29e635aa694f1",
       "surface_kind": "structured"
     },
     {
@@ -20200,11 +20312,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5087,
+      "bytes": 5571,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "ffbc75db8e0230c5c7bbaf95b2e17537e0662411f7784c7733d9823a99148170",
+      "sha256": "4117e25826751133d52a12aeae467de82dfdaddda4f43a70d0177b7593ffde52",
       "surface_kind": "structured"
     },
     {
@@ -21760,6 +21872,166 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 8448,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-lipsian-neostoicism/intellectual-movement.human-forms.json",
+      "sha256": "51bb5825e236c1fedc4456439097be8367a0f73b8588be3f99f28a61341539ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2362,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-lipsian-neostoicism/intellectual-movement.json",
+      "sha256": "12257e29365a55d75c5187ad493e7c0ec8649e3e6fa48436e84256c9832967a2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-lipsian-neostoicism/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1542,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-lipsian-neostoicism/source-create-receipt.json",
+      "sha256": "9bf5e1c8fbf2e7fd6abcddcb4af3e16f61d16920024b9f7fa360279737d5635f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2878,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-lipsian-neostoicism/source-create-request.json",
+      "sha256": "1e0249e91c44329e64db8e75c40726d62b85bf026049c406bebf2dafba9efe14",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8420,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-logical-empiricism/intellectual-movement.human-forms.json",
+      "sha256": "56aa53f6f378ae669652a1fd013d7fb92f2e2634dcb341d408463c48defd4dfb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-logical-empiricism/intellectual-movement.json",
+      "sha256": "853d25ad3f907fccc29842eacccc703e6220d0be7fe60b81ffb2efbbfc3ef858",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-logical-empiricism/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1539,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-logical-empiricism/source-create-receipt.json",
+      "sha256": "cd3a07cdde7e02fd14f386b677afe4ffcfae729121c2d72759504ca7c8cb39f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2901,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-movement-logical-empiricism/source-create-request.json",
+      "sha256": "b1c40a0f482c33fc230da4b6a22c72b1c42214c7e021a2a66c6bb6744915742c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8392,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-school-early-athenian-stoa/intellectual-school.human-forms.json",
+      "sha256": "d8266ebb46c2821d6d07a70ec52d8b5630632d72bce7d24613d164f9f1cd88ae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-school-early-athenian-stoa/intellectual-school.json",
+      "sha256": "475dcf24ca034d35d0768f9588f245fdb32b385c5af2de1b40685ff42c284116",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-school-early-athenian-stoa/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1530,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-school-early-athenian-stoa/source-create-receipt.json",
+      "sha256": "7aaff4f69498232f75689a31f847eb03f93933d4eac01d57854d8cda4c63116e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2830,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-school-early-athenian-stoa/source-create-request.json",
+      "sha256": "e97f022d88e3b57062ed300b965918b9b997b8316fe97dd8a8ae01bf4c884342",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8448,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-tradition-stoic-transmission/intellectual-tradition.human-forms.json",
+      "sha256": "6d47ccb9b060dc70d5723bc00f9fe5ee5e858a44d127bd94f3e6ba9ec55f5374",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2426,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-tradition-stoic-transmission/intellectual-tradition.json",
+      "sha256": "785db624b919293f8c24e6c0a82d161530e023f552d4a6aade64674c885f3170",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-tradition-stoic-transmission/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1545,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-tradition-stoic-transmission/source-create-receipt.json",
+      "sha256": "2b505aac51051cbcdb6eb28e8fb767da14cf96ee1e08f72865c3156d895a533b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2942,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/intellectual-formations/intellectual-tradition-stoic-transmission/source-create-request.json",
+      "sha256": "5dae16e058fe472bf278901c2b9741fb060a4dc292e2b028bd8173bcebe76060",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1381,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22054,6 +22326,86 @@
       "path": "ToS/source-witnesses/relations/expression-derivation/README.md",
       "sha256": "3dd1765185343f697c4034e6665a5c6d43def49592292fdf43a1f8e927a85149",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 3728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.12451963d69f7b0013ed453506af9a0fd5fb1455b76c8751846adc9a3fac74c6.human-forms.json",
+      "sha256": "71fbc1c88d7c9fe7c4414400eed0b9220ea38982b5800ab0cfaf47aa07561e29",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3720,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.1bcfcd91d221e4f8c7d517b5937bfe2b5c5227dd22b559599dbb75f2547f9df0.human-forms.json",
+      "sha256": "a3b1649ade637b2505a6b01e4e4d83fe31134b3521d5a455755591df913cca96",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3559,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.345531bc25e08a49f667f3edbe32dfc719ae07afaa7888ff1a80bbf6887d14ab.human-forms.json",
+      "sha256": "f347d68f4bd49f2f5a26db3d8dc307fcffc26bf03f10d968ccfff785192da4d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3704,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.4b3aed6dcc6303f4640d904a987acf10b7f3a961528ab5aeaade08ca260d9802.human-forms.json",
+      "sha256": "26e5e3d04ce5e8968102448c16cfde1bafb4f4d709fde60e0ed43bcde01760a1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3688,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.8f728295620b63c1e150be4e3c8803f6ca40d5cb4af3e446c5c37b0cb1fdde3a.human-forms.json",
+      "sha256": "429538ec62c051efd63a6498ffe198255d4ae49d3693b3eeabe8fbf67478088f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3744,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.f5bede4b319b824510d3e1cfcec53f06187a9f2c9a9b84c6329e444c4ad2445c.human-forms.json",
+      "sha256": "80dfb3a91435b7c001fbe78de17d85df4c66b584f93b5521048ad04c590dd4e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-claims.f7e9e1f60b71da81e9210efeb56f0d7089d6e72a723529776c8468d82608720d.human-forms.json",
+      "sha256": "8dec4f4efdbf3ea1f0baca6229c4fafecbaac9b930e615ab00ad2aa50581851c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5780,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-create-receipt.json",
+      "sha256": "3c6cbf92eb95b839d83a3480e254f35a7326f6647d560c8ba8f16296eef6b1d7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 16417,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/formation-research/source-create-request.json",
+      "sha256": "138edeacf0c105f646f4cebb792ebf09d1a8ce0505b029f4e5185544a864f311",
+      "surface_kind": "structured"
     },
     {
       "bytes": 3775,
@@ -28168,6 +28520,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1444,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-receipt.json",
+      "sha256": "f297be510929ee423bbc14ba0573f63587cd12e711209c4c3da9ec1548ddb068",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1813,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/justus-lipsius/de-constantia/source-create-request.json",
+      "sha256": "c8f5df1c55f425af28d86c881831e7a5e0267d4c0d35bdc6b4d36db9d7fbc610",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6484,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/justus-lipsius/de-constantia/work.human-forms.json",
+      "sha256": "e31cb8860cd306d0693e424e45830142f19d659eb49df789ec7838a1339e7bff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1267,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/justus-lipsius/de-constantia/work.json",
+      "sha256": "8c4ed05ab45c566b536d4b75c6d7c287d566e6bea4ed5ff7f46495377cf03e9a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8340,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -31168,11 +31560,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 49245,
+      "bytes": 49845,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "ded9d8c0fc5a7ab22e981a4172d9992ba5c04bd7fa25cf534e4a3f1aa298654f",
+      "sha256": "aa8468278d4e7f862dd8029b26746e4401d3cc89b738163c779e45571440c3a3",
       "surface_kind": "human"
     },
     {
@@ -31232,11 +31624,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 65637,
+      "bytes": 66894,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "444f56d5fd466c7237d1cbd4236952e258260902c7793c6db84cf9f52a1b8fdc",
+      "sha256": "d4cea0690eaa97531bdcd033139e643d1df976f73d66c65e340a848718f2d60a",
       "surface_kind": "executable"
     },
     {
@@ -31272,11 +31664,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 94295,
+      "bytes": 97129,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "0685d71cc67f0e4582af9bd62d6a75e25d6f77fdad5ccf5f988687aa263ec938",
+      "sha256": "bb5728b41a41f2d73de2b8e118a1e2a0490bb751bdbd03ab00a2f22de46ec803",
       "surface_kind": "executable"
     },
     {
@@ -33096,11 +33488,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 180801,
+      "bytes": 187992,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "d3d9b9f0fd08684ca377631291a771cea3081167646152a08dcfc753263a9df5",
+      "sha256": "aa4ef0f64e513a37ae3feccff0ccd3f9286e2b3153fa713a1673cab74587c86c",
       "surface_kind": "executable"
     },
     {

@@ -93,6 +93,14 @@ promoting that metadata shape into a universal ontology. The profile belongs
 to the source type registry; catalogs and projections execute it, retain the
 exact record, and cannot infer claims or grant source-write/admission powers.
 
+Initial native Work creation may record a provisional identity with the
+schema-required expression-claim list empty. That means no expression
+assertions have been supplied, not that no expression exists. This operation
+does not create an author, language realization, publication or physical copy.
+The bounded Nietzsche source home's stronger authorship and chronology closure
+remains outside standalone Work creation. The executable operation and limits
+live in the [source-owner creation contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-standalone-identities).
+
 Source-near semantic descriptions use the explicit
 [concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
 not the bibliographic identity family. Their declared research scope and

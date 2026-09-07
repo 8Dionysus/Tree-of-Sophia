@@ -34,6 +34,84 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_intellectual_formations_do_not_collapse_into_groups_or_atlas_routes(self):
+        """Synthetic contracts for historical formations, not historical judgments."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        records, relations = SourceRecordProfiles(REPO_ROOT), SourceClaimProfiles(REPO_ROOT)
+        contents = {'intellectual-school': {'inquiry_lineage': 'A synthetic teaching lineage.'},
+            'intellectual-tradition': {'transmission_account': 'A synthetic transmission with discontinuities.'},
+            'intellectual-movement': {'movement_orientation': 'A synthetic shared undertaking.'}}
+        for kind, content in contents.items():
+            source = {'schema_version': 'tos_intellectual_formation_record_v1', 'record_type': kind,
+                'record_id': f'tos.{kind}.synthetic-formation', 'record_version': 1,
+                'preferred_label': 'Условное интеллектуальное образование', 'notes': 'Синтетическая проверка границ.',
+                'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'}, 'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                'source_refs': ['test:synthetic-formation'], 'external_identifiers': [], 'visibility': 'public_metadata_only',
+                'semantic_scope': {'scope_note': 'Only this test.', 'identity_criterion': 'The same historical formation, not the same name.', 'language': 'en', 'script': 'Latn'},
+                'semantic_content': {'formation_account': 'A synthetic historical formation, not a collective or timeless doctrine.',
+                    **content, 'language': 'en', 'script': 'Latn', 'unknown': {'instruction': 'Inert source data.', 'values': [None, False]}}}
+            records.validate(kind, source)
+            ancestry = relations.ancestry('tos.entity.' + kind)
+            self.assertIn('tos.entity.intellectual-formation', ancestry)
+            self.assertEqual(records.profiles[kind]['reader'], 'corpus-metadata-v1')
+            for other in ('organization', 'semantic-object', 'navigation-object', 'temporal-object'):
+                self.assertNotIn('tos.entity.' + other, ancestry)
+            for field in ('formation_account', *content, 'language', 'script'):
+                invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                    records.validate(kind, invalid)
+            for field in ('formation_account', *content):
+                for value in (' ', [], None):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'][field] = value
+                    with self.assertRaises(SourceProfileError):
+                        records.validate(kind, invalid)
+            for change in ({'record_id': 'tos.tradition.synthetic-formation'}, {'semantic_scope': {}},
+                           {'record_type': 'school-tradition'}, {'allowed_operations': ['source.create']}):
+                with self.assertRaises(SourceProfileError):
+                    records.validate(kind, {**source, **change})
+        kinds = (*contents, 'agent', 'community', 'organization', 'institutional-body', 'work', 'letter', 'place',
+                 'school-tradition', 'tradition', 'thought-move', 'conception')
+        objects = {f'tos.{kind}.synthetic-formation': {'record_type': kind} for kind in kinds}
+        cases = [('intellectually_associated_with', 'agent', 'intellectual-school'),
+            ('intellectually_associated_with', 'community', 'intellectual-movement'),
+            ('intellectually_associated_with', 'institutional-body', 'intellectual-tradition'),
+            ('school_in_tradition', 'intellectual-school', 'intellectual-tradition'),
+            ('movement_reworks_tradition', 'intellectual-movement', 'intellectual-tradition'),
+            ('formation_articulated_in', 'intellectual-school', 'work'),
+            ('formation_articulated_in', 'intellectual-movement', 'letter')]
+        for predicate, left, right in cases:
+            claim = {'schema_version': 'tos_formation_relation_claim_v1', 'claim_type': 'relation',
+                'claim_id': 'tos.claim.synthetic-formation', 'claim_version': 1,
+                'subject_ref': f'tos.{left}.synthetic-formation', 'predicate': predicate, 'object': f'tos.{right}.synthetic-formation',
+                'assertion_layer': 'scholarly_report', 'evidence_refs': ['test:synthetic-formation'],
+                'provenance_event_ref': 'tos.event.synthetic-formation', 'maker': {'maker_type': 'software', 'agent_ref': 'software:synthetic-test'},
+                'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'public_metadata_only',
+                'qualifiers': {'statement': 'A synthetic scoped assertion.', 'statement_language': 'en', 'statement_script': 'Latn',
+                    'relation_basis': 'Explicit synthetic evidence, not resemblance.', 'formation_scope': 'This specified intellectual activity only.',
+                    'time_scope_note': 'Historical limits unknown, not capture time.', 'unknown': [False, None]}}
+            relations.validate(claim, objects)
+            self.assertFalse(relations.relations[predicate]['transitive'])
+            self.assertEqual(relations.relations[predicate]['assertion_mode'], 'reified-claim')
+            for field in ('statement', 'statement_language', 'statement_script', 'relation_basis', 'formation_scope', 'time_scope_note'):
+                invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                with self.subTest(predicate=predicate, missing=field), self.assertRaises(SourceProfileError):
+                    relations.validate(invalid, objects)
+            for endpoint in ('subject_ref', 'object'):
+                for wrong in ('place', 'school-tradition', 'tradition', 'thought-move', 'conception'):
+                    with self.assertRaises(SourceProfileError):
+                        relations.validate({**claim, endpoint: f'tos.{wrong}.synthetic-formation'}, objects)
+            relations.validate({**claim, 'assertion_layer': 'semantic_interpretation', 'epistemic_status': 'disputed',
+                'qualifiers': {**claim['qualifiers'], 'negated': True}}, objects)
+        for predicate, left, right in [('school_in_tradition', 'community', 'intellectual-tradition'),
+                ('movement_reworks_tradition', 'intellectual-school', 'intellectual-tradition'),
+                ('intellectually_associated_with', 'intellectual-movement', 'agent'),
+                ('formation_articulated_in', 'intellectual-tradition', 'organization'),
+                ('social_member_of', 'agent', 'intellectual-school')]:
+            with self.assertRaises(SourceProfileError):
+                relations.validate({**claim, 'predicate': predicate, 'subject_ref': f'tos.{left}.synthetic-formation',
+                                    'object': f'tos.{right}.synthetic-formation'}, objects)
+
     def test_social_bodies_and_relationships_preserve_collective_and_claim_boundaries(self):
         """Synthetic source contracts, not historical membership or influence evidence."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

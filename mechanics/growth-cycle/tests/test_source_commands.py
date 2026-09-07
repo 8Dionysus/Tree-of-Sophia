@@ -482,6 +482,8 @@ class HistoricalCreationTests(unittest.TestCase):
             source = {key: value for key, value in request['record'].items() if key not in {'visibility', 'extensions'}}
             source.update(schema_version='tos_corpus_record_v1', record_type=kind, record_id=config['record_id'],
                           preferred_label=f'Синтетический {kind}; не исторический факт')
+            if kind == 'work':
+                source['expression_claim_refs'] = []
             request.pop('claims')
             context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
             request.update(operation='source.create', record=source, expected_configuration=context['owner_configuration'])
@@ -588,7 +590,7 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(replay['receipt'], created['receipt'])
 
     def test_standalone_corpus_identities_use_common_source_creation_without_role_subclasses(self):
-        for kind in ('agent', 'place', 'organization'):
+        for kind in ('agent', 'place', 'organization', 'work'):
             with self.subTest(kind=kind), self.native_creation(kind) as (root, owner, config, request, rebuild, fixture):
                 source = request['record']
                 source['field_languages'] = {'preferred_label': {'language': 'x-test-language', 'script': None,
@@ -618,6 +620,29 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record'], source)
                 self.assertEqual({f['state'] for f in node['attributes']['human_forms']}, {'ready'})
                 self.assertFalse(any(e for e in graph['relations'] if e['from_id'] == node['id'] or e['to_id'] == node['id']))
+
+    def test_initial_work_creation_does_not_fabricate_bibliographic_closure(self):
+        with self.native_creation('work') as (root, owner, config, request, rebuild, fixture):
+            for fields in ({'expression_claim_refs': ['tos.claim.unbound-expression']},
+                           {'responsibility_claim_refs': []}, {'chronology_claim_refs': []},
+                           {'language': 'de'}, {'expression_role': 'source_language'}, {'edition_statement': 'Test edition'},
+                           {'work_ref': 'tos.work.other'}):
+                with self.subTest(fields=fields), self.assertRaises((PermissionError, ValueError)):
+                    commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                        'operation': 'prepare-create', 'record': {**request['record'], **fields}, 'forms': request['forms']})
+            invalid = copy.deepcopy(request['record'])
+            invalid.pop('expression_claim_refs')
+            with self.assertRaises(commands.ValidationError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', 'record': invalid, 'forms': request['forms']})
+            # The existing Nietzsche source home has stronger authored-by and
+            # chronology closure; a standalone metadata operation cannot fill it.
+            scoped = {**config, 'source_path': 'ToS/source-witnesses/works/friedrich-nietzsche/new-work/work.json'}
+            owner.write_text(json.dumps(scoped))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            owner.write_text(json.dumps(config))
+            self.assertFalse((root / config['source_path']).parent.exists())
 
     def test_native_creation_stale_contract_concurrency_recovery_and_current_revocation(self):
         with self.native_creation() as (root, owner, config, request, rebuild, fixture):
@@ -801,6 +826,11 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        formations = {
+            'intellectual-school': {'formation_account': 'A synthetic school, not a building.', 'inquiry_lineage': 'A synthetic teaching and inquiry lineage.'},
+            'intellectual-tradition': {'formation_account': 'A synthetic tradition, not a timeless doctrine.', 'transmission_account': 'Transmission and reworking with gaps.'},
+            'intellectual-movement': {'formation_account': 'A synthetic movement, not an individual thought move.', 'movement_orientation': 'A shared historical direction of inquiry.'},
+        }
         social = {
             'social-group': {'group_account': 'A synthetic collective, not a class of similar people.', 'membership_boundary': 'Participation in this test activity.'},
             'community': {'group_account': 'A synthetic community.', 'membership_boundary': 'Continuing participation.', 'community_practice': 'Repeated shared inquiry.'},
@@ -836,10 +866,11 @@ class HistoricalCreationTests(unittest.TestCase):
             **topics,
             **practices,
             **social,
+            **formations,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -856,11 +887,12 @@ class HistoricalCreationTests(unittest.TestCase):
                     semantic_scope={'scope_note': 'Только синтетическая проверка.',
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
-                    source.update(schema_version=('tos_social_body_record_v1' if kind in social else
+                    source.update(schema_version=('tos_intellectual_formation_record_v1' if kind in formations else
+                                  'tos_social_body_record_v1' if kind in social else
                                   'tos_thought_practice_record_v1' if kind in practices else
                                   'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics or kind in practices or kind in social:
+                if kind in topics or kind in practices or kind in social or kind in formations:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
@@ -900,7 +932,7 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics or kind in practices or kind in social:
+                    if kind in topics or kind in practices or kind in social or kind in formations:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
                         for field in contents[kind]:
                             property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
@@ -909,7 +941,8 @@ class HistoricalCreationTests(unittest.TestCase):
                             value = proposal['fields']['semantic_content'][field]
                             lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
                                 'lens_id': 'synthetic-content-property', 'node_query': {'filters': [{
-                                    'property_id': f"tos.property.{property_kind}-{field.replace('_', '-')}",
+                                    'property_id': ('tos.property.formation-account' if field == 'formation_account'
+                                        else f"tos.property.{property_kind}-{field.replace('_', '-')}"),
                                     'op': 'contains' if isinstance(value, list) else 'eq',
                                     'value': value[0] if isinstance(value, list) else value}]},
                                 'relation_query': {'enabled': False}, 'detail': 'full'})

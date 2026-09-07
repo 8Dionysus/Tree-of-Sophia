@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/intellectual-formation-record.schema.json",
+  "title": "Source-described intellectual schools, traditions and movements",
+  "description": "Historical formation identities, not atlas routes, social memberships, doctrine versions or canon admission. Research scope and continuity remain explicit and contestable.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_intellectual_formation_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "intellectual-school",
+            "intellectual-tradition",
+            "intellectual-movement"
+          ]
+        },
+        "semantic_content": {
+          "required": [
+            "formation_account"
+          ],
+          "properties": {
+            "formation_account": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "What this historical formation consists in and what its description does not settle."
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "intellectual-school"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.intellectual-school\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.intellectual-school\\."
+          },
+          "semantic_content": {
+            "required": [
+              "inquiry_lineage"
+            ],
+            "properties": {
+              "inquiry_lineage": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The teaching or inquiry continuity distinguishing this school from an institution, a name or a general similarity class."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "intellectual-tradition"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.intellectual-tradition\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.intellectual-tradition\\."
+          },
+          "semantic_content": {
+            "required": [
+              "transmission_account"
+            ],
+            "properties": {
+              "transmission_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "How the tradition is transmitted and reworked, including discontinuities; shared wording alone does not prove continuity."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "intellectual-movement"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.intellectual-movement\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.intellectual-movement\\."
+          },
+          "semantic_content": {
+            "required": [
+              "movement_orientation"
+            ],
+            "properties": {
+              "movement_orientation": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The historically situated direction or undertaking distinguishing this movement from a school, tradition or mere collection of similar ideas."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

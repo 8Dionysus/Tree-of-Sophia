@@ -492,8 +492,9 @@ does not implement them or declare an entire subject profile finished.
 
 `tos_local_corpus_create_owner_v1` uses the same `source.create` request,
 six-file transaction, metadata forms and serialization capture for the
-existing native `Agent`, `Place` and `Organization` families. Its configuration
-replaces `profile_type_id` with `record_type` (`agent`, `place`, `organization`);
+existing native `Agent`, `Place`, `Organization` and initial `Work` families.
+Its configuration replaces `profile_type_id` with `record_type`
+(`agent`, `place`, `organization`, `work`);
 the other declared-profile configuration fields remain required. Discovery
 returns `record_type` and the exact native source descriptor. The existing
 `corpus-record.schema.json` is authoritative; no new Person schema or
@@ -508,9 +509,17 @@ unknown language qualifications are retained; unsupported fields are refused,
 never silently dropped. At least one exact name form is required. The event
 names `source-corpus-metadata-serialization`, not an identity assessment.
 
-Work, Expression, Edition, Collection, Item and physical Artifact are not
-created by this standalone route. They need their existing source contracts
-and related-record closure in a future multi-subject creation transaction.
+An initial Work must retain the Corpus-required `expression_claim_refs` as
+an empty list. This records no supplied expression assertions, not evidence
+that no expression exists. Nonempty expression refs and every other metadata
+relation-link field are refused by this initial transaction. Names and notes
+do not create an author, Expression, publication date, Edition or Item.
+The existing `works/friedrich-nietzsche/` source home has stronger authorship
+and chronology closure and is refused by this standalone Work route; that
+source-home rule is not weakened to accommodate a new metadata record.
+Expression, Edition, Collection, Item and physical Artifact are not created
+by this route. They need their existing source contracts and related-record
+closure in a multi-subject creation transaction.
 Relationship assertions use separately delegated `claims.create`; a label,
 role word or metadata creation receipt cannot supply them.
 
