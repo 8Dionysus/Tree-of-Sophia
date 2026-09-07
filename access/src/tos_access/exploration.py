@@ -19,7 +19,7 @@ from .knowledge import (
 )
 from .lens_pagination import KnowledgeRevisionConflict
 
-EXECUTION_VERSION = "tos-exploration-execution-v4"
+EXECUTION_VERSION = "tos-exploration-execution-v5"
 
 
 class ExplorationExpired(ValueError):
@@ -285,14 +285,14 @@ class ExplorationService:
             node_reasons[id] = {"kind": "context-endpoint"}
         status = ("limit_reached" if limit_reason else
                   "complete" if state["head"] == len(state["queue"]) else "paused")
+        delivered_nodes = [_lens_carrier(self.nodes[id], "compact", language="auto") for id in sorted(selected)]
+        delivered_relations = [_lens_carrier(self.relations[id], "compact", language="auto") for id in emitted]
         return {
             "schema": "tos_exploration_result_v1", "execution_version": EXECUTION_VERSION,
             "snapshot_revision": self.revision, "source_revision": self.graph.get("source_revision", ""),
             "query": query, "focus": {"node_id": focus}, "status": status, "limit_reason": limit_reason,
-            "nodes": [_lens_carrier(self.nodes[id], "compact") for id in sorted(selected)],
-            "relations": [_lens_carrier(self.relations[id], "compact") for id in emitted],
-            "scene": knowledge_scene([self.nodes[id] for id in selected],
-                                     [self.relations[id] for id in emitted], focus),
+            "nodes": delivered_nodes, "relations": delivered_relations,
+            "scene": knowledge_scene(delivered_nodes, delivered_relations, focus),
             "page": {"number": state["page_number"], "primary_node_ids": primary,
                      "context_node_ids": sorted(selected - set(primary)), "next_cursor": None,
                      "returned_nodes": len(selected), "returned_relations": len(emitted),

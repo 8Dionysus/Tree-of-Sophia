@@ -22,6 +22,7 @@
         "scope": {"const": "returned-packet-only"},
         "identity_rule": {"const": "declared-tos-entity-id"},
         "authority": {"const": "presentation-mapping-not-semantic-admission"},
+        "compact": {"$ref": "#/$defs/compactClaimScene"},
         "focus_vertex_id": {"type": ["string", "null"]},
         "collapsed_relation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
         "vertices": {"type": "array", "items": {
@@ -39,6 +40,57 @@
           "properties": {"relation_id": {"type": "string", "minLength": 1},
             "from_id": {"type": "string", "minLength": 1}, "to_id": {"type": "string", "minLength": 1}}
         }}
+      }
+    },
+    "compactClaimScene": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rule", "vertex_ids", "relation_ids", "claim_paths", "folded_vertex_ids", "retained_claims", "authority"],
+      "properties": {
+        "rule": {"const": "explicit-claim-paths-v1"},
+        "authority": {"const": "presentation-only-no-new-assertion"},
+        "vertex_ids": {"$ref": "#/$defs/sceneIds"},
+        "relation_ids": {"$ref": "#/$defs/sceneIds"},
+        "folded_vertex_ids": {"$ref": "#/$defs/sceneIds"},
+        "claim_paths": {"type": "array", "items": {"$ref": "#/$defs/compactClaimPath"}},
+        "retained_claims": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["node_id", "reason"],
+          "properties": {"node_id": {"type": "string", "minLength": 1}, "reason": {"enum": [
+            "incomplete-claim-contract", "unmapped-claim-predicate", "claim-endpoint-identity-collision",
+            "incomplete-or-ambiguous-path", "focus-claim", "mixed-or-incomplete-claim-carriers",
+            "nonfoldable-incident-relation", "focus-detail"]}}
+        }}
+      }
+    },
+    "sceneIds": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "compactClaimPath": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "from_id", "to_id", "claim_node_id", "relation_type_id", "node_ids", "relation_ids", "detail_relation_ids", "reading"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "from_id": {"type": "string", "minLength": 1},
+        "to_id": {"type": "string", "minLength": 1},
+        "claim_node_id": {"type": "string", "minLength": 1},
+        "relation_type_id": {"type": "string", "minLength": 1},
+        "node_ids": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "string", "minLength": 1}},
+        "relation_ids": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "detail_relation_ids": {"$ref": "#/$defs/sceneIds"},
+        "reading": {
+          "type": "object", "additionalProperties": false,
+          "required": ["mode", "node_id", "content_revision", "wording_pointer", "wording_state", "context_pointers", "relation_context_ids", "standalone"],
+          "properties": {
+            "mode": {"const": "claim-with-mandatory-context"},
+            "node_id": {"type": "string", "minLength": 1},
+            "content_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/display_selection/fields/summary", "/display_selection/fields/title"]},
+            "wording_state": {"enum": ["available", "missing"]},
+            "context_pointers": {"const": ["/semantics", "/epistemic"]},
+            "relation_context_ids": {"$ref": "#/$defs/sceneIds"},
+            "standalone": {"const": false}
+          },
+          "allOf": [{"if": {"properties": {"wording_state": {"const": "missing"}}},
+            "then": {"properties": {"wording_pointer": {"type": "null"}}},
+            "else": {"properties": {"wording_pointer": {"type": "string"}}}}]
+        }
       }
     },
     "exactFormRef": {

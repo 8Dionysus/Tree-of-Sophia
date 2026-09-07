@@ -17,6 +17,107 @@ function compareIds(a: string, b: string) {
     return left.length - right.length;
 }
 
+type SceneVertex = {id: string; node_ids: string[]};
+type SceneArc = {relation_id: string; from_id: string; to_id: string};
+
+// Optional view over the exact packet, not a new asserted relationship.
+// Unknown incident edges keep a Claim explicit; grounds fold into inspectable
+// path details only when they do not carry a retained or focused neighborhood.
+function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVertex[], arcs: SceneArc[],
+                           byNode: Map<string, string>, focusNodeId: string | null) {
+  const byRelation = new Map(relations.map(r => [String(r.id), r]));
+  const outgoing = new Map<string, Item[]>(), incident = new Map<string, SceneArc[]>();
+  for (const relation of relations) {
+    const id = String(relation.from_id);
+    if (!outgoing.has(id)) outgoing.set(id, []);
+    outgoing.get(id)!.push(relation);
+  }
+  for (const arc of arcs) for (const id of new Set([arc.from_id, arc.to_id])) {
+    if (!incident.has(id)) incident.set(id, []);
+    incident.get(id)!.push(arc);
+  }
+  const claims = new Map(nodes.filter(n => n.type_id === 'tos.entity.claim'
+    || strings(record(n.semantics).type_ancestors).includes('tos.entity.claim')).map(n => [String(n.id), n]));
+  const candidates = new Map<string, {node: Item; claim: Item; legs: string[]}>(), reasons = new Map<string, string>();
+  for (const [id, node] of [...claims].sort(([a], [b]) => compareIds(a, b))) {
+    const claim = record(record(node.semantics).claim), subject = claim.subject_node_id, object = claim.object_node_id;
+    if (typeof subject !== 'string' || typeof object !== 'string' || !byNode.has(subject) || !byNode.has(object)) {
+      reasons.set(id, 'incomplete-claim-contract'); continue;
+    }
+    if (claim.predicate_mapping_status !== 'mapped' || !claim.relation_type_id) {
+      reasons.set(id, 'unmapped-claim-predicate'); continue;
+    }
+    if ([byNode.get(subject), byNode.get(object)].includes(byNode.get(id))) {
+      reasons.set(id, 'claim-endpoint-identity-collision'); continue;
+    }
+    const legs = ['tos.relation.has-subject', 'tos.relation.has-object']
+      .map(kind => (outgoing.get(id) ?? []).filter(r => r.relation_type_id === kind));
+    if (legs.some(leg => leg.length !== 1) || legs[0]![0]!.to_id !== subject || legs[1]![0]!.to_id !== object) {
+      reasons.set(id, 'incomplete-or-ambiguous-path'); continue;
+    }
+    candidates.set(id, {node, claim, legs: [String(legs[0]![0]!.id), String(legs[1]![0]!.id)]});
+  }
+  const focusVertex = focusNodeId === null ? undefined : byNode.get(focusNodeId);
+  const folded = new Set<string>(), removed = new Set<string>(), detailVertices = new Set<string>();
+  const paths: (Item & {id: string; from_id: string; to_id: string})[] = [];
+  for (const vertex of vertices) {
+    const ids = vertex.node_ids, idSet = new Set(ids), localClaims = ids.filter(id => claims.has(id));
+    if (!localClaims.length) continue;
+    let reason: string | null = null;
+    if (vertex.id === focusVertex) reason = 'focus-claim';
+    else if (ids.some(id => !candidates.has(id))) reason = 'mixed-or-incomplete-claim-carriers';
+    else {
+      const legs = new Set(ids.flatMap(id => candidates.get(id)!.legs));
+      for (const arc of incident.get(vertex.id) ?? []) {
+        if (legs.has(arc.relation_id)) continue;
+        const relation = byRelation.get(arc.relation_id)!;
+        if (!idSet.has(String(relation.from_id)) || relation.relation_type_id !== 'tos.relation.claim-supported-by'
+            || arc.to_id === vertex.id) { reason = 'nonfoldable-incident-relation'; break; }
+        if (arc.to_id === focusVertex) { reason = 'focus-detail'; break; }
+      }
+    }
+    if (reason) {
+      for (const id of localClaims) if (!reasons.has(id)) reasons.set(id, reason);
+      continue;
+    }
+    folded.add(vertex.id);
+    for (const id of ids) {
+      const {node, claim, legs} = candidates.get(id)!;
+      const details = (outgoing.get(id) ?? []).filter(r => r.relation_type_id === 'tos.relation.claim-supported-by')
+        .map(r => String(r.id)).sort(compareIds);
+      for (const relationId of [...legs, ...details]) removed.add(relationId);
+      for (const relationId of details) detailVertices.add(byNode.get(String(byRelation.get(relationId)!.to_id))!);
+      let wording: string | null = null;
+      const roles = record(record(node.human_form_selection).roles);
+      for (const role of ['caption', 'statement', 'hover']) if (record(roles[role]).state === 'ready') {
+        wording = `/human_form_selection/roles/${role}/packet`; break;
+      }
+      if (wording === null) {
+        const fields = record(record(node.display_selection).fields);
+        for (const field of ['summary', 'title']) if (record(fields[field]).content_available === true) {
+          wording = `/display_selection/fields/${field}`; break;
+        }
+      }
+      paths.push({id: 'tos-scene:claim-path:' + id,
+        from_id: byNode.get(String(claim.subject_node_id))!, to_id: byNode.get(String(claim.object_node_id))!,
+        claim_node_id: id, relation_type_id: claim.relation_type_id,
+        node_ids: [claim.subject_node_id, id, claim.object_node_id], relation_ids: legs, detail_relation_ids: details,
+        reading: {mode: 'claim-with-mandatory-context', node_id: id, content_revision: node.content_revision,
+          wording_pointer: wording, wording_state: wording ? 'available' : 'missing',
+          context_pointers: ['/semantics', '/epistemic'], relation_context_ids: [...legs, ...details], standalone: false}});
+    }
+  }
+  const retainedArcs = arcs.filter(arc => !removed.has(arc.relation_id));
+  const endpoints = new Set([...retainedArcs, ...paths].flatMap(arc => [arc.from_id, arc.to_id]));
+  const claimVertices = new Set([...claims.keys()].map(id => byNode.get(id)!));
+  for (const id of detailVertices) if (!endpoints.has(id) && id !== focusVertex && !claimVertices.has(id)) folded.add(id);
+  return {rule: 'explicit-claim-paths-v1', vertex_ids: vertices.filter(v => !folded.has(v.id)).map(v => v.id),
+    relation_ids: retainedArcs.map(arc => arc.relation_id), claim_paths: paths.sort((a, b) => compareIds(a.id, b.id)),
+    folded_vertex_ids: [...folded].sort(compareIds),
+    retained_claims: [...reasons].sort(([a], [b]) => compareIds(a, b)).map(([node_id, reason]) => ({node_id, reason})),
+    authority: 'presentation-only-no-new-assertion'};
+}
+
 // Presentation identity only. The enclosing packet owns exact records,
 // revisions, wording and inspection; this does not adjudicate same_as claims.
 export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: string | null = null) {
@@ -44,6 +145,7 @@ export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: st
     else arcs.push({relation_id: String(relation.id), from_id: left, to_id: right});
   }
   return {schema_version: 'tos_knowledge_scene_v1', vertices, arcs, collapsed_relation_ids: collapsed,
+    compact: compactClaimScene(nodes, relations, vertices, arcs, byNode, focusNodeId),
     focus_vertex_id: focusNodeId === null ? null : byNode.get(focusNodeId) ?? null,
     scope: 'returned-packet-only', identity_rule: 'declared-tos-entity-id',
     authority: 'presentation-mapping-not-semantic-admission'};
@@ -638,9 +740,9 @@ async function digest(value: unknown): Promise<string> {
   return [...new Uint8Array(hash)].map((item) => item.toString(16).padStart(2, "0")).join("");
 }
 
-function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail'], language: string): T {
+export function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail'], language: string): T {
     const result = {...item, display_selection: displaySelection(item, language)};
-    if (Object.hasOwn(item.attributes, 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language)});
+    if (Object.hasOwn(record(item.attributes), 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language)});
   if (detail !== 'full') { result.attributes = {}; delete result.source_record; }
   return result;
 }
@@ -710,7 +812,7 @@ export async function finalizeKnowledgeLens(
   const truncatedNodes = Math.max(0, executionCounts.matched_nodes - spec.limits.nodes);
   const truncatedRelations = Math.max(0, executionCounts.eligible_relations - finalRelations.length);
   const fingerprint = await digest({
-    execution_version: "tos-lens-execution-v4",
+    execution_version: "tos-lens-execution-v5",
     source_revision: sourceRevision,
     lens: Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'pagination')),
     nodes: finalNodes.map((item) => [item.id, item.content_revision ?? ""]),

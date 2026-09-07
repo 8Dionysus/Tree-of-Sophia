@@ -257,6 +257,37 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     scoped.nodes[1]!.source_graph = 'repository';
     await db.prepare("UPDATE knowledge_nodes SET source_graph='repository', json=? WHERE id=?").bind(JSON.stringify(scoped.nodes[1]), 'philosophy:b').run();
     assert.deepEqual(await executeKnowledgeLensD1(db,joined), await executeKnowledgeLens(scoped,joined));
+    // Synthetic topology with an explicit disputed Claim; no historical fact
+    // follows from the test's normalized endpoint declarations.
+    const pathGraph = structuredClone(graph);
+    const pathClaim = pathGraph.nodes[2]!;
+    pathClaim.type_id = 'tos.entity.claim';
+    pathClaim.kind_id = 'claim';
+    pathClaim.semantics = {claim: {subject_node_id: 'philosophy:a', object_node_id: 'philosophy:b',
+      relation_type_id: 'tos.relation.correspondence-addressee', predicate_mapping_status: 'mapped', review_status: 'contested'},
+      assertion_contexts: [{fields: {polarity: {value: 'negative'}, qualifiers: {value: {'unknown-extension': false}}}}]};
+    pathClaim.display.summary = {default: 'Disputed attribution.', ru: null, en: 'Disputed attribution.'};
+    pathClaim.display.provenance.source_summary_available = true;
+    pathGraph.relations.forEach((r, i) => {
+      r.from_id = pathClaim.id; r.to_id = pathGraph.nodes[i]!.id;
+      r.relation_type_id = i ? 'tos.relation.has-object' : 'tos.relation.has-subject';
+    });
+    for (const n of pathGraph.nodes) await db.prepare('UPDATE knowledge_nodes SET source_graph=?,kind_id=?,type_id=?,json=? WHERE id=?')
+      .bind(n.source_graph,n.kind_id,n.type_id,JSON.stringify(n),n.id).run();
+    for (const r of pathGraph.relations) await db.prepare('UPDATE knowledge_relations SET from_id=?,to_id=?,relation_type_id=?,json=? WHERE id=?')
+      .bind(r.from_id,r.to_id,r.relation_type_id,JSON.stringify(r),r.id).run();
+    for (const focus of ['philosophy:a', 'philosophy:c']) for (const paging of [null, {nodes: 1, relations: 1}]) {
+      const spec = {...base, detail: 'compact', language: 'en', seed: {focus_node_id: focus}, pagination: paging};
+      const result = await executeKnowledgeLens(pathGraph,spec);
+      assert.deepEqual(await executeKnowledgeLensD1(db,spec),result);
+      assert.deepEqual(result,python(spec,pathGraph));
+      const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
+      assert.equal(view.claim_paths.length,focus === 'philosophy:a' && paging === null ? 1 : 0);
+      if (view.claim_paths.length) {
+        assert.equal(view.claim_paths[0]!.claim_node_id,pathClaim.id);
+        assert.equal(view.claim_paths[0]!.reading.standalone,false);
+      }
+    }
   } finally { await mf.dispose(); }
 });
 

@@ -1,8 +1,8 @@
 import { HttpError, parseItem, type Item } from './common.ts';
-import { OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, knowledgeScene } from './knowledge.ts';
+import { OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, knowledgeScene, lensCarrier } from './knowledge.ts';
 import { nodesByIds, relationsByIds, resolveFocusNodeD1 } from './knowledge-store.ts';
 
-const VERSION = 'tos-exploration-d1-execution-v4';
+const VERSION = 'tos-exploration-d1-execution-v5';
 const SOURCES = ['philosophy', 'canon', 'candidate-intake', 'source-navigation', 'source-claims', 'semantic-interchange', 'repository'];
 const TTL = 900_000;
 const MAX_BYTES = 1_048_576;
@@ -200,13 +200,14 @@ async function advance(db: D1Database, state: State, snap: Snapshot) {
   const [selectedNodes, selectedEdges] = await Promise.all([nodesByIds(db, selected), relationsByIds(db, emitted)]);
   if (selectedNodes.length !== selected.size || selectedEdges.length !== emitted.length) conflict();
   const byId = new Map(selectedEdges.map(e => [e.id, e]));
-  function compact(item: Item): Item { const {source_record: _, ...rest} = item; return {...rest, attributes: {}}; }
+  const deliveredNodes = selectedNodes.map(n => lensCarrier(n, 'compact', 'auto'));
+  const deliveredEdges = emitted.map(id => lensCarrier(byId.get(id)!, 'compact', 'auto'));
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([VERSION, snap.revision, snap.epoch])));
   return {schema: 'tos_exploration_result_v1', execution_version: VERSION,
     snapshot_revision: [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join(''), source_revision: snap.source_revision,
     query: q, focus: {node_id: focus}, status, limit_reason: limit,
-    nodes: selectedNodes.map(compact), relations: emitted.map(id => compact(byId.get(id)!)),
-    scene: knowledgeScene(selectedNodes, selectedEdges, focus),
+    nodes: deliveredNodes, relations: deliveredEdges,
+    scene: knowledgeScene(deliveredNodes, deliveredEdges, focus),
     page: {number: state.page_number, primary_node_ids: primary, context_node_ids: [...selected].filter(id => !primary.includes(id)).sort(),
       next_cursor: null as string | null, returned_nodes: selected.size, returned_relations: emitted.length, work_units: work, scope: 'resumable-neighborhood'},
     counts: {discovered_nodes: nodes.size, emitted_relations: edges.size, scope: 'cumulative-discovered-not-global-total'},

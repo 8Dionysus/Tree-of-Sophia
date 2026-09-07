@@ -83,6 +83,41 @@ test('overview identity steps are resumable, zero distance, filtered and promote
   }
 });
 
+test('D1 continuation delivers the same qualified Claim scene as Python without inventing missing page legs', async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
+  try {
+    const db = await mf.getD1Database('DB'), g = graph(4);
+    g.nodes[1].type_id = 'tos.entity.claim';
+    g.nodes[1].content_revision = 'b'.repeat(64);
+    g.nodes[1].semantics = {claim:{subject_node_id:'0',object_node_id:'2',
+      relation_type_id:'tos.relation.correspondence-addressee',predicate_mapping_status:'mapped',review_status:'contested'},
+      assertion_contexts:[{fields:{polarity:{value:'negative'},qualifiers:{value:{unknown:false}}}}]};
+    g.nodes[1].display = {title:{default:'A disputed attribution'},summary:{default:'Not established by this evidence.'},
+      provenance:{source_summary_available:true}};
+    g.relations = ['tos.relation.has-subject','tos.relation.has-object','tos.relation.claim-supported-by']
+      .map((type,i)=>({...g.relations[0],id:'edge'+i,from_id:'1',to_id:['0','2','3'][i],relation_type_id:type}));
+    await init(db,g);
+    for (const size of [1,6]) {
+      const query = {focus_node_id:'0',max_depth:2,page_nodes:size,page_relations:size};
+      const pages = await collect(db,query);
+      let count = 0;
+      for (const page of pages) {
+        const focus = (page.focus as {node_id:string}).node_id;
+        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps(knowledge_scene(p['nodes'],p['relations'],p['focus'])))",
+          {nodes:page.nodes,relations:page.relations,focus});
+        assert.deepEqual(page.scene,expected);
+        const paths = (page.scene as {compact:{claim_paths:{reading:{wording_pointer:string;standalone:boolean}}[]}}).compact.claim_paths;
+        count += paths.length;
+        for (const path of paths) {
+          assert.equal(path.reading.wording_pointer,'/display_selection/fields/summary');
+          assert.equal(path.reading.standalone,false);
+        }
+      }
+      assert.equal(count,size===1?0:1);
+    }
+  } finally {await mf.dispose();}
+});
+
 test('D1 exploration conserves Python BFS order across direction, depth, size and cycles', async () => {
   const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
   try {
@@ -174,7 +209,7 @@ test('actual Worker HTTP continuation survives isolate restart and concurrent re
     const fresh=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
     await db.prepare('UPDATE knowledge_exploration_checkpoints SET expires=0 WHERE token=?').bind(fresh.page.next_cursor).run();
     assert.equal((await post({cursor:fresh.page.next_cursor})).status,410);
-    for (const version of [1, 2, 3]) {
+    for (const version of [1, 2, 3, 4]) {
       const oldExecution=await (await post({focus_node_id:'0',page_nodes:1})).json() as {page:{next_cursor:string}};
       await db.prepare('UPDATE knowledge_exploration_checkpoints SET version=? WHERE token=?')
         .bind(`tos-exploration-d1-execution-v${version}`,oldExecution.page.next_cursor).run();

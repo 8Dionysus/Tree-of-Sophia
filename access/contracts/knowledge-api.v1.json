@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_knowledge_api_v1",
-  "execution_version": "tos-lens-execution-v4",
+  "execution_version": "tos-lens-execution-v5",
   "owner": "Tree-of-Sophia/access",
   "purpose": "transport-neutral backend contract for human and agent construction of bounded read-only knowledge lenses",
   "data_contracts": {
@@ -118,6 +118,9 @@
     "focus_is_explicit_in_result": true,
     "scene_mapping_groups_only_declared_persistent_tos_identity": true,
     "scene_mapping_preserves_exact_carriers_and_relation_coverage": true,
+    "compact_claim_paths_preserve_exact_expansion_and_mandatory_context": true,
+    "compact_claim_paths_are_not_new_assertions": true,
+    "incomplete_or_focused_claim_paths_remain_explicit": true,
     "endpoint_closure_does_not_recurse": true,
     "relation_counts_distinguish_query_matches_from_topology_eligibility": true,
     "arbitrary_code_execution": false,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import copy
+import random
 import tempfile
 import sys
 import unittest
@@ -29,6 +30,141 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_compact_scene_conserves_records_and_endpoint_closure_across_claim_topologies(self):
+        from tos_access.knowledge import knowledge_scene
+        prototype = build_knowledge_graph(*self.fixture())
+        total_paths = 0
+        for seed in range(16):
+            rng = random.Random(seed)
+            nodes = [{**copy.deepcopy(prototype['nodes'][0]), 'id': str(i),
+                      'entity_id': 'tos.test.' + str(i if i < 6 else 6 + (i % 2)),
+                      'type_id': 'tos.entity.claim' if i < 4 else 'tos.entity.thing', 'semantics': {}}
+                     for i in range(8)]
+            relations = []
+            def edge(left, right, kind):
+                relations.append({**copy.deepcopy(prototype['relations'][0]), 'id': 'edge:' + str(len(relations)),
+                                  'from_id': str(left), 'to_id': str(right), 'relation_type_id': kind})
+            for i in range(4):
+                subject, object_id = str(rng.randrange(4, 8)), str(rng.randrange(4, 8))
+                nodes[i]['semantics'] = {'claim': {'subject_node_id': subject, 'object_node_id': object_id,
+                    'relation_type_id': 'tos.relation.correspondence-addressee', 'predicate_mapping_status': 'mapped'},
+                    'assertion_contexts': [{'fields': {'polarity': {'value': rng.choice(['positive','negative','unknown'])},
+                                                     'qualifiers': {'value': {'unknown': [None, False]}}}}]}
+                edge(i, subject, 'tos.relation.has-subject')
+                if (seed + i) % 5: edge(i, object_id, 'tos.relation.has-object')
+                if (seed + i) % 7 == 0: edge(i, subject, 'tos.relation.has-subject')
+                edge(i, rng.randrange(8), 'tos.relation.claim-supported-by')
+                if (seed + i) % 3 == 0: edge(rng.randrange(8), i, 'tos.relation.related-to')
+            # Same-identity projection links and cycles remain independently
+            # accounted for, without imposing acyclicity on the corpus graph.
+            edge(6, 6, 'tos.relation.projects')
+            original = copy.deepcopy([nodes, relations])
+            focus = str(seed % 8)
+            scene = knowledge_scene(nodes, relations, focus)
+            view = scene['compact']; total_paths += len(view['claim_paths'])
+            vertices, folded = set(view['vertex_ids']), set(view['folded_vertex_ids'])
+            self.assertFalse(vertices & folded)
+            self.assertEqual(vertices | folded, {v['id'] for v in scene['vertices']})
+            self.assertIn(scene['focus_vertex_id'], vertices)
+            accounted = [*scene['collapsed_relation_ids'], *view['relation_ids']]
+            by_relation = {r['id']: r for r in relations}
+            by_node = {id: v['id'] for v in scene['vertices'] for id in v['node_ids']}
+            for arc in scene['arcs']:
+                if arc['relation_id'] in view['relation_ids']:
+                    self.assertTrue({arc['from_id'], arc['to_id']} <= vertices)
+            for path in view['claim_paths']:
+                self.assertTrue({path['from_id'], path['to_id']} <= vertices)
+                accounted.extend([*path['relation_ids'], *path['detail_relation_ids']])
+                self.assertEqual(path['node_ids'][1], path['claim_node_id'])
+                for relation_id, target in zip(path['relation_ids'], [path['node_ids'][0], path['node_ids'][2]]):
+                    self.assertEqual(by_relation[relation_id]['from_id'], path['claim_node_id'])
+                    self.assertEqual(by_relation[relation_id]['to_id'], target)
+                self.assertFalse(path['reading']['standalone'])
+            for retained in view['retained_claims']:
+                self.assertIn(by_node[retained['node_id']], vertices)
+            self.assertEqual(sorted(accounted), sorted(by_relation))
+            self.assertEqual([nodes, relations], original)
+            rng.shuffle(nodes); rng.shuffle(relations)
+            self.assertEqual(knowledge_scene(nodes, relations, focus), scene)
+        self.assertGreater(total_paths, 0)
+
+    def test_scene_compact_claim_paths_preserve_expansion_and_do_not_assert_facts(self):
+        from tos_access.knowledge import knowledge_scene
+        graph = build_knowledge_graph(*self.fixture())
+        node, edge = graph['nodes'][0], graph['relations'][0]
+        graph['nodes'] = [{**copy.deepcopy(node), 'id': id, 'entity_id': 'tos.test.' + id,
+                           'type_id': 'tos.entity.claim' if id in ('c', 'counter') else node['type_id']}
+                          for id in ('subject', 'object', 'c', 'counter', 'evidence')]
+        for n in graph['nodes']:
+            if n['id'] in ('c', 'counter'):
+                n['semantics'] = {'claim': {'subject_node_id': 'subject', 'object_node_id': 'object',
+                    'relation_type_id': 'tos.relation.correspondence-addressee', 'predicate_mapping_status': 'mapped',
+                    'review_status': 'contested' if n['id'] == 'counter' else 'unreviewed'},
+                    'assertion_contexts': [{'fields': {'polarity': {'value': 'negative' if n['id'] == 'counter' else 'positive'},
+                                                     'qualifiers': {'value': {'unknown_extension': False}}}}]}
+                n['display_selection'] = {'fields': {'summary': {'content_available': True}, 'title': {'content_available': False}}}
+        graph['relations'] = [{**copy.deepcopy(edge), 'id': claim + '-' + part, 'from_id': claim, 'to_id': target,
+                               'relation_type_id': type_id}
+                              for claim in ('c', 'counter') for part, target, type_id in (
+                                  ('subject', 'subject', 'tos.relation.has-subject'),
+                                  ('object', 'object', 'tos.relation.has-object'),
+                                  ('evidence', 'evidence', 'tos.relation.claim-supported-by'))]
+        before = copy.deepcopy(graph)
+        scene = knowledge_scene(graph['nodes'], graph['relations'], 'subject')
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        validator = Draft202012Validator({'$ref': '#/$defs/scene', '$defs': schema['$defs']})
+        validator.validate(scene)
+        compact = scene['compact']
+        self.assertEqual(compact['vertex_ids'], ['tos-scene:entity:tos.test.object', 'tos-scene:entity:tos.test.subject'])
+        self.assertEqual(compact['relation_ids'], [])
+        self.assertEqual(len(compact['claim_paths']), 2)
+        self.assertEqual({p['claim_node_id'] for p in compact['claim_paths']}, {'c', 'counter'})
+        for path in compact['claim_paths']:
+            claim = path['claim_node_id']
+            self.assertEqual(path['node_ids'], ['subject', claim, 'object'])
+            self.assertEqual(path['relation_ids'], [claim + '-subject', claim + '-object'])
+            self.assertEqual(path['detail_relation_ids'], [claim + '-evidence'])
+            self.assertEqual(path['reading']['mode'], 'claim-with-mandatory-context')
+            self.assertFalse(path['reading']['standalone'])
+            self.assertEqual(path['reading']['wording_pointer'], '/display_selection/fields/summary')
+            self.assertEqual(path['reading']['context_pointers'], ['/semantics', '/epistemic'])
+            self.assertEqual(path['reading']['relation_context_ids'], [*path['relation_ids'], *path['detail_relation_ids']])
+        self.assertEqual(graph, before)
+        self.assertEqual(scene, knowledge_scene(list(reversed(graph['nodes'])), list(reversed(graph['relations'])), 'subject'))
+        # Selecting the assertion or its grounds keeps that neighborhood explicit.
+        for focus in ('c', 'evidence'):
+            view = knowledge_scene(graph['nodes'], graph['relations'], focus)['compact']
+            self.assertIn('tos-scene:entity:tos.test.' + focus, view['vertex_ids'])
+            self.assertIn('c-subject', view['relation_ids'])
+        # An unknown incident edge must not disappear behind a convenient line.
+        graph['relations'].append({**edge, 'id': 'unexpected', 'from_id': 'c', 'to_id': 'evidence',
+                                   'relation_type_id': 'tos.relation.related-to'})
+        view = knowledge_scene(graph['nodes'], graph['relations'], 'subject')['compact']
+        self.assertIn('unexpected', view['relation_ids'])
+        self.assertIn('tos-scene:entity:tos.test.c', view['vertex_ids'])
+        # A page with only one leg cannot invent the missing endpoint or path.
+        partial = knowledge_scene(graph['nodes'], [r for r in graph['relations'] if r['id'] != 'counter-object'])['compact']
+        self.assertFalse(partial['claim_paths'])
+        # An incomplete Claim used as grounds must not be mistaken for a
+        # disposable evidence-only vertex.
+        evidence_claim = copy.deepcopy(before)
+        evidence_claim['nodes'][-1]['type_id'] = 'tos.entity.claim'
+        evidence_claim['nodes'][-1]['semantics'] = {}
+        view = knowledge_scene(evidence_claim['nodes'], evidence_claim['relations'])['compact']
+        self.assertIn('tos-scene:entity:tos.test.evidence', view['vertex_ids'])
+        for case in ('unmapped', 'duplicate-leg', 'identity-collision'):
+            changed = copy.deepcopy(before)
+            c = next(n for n in changed['nodes'] if n['id'] == 'c')
+            if case == 'unmapped': c['semantics']['claim']['predicate_mapping_status'] = 'unmapped'
+            elif case == 'duplicate-leg': changed['relations'].append({**changed['relations'][0], 'id': 'duplicate'})
+            else: changed['nodes'][0]['entity_id'] = c['entity_id']
+            view = knowledge_scene(changed['nodes'], changed['relations'])['compact']
+            self.assertNotIn('c', [p['claim_node_id'] for p in view['claim_paths']])
+            self.assertTrue(any(r['node_id'] == 'c' for r in view['retained_claims']))
+        invalid = copy.deepcopy(scene)
+        invalid['compact']['claim_paths'][0]['reading']['standalone'] = True
+        self.assertFalse(validator.is_valid(invalid))
+
     def test_overview_crosses_identity_carriers_without_a_relation_hop(self):
         from tos_access.exploration import ExplorationService
         graph = build_knowledge_graph(*self.fixture())

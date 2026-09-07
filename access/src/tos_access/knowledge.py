@@ -7,7 +7,7 @@ import re
 import struct
 import copy
 import calendar
-from collections import Counter
+from collections import Counter, defaultdict
 from functools import lru_cache
 from typing import Any, Iterable
 from .normalization_cache import active_cache
@@ -2958,6 +2958,119 @@ _CARRIER_SOURCE_PRIORITY = {
 }
 
 
+def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_id):
+    """An optional scene view, never a new subject-predicate-object assertion.
+
+    Only complete explicit Claim paths fold. Every original record stays in
+    the packet; other incident relationships prevent folding rather than being
+    silently discarded. Claim-supported-by edges move into exact path details.
+    """
+    by_relation = {r['id']: r for r in relations}
+    outgoing, incident = defaultdict(list), defaultdict(list)
+    for relation in relations:
+        outgoing[relation['from_id']].append(relation)
+    for arc in arcs:
+        incident[arc['from_id']].append(arc)
+        if arc['to_id'] != arc['from_id']:
+            incident[arc['to_id']].append(arc)
+    claims = {n['id']: n for n in nodes if n.get('type_id') == 'tos.entity.claim'
+              or 'tos.entity.claim' in n.get('semantics', {}).get('type_ancestors', [])}
+    candidates, reasons = {}, {}
+    for identifier, node in sorted(claims.items()):
+        claim = node.get('semantics', {}).get('claim', {})
+        subject, object_id = claim.get('subject_node_id'), claim.get('object_node_id')
+        if subject not in by_node or object_id not in by_node:
+            reasons[identifier] = 'incomplete-claim-contract'
+            continue
+        if claim.get('predicate_mapping_status') != 'mapped' or not claim.get('relation_type_id'):
+            reasons[identifier] = 'unmapped-claim-predicate'
+            continue
+        if by_node[identifier] in (by_node[subject], by_node[object_id]):
+            reasons[identifier] = 'claim-endpoint-identity-collision'
+            continue
+        legs = [[r for r in outgoing[identifier] if r.get('relation_type_id') == kind]
+                for kind in ('tos.relation.has-subject', 'tos.relation.has-object')]
+        if any(len(leg) != 1 for leg in legs) or legs[0][0]['to_id'] != subject or legs[1][0]['to_id'] != object_id:
+            reasons[identifier] = 'incomplete-or-ambiguous-path'
+            continue
+        candidates[identifier] = {'node': node, 'claim': claim, 'legs': [legs[0][0]['id'], legs[1][0]['id']]}
+    focus_vertex = by_node.get(focus_node_id)
+    folded, removed, paths, detail_vertices = set(), set(), [], set()
+    for vertex in vertices:
+        identifiers = vertex['node_ids']
+        identifier_set = set(identifiers)
+        local_claims = [id for id in identifiers if id in claims]
+        if not local_claims:
+            continue
+        reason = None
+        if vertex['id'] == focus_vertex:
+            reason = 'focus-claim'
+        elif any(id not in candidates for id in identifiers):
+            reason = 'mixed-or-incomplete-claim-carriers'
+        else:
+            legs = {id for node_id in identifiers for id in candidates[node_id]['legs']}
+            for arc in incident[vertex['id']]:
+                if arc['relation_id'] in legs:
+                    continue
+                relation = by_relation[arc['relation_id']]
+                if (relation['from_id'] not in identifier_set
+                        or relation.get('relation_type_id') != 'tos.relation.claim-supported-by'
+                        or arc['to_id'] == vertex['id']):
+                    reason = 'nonfoldable-incident-relation'
+                    break
+                if arc['to_id'] == focus_vertex:
+                    reason = 'focus-detail'
+                    break
+        if reason:
+            for id in local_claims:
+                reasons.setdefault(id, reason)
+            continue
+        folded.add(vertex['id'])
+        for identifier in identifiers:
+            candidate = candidates[identifier]
+            node, claim, legs = candidate['node'], candidate['claim'], candidate['legs']
+            details = sorted(r['id'] for r in outgoing[identifier]
+                             if r.get('relation_type_id') == 'tos.relation.claim-supported-by')
+            removed.update([*legs, *details])
+            detail_vertices.update(by_node[by_relation[id]['to_id']] for id in details)
+            wording = None
+            selection = node.get('human_form_selection', {})
+            for role in ('caption', 'statement', 'hover'):
+                if selection.get('roles', {}).get(role, {}).get('state') == 'ready':
+                    wording = f'/human_form_selection/roles/{role}/packet'
+                    break
+            if wording is None:
+                fields = node.get('display_selection', {}).get('fields', {})
+                for field in ('summary', 'title'):
+                    if fields.get(field, {}).get('content_available') is True:
+                        wording = f'/display_selection/fields/{field}'
+                        break
+            paths.append({'id': 'tos-scene:claim-path:' + identifier,
+                          'from_id': by_node[claim['subject_node_id']], 'to_id': by_node[claim['object_node_id']],
+                          'claim_node_id': identifier, 'relation_type_id': claim['relation_type_id'],
+                          'node_ids': [claim['subject_node_id'], identifier, claim['object_node_id']],
+                          'relation_ids': legs, 'detail_relation_ids': details,
+                          'reading': {'mode': 'claim-with-mandatory-context', 'node_id': identifier,
+                                      'content_revision': node['content_revision'], 'wording_pointer': wording,
+                                      'wording_state': 'available' if wording else 'missing',
+                                      'context_pointers': ['/semantics', '/epistemic'],
+                                      'relation_context_ids': [*legs, *details], 'standalone': False}})
+    retained_arcs = [arc for arc in arcs if arc['relation_id'] not in removed]
+    endpoints = {id for arc in [*retained_arcs, *paths] for id in (arc['from_id'], arc['to_id'])}
+    # Grounds shared with a retained neighborhood or explicitly focused remain
+    # visible. Only newly isolated detail vertices fold into the path inspector.
+    claim_vertices = {by_node[id] for id in claims}
+    folded.update(id for id in detail_vertices
+                  if id not in endpoints and id != focus_vertex and id not in claim_vertices)
+    return {'rule': 'explicit-claim-paths-v1',
+            'vertex_ids': [v['id'] for v in vertices if v['id'] not in folded],
+            'relation_ids': [arc['relation_id'] for arc in retained_arcs],
+            'claim_paths': sorted(paths, key=lambda p: p['id']),
+            'folded_vertex_ids': sorted(folded),
+            'retained_claims': [{'node_id': id, 'reason': reason} for id, reason in sorted(reasons.items())],
+            'authority': 'presentation-only-no-new-assertion'}
+
+
 def knowledge_scene(nodes, relations, focus_node_id=None):
     """Packet-local presentation mapping, never a corpus identity merge.
 
@@ -2988,6 +3101,7 @@ def knowledge_scene(nodes, relations, focus_node_id=None):
             arcs.append({'relation_id': relation['id'], 'from_id': left, 'to_id': right})
     return {'schema_version': 'tos_knowledge_scene_v1', 'vertices': vertices, 'arcs': arcs,
             'collapsed_relation_ids': collapsed, 'focus_vertex_id': by_node.get(focus_node_id),
+            'compact': _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_id),
             'scope': 'returned-packet-only', 'identity_rule': 'declared-tos-entity-id',
             'authority': 'presentation-mapping-not-semantic-admission'}
 
@@ -3216,7 +3330,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     truncated_nodes = max(0, len(matched_node_ids) - spec["limits"]["nodes"])
     truncated_relations = max(0, eligible_relation_count - len(final_relations))
     fingerprint_material = {
-        "execution_version": "tos-lens-execution-v4",
+        "execution_version": "tos-lens-execution-v5",
         "source_revision": graph.get("source_revision"),
         "lens": {k: v for k, v in spec.items() if k != 'pagination'},
         "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],

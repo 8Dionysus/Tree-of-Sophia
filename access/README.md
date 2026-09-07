@@ -150,13 +150,52 @@ from arcs and listed in `collapsed_relation_ids`; it remains inspectable in
 `relations`. Other self-relations and parallel assertions remain distinct.
 
 The map is computed **after** source filtering and delivery pagination. It
-does not discover other carriers, widen a query, compact Claim paths, change
-admission or bypass a page budget. Its work/storage are bounded by the returned
-packet, with sorting at most O((nodes + relations) log(nodes + relations)).
-Older packets may lack `scene`; consumers must then preserve exact carrier
-vertices, not invent a grouping heuristic. Current execution v4
-fingerprints/checkpoints separate identity-aware traversal from older cached
-responses. UI adoption and compact Claim paths remain separate changes.
+does not discover other carriers, widen a query, change admission or bypass a
+page budget. Its work/storage are bounded by the returned packet, with sorting
+at most O((nodes + relations) log(nodes + relations)). Older packets may lack
+`scene`; consumers must then preserve exact carrier vertices, not invent a
+grouping heuristic. Current execution v5 fingerprints/checkpoints separate the
+compact-path delivery from older cached responses. UI adoption is separate.
+
+### Compact Claim paths
+
+`scene.compact` offers an alternative presentation of the **same returned
+packet**. Its `vertex_ids` select scene vertices; `relation_ids` select existing
+scene arcs. `claim_paths` add presentation lines from subject to object, each
+bound to one exact Claim carrier. They are not new normalized relations or
+new assertions. Consumers choose this view explicitly (normally for overview)
+and retain the full scene for technical inspection or expansion.
+
+A path requires a mapped predicate, explicit subject/object IDs and exactly one
+consistent typed `has-subject` / `has-object` leg present in the packet. The
+ordered `node_ids` and `relation_ids` decode that path. Claim-supported-by
+relations are retained as `detail_relation_ids`; their target records remain
+in the packet. Other incident edges prevent folding. An incomplete, ambiguous,
+unmapped, mixed-carrier or focused Claim stays a vertex with a reason in
+`retained_claims`. Focusing on its grounds also keeps the neighborhood explicit.
+Only isolated detail vertices fold, never an incomplete Claim used as grounds.
+Self-relations between a subject and itself remain possible; a Claim cannot
+share its subject/object presentation identity. Competing Claims keep separate
+path IDs even when their subject, predicate and object coincide.
+
+`reading.node_id` and `content_revision` identify the exact Claim whose wording
+and context the line must expose. `wording_pointer` selects a complete ready
+source form (caption, statement, then hover), otherwise an available source
+summary/title; it never substitutes an ID or generic missing-description text.
+A null pointer is an explicit wording gap. Source-form context must travel with
+its `display_text`. Reading also requires the Claim's `context_pointers` and
+the semantics/epistemic context of `relation_context_ids`. Polarity, conditions,
+attribution, time, disagreement, assessment and unknown qualifiers must not be
+dropped. `standalone=false` forbids treating the predicate label or shortened
+wording as an unconditional fact. Exact inspection retains all source fields.
+
+No model call, assessment, source admission or new historical inference happens
+while constructing these lines. Human forms are reused through the existing
+source-bound selection contract; exploration pages now use its automatic
+language selection too. All original nodes, relations, content revisions and
+source refs remain unchanged. `folded_vertex_ids` names presentation omissions,
+not deletions. A partial page may retain a Claim until a later, sufficiently
+complete view; consumers must not infer missing legs from other snapshots.
 
 ## Constructor boundaries
 
@@ -294,7 +333,7 @@ bounded result as exhaustive. Path-condition joins still follow exact
 declared relation steps; zero-distance identity does not silently alter a
 caller-authored path predicate or turn a Claim path into a direct assertion.
 
-Worker execution v4 additionally requires `knowledge_nodes_identity_seek`
+Worker execution v4 and later additionally require `knowledge_nodes_identity_seek`
 from the idempotent exploration migration. It reads identities in bounded
 32-row indexed pages, using the same 24-query per-page ceiling as adjacency.
 Old cached states require a fresh query; applying the migration does not
