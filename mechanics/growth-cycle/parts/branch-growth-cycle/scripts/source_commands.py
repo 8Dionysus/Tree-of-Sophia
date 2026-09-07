@@ -150,6 +150,9 @@ def _configuration(path):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
     if profile_creation or corpus_creation or profile_revision:
         profile = _configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]
+        if not corpus_creation:
+            profiles, _ = _configured_profile(config)
+            profiles.validate_path(profile['record_type'], config['source_path'])
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
                 or not profile_revision and config['maker_type'] not in {'human', 'software', 'model'}
@@ -265,7 +268,8 @@ def _snapshot(source_path, root=None, claim_id=None):
         source_raw = _read(source_path, MAX_COMMAND_BYTES)
         source = _json_object(source_raw)
         target = source_path.with_name(source_path.stem + '.human-forms.json')
-    if claim_id is None and source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}:
+    if claim_id is None and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
+                             or source_path.name == 'composite.json'):
         if root is None:
             raise ValueError('source-command adapter does not understand this source family')
         from source_record_profiles import SourceRecordProfiles
@@ -273,6 +277,7 @@ def _snapshot(source_path, root=None, claim_id=None):
         kind = source.get('record_type')
         if kind not in profiles.profiles or source_path.name != profiles.profiles[kind]['source_basename']:
             raise ValueError('source-command adapter does not understand this source family')
+        profiles.validate_path(kind, source_path.relative_to(root).as_posix())
         profiles.validate(kind, source)
     if (source.get('schema_version') == 'tos_historical_record_v1'
             and source.get('visibility') not in {'public', 'public_metadata_only'}):

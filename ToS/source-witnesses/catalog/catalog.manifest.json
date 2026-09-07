@@ -15,6 +15,8 @@
     "ToS/contracts/historical-context-record.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/intellectual-formation-record.schema.json",
+    "ToS/contracts/scholarly-composite-claim.schema.json",
+    "ToS/contracts/scholarly-composite-record.schema.json",
     "ToS/contracts/scholarly-composite-witness.schema.json",
     "ToS/contracts/semantic-description-record.schema.json",
     "ToS/contracts/semantic-relation-claim.schema.json",
@@ -40,6 +42,7 @@
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
     "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "composite": "ToS/source-witnesses/catalog/composites.jsonl",
     "textual-fragment": "ToS/source-witnesses/catalog/textual-fragments.jsonl",
     "quotation-passage": "ToS/source-witnesses/catalog/quotation-passages.jsonl",
     "biographical-episode": "ToS/source-witnesses/catalog/biographical-episodes.jsonl",
@@ -81,8 +84,7 @@
     "letter": "ToS/source-witnesses/catalog/letters.jsonl",
     "historical-event": "ToS/source-witnesses/catalog/historical-events.jsonl",
     "historical-process": "ToS/source-witnesses/catalog/historical-processes.jsonl",
-    "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl",
-    "composite": "ToS/source-witnesses/catalog/composites.jsonl"
+    "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl"
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
@@ -95,6 +97,7 @@
     "collection": 3,
     "item": 21,
     "link": 5,
+    "composite": 11,
     "textual-fragment": 1,
     "quotation-passage": 1,
     "biographical-episode": 1,
@@ -137,11 +140,10 @@
     "historical-event": 1,
     "historical-process": 1,
     "artifact": 18,
-    "composite": 10,
-    "object_total": 278,
-    "claim": 331,
-    "total": 609
+    "object_total": 279,
+    "claim": 335,
+    "total": 614
   },
-  "catalog_sha256": "e17b2736a67049ede54b5e2c985acb8bf102261bc39527474260270884f6229d",
+  "catalog_sha256": "9839f25a2978195ed6437c1e731fcf7cbc1b71462e3ab786cdb32370fd3aaf24",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

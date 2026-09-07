@@ -36,6 +36,7 @@
       "description": "A source-owned metadata reader contract, not an admission or write capability. Other source shapes retain their native adapters.",
       "required": ["profile_version", "reader", "record_type", "id_prefix", "source_basename", "catalog_filename", "schemas", "graph_layer"],
       "properties": {
+        "retained_native_adapter": {"enum": ["scholarly-composite-v1"], "description": "Explicit coexistence with the unchanged native composite-witness adapter. Only the composite type may declare this route; it does not convert or duplicate native identity."},
         "profile_version": {"type": "integer", "minimum": 1},
         "reader": {"enum": ["corpus-metadata-v1", "semantic-metadata-v1"]},
         "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},

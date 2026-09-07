@@ -17,7 +17,7 @@ from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, S
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record,
                                          artifact_display_fields, composite_catalog_entry,
-                                         load_composite_record, composite_display_fields)
+                                         load_composite_record, composite_display_fields, COMPOSITE_SCHEMA)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -195,10 +195,12 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
                     f"{location}: source_record_ref and record_sha256 are required"
                 )
             source_path = repo_root / source_ref
+            native_composite = expected_type == 'composite' and (
+                entry.get('source_schema_ref') == COMPOSITE_SCHEMA or expected_type not in profiles.profiles)
             try:
-                source_payload = (profiles.verify_entry(expected_type, entry) if expected_type in profiles.profiles
+                source_payload = (load_composite_record(repo_root, source_ref) if native_composite
+                                  else profiles.verify_entry(expected_type, entry) if expected_type in profiles.profiles
                                   else load_artifact_record(repo_root, source_ref) if expected_type == 'artifact'
-                                  else load_composite_record(repo_root, source_ref) if expected_type == 'composite'
                                   else load_json(source_path))
             except (CatalogBuildError, SourceProfileError) as exc:
                 raise BibliographicGraphBuildError(str(exc)) from exc
@@ -213,7 +215,7 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
                     raise BibliographicGraphBuildError(str(exc)) from exc
                 if entry != expected:
                     raise BibliographicGraphBuildError(f'{location}: physical artifact catalog/source mapping drifted')
-            if expected_type == 'composite':
+            if native_composite:
                 try:
                     expected = composite_catalog_entry(repo_root, source_payload, source_ref, artifact_validators)
                 except CatalogBuildError as exc:
@@ -225,7 +227,7 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
             if expected_type == 'artifact' and source_path.with_name('artifact-witness.human-forms.json').exists():
                 raise BibliographicGraphBuildError(
                     f'{location}: artifact human forms require a native-subject adapter, not Corpus coercion')
-            if expected_type == 'composite' and source_path.with_name('composite-witness.human-forms.json').exists():
+            if native_composite and source_path.with_name('composite-witness.human-forms.json').exists():
                 raise BibliographicGraphBuildError(
                     f'{location}: composite human forms require a native-subject adapter, not Corpus coercion')
             try:
@@ -491,7 +493,7 @@ def _identity_node(entry: dict[str, Any]) -> dict[str, Any]:
             **({'label_source_pointer': entry['label_source_pointer']}
                if 'label_source_pointer' in entry else {}),
             **(artifact_display_fields(source_record) if entry['record_type'] == 'artifact' else {}),
-            **(composite_display_fields(source_record) if entry['record_type'] == 'composite' else {}),
+            **(composite_display_fields(source_record) if entry.get('source_schema_ref') == COMPOSITE_SCHEMA else {}),
             "source_record": source_record,
         },
     }
@@ -938,7 +940,8 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     profiles = SourceRecordProfiles(repo_root)
     input_digests = _catalog_input_digests(repo_root, profiles)
     objects = _load_object_catalog(repo_root, profiles)
-    used_profiles = {entry['record_type'] for entry in objects.values()} & profiles.profiles.keys()
+    used_profiles = {entry['record_type'] for entry in objects.values()
+                     if entry.get('source_schema_ref') != COMPOSITE_SCHEMA} & profiles.profiles.keys()
     profile_layers = {profiles.profiles[kind]['graph_layer'] for kind in used_profiles}
     input_digests.update(profiles.input_digests)
     historical = 'historical' in profile_layers

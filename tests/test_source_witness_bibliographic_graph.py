@@ -1561,6 +1561,18 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 SourceRecordProfiles(root)
             (root / ref).write_text(json.dumps(original))
             reader = SourceRecordProfiles(root)
+            for field, value in (('retained_native_adapter', None), ('reader', 'semantic-metadata-v1'),
+                                 ('catalog_filename', 'other-composites.jsonl'), ('id_prefix', 'tos.work.')):
+                registry = copy.deepcopy(original)
+                composite = next(item for item in registry['types'] if item['type_id'] == 'tos.entity.composite')
+                if value is None:
+                    del composite['source_record_profile'][field]
+                else:
+                    composite['source_record_profile'][field] = value
+                (root / ref).write_text(json.dumps(registry))
+                with self.subTest(composite_field=field), self.assertRaises(SourceProfileError):
+                    SourceRecordProfiles(root)
+            (root / ref).write_text(json.dumps(original))
             path, source = history[0]
             relative = path.relative_to(root).as_posix()
             entry = reader.catalog_entry(source['record_type'], source, relative)
@@ -1586,6 +1598,151 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             path.unlink()
             path.write_bytes(saved)
             self.assertEqual(reader.load(source['record_type'], relative), source)
+
+    def test_composite_metadata_growth_coexists_with_unchanged_native_witnesses(self):
+        """Synthetic reconstruction metadata is not an ancient source claim."""
+        from build_source_witness_catalog import collect_records, CatalogBuildError
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        import tos_corpus_index_common as corpus_builder
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            profiles = SourceRecordProfiles(root)
+            self.assertEqual(profiles.profiles['composite']['retained_native_adapter'], 'scholarly-composite-v1')
+            if str(REPO_ROOT / 'access/src') not in sys.path:
+                sys.path.insert(0, str(REPO_ROOT / 'access/src'))
+            from tos_access.knowledge import validate_semantic_registries
+            entities = profiles.registry
+            relations = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_bytes())
+            previous = copy.deepcopy(entities)
+            old_type = next(entry for entry in previous['types'] if entry['type_id'] == 'tos.entity.composite')
+            del old_type['source_record_profile']
+            previous['registry_version'] -= 1
+            self.assertTrue(validate_semantic_registries(entities, relations, previous_entity_registry=previous)['valid'])
+            removed = copy.deepcopy(entities)
+            changed = next(entry for entry in removed['types'] if entry['type_id'] == 'tos.entity.composite')
+            del changed['source_record_profile']['retained_native_adapter']
+            changed['source_record_profile']['profile_version'] += 1
+            removed['registry_version'] += 1
+            report = validate_semantic_registries(removed, relations, previous_entity_registry=entities)
+            self.assertFalse(report['valid'])
+            self.assertTrue(any('retained_native_adapter' in violation for violation in report['violations']))
+            for name in ('scholarly-composite-record', 'scholarly-composite-witness', 'textual-passage-record',
+                         'scholarly-composite-claim', 'source-claim-record', 'semantic-relation-type-registry',
+                         'source-metadata-record', 'semantic-description-record'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            native_ref = 'ToS/source-witnesses/scholarly-composites/synoptic/akkadian/old-babylonian-gilgamesh-fragments/composite-witness.json'
+            native_path = root / native_ref
+            native_path.parent.mkdir(parents=True)
+            native_raw = (REPO_ROOT / native_ref).read_bytes()
+            native_path.write_bytes(native_raw)
+            native = json.loads(native_raw)
+            record = copy.deepcopy(history[0][1])
+            record.update(schema_version='tos_scholarly_composite_record_v1', record_type='composite',
+                          record_id='tos.composite.synthetic-arrangement',
+                          field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                           'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                          semantic_scope={'language': 'en', 'script': 'Latn',
+                              'scope_note': 'Synthetic arrangement, not a recovered ancient original.',
+                              'identity_criterion': 'This editorial arrangement; corrected description preserves its subject.'},
+                          semantic_content={'language': 'en', 'script': 'Latn',
+                              'composition_account': 'Synthetic arrangement of reported passages.',
+                              'editorial_method': 'Selection and ordering, not physical assembly.',
+                              'coverage_account': 'Partial; absent passages are not evidence of nonexistence.'})
+            ref = 'ToS/source-witnesses/scholarly-composites/arrangement/synthetic/example/composite.json'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(record))
+            profiles.load('composite', ref)
+            sys.path.insert(0, str(REPO_ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'))
+            from assessment_journal import _source_records
+            bindings = [{'path': ref, 'record_id': record['record_id'], 'origin_id': 'test:synthetic'}]
+            resolved, _ = _source_records(root, bindings)
+            self.assertEqual(resolved[0]['payload'], record)
+            wrong_ref = 'ToS/source-witnesses/history/fixture/composite.json'
+            wrong_path = root / wrong_ref
+            wrong_path.write_text(json.dumps(record))
+            with self.assertRaises((ValueError, PermissionError)):
+                _source_records(root, [{**bindings[0], 'path': wrong_ref}])
+            wrong_path.unlink()
+            forged = {**record, 'schema_version': 'tos_corpus_record_v1'}
+            path.write_text(json.dumps(forged))
+            with self.assertRaises((ValueError, PermissionError)):
+                _source_records(root, bindings)
+            from source_commands import _snapshot
+            with self.assertRaises((ValueError, PermissionError)):
+                _snapshot(path, root)
+            path.write_text(json.dumps(record))
+            quotation = copy.deepcopy(record)
+            quotation.update(record_type='quotation-passage', record_id='tos.quotation-passage.synthetic-composite',
+                             schema_version='tos_textual_passage_record_v1', semantic_content={
+                                 'language': 'en', 'script': 'Latn', 'quotation_account': 'Synthetic selected passage.',
+                                 'location_account': 'A synthetic place in the arrangement; not an exact anchor.'})
+            quotation_ref = 'ToS/source-witnesses/textual-passages/synthetic-composite/quotation-passage.json'
+            (root / quotation_ref).parent.mkdir(parents=True)
+            (root / quotation_ref).write_text(json.dumps(quotation))
+            from source_record_profiles import SourceClaimProfiles
+            claim_profiles = SourceClaimProfiles(root)
+            objects = {source['record_id']: source for source in [record, quotation, *real]}
+            associations = []
+            for index, (predicate, target) in enumerate((
+                    ('composite_reconstructs', real[2]['record_id']),
+                    ('composite_included_in', real[2]['record_id']),
+                    ('composite_contains_passage', quotation['record_id']),
+                    ('composite_compiled_by', real[0]['record_id']))):
+                claim = copy.deepcopy(claims[0])
+                claim.update(schema_version='tos_scholarly_composite_claim_v1',
+                    claim_id=f'tos.claim.synthetic-composite-{index}', subject_ref=record['record_id'],
+                    predicate=predicate, object=target, qualifiers={
+                        'statement': 'A synthetic editorial association, not historical evidence.',
+                        'statement_language': 'en', 'statement_script': 'Latn',
+                        'scope_note': 'Test scope; neither textual equality nor exhaustive membership.'})
+                claim_profiles.validate(claim, objects)
+                for change in ({'subject_ref': real[0]['record_id']}, {'object': real[1]['record_id']},
+                               {'subject_ref': target, 'object': record['record_id']}, {'evidence_refs': []},
+                               {'qualifiers': {key: value for key, value in claim['qualifiers'].items() if key != 'scope_note'}}):
+                    with self.subTest(predicate=predicate, change=change), self.assertRaises(SourceProfileError):
+                        claim_profiles.validate({**claim, **change}, objects)
+                associations.append(claim)
+            (path.parent / 'source-claims.jsonl').write_text(''.join(json.dumps(claim) + '\n' for claim in associations))
+            entries = collect_records(root)['composite']
+            self.assertEqual({entry['record_id'] for entry in entries}, {record['record_id'], native['composite_id']})
+            projection = rebuild()
+            _, entities, relations = self.historical_knowledge(root, projection)
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                diagnostics = []
+                navigation = corpus_builder.build_source_navigation(diagnostics)
+            self.assertEqual(diagnostics, [])
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            for claim in associations:
+                node = next(node for node in graph['nodes'] if node['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                for center, other in ((claim['subject_ref'], claim['object']), (claim['object'], claim['subject_ref'])):
+                    focus = focus_knowledge_node(graph, center, depth=2)
+                    self.assertIn(other, {node['entity_id'] for node in focus['nodes']})
+            for identifier, source in ((record['record_id'], record), (native['composite_id'], native)):
+                carriers = [node for node in graph['nodes'] if node['entity_id'] == identifier]
+                self.assertEqual({node['source_graph'] for node in carriers}, {'source-claims', 'source-navigation'})
+                self.assertTrue(all(node['attributes']['source_record'] == source for node in carriers))
+                self.assertTrue(all(node['type_id'] == 'tos.entity.composite' for node in carriers))
+                focus = focus_knowledge_node(graph, identifier, depth=1)
+                self.assertEqual(sum(vertex['entity_id'] == identifier for vertex in focus['scene']['vertices']), 1)
+            self.assertEqual(native_path.read_bytes(), native_raw)
+            duplicate = {**record, 'record_id': native['composite_id']}
+            path.write_text(json.dumps(duplicate))
+            with self.assertRaisesRegex(CatalogBuildError, 'duplicate'):
+                collect_records(root)
+            path.write_text(json.dumps(record))
+            for bad_ref in ('ToS/source-witnesses/history/example/composite.json',
+                            'ToS/source-witnesses/scholarly-composites/example/composite.json',
+                            'ToS/source-witnesses/scholarly-composites/payload/composite.json'):
+                with self.assertRaises(SourceProfileError):
+                    profiles.validate_path('composite', bad_ref)
+            for field in ('composition_account', 'editorial_method', 'coverage_account'):
+                invalid = copy.deepcopy(record)
+                invalid['semantic_content'][field] = ' '
+                with self.assertRaises(SourceProfileError):
+                    profiles.validate('composite', invalid)
 
     def test_native_composites_keep_exact_source_identity_and_unassessed_members(self):
         """Real metadata in an isolated reader, not new historical evidence."""
@@ -1682,6 +1839,17 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 with self.subTest(field=key), self.assertRaises(BibliographicGraphBuildError):
                     build_payload(root)
             catalog.write_text(json.dumps(entry) + '\n')
+            registry_path = root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            registry = json.loads(registry_path.read_bytes())
+            legacy_registry = copy.deepcopy(registry)
+            next(item for item in legacy_registry['types'] if item['type_id'] == 'tos.entity.composite').pop('source_record_profile')
+            registry_path.write_text(json.dumps(legacy_registry))
+            rebuild()
+            catalog.write_text(json.dumps({**entry, 'source_schema_ref': 'ToS/contracts/corpus-record.schema.json'}) + '\n')
+            with self.assertRaises(BibliographicGraphBuildError):
+                build_payload(root)
+            registry_path.write_text(json.dumps(registry))
+            rebuild()
             duplicate = path.parent / 'duplicate' / path.name
             duplicate.parent.mkdir()
             duplicate.write_bytes(path.read_bytes())

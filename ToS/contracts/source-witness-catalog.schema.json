@@ -142,7 +142,7 @@
         "if": {"properties": {"record_type": {"const": "composite"}}},
         "then": {"required": ["source_schema_ref"], "properties": {
           "record_id": {"pattern": "^tos\\.composite\\."},
-          "source_schema_ref": {"const": "ToS/contracts/scholarly-composite-witness.schema.json"}
+          "source_schema_ref": {"enum": ["ToS/contracts/scholarly-composite-witness.schema.json", "ToS/contracts/scholarly-composite-record.schema.json"]}
         }}
       }, {
         "if": {"properties": {"record_type": {"not": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"]}}}},

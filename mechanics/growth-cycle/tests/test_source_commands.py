@@ -827,10 +827,14 @@ class HistoricalCreationTests(unittest.TestCase):
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
         passages = {
+            'composite': {'composition_account': 'A synthetic scholarly arrangement, not an ancient original.', 'editorial_method': 'Synthetic selection and ordering.', 'coverage_account': 'Partial, with unknown gaps.'},
             'textual-fragment': {'fragment_account': 'A synthetic textual portion, not a physical fragment.', 'boundary_basis': 'Proposed editorial boundary, not exact text.'},
             'quotation-passage': {'quotation_account': 'A synthetic quoting passage, not its source fragment.', 'location_account': 'Reported place in the containing work, not a resolved anchor.'},
         }
-        passage_properties = {'fragment_account': 'tos.property.fragment-account',
+        passage_properties = {'composition_account': 'tos.property.composite-composition-account',
+            'editorial_method': 'tos.property.composite-editorial-method',
+            'coverage_account': 'tos.property.composite-coverage-account',
+            'fragment_account': 'tos.property.fragment-account',
             'boundary_basis': 'tos.property.fragment-boundary-basis',
             'quotation_account': 'tos.property.quotation-account', 'location_account': 'tos.property.quotation-location'}
         formations = {
@@ -878,7 +882,7 @@ class HistoricalCreationTests(unittest.TestCase):
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -895,7 +899,8 @@ class HistoricalCreationTests(unittest.TestCase):
                     semantic_scope={'scope_note': 'Только синтетическая проверка.',
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
-                    source.update(schema_version=('tos_textual_passage_record_v1' if kind in passages else
+                    source.update(schema_version=('tos_scholarly_composite_record_v1' if kind == 'composite' else
+                                  'tos_textual_passage_record_v1' if kind in passages else
                                   'tos_intellectual_formation_record_v1' if kind in formations else
                                   'tos_social_body_record_v1' if kind in social else
                                   'tos_thought_practice_record_v1' if kind in practices else
@@ -904,6 +909,13 @@ class HistoricalCreationTests(unittest.TestCase):
                 if kind in topics or kind in practices or kind in social or kind in formations or kind in passages:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
+                if kind == 'composite':
+                    with self.assertRaises((ValueError, PermissionError)):
+                        commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                            'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
+                    config['source_path'] = 'ToS/source-witnesses/scholarly-composites/arrangement/synthetic/new-subject/composite.json'
+                    (root / config['source_path']).parent.parent.mkdir(parents=True)
+                    owner.write_text(json.dumps(config))
                 prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
                     'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
                 request.update(operation='source.create', expected_configuration=prepared['owner_configuration'],

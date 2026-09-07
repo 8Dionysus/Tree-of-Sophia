@@ -856,9 +856,53 @@ Unknown versions, nonpublic metadata, identity/schema/digest drift, duplicate
 identities, unsafe paths, duplicate JSON keys and over-budget records are
 rejected by the native source route. Rolling back the reader leaves the source
 records intact. An ordinary declared metadata profile cannot replace this
-native namespace. Textual reconstruction growth needs an explicit compatible
-owner extension; the v1 physical-member observations must not be populated
+native namespace; the v1 physical-member observations must not be populated
 with invented artifacts.
+
+### Descriptive composite growth alongside native witnesses
+
+Registry version 19 explicitly retains `scholarly-composite-v1` while adding
+the common-metadata `tos_scholarly_composite_record_v1` source profile to the
+same `tos.entity.composite` and `tos.composite.*` namespace. This is a second
+supported record shape, not a second scholarly-object type or a migration of
+the existing witness records. Both use `catalog/composites.jsonl`; duplicate
+current identities across either shape fail before creation or graph reading.
+Changing the retained adapter is an incompatible profile change.
+
+New descriptive records use
+`scholarly-composites/<method>/<tradition>/<identity>/composite.json`.
+The shared source command enforces this owner home for creation, correction
+and form operations. It uses the ordinary declared-profile `source.create`,
+`record.revise` and human-form contracts, including exact dependencies,
+predecessors, unchanged referent scope and idempotent retry. It does not rewrite
+`composite-witness.json` or make native forms/assessment supported by coercion.
+
+`semantic_content` requires `composition_account`, `editorial_method` and
+`coverage_account`, separately discoverable as `tos.property.composite-*`
+properties. Their values are optional at the general composite type because
+native records retain their own fields, but mandatory in this exact new
+schema. `semantic_scope` states the referent and continuity criterion;
+historical existence, reconstructed original, compiler, containing publication,
+members and their order require separately grounded Claims. A method account
+is neither executable transformation provenance nor approval of an edition.
+Exact quotations/text layers, physical witnesses, rights and scoped assessment
+remain their own records and operations. Absence from a reported arrangement
+does not establish loss or nonexistence of a passage.
+
+Four non-transitive, evidence-bearing relation profiles use the ordinary
+declared `claims.create` and Claim-form operations. Each requires a qualified
+statement and scope; competing attributions are not limited to one compiler.
+
+| Predicate | Domain → range | Reverse reading |
+| --- | --- | --- |
+| `composite_reconstructs` | Composite → IntellectualObject | reconstructed in this composition |
+| `composite_included_in` | Composite → IntellectualObject | contains this editorial composition |
+| `composite_contains_passage` | Composite → QuotationPassage | passage included in this composition |
+| `composite_compiled_by` | Composite → Agent | compiler of this composition |
+
+These are not physical witness membership, an exact passage sequence or a
+claim that the editor inspected every reported source. The compiler role is
+distinct from authorship of either the ancient poem or the containing book.
 
 ## Historical situations: source profile
 

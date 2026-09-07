@@ -139,13 +139,20 @@ class SourceRecordProfiles:
             if not validator.is_valid(profile):
                 raise SourceProfileError('source-record profile violates its declared contract')
             kind = profile['record_type']
+            retained_composite = (kind == 'composite' and entry['type_id'] == 'tos.entity.composite'
+                and profile.get('retained_native_adapter') == 'scholarly-composite-v1'
+                and profile['reader'] == 'corpus-metadata-v1'
+                and profile['catalog_filename'] == 'composites.jsonl')
+            if 'retained_native_adapter' in profile and not retained_composite:
+                raise SourceProfileError(f'{kind}: incompatible retained native adapter')
             role, family = {'corpus-metadata-v1': ('identity', 'tos.entity.identity'),
                             'semantic-metadata-v1': ('semantic', 'tos.entity.semantic-object')}[profile['reader']]
             if (entry.get('abstract') is not False or entry.get('object_role') != role
                     or family not in _type_ancestry(entities, entry['type_id'])
                     or entry['type_id'] == family
-                    or kind in RESERVED_KINDS or profile['source_basename'] in RESERVED_BASENAMES
-                    or profile['catalog_filename'] in RESERVED_CATALOGS
+                    or (not retained_composite and (kind in RESERVED_KINDS
+                        or profile['source_basename'] in RESERVED_BASENAMES
+                        or profile['catalog_filename'] in RESERVED_CATALOGS))
                     or profile['id_prefix'] != f'tos.{kind}.'
                     or profile['source_basename'] != kind + '.json'):
                 raise SourceProfileError(f'{kind}: source-record profile identity or adapter collision')
@@ -196,13 +203,19 @@ class SourceRecordProfiles:
                                                                  format_checker=FormatChecker())
         return self.validators[key]
 
-    def load(self, kind: str, ref: str) -> dict:
+    def validate_path(self, kind: str, ref: str) -> None:
+        """Apply the same owner-home guard to prospective writes and reads."""
         path = Path(ref)
         if (path.is_absolute() or '..' in path.parts or path.as_posix() != ref
                 or not path.is_relative_to(SOURCE_ROOT) or 'catalog' in path.parts
                 or any(part in {'payload', 'local-content'} for part in path.parts)
-                or path.name != self.profiles[kind]['source_basename']):
+                or path.name != self.profiles[kind]['source_basename']
+                or (kind == 'composite' and (len(path.parts) < 7
+                    or not path.is_relative_to(SOURCE_ROOT / 'scholarly-composites')))):
             raise SourceProfileError('source-record profile path is outside its metadata home')
+
+    def load(self, kind: str, ref: str) -> dict:
+        self.validate_path(kind, ref)
         source = _read_json(self.root, ref)
         self.validate(kind, source)
         return source

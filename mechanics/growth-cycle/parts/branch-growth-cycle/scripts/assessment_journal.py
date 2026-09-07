@@ -415,6 +415,7 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
                 metadata_profiles = SourceRecordProfiles(root)
             if kind not in metadata_profiles.profiles:
                 return None
+            metadata_profiles.validate_path(kind, path.as_posix())
             metadata_profiles.validate(kind, row)
             return 'record_id', 'record_version'
         return None
@@ -463,7 +464,7 @@ def _source_records(root: Path, bindings: Any) -> tuple[list[dict[str, Any]], li
                 if not isinstance(row, dict):
                     raise ValueError('source records must be JSON objects')
                 family = families.get(row.get('schema_version'))
-                if (family is None or path.name == SOURCE_CLAIM_BASENAME
+                if (family is None or path.name == SOURCE_CLAIM_BASENAME or path.name == 'composite.json'
                         or (isinstance(row.get('record_type'), str) and path.suffix == '.json'
                             and path.name not in RESERVED_BASENAMES)):
                     family = declared_family(row, path)

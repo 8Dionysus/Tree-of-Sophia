@@ -128,6 +128,12 @@ likewise retains native composite identities and complete v1 records in both
 readers. Source-reported members and coverage remain observations inside their
 original records; catalog inclusion does not create accepted membership edges,
 identify the reconstructed ancient object, or resolve an exact text layer.
+The compatible descriptive `composite.json` profile uses that same identity
+family for modern textual reconstruction, collation and arrangement. It owns
+an explicit composition account, editorial method, coverage limits and
+referent criterion without requiring invented physical members. The native
+witness format is retained, not converted; one ID cannot have two current
+records across these formats. Neither metadata shape accepts its readings.
 
 Responsibility claims retain their role-specific subject and Agent object:
 Work author, Expression translator, Edition editor, paratext author, designer,

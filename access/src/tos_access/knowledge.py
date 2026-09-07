@@ -206,7 +206,7 @@ def validate_semantic_registries(
                     continue
                 if profile != old_profile and profile.get('profile_version', 0) <= old_profile.get('profile_version', 0):
                     violations.append(f"changed source profile {entry[id_key]} must increase profile_version")
-                for field in ('record_type', 'id_prefix', 'reader', 'value_kind'):
+                for field in ('record_type', 'id_prefix', 'reader', 'value_kind', 'retained_native_adapter'):
                     if profile.get(field) != old_profile.get(field):
                         violations.append(f"source profile {entry[id_key]} repurposes {field}; use an explicit successor identity")
                 if entries_key == 'relations':
