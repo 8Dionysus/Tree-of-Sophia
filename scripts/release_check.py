@@ -24,6 +24,7 @@ NAMING_TESTS = ("tests/test_validate_active_naming.py",)
 GRAPH_TESTS = ("tests/test_source_witness_bibliographic_graph.py",)
 CORPUS_TESTS = ("tests/test_tos_corpus_index.py",)
 VALIDATION_LANES_TESTS = ("tests/test_validation_lanes.py",)
+FEEDBACK_PYTEST_AUTOLOAD_ENV = "PYTEST_DISABLE_PLUGIN_AUTOLOAD"
 
 # This small table contains only implementation routes with reviewed direct
 # consumers. A path outside it intentionally returns None so the caller uses
@@ -170,9 +171,27 @@ def select_steps(
     raise ValueError(f"unknown release phase: {phase}")
 
 
-def run_step(label: str, command: list[str]) -> int:
+def feedback_test_env() -> dict[str, str]:
+    """Return the caller environment with focused pytest isolation enabled."""
+
+    environment = os.environ.copy()
+    environment.setdefault(FEEDBACK_PYTEST_AUTOLOAD_ENV, "1")
+    return environment
+
+
+def run_step(
+    label: str,
+    command: list[str],
+    *,
+    env: dict[str, str] | None = None,
+) -> int:
     print(f"[run] {label}: {subprocess.list2cmdline(command)}", flush=True)
-    completed = subprocess.run(command, cwd=REPO_ROOT, env=os.environ.copy(), check=False)
+    completed = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        env=os.environ.copy() if env is None else env,
+        check=False,
+    )
     if completed.returncode != 0:
         print(f"[error] {label} failed with exit code {completed.returncode}", flush=True)
         return completed.returncode
@@ -226,6 +245,7 @@ def main(argv: list[str] | None = None) -> int:
                 flush=True,
             )
             selected_steps = steps
+            feedback_env = None
         else:
             print(
                 f"[feedback] selected {len(test_paths)} existing test targets: "
@@ -233,8 +253,12 @@ def main(argv: list[str] | None = None) -> int:
                 flush=True,
             )
             selected_steps = [("affected tests", feedback_pytest_command(steps, test_paths))]
+            feedback_env = feedback_test_env()
         for label, command in selected_steps:
-            exit_code = run_step(label, command)
+            if feedback_env is None:
+                exit_code = run_step(label, command)
+            else:
+                exit_code = run_step(label, command, env=feedback_env)
             if exit_code != 0:
                 return exit_code
         return 0

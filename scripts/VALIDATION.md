@@ -47,6 +47,16 @@ pytest flags and only replaces the final `tests` operand with existing focused
 targets. It is local edit feedback; it does not alter the release command,
 release phase split, CI, or acceptance boundary.
 
+Focused feedback invokes pytest with third-party plugin autoload disabled by
+default (`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`) to keep an unrelated user-site
+plugin from changing the selected check. A caller-provided value, including
+`0` or an empty value, is preserved. This environment adjustment is limited to
+the selected focused step: unsupported-path fallback, ordinary release runs,
+and CI retain their caller environments. The development requirements keep
+pytest unpinned and do not add a plugin dependency, so this is not a blanket
+plugin suppression policy. Pytest interprets any non-empty value, including
+`0`, as “disable autoload”; an empty value enables its normal autoload behavior.
+
 ## Local active-naming feedback
 
 The blocking `active_naming` lane intentionally remains the ordinary uncached

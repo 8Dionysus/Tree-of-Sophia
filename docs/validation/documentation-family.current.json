@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 599,
     "human_scope": {
-      "bytes": 4735238,
+      "bytes": 4735937,
       "count": 926,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
@@ -101,9 +101,9 @@
           "lines": 3037
         },
         "scripts": {
-          "bytes": 9878,
+          "bytes": 10577,
           "count": 2,
-          "lines": 189
+          "lines": 199
         },
         "stats": {
           "bytes": 4561,
@@ -121,7 +121,7 @@
           "lines": 60739
         }
       },
-      "lines": 83343
+      "lines": 83353
     },
     "surface_kind_counts": {
       "executable": 206,
@@ -186,7 +186,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 475928,
+      "tracked_surface_bytes": 476661,
       "tracked_surface_count": 39
     },
     {
@@ -240,7 +240,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3649015,
+      "tracked_surface_bytes": 3650353,
       "tracked_surface_count": 108
     },
     {
@@ -250,7 +250,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1378788,
+      "tracked_surface_bytes": 1381645,
       "tracked_surface_count": 62
     },
     {
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "7bb53d2e76a8fafc6fdf1fe759fe66a8b8ebe579c921ed684f4c976ef31cb8a6",
+  "tracked_surface_digest": "a01d262e532f1a5ffb8111d404448b840f8908c2e26e4d2e957715479248bf54",
   "tracked_surfaces": [
     {
       "bytes": 1413,
@@ -332,7 +332,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "d08d547f23bb6b55c265530226275cbabd4b51bb44bdd747741a5dafaf420233",
+      "sha256": "981b8c74b75bae79584c86e9b287147860c2ee2fd2a58b728ffbdbfdfa21a5c7",
       "surface_kind": "structured"
     },
     {
@@ -24232,11 +24232,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 66997,
+      "bytes": 67603,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "872d01dec7eb9c457b90fb6a73cca6cce81ded92ffe690f6c06a58bbb9ac9ca0",
+      "sha256": "630d30bced7a8d81e765884f19f464fbf34758df9710607e3a2449f5b44d49e0",
       "surface_kind": "executable"
     },
     {
@@ -24248,11 +24248,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2832,
+      "bytes": 2959,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_http_security.py",
-      "sha256": "8137d755be5d9bd5b227cebdc6ae3dc7685580005cb3cbd30acc831d1b8e7549",
+      "sha256": "4f91e48c4335a2dd077dff51cd47746769a3a4215b11a100a8c33e7a74e51782",
       "surface_kind": "executable"
     },
     {
@@ -26584,11 +26584,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3475,
+      "bytes": 4174,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/VALIDATION.md",
-      "sha256": "5c758dd7606f736074c85b2bae6fbdae4102adc74c2000f594648bb908ce101d",
+      "sha256": "7ed6cfa30ea69597d50972df3c343c298b4b9f2ec5bd475604644df2212ea3fa",
       "surface_kind": "human"
     },
     {
@@ -27152,11 +27152,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 9223,
+      "bytes": 9862,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/release_check.py",
-      "sha256": "4b81e090cd064601269a03974eed110ba223e402722c7a41176022d96328edb8",
+      "sha256": "840d463b793e9815f61032881a9d2a878aa43dd8a6819df77ef6ed22b4235b76",
       "surface_kind": "executable"
     },
     {
@@ -27880,11 +27880,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 11216,
+      "bytes": 14073,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validation_lanes.py",
-      "sha256": "40f6be657c3a8f1e75b640246555d82281f0531bf535a63beeb28de08ffa777c",
+      "sha256": "da0f7974b264454dd2235a3aa9c5b2937f76c318d0b0d320449b5b0cd5ece50a",
       "surface_kind": "executable"
     },
     {
