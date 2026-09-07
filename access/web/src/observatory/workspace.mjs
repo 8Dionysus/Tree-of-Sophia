@@ -1,6 +1,5 @@
 import {createReadingMemory} from './reading-state.mjs';
 import {createResearchWorkspace,createLocalStoragePersistence} from '../research-workspace';
-import {createToSQueryOperations} from '../query-operations';
 import {localized,RequestSlots} from './knowledge-client.mjs';
 import {refreshIcons} from './icons';
 import {stageObservation} from './research-actions';
@@ -11,17 +10,11 @@ function link(ref){
   if(/^https?:\/\//i.test(ref)){try{const url=new URL(ref);const a=el('a',url.hostname+url.pathname,'sc-source-ref');a.href=url.href;a.target='_blank';a.rel='noreferrer noopener';return a;}catch{/* Render invalid references as text. */}}
   return el('span',ref,'sc-source-ref');
 }
-export function createTools(root,scene,{selected,panels,onChange}){
+export function createTools(root,scene,{data:{queries},selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
   const workspace=createResearchWorkspace({sessionId:'tos-local-research',persistence});
   const requests=new RequestSlots(),gapHits=new Map();let gapSelection=null;
-  const queries=createToSQueryOperations(async(url,options={})=>{
-    const signal=AbortSignal.any([options.signal||new AbortController().signal,AbortSignal.timeout(60000)]);
-    const response=await fetch(url,{...options,signal});
-    if(!response.ok)throw new Error(response.status===404?'Для этого объекта отдельное досье пока не подготовлено.':'Не удалось загрузить материал. Попробуйте ещё раз.');
-    return response.json();
-  });
   const open=button('',()=>show('notes'));open.className='sc-control sc-workspace-open';open.setAttribute('aria-label','Исследование');open.setAttribute('aria-expanded','false');
   open.innerHTML='<i data-lucide="notebook-pen" aria-hidden="true"></i><span>Исследование</span>';
   root.querySelector('.sc-header-actions').append(open);

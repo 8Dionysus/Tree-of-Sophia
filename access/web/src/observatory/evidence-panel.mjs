@@ -1,6 +1,5 @@
 import {createReadingMemory} from './reading-state.mjs';
-import {createToSQueryOperations} from '../query-operations';
-import {KnowledgeClient,RequestSlots,RequestError,localized} from './knowledge-client.mjs';
+import {RequestSlots,localized} from './knowledge-client.mjs';
 import {loadEvidence,compareEvidence,sourceRefs,selectionSummary} from './evidence-model.mjs';
 import {refreshIcons} from './icons';
 
@@ -15,20 +14,8 @@ const labels={
 };
 const human=value=>labels[value]||value||'Не указан';
 
-export function createEvidencePanel(root,scene,panels,{selected,onUserAction}){
-  const client=new KnowledgeClient(),requests=new RequestSlots();
-  const queries=createToSQueryOperations(async(url,options={})=>{
-    const signal=AbortSignal.any([options.signal||new AbortController().signal,AbortSignal.timeout(60000)]);
-    try{
-      const response=await fetch(url,{...options,signal});
-      if(!response.ok)throw new RequestError(response.status,'Не удалось получить основания. Попробуйте ещё раз.');
-      return await response.json();
-    }catch(error){
-      if(signal.aborted)throw signal.reason;
-      if(error instanceof TypeError)throw new Error('Нет связи с данными. Повторите запрос после подключения.');
-      throw error;
-    }
-  });
+export function createEvidencePanel(root,scene,panels,{data:{client,queries},selected,onUserAction}){
+  const requests=new RequestSlots();
   const panel=el('section','','sc-panel sc-evidence');panel.hidden=true;panel.setAttribute('aria-label','Основания и прочтения');
   panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">ЛИСТ ИССЛЕДОВАНИЯ</span><button type="button" class="sc-icon sc-evidence-close" aria-label="Закрыть основания"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-evidence-heading"><span class="sc-evidence-symbol" aria-hidden="true">✧</span><div><p class="sc-evidence-kind"></p><h3></h3></div></div><div class="sc-evidence-tabs" role="tablist" aria-label="Основания и сравнение"></div><div class="sc-evidence-body" id="sc-evidence-content" role="tabpanel" tabindex="0"></div><div class="sc-evidence-status" role="status"></div><div class="sc-evidence-footer"><span>От мысли — к источнику</span></div>';
   root.append(panel);

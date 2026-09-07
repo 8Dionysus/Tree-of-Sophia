@@ -12,6 +12,13 @@ From this directory, run `npm ci`, `npm run typecheck`, `npm test`, and
 `127.0.0.1:44258`; change that development target for another local backend.
 Production always uses same-origin APIs.
 
+`/static/fixtures/reader.html` on the development server mounts the same
+Observatory with an injected connection and explicitly artificial materials.
+It exercises long and multilingual reading, absent descriptions, two-item
+comparison, changed snapshots, delayed/offline/restricted reads, and the
+40-node/80-relation scene budget. Its short frame sample is a local diagnostic,
+not a sustained performance guarantee. Fixtures are not production build entries.
+
 `dist/` is tracked. Rebuild it from source. Both HTTP and edge adapters load the
 stable `/static/assets/tos-graph.js` bootstrap and `tos-graph.css`; imported view
 JavaScript and CSS use content hashes. No CDN, inline scripts, iframe, or relaxed
@@ -28,6 +35,23 @@ CSP is required.
 - `knowledge-client.mjs` validates LensResult authority, revision, unique opaque
   IDs, closed relation endpoints, and a 40-node/80-relation display budget.
   A large corpus never directly determines per-frame scene size.
+- `data-services.mjs` supplies one page-owned knowledge client and the existing
+  query operations to all Observatory consumers. Request cancellation and
+  contract checks remain with each consumer. `mountObservatory` accepts this
+  connection explicitly; components do not create private API connections.
+- `reader-model.mjs` and `reader-panel.mjs` provide **Читать** in the selected
+  card and **Моё пространство → Инструменты → Чтение и сопоставление**.
+  At most two inspected objects or relations remain in this browser page,
+  alongside their exact identities, versions, source references and supplied
+  qualifications. Wide windows show independent columns; narrow windows use
+  keyboard-accessible tabs. Reading positions and return-to-place bookmarks
+  survive panel handoffs. Nothing from this reading shelf is persisted.
+  An explicit refresh obtains a new snapshot; mismatched scene actions stay
+  disabled. Network failure retains a labelled earlier copy, while an observed
+  403/404/410 removes its reading copy. Available language/form fields retain
+  their delivered wording and identify fallback or unspecified language.
+  This compares supplied material side by side; it does not generate semantic
+  conclusions, full text, translations, or stable corpus text addresses.
 - `knowledge-ui.mjs` handles paged search, inspection, scene request cancellation
   and explicit retry. A failed request retains the current graph. Inspection
   checks both source and content revisions before entering the card cache.

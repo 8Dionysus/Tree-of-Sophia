@@ -112,7 +112,7 @@ export class KnowledgeClient {
       headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});
     if(!response.ok) {
       if(response.status===409)throw new RevisionError();
-      throw new RequestError(response.status,({400:'Запрос не удалось исполнить.',404:'Объект больше не доступен.',410:'Срок сохранённого обхода истёк.',413:'Область слишком велика. Выберите более узкий центр.',503:'Этот способ просмотра пока не доступен.'})[response.status]||'Не удалось получить данные. Попробуйте ещё раз.');
+      throw new RequestError(response.status,({400:'Запрос не удалось исполнить.',403:'Доступ к материалу ограничен.',404:'Объект больше не доступен.',410:'Срок сохранённого обхода истёк.',413:'Область слишком велика. Выберите более узкий центр.',503:'Этот способ просмотра пока не доступен.'})[response.status]||'Не удалось получить данные. Попробуйте ещё раз.');
     }
     const packet=await response.json();
     if(!packet||typeof packet!=='object')throw new ContractError('Неверный ответ сервера.');

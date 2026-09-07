@@ -4,7 +4,7 @@ import { projectLens } from './knowledge-client.mjs';
 import { attachKnowledgeUI } from './knowledge-ui.mjs';
 import { SophiaGpuCanvas } from './gpu-canvas.js';
 
-export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens,autoStart=true}={}) {
+export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLens,autoStart=true}={}) {
   const q = s => root.querySelector(s);root.dataset.rendererBuild='c8d4575cf448b8707cdf55ae779d2743482a02f7348ae5e66f4972983bfe18cb';
 
   let canvas=q('.sc-sky'),ctx;
@@ -426,7 +426,7 @@ export function mountScene(root, {onChange=()=>{}, initialFocus,initialLens,auto
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;last=0}else kick()});
   const observer=new IntersectionObserver(es=>{visible=es[0].isIntersecting;if(visible)kick();else{cancelAnimationFrame(raf);raf=0;last=0}});observer.observe(root);new ResizeObserver(resize).observe(root);
   reduced.addEventListener('change',e=>{design.playing=!e.matches;syncMotion()});
-  knowledgeUI=attachKnowledgeUI(root,scenePort,{initialFocus,initialLens});
+  knowledgeUI=attachKnowledgeUI(root,scenePort,{client,initialFocus,initialLens});
   paintNebula();resize();syncMotion();syncInputMode();root.dataset.lens=lens;updateContext();if(autoStart)knowledgeUI.start();document.fonts?.ready.then(()=>{measureLabels();kick()});
   refreshIcons();
   return {port:scenePort, ui:knowledgeUI, openSearch:()=>openOverlay('search'), overview, closeInspector, invalidate:()=>{layoutDirty=true;kick()}};

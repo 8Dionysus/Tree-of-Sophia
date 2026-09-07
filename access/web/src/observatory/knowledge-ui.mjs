@@ -1,8 +1,8 @@
 import {createReadingMemory} from './reading-state.mjs';
-import {KnowledgeClient,RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 
-export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initialFocus=DEFAULT_FOCUS,initialLens}={}) {
+export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,initialLens}={}) {
   const q=s=>root.querySelector(s),slots=new RequestSlots(),cache=new Map();
   let searchTimer=0,retryAction=null,searchOffset=0;
   const cardReading=createReadingMemory(q('#so-about')),relationsReading=createReadingMemory(q('#so-relations'));
@@ -135,7 +135,8 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
         const b=button(label+': '+localized(node?.display.title,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');list.append(b);
       }
     }
-    sourceDetails(raw,kind);q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))),button(kind==='node'?'Проложить маршрут':'Другой путь',()=>root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind,tab:'paths'}}))));cardReading.restore();relationsReading.restore();port.cardChanged();
+    sourceDetails(raw,kind);
+    q('.sc-provenance').append(button('Основания и прочтения',()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))),button('Открыть источники',()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))),button(kind==='node'?'Проложить маршрут':'Другой путь',()=>root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind,tab:'paths'}}))));cardReading.restore();relationsReading.restore();port.cardChanged();
   }
   async function showCard(kind,raw){
     cancelInspector();const revision=port.packet?.source_revision;if(!revision)return;
@@ -155,6 +156,10 @@ export function attachKnowledgeUI(root,port,{client=new KnowledgeClient(),initia
   }
   q('.sc-open-neighborhood').addEventListener('click',()=>{
     const raw=port.node(port.selection.nodeId);if(raw)root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind:'node',tab:'neighbors'}}));
+  });
+  q('.sc-read-selected').addEventListener('click',()=>{
+    const selection=port.selection,kind=selection.relationId?'relation':'node',raw=kind==='relation'?port.relation(selection.relationId):port.node(selection.nodeId);
+    if(raw)root.dispatchEvent(new CustomEvent('sophia-read',{detail:{raw,kind}}));
   });
   async function loadLensLink(){
     root.dataset.dataState='loading';notice('Открываю линзу…');

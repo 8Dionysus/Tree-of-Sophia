@@ -8,7 +8,7 @@ export function createReadingMemory(body,{limit=48}={}){
     const details=[...body.querySelectorAll('details')].map((el,i)=>[identity(el,i),el.open]);
     const rect=body.getBoundingClientRect(),anchors=[...body.querySelectorAll('h4,article,p')];
     const anchor=anchors.find(el=>el.getBoundingClientRect().bottom>rect.top+4);
-    views.delete(key);views.set(key,{top:body.scrollTop,details,anchor:anchor?{text:anchor.textContent.slice(0,180),offset:anchor.getBoundingClientRect().top-rect.top}:null});
+    views.delete(key);views.set(key,{top:body.scrollTop,details,anchor:anchor?{key:anchor.dataset.readingAnchor||null,text:anchor.textContent.slice(0,180),offset:anchor.getBoundingClientRect().top-rect.top}:null});
     if(views.size>limit)views.delete(views.keys().next().value);
   }
   function restore(){
@@ -16,7 +16,7 @@ export function createReadingMemory(body,{limit=48}={}){
     restoring=true;const details=new Map(state.details);
     [...body.querySelectorAll('details')].forEach((el,i)=>{if(details.has(identity(el,i)))el.open=details.get(identity(el,i));});
     body.scrollTop=state.top;
-    if(state.anchor){const anchor=[...body.querySelectorAll('h4,article,p')].find(el=>el.textContent.slice(0,180)===state.anchor.text);if(anchor)body.scrollTop+=anchor.getBoundingClientRect().top-body.getBoundingClientRect().top-state.anchor.offset;}
+    if(state.anchor){const anchor=[...body.querySelectorAll('h4,article,p')].find(el=>state.anchor.key?el.dataset.readingAnchor===state.anchor.key:el.textContent.slice(0,180)===state.anchor.text);if(anchor)body.scrollTop+=anchor.getBoundingClientRect().top-body.getBoundingClientRect().top-state.anchor.offset;}
     restoring=false;
   }
   body.addEventListener('scroll',capture,{passive:true});

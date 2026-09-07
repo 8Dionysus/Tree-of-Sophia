@@ -1,6 +1,5 @@
 import {createReadingMemory} from './reading-state.mjs';
-import {KnowledgeClient,RequestSlots,RevisionError,localized} from './knowledge-client.mjs';
-import {createToSQueryOperations} from '../query-operations';
+import {RequestSlots,RevisionError,localized} from './knowledge-client.mjs';
 import {pathAvailable,pathSearchSpec,explorationQuery,loadPaths} from './navigation-model.mjs';
 import {refreshIcons} from './icons';
 
@@ -8,9 +7,8 @@ const el=(tag,text='',className='')=>{const n=document.createElement(tag);n.text
 const button=(label,action,className='sc-nav-button')=>{const n=el('button',label,className);n.type='button';n.addEventListener('click',action);return n;};
 const name=raw=>localized(raw?.display?.title||raw?.display?.label,'Выбрать звезду');
 
-export function createNavigationPanel(root,scene,panels,{selected,commit,onUserAction}){
-  const client=new KnowledgeClient(),transport=new KnowledgeClient({base:''}),requests=new RequestSlots();
-  const queries=createToSQueryOperations((url,options)=>transport.request(url,options));
+export function createNavigationPanel(root,scene,panels,{data:{client,queries},selected,commit,onUserAction}){
+  const requests=new RequestSlots();
   let mode='neighbors',focus=null,start=null,end=null,revision=null,bookmark=null,page=null,result=null,index=0;
   let depth=2,direction='either',profile='overview',maxDepth=6,alternativeLimit=3,excluded=[],busy=false,error=null,searchTarget='end';
   let ticket=0,searchTimer=0,applying=false,focusReturn=null;

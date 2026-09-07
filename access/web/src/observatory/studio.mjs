@@ -1,11 +1,11 @@
-import {KnowledgeClient,RequestSlots,localized} from './knowledge-client.mjs';
+import {RequestSlots,localized} from './knowledge-client.mjs';
 import {capturePlace,readPlaces,savePlace,readResume,reopenPlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
 import {DEFAULT_INTERFACE} from './interface-model.mjs';
 import {refreshIcons} from './icons';
 const el=(tag,text='',className='')=>{const e=document.createElement(tag);e.textContent=text;e.className=className;return e;};
 const button=(text,action)=>{const b=el('button',text);b.type='button';b.addEventListener('click',action);return b;};
-export function createStudio(root,scene,panels,{initialRoute,onUserAction}){
-  const client=new KnowledgeClient(),requests=new RequestSlots();let storage=null,entries=[],failure='',notice='',active='places',busy=false,applying=false,started=false,autoSave=true,timer=null,lastPacket=null,deleted=null,retry=null,restoreId=0;
+export function createStudio(root,scene,panels,{data:{client},initialRoute,onUserAction}){
+  const requests=new RequestSlots();let storage=null,entries=[],failure='',notice='',active='places',busy=false,applying=false,started=false,autoSave=true,timer=null,lastPacket=null,deleted=null,retry=null,restoreId=0;
   try{storage=localStorage;entries=readPlaces(storage);}catch(error){failure=error.message;}
   const opener=button('',()=>{onUserAction();show();});opener.className='sc-control sc-studio-open';opener.setAttribute('aria-label','Места и инструменты');opener.setAttribute('aria-expanded','false');opener.innerHTML='<i data-lucide="bookmark" aria-hidden="true"></i><span>Моё пространство</span>';
   root.querySelector('.sc-header-actions').append(opener);

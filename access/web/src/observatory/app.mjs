@@ -6,6 +6,8 @@ import './evidence.css';
 import './navigation.css';
 import './lens.css';
 import './reading.css';
+import './reader.css';
+import {createReaderPanel} from './reader-panel.mjs';
 import {createStudio} from './studio.mjs';
 import {createSceneFeedback} from './scene-feedback.mjs';
 import {mountScene} from './scene.js';
@@ -19,14 +21,15 @@ import {draftForPacket,encodeDraft} from './lens-model.mjs';
 import {pathAvailable} from './navigation-model.mjs';
 import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
-import {KnowledgeClient,focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {createObservatoryData} from './data-services.mjs';
 
-const host=document.getElementById('app');
+export function mountObservatory({host=document.getElementById('app'),data=createObservatoryData(),initialRoute=location.search}={}){
+if(!host)throw new Error('Observatory mount point is missing.');
 host.innerHTML=shell;
 const root=host.firstElementChild;
-const initialRoute=location.search;
-let scene,tools,evidence,navigation,builder,studio,registry,syncing=false,lastContext='';
-const client=new KnowledgeClient();
+let scene,tools,evidence,navigation,builder,studio,reader,registry,syncing=false,lastContext='';
+const {client}=data;
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
   const selection=scene?.port.selection;if(!selection)return null;
@@ -53,14 +56,15 @@ function sync(){
   navigation?.selectionChanged();
   builder?.selectionChanged();
   studio?.selectionChanged();
+  reader?.selectionChanged();
 }
 const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
-scene=mountScene(root,{autoStart:false,initialFocus:new URLSearchParams(location.search).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(location.search).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
+scene=mountScene(root,{client,autoStart:false,initialFocus:new URLSearchParams(initialRoute).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(initialRoute).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
 const panels=createPanelHost(root,scene,{onUserAction:()=>registry?.notifyStateChange()});
-tools=createTools(root,scene,{selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
-evidence=createEvidencePanel(root,scene,panels,{selected,onUserAction:()=>registry?.notifyStateChange()});
-navigation=createNavigationPanel(root,scene,panels,{selected,commit,onUserAction:()=>registry?.notifyStateChange()});
-builder=createLensPanel(root,scene,panels,{onUserAction:()=>registry?.notifyStateChange()});
+tools=createTools(root,scene,{data,selected,panels,onChange:()=>{if(!syncing)registry?.notifyStateChange();sync();}});
+evidence=createEvidencePanel(root,scene,panels,{data,selected,onUserAction:()=>registry?.notifyStateChange()});
+navigation=createNavigationPanel(root,scene,panels,{data,selected,commit,onUserAction:()=>registry?.notifyStateChange()});
+builder=createLensPanel(root,scene,panels,{data,onUserAction:()=>registry?.notifyStateChange()});
 const userAction=()=>registry?.notifyStateChange();
 for(const [id,title,selector]of [['search','Поиск','.sc-search-open'],['lenses','Линзы','.sc-lenses-open'],['workspace','Исследование','.sc-workspace-open'],['navigation','Маршруты','.sc-navigation-open']]){const opener=root.querySelector(selector);panels.addTool(id,{title,opener,launch:()=>opener.click()});}
 function selectedSource(){const selection=scene.port.selection,kind=selection.relationId?'relation':'node',raw=kind==='relation'?scene.port.relation(selection.relationId):scene.port.node(selection.nodeId);return raw?{raw,kind}:null;}
@@ -69,7 +73,8 @@ for(const [id,title,icon,event]of [['builder','Конструктор линз',
   const launch=()=>{userAction();if(id==='builder')root.querySelector('.sc-builder-open').click();else{const source=selectedSource();if(source)root.dispatchEvent(new CustomEvent(event,{detail:source}));else scene.port.announce('Сначала выберите звезду или связь.');}};
   opener.addEventListener('click',launch);panels.addTool(id,{title,opener,launch,available:()=>id==='builder'||Boolean(selectedSource())});
 }
-studio=createStudio(root,scene,panels,{initialRoute,onUserAction:userAction});
+reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction});
+studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});
 createSceneFeedback(root,scene);
 const handlers={
   ...tools.handlers,
@@ -129,3 +134,5 @@ void studio.start().then(restored=>{
   const restore=()=>{if(!scene.port.packet)return;observer.disconnect();commit(()=>{if(scene.port.node(restoreId))scene.port.selectNode(restoreId);else if(scene.port.relation(restoreId))scene.port.selectRelation(restoreId);});};
   const observer=new MutationObserver(restore);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision']});restore();
 });
+return {root,scene};
+}

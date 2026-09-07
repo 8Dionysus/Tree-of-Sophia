@@ -1,4 +1,4 @@
-import {KnowledgeClient,RequestSlots,localized} from './knowledge-client.mjs';
+import {RequestSlots,localized} from './knowledge-client.mjs';
 import {constructorCatalog,initialDraft,compileDraft,previewDraft,summarizeLens,lensDelta,encodeDraft,draftForPacket,readSaved,saveDraft} from './lens-model.mjs';
 import {lensVocabulary,vocabularyGroups} from './lens-vocabulary.mjs';
 import {refreshIcons} from './icons';
@@ -9,8 +9,8 @@ const plural=new Intl.PluralRules('ru');
 const count=(n,one,few,many)=>`${n} ${{one,few,many}[plural.select(n)]||many}`;
 const sourceNames={'philosophy':'Философский атлас','canon':'Канон','candidate-intake':'Исследовательские кандидаты','source-navigation':'Произведения и источники','source-claims':'Утверждения источников','semantic-interchange':'Понятия и типы','repository':'Карта проекта'};
 
-export function createLensPanel(root,scene,panels,{onUserAction}){
-  const client=new KnowledgeClient(),requests=new RequestSlots();
+export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
+  const requests=new RequestSlots();
   let context=null,draft=null,preview=null,bookmark=null,origin=null,basePacket=null,busy=false,failure='',storageError='',applied=false,applying=false;
   let saved=[],returnFocus=null,generation=0,stale=false,notice='',timer=null,scheduled=false,delta=null;
   const choiceViews=new Map(),choiceUpdates=new Map();
