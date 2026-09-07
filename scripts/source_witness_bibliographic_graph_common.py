@@ -922,11 +922,11 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     visibility_counts: Counter[str] = Counter()
     claim_ids = {str(entry["claim_id"]) for entry in claim_entries}
 
-    # A historical subject remains addressable before it has any assertions.
-    # No participant, date or causal edge is inferred from its label or notes.
+    # Every catalogued public-metadata subject remains addressable before it
+    # has assertions. Existence in this reader is not historical acceptance;
+    # no participant, date or other fact edge is inferred from label or notes.
     for record in objects.values():
-        if record['record_type'] in OPTIONAL_RECORD_FILES:
-            _add_node(nodes, _identity_node(record))
+        _add_node(nodes, _identity_node(record))
 
     for entry in claim_entries:
         claim = _load_source_claim(entry, repo_root=repo_root)

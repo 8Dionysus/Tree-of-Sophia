@@ -210,6 +210,18 @@ class SourceCommandTests(unittest.TestCase):
                     self.assertEqual(hashlib.sha256(commands._canonical(source)).hexdigest(), row['record_sha256'])
                     fields = commands.metadata_field_catalog(source)
                     self.assertTrue(fields)
+                    # The current metadata corpus is connected, not merely
+                    # preparable in a demonstration. Full source-copy coverage
+                    # remains separate from any judgment of the copied prose.
+                    persisted_path = source_path.with_name(source_path.stem + '.human-forms.json')
+                    persisted = json.loads(persisted_path.read_bytes())
+                    commands._validate_history(persisted)
+                    persisted_views = commands.materialize_metadata_forms(source, persisted, access_allowed=True)
+                    self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None
+                                        for view in persisted_views))
+                    copied_fields = {form['bindings'][form['content']['slot']]['pointer']
+                                     for form in persisted['forms'] if form['content']['kind'] == 'source-copy'}
+                    self.assertTrue({field['pointer'] for field in fields}.issubset(copied_fields))
                     changes = [commands.prepare_metadata_change(source, None, 'test:source-copy-not-assessment',
                         'tos.form.test.catalog.' + str(index), field['field_id']) for index, field in enumerate(fields)]
                     record = Record.from_payload(source['record_id'], source['record_version'], source)

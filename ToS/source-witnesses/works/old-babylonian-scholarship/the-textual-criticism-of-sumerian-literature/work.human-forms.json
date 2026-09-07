@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+    "version": 1,
+    "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5120852d6f545e71ea3cafbcde3be4ecb8a913105c6bee06230c9c8bb2baad9b",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+        "version": 1,
+        "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+            "version": 1,
+            "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+            "version": 1,
+            "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+            "version": 1,
+            "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.0930c0b4b306e1804ada3652b016553cb001ea114532dc9d70f2a64d6bd3d152",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+        "version": 1,
+        "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+            "version": 1,
+            "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+            "version": 1,
+            "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+            "version": 1,
+            "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+      "request_digest": "sha256:984f3679055394443c1d20a53e6fd8c467b2fae9cc4ec81f0a12cb063e1b8593",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:adbafdabd28c081ed8b8fd6a361a5fc938a7a72a9041180d7d3a8e3be85a8e19",
+      "recorded_at": "2026-09-07T03:13:25.401640+00:00",
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+        "version": 1,
+        "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5120852d6f545e71ea3cafbcde3be4ecb8a913105c6bee06230c9c8bb2baad9b",
+          "version": 1,
+          "digest": "sha256:a1e2ac195a4feff094b2c4ab2ea6c5761994fea53affca1523b02f00aa732c66"
+        },
+        {
+          "id": "tos.form.metadata.0930c0b4b306e1804ada3652b016553cb001ea114532dc9d70f2a64d6bd3d152",
+          "version": 1,
+          "digest": "sha256:519ed13431a9eacefb46aedd1cc149826436d53f12a9e4d5a574704048d8aa6b"
+        }
+      ]
+    }
+  ]
+}

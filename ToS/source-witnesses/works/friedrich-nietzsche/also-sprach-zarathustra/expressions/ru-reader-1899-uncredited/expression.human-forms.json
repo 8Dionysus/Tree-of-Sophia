@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+    "version": 1,
+    "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5cfa4db639e23776175c3249d21d3576a209f7f23505bdbdc883e75f53b27812",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+        "version": 1,
+        "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 1,
+            "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 1,
+            "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 1,
+            "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.38b4afc27721c46ea8df17ea7034b9574fe567b6f7e14cfd03a27e21ea91ea9e",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+        "version": 1,
+        "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 1,
+            "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 1,
+            "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 1,
+            "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+      "request_digest": "sha256:d0e3f82bcda8ee599c0ec6a72d801dc84cd97f4d0568336062a17454324d3049",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:843ef021c4f85bd61a4e6b67907c94e88187a50700e49b43ced7edd9c961c487",
+      "recorded_at": "2026-09-07T03:13:27.127517+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+        "version": 1,
+        "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5cfa4db639e23776175c3249d21d3576a209f7f23505bdbdc883e75f53b27812",
+          "version": 1,
+          "digest": "sha256:eb5f210979b31416aa8858c92630fdf80aeb29516293859e5e07f02e234b40d9"
+        },
+        {
+          "id": "tos.form.metadata.38b4afc27721c46ea8df17ea7034b9574fe567b6f7e14cfd03a27e21ea91ea9e",
+          "version": 1,
+          "digest": "sha256:060d41797c037d40fb48453dca535dc7c787feb6c3941f078f3a476c6ac1cce7"
+        }
+      ]
+    }
+  ]
+}

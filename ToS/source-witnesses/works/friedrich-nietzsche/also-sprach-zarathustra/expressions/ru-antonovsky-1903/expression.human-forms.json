@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+    "version": 3,
+    "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.65a33c10c99f83a2205ee2159f32ee23ce47ed112f4d49a01a482b363f0658e0",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+        "version": 3,
+        "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+            "version": 3,
+            "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+            "version": 3,
+            "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+            "version": 3,
+            "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.8eb8acc8c86fab262d086b8b3dfe607f29a3027f19d2a53785083a3f96ae463d",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+        "version": 3,
+        "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+            "version": 3,
+            "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+            "version": 3,
+            "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+            "version": 3,
+            "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+      "request_digest": "sha256:2857ebbefc6ef44bfae80807c6ed35e611461a8b8d31718c9c864bb1b64875c2",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:01a16c210e266e1e2560278118549e0ab4534b09c925c8e80643d0f5b60314e0",
+      "recorded_at": "2026-09-07T03:13:26.784610+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1903",
+        "version": 3,
+        "digest": "sha256:47974e431cba7c5f631dedadae765bc7096a4d951dcbb7681769dadf6fd42fdd"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.65a33c10c99f83a2205ee2159f32ee23ce47ed112f4d49a01a482b363f0658e0",
+          "version": 1,
+          "digest": "sha256:0c39bcda60bb85270fcdcad555ac899a0158660bbe8758cfddb5d9f8b23c6810"
+        },
+        {
+          "id": "tos.form.metadata.8eb8acc8c86fab262d086b8b3dfe607f29a3027f19d2a53785083a3f96ae463d",
+          "version": 1,
+          "digest": "sha256:112933c3749c9deef978f58c32f2956d065a116c8139be61663939fbddca9afa"
+        }
+      ]
+    }
+  ]
+}

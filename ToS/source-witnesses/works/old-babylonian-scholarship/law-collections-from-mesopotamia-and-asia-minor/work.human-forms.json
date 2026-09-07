@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+    "version": 1,
+    "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.0fc87dc3e9d6371a29f0ea1547a1ae9ef334cbdfc03d3f51221b8f9894903a8c",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+        "version": 1,
+        "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+            "version": 1,
+            "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+            "version": 1,
+            "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+            "version": 1,
+            "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.73f1fe6d2891be353d1e404e88a68c0e5ddabc731cfa0ed22253659754cbc589",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+        "version": 1,
+        "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+            "version": 1,
+            "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+            "version": 1,
+            "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+            "version": 1,
+            "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+      "request_digest": "sha256:d117c202a74cca9e8ec2b02febfd8fb5408cd7e73babe2a3c6f9c73c9533689a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:7552b506cb5fb18a0b3cf2a0897fda6633a1eff016d30b05cea77a684087ea44",
+      "recorded_at": "2026-09-07T03:13:25.023856+00:00",
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.law-collections-from-mesopotamia-and-asia-minor",
+        "version": 1,
+        "digest": "sha256:2fbf7a6dfd6947b992d3eb3d1f59eef466be6fffab82dc843001c81520f7f744"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.0fc87dc3e9d6371a29f0ea1547a1ae9ef334cbdfc03d3f51221b8f9894903a8c",
+          "version": 1,
+          "digest": "sha256:9e7dfb25067452d50d85ab93305c5fe5c53b96cbe36e4aac67ad4f95de258dbe"
+        },
+        {
+          "id": "tos.form.metadata.73f1fe6d2891be353d1e404e88a68c0e5ddabc731cfa0ed22253659754cbc589",
+          "version": 1,
+          "digest": "sha256:19468a92e742754f009286ce5ad05ba8c38679333ac9c6434ac0fcd765d90765"
+        }
+      ]
+    }
+  ]
+}

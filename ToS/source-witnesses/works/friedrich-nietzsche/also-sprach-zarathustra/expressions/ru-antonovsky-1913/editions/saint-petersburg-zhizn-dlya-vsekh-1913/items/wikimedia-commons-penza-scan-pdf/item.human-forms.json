@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+    "version": 1,
+    "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.f7c75e8ef52d7e835d5dcc9784d9cc61cc9d938a8ef6451a260089f1dec21870",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+        "version": 1,
+        "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+            "version": 1,
+            "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+            "version": 1,
+            "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+            "version": 1,
+            "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.c0c8342dd736894ee1086fd3eec0d0d3cba5177af830b6e32d8c3a29f01604bc",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+        "version": 1,
+        "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+            "version": 1,
+            "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+            "version": 1,
+            "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+            "version": 1,
+            "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+      "request_digest": "sha256:f3a1d3bb322bc525e1addc158aa9842a05aff5032f336c32cd3de70876eeb4f5",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:2ce7d99bcf7bcd868a55101aff3e8f58d6d772ee33e49110c7da96783f7e73af",
+      "recorded_at": "2026-09-07T03:13:29.993752+00:00",
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf",
+        "version": 1,
+        "digest": "sha256:e1b3b93ca3ca85f178c48ef4542cdd57d4fd4c290613aaa2ae4c3d47551fd6e4"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.f7c75e8ef52d7e835d5dcc9784d9cc61cc9d938a8ef6451a260089f1dec21870",
+          "version": 1,
+          "digest": "sha256:cbb0fc7ae32f63f831fd73bc95792e14458c2fce9c736bfa5af901432b47d574"
+        },
+        {
+          "id": "tos.form.metadata.c0c8342dd736894ee1086fd3eec0d0d3cba5177af830b6e32d8c3a29f01604bc",
+          "version": 1,
+          "digest": "sha256:3dd3fcd52a40a68a4ee8ba71667b1ace2981ffdb07ac7450cc11cacf6777fb41"
+        }
+      ]
+    }
+  ]
+}

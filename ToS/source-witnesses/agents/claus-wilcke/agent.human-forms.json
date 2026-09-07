@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.agent.claus-wilcke",
+    "version": 1,
+    "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.67be4cfeaf5184ecdeeb96015836e05c9dc7a412d42311b3845de7c4d4ab842b",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.claus-wilcke",
+        "version": 1,
+        "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.claus-wilcke",
+            "version": 1,
+            "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.claus-wilcke",
+            "version": 1,
+            "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.claus-wilcke",
+            "version": 1,
+            "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.85885b3f67f856fad893acfef56efb7343e7c4bb9890237e87cb3762ec9366da",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.claus-wilcke",
+        "version": 1,
+        "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.claus-wilcke",
+            "version": 1,
+            "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.claus-wilcke",
+            "version": 1,
+            "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.claus-wilcke",
+            "version": 1,
+            "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.agent.claus-wilcke",
+      "request_digest": "sha256:c219c3ca5e31113c275c133a2b962c2bab8904a0efea6435191c437e5cfe636a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:7cd80e66a46a140d8ce961f84e4d11559737dc6f661e4b5fb10e8e2497eaa5f3",
+      "recorded_at": "2026-09-07T03:13:21.121752+00:00",
+      "source": {
+        "id": "tos.agent.claus-wilcke",
+        "version": 1,
+        "digest": "sha256:e327e8a4b961e04d0e9adcbe03c767b594b6e85d79663e72fff81896f0fb4ff6"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.67be4cfeaf5184ecdeeb96015836e05c9dc7a412d42311b3845de7c4d4ab842b",
+          "version": 1,
+          "digest": "sha256:25bdb461d16f7ed3a886aa68993e401f7a70c11ec0e2618f831a60ffd825cb19"
+        },
+        {
+          "id": "tos.form.metadata.85885b3f67f856fad893acfef56efb7343e7c4bb9890237e87cb3762ec9366da",
+          "version": 1,
+          "digest": "sha256:eaa45aa6084e038734aae35171f29015e4ea8a8010e4018c937e405c63b2ab20"
+        }
+      ]
+    }
+  ]
+}

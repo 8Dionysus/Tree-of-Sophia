@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+    "version": 3,
+    "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.d6afebe833263ee3ca46cb203b5e114ff595b4cc3e353d340fb0276e45bad6cb",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+        "version": 3,
+        "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+            "version": 3,
+            "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+            "version": 3,
+            "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+            "version": 3,
+            "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.05a16ee10c4b9202a66b91a8778ac0860d3252d7a34ab080e34e721adc310ccd",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+        "version": 3,
+        "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+            "version": 3,
+            "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+            "version": 3,
+            "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+            "version": 3,
+            "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+      "request_digest": "sha256:4f6c23002e6b2280b5cd9aa2f92edaf4790aafd1d52b711addf581c517507500",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:c6083c62e9016ce841975075e78ac0229f1f29ef4438e51754f5631647291393",
+      "recorded_at": "2026-09-07T03:13:28.708666+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-zhizn-dlya-vsekh-1913",
+        "version": 3,
+        "digest": "sha256:84e4a346587757362ede6c8f9d8d6295092379a1f15e2b48bba1749588595ea8"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d6afebe833263ee3ca46cb203b5e114ff595b4cc3e353d340fb0276e45bad6cb",
+          "version": 1,
+          "digest": "sha256:f18af77e864980623d0fe18d34a98e41125b4569586d566d0cc93a77fd0be69d"
+        },
+        {
+          "id": "tos.form.metadata.05a16ee10c4b9202a66b91a8778ac0860d3252d7a34ab080e34e721adc310ccd",
+          "version": 1,
+          "digest": "sha256:e273f181c500bf7de28197488432852c3e3f7d9b70c3b3289986fdf250b5595a"
+        }
+      ]
+    }
+  ]
+}

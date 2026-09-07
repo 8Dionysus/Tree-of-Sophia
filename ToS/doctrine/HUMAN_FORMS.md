@@ -146,6 +146,11 @@ adjacent source return in identity properties, with the set's input digest.
 This route uses already public bibliographic metadata, not payload text or
 private source layers. It has no growth-command or publication authority.
 Each set is bounded at 2 MiB input, 32 current forms and 256 KiB output.
+Every public-metadata subject in the supported source catalog is addressable
+in the bibliographic reader even before any Claim refers to it. A standalone
+subject carries its forms and source return; it does not acquire an invented
+authorship, participant, date, evidence or other fact edge merely to make it
+visible. Link records retain their separate object-link adapter.
 The initial Jenseits set contains original-name, Russian-name and source-note
 copies, not a new translation, historical assessment or complete Forms profile.
 Its original-name ID is not language-context evidence. The current metadata

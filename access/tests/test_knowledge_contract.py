@@ -1321,6 +1321,16 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(graph["counts"]["semantic_validation"]["violations"], [])
 
         nodes_by_id = {node['id']: node for node in graph['nodes']}
+        # Every source-owned metadata form travels into the ordinary reader,
+        # not only the original Jenseits example. Do not freeze corpus counts.
+        for source_node in bibliographic['nodes']:
+            forms = source_node['properties'].get('human_forms')
+            if forms is None:
+                continue
+            projected = nodes_by_id['source-claims:' + source_node['node_id']]
+            self.assertEqual(projected['attributes']['human_forms'], forms)
+            self.assertEqual(projected['attributes']['human_forms_source_ref'],
+                             source_node['properties']['human_forms_source_ref'])
         # The real source form set travels through the existing graph and full
         # inspection. It is not yet a scene/hover selection contract.
         from tos_access.knowledge import inspect_knowledge_node

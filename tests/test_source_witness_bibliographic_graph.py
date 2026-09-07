@@ -114,6 +114,22 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                                for name in ('entity-types.v1.json', 'relation-types.v1.json')]
         return build_knowledge_graph({}, {}, projection, entities, relations), entities, relations
 
+    def test_catalogue_subjects_remain_focusable_without_claims(self):
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            claims.clear()
+            projection = rebuild()
+            expected = {record['record_id'] for record in real}
+            expected.update(record['record_id'] for _, record in history)
+            self.assertEqual({node['properties']['identity_ref'] for node in projection['nodes']}, expected)
+            self.assertEqual(projection['edges'], [])
+            self.assertEqual(projection['claim_traces'], [])
+            graph, _, _ = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import focus_knowledge_node
+            for identifier in expected:
+                focused = focus_knowledge_node(graph, identifier, depth=1)
+                self.assertEqual([node['entity_id'] for node in focused['nodes']], [identifier])
+                self.assertEqual(focused['relations'], [])
+
     def test_historical_sources_reach_existing_focus_forms_and_claim_inspection(self):
         from source_commands import prepare_metadata_change
         from knowledge_assessment import Record
@@ -334,7 +350,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                     Draft202012Validator(schema['$defs']['entry']).validate(json.loads(line))
             claims.clear()
             standalone = rebuild()
-            self.assertEqual(standalone['counts']['nodes'], 3)
+            self.assertEqual(standalone['counts']['nodes'], len(history) + len(real))
             self.assertEqual(standalone['counts']['source_claims'], 0)
             self.assertEqual(standalone['edges'], [])
             graph, _, _ = self.historical_knowledge(root, standalone)
@@ -472,7 +488,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         counts = payload["counts"]
         self.assertEqual(counts["source_claims"], 193)
         self.assertEqual(counts["claim_traces"], 193)
-        self.assertEqual(counts["nodes"], 680)
+        self.assertEqual(counts["nodes"], 690)
         self.assertEqual(counts["edges"], 1312)
         self.assertEqual(counts["direct_subject_object_edges"], 0)
         self.assertFalse(payload["relation_model"]["direct_subject_object_edges"])

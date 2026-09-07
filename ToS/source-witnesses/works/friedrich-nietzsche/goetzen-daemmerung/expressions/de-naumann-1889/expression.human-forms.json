@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+    "version": 2,
+    "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.d720df2175383a70ee3245430044f662ec77081ec1598565d1f38184ca9b3b7e",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+        "version": 2,
+        "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+            "version": 2,
+            "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+            "version": 2,
+            "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+            "version": 2,
+            "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.797add796459c2abeb5ccb174eb49f53299bf0e878eb8aea78d8f4edb0566ada",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+        "version": 2,
+        "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+            "version": 2,
+            "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+            "version": 2,
+            "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+            "version": 2,
+            "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+      "request_digest": "sha256:1bfe94b971d5da8b27a50e50e7f56b5782939861640fd9c88e798437594f563a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:3acbeb6b39879cc4fda84159de0f5912051787b26f32660eb216cc828da7ae06",
+      "recorded_at": "2026-09-07T03:13:27.489915+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889",
+        "version": 2,
+        "digest": "sha256:f1504cb95de0eb881e56952fd530313eef2f7500a91c827df78398e0d7406172"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d720df2175383a70ee3245430044f662ec77081ec1598565d1f38184ca9b3b7e",
+          "version": 1,
+          "digest": "sha256:7381328a5c407d7fcc4dd9eba02f28d15c2c1970bebe6a590f79514d593eccb6"
+        },
+        {
+          "id": "tos.form.metadata.797add796459c2abeb5ccb174eb49f53299bf0e878eb8aea78d8f4edb0566ada",
+          "version": 1,
+          "digest": "sha256:a77fba69a027c00a257a551a429ef58255338ab22bc6c69b6962752f435a7464"
+        }
+      ]
+    }
+  ]
+}
