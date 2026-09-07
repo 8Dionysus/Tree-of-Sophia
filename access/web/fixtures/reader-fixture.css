@@ -3,3 +3,5 @@ html,body{margin:0;background:#070c16;overflow:hidden}
 .fixture-controls :is(select,button){font:inherit;background:#0c1421;color:#d6e0ed;border:1px solid #4a5b71;border-radius:3px;padding:5px}
 .fixture-controls strong{color:#dfc392}
 body #app #sophia-gestures{height:calc(100dvh - var(--fixture-bar-height,62px));min-height:0}
+.fixture-probe{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fixture-probe pre{position:absolute;right:0;top:100%;max-width:90vw;max-height:60vh;overflow:auto;padding:12px;background:#192333;z-index:40}

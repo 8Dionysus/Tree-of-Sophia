@@ -1,4 +1,5 @@
 import {validatePose} from './view-state.mjs';
+import {sameSceneView} from './scene-history.mjs';
 import {refreshIcons} from './icons';
 import { projectLens } from './knowledge-client.mjs';
 import { attachKnowledgeUI } from './knowledge-ui.mjs';
@@ -213,7 +214,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     root.dataset.history=String(history.length);layoutDirty=true;onChange(scenePort);
   }
   function captureView(){return {graph:captureGraph(),selected,panelOpen:!panel.hidden||overlayReturnPanel,lens,targets:nodes.map(n=>n.target.slice()),yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:{...tpan},windowPosition:{...windowPosition},cardTab};}
-  function remember(){if(suppressHistory)return;const state=captureView();if(JSON.stringify(state)!==JSON.stringify(history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}
+  function remember(){if(suppressHistory)return;const state=captureView();if(!sameSceneView(state,history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}
   function back(){
     const state=history.pop();if(!state)return;
     restoreView(state);

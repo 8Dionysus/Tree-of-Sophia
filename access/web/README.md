@@ -19,6 +19,19 @@ comparison, changed snapshots, delayed/offline/restricted reads, and the
 40-node/80-relation scene budget. Its short frame sample is a local diagnostic,
 not a sustained performance guarantee. Fixtures are not production build entries.
 
+`/static/fixtures/lens.html` also exercises search, capability-bound conditions,
+context and returns to paired reading at either 6 or 40 nodes. Its optional
+ten-minute probe keeps bounded frame/event histograms and at most 121 samples.
+Keep the application and tab visible: the embedded browser can throttle a hidden
+task even when page visibility reports otherwise. Save the displayed report
+before editing source, because development reloads reset it. The report separates
+frame intervals, listener-to-next-rAF callback delay, slow Event Timing entries,
+long tasks, DOM size and optional Chromium heap estimates. Panel delay ends at
+that callback, not completed paint or remote response. Event counts include
+automation; trusted events are counted separately. Heap estimates are not
+retained-size measurements or proof of leak freedom. These diagnostics remain
+local to the development fixture and are not a production telemetry service.
+
 `dist/` is tracked. Rebuild it from source. Both HTTP and edge adapters load the
 stable `/static/assets/tos-graph.js` bootstrap and `tos-graph.css`; imported view
 JavaScript and CSS use content hashes. No CDN, inline scripts, iframe, or relaxed
@@ -32,6 +45,11 @@ CSP is required.
 - `src/observatory/scene.js` owns camera, selection, navigation history, sky and
   layout. `gpu-canvas.js` batches the accepted painter through Three 0.185.1;
   Canvas remains the fallback if GPU creation fails.
+- `scene-history.mjs` compares the bounded pose and geometry while retaining the
+  page-owned response packet by reference. Camera and selection history never
+  serializes source text. A newly delivered packet stays a distinct boundary,
+  including its packet-local query metadata, even with an equal fingerprint.
+  Navigation history remains capped at 24 entries.
 - `knowledge-client.mjs` validates LensResult authority, revision, unique opaque
   IDs, closed relation endpoints, and a 40-node/80-relation display budget.
   A large corpus never directly determines per-frame scene size.

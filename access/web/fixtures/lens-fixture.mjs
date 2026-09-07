@@ -1,17 +1,20 @@
 import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
+import {mountPerformanceProbe} from './performance-probe.mjs';
 import {lensContext,boundary} from './lens-scenarios.mjs';
 
 let generation=1,compiles=0;
 const revision=()=>generation.toString(16).padStart(64,'0');
 const form=text=>({default:text,ru:text});
 const names=['Альфа','Бета','Гамма','Дельта','Эпсилон','Дзета'];
-const nodes=names.map((name,index)=>({id:'fixture:node:'+index,kind_id:'fixture-material',source_graph:'philosophy',native_id:'fixture-'+index,source_refs:['Искусственные данные UI; не источник Древа'],content_revision:(index+10).toString(16).padStart(64,'0'),
+const allNodes=Array.from({length:40},(_,index)=>{const name=names[index]||'Материал '+(index+1);return ({id:'fixture:node:'+index,kind_id:'fixture-material',source_graph:'philosophy',native_id:'fixture-'+index,source_refs:['Искусственные данные UI; не источник Древа'],content_revision:(index+10).toString(16).padStart(64,'0'),
   attributes:{fixture_title:name,fixture_number:index,fixture_flag:index%2===0,fixture_tags:index%2?['Б','В']:['А','Б']},
   display:{title:form(name+' · проверка линзы'),kind_label:form('Проверочный материал'),summary:form(Array.from({length:20},(_,i)=>`Абзац ${i+1}. Это искусственный материал ${name} для проверки непрерывности чтения при смене линзы. Он не является историческим утверждением.`).join('\n\n')),summary_state:'authored'},
-  epistemic:{review_posture:index===5?'fixture-open':'fixture-reviewed'}}));
-const relations=nodes.slice(1).map((node,index)=>({id:'fixture:relation:'+index,from_id:nodes[index].id,to_id:node.id,predicate_id:'fixture-related',source_graph:'philosophy',native_id:'fixture-relation-'+index,content_revision:'f'.repeat(64),source_refs:['Искусственная связь UI'],
+  epistemic:{review_posture:index===5?'fixture-open':'fixture-reviewed'}});});
+let nodes=allNodes.slice(0,6);
+const allRelations=Array.from({length:80},(_,index)=>({id:'fixture:relation:'+index,from_id:allNodes[index%40].id,to_id:allNodes[(index%40+1+Math.floor(index/40))%40].id,predicate_id:'fixture-related',source_graph:'philosophy',native_id:'fixture-relation-'+index,content_revision:'f'.repeat(64),source_refs:['Искусственная связь UI'],
   display:{label:form('Проверочная связь '+(index+1)),statement:form('Это связь между двумя проверочными материалами.'),explanation:form('Только сценарий интерфейса.'),explanation_state:'authored'},epistemic:{review_posture:index%2?'fixture-open':'fixture-reviewed'}}));
+let relations=allRelations.slice(0,5);
 function catalog(){
   const mode=document.querySelector('#fixture-contract').value,context=lensContext({properties:mode!=='legacy',revision:revision()});
   if(mode==='removed')context.catalog.semantic_registries.properties=context.catalog.semantic_registries.properties.filter(p=>p.property_id!=='tos.property.fixture-number');
@@ -63,7 +66,7 @@ const data=createObservatoryData({fetcher:async(url,options={})=>{
   else if(url.includes('/nodes/')){const raw=nodes.find(n=>n.id===decodeURIComponent(url.split('/nodes/')[1].split('?')[0]));body={schema:'tos_knowledge_node_packet_v1',source_revision:revision(),matches:raw?[raw]:[]};}
   else if(url.includes('/relations/')){const raw=relations.find(n=>n.id===decodeURIComponent(url.split('/relations/')[1].split('?')[0]));body={schema:'tos_knowledge_relation_packet_v1',source_revision:revision(),matches:raw?[raw]:[],endpoints:nodes.filter(n=>[raw?.from_id,raw?.to_id].includes(n.id))};}
   else if(url.includes('/explore/capabilities'))body={available:false};
-  else if(url.includes('/search?')){const query=new URL('http://fixture'+url).searchParams.get('query')||'';body={schema:'tos_knowledge_search_v1',source_revision:revision(),nodes:nodes.filter(n=>n.display.title.default.includes(query)),relations:[]};}
+  else if(url.includes('/search?')){const params=new URL('http://fixture'+url).searchParams,query=(params.get('query')||'').toLowerCase(),offset=Number(params.get('offset')||0),found=nodes.filter(n=>n.display.title.default.toLowerCase().includes(query));body={schema:'tos_knowledge_search_v1',source_revision:revision(),nodes:found.slice(offset,offset+6),relations:[],counts:{matching_nodes:found.length,matching_relations:0}};}
   else return {ok:false,status:404};
   if(connection==='slow')await new Promise(resolve=>setTimeout(resolve,10000));
   if(connection==='offline')throw new TypeError('Fixture offline');
@@ -74,3 +77,6 @@ const {root}=mountObservatory({data,initialRoute:new URLSearchParams(location.se
 new ResizeObserver(entries=>document.documentElement.style.setProperty('--fixture-bar-height',entries[0].target.getBoundingClientRect().height+'px')).observe(document.querySelector('.fixture-controls'));
 document.querySelector('#fixture-contract').addEventListener('change',()=>{generation++;});
 document.querySelector('#fixture-revision').addEventListener('click',()=>{generation++;document.querySelector('#fixture-metrics').textContent='Новый снимок: '+generation;});
+
+document.querySelector('#fixture-size').addEventListener('change',event=>{const dense=event.target.value==='40';nodes=dense?allNodes:allNodes.slice(0,6);relations=dense?allRelations:allRelations.slice(0,5);generation++;});
+mountPerformanceProbe(root);
