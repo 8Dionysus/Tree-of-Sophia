@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 3778,
+    "tracked_surface_count": 3871,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 658,
+    "excluded_tracked_path_count": 678,
     "human_scope": {
-      "bytes": 5233371,
-      "count": 987,
+      "bytes": 5244550,
+      "count": 989,
       "excluded_skill_launch_metadata": 25,
       "family_counts": {
         "access": {
@@ -116,20 +116,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 3836656,
-          "count": 578,
-          "lines": 64813
+          "bytes": 3847835,
+          "count": 580,
+          "lines": 64997
         }
       },
-      "lines": 90650
+      "lines": 90834
     },
     "surface_kind_counts": {
       "executable": 233,
-      "human": 1012,
-      "structured": 2533
+      "human": 1014,
+      "structured": 2624
     },
-    "tracked_path_count": 4436,
-    "tracked_surface_count": 3778,
+    "tracked_path_count": 4549,
+    "tracked_surface_count": 3871,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -173,11 +173,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 578,
-        "structured": 2449
+        "human": 580,
+        "structured": 2540
       },
-      "tracked_surface_bytes": 219403838,
-      "tracked_surface_count": 3031
+      "tracked_surface_bytes": 220588931,
+      "tracked_surface_count": 3124
     },
     {
       "family_id": "access",
@@ -285,7 +285,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "c1775e1ba3e1457c5f09bf5de3d26d699b7427ff8e885e43709f5ba5fcf1bb7d",
+  "tracked_surface_digest": "bb9b011625c2ae2514708df90a557a6185e5bed5d056e0c9eeef565733cd1f56",
   "tracked_surfaces": [
     {
       "bytes": 1489,
@@ -4072,11 +4072,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5749212,
+      "bytes": 6336650,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "0b6627fb7c6f79c4df092d8dd4fa6909115367d508f21576fef7ce015f36e376",
+      "sha256": "74aaf1ea557cf24bfdb52b34aa70ce5a09ac3e1de49bb9d5e768df71bfea8124",
       "surface_kind": "structured"
     },
     {
@@ -4152,11 +4152,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 57068783,
+      "bytes": 57308758,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "6efb61bbb08d43b00d3c7d6cabd06223b90ead2d6e5148f5b6940e659809abea",
+      "sha256": "81dd801bee94dbf9af1038d6c48c6f64e6de3754a6248ce8e537c6cb20fd541f",
       "surface_kind": "structured"
     },
     {
@@ -4232,11 +4232,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 68114,
+      "bytes": 68530,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "a4b028aa821517269a8d9e7e0f4ee021d92130a39a2a74b144563503eba6598e",
+      "sha256": "a2621350f9df607af83e4c61ab8b303c959eae7bf73a32fe97d89fd7e67bdb70",
       "surface_kind": "human"
     },
     {
@@ -18304,6 +18304,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 5512,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-jgb-freedom-reader-review.md",
+      "sha256": "820c9a9575bf7f2f5ab783bfc0be6205cdaa2638e477898e4fef08a59188535c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5251,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md",
+      "sha256": "23a9c086d500b3c5260cd8c5b5939c04936c7ccc3d330201aea58f80504082d2",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 4337,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19864,11 +19880,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2070,
+      "bytes": 2858,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "b15c34f76afe685e2bf0c43744d28068c24a1ac2c896ee43116fe834a1f6651d",
+      "sha256": "aa9f5be33e29c58d853e6555d64f517f7eea5f2c57e1d21775c889787d034803",
       "surface_kind": "structured"
     },
     {
@@ -21720,6 +21736,254 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3775,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.01f43caaedc5bda3892cc3b3463cb92bf199535bb4102e6d2fe06183ff225955.human-forms.json",
+      "sha256": "d914baade78732bad4dca263959a0a03738936efbd6c26cb97d0ad80b294358d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3871,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.1720d16f5b3e9ec62e3c65537fd5503e5d6ced3e1444f2f6eedf3a6b09513c52.human-forms.json",
+      "sha256": "718f3eb26cd801813c5b84a75de18ed4168828350c9a3652b6c24919ed8d7b3c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3847,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.230eababe1cc67af348ddf007110083ca8490253c0cef640ba71477172726ae2.human-forms.json",
+      "sha256": "a1da86c86cf5b4b137d99900605641b7ec43eacc3ba191e3801d212aa4c22b7a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.2b14a7c2947d89ffadf1c45f0aad1d288acc4a8afc0078eaa1fc9767d9f5d82d.human-forms.json",
+      "sha256": "eb983c8fc6286d015fa0d0f0eda1d5facbf416b10f63003ab2f2af6f52c783cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3823,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.46f7ff98bfabaf34e878bdcf277488e08afc80fa26ffda4203504fce9939c493.human-forms.json",
+      "sha256": "a0ebdb355703bd1d3911201a332c14517fa0c7590f8f8604c67b3a744cc1b2d3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.48df8f03b4e690088e893d88ef426ccc0576ecf8a180fa52befb7a4eb00ef8f4.human-forms.json",
+      "sha256": "0da74cdb5c213a13f90dd505802512ca890ca7466ef722f64262e10b418c4fdc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.5920372be16136b659da502473876fc5ceb3ed43bad0a3d392b078848ed946c6.human-forms.json",
+      "sha256": "d763019935454337c3a9a4751db679eda44cd62c60550e9c76819ed7a13e591e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.5ae91fadfe1ce9171028f74a92623aabfed274ce6108c14fb4da86e9e9adaf4b.human-forms.json",
+      "sha256": "39ddfd5dd07b7d8a1c7118e0dbdf85ab08a11bf2feab24ceaf0fc051598719cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3823,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.5ba443ba8ade5680b8df131a77583f117f9d9790e54ecd79fffd4669fecc8eff.human-forms.json",
+      "sha256": "c16abc5c0db963e7b2c47a4358f8eb6bd306eba80b5ba68b5dfe6c61a34e3b16",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3831,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.5c157832cf71b50c008545bd944283fc30640f800e3070fa997c057a582314f0.human-forms.json",
+      "sha256": "d214524eca85d41222e2ccad1e1218a5fba6076d7feb1c895eafb577af9a4385",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3831,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.734e8b71bcf8a9b1e355f9a0a480eb76999517c45b977377cfd32d1f3e6e9308.human-forms.json",
+      "sha256": "1db880959c3c02378223d78e426874dc343e3e90740ded86e8382454dd5e6a34",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3775,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.8238929d11f7bc463c07fdb9f4855d97565d00a72edc18860dda406450c1669e.human-forms.json",
+      "sha256": "f769ee62c6d3575146f50c2a8a7dcfc0c2eb5efeb0181f92c9b4c899cf423de1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3680,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.8305378164c26897638b3a8df8eb822763ff7f567e2e99a59ab60db36eb77ce3.human-forms.json",
+      "sha256": "e3b2f3834028079f954ea01c10265cfbc720668d1c0f1eba0cdad8a7a0102957",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3823,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.87b5690a3dc229b1658c8b0537b408f3c4179bc9b6c0c37f648c139ce82e9c1c.human-forms.json",
+      "sha256": "ce1481f19ec096f8ec8cb3603df6b49a18e401ed76140e8c02b1ca8473207eb2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3815,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.9918344be2b2187ba1f3a681801da3ff39a58f97e99b638a10e7a25b3f7a1313.human-forms.json",
+      "sha256": "0302836a17f11db9b502f5daf418ec589efc56ad7c6006e26840a31cfa3e8cb8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3823,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.9c58d661964d036e368b93c97800944928862a743394728b384ad60483cac8d9.human-forms.json",
+      "sha256": "73ae5e7fbfa7a0e99c390c038a3e29a40f27e02bdadf3f2c933f6637b6eae05f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3672,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.ab483cb6069c0e1f9171583b021856affd90fc7530a57f133e4311af767471ff.human-forms.json",
+      "sha256": "ed05edea186187a95eda324a36a2f6c3fe0dbbfa7bdb5762be262c867f0679d0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3839,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.abd7f386d773d9d2751e26d43d4c34a3302a98be57274569e9a087a8f6b624c9.human-forms.json",
+      "sha256": "95cf37425c44e4488fbe72964e6f4a27e7eb8e53a21734da633b80682898bd98",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3831,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.b7c116909befd132a5b211eea54a41a7ebd392d7b4cac7598342c2af618485f8.human-forms.json",
+      "sha256": "73205f8039384ba7f825be0edbe8820a492bf1d145da19ebd3a58bd726d806c7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3855,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.b9dfa666432a4f7dd15bb8e2e0603840326b2e34d5f1f72114fa53431ab07be0.human-forms.json",
+      "sha256": "2e990a04e4beede39f497ebce2923d939607d62cd9f0faf0611d55c87eea53c4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3839,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.bc412e1d9cce66a0ecd5b6234051b20bddedb97fc76df6e716f19aa90c4157a6.human-forms.json",
+      "sha256": "da394e6aa641054f9cd538b0f98de67fc9cf0f041b344b234288da36d8158e1f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3863,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.c63bcbcb1f49ccdda4a95b7c909ecbe30fe8a2969f28cca208d5818b825ba8d4.human-forms.json",
+      "sha256": "19a66dee0a3d26dd50c154aa34804236059b484e3e04499c0c2ba4c34b996071",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3863,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.cc0a44b0925761ca9e9733c1f1731ed971e37703187caee14dd9c880c398a739.human-forms.json",
+      "sha256": "188dc64da6e3e37f0e4e0157aeb9e926dca77e5dc8451c6d08ac9c49edee884f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3839,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.d99e65f88d940c93e0dff59b962c32cb0e8641267909bc4c0f144add176709c4.human-forms.json",
+      "sha256": "c5f1507e1220cede9ec8b6e06b39461a288144db3988aca13be036359288f297",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.e47c28c0421ce24008aca8dfdcb453ea1c2c4481a66270a5468366616952f54f.human-forms.json",
+      "sha256": "eefcb35cdd63a76f5a9975736bf5c21f77393a060c7c4fbe0ff053f19a4b04b5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3720,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.e8fbfef910aa207c6587d0b3d3977fcd9fd153b7c84fee8f8f031eb5d7b5c77e.human-forms.json",
+      "sha256": "2f22e5f84c2fb01fd6eea48928d05a0a034f94215b16169922f64b09935298e8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3720,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.f9c841935a40d0cf593dc379f3a7e9d9ca77860fdf6b223c402abc5b813980ad.human-forms.json",
+      "sha256": "a4b81265a841670ec03cf49b9d4fae102709ccfd9a98f82003bf58ff050ccb31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-claims.fb7e01d32583e3566cad6c430eaaf4939e48059a4ca856807f71986a691cfae9.human-forms.json",
+      "sha256": "4b8373073fc073900b03e012e1ea940cb4c1339caef6856e8d1d718758240ac0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 11453,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-create-receipt.json",
+      "sha256": "7a01d3caf17e935323f4c5de360fc0f459f55cc31d2305eb06f55d46126b7fe2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 49007,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/jgb-freedom-research/source-create-request.json",
+      "sha256": "c3cbe9f613c1542eac813af0cbbeabf982f62ff1c25a96c3c7cbeb7bbde67c11",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3501,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22133,6 +22397,486 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/rights.json",
       "sha256": "a13338456fdf2e61bac9d9defff1bffd05f6616523ae522758fe29914b96fb6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/argument.human-forms.json",
+      "sha256": "107d47b7b5682373ace7e4ca0f28bdc382dfc14fd217ba97fe1c26d4fd1c7973",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2499,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/argument.json",
+      "sha256": "a02c9e50d46e8c0249670b6c6cc179437809c7249c884a81553004588b4bd35b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/source-create-receipt.json",
+      "sha256": "4220f9c1ae9a867c9158d51a0db79976ff360d1ab83e9b69010cf4630fa5d25a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2982,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/source-create-request.json",
+      "sha256": "498ecd8b04431239da749fde0c297cedbcad603f5ae7c5a4aff1ac8b64e94edb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/conception.human-forms.json",
+      "sha256": "89e6d5b19ad846e6bdd61f9051d0b0d5b0dd272aff73a96ce320fe2aca9e9249",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2118,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/conception.json",
+      "sha256": "0d786c12a0bfc03cff1a3f246e53d7b25e176dde14e6a694e0fe55a792c0e8cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/source-create-receipt.json",
+      "sha256": "b78b60d1f636aba2e86aa4012ea9c67dfd0125f4bfc2c0b1663dc254da6e0489",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2624,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/source-create-request.json",
+      "sha256": "e39332f81caedb931301063b81762b480e19fff6a5474f9711dacdf39047da5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/conception.human-forms.json",
+      "sha256": "33139191f6be580888308bd1bd21a9fd133978c11351c8778fb502a723ab30f6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2013,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/conception.json",
+      "sha256": "77b966f85d045e2cbcd70e28b264f5c543f2021617eae8ec64b7d38f3dc75ec5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1515,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/source-create-receipt.json",
+      "sha256": "d016463cb26228a4cacec985e50d2d691a54772be0c050810a1cfdb2d0719bf9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2567,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/source-create-request.json",
+      "sha256": "7fe494abfb16926441754e34373006385f18d9445a571febed5002d59e83459f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7450,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/conception.human-forms.json",
+      "sha256": "7c55f2d033d68397fa1e5df0b468344dacf562f73157af19ee7e346b1922c693",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2040,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/conception.json",
+      "sha256": "0e125aa9e810fe8cf838be19a3d3c9a4cc25ca8108bd80582883bfb7a464efad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1488,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/source-create-receipt.json",
+      "sha256": "6b2fb5c1635ec4405d6d166ab04a8f1cf19b6a5ad1e09a5c00cac3e5d17b98cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2558,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/source-create-request.json",
+      "sha256": "6d1c09d98847db04e9600bc9ba9b9cc435916b94c33cfa361c482f6b6b5e7fe9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7225,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json",
+      "sha256": "27b14e49029f954eddbac123cdcec17b5e47705646d8bb2764ef7989702d1941",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2159,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json",
+      "sha256": "16579e522b8aa52b3096ce7d1349a8784720d6217dbb92d83fda2b520fc5f729",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/source-create-receipt.json",
+      "sha256": "16efdce81c5f5fbd57d0bedbeb659e2f21d87c954af769d564e53f2cfb7f661b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2636,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/source-create-request.json",
+      "sha256": "2e961f84586b2ec16a35da91c5504b79f6ade922c977da58d710ca7058b14a2b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-anti-self-origination-jgb21/inference-step.human-forms.json",
+      "sha256": "1ea6025c59acb8845aaac869a36ad687cb6c3b0e3723814aa61a6652703883e6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2515,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-anti-self-origination-jgb21/inference-step.json",
+      "sha256": "27ca336676e799d020e6a3807b6c54d06a41696baf913fc27c19919790dc2590",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-anti-self-origination-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1515,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-anti-self-origination-jgb21/source-create-receipt.json",
+      "sha256": "11e7527b70a93d8d994dcc3a42da216092dd33dc469a26b4c482c1fda36e5755",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3022,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-anti-self-origination-jgb21/source-create-request.json",
+      "sha256": "f8c8d53248f112b6e5214b481dbf25becf85d83dca772dfac6583895083bd6ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8447,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-reversal-overreading-jgb21/inference-step.human-forms.json",
+      "sha256": "3efc7a7e88337aabcf028c4ed4e655d1ee8bcf73d42524c1e90f47d505117204",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2416,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-reversal-overreading-jgb21/inference-step.json",
+      "sha256": "6ad143146f67d4a858dfe17d8d1849149986f96987b549f3c8e5a34e041473c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-reversal-overreading-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1512,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-reversal-overreading-jgb21/source-create-receipt.json",
+      "sha256": "37f8f1d033f1a67a9236ffbf43eea5c148928558e385545c7073154c619dbfc5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/inference-step-reversal-overreading-jgb21/source-create-request.json",
+      "sha256": "ee1ff0fb871131c5a34f99f2e908962acaa7af5f318f6e8275b535445e420640",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8195,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/objection-against-reversal-jgb21/objection.human-forms.json",
+      "sha256": "84b968ee5e42ef8106d9bc9dd5541c58b08e06a7fe112e890a82c6cdd1bfdf09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2473,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/objection-against-reversal-jgb21/objection.json",
+      "sha256": "e43dbcca567c6613b71865ced9fbfc3055cd24e6895acb63b01761520fb436c1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/objection-against-reversal-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1470,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/objection-against-reversal-jgb21/source-create-receipt.json",
+      "sha256": "7d5e7bf95cdcfbd4f27720e24966a0a34ba0986d5fc88592dfb78d4093e892b7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2946,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/objection-against-reversal-jgb21/source-create-request.json",
+      "sha256": "3cd9138581c71010d7022b989d4f909a38f6bc5e8608fc09574d79ec03d40294",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/source-create-receipt.json",
+      "sha256": "b271042e127c62bf5e99ae0c935d82a85950b55c508283bde742fbece39d9796",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2781,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/source-create-request.json",
+      "sha256": "1a6f4481556134a46015c6097c30121b7df222277439058f6079160b171f79ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/thesis.human-forms.json",
+      "sha256": "f865c7fb0cb436e9555a00f707286c6b65e4f7fe6ecba47b0a92b0070f39eec3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2274,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/thesis.json",
+      "sha256": "820376fc7394f42f7236607074c3abcbc13fd8643737e1ce35a0336fcb596fce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1494,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/source-create-receipt.json",
+      "sha256": "70cfada9391b42a0d5477a066fc7db2525605e1654d2b2838519ea6254bae5b0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2644,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/source-create-request.json",
+      "sha256": "1c5b695b9e2c30e21aaa09ca64d27521c81b71b0daa261cbd2196d2c924ffe0e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8503,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/thesis.human-forms.json",
+      "sha256": "594f801c71f77fd0f7db8c3b97cda5dea1e230321b50f0fb3e26c420ab2aef98",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2133,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-self-origination-contradiction-jgb21/thesis.json",
+      "sha256": "42d3f2ec173bfa7d20eceac01399493f74a03a6807ef09340c7b209a6e8573e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1551,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/source-create-receipt.json",
+      "sha256": "5fb1c9527c8b21683db4f2eb53e7843b276e0f4726ffac4adbbb189cae7ac658",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2883,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/source-create-request.json",
+      "sha256": "0173ff3a9c5c6d6ea8faf713b14d22ee4406ec65e58dba3ad03245e49647c36e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9035,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/thesis.human-forms.json",
+      "sha256": "ab3fe22cf48800b02efc9f1c468306af6148d1eeb0aa16ed2a554a8fb6a5166c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2296,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/thesis.json",
+      "sha256": "b9493ed14829bf825c6113218f24458e4f252ee52c70f2a331e0874fc8becd49",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1461,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/source-create-receipt.json",
+      "sha256": "5265cb26b5cef631889e3d6683a9fb3832e4e80c5d874a732eb38295c5f352b7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2792,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/source-create-request.json",
+      "sha256": "d9e2716afb2dd58d5e62a4e51e0fc667b826dd72cb85d5d082b8c7d6b8e00c26",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8195,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/thesis.human-forms.json",
+      "sha256": "10856de82d0b611f8a96bd57504c7bee139f29e5a85463f396158f3a812bea79",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/thesis.json",
+      "sha256": "850dc9ff34c2c8d0ad0fe3fef0f4c14ddfc0d140d70a7712cb599ec09ffc7759",
       "surface_kind": "structured"
     },
     {

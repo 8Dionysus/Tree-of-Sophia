@@ -11,7 +11,11 @@
     "ToS/contracts/document-record.schema.json",
     "ToS/contracts/historical-claim.schema.json",
     "ToS/contracts/historical-record.schema.json",
-    "ToS/contracts/source-relation-claim.schema.json"
+    "ToS/contracts/semantic-description-record.schema.json",
+    "ToS/contracts/semantic-relation-claim.schema.json",
+    "ToS/contracts/source-relation-claim.schema.json",
+    "ToS/contracts/thought-description-record.schema.json",
+    "ToS/contracts/thought-relation-claim.schema.json"
   ],
   "record_files": {
     "agent": "ToS/source-witnesses/catalog/agents.jsonl",
@@ -23,6 +27,12 @@
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
     "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "thesis": "ToS/source-witnesses/catalog/theses.jsonl",
+    "argument": "ToS/source-witnesses/catalog/arguments.jsonl",
+    "inference-step": "ToS/source-witnesses/catalog/inference-steps.jsonl",
+    "objection": "ToS/source-witnesses/catalog/objections.jsonl",
+    "crosscutting-concept": "ToS/source-witnesses/catalog/crosscutting-concepts.jsonl",
+    "conception": "ToS/source-witnesses/catalog/conceptions.jsonl",
     "letter": "ToS/source-witnesses/catalog/letters.jsonl",
     "historical-event": "ToS/source-witnesses/catalog/historical-events.jsonl",
     "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl"
@@ -38,13 +48,19 @@
     "collection": 3,
     "item": 21,
     "link": 5,
+    "thesis": 4,
+    "argument": 1,
+    "inference-step": 2,
+    "objection": 1,
+    "crosscutting-concept": 1,
+    "conception": 3,
     "letter": 1,
     "historical-event": 1,
     "artifact": 18,
-    "object_total": 197,
-    "claim": 205,
-    "total": 402
+    "object_total": 209,
+    "claim": 233,
+    "total": 442
   },
-  "catalog_sha256": "6380b17acfd715fc840438d84ca56abf084469bd2088238f125a2739c2f9b3a5",
+  "catalog_sha256": "a3a9091e3506d8501a2b6b22e431794c6919fa7ac89d1e389e46d7159a5fc37e",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }
