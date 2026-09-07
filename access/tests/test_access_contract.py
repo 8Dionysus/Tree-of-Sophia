@@ -26,6 +26,10 @@ from tos_access.doctor import doctor_report  # noqa: E402
 from tos_access.http_server import _scale_rows, make_server  # noqa: E402
 from tos_access.mcp_server import build_server  # noqa: E402
 
+# Keep local fixture shutdown responsive; the production server keeps its
+# standard serve_forever default.
+TEST_SERVER_POLL_INTERVAL = 0.01
+
 
 def load_script(name: str, path: Path) -> object:
     spec = importlib.util.spec_from_file_location(name, path)
@@ -367,7 +371,11 @@ class CoreContractTests(unittest.TestCase):
                 encoding="utf-8",
             )
             server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread = threading.Thread(
+                target=server.serve_forever,
+                kwargs={"poll_interval": TEST_SERVER_POLL_INTERVAL},
+                daemon=True,
+            )
             thread.start()
             try:
                 url = (
@@ -961,7 +969,11 @@ class CoreContractTests(unittest.TestCase):
             report = doctor_report(tos_root=root)
             self.assertTrue(report["ok"], report)
             server = make_server(core, port=0)
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread = threading.Thread(
+                target=server.serve_forever,
+                kwargs={"poll_interval": TEST_SERVER_POLL_INTERVAL},
+                daemon=True,
+            )
             thread.start()
             try:
                 base = f"http://127.0.0.1:{server.server_port}"
@@ -1020,7 +1032,11 @@ class CoreContractTests(unittest.TestCase):
             self.assertFalse(doctor["ok"])
             self.assertIn("philosophy-graph-schema", doctor["required_failures"])
             server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread = threading.Thread(
+                target=server.serve_forever,
+                kwargs={"poll_interval": TEST_SERVER_POLL_INTERVAL},
+                daemon=True,
+            )
             thread.start()
             try:
                 with self.assertRaises(urllib.error.HTTPError) as caught:
@@ -1048,7 +1064,11 @@ class CoreContractTests(unittest.TestCase):
             self.assertFalse(doctor["ok"])
             self.assertIn("graph-view-materialization", doctor["required_failures"])
             server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread = threading.Thread(
+                target=server.serve_forever,
+                kwargs={"poll_interval": TEST_SERVER_POLL_INTERVAL},
+                daemon=True,
+            )
             thread.start()
             try:
                 with self.assertRaises(urllib.error.HTTPError) as caught:

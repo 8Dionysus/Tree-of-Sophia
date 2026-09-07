@@ -172,6 +172,69 @@ class ValidationLanesTestCase(unittest.TestCase):
         self.assertEqual(command[:-1], steps[-1][1][:-1])
         self.assertEqual(command[-1], target[0])
 
+    def test_feedback_test_env_disables_plugin_autoload_by_default(self) -> None:
+        with mock.patch.dict(release_check.os.environ, {}, clear=True):
+            environment = release_check.feedback_test_env()
+
+        self.assertEqual(environment[release_check.FEEDBACK_PYTEST_AUTOLOAD_ENV], "1")
+
+    def test_feedback_test_env_honors_explicit_plugin_autoload_override(self) -> None:
+        for value in ("0", ""):
+            with self.subTest(value=value), mock.patch.dict(
+                release_check.os.environ,
+                {release_check.FEEDBACK_PYTEST_AUTOLOAD_ENV: value},
+                clear=True,
+            ):
+                environment = release_check.feedback_test_env()
+
+            self.assertEqual(environment[release_check.FEEDBACK_PYTEST_AUTOLOAD_ENV], value)
+
+    def test_normal_run_step_environment_is_not_feedback_modified(self) -> None:
+        completed = mock.Mock(returncode=0)
+        with mock.patch.dict(release_check.os.environ, {}, clear=True), mock.patch.object(
+            release_check.subprocess, "run", return_value=completed
+        ) as run:
+            self.assertEqual(release_check.run_step("normal", ["true"]), 0)
+
+        self.assertNotIn(release_check.FEEDBACK_PYTEST_AUTOLOAD_ENV, run.call_args.kwargs["env"])
+
+    def test_focused_feedback_passes_isolated_environment_to_selected_step(self) -> None:
+        with mock.patch.dict(release_check.os.environ, {}, clear=True), mock.patch.object(
+            release_check, "run_step", return_value=0
+        ) as run_step:
+            self.assertEqual(
+                release_check.main(
+                    ["--feedback", "--changed-path", "scripts/validate_active_naming.py"]
+                ),
+                0,
+            )
+
+        self.assertEqual(
+            run_step.call_args.kwargs["env"][release_check.FEEDBACK_PYTEST_AUTOLOAD_ENV],
+            "1",
+        )
+
+    def test_feedback_fallback_keeps_normal_run_step_environment(self) -> None:
+        with mock.patch.dict(release_check.os.environ, {}, clear=True), mock.patch.object(
+            release_check, "run_step", return_value=0
+        ) as run_step:
+            self.assertEqual(
+                release_check.main(["--feedback", "--changed-path", "README.md"]),
+                0,
+            )
+
+        self.assertTrue(run_step.call_args_list)
+        self.assertNotIn("env", run_step.call_args.kwargs)
+
+    def test_normal_release_path_does_not_pass_feedback_environment(self) -> None:
+        with mock.patch.dict(release_check.os.environ, {}, clear=True), mock.patch.object(
+            release_check, "run_step", return_value=0
+        ) as run_step:
+            self.assertEqual(release_check.main(["--phase", "checks"]), 0)
+
+        self.assertTrue(run_step.call_args_list)
+        self.assertTrue(all("env" not in call.kwargs for call in run_step.call_args_list))
+
     def test_large_generated_checks_rebuild_once_in_the_validator(self) -> None:
         manifest = json.loads(
             (REPO_ROOT / "docs" / "validation" / "validation_lanes.json").read_text(encoding="utf-8")
