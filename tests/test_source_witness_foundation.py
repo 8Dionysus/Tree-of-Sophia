@@ -3170,7 +3170,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             for entry in (json.loads(line),)
         }
         source_claims: dict[str, tuple[str, int, dict, str]] = {}
-        for basename in catalog_builder.CLAIM_SOURCE_BASENAMES:
+        for basename in (*catalog_builder.CLAIM_SOURCE_BASENAMES, catalog_builder.SOURCE_CLAIM_BASENAME):
             for path in sorted(
                 (REPO_ROOT / catalog_builder.SOURCE_ROOT).rglob(basename)
             ):
@@ -3204,7 +3204,11 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(len(source_claims), len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
+        catalog_schema = json.loads((REPO_ROOT / 'ToS/contracts/source-witness-catalog.schema.json').read_bytes())
+        entry_schema = {**catalog_schema['$defs']['claim_entry'], '$defs': {'tosId': catalog_schema['$defs']['tosId']}}
+        entry_validator = validator_for(entry_schema)(entry_schema, format_checker=FormatChecker())
         for entry in claim_entries:
+            entry_validator.validate(entry)
             relative, line_number, claim, claim_digest = source_claims[
                 entry["claim_id"]
             ]
@@ -3236,6 +3240,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 and entry["object"].startswith("tos.")
             ):
                 self.assertIn(entry["object"], object_ids)
+
+        declared = next(entry for entry in claim_entries if entry['source_claim_file_ref'].endswith('/source-claims.jsonl'))
+        for path in ('ToS/source-witnesses/relations/example/undeclared-claims.jsonl',
+                     'ToS/source-witnesses/relations/example/source-claims.json'):
+            self.assertFalse(entry_validator.is_valid({**declared, 'source_claim_file_ref': path}))
+        self.assertFalse(entry_validator.is_valid({key: value for key, value in declared.items() if key != 'source_schema_ref'}))
 
         self.assertEqual(
             {layer: sum(claim['assertion_layer'] == layer for _, _, claim, _ in source_claims.values())

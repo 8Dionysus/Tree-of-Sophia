@@ -487,6 +487,59 @@ subject-specific relations, substantive assessment, identity merge/split,
 publication and admission remain separate operations. A metadata declaration
 does not implement them or declare an entire subject profile finished.
 
+### Native standalone identities
+
+`tos_local_corpus_create_owner_v1` uses the same `source.create` request,
+six-file transaction, metadata forms and serialization capture for the
+existing native `Agent`, `Place` and `Organization` families. Its configuration
+replaces `profile_type_id` with `record_type` (`agent`, `place`, `organization`);
+the other declared-profile configuration fields remain required. Discovery
+returns `record_type` and the exact native source descriptor. The existing
+`corpus-record.schema.json` is authoritative; no new Person schema or
+author/addressee subclass is introduced.
+
+The initial record must match the delegated typed ID/basename, version 1,
+provisional identity and no equivalence claim. Supersession, pre-reviewed
+labels/identifiers and metadata relation-link fields are refused. Native
+Corpus metadata has no `visibility` extension; this route is explicitly
+public-metadata-only and cannot store private payloads. Schema-permitted
+unknown language qualifications are retained; unsupported fields are refused,
+never silently dropped. At least one exact name form is required. The event
+names `source-corpus-metadata-serialization`, not an identity assessment.
+
+Work, Expression, Edition, Collection, Item and physical Artifact are not
+created by this standalone route. They need their existing source contracts
+and related-record closure in a future multi-subject creation transaction.
+Relationship assertions use separately delegated `claims.create`; a label,
+role word or metadata creation receipt cannot supply them.
+
+Initial creation checks allocated form IDs against both metadata form sets
+and declared Claim form sets, including retained predecessors. The consumed
+sets enter the preparation dependency digest, so new collisions or observed
+changes before publication fail. This is still a metadata scan, not proof of
+an indexed or incremental writer.
+
+### Historical creation retries
+
+Historical, declared-profile and native creation retries verify the original
+request identity, receipt shape, principal/authority, exact source ref,
+dependency/configuration bindings, non-admission flag, expected file set and
+stored byte digests. A replay is not a fresh creation or current admission.
+Changing the issuer authority requires its own handoff, not relabelling an
+old receipt; scope revocation applies even to exact retries.
+
+Later form versions are allowed only with valid retained lineage and the
+original source-copy forms still present. Their initial byte representation
+is checked with the existing initial serializer, not treated as the current
+wording. An incompatible serializer change needs explicit compatibility work.
+For historical source corrections the existing source-revision owner validates
+the current history and all bound archives, recovering the initial source
+bytes without restoring them over the current record. Creation receipts and
+other initial files must remain unchanged. Missing archives, undocumented
+source changes, corrupt outputs, unexpected package files and nonempty writer
+locks fail closed. These are bounded unsigned local-storage checks, not
+authentication against a hostile process with the same Unix UID.
+
 An abrupt process loss before commit may leave an invisible staging directory;
 retry does not delete or publish that abandoned directory. An ordinary exception
 removes only its own unpublished staging files. Committed sources and receipts

@@ -309,6 +309,10 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             self.assertEqual((path.parent / 'source-create-receipt.json').read_bytes(), original['source-create-receipt.json'])
             views = matching[0]['properties']['human_forms']
             self.assertTrue(any(view['language'] == 'ru' and view['display_text'] == proposal['fields']['notes'] for view in views))
+            owner.write_text(json.dumps(config))
+            retry = commands.run_local_command(owner, initial)
+            self.assertTrue(retry['replayed'])
+            self.assertEqual(retry['receipt'], created['receipt'])
 
 
 if __name__ == '__main__':

@@ -40,6 +40,7 @@ OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
 CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historical_create_owner_v2'}
 PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
+CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
@@ -71,23 +72,25 @@ def _configuration(path):
         return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') == PROFILE_CONFIG
+    corpus_creation = config.get('schema_version') == CORPUS_CONFIG
     revision = config.get('schema_version') == REVISION_CONFIG
     claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
-    captures_provenance = profile_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
+    captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
           | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set())
           | ({'record_id', 'profile_type_id', 'maker_type'} if profile_creation else set())
+          | ({'record_id', 'record_type', 'maker_type'} if corpus_creation else set())
           | ({'record_id', 'allowed_fields'} if revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_CONFIG, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
             or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
         raise PermissionError('source-command delegation is invalid or expired')
-    operations = ('source.create',) if profile_creation else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
+    operations = ('source.create',) if profile_creation or corpus_creation else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
     for key, allowed in (('allowed_operations', operations), ('allowed_form_ids', None)):
         values = config[key]
         if (not isinstance(values, list) or len(values) > 32
@@ -133,8 +136,8 @@ def _configuration(path):
     if (creation or revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
-    if profile_creation:
-        _, profile = _configured_profile(config)
+    if profile_creation or corpus_creation:
+        profile = _configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
                 or config['maker_type'] not in {'human', 'software', 'model'}
@@ -142,6 +145,20 @@ def _configuration(path):
                 or 'catalog' in relative.parts):
             raise PermissionError('profile creation requires its delegated identity and typed source path')
     return config, _digest(_canonical(config)), root / relative
+
+
+def _configured_corpus_profile(config):
+    """Existing standalone native identities, not role subclasses or a new ontology.
+
+    Bibliographic objects with mandatory related records retain their stronger
+    creation routes until a multi-subject transaction can keep those in sync.
+    """
+    kind = config.get('record_type')
+    if not isinstance(kind, str) or kind not in {'agent', 'place', 'organization'}:
+        raise PermissionError('native creation requires a standalone Agent, Place or Organization')
+    return {'record_type': kind, 'id_prefix': f'tos.{kind}.', 'source_basename': kind + '.json',
+            'schema_ref': 'ToS/contracts/corpus-record.schema.json', 'schema_version': 'tos_corpus_record_v1',
+            'source_scope': 'public_metadata_only'}
 
 
 def _configured_profile(config, profiles=None):
@@ -415,6 +432,20 @@ def _initial_historical_record(config, source):
 
 
 def _initial_source_record(config, source, profiles=None):
+    if config['schema_version'] == CORPUS_CONFIG:
+        profile = _configured_corpus_profile(config)
+        from source_record_profiles import METADATA_LINK_FIELDS
+        schema = _json_object(_read(Path(config['source_root']) / profile['schema_ref'], MAX_COMMAND_BYTES))
+        Draft202012Validator.check_schema(schema)
+        Draft202012Validator(schema).validate(source)
+        if (source['record_type'] != profile['record_type'] or source['record_id'] != config['record_id']
+                or source['record_version'] != 1 or source.get('supersedes_ref') is not None
+                or source['identity_status'] != 'provisional' or source['same_as_posture'] != 'no_equivalence_claim'
+                or any(key in source for key in METADATA_LINK_FIELDS)
+                or any(value['status'] != 'unverified' for key in ('variant_labels', 'external_identifiers')
+                       for value in source.get(key, []))):
+            raise PermissionError('native creation requires a provisional standalone identity without accepted attributions')
+        return Record.from_payload(source['record_id'], 1, source)
     if config['schema_version'] != PROFILE_CONFIG:
         return _initial_historical_record(config, source)
     profiles, profile = _configured_profile(config, profiles)
@@ -450,9 +481,16 @@ def _prepare_creation(config, request):
         raise JournalConflict('subject identity already exists in authored sources')
     form_inputs = {}
     new_form_ids = {selection['form_id'] for selection in selections}
+    adjacent_forms = set()
     for row in objects.values():
         path = root / row['source_record_ref']
-        adjacent = path.with_name(path.stem + '.human-forms.json')
+        adjacent_forms.add(path.with_name(path.stem + '.human-forms.json'))
+    from source_record_profiles import SOURCE_CLAIM_BASENAME
+    for claim in existing_claims:
+        path = root / claim['source_claim_file_ref']
+        if path.name == SOURCE_CLAIM_BASENAME:
+            adjacent_forms.add(claim_forms_path(path, claim['claim_id']))
+    for adjacent in sorted(adjacent_forms):
         if not adjacent.exists():
             continue
         raw = _read(adjacent, MAX_SET_BYTES)
@@ -670,8 +708,83 @@ def _publish_new_directory(staging, target):
     _sync_directory(staging.parent)
 
 
+def _creation_replay(config, source_path, request, receipt):
+    """Verify the original creation while permitting separately retained revisions.
+
+    This is historical byte/lineage evidence, not current admission. The
+    existing revision owner reads archives; no new history format is invented.
+    """
+    from source_revisions import _package, _history, _read_archive, HISTORY, _encode
+    fields = {'schema_version', 'command_id', 'request_digest', 'principal_id', 'authority_ref',
+              'owner_configuration', 'recorded_at', 'source_path', 'source', 'dependencies', 'files', 'grants_admission'}
+    schema = ('tos_local_historical_create_receipt_v1' if config['schema_version'] in CREATION_CONFIGS
+              else 'tos_local_source_create_receipt_v1')
+    original = Record.from_payload(request['record']['record_id'], request['record']['record_version'], request['record'])
+    if (set(receipt) != fields or receipt['schema_version'] != schema
+            or receipt['principal_id'] != config['principal_id']
+            or receipt['authority_ref'] != config['authority_ref']
+            or receipt['owner_configuration'] != request['expected_configuration']
+            or receipt['dependencies'] != request['expected_dependencies']
+            or receipt['source'] != original.ref or receipt['grants_admission'] is not False):
+        raise JournalCorruption('creation receipt no longer binds its original request')
+    _instant(receipt['recorded_at'])
+    files = _package(source_path.parent)
+    formname = source_path.stem + '.human-forms.json'
+    expected_files = {source_path.name, formname}
+    if config['schema_version'] in CREATION_CONFIGS:
+        expected_files.add('historical-claims.jsonl')
+    if config.get('provenance_event_id'):
+        expected_files.update({'source-create-request.json', 'source-create-environment.json', 'source-create-provenance.jsonl'})
+    if not isinstance(receipt['files'], dict) or set(receipt['files']) != expected_files:
+        raise JournalCorruption('creation receipt file closure changed')
+    extras = set(files) - expected_files - {'source-create-receipt.json'}
+    lockname = '.' + formname + '.writer.lock'
+    if extras - {HISTORY, lockname} or files.get(lockname, b''):
+        raise JournalCorruption('creation package contains unbound files')
+    if not expected_files <= files.keys():
+        raise JournalCorruption('creation package is incomplete')
+    record = _json_object(files[source_path.name])
+    history = _history(files, record)
+    original_files = files
+    for index, revision in enumerate(history['receipts']):
+        archived, _ = _read_archive(Path(config['source_root']), config, revision)
+        if archived.get('source-create-receipt.json') != files['source-create-receipt.json']:
+            raise JournalCorruption('creation receipt changed across source history')
+        if index == 0:
+            if revision['previous_source'] != original.ref:
+                raise JournalCorruption('source history does not start at the created record')
+            original_files = archived
+    if not history['receipts'] and Record.from_payload(record['record_id'], record['record_version'], record).ref != original.ref:
+        raise JournalCorruption('created source changed without retained revision history')
+    forms = _json_object(files[formname])
+    _validate_history(forms)
+    if forms['subject']['id'] != original.id:
+        raise JournalCorruption('created form set belongs to another subject')
+    initial_forms = {(form['form_id'], form['form_version']): form for form in [*forms['forms'], *forms['prior_forms']]}
+    selected = [initial_forms.get((selection['form_id'], 1)) for selection in request['forms']]
+    if any(form is None or form['subject'] != original.ref for form in selected):
+        raise JournalCorruption('initial forms are not retained against the created source')
+    # The initial serializer's ordering is part of its exact byte contract;
+    # later form revisions canonicalize dictionaries while retaining values.
+    initial_changes = [prepare_metadata_change(request['record'], None, receipt['principal_id'], **selection)
+                       for selection in request['forms']]
+    retained_set = _apply(None, original, initial_changes)
+    if selected != retained_set['forms']:
+        raise JournalCorruption('retained initial forms no longer match the source-copy request')
+    for name, binding in receipt['files'].items():
+        raw = original_files[name] if name == source_path.name else files[name]
+        if name == formname and (forms['prior_forms'] or forms.get('growth_history')):
+            raw = _encode(retained_set)
+        if binding != {'sha256': _digest(raw), 'bytes': len(raw)}:
+            raise JournalCorruption('creation output bytes no longer match their retained binding')
+    if config.get('provenance_event_id') and _json_object(files['source-create-request.json']) != request:
+        raise JournalCorruption('captured creation request changed')
+    _snapshot(source_path, Path(config['source_root']))  # Fresh source visibility/profile checks, not admission.
+
+
 def _create_source(owner_config, config, configuration, source_path, request):
-    profile_creation = config['schema_version'] == PROFILE_CONFIG
+    profile_creation = config['schema_version'] in {PROFILE_CONFIG, CORPUS_CONFIG}
+    corpus_creation = config['schema_version'] == CORPUS_CONFIG
     creation_operation = 'source.create' if profile_creation else CREATION_OPERATION
     claim_fields = set() if profile_creation else {'claims'}
     fields = {'schema_version', 'operation'}
@@ -689,7 +802,7 @@ def _create_source(owner_config, config, configuration, source_path, request):
         raise ValueError('unknown source command version')
     root, target = Path(config['source_root']), source_path.parent
     os.close(_owned_path(target.parent, directory=True))
-    profile = _configured_profile(config)[1] if profile_creation else None
+    profile = (_configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]) if profile_creation else None
     def result(receipt=None, replayed=False):
         return {'schema_version': ('tos_local_source_create_result_v1' if profile_creation else 'tos_local_historical_create_result_v1'),
             'authentication': 'local-unix-account', 'owner_configuration': configuration,
@@ -697,7 +810,8 @@ def _create_source(owner_config, config, configuration, source_path, request):
             'target_exists': target.exists(), 'supported_operations': [creation_operation],
             'command_operations': ['describe', 'prepare', 'prepare-create', creation_operation],
             'allowed_operations': config['allowed_operations'],
-            **({'source_profile': profile, 'profile_type_id': config['profile_type_id']} if profile_creation else {
+            **({'source_profile': profile, **({'record_type': config['record_type']} if corpus_creation else
+                                             {'profile_type_id': config['profile_type_id']})} if profile_creation else {
                 'allowed_claim_ids': config['allowed_claim_ids'],
                 'record_schema_ref': 'ToS/contracts/historical-record.schema.json',
                 'claim_schema_ref': 'ToS/contracts/historical-claim.schema.json'}),
@@ -742,8 +856,7 @@ def _create_source(owner_config, config, configuration, source_path, request):
             if (receipt.get('command_id') != request['command_id'] or receipt.get('request_digest') != request_digest
                     or receipt.get('source_path') != config['source_path']):
                 raise JournalConflict('creation target or command identity is already occupied')
-            if _snapshot(source_path, root)[2].id != config['record_id']:
-                raise JournalCorruption('created subject identity has been replaced')
+            _creation_replay(config, source_path, request, receipt)
             return result(receipt, True)
         if (request['expected_configuration'] != configuration or request['expected_source'] is not None
                 or request['expected_revision'] is not None):
@@ -753,7 +866,8 @@ def _create_source(owner_config, config, configuration, source_path, request):
         if request['expected_dependencies'] != dependencies:
             raise JournalConflict('prepared creation dependencies are stale')
         if config.get('provenance_event_id'):
-            _capture_creation_provenance(config, request, files, started_at, started_ns)
+            _capture_creation_provenance(config, request, files, started_at, started_ns,
+                procedure_name='source-corpus-metadata-serialization' if corpus_creation else None)
         receipt = {'schema_version': ('tos_local_source_create_receipt_v1' if profile_creation else 'tos_local_historical_create_receipt_v1'),
             'command_id': request['command_id'], 'request_digest': request_digest,
             'principal_id': config['principal_id'], 'authority_ref': config['authority_ref'],
@@ -790,7 +904,7 @@ def run_local_command(owner_config: Path, request: dict):
     if config['schema_version'] == CLAIM_CONFIG:
         from source_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG}:
+    if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == REVISION_CONFIG:
         from source_revisions import run_revision

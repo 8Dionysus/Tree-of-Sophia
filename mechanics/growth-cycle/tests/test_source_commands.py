@@ -467,6 +467,183 @@ class SourceCommandTests(unittest.TestCase):
 
 
 class HistoricalCreationTests(unittest.TestCase):
+    @contextmanager
+    def native_creation(self, kind='agent'):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            contract = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / contract).write_bytes((ROOT / contract).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version='tos_local_corpus_create_owner_v1', record_type=kind,
+                record_id=f'tos.{kind}.synthetic-native-create',
+                source_path=f'ToS/source-witnesses/{kind}s/synthetic-native-create/{kind}.json',
+                allowed_operations=['source.create'], provenance_event_id=f'tos.event.synthetic-create-{kind}')
+            (root / config['source_path']).parent.parent.mkdir(parents=True, exist_ok=True)
+            owner.write_text(json.dumps(config))
+            source = {key: value for key, value in request['record'].items() if key not in {'visibility', 'extensions'}}
+            source.update(schema_version='tos_corpus_record_v1', record_type=kind, record_id=config['record_id'],
+                          preferred_label=f'Синтетический {kind}; не исторический факт')
+            request.pop('claims')
+            context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            request.update(operation='source.create', record=source, expected_configuration=context['owner_configuration'])
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            yield root, owner, config, request, rebuild, fixture
+
+    def test_native_creation_rejects_semantic_promotion_and_scope_substitution_without_source_writes(self):
+        from jsonschema import ValidationError
+        mutations = [
+            {'record_version': 2}, {'record_id': 'tos.agent.outside'}, {'record_type': 'organization'},
+            {'identity_status': 'verified'}, {'same_as_posture': 'reviewed_equivalence'},
+            {'supersedes_ref': 'tos.agent.predecessor'}, {'visibility': 'private'},
+            {'schema_version': 'unknown'}, {'unknown': {'negative': False}},
+            {'work_ref': 'tos.work.unchecked-link'}, {'responsibility_claim_refs': []},
+            {'variant_labels': [{'value': 'Alias', 'language': 'und', 'source_ref': 'test-note.md', 'status': 'verified'}]},
+            {'external_identifiers': [{'scheme': 'test', 'value': '123', 'source_ref': 'test-note.md', 'status': 'verified'}]},
+        ]
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            before = {p.relative_to(root).as_posix(): p.read_bytes()
+                      for p in (root / 'ToS/source-witnesses').rglob('*') if p.is_file()}
+            for mutation in mutations:
+                with self.subTest(mutation=mutation):
+                    invalid = copy.deepcopy(request)
+                    invalid['record'].update(mutation)
+                    with self.assertRaises((PermissionError, ValueError, ValidationError)):
+                        commands.run_local_command(owner, {
+                            'schema_version': invalid['schema_version'], 'operation': 'prepare-create',
+                            'record': invalid['record'], 'forms': invalid['forms']})
+            for mutation in ({'record_type': 'work'}, {'record_type': 'person'},
+                             {'maker_type': 'reviewer'}, {'source_path': 'ToS/source-witnesses/payload/agent.json'},
+                             {'record_id': 'tos.organization.wrong-family'}, {'allowed_operations': ['claims.create']}):
+                with self.subTest(config=mutation):
+                    owner.write_text(json.dumps({**config, **mutation}))
+                    with self.assertRaises((PermissionError, ValueError)):
+                        commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            owner.write_text(json.dumps(config))
+            self.assertEqual(before, {p.relative_to(root).as_posix(): p.read_bytes()
+                for p in (root / 'ToS/source-witnesses').rglob('*') if p.is_file()})
+            self.assertFalse((root / config['source_path']).parent.exists())
+
+    def test_creation_refuses_form_identity_already_owned_by_a_declared_claim(self):
+        from build_source_witness_catalog import collect_claims
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            for name in ('semantic-relation-type-registry', 'source-claim-record', 'source-relation-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            claim = json.loads((ROOT / 'ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl').read_text().splitlines()[0])
+            path = root / 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            path.write_text(json.dumps(claim) + '\n')
+            self.assertIn(claim['claim_id'], {row['claim_id'] for row in collect_claims(root)})
+            change = commands.prepare_claim_change(claim, None, config['principal_id'],
+                request['forms'][0]['form_id'], 'claim.statement')
+            forms = commands._apply(None, Record.from_payload(claim['claim_id'], 1, claim), [change])
+            commands.claim_forms_path(path, claim['claim_id']).write_text(json.dumps(forms))
+            with self.assertRaisesRegex(commands.JournalConflict, 'form identity already exists'):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            self.assertFalse((root / config['source_path']).parent.exists())
+
+    def test_creation_retry_rejects_corrupt_receipt_and_original_bytes(self):
+        for captured in (False, True):
+            with self.subTest(captured=captured), (self.native_creation() if captured else self.creation()) as (
+                    root, owner, config, request, rebuild, fixture):
+                created = commands.run_local_command(owner, request)
+                target = (root / config['source_path']).parent
+                original = {p.name: p.read_bytes() for p in target.iterdir()}
+                receipt_path = target / 'source-create-receipt.json'
+                for update in ({'grants_admission': True}, {'files': {}}, {'principal_id': 'impostor'},
+                               {'authority_ref': 'impostor:grant'},
+                               {'dependencies': 'sha256:' + '0' * 64}, {'source': {'id': config['record_id']}},
+                               {'owner_configuration': 'sha256:' + '0' * 64}, {'recorded_at': 'unknown'}):
+                    with self.subTest(update=update):
+                        receipt_path.write_text(json.dumps({**created['receipt'], **update}))
+                        with self.assertRaises((commands.JournalCorruption, commands.JournalConflict, ValueError)):
+                            commands.run_local_command(owner, request)
+                        receipt_path.write_bytes(original[receipt_path.name])
+                for name in created['receipt']['files']:
+                    with self.subTest(file=name):
+                        # Whitespace leaves JSON meaning intact but violates the exact original byte binding.
+                        (target / name).write_bytes(original[name] + b' ')
+                        with self.assertRaises((commands.JournalCorruption, commands.JournalConflict)):
+                            commands.run_local_command(owner, request)
+                        (target / name).write_bytes(original[name])
+                self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
+    def test_creation_retry_retains_initial_forms_after_authorized_form_revision(self):
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            created = commands.run_local_command(owner, request)
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at')}
+            form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
+            writer = root / 'form-owner.json'
+            writer.write_text(json.dumps(form_config))
+            prepared = commands.run_local_command(writer, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', **request['forms'][0]})
+            commands.run_local_command(writer, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'apply', 'command_id': 'test:later-form-version',
+                'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+                'expected_configuration': prepared['owner_configuration'], 'changes': [prepared['prepared_change']]})
+            replay = commands.run_local_command(owner, request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], created['receipt'])
+
+    def test_standalone_corpus_identities_use_common_source_creation_without_role_subclasses(self):
+        for kind in ('agent', 'place', 'organization'):
+            with self.subTest(kind=kind), self.native_creation(kind) as (root, owner, config, request, rebuild, fixture):
+                source = request['record']
+                source['field_languages'] = {'preferred_label': {'language': 'x-test-language', 'script': None,
+                    'unknown_context': [False, None, 0, '', {'instruction': 'Never execute source text.'}]}}
+                source['external_identifiers'] = [{'scheme': 'synthetic', 'value': 'example',
+                    'source_ref': source['source_refs'][0], 'status': 'unverified'}]
+                description = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+                self.assertEqual(description['supported_operations'], ['source.create'])
+                self.assertEqual(description['source_profile']['record_type'], kind)
+                request.update(operation='source.create', record=source, expected_configuration=description['owner_configuration'])
+                preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+                request['expected_dependencies'] = preview['expected_dependencies']
+                result = commands.run_local_command(owner, request)
+                self.assertFalse(result['grants_admission'])
+                self.assertEqual(result['receipt']['schema_version'], 'tos_local_source_create_receipt_v1')
+                target = (root / config['source_path']).parent
+                self.assertEqual(json.loads((root / config['source_path']).read_text()), source)
+                self.assertEqual(len(list(target.iterdir())), 6)
+                event = json.loads((target / 'source-create-provenance.jsonl').read_bytes())
+                self.assertEqual(event['method']['procedure']['name'], 'source-corpus-metadata-serialization')
+                replay = commands.run_local_command(owner, request)
+                self.assertTrue(replay['replayed'])
+                self.assertEqual(replay['receipt'], result['receipt'])
+                graph, _, _ = fixture.historical_knowledge(root, rebuild())
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+                self.assertEqual({f['state'] for f in node['attributes']['human_forms']}, {'ready'})
+                self.assertFalse(any(e for e in graph['relations'] if e['from_id'] == node['id'] or e['to_id'] == node['id']))
+
+    def test_native_creation_stale_contract_concurrency_recovery_and_current_revocation(self):
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            contract = root / 'ToS/contracts/corpus-record.schema.json'
+            contract.write_bytes(contract.read_bytes() + b' ')
+            with self.assertRaisesRegex(commands.JournalConflict, 'dependencies are stale'):
+                commands.run_local_command(owner, request)
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            with patch.object(commands, '_publish_new_directory', side_effect=RuntimeError('synthetic precommit failure')):
+                with self.assertRaises(RuntimeError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(lambda _: commands.run_local_command(owner, request), range(2)))
+            self.assertEqual(sorted(result['replayed'] for result in results), [False, True])
+            self.assertEqual(results[0]['receipt'], results[1]['receipt'])
+            target = (root / config['source_path']).parent
+            before = {p.name: p.read_bytes() for p in target.iterdir()}
+            owner.write_text(json.dumps({**config, 'allowed_operations': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual(before, {p.name: p.read_bytes() for p in target.iterdir()})
+
     def test_document_and_letter_profiles_create_distinct_intellectual_sources(self):
         from source_record_profiles import SourceRecordProfiles
         live_profiles = SourceRecordProfiles(ROOT)
