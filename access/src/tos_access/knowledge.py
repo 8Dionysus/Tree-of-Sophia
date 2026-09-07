@@ -3858,6 +3858,56 @@ def _knowledge_search_rank(item: dict[str, Any], needle: str, *, relation: bool)
     return (2, item_id)
 
 
+class KnowledgeGraphIndex:
+    """Identity and incidence indexes for one immutable caller-owned snapshot.
+
+    Store references, not copies of source payloads. Lists preserve ambiguous
+    aliases and even repeated input records; the index never adjudicates them.
+    Incident positions are ordered exactly as the unindexed inspector sorts
+    relations, so a single-ID request slices only its requested result page.
+    """
+
+    def __init__(self, graph):
+        self.graph = graph
+        self.node_ids, self.node_entities, self.node_native_ids = {}, {}, {}
+        for node in _objects(graph.get('nodes')):
+            for field, table in (('id', self.node_ids), ('entity_id', self.node_entities),
+                                 ('native_id', self.node_native_ids)):
+                value = node.get(field)
+                if isinstance(value, str):
+                    table.setdefault(value, []).append(node)
+        self.relations = tuple(_objects(graph.get('relations')))
+        self.relation_ids, self.relation_native_ids = {}, {}
+        for relation in self.relations:
+            for field, table in (('id', self.relation_ids), ('native_id', self.relation_native_ids)):
+                value = relation.get(field)
+                if isinstance(value, str):
+                    table.setdefault(value, []).append(relation)
+        adjacency = {}
+        for position in sorted(range(len(self.relations)), key=self._relation_order):
+            relation = self.relations[position]
+            for endpoint in dict.fromkeys((relation.get('from_id'), relation.get('to_id'))):
+                if isinstance(endpoint, str):
+                    adjacency.setdefault(endpoint, []).append(position)
+        self.adjacency = {identifier: tuple(positions) for identifier, positions in adjacency.items()}
+
+    def require_snapshot(self, graph):
+        if graph is not self.graph:
+            raise ValueError('graph index belongs to a different snapshot')
+
+    def _relation_order(self, position):
+        return str(self.relations[position].get('id') or ''), position
+
+    def incident_positions(self, node_ids):
+        if len(node_ids) == 1:
+            return self.adjacency.get(next(iter(node_ids)), ())
+        # Shared identities may have overlapping neighborhoods. Deduplicate
+        # input positions, not relation IDs: distinct source records survive.
+        positions = {position for identifier in node_ids
+                     for position in self.adjacency.get(identifier, ())}
+        return sorted(positions, key=self._relation_order)
+
+
 class KnowledgeSearchIndex:
     """Serialized search documents for one immutable, caller-owned snapshot.
 
@@ -3939,25 +3989,40 @@ def search_knowledge_graph(
     }
 
 
-def inspect_knowledge_node(graph: dict[str, Any], identifier: str, relation_limit: int = 200) -> dict[str, Any]:
+def inspect_knowledge_node(
+    graph: dict[str, Any], identifier: str, relation_limit: int = 200,
+    *, graph_index: KnowledgeGraphIndex | None = None,
+) -> dict[str, Any]:
     item_id = str(identifier).strip()
     if not item_id:
         raise ValueError("knowledge node id is required")
-    nodes = _objects(graph.get("nodes"))
-    exact = [item for item in nodes if item.get("id") == item_id]
-    entity = [] if exact else [item for item in nodes if item.get("entity_id") == item_id]
-    matches = exact or entity or [item for item in nodes if item.get("native_id") == item_id]
+    if graph_index is None:
+        nodes = _objects(graph.get("nodes"))
+        exact = [item for item in nodes if item.get("id") == item_id]
+        entity = [] if exact else [item for item in nodes if item.get("entity_id") == item_id]
+        matches = exact or entity or [item for item in nodes if item.get("native_id") == item_id]
+    else:
+        graph_index.require_snapshot(graph)
+        exact = list(graph_index.node_ids.get(item_id, ()))
+        entity = [] if exact else list(graph_index.node_entities.get(item_id, ()))
+        matches = exact or entity or list(graph_index.node_native_ids.get(item_id, ()))
     if not matches:
         raise KeyError(f"unknown ToS knowledge node: {item_id}")
     match_ids = {str(item["id"]) for item in matches}
     bounded_limit = _bounded_integer(relation_limit, "relation_limit", 200, 0, 1000)
-    all_relations = [
-        item
-        for item in _objects(graph.get("relations"))
-        if item.get("from_id") in match_ids or item.get("to_id") in match_ids
-    ]
-    all_relations.sort(key=lambda item: str(item.get("id") or ""))
-    selected_relations = all_relations[:bounded_limit]
+    if graph_index is None:
+        all_relations = [
+            item
+            for item in _objects(graph.get("relations"))
+            if item.get("from_id") in match_ids or item.get("to_id") in match_ids
+        ]
+        all_relations.sort(key=lambda item: str(item.get("id") or ""))
+        related_count = len(all_relations)
+        selected_relations = all_relations[:bounded_limit]
+    else:
+        positions = graph_index.incident_positions(match_ids)
+        related_count = len(positions)
+        selected_relations = [graph_index.relations[position] for position in positions[:bounded_limit]]
     return {
         "schema": "tos_knowledge_node_packet_v1",
         "source_revision": graph["source_revision"],
@@ -3968,7 +4033,7 @@ def inspect_knowledge_node(graph: dict[str, Any], identifier: str, relation_limi
         "related_relations": selected_relations,
         "counts": {
             "matches": len(matches),
-            "related_relations": len(all_relations),
+            "related_relations": related_count,
             "returned_relations": len(selected_relations),
         },
         "source_refs": sorted({ref for item in [*matches, *selected_relations] for ref in _strings(item.get("source_refs"))}),
@@ -3976,13 +4041,20 @@ def inspect_knowledge_node(graph: dict[str, Any], identifier: str, relation_limi
     }
 
 
-def inspect_knowledge_relation(graph: dict[str, Any], identifier: str) -> dict[str, Any]:
+def inspect_knowledge_relation(
+    graph: dict[str, Any], identifier: str, *, graph_index: KnowledgeGraphIndex | None = None,
+) -> dict[str, Any]:
     item_id = str(identifier).strip()
     if not item_id:
         raise ValueError("knowledge relation id is required")
-    relations = _objects(graph.get("relations"))
-    exact = [item for item in relations if item.get("id") == item_id]
-    matches = exact or [item for item in relations if item.get("native_id") == item_id]
+    if graph_index is None:
+        relations = _objects(graph.get("relations"))
+        exact = [item for item in relations if item.get("id") == item_id]
+        matches = exact or [item for item in relations if item.get("native_id") == item_id]
+    else:
+        graph_index.require_snapshot(graph)
+        exact = list(graph_index.relation_ids.get(item_id, ()))
+        matches = exact or list(graph_index.relation_native_ids.get(item_id, ()))
     if not matches:
         raise KeyError(f"unknown ToS knowledge relation: {item_id}")
     endpoint_ids = {
@@ -3991,7 +4063,10 @@ def inspect_knowledge_relation(graph: dict[str, Any], identifier: str) -> dict[s
         for endpoint in (item.get("from_id"), item.get("to_id"))
         if isinstance(endpoint, str) and endpoint
     }
-    endpoints = [item for item in _objects(graph.get("nodes")) if item.get("id") in endpoint_ids]
+    if graph_index is None:
+        endpoints = [item for item in _objects(graph.get("nodes")) if item.get("id") in endpoint_ids]
+    else:
+        endpoints = [item for identifier in endpoint_ids for item in graph_index.node_ids.get(identifier, ())]
     endpoints.sort(key=lambda item: str(item.get("id") or ""))
     return {
         "schema": "tos_knowledge_relation_packet_v1",

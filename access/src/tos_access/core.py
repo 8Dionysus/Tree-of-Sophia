@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .knowledge import (
+    KnowledgeGraphIndex,
     KnowledgeSearchIndex,
     build_knowledge_graph,
     execute_knowledge_lens,
@@ -437,6 +438,8 @@ class ToSAccessCore:
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
     _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
     _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
+    _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
 
     def __post_init__(self):
         self._exploration = ExplorationService(self.knowledge_graph)
@@ -1046,11 +1049,19 @@ class ToSAccessCore:
 
     def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
         """Inspect one normalized node (or all namespaced matches for a native ID)."""
-        return inspect_knowledge_node(self.knowledge_graph(), node_id, relation_limit)
+        graph = self.knowledge_graph()
+        return inspect_knowledge_node(graph, node_id, relation_limit, graph_index=self._current_graph_index(graph))
 
     def knowledge_relation(self, relation_id: str) -> dict[str, Any]:
         """Inspect one normalized relation and its display-complete endpoints."""
-        return inspect_knowledge_relation(self.knowledge_graph(), relation_id)
+        graph = self.knowledge_graph()
+        return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
+
+    def _current_graph_index(self, graph: dict[str, Any]) -> KnowledgeGraphIndex:
+        with self._graph_index_lock:
+            if self._graph_index is None or self._graph_index.graph is not graph:
+                self._graph_index = KnowledgeGraphIndex(graph)
+            return self._graph_index
 
     def knowledge_focus(
         self,

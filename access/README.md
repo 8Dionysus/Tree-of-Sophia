@@ -193,6 +193,17 @@ its independent offset pagination. Search and both inspection packets now
 include `source_revision`; inspection still reads the current snapshot, not a
 caller-selected historical one.
 
+The local core prepares identity and incident-relation indexes once per
+immutable normalized snapshot for node/relation inspection. Exact IDs retain
+priority over shared entity IDs and ambiguous native IDs. A single resolved
+node reads only the requested relation prefix; its total degree is already
+indexed. Shared identities combine their incident neighborhoods, so that work
+still grows with the matching carriers and their degree. A snapshot change
+replaces the core's index, including when source revision strings coincide.
+This avoids repeated whole-graph scans, not the initial normalization/index
+build. It does not add historical snapshot retention, change LensSpec/search
+execution, or materialize a Cloudflare/D1 index.
+
 ### Resumable neighborhood exploration
 
 Unlike delivery pagination, `POST /api/knowledge/explore` continues an actual

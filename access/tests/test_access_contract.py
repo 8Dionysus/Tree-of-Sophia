@@ -331,6 +331,36 @@ def write_fixture(root: Path) -> None:
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_core_inspection_reuses_and_replaces_one_snapshot_index(self) -> None:
+        from concurrent.futures import ThreadPoolExecutor
+        from copy import deepcopy
+        from tos_access.knowledge import KnowledgeGraphIndex, inspect_knowledge_node, inspect_knowledge_relation
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            initial = core.knowledge_graph()
+            identifier = initial['nodes'][0]['id']
+            relation_id = initial['relations'][0]['id']
+            changed = deepcopy(initial)
+            changed['nodes'][0]['display']['title']['default'] = 'New snapshot title'
+            # A new normalization snapshot may share the source revision. Bind
+            # the immutable graph instance, not just that convenient string.
+            with patch('tos_access.core.KnowledgeGraphIndex', wraps=KnowledgeGraphIndex) as prepare:
+                for graph, count in ((initial, 1), (changed, 2)):
+                    with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph):
+                        with ThreadPoolExecutor(max_workers=4) as pool:
+                            packets = list(pool.map(core.knowledge_node, [identifier] * 8))
+                        self.assertTrue(all(packet == inspect_knowledge_node(graph, identifier)
+                                            for packet in packets))
+                        for limit in (0, 3):
+                            self.assertEqual(core.knowledge_node(identifier, limit),
+                                             inspect_knowledge_node(graph, identifier, limit))
+                            self.assertEqual(core.knowledge_relation(relation_id),
+                                             inspect_knowledge_relation(graph, relation_id))
+                        self.assertEqual(prepare.call_count, count)
+                        self.assertIs(core._graph_index.graph, graph)
+
     def test_core_search_reuses_only_its_current_snapshot(self) -> None:
         from unittest.mock import patch
         from copy import deepcopy

@@ -548,6 +548,67 @@ class KnowledgeContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'snapshot'):
             search_knowledge_graph(copy.deepcopy(graph),'a',search_index=index)
 
+    def test_inspection_index_preserves_aliases_edges_and_avoids_global_scans(self):
+        from tos_access.knowledge import (
+            KnowledgeGraphIndex, inspect_knowledge_node, inspect_knowledge_relation,
+        )
+        graph = build_knowledge_graph(*self.fixture())
+        left, right = graph['nodes'][:2]
+        left['entity_id'] = right['entity_id'] = 'shared-entity'
+        left['native_id'] = right['native_id'] = 'ambiguous-native'
+        # Exact identity must still win over an entity/native alias elsewhere.
+        graph['nodes'].append({**copy.deepcopy(left), 'id': 'other-carrier',
+                               'entity_id': left['id'], 'native_id': left['id']})
+        edge = graph['relations'][0]
+        graph['relations'].extend([
+            {**copy.deepcopy(edge), 'id': 'self-loop', 'native_id': 'shared-edge',
+             'from_id': left['id'], 'to_id': left['id']},
+            {**copy.deepcopy(edge), 'id': 'connecting', 'native_id': 'shared-edge',
+             'from_id': left['id'], 'to_id': right['id']},
+            # The read adapter must not silently deduplicate input records.
+            {**copy.deepcopy(edge), 'id': 'connecting', 'native_id': 'shared-edge',
+             'from_id': left['id'], 'to_id': right['id']},
+        ])
+        node_cases = [(identifier, limit) for identifier in
+                      (left['id'], right['id'], 'shared-entity', 'ambiguous-native')
+                      for limit in (0, 1, 1000)]
+        node_expected = [inspect_knowledge_node(graph, identifier, limit)
+                         for identifier, limit in node_cases]
+        relation_cases = [edge['id'], 'self-loop', 'connecting', 'shared-edge']
+        relation_expected = [inspect_knowledge_relation(graph, identifier)
+                             for identifier in relation_cases]
+        index = KnowledgeGraphIndex(graph)
+
+        class NoScan(list):
+            def __iter__(self):
+                raise AssertionError('inspection rescanned the complete graph')
+
+        graph['nodes'] = NoScan(graph['nodes'])
+        graph['relations'] = NoScan(graph['relations'])
+        for (identifier, limit), expected in zip(node_cases, node_expected):
+            self.assertEqual(inspect_knowledge_node(graph, identifier, limit, graph_index=index), expected)
+        for identifier, expected in zip(relation_cases, relation_expected):
+            self.assertEqual(inspect_knowledge_relation(graph, identifier, graph_index=index), expected)
+        # For one resolved node the degree is already known. Even its incident
+        # list need not be scanned to count or return a bounded prefix.
+        index.adjacency[left['id']] = NoScan(index.adjacency[left['id']])
+        for limit in (0, 1):
+            expected = node_expected[node_cases.index((left['id'], limit))]
+            self.assertEqual(inspect_knowledge_node(graph, left['id'], limit, graph_index=index), expected)
+        for inspect in (inspect_knowledge_node, inspect_knowledge_relation):
+            with self.assertRaises(KeyError):
+                inspect(graph, 'missing', graph_index=index)
+            with self.assertRaises(ValueError):
+                inspect(graph, ' ', graph_index=index)
+            with self.assertRaisesRegex(ValueError, 'snapshot'):
+                inspect(dict(graph), left['id'], graph_index=index)
+        with self.assertRaises(ValueError):
+            inspect_knowledge_node(graph, left['id'], -1, graph_index=index)
+        # Mutating a returned match list must not corrupt the index's buckets.
+        packet = inspect_knowledge_node(graph, left['id'], 0, graph_index=index)
+        packet['matches'].clear()
+        self.assertEqual(inspect_knowledge_node(graph, left['id'], 0, graph_index=index), node_expected[0])
+
     def test_cursor_conserves_result_and_rejects_different_query_or_snapshot(self):
         from tos_access.lens_pagination import KnowledgeRevisionConflict
         graph = build_knowledge_graph(*self.fixture())
