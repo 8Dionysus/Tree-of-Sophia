@@ -1086,6 +1086,45 @@ class AssessmentPolicyTests(unittest.TestCase):
             review.assessment["evidence"][0][key]["digest"] = "sha256:" + "0" * 64
             self.assertFalse(self.run_reviews(review)["can_use"])
 
+    def test_owner_source_dependencies_cannot_be_omitted_or_inferred_from_presence(self):
+        context = replace(self.context, required_sources=(self.source, self.source_b))
+        review = self.review()
+        incomplete = self.run_reviews(review, context=context)
+        self.assertFalse(incomplete['can_use'])
+        self.assertIn('evidence.required-source-omitted', incomplete['invalid_assessments'][0]['reasons'])
+        # Merely selecting both records in the engine is not an assessment of
+        # both. A contextual reference qualifies the dependency without being
+        # counted as another supporting origin or another assessor.
+        review.assessment['evidence'].append({'record': self.source_b.ref,
+            'stance': 'context', 'locator': 'Synthetic typed endpoint, not corroboration.'})
+        complete = self.run_reviews(review, context=context)
+        self.assertTrue(complete['can_use'])
+        self.assertEqual(complete['reviewer_kinds'], ['agent'])
+
+    def test_required_endpoint_change_invalidates_old_history_without_rewriting_claim(self):
+        context = replace(self.context, required_sources=(self.source, self.source_b))
+        review = self.review()
+        review.assessment['evidence'].append({'record': self.source_b.ref,
+            'stance': 'context', 'locator': 'Synthetic endpoint version one.'})
+        before = copy.deepcopy(review.assessment)
+        self.assertTrue(self.engine().evaluate(context, (), now=NOW, trusted_history=[review])['can_use'])
+        old = self.source_b
+        for version in (old.version, old.version + 1):
+            with self.subTest(version=version):
+                updated = Record.from_payload(old.id, version, {'changed': True}, origin_id=old.origin_id)
+                self.records[2] = updated
+                current_context = replace(context, required_sources=(self.source, updated))
+                result = self.engine().evaluate(current_context, (), now=NOW, trusted_history=[review])
+                self.assertFalse(result['can_use'])
+                reasons = result['invalid_assessments'][0]['reasons']
+                self.assertIn('evidence.required-source-omitted', reasons)
+                self.assertIn('evidence.stale-or-missing', reasons)
+                self.assertEqual(review.assessment, before)
+                self.assertEqual(current_context.record.ref, self.subject.ref)
+        self.records[2] = old
+        self.records.append(Record.from_payload('tos.file.unrelated', 1, {'not_selected': True}))
+        self.assertTrue(self.engine().evaluate(context, (), now=NOW, trusted_history=[review])['can_use'])
+
     def test_authenticated_principal_cannot_be_replaced_by_claimed_reviewer(self):
         review = replace(self.review(), principal_id="intruder")
         self.assertIn("reviewer.authentication", self.run_reviews(review)["invalid_assessments"][0]["reasons"])

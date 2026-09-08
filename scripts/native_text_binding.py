@@ -34,6 +34,35 @@ class NativeTextBindingError(ValueError):
     """A binding cannot resolve without widening or inventing its evidence."""
 
 
+def check_local_research_rights(resolver, layer):
+    """Recorded exact-layer use posture, not a fresh legal assessment.
+
+    A narrower explicitly identified text layer can have a different posture
+    from the aggregate scanned Item. A Work-wide positive statement alone
+    cannot override that Item gate. Conditional use requires its own owner
+    decision; this constructor does not guess that free-text terms were met.
+    """
+    rep = layer['representation']
+    exact = {layer['layer_id'], rep['content_file_id']}
+    records = [resolver._record(row['ref'], expected=row['sha256']) for row in rep['rights_record_refs']]
+    decisions = []
+    for row in records:
+        if (row['review_status'] in {'superseded', 'legal_review_requested'}
+                or row['assessment_status'] in {'permission_denied', 'conflicting_evidence'}):
+            raise PermissionError('native derivation cannot reuse an inactive or denied rights record')
+        exact_layers = [part for part in row.get('layer_assessments', []) if exact.intersection(part['scope_refs'])]
+        if exact_layers:
+            decisions.extend(exact_layers)
+        elif exact.intersection(row['scope_refs']):
+            decisions.append(row)
+    decisions = decisions or records
+    for decision in decisions:
+        if (decision['derivative_posture'] not in {'local_research_only', 'allowed'}
+                or decision['assessment_status'] in {'permission_denied', 'conflicting_evidence'}
+                or decision['review_status'] in {'superseded', 'legal_review_requested'}):
+            raise PermissionError('native derivation lacks a current unconditional local-research rights route')
+
+
 def _hash(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 

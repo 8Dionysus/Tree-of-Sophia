@@ -695,11 +695,49 @@ both of these bounded lists (empty is allowed):
   its typed metadata package in the selected store, and the actual record
   must be `local_only`. `source_binding` is the complete fixed native binding
   for Occurrence, otherwise `null`; non-native profiles use metadata-only
-  scope. No private Claim stream reader is implied.
+  scope. Claim selection uses the separate optional list below.
 - `native_text_units`: at most 64 selections of `{binding, origin_id,
   source_access}`. Each native unit still requires the exact subject scope,
   maker and source language of the v3 contract. Both native records retain
   their same origin. Supporting layers do not become assessment targets.
+
+The optional `owner_local_source_claims` list selects at most 32 Claims. Each
+entry is exactly `{path, claim_id, relation_type_id, origin_id, source_access,
+source_records, native_bindings, verify_content, form_ids}`. Omission preserves
+the existing v4 configuration contract. `path` is one exact private
+`source-claims.jsonl`; the selected Claim must be `local_only` and use an
+existing understood semantic or identity relation profile. No private corpus
+scan, new predicate registry or implicit interpretation of unknown fields is
+performed. Adjacent Claim forms use the existing `claim_forms_path` convention
+and the same current-form/history grammar.
+
+`source_records` selects at most 16 actual public or private endpoint/evidence
+records by `{path, record_id, profile_type_id, origin_id, source_access,
+source_binding}`. Each is resolved by its existing profile reader; an inline
+body or caller-supplied type tag cannot substitute for that source. Occurrence
+contributes its independently supplied full native binding. `native_bindings`
+selects at most 8 additional native evidence bindings by `{binding, origin_id,
+source_access}`. All grants are checked before source metadata, all selected
+native metadata and local-research rights before exact text. `verify_content`
+is an explicit boolean; exact mode requires independently granted exact scope
+for the Claim and every bound source. Non-native source profiles stay
+metadata-only. Unused selections, ambiguous evidence aliases and unsupported
+arbitrary file/event citations are refused, not guessed. Provenance,
+alternatives and supersession fields remain authored data, not commands or
+implicitly resolved evidence. A selected native packet, unit, layer or anchor
+returns through the existing native adapter; no arbitrary path or copied text
+becomes evidence.
+
+The Claim's required assessment sources are its exact endpoint and evidence
+closure, including the native unit view and layer with their original origin.
+`describe.command_context.required_sources` exposes only their exact record
+references. Every one must occur in assessment `evidence` as support, challenge
+or context. Loading the records is not enough. The same closure accompanies
+Claim freeforms, together with their exact Claim subject, through current
+admission and materialization. Changed grounding invalidates current use
+without rewriting the retained assessment, Claim or form. Native evidence
+introduced by a Claim is supporting-only; independently selecting a native
+assessment target still requires its own explicit unit scope.
 
 In both lists `source_access` is exactly `{read_scope, access_allowed,
 authority_ref}`. `read_scope` is `metadata_only` or `exact_owner_local`, access
@@ -730,9 +768,11 @@ remains unknown, not an invented translation or linguistic classification.
 An Occurrence or form based on it requires an explicitly selected **same full
 native binding** with verified exact text. Metadata-only selection permits
 description and inspection but not append or assessed materialization. Any
-metadata-only native evidence in a v4 selection also makes the current
+metadata-only native evidence in an ordinary v4 selection also makes the current
 assessment unusable for another subject; the unchanged supporting layer ID
 cannot revive an old positive decision after exact reading is withdrawn.
+Claim and Claim-form scopes instead use their declared exact grounding closure:
+unrelated metadata-only units or languages do not contaminate that scope.
 Private freeform `materialize-form` uses the existing whole-subject binding
 and assessment route, returning wording only while that assessment qualifies.
 Reading a source-copy form or recording its assessment does not turn it into
@@ -772,7 +812,10 @@ before file reading. No UI, public-reader or publication route is added here.
 
 Reproduce with the synthetic checks in
 `mechanics/growth-cycle/tests/test_owner_local_assessment.py`, plus the existing
-native and common assessment tests. Successful synthetic qualification proves
+native and common assessment tests. Private Claim reader and journal integration
+checks live in `tests/test_source_owner_claim_profiles.py` and
+`mechanics/growth-cycle/tests/test_owner_local_claim_assessment.py`.
+Successful synthetic qualification proves
 the mechanics, not real-language competence, source quality or legal permission.
 
 ### Descriptions bound to native text

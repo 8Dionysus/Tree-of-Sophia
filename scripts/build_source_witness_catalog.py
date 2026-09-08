@@ -6,9 +6,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
+
+from source_owner_context import OWNER_LOCAL_HOME
 
 from jsonschema import Draft202012Validator, FormatChecker
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
@@ -331,6 +334,10 @@ def collect_claims(repo_root: Path = REPO_ROOT, *, input_digests=None) -> list[d
 
 
 def _collect_claims(repo_root: Path, *, input_digests=None) -> list[dict[str, Any]]:
+    # Reject the reserved home before globbing or opening even a legacy Claim.
+    # A broken directory alias is still a forbidden public/private ambiguity.
+    if os.path.lexists(repo_root / OWNER_LOCAL_HOME):
+        raise CatalogBuildError('reserved owner-local namespace cannot enter the public claim catalog')
     source_root = repo_root / SOURCE_ROOT
     claims: list[dict[str, Any]] = []
     seen_ids: dict[str, str] = {}

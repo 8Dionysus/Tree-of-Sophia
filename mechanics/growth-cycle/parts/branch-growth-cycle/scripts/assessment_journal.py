@@ -653,7 +653,7 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
     prior = [Record.from_payload(row['form_id'], row['form_version'], row) for row in package['prior_forms']]
     scope = FormScope(subject, (SourceBinding(subject, ''),), context.maker_id, context.risk,
                       context.languages, context.requested_use, access_allowed=context.access_allowed,
-                      language_context=language_binding)
+                      language_context=language_binding, required_sources=context.required_sources)
     return materialize_form(contract_root, form, scope,
                             [engine.records[identity] for identity in selected], prior_forms=prior,
                             engine=engine, trusted_history=history, now=now,
@@ -784,6 +784,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         fields |= {'source_context_ref' if owner_local else 'source_root', 'source_records'}
     if owner_local:
         fields.add('owner_local_source_records')
+        if 'owner_local_source_claims' in config:
+            fields.add('owner_local_source_claims')
     if native_bound:
         fields.add('native_text_units')
     _keys(config, fields)
@@ -815,28 +817,50 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         # Runtime-only normalization; exact retained config still owns the hash.
         source_root = owner_context.public_root
         native_config = {**config, 'source_root': str(source_root), 'native_text_units': native_selections}
-        private_sources = OwnerLocalAssessmentSources(owner_context, config['owner_local_source_records'])
+        private_sources = OwnerLocalAssessmentSources(owner_context, config['owner_local_source_records'],
+            config.get('owner_local_source_claims', ()))
         private_snapshot = private_sources.snapshot()
     else:
         source_root = Path(config['source_root']) if source_bound else None
         native_config = config
     sourced, regular_sourced, form_sets, identity_snapshots = [], [], {}, {}
     native_summaries, native_resolvers, native_contracts, native_records = [], [], {}, []
+    explicit_native_targets = set()
     if source_bound:
         sourced, fixity = _source_records(source_root, config['source_records'],
                                          form_sets=form_sets, identity_snapshots=identity_snapshots)
         regular_sourced = list(sourced)
         if private_sources is not None:
-            if {item['id'] for item in sourced} & {item['id'] for item in private_sources.records}:
-                raise ValueError('private source records cannot shadow public selected identities')
-            sourced.extend(private_sources.records)
+            selected_public = {item['id']: item for item in sourced}
+            for item in private_sources.records:
+                if item['id'] in selected_public:
+                    if (item['id'] in private_sources.explicit_ids
+                            or _canonical(item) != _canonical(selected_public[item['id']])):
+                        raise ValueError('private source records cannot shadow public selected identities')
+                else:
+                    sourced.append(item)
             form_sets.update(private_sources.form_sets)
         if native_bound:
             native_records, native_summaries, native_resolvers, native_contracts = _native_text_records(
                 native_config, owner_context=owner_context)
-            if {item['id'] for item in sourced} & {item['id'] for item in native_records}:
-                raise ValueError('source records cannot shadow native assessment identities')
-            sourced.extend(native_records)
+            explicit_native_targets = {row['unit_id'] for row in native_summaries}
+            source_index = {item['id']: item for item in sourced}
+            for item in native_records:
+                if item['id'] in source_index:
+                    if (private_sources is None or item['id'] in private_sources.explicit_ids
+                            or item['id'] not in {row['id'] for row in private_sources.native_records}
+                            or _canonical(item) != _canonical(source_index[item['id']])):
+                        raise ValueError('source records cannot shadow native assessment identities')
+                else:
+                    sourced.append(item)
+            if private_sources is not None:
+                native_index = {item['id']: item for item in native_records}
+                for item in private_sources.native_records:
+                    if item['id'] in native_index and _canonical(native_index[item['id']]) != _canonical(item):
+                        raise ValueError('private Claim native evidence has another current body or origin')
+                    native_index[item['id']] = item
+                native_records = list(native_index.values())
+                native_summaries.extend(private_sources.native_summaries)
             identity_snapshots['native_text_snapshots'] = [resolver.snapshot() for resolver in native_resolvers]
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
                                        'resolved_records': sourced, **identity_snapshots,
@@ -882,7 +906,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             or not isinstance(identifier, str) or identifier not in subjects):
         raise PermissionError('subject is outside the configured command scope')
     if (identifier in {row['id'] for row in native_records}
-            and identifier not in {row['unit_id'] for row in native_summaries}):
+            and identifier not in explicit_native_targets):
         raise PermissionError('native supporting layer is evidence, not a selected unit assessment target')
     scope = subjects[identifier]
     scope_fields = {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'}
@@ -900,10 +924,16 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise ValueError('owner subject scope is incomplete')
     if scope['access_allowed'] is not True:
         raise PermissionError('subject access is not allowed')
+    required_sources = private_sources.required_sources(identifier) if private_sources is not None else ()
+    claim_source_bound = private_sources is not None and identifier in private_sources.claim_dependencies
+    active_native_summaries = native_summaries
+    if claim_source_bound:
+        dependency_ids = {record.id for record in required_sources}
+        active_native_summaries = [row for row in native_summaries if row['unit_id'] in dependency_ids]
     if (private_sources is not None and identifier in {row['id'] for row in sourced}
             and identifier not in {row['id'] for row in native_records}):
         required_languages = private_sources.required_languages(identifier, sourced)
-        required_languages.update(row['language'].casefold() for row in native_summaries
+        required_languages.update(row['language'].casefold() for row in active_native_summaries
                                   if isinstance(row.get('language'), str) and row['language'])
         if not required_languages <= {language.casefold() for language in scope['languages']}:
             raise PermissionError('private assessment scope omits source or authored-form languages')
@@ -921,8 +951,10 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     # its text was read. Match the ENTIRE fixed binding, not merely a unit ID.
     # This applies to supporting occurrence records and source-bound forms too;
     # selecting an unrelated native unit cannot qualify their source return.
-    required_native_bindings = [item['payload']['native_text_binding'] for item in sourced
-                                if 'native_text_binding' in item['payload']]
+    native_subjects = ([record.payload for record in required_sources] if claim_source_bound
+                       else [item['payload'] for item in sourced])
+    required_native_bindings = [body['native_text_binding'] for body in native_subjects
+                               if 'native_text_binding' in body]
     if ('native_text_binding' in current.payload
             or current.payload.get('schema_version') == 'tos_occurrence_description_record_v1'):
         required_native_bindings.append(current.payload.get('native_text_binding'))
@@ -930,13 +962,13 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         _canonical(row['payload'].get('native_binding')) == _canonical(binding)
         and row['payload'].get('content_verified') is True for row in native_records)
         for binding in required_native_bindings)
-    if owner_local and any(not row['content_verified'] for row in native_summaries):
+    if owner_local and any(not row['content_verified'] for row in active_native_summaries):
         source_read_ready = False
     if operation == 'materialize-form' and not source_read_ready:
         raise PermissionError('native-bound form materialization requires the same explicitly selected exact text read')
     context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
                              tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True,
-                             source_read_ready=source_read_ready)
+                             source_read_ready=source_read_ready, required_sources=required_sources)
     source_form = source_bound and identifier in {item['id'] for item in sourced} and current.payload.get('schema_version') == 'tos_human_form_v1'
     if 'form_language_context' in scope and not source_form:
         raise PermissionError('form linguistic context is outside a source-form scope')
@@ -991,6 +1023,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                                              *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
                                                and current.payload['content'].get('kind') == 'freeform' else [])],
                                          'grants_authority': False}
+            if required_sources:
+                result['command_context']['required_sources'] = [record.ref for record in required_sources]
             if required_native_bindings:
                 result['command_context']['source_read'] = {'required': True, 'ready': source_read_ready}
                 if not source_read_ready:
@@ -1008,7 +1042,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                     result['command_context']['native_contracts'] = [
                         {'path': path, 'digest': 'sha256:' + digest}
                         for path, digest in sorted(native_contracts.items())]
-                    if any(not row['content_verified'] for row in native_summaries):
+                    if any(not row['content_verified'] for row in active_native_summaries):
                         result['command_context']['supported_operations'] = ['describe', 'inspect']
                 if private_sources is not None:
                     result['command_context']['owner_local_source_records'] = [
@@ -1020,7 +1054,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     else:
         if not source_read_ready:
             raise PermissionError('native-bound source assessment requires the same explicitly selected exact text read')
-        if any(not row['content_verified'] for row in native_summaries):
+        if any(not row['content_verified'] for row in active_native_summaries):
             raise PermissionError('native assessment append requires an explicit exact text read')
         execution = config['execution_profile']
         _keys(execution, {'id', 'version', 'digest'})

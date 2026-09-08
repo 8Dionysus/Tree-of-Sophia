@@ -80,6 +80,9 @@ class SubjectContext:
     requested_use: str
     access_allowed: bool = False
     source_read_ready: bool = True
+    # The source owner, not assessment prose, selects the exact grounding
+    # closure. Presence in the engine alone is not evidence it was assessed.
+    required_sources: tuple[Record, ...] = ()
 
 
 class ExecutionBinding(Protocol):
@@ -290,6 +293,12 @@ class AssessmentEngine:
                 or method["model_ref"] != current_executor.payload.get("model_ref")):
             reasons.append("method.unqualified-execution")
         supporting = []
+        evidence_refs = {_canonical(item['record']) for item in assessment['evidence']}
+        for dependency in context.required_sources:
+            if _resolve(dependency.ref, self.records) is None:
+                reasons.append('source-dependency.stale-or-missing')
+            if _canonical(dependency.ref) not in evidence_refs:
+                reasons.append('evidence.required-source-omitted')
         for evidence in assessment["evidence"]:
             record = _resolve(evidence["record"], self.records)
             if record is None:
@@ -318,6 +327,12 @@ class AssessmentEngine:
         dependencies; committed supersession remains historical after revocation.
         Truncating history is not a pagination mechanism.
         """
+        if (not isinstance(context.required_sources, tuple)
+                or len(context.required_sources) > MAX_ASSESSMENTS
+                or any(not isinstance(item, Record) or item.id == context.record.id
+                       for item in context.required_sources)):
+            raise ValueError('required source closure must contain bounded distinct supporting records')
+        _index(context.required_sources)
         if len(reviews) + len(trusted_history) > MAX_ASSESSMENTS:
             raise ValueError("assessment work limit exceeded; do not truncate history")
         instant = _instant(now)

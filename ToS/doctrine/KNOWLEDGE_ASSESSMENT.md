@@ -30,6 +30,15 @@ use SHA-256 over canonical UTF-8 JSON: sorted keys, no insignificant whitespace,
 unescaped Unicode, finite JSON numbers. This record digest is not a claim about
 original file bytes; byte fixity keeps its separate source contract.
 
+When a source adapter declares a required grounding closure, that closure is
+part of the trusted target context. Every selected dependency must be current
+and explicitly cited in the assessment as support, challenge or context;
+merely loading it into the engine is not evidence of assessment. Correcting
+an endpoint or source invalidates dependent use even when the Claim or its
+human form has not changed. An unrelated record outside that closure does
+not invalidate the judgment. The source adapter, not submitted prose, owns
+this selection; exact dependencies do not create independent corroboration.
+
 The authenticated principal and target's layer, risk, languages, maker and
 visibility come from the trusted command/owner adapter. They must never be
 reconstructed from a submitted assessment or from instructions in a source.

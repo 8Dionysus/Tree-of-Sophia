@@ -504,6 +504,12 @@ class SourceClaimProfiles:
         return refs
 
     def validate(self, claim, objects=None):
+        if not isinstance(claim, dict) or claim.get('visibility') not in {'public', 'public_metadata_only'}:
+            raise SourceProfileError('source claim visibility is outside its public profile')
+        self._validate_shape(claim, objects)
+
+    def _validate_shape(self, claim, objects=None):
+        """Shared source grammar; the caller owns its distinct transport gate."""
         if (not isinstance(claim, dict) or not isinstance(claim.get('predicate'), str)
                 or not isinstance(claim.get('schema_version'), str)):
             raise SourceProfileError('source claim must declare a string predicate and schema version')
@@ -514,9 +520,8 @@ class SourceClaimProfiles:
         if (claim.get('claim_type') != 'relation' or not isinstance(claim.get('subject_ref'), str)
                 or not isinstance(claim.get('object'), dict if self.is_value(claim) else str)
                 or claim.get('assertion_layer') not in self.profiles[predicate]['assertion_layers']
-                or claim.get('visibility') not in {'public', 'public_metadata_only'}
                 or claim.get('claim_id') in (claim.get('subject_ref'), claim.get('object'))):
-            raise SourceProfileError('source claim identity, endpoints, layer or visibility violates its profile')
+            raise SourceProfileError('source claim identity, endpoints or layer violates its profile')
         if key not in self.validators:
             shared_refs = (*CLAIM_SHARED_REFS, *([TEMPORAL_VALUE_REF] if self.is_temporal(claim) else []))
             if self.profiles[predicate]['reader'] == 'structured-value-v1':
@@ -561,6 +566,7 @@ class SourceClaimProfiles:
         path = Path(ref)
         if (path.is_absolute() or '..' in path.parts or path.as_posix() != ref
                 or not path.is_relative_to(SOURCE_ROOT) or path.name != SOURCE_CLAIM_BASENAME
+                or path.is_relative_to(OWNER_LOCAL_HOME)
                 or any(part in {'catalog', 'payload', 'local-content'} for part in path.parts)):
             raise SourceProfileError('source claim path is outside its metadata home')
         target = self.root / path

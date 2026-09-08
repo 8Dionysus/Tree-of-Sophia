@@ -68,6 +68,7 @@ class FormScope:
     access_allowed: bool = False
     source_languages: tuple[tuple[SourceBinding, str | None, str | None], ...] = ()
     language_context: SourceBinding | None = None
+    required_sources: tuple[Record, ...] = ()
 
 
 @lru_cache(maxsize=8)
@@ -135,9 +136,12 @@ policy result bound to this exact form and current dependency snapshot.
 
     if scope.access_allowed is not True:
         return stop('restricted', 'access.not-authorized')
+    if (not isinstance(scope.required_sources, tuple)
+            or any(not isinstance(item, Record) or item.id == form.id for item in scope.required_sources)):
+        return stop('invalid', 'form.required-source-scope')
     if (len(records) > MAX_SOURCE_RECORDS or len(templates) > MAX_TEMPLATES
             or len(prior_forms) > MAX_PRIOR_FORMS or len(scope.required_context) > 256
-            or len(scope.source_languages) > 256
+            or len(scope.source_languages) > 256 or len(scope.required_sources) > 256
             or form.size_bytes + sum(record.size_bytes for record in (*records, *templates, *prior_forms)) > MAX_INPUT_BYTES):
         return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
     form_validator, template_validator, language_context_validator = (
@@ -173,6 +177,12 @@ policy result bound to this exact form and current dependency snapshot.
     values = {}
     source_payloads = {}
     dependencies = [scope.subject.ref]
+    for dependency in _index(scope.required_sources).values():
+        if dependency.id not in current:
+            return stop('unavailable', 'required-source.unavailable')
+        if current[dependency.id].ref != dependency.ref:
+            return stop('stale', 'required-source.changed')
+        dependencies.append(dependency.ref)
     for slot, binding in payload['bindings'].items():
         source = current.get(binding['record']['id'])
         if source is None:
@@ -284,7 +294,8 @@ policy result bound to this exact form and current dependency snapshot.
             if record is None or record.ref != dependency:
                 return stop('stale', 'assessment.snapshot-differs')
         context = SubjectContext(form, 'human_projection', scope.risk, scope.languages,
-                                 scope.maker_id, scope.requested_use, access_allowed=True)
+                                 scope.maker_id, scope.requested_use, access_allowed=True,
+                                 required_sources=scope.required_sources)
         result['admission'] = engine.evaluate(context, reviews, now=now, trusted_history=trusted_history)
         if not result['admission']['can_use']:
             return stop('needs-assessment', 'freeform.not-admitted')

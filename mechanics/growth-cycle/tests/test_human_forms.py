@@ -323,6 +323,22 @@ class HumanFormTests(unittest.TestCase):
         self.assertEqual(result['admission']['reviewer_kinds'], ['agent'])
         self.assertFalse(result['admission']['is_semantic_evaluation'])
         self.assertEqual(result['language_context']['value']['relation'], 'translation')
+        # A private Claim form keeps its selected endpoint/evidence closure
+        # through the inner assessment call, not only the outer command CAS.
+        required_scope = replace(self.scope, required_sources=(fixture.source_b,))
+        selected = [self.subject, metadata, fixture.source_b]
+        required = self.render(scope=required_scope, records=selected, engine=fixture.engine(),
+            reviews=[review], now=assessment_fixture.NOW)
+        self.assertEqual(required['state'], 'needs-assessment')
+        complete = copy.deepcopy(review)
+        complete.assessment['evidence'].append({'record': fixture.source_b.ref,
+            'stance': 'context', 'locator': 'Synthetic relation endpoint.'})
+        ready = self.render(scope=required_scope, records=selected, engine=fixture.engine(),
+            reviews=[complete], now=assessment_fixture.NOW)
+        self.assertEqual(ready['state'], 'ready')
+        self.assertIn(fixture.source_b.ref, ready['dependencies'])
+        self.assertEqual(self.render(scope=required_scope, records=[self.subject, metadata],
+            engine=fixture.engine(), reviews=[complete], now=assessment_fixture.NOW)['state'], 'unavailable')
         # Even a same-ID metadata correction invalidates an engine snapshot.
         fixture.records = [record for record in fixture.records if record.id != metadata.id]
         self.assertEqual(self.render(records=[self.subject, metadata], engine=fixture.engine(),
