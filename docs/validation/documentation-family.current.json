@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4344,
+    "tracked_surface_count": 4345,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1005,
     "human_scope": {
-      "bytes": 5222270,
-      "count": 905,
+      "bytes": 5227471,
+      "count": 906,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -91,9 +91,9 @@
           "lines": 202
         },
         "root": {
-          "bytes": 174884,
+          "bytes": 176454,
           "count": 14,
-          "lines": 3018
+          "lines": 3039
         },
         "scripts": {
           "bytes": 7296,
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4134893,
-          "count": 617,
-          "lines": 69448
+          "bytes": 4138524,
+          "count": 618,
+          "lines": 69506
         }
       },
-      "lines": 89208
+      "lines": 89287
     },
     "surface_kind_counts": {
       "executable": 231,
-      "human": 905,
+      "human": 906,
       "structured": 3208
     },
-    "tracked_path_count": 5349,
-    "tracked_surface_count": 4344,
+    "tracked_path_count": 5350,
+    "tracked_surface_count": 4345,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 174884,
+      "tracked_surface_bytes": 176454,
       "tracked_surface_count": 14
     },
     {
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 617,
+        "human": 618,
         "structured": 3132
       },
-      "tracked_surface_bytes": 229191117,
-      "tracked_surface_count": 3753
+      "tracked_surface_bytes": 229194748,
+      "tracked_surface_count": 3754
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 72,
         "structured": 6
       },
-      "tracked_surface_bytes": 824670,
+      "tracked_surface_bytes": 825021,
       "tracked_surface_count": 78
     },
     {
@@ -274,9 +274,9 @@
   "generated_by": "scripts/build_documentation_family_currentness.py",
   "schema_version": "tos_documentation_family_currentness_v1",
   "source_map": "docs/validation/documentation_family_map.json",
-  "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
+  "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "4246aced13664a18045f8aec1a5bf2f2d5251dc91c74a2a589475d3d28d1c3c2",
+  "tracked_surface_digest": "51e3b47ccc4d15f6b5423aba57fec87cf8a60d2bf90291ef5aebf0f4a3315f76",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "1f99781f9d87f6aa574737370f670bcba32eb063bd47deb2a4c020fe433b2607",
+      "sha256": "605fe0630566f375bfa51d5a77636cafcd3f5b4e7874f9fe867e819d8199bd6d",
       "surface_kind": "structured"
     },
     {
@@ -391,11 +391,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5129,
+      "bytes": 5513,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "BOUNDARIES.md",
-      "sha256": "19468ddc5e206d9eeff97067809cdd23fce60fd0bc4da068adb3ebe788fcfd00",
+      "sha256": "4af011ed6f428a9478bab03457e9167f78e9415f7b3664cdab91de3d9ae23ca6",
       "surface_kind": "human"
     },
     {
@@ -407,11 +407,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3002,
+      "bytes": 3359,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHARTER.md",
-      "sha256": "6a57a07d0a717caa652c9b3bf035522c7404dd4c2fbc23fce1f1cea8f0be9fd1",
+      "sha256": "90fe91836d3c424f41ee007dc4983727b23d1d83de038ea9d77377aacc1a373b",
       "surface_kind": "human"
     },
     {
@@ -439,11 +439,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 25793,
+      "bytes": 26529,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "DESIGN.md",
-      "sha256": "4552c3d5eac42969ea525211164538d0ff5e123d34cbcb479da175aa26c1042d",
+      "sha256": "4a7f3a24b8fc732b59d5d4068dfc3f8e8d7f6aaeda8cff52657379a9661826be",
       "surface_kind": "human"
     },
     {
@@ -455,11 +455,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5992,
+      "bytes": 6085,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "README.md",
-      "sha256": "e750df59b600d92ef5173259c1a9633a7474170bb1e390c3211cf78204273fc8",
+      "sha256": "70757102598a316e61bbc8bc3875a138c87a730488f569436a93125c922b76ca",
       "surface_kind": "human"
     },
     {
@@ -17591,6 +17591,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3631,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-assessment-overview-authority-review.md",
+      "sha256": "79675ba6a30c27d96389c3e1b79df5e35e733f9e9f7c45cc1b3be2b261c97946",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 3896,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -31591,11 +31599,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 41469,
+      "bytes": 41820,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/documentation_family_map.json",
-      "sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
+      "sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
       "surface_kind": "structured"
     },
     {
