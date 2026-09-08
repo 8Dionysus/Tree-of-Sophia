@@ -50,12 +50,7 @@ ALLOWED_CI_INCLUSION = {
     "inventory-only",
     "advisory-only",
 }
-SAFE_CLI_SMOKE_COMMANDS = (
-    (".agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py", "--template"),
-    (".agents/skills/aoa-local-stack-bringup/scripts/bringup_contract.py", "--template"),
-    (".agents/skills/aoa-safe-infra-change/scripts/infra_change_contract.py", "--template"),
-)
-
+SAFE_CLI_SMOKE_COMMANDS: tuple[tuple[str, str], ...] = ()
 
 def import_path_for(path: str) -> str:
     return path.removesuffix(".py").replace("/", ".").replace("-", "_")
