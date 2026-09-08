@@ -596,6 +596,45 @@ jurisdiction, and the intended use. Unknown marginalia or scan production can
 therefore keep the exact PDF local while a separately reviewed public-domain
 text layer remains a real positive finding rather than being erased.
 
+## Owner-local source contexts
+
+Public source metadata remains tracked under the current corpus rule; no new
+ignored metadata subtree is introduced. Content-bearing private annotations,
+native token packets, human forms and their operation/assessment history need
+a separate explicitly selected confidential source store outside the public
+checkout. They retain the same ToS identities and source contracts. A private
+store is another governed location of authored source, not a parallel ontology,
+an automatically publishable catalog or a cache whose deletion is harmless.
+
+The [owner-local context contract](../contracts/owner-local-source-context.schema.json)
+partitions logical refs by `ToS/source-witnesses/owner-local/<store_id>/`.
+That prefix has exactly one private physical root; all other source/contract
+refs have the existing checkout as their owner. `public_root` names a location,
+not permission to read or publish every file there. There is no search,
+fallback, root shadowing or copied private schema authority. An alias under
+the checkout's reserved owner-local home is refused, even with identical bytes.
+The native v1 binding can retain its logical refs because this transport is
+explicit and singleton; a portable multi-owner reference would require its
+own later contract, not an inferred fallback.
+
+Context configuration and private files require mode 0600; directories from
+the dedicated private root inward require 0700. Account ownership, no-follow
+ancestors and current configuration/contract/root identities are checked
+separately. The context enters an opaque dependency snapshot; its absolute
+locations, short-span hashes and source-bearing bodies are not public export
+fields. This is a trusted local-account boundary, not isolation from hostile
+same-account code, encryption, backup or a portable artifact-trust decision.
+
+The bounded native reader can use the context explicitly. Without it, the
+reserved namespace is unsupported; the public source/profile/catalog reader
+does not discover or consume a private store. Native exact reading still needs
+the separate owner-local read selection and does not establish linguistic
+quality or admission. A private transport cannot become public because its
+underlying text layer has a positive public declaration. Native writer,
+private source/Claim/form commands and private assessment-source integration
+must each opt into this contract and retain their own authority checks;
+creating or opening a context does not implement or delegate those operations.
+
 ## Projection boundary
 
 Translation alignment follows the same evidence law before projection. Each
@@ -617,7 +656,7 @@ rebuildable projections, never the authority for the alignment or translation.
 The authoritative chain is:
 
 ```text
-tracked identity/claim/review records
+owner-held identity/claim/review records (tracked public or explicitly private)
   -> reproducible projection receipt
     -> lexical or vector index / RDF / property graph / KAG / UI
 ```

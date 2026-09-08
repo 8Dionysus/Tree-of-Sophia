@@ -378,6 +378,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_owner_context.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/owner-local-source-context.schema.json",
+      "protects": "explicit singleton private/public logical-reference partition, confidential owner-only modes, no fallback or schema shadow, context/config/contract/root identity and native dependency currentness, public default refusal and unchanged public snapshot, byte-exact native private return without implicit read permission, publication or assessment; fixtures are synthetic",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_owner_context.py",
+      "failure_route": "Fix the source-owner transport contract or private adapter; never disguise private data as public metadata or allow fallback to make a check pass.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_native_text_binding.py",
       "home": "tests",
       "home_scope": "root",

@@ -392,6 +392,54 @@ closure/admission checks from real source-visible review. No private native
 packet is made public by this adapter, and no human-only historical record is
 relabeled as an agent act.
 
+### Explicit owner-local source transport
+
+`OwnerLocalSourceContext.load(context_path)` reads the protected
+`tos_owner_local_source_context_v1` configuration from an independently chosen
+mode-0600 file. Its fields are `store_id` (`sid-` plus 32 lowercase hex digits),
+`public_root`, `private_root` and `private_prefix`, in addition to
+`schema_version`. Roots are absolute, normalized, existing, non-symlink and
+disjoint; the prefix is exactly
+`ToS/source-witnesses/owner-local/<store_id>/`. The private root must already
+exist with mode 0700. The resolver does not create directories or select a
+store on behalf of the caller.
+
+Use the existing native binding without changing its source IDs or schema:
+
+```python
+from pathlib import Path
+from source_owner_context import OwnerLocalSourceContext
+from native_text_binding import NativeTextBindingResolver
+
+context = OwnerLocalSourceContext.load(Path(context_path))
+resolver = NativeTextBindingResolver(context.public_root, owner_context=context)
+metadata = resolver.resolve(binding)
+# Only after independently confirming the caller's exact owner-local read scope:
+exact = resolver.resolve(binding, verify_content=True, allow_private_content=True)
+fixed_inputs = resolver.snapshot()
+```
+
+`context.path(ref)` selects exactly one physical root, preserving the complete
+logical path. `context.read_bytes(path, limit, read_bytes=protected_reader)`
+can retain caller byte-budget accounting while checking confidentiality before
+and after the read. Private files require 0600 and private directories 0700;
+the root's ancestors also retain no-follow/account/write protections. A private
+schema copy is never selected instead of its source-owned public contract.
+There is no fallback, other-store discovery or permitted alias in the checkout.
+The opaque snapshot binds context/schema bytes, physical root roles and root
+identities as well as native dependency bytes. Default public snapshots do not
+consult this context, and default native reads reject its reserved namespace,
+including metadata-only representations that name a private content locator.
+
+Any consumed private route sets an owner-local disclosure ceiling even when
+the underlying layer is otherwise public. `owner_local_transport` reports
+that boundary without exposing paths; exact private content still needs its
+separate read selection. Context use does not grant source writing, reviewer
+competence, assessment, publication or canon. This is currently a Python
+transport/native-reader interface: v1-v3 assessment command configurations and
+public source/Claim/form commands do not implicitly acquire private-source
+support. Each future writer/consumer needs its own explicit adapter.
+
 ### Descriptions bound to native text
 
 The registry-declared `source-text-unit-v1` profile adapter connects a public

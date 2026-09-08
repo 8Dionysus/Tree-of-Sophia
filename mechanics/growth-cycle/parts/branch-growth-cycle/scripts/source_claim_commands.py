@@ -208,7 +208,8 @@ def _ground_claims(config, claims, *, initial):
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-             'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/build_source_witness_catalog.py',
+             'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
+             'scripts/build_source_witness_catalog.py',
              'scripts/source_witness_bibliographic_graph_common.py')}}))
     return {SOURCE_CLAIM_BASENAME: raw}, dependencies, source_bindings
 

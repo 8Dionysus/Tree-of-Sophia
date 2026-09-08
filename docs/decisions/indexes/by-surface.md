@@ -74,6 +74,7 @@
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
 - [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
 - [TOS-D-0054 - Compatible scholarly composite record shapes](../TOS-D-0054-compatible-scholarly-composite-record-shapes.md) (`docs/decisions/TOS-D-0054-compatible-scholarly-composite-record-shapes.md`)
+- [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 
 ## contracts/portability
 
@@ -103,6 +104,7 @@
 - [TOS-D-0050 - Incremental checks with disposable bounded cache](../TOS-D-0050-incremental-checks-bounded-cache.md) (`docs/decisions/TOS-D-0050-incremental-checks-bounded-cache.md`)
 - [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
 - [TOS-D-0054 - Compatible scholarly composite record shapes](../TOS-D-0054-compatible-scholarly-composite-record-shapes.md) (`docs/decisions/TOS-D-0054-compatible-scholarly-composite-record-shapes.md`)
+- [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 
 ## docs/decisions
 
@@ -354,10 +356,12 @@
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
 - [TOS-D-0054 - Compatible scholarly composite record shapes](../TOS-D-0054-compatible-scholarly-composite-record-shapes.md) (`docs/decisions/TOS-D-0054-compatible-scholarly-composite-record-shapes.md`)
+- [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 
 ## storage-boundary
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
+- [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 
 ## tests/topology
 

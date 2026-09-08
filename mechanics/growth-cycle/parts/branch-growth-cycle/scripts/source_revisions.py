@@ -109,7 +109,8 @@ def _dependencies(config, record):
                  'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
                  'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
                  'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-                 'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/source_witness_human_forms.py',
+                 'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
+                 'scripts/source_witness_human_forms.py',
                  'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
                  'ToS/contracts/human-form-template.schema.json'):
         inputs[path] = source._digest(source._read(source.ROOT / path, source.MAX_SET_BYTES))

@@ -100,7 +100,7 @@ class NativeTextBindingResolver:
     Observed dependencies are never refreshed midway through a command.
     """
 
-    def __init__(self, root: Path, *, read_bytes=None,
+    def __init__(self, root: Path, *, read_bytes=None, owner_context=None,
                  max_metadata_bytes=8_388_608, max_content_bytes=8_388_608):
         self.root = Path(root)
         if (not self.root.is_absolute() or '..' in self.root.parts
@@ -117,6 +117,23 @@ class NativeTextBindingResolver:
         self._validators = {}
         self.schema_digests = {}
         self._support_refs = set()
+        self._owner_context = owner_context
+        self._private_transport_used = False
+        if owner_context is not None:
+            from source_owner_context import OwnerLocalSourceContext, CONTEXT_SCHEMA_REF
+            if not isinstance(owner_context, OwnerLocalSourceContext) or owner_context.public_root != self.root:
+                raise NativeTextBindingError('native owner context belongs to another source/contract root')
+            self._context_snapshot()
+            self._read(CONTEXT_SCHEMA_REF, schema=True, expected=owner_context.contract_digest)
+
+    def _context_snapshot(self):
+        if self._owner_context is None:
+            return None
+        from source_owner_context import SourceOwnerContextError
+        try:
+            return self._owner_context.snapshot()
+        except SourceOwnerContextError as error:
+            raise NativeTextBindingError('native owner transport changed or became unsafe') from error
 
     def _path(self, ref: str, *, content=False, schema=False, support=False) -> Path:
         if not isinstance(ref, str) or not ref or '\x00' in ref or '\\' in ref:
@@ -127,7 +144,24 @@ class NativeTextBindingResolver:
                 or 'catalog' in path.parts
                 or (not content and any(part in {'payload', 'local-content'} for part in path.parts))):
             raise NativeTextBindingError('native binding reference escapes its declared owner home')
-        return self.root / path
+        from source_owner_context import OWNER_LOCAL_HOME, SourceOwnerContextError
+        if self._owner_context is None:
+            if path.is_relative_to(OWNER_LOCAL_HOME):
+                raise NativeTextBindingError('native owner-local reference requires an explicit transport context')
+            return self.root / path
+        try:
+            return self._owner_context.path(ref)
+        except SourceOwnerContextError as error:
+            raise NativeTextBindingError('native reference is outside the selected owner transport') from error
+
+    def _transport_read(self, path, limit, reader):
+        if self._owner_context is None:
+            return reader(path, limit)
+        from source_owner_context import SourceOwnerContextError
+        try:
+            return self._owner_context.read_bytes(path, limit, read_bytes=reader)
+        except SourceOwnerContextError as error:
+            raise NativeTextBindingError('native owner transport input is unsafe or changed') from error
 
     def _read(self, ref: str, *, expected=None, content=False, schema=False, support=False) -> bytes:
         path = self._path(ref, content=content, schema=schema, support=support)
@@ -144,7 +178,7 @@ class NativeTextBindingResolver:
             if limit < 0:
                 raise NativeTextBindingError('native binding exceeds its input-byte budget')
             try:
-                raw = self._reader(path, limit)
+                raw = self._transport_read(path, limit, self._reader)
             except (OSError, ValueError) as error:
                 raise NativeTextBindingError('native binding input is missing, unsafe or changed') from error
             if not isinstance(raw, bytes) or len(raw) > limit:
@@ -153,6 +187,8 @@ class NativeTextBindingResolver:
             digest = _hash(raw)
             self._inputs[key] = digest
             self._cache[key] = raw
+            if self._owner_context is not None and self._owner_context.role(ref) == 'owner-local-root':
+                self._private_transport_used = True
         raw = self._cache[key]
         # One dependency can first be encountered as a fixed support record
         # and later as an actual grammar. Its roles do not depend on cache order.
@@ -407,8 +443,14 @@ class NativeTextBindingResolver:
                     or record['review_status'] in {'legal_review_requested', 'superseded'}
                     for record in applicable):
                 raise NativeTextBindingError('native public-content declaration conflicts with its current rights gate')
+        # A metadata-only read must not advertise a source address that this
+        # transport cannot resolve. Validate the route without opening bytes.
+        self._path(rep['content_ref'], content=True)
+        if self._owner_context is not None and self._owner_context.role(rep['content_ref']) == 'owner-local-root':
+            self._private_transport_used = True
+        public_binding = declared_public and not self._private_transport_used
         if verify_content:
-            if not declared_public and not allow_private_content:
+            if not public_binding and not allow_private_content:
                 raise NativeTextBindingError('exact private text resolution requires explicit owner-local access')
             raw = self._read(rep['content_ref'], expected=rep['content_sha256'], content=True)
             try:
@@ -432,9 +474,13 @@ class NativeTextBindingResolver:
             'unit_kind': unit['unit_kind'], 'segmentation_id': segment['segmentation_id'],
             'segmentation_version': segment['segmentation_version'],
             'layer_id': layer['layer_id'], 'layer_version': layer['layer_version'],
-            'language': rep['language'], 'effective_visibility': rights['effective_visibility'],
-            'public_content_declared': bool(declared_public),
-            'public_content_available': bool(verify_content and declared_public),
+            'language': rep['language'], 'effective_visibility': (
+                'local_only' if self._private_transport_used
+                and rights['effective_visibility'] in {'public', 'public_metadata_only', 'controlled'}
+                else rights['effective_visibility']),
+            'public_content_declared': bool(public_binding),
+            'public_content_available': bool(verify_content and public_binding),
+            **({'owner_local_transport': self._private_transport_used} if self._owner_context is not None else {}),
             'native_status': {'unit_boundary_posture': unit['boundary_posture'],
                               'segmentation_status': segment['status'],
                               'layer_review_status': layer['admission']['review_status']},
@@ -444,18 +490,25 @@ class NativeTextBindingResolver:
     def snapshot(self, *, read_bytes=None) -> str:
         """Recheck the exact closure; expose only an opaque fingerprint."""
         reader = read_bytes or self._reader
+        context = self._context_snapshot()
         remaining = dict(self._budgets)
         for (ref, category), digest in sorted(self._inputs.items()):
             limit = remaining[category]
             if category != 'content':
                 limit = min(limit, MAX_METADATA_FILE_BYTES)
             try:
-                raw = reader(self._path(ref, content=category == 'content',
-                            schema=ref in self.schema_digests, support=ref in self._support_refs), limit)
+                raw = self._transport_read(self._path(ref, content=category == 'content',
+                            schema=ref in self.schema_digests, support=ref in self._support_refs), limit, reader)
             except (OSError, ValueError) as error:
                 raise NativeTextBindingError('native binding dependency changed or became unreadable') from error
             if not isinstance(raw, bytes) or len(raw) > limit or _hash(raw) != digest:
                 raise NativeTextBindingError('native binding dependency changed after resolution')
             remaining[category] -= len(raw)
         value = [[ref, category, digest] for (ref, category), digest in sorted(self._inputs.items())]
+        if context is not None:
+            if self._context_snapshot() != context:
+                raise NativeTextBindingError('native owner transport changed during dependency recheck')
+            value = {'owner_context': context, 'inputs': [
+                [ref, category, self._owner_context.role(ref), digest]
+                for (ref, category), digest in sorted(self._inputs.items())]}
         return 'sha256:' + _hash(json.dumps(value, separators=(',', ':'), ensure_ascii=True).encode())

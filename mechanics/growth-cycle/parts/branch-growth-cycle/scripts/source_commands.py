@@ -293,7 +293,9 @@ def _profile_input_snapshot(profiles):
         if hashlib.sha256(raw).hexdigest() != digest:
             raise JournalConflict('source profile contract changed during resolution')
     return {'source_contracts': {ref: 'sha256:' + digest for ref, digest in profiles.input_digests.items()},
-            **({'native_binding_implementation': _digest(_read(ROOT / 'scripts/native_text_binding.py', MAX_COMMAND_BYTES))}
+            **({'native_binding_implementation': {
+                ref: _digest(_read(ROOT / ref, MAX_COMMAND_BYTES)) for ref in
+                ('scripts/native_text_binding.py', 'scripts/source_owner_context.py')}}
                if native_text_snapshot is not None else {}),
             **({'native_text_binding_snapshot': native_text_snapshot} if native_text_snapshot is not None else {}),
             **({'native_semantic_identity_snapshot': native_snapshot} if native_snapshot is not None else {})}
@@ -673,6 +675,7 @@ def _prepare_creation(config, request):
             'scripts/source_witness_human_forms.py', 'scripts/build_source_witness_catalog.py',
             'scripts/source_record_profiles.py',
             'scripts/native_text_binding.py',
+            'scripts/source_owner_context.py',
             'scripts/source_witness_bibliographic_graph_common.py',
             'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
             'ToS/contracts/human-form-template.schema.json')}}))
