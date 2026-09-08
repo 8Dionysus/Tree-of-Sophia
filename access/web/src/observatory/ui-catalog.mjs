@@ -1,5 +1,9 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Показана доступная форма названия: {0}.": {
+    "en": "Showing the available title form: {0}.",
+    "es": "Se muestra la forma disponible del título: {0}."
+  },
   "Нет читаемого названия": {
     "en": "No readable title",
     "es": "No hay un título legible"
@@ -2168,9 +2172,9 @@ export const UI_CATALOG={
     "en": "Interface language",
     "es": "Idioma de la interfaz"
   },
-  "Язык кнопок и окон. Язык материалов выбирается отдельно при чтении — из доступных версий.": {
-    "en": "The language of buttons and windows. Choose the language of each item separately while reading, from the available versions.",
-    "es": "Idioma de los botones y las ventanas. El idioma de cada material se elige aparte al leer, entre las versiones disponibles."
+  "Язык навигационных подписей, кнопок и окон. Язык материалов выбирается отдельно при чтении — из доступных версий.": {
+    "en": "The language of navigation labels, buttons and windows. Choose the language of each item separately while reading, from the available versions.",
+    "es": "Idioma de las etiquetas de navegación, los botones y las ventanas. El idioma de cada material se elige aparte al leer, entre las versiones disponibles."
   },
   "Оформление": {
     "en": "Appearance",

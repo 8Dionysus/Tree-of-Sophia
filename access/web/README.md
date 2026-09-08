@@ -366,6 +366,14 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   existing choice among delivered language/form variants; interface language
   never requests or invents a translated source. Both language and theme persist
   in the local preferences and workspace copy.
+  Navigation titles and previews select the supplied variant for the interface
+  language through `display-language.mjs`; the inspector uses its material
+  selector, and each pinned item keeps its own choice. A language switch only
+  relabels existing stars, preserving their IDs, positions and camera. Missing
+  variants use the same explicit fallback as reading. The original-title slot
+  shows only a supplied source `original`, never an English substitute.
+  Navigation-template titles remain navigation-only, including in reading;
+  they do not create source wording or a ready HumanForm.
 - `themes.css` adds a light interface with warm paper surfaces and dark text for
   panels, controls and contextual hints. The space and stars retain their night
   palette. The existing dark theme remains the default.

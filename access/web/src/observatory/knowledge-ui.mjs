@@ -1,6 +1,6 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {RequestSlots,RevisionError,ContractError,localized,displayTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,sourceOriginalTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
@@ -20,6 +20,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   const q=s=>root.querySelector(s),slots=new RequestSlots();
   let searchTimer=0,retryAction=null,searchOffset=0;
   let cardLanguage='ru';
+  const titleNote=document.createElement('p');titleNote.className='sc-reader-language-note sc-title-language-note';titleNote.hidden=true;q('.sc-node-title').after(titleNote);
   const forms=document.createElement('div');forms.className='sc-card-forms';q('.sc-description').after(forms);
   const language=document.createElement('select'),languageLabel=document.createElement('label');
   uiText(languageLabel,ui('Язык материала'));uiAttribute(language,'aria-label',ui('Язык материала'));languageLabel.append(language);forms.before(languageLabel);
@@ -131,14 +132,21 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }
     details.addEventListener('toggle',()=>port.cardChanged());uiChildren(out, "append", details);
   }
-  function endpointName(id){return displayTitle(port.node(id),id);}
+  function endpointName(id){return displayTitle(port.node(id),id,cardLanguage);}
+  function renderTitle(raw){
+    const form=displayTitleForm(raw,cardLanguage),title=q('.sc-node-title');
+    uiText(title,form?.text||raw.id);title.lang=form?.lang||'';
+    title.dataset.requestedLanguage=cardLanguage;title.dataset.displayLanguage=form?.key||'';
+    titleNote.hidden=!form?.fallback;
+    uiText(titleNote,form?.fallback?ui('Показана доступная форма названия: {0}.',[formLabel(form.key)]):'');
+  }
   function renderCard(kind,raw,endpoints=[]){
     const selection=validateHumanForms(raw),identity=formIdentity(raw);
     const readingKey=JSON.stringify([port.packet?.source_revision,kind,raw.id,raw.content_revision,cardLanguage,identity]);cardReading.capture();relationsReading.capture();cardReading.enter(readingKey);relationsReading.enter(readingKey);
-    uiText(q('.sc-node-title'), displayTitle(raw,raw.id));
-    uiText(q('.sc-node-original'), kind==='node'?(missingReadableTitle(raw)?'':raw.display.title.original||raw.display.title.en||''):localized(raw.display.statement));
-    uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id).toUpperCase():ui("ОТНОШЕНИЕ"));
-    uiText(q('.sc-description'), localized(kind==='node'?raw.display.summary:raw.display.explanation,ui("Описание пока не зафиксировано.")));
+    renderTitle(raw);
+    uiText(q('.sc-node-original'), kind==='node'?sourceOriginalTitle(raw):localized(raw.display.statement,'',cardLanguage));
+    uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id,cardLanguage).toUpperCase():ui("ОТНОШЕНИЕ"));
+    uiText(q('.sc-description'), localized(kind==='node'?raw.display.summary:raw.display.explanation,ui("Описание пока не зафиксировано."),cardLanguage));
     q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw));
     const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
     language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;option.textContent=formLabel(value);return option;}));language.value=cardLanguage;
@@ -151,7 +159,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     if(kind==='node'){
       for(const relation of relationships){
         const outgoing=relation.from_id===raw.id,other=outgoing?relation.to_id:relation.from_id;
-        const label=outgoing?localized(relation.display.label):localized(relation.display.inverse_label)||'← '+localized(relation.display.label);
+        const label=outgoing?localized(relation.display.label,'',cardLanguage):localized(relation.display.inverse_label,'',cardLanguage)||'← '+localized(relation.display.label,'',cardLanguage);
         const b=button('',()=>port.selectRelation(relation.id),'sc-neighbor sc-relation-row');uiAttribute(b, "data-tooltip", localized(relation.display.statement,ui("Открыть связь и её основания.")).slice(0,260));
         uiChildren(b, "append", text('small','',label), text('span','',endpointName(other)));uiChildren(list, "append", b);
       }
@@ -159,7 +167,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }else{
       for(const [label,id]of [[ui("От"),raw.from_id],[ui("К"),raw.to_id]]){
         const node=endpoints.find(n=>n.id===id)||port.node(id);
-        const b=button(label+': '+displayTitle(node,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');uiChildren(list, "append", b);
+        const b=button(label+': '+displayTitle(node,id,cardLanguage),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');uiChildren(list, "append", b);
       }
     }
     sourceDetails(raw,kind);
@@ -168,7 +176,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   async function showCard(kind,raw){
     cancelInspector();const scene=port.packet,language=cardLanguage;if(!scene?.source_revision)return;
     root.dataset.inspectorState='loading';
-    uiText(q('.sc-node-title'),displayTitle(raw,raw.id));
+    renderTitle(raw);
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
       renderCard(kind,raw);

@@ -1,23 +1,16 @@
 import {t} from './ui-i18n.mjs';
-import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitle,missingReadableTitle} from './knowledge-client.mjs';
+import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm} from './knowledge-client.mjs';
+import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
+export {readingForm};
 import {FormContractError,validateHumanForms,formLanguages,formIdentity} from './human-forms.mjs';
 
 const present=value=>typeof value==='string'&&Boolean(value.trim());
-const languageKey=key=>!['default','original'].includes(key)&&/^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$/i.test(key);
 export const readingKey=(kind,id)=>JSON.stringify([kind,id]);
 export function formLabel(key){
   return ({ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")})[key]||key;
 }
-// Preserve the delivered wording and the actual selected field. In particular,
-// `default` and `original` are not language tags and do not imply a translation.
-export function readingForm(value,preferred='ru'){
-  const keys=[preferred,'default','original','ru','en',...Object.keys(value||{}).filter(languageKey)];
-  const key=keys.find(key=>present(value?.[key]));
-  return key?{text:value[key],key,lang:languageKey(key)?key:null,fallback:key!==preferred}:null;
-}
 function readingTitle(raw,preferred='ru'){
-  return missingReadableTitle(raw)?{text:displayTitle(raw),key:null,lang:null,fallback:false,unavailable:true}
-    :readingForm(raw.display.title||raw.display.label,preferred);
+  return displayTitleForm(raw,preferred);
 }
 export function readingLanguages(snapshot){
   if(snapshot.raw.human_form_selection)return [...new Set(['ru','en','es',...formLanguages(snapshot.raw)])];

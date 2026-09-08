@@ -1,6 +1,21 @@
 import {test,expect} from 'vitest';
 import {nodePreview,relationPreview} from './graph-preview.mjs';
 const node=(id,kind)=>({id,kind_id:kind,display:{title:{ru:id},kind_label:{ru:kind},summary_state:'metadata-synthesis',summary:{ru:'Техническая заглушка'}}});
+test('previews select delivered navigation and relationship language without creating human forms',()=>{
+  const claim=node('claim','Утверждение'),work=node('work','Произведение');
+  claim.display.title={ru:'Запись утверждения',en:'Claim record'};claim.display.kind_label.en='Claim';
+  claim.display.provenance={title:'navigation-template',source_title_available:false};
+  work.display.title={ru:'Произведение',en:'Work'};
+  const relation={id:'edge',from_id:claim.id,to_id:work.id,display:{label:{ru:'имеет субъект',en:'has subject'}}};
+  const packet={nodes:[claim,work],relations:[relation]},before=structuredClone(packet);
+  for(const language of ['ru','en','ru']){
+    const preview=nodePreview(packet,claim,language);
+    expect(preview.title).toBe(claim.display.title[language]);
+    expect(preview.body).toBe(relation.display.label[language]+' → '+work.display.title[language]);
+    expect(relationPreview(packet,relation,language).body).toBe(claim.display.title[language]+' → '+work.display.title[language]);
+  }
+  expect(packet).toEqual(before);expect(claim.human_form_selection).toBeUndefined();
+});
 test('every supplied kind is displayed without a browser taxonomy or invented description',()=>{
   for(const kind of ['work','concept','expression','editorial-witness','future-kind']){
     const raw=node('Предмет',kind),preview=nodePreview({nodes:[raw],relations:[]},raw);

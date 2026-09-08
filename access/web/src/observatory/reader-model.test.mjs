@@ -12,6 +12,22 @@ const target=(raw=node(),rev=revision)=>({raw,kind:'node',sourceRevision:rev,boo
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
+test('a navigation-only pin retains one identity across language changes and reopening',async()=>{
+  const raw=node();raw.display.title={ru:'Запись утверждения',en:'Claim record'};
+  raw.display.provenance={title:'navigation-template',source_title_available:false};
+  const before=structuredClone(raw),shelf=createReadingShelf({client:{readMaterial:async()=>answer(raw)}});
+  const {key}=shelf.pin({...target(raw),preferred:'ru'});await tick();
+  for(const language of ['en','ru','en']){
+    await shelf.language(key,language);assert.equal(shelf.entries.length,1);assert.equal(shelf.entries[0].key,key);
+    const doc=readingDocument(shelf.entries[0].snapshot,language);
+    assert.equal(doc.title.text,raw.display.title[language]);assert.equal(doc.title.navigationOnly,true);assert.equal(doc.humanForms,null);
+  }
+  shelf.restore([{kind:'node',id:raw.id,preferred:'en',sourceRevision:revision,contentRevision:content}]);await tick();
+  assert.equal(shelf.entries[0].key,key);assert.equal(shelf.entries[0].preferred,'en');
+  assert.equal(readingDocument(shelf.entries[0].snapshot,shelf.entries[0].preferred).title.text,'Claim record');
+  assert.deepEqual(raw,before);
+});
+
 test('an identifier fallback is a UI title gap, never a selected source form or authored statement',()=>{
   const raw=node();raw.display.title={default:'claim:tos claim opaque'};raw.display.provenance={title:'identifier-fallback'};
   const snapshot=readingSnapshot(answer(raw),'node'),doc=readingDocument(snapshot,'en');

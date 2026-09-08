@@ -4,7 +4,7 @@ import {relationPreview,describePreview} from './graph-preview.mjs';
 import {validatePose} from './view-state.mjs';
 import {sameSceneView} from './scene-history.mjs';
 import {refreshIcons} from './icons';
-import { projectLens } from './knowledge-client.mjs';
+import { projectLens,nodeLabels } from './knowledge-client.mjs';
 import { attachKnowledgeUI } from './knowledge-ui.mjs';
 import { SophiaGpuCanvas } from './gpu-canvas.js';
 
@@ -108,7 +108,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
         b.addEventListener('focus',()=>{hover=index()??-1;kick()});b.addEventListener('blur',()=>{hover=-1;kick()});
         b.addEventListener('keydown',e=>{if(index()!==undefined)moveNodeFocus(e,index())});
       }
-      b.dataset.main=String(n.main);uiAttribute(b, 'aria-label', n.fullName+' — '+n.kind);uiText(label, n.name);
+      b.dataset.main=String(n.main);b.lang=n.labelLanguage||'';uiAttribute(b, 'aria-label', n.fullName+' — '+n.kind);uiText(label, n.name);
       return {...n,el:b,label,screen:project(...n.pos)};
     });
     lookup.clear();nodes.forEach((n,i)=>lookup.set(n.id,i));uiChildren(nodeLayer, "replaceChildren", ...nodes.map(n=>n.el));
@@ -228,6 +228,15 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
   function styleOnce(el,key,value){if(el.style[key]!==String(value))el.style[key]=value;}
   function nearTo(i){return edges.filter(e=>e.includes(i)).map(e=>e[0]===i?e[1]:e[0]);}
   function measureLabels(){nodes.forEach(n=>{const s=getComputedStyle(n.label);ctx.font=s.font;const spacing=parseFloat(s.letterSpacing)||0;n.labelWidth=Math.ceil(ctx.measureText(n.name).width+spacing*n.name.length)+2;n.labelHeight=Math.ceil(parseFloat(s.fontSize)*1.5);});}
+  // Relabel existing DOM/vertices only. A navigation-language change must not
+  // reinstall the graph, create history, or assign any camera or motion state.
+  document.addEventListener('sophia-ui-language',()=>{
+    if(!root.isConnected)return;
+    for(const node of nodes){Object.assign(node,nodeLabels(node.raw));node.el.lang=node.labelLanguage||'';uiText(node.label,node.name);uiAttribute(node.el,'aria-label',node.fullName+' — '+node.kind);}
+    measureLabels();relationKeyLabel();
+    if(hoverRelation>=0)describePreview(canvas,relationPreview(scenePacket,relationRecords[hoverRelation]));
+    updateContext(false);layoutDirty=true;kick();
+  });
   function localBox(el){const r=el.getBoundingClientRect(),origin=root.getBoundingClientRect();return{x:r.left-origin.left,y:r.top-origin.top,w:r.width,h:r.height};}
   function overlap(a,b,gap=0){return a.x<b.x+b.w+gap&&a.x+a.w+gap>b.x&&a.y<b.y+b.h+gap&&a.y+a.h+gap>b.y;}
   function updateLayout(){obstacles=[];for(const el of root.querySelectorAll('.sc-header,.sc-context,.sc-footer,.sc-label-west,.sc-label-east,.sc-panel')){if(!el.hidden){const b=localBox(el);if(b.w&&b.h)obstacles.push(b)}}panelBounds=panel.hidden?null:localBox(panel);layoutDirty=false;}
@@ -242,10 +251,10 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     }
     layoutDirty=true;kick();
   }
-  function updateContext(){
+  function updateContext(notify=true){
     if(!navigationHistory)q('.sc-back').hidden=history.length===0;
     uiText(q('.sc-context-sub'), selectedRelation?ui("Выбрана связь"):selected>=0?ui("Фокус: {0}", [nodes[selected].name]):scenePacket?ui("{0} звёзд · {1} связей", [nodes.length, edges.length]):ui("Загружаем область…"));
-    if(!navigationHistory)root.dataset.history=String(history.length);layoutDirty=true;onChange(scenePort);
+    if(!navigationHistory)root.dataset.history=String(history.length);layoutDirty=true;if(notify)onChange(scenePort);
   }
   function captureView(){return {graph:captureGraph(),selected,panelOpen:!panel.hidden||overlayReturnPanel,lens,targets:nodes.map(n=>n.target.slice()),yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:{...tpan},windowPosition:{...windowPosition},cardTab};}
   function remember(){if(suppressHistory)return;if(navigationHistory){navigationHistory.beforeChange();return;}const state=captureView();if(!sameSceneView(state,history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}

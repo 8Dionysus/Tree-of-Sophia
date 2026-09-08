@@ -1,4 +1,4 @@
-import {t,ui,uiChildren,uiText} from './ui-i18n.mjs';
+import {t,ui,uiComputed,uiChildren,uiText} from './ui-i18n.mjs';
 import {nodePreview,describePreview} from './graph-preview.mjs';
 import {localized} from './knowledge-client.mjs';
 
@@ -41,10 +41,15 @@ export function createSceneFeedback(root,scene){
       if(role)totals[role]++;
 
     }
-    uiChildren(legend, "replaceChildren");for(const [role,label]of [['matched',ui("По условиям")],['focus',ui("Центр")],['context',ui("Окружение")]])if(totals[role]){const item=document.createElement('span');item.dataset.role=role;uiText(item, label+' '+totals[role]);uiChildren(legend, "append", item);}
+    uiChildren(legend, "replaceChildren");for(const [role,label]of [['matched',ui("По условиям")],['focus',ui("Центр")],['context',ui("Окружение")]])if(totals[role]){const item=document.createElement('span');item.dataset.role=role;uiText(item, uiComputed(()=>label+' '+totals[role]));uiChildren(legend, "append", item);}
     legend.hidden=!roles.size;previous=packet;scene.invalidate();
     timer=setTimeout(()=>{for(const element of root.querySelectorAll('.sc-node[data-entering="true"]'))element.dataset.entering='false';},1600);
   }
   const observer=new MutationObserver(update);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision','data-node-count','data-relation-count','data-selected','data-inspector-id','data-inspector-kind']});
+  document.addEventListener('sophia-ui-language',()=>{
+    if(!root.isConnected||!scene.port.packet)return;
+    selectionContext();
+    for(const element of root.querySelectorAll('.sc-node'))describePreview(element,nodePreview(scene.port.packet,scene.port.node(element.dataset.id)));
+  });
   update();window.addEventListener('pagehide',()=>{clearTimeout(timer);});return {update};
 }

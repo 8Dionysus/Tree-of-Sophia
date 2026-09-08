@@ -30,7 +30,7 @@ export function createSettingsPanel(root,scene,panels,{studio,onUserAction=()=>{
   function render(){
     const top=body.scrollTop;uiChildren(body, "replaceChildren");uiText(status, panels.storageError||'');
     const language=section(ui("Язык"));
-    option(language,ui("Язык интерфейса"),'uiLanguage',[['ru',ui("Русский")],['en','English'],['es','Español']],ui("Язык кнопок и окон. Язык материалов выбирается отдельно при чтении — из доступных версий."));
+    option(language,ui("Язык интерфейса"),'uiLanguage',[['ru',ui("Русский")],['en','English'],['es','Español']],ui("Язык навигационных подписей, кнопок и окон. Язык материалов выбирается отдельно при чтении — из доступных версий."));
     const appearance=section(ui("Оформление"));
     option(appearance,ui("Тема интерфейса"),'theme',[['dark',ui("Тёмная")],['light',ui("Светлая")]],ui("Тема меняет панели и кнопки. Звёздное пространство остаётся тёмным."));
     const reading=section(ui("Чтение и подписи"));

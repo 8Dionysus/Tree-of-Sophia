@@ -1,4 +1,5 @@
-import {t} from './ui-i18n.mjs';
+import {t,uiLanguage} from './ui-i18n.mjs';
+import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
@@ -12,15 +13,28 @@ export class RevisionError extends Error {
 export class RequestError extends Error {
   constructor(status,message){super(message);this.status=status;}
 }
-export function localized(value,fallback='') {
-  return [value?.ru,value?.default,value?.original,value?.en].find(v=>typeof v==='string'&&v.trim())||fallback;
+export function localized(value,fallback='',preferred='ru') {
+  return displayForm(value,preferred)?.text||fallback;
 }
 export const missingReadableTitle=raw=>raw?.display?.provenance?.title==='identifier-fallback';
 // Only the owner's explicit provenance marks an identifier fallback. Never
 // infer a title, statement or type from an opaque ID or a human form.
-export function displayTitle(raw,fallback=''){
-  if(!missingReadableTitle(raw))return localized(raw?.display?.title||raw?.display?.label,fallback);
-  return [localized(raw.display.kind_label,raw.kind_id),t('Нет читаемого названия')].filter(Boolean).join(' · ');
+export function displayTitleForm(raw,preferred=uiLanguage()){
+  if(missingReadableTitle(raw))return {text:[localized(raw.display.kind_label,raw.kind_id,preferred),t('Нет читаемого названия')].filter(Boolean).join(' · '),key:null,lang:null,fallback:false,unavailable:true};
+  const form=displayForm(raw?.display?.title||raw?.display?.label,preferred);
+  return form&&raw?.display?.provenance?.title==='navigation-template'?{...form,navigationOnly:true}:form;
+}
+export function displayTitle(raw,fallback='',preferred=uiLanguage()){
+  return displayTitleForm(raw,preferred)?.text||fallback;
+}
+export function sourceOriginalTitle(raw){
+  return missingReadableTitle(raw)||raw?.display?.provenance?.source_title_available===false?'':raw?.display?.title?.original||'';
+}
+export function nodeLabels(raw,preferred=uiLanguage()){
+  const form=displayTitleForm(raw,preferred),fullName=form?.text||raw.id;
+  return {name:missingReadableTitle(raw)?t('Нет читаемого названия'):fullName.length>46?fullName.slice(0,43)+'…':fullName,
+    fullName,original:sourceOriginalTitle(raw),labelLanguage:form?.lang||null,
+    kind:localized(raw.display.kind_label,raw.kind_id,preferred),description:localized(raw.display.summary,'',preferred)};
 }
 export function focusSpec(id,{depth=1}={}) {
   return {schema_version:'tos_lens_spec_v1',lens_id:'sophia-observatory-focus',language:'ru',detail:'compact',explain:true,
@@ -229,11 +243,9 @@ export function projectLens(packet,previous=[]) {
   return ordered.map((raw,index)=>{
     const old=existing.get(raw.id);while(occupied.has(nextSlot))nextSlot++;
     const slot=old?.slot??nextSlot++;occupied.add(slot);
-    const fullName=displayTitle(raw,raw.id),name=missingReadableTitle(raw)?t('Нет читаемого названия'):fullName.length>46?fullName.slice(0,43)+'…':fullName;
     const h=hash(raw.id),angle=slot*2.399963229728653;
     const p=slots[slot]?.slice()||[Math.cos(angle)*(260+(slot%4)*58),Math.sin(angle)*(160+(slot%3)*47),-480+(h%740)];
-    return {id:raw.id,raw,name,fullName,original:missingReadableTitle(raw)?'':raw.display.title.original||raw.display.title.en||'',
-      kind:localized(raw.display.kind_label,raw.kind_id),description:localized(raw.display.summary),
+    return {id:raw.id,raw,...nodeLabels(raw),
       main:index<8,above:index%3===1,group:raw.id===focus?1:raw.kind_id==='agent'?0:raw.kind_id==='expression'?2:1,
       slot,p:old?.p?.slice()||p,sourcePosition:old?.sourcePosition?.slice()||p.slice(),volumeZ:old?.volumeZ??p[2],
       pos:old?.pos?.slice()||p.slice(),target:old?.target?.slice()||p.slice()};

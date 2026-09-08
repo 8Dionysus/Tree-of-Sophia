@@ -1,7 +1,8 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle} from './knowledge-client.mjs';
+import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
   content_revision:'b'.repeat(64),source_refs:['ToS/fixture/work.json'],display:{title:{ru:'Произведение'},kind_label:{ru:'Произведение'},summary:{ru:'Источник'}}});
@@ -10,6 +11,33 @@ const fixture={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),author
   relations:[{id:'relation:1',from_id:'graph-a:work',to_id:'graph-b:work',content_revision:'c'.repeat(64),source_refs:['ToS/fixture/relation.json'],display:{label:{ru:'Связано с'}}}]};
 const clone=()=>structuredClone(fixture);
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
+
+test('navigation language round trips preserve identities, positions and navigation-only provenance',()=>{
+  const packet=clone();
+  for(const raw of packet.nodes){raw.display.title={ru:'Запись утверждения',en:'Claim record',original:null};raw.display.provenance={title:'navigation-template',source_title_available:false};}
+  const before=structuredClone(packet);let projected=projectLens(packet);
+  projected[0].target=[17,28,-39];const slots=projected.map(n=>[n.id,n.slot]);
+  try{for(const language of ['ru','en','ru']){
+    setUiLanguage(language);projected=projectLens(packet,projected);
+    assert.equal(projected[0].fullName,packet.nodes[0].display.title[language]);
+    assert.equal(projected[0].original,'');assert.deepEqual(projected[0].target,[17,28,-39]);
+    assert.deepEqual(projected.map(n=>[n.id,n.slot]),slots);
+    assert.equal(displayTitleForm(packet.nodes[0],language).navigationOnly,true);
+  }}finally{setUiLanguage('ru');}
+  assert.deepEqual(packet,before);
+});
+
+test('material language overrides navigation language and only an actual original occupies the original slot',()=>{
+  const raw=node('same-id');raw.display.title={ru:'Слово',en:'Word',original:'λόγος'};
+  try{setUiLanguage('en');assert.equal(displayTitle(raw),'Word');assert.equal(displayTitle(raw,'','ru'),'Слово');
+    assert.equal(sourceOriginalTitle(raw),'λόγος');
+    delete raw.display.title.original;assert.equal(sourceOriginalTitle(raw),'');
+    raw.display.title={default:'Owner fallback',ru:'Слово'};
+    assert.deepEqual(displayTitleForm(raw,'en'),{text:'Owner fallback',key:'default',lang:null,fallback:true});
+    raw.display.title.original='not source wording';raw.display.provenance={title:'navigation-template',source_title_available:false};
+    assert.equal(sourceOriginalTitle(raw),'');
+  }finally{setUiLanguage('ru');}
+});
 
 test('explicit identifier fallback is a missing title, retaining identity and positions through a supplied title repair',()=>{
   const packet=clone();
