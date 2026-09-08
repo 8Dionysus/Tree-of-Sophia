@@ -151,7 +151,7 @@ class NativeUnitCommandTests(unittest.TestCase):
         self.assertTrue(resolved['content_verified'])
         self.assertFalse(resolved['public_content_declared'])
 
-    def test_exact_retry_preserves_all_bytes_and_rechecks_current_source(self):
+    def test_historical_retry_preserves_receipt_and_checks_current_source_topology(self):
         self.prepare()
         first = self.run_command(self.request)
         files = self.files()
@@ -161,9 +161,87 @@ class NativeUnitCommandTests(unittest.TestCase):
         self.assertEqual(self.files(), files)
         self.fixture.manifest['manifest_version'] = 2
         self.fixture.write_json(self.fixture.manifest_ref, self.fixture.manifest)
-        with self.assertRaises(source.JournalConflict):
+        # The historical receipt is not a promise that every unpinned source
+        # metadata byte still equals the original prepare-time inventory.
+        replay = self.run_command(self.request)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['receipt'], first['receipt'])
+        self.assertEqual(self.files(), files)
+        self.fixture.manifest['payload_files'][0]['sha256'] = '0' * 64
+        self.fixture.write_json(self.fixture.manifest_ref, self.fixture.manifest)
+        with self.assertRaises((ValueError, source.JournalConflict)):
             self.run_command(self.request)
         self.assertEqual(self.files(), files)
+
+    def test_historical_retry_does_not_require_original_implementation_bytes(self):
+        self.prepare()
+        first = self.run_command(self.request)
+        files = self.files()
+        original_read = source._read
+        implementation = source.ROOT / native.IMPLEMENTATIONS[0]
+        def changed(path, limit):
+            raw = original_read(path, limit)
+            return raw + b'\n' if path == implementation else raw
+        with patch.object(source, '_read', side_effect=changed):
+            replay = self.run_command(self.request)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['receipt'], first['receipt'])
+        self.assertEqual(self.files(), files)
+
+    def test_historical_retry_still_refuses_current_identity_and_grammar_conflicts(self):
+        self.prepare()
+        self.run_command(self.request)
+        files = self.files()
+        collision = self.private / self.prefix / 'native/competing-provenance.jsonl'
+        collision.write_bytes(source._canonical({'event_id': self.config['provenance_event_id']}) + b'\n')
+        collision.chmod(0o600)
+        try:
+            with self.assertRaises(source.JournalConflict):
+                self.run_command(self.request)
+        finally:
+            collision.unlink()
+        contract = self.public / 'ToS/contracts/corpus-record.schema.json'
+        raw = contract.read_bytes()
+        contract.write_bytes(raw + b'\n')
+        self.assertTrue(self.run_command(self.request)['replayed'])
+        schema = json.loads(raw)
+        schema.setdefault('allOf', []).append({'required': ['synthetic_missing_current_field']})
+        contract.write_bytes(encode(schema))
+        with self.assertRaises((ValueError, source.JournalConflict)):
+            self.run_command(self.request)
+        self.assertEqual(self.files(), files)
+
+    def test_historical_retry_refuses_late_source_delegation_and_package_drift(self):
+        self.prepare()
+        self.run_command(self.request)
+        files = self.files()
+        cases = [(self.public / self.fixture.manifest_ref, 1)]
+        cases.extend((target, phase) for target in (self.owner, self.context_path,
+            self.path.parent / 'source-create-environment.json') for phase in (1, 2))
+        for target, phase in cases:
+            with self.subTest(target=target.name, validation_pass=phase):
+                retained = target.read_bytes()
+                original_prepare = native._prepare
+                calls = 0
+                def drift(*args, **kwargs):
+                    nonlocal calls
+                    result = original_prepare(*args, **kwargs)
+                    calls += 1
+                    if calls == phase:
+                        if target == self.owner:
+                            revoked = json.loads(retained)
+                            revoked['source_access']['access_allowed'] = False
+                            target.write_bytes(encode(revoked))
+                        else:
+                            target.write_bytes(retained + b'\n')
+                    return result
+                try:
+                    with patch.object(native, '_prepare', side_effect=drift):
+                        with self.assertRaises((ValueError, PermissionError, source.JournalConflict, source.JournalCorruption)):
+                            self.run_command(self.request)
+                finally:
+                    target.write_bytes(retained)
+                self.assertEqual(self.files(), files)
 
     def test_missing_source_access_refuses_before_content_read(self):
         self.config['source_access']['access_allowed'] = False

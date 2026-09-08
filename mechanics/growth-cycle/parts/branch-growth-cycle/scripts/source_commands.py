@@ -424,7 +424,7 @@ def _changes(request, config):
     return changes
 
 
-def _apply(payload, subject, changes):
+def _apply(payload, subject, changes, *, validator=None):
     value = json.loads(_canonical(payload)) if payload else {
         'schema_version': 'tos_human_form_set_v1', 'subject': subject.ref, 'forms': [], 'prior_forms': []}
     current = {form['form_id']: index for index, form in enumerate(value['forms'])}
@@ -450,7 +450,7 @@ def _apply(payload, subject, changes):
     # Do not mark old forms current against a new subject by rewriting their refs.
     # Each old form retains its exact subject and becomes stale in the reader.
     value['subject'] = subject.ref
-    _validate_history(value)
+    _validate_history(value, validator=validator)
     return value
 
 

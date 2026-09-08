@@ -294,19 +294,33 @@ def _dependencies(config, context, record, *, exclude=None, creating=False):
     else:
         native = None
     return source._digest(source._canonical({'profiles': profiles.snapshot(), 'rights': native,
+        'form_grammar': _form_grammar(context)[2],
         'identity': _inventory(context, profiles, config, exclude=exclude, creating=creating),
         'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in IMPLEMENTATIONS}}))
 
 
-def _materialize(record, payload):
+def _form_grammar(context):
+    from human_forms import compile_source_form_validators
+    schemas, digests = {}, {}
+    for name in ('knowledge-assessment', 'human-form', 'human-form-set', 'human-form-template'):
+        ref = 'ToS/contracts/' + name + '.schema.json'
+        raw = context.read_bytes(context.path(ref), source.MAX_COMMAND_BYTES, read_bytes=source._read)
+        schemas[name], digests[ref] = source._json_object(raw), source._digest(raw)
+    validator, materializer = compile_source_form_validators(schemas)
+    return validator, materializer, digests
+
+
+def _materialize(record, payload, context):
     # Only the explicit private adapter calls the common pure form machinery.
     # The public metadata renderer still rejects this visibility.
     if record.get('visibility') != 'local_only':
         raise PermissionError('owner-local form materialization requires a private source record')
-    return _materialize_forms(source.metadata_subject(record), metadata_field_catalog(record), payload, access_allowed=True)
+    validator, materializer, _ = _form_grammar(context)
+    return _materialize_forms(source.metadata_subject(record), metadata_field_catalog(record), payload, access_allowed=True,
+                              validator=validator, materializer_validators=materializer)
 
 
-def _forms(config, record, payload, selections, *, rebind=False):
+def _forms(config, record, payload, selections, context, *, rebind=False):
     if not isinstance(selections, list) or not 1 <= len(selections) <= 32:
         raise ValueError('owner-local source requires bounded source-copy form selections')
     seen = set()
@@ -315,13 +329,14 @@ def _forms(config, record, payload, selections, *, rebind=False):
         if row['form_id'] not in config['allowed_form_ids'] or row['form_id'] in seen:
             raise PermissionError('owner-local form identity is not delegated or repeats')
         seen.add(row['form_id'])
+    validator, _, _ = _form_grammar(context)
     if payload is not None:
-        source._validate_history(payload)
+        source._validate_history(payload, validator=validator)
         if rebind and {row['form_id'] for row in payload['forms']} - seen:
             raise ValueError('record revision must explicitly rebind every current form')
     changes = [source.prepare_metadata_change(record, payload, config['principal_id'], **row) for row in selections]
-    value = source._apply(payload, source.metadata_subject(record), changes)
-    views = _materialize(record, value)
+    value = source._apply(payload, source.metadata_subject(record), changes, validator=validator)
+    views = _materialize(record, value, context)
     if not all(view['state'] == 'ready' for view in views) or not any(view['role'] == 'name' for view in views):
         raise ValueError('owner-local forms must be complete source copies including a name')
     return value, views, [source._form_ref(change['form']) for change in changes]
@@ -347,7 +362,7 @@ def _inspect(config, context, path):
         raise PermissionError('owner-local package has another subject')
     history = revisions._history(files, record)
     payload = source._json_object(files[path.stem + '.human-forms.json'])
-    source._validate_history(payload)
+    source._validate_history(payload, validator=_form_grammar(context)[0])
     subject = source.metadata_subject(record)
     if payload['subject'] != subject.ref:
         raise source.JournalCorruption('owner-local current forms do not bind the current source')
@@ -367,7 +382,7 @@ def _verify_revision_forms(context, config, path, receipt, payload):
                for selection in receipt['request']['forms']]
     # Re-run the common form transition against exact predecessor bytes;
     # altered results cannot be blessed just by altering a stored digest.
-    source._apply(prior, source.metadata_subject(revised), changes)
+    source._apply(prior, source.metadata_subject(revised), changes, validator=_form_grammar(context)[0])
     refs = [source._form_ref(change['form']) for change in changes]
     retained = {source._canonical(source._form_ref(form)) for form in [*payload['forms'], *payload['prior_forms']]}
     if receipt['forms'] != refs or any(source._canonical(ref) not in retained for ref in refs):
@@ -375,10 +390,12 @@ def _verify_revision_forms(context, config, path, receipt, payload):
     return archived, locations
 
 
-def _current(owner, configuration_digest, path, config, context, record, dependencies, *, exclude=None, creating=False):
-    if (source._configuration(owner)[1:] != (configuration_digest, path)
+def _current(owner, configuration_digest, path, config, context, record, dependencies, *, exclude=None,
+             creating=False, expected_files=None):
+    if (_dependencies(config, context, record, exclude=exclude, creating=creating) != dependencies
+            or (expected_files is not None and _package(context, path.parent) != expected_files)
             or context.snapshot() != OwnerLocalSourceContext.load(config['source_context_ref']).snapshot()
-            or _dependencies(config, context, record, exclude=exclude, creating=creating) != dependencies):
+            or source._configuration(owner)[1:] != (configuration_digest, path)):
         raise source.JournalConflict('owner-local source, context, rights or delegation changed')
 
 
@@ -390,13 +407,16 @@ def _result(config, configuration_digest, path, *, state=None, receipt=None, rep
         'command_operations': ['describe', 'prepare-create', 'source.create', 'prepare-revise', 'record.revise', 'prepare', 'apply', 'inspect-version'],
         'allowed_form_ids': config['allowed_form_ids'], 'allowed_fields': config['allowed_fields'],
         'visibility': 'local_only', 'publication_authorized': False, 'grants_admission': False,
-        'receipt': receipt, 'replayed': replayed, 'source': None, 'revision': None, 'materializations': []}
+        'receipt': receipt, 'replayed': replayed,
+        'replay_input_posture': 'historical_request_current_validation' if replayed else None,
+        'source': None, 'revision': None, 'materializations': []}
     if state is not None:
         files, record, subject, _, payload = state
         result.update(source=subject.ref, revision=revisions._revision(files),
             source_fields=[{key: value for key, value in row.items() if key not in {'pointer', 'context'}}
                            for row in metadata_field_catalog(record)],
-            forms=[source._form_ref(form) for form in payload['forms']], materializations=_materialize(record, payload))
+            forms=[source._form_ref(form) for form in payload['forms']],
+            materializations=_materialize(record, payload, OwnerLocalSourceContext.load(config['source_context_ref'])))
     return result
 
 
@@ -407,7 +427,7 @@ def _prepare_create(config, context, path, request, *, exclude=None):
             or record.get('same_as_posture') != 'no_equivalence_claim' or record.get('supersedes_ref') is not None):
         raise PermissionError('source creation requires a provisional initial identity without equivalence admission')
     dependencies = _dependencies(config, context, record, exclude=exclude, creating=True)
-    forms, views, _ = _forms(config, record, None, request['forms'])
+    forms, views, _ = _forms(config, record, None, request['forms'], context)
     files = {path.name: revisions._encode(record), path.stem + '.human-forms.json': revisions._encode(forms),
              CONFIG_FILE: revisions._encode(config)}
     return source.metadata_subject(record), files, dependencies, views
@@ -438,8 +458,8 @@ def _creation_replay(config, context, path, request, configuration_digest):
         if index == 0:
             original = archived
     subject, prepared, dependencies, _ = _prepare_create(config, context, path, request, exclude=path.parent)
-    if receipt['source'] != subject.ref or receipt['dependencies'] != dependencies or request['expected_dependencies'] != dependencies:
-        raise source.JournalConflict('owner-local creation source or dependencies are no longer current')
+    if receipt['source'] != subject.ref or receipt['dependencies'] != request['expected_dependencies']:
+        raise source.JournalCorruption('owner-local creation receipt differs from its original source or request')
     expected = {path.name, path.stem + '.human-forms.json', CONFIG_FILE,
                 'source-create-request.json', 'source-create-environment.json', 'source-create-provenance.jsonl'}
     if (not isinstance(receipt['files'], dict) or set(receipt['files']) != expected
@@ -456,7 +476,10 @@ def _creation_replay(config, context, path, request, configuration_digest):
     if any(initial.get(form['form_id']) != form for form in source._json_object(prepared[path.stem + '.human-forms.json'])['forms']):
         raise source.JournalCorruption('owner-local initial forms are not retained')
     _dependencies(config, context, record, exclude=path.parent)
-    return state, receipt
+    # Current validation/collision evidence is separate from the opaque CAS
+    # evidence captured with the historical request. Return this retry's
+    # snapshot so the final guard cannot mistake neighbor growth for a rewrite.
+    return state, receipt, dependencies
 
 
 def run_command(owner, config, configuration_digest, path, request):
@@ -526,12 +549,11 @@ def run_command(owner, config, configuration_digest, path, request):
             raise source.JournalConflict('owner-local delegation changed before transaction')
         if operation == 'source.create':
             if os.path.lexists(path.parent):
-                state, receipt = _creation_replay(config, context, path, request, configuration_digest)
+                state, receipt, replay_dependencies = _creation_replay(config, context, path, request, configuration_digest)
+                response = _result(config, configuration_digest, path, state=state, receipt=receipt, replayed=True)
                 _current(owner, configuration_digest, path, config, context, request['record'],
-                         request['expected_dependencies'], exclude=path.parent, creating=True)
-                if _package(context, path.parent) != state[0]:
-                    raise source.JournalConflict('owner-local creation package changed before replay return')
-                return _result(config, configuration_digest, path, state=state, receipt=receipt, replayed=True)
+                         replay_dependencies, exclude=path.parent, creating=True, expected_files=state[0])
+                return response
             return _create(owner, config, configuration_digest, context, path, request)
         return _update(owner, config, configuration_digest, context, path, request)
 
@@ -573,7 +595,7 @@ def _revision_proposal(config, context, path, state, request):
     revised = {**record, **request['fields'], 'record_version': record['record_version'] + 1}
     profiles, profile = _profiles(config, context)
     profiles.validate(profile['record_type'], revised)
-    forms, views, refs = _forms(config, revised, payload, request['forms'], rebind=True)
+    forms, views, refs = _forms(config, revised, payload, request['forms'], context, rebind=True)
     output = {**files, path.name: revisions._encode(revised), path.stem + '.human-forms.json': revisions._encode(forms)}
     if len(output[path.name]) > source.MAX_COMMAND_BYTES:
         raise ValueError('owner-local revised record exceeds its metadata budget')
@@ -597,21 +619,24 @@ def _update(owner, config, configuration_digest, context, path, request):
         if receipt['command_id'] == request['command_id']:
             if receipt['request_digest'] != digest:
                 raise source.JournalConflict('owner-local command identity was reused')
-            if receipt['owner_configuration'] != configuration_digest or request['expected_dependencies'] != dependencies:
-                raise source.JournalConflict('owner-local retry has stale delegation or source dependencies')
+            if (receipt['owner_configuration'] != configuration_digest
+                    or request['expected_configuration'] != configuration_digest):
+                raise source.JournalConflict('owner-local retry has stale delegation')
             if receipt['principal_id'] != config['principal_id'] or receipt['authority_ref'] != config['authority_ref']:
                 raise source.JournalCorruption('owner-local receipt has another delegated actor or authority')
             if operation == 'record.revise':
+                if receipt['dependencies'] != request['expected_dependencies']:
+                    raise source.JournalCorruption('owner-local revision receipt differs from its original dependency evidence')
                 _verify_revision_forms(context, config, path, receipt, payload)
             elif (receipt['results'] != [source._form_ref(change['form']) for change in request['changes']]
                     or receipt['source'] != request['expected_source']
                     or receipt['previous_revision'] != request['expected_revision']
                     or receipt['principal_id'] != config['principal_id'] or receipt['authority_ref'] != config['authority_ref']):
                 raise source.JournalCorruption('owner-local form receipt differs from the exact replay request')
-            _current(owner, configuration_digest, path, config, context, record, dependencies, exclude=path.parent)
-            if _package(context, path.parent) != files:
-                raise source.JournalConflict('owner-local source package changed before replay return')
-            return _result(config, configuration_digest, path, state=state, receipt=receipt, replayed=True)
+            response = _result(config, configuration_digest, path, state=state, receipt=receipt, replayed=True)
+            _current(owner, configuration_digest, path, config, context, record, dependencies,
+                     exclude=path.parent, expected_files=files)
+            return response
     revision = revisions._revision(files)
     if (request['expected_configuration'] != configuration_digest or request['expected_source'] != subject.ref
             or request['expected_revision'] != revision or request['expected_dependencies'] != dependencies):
@@ -630,8 +655,8 @@ def _update(owner, config, configuration_digest, context, path, request):
         _archive(context, config, files, subject, revision)
     else:
         changes = _form_changes(request, config)
-        value = source._apply(payload, subject, changes)
-        views = {view['form']['id']: view for view in _materialize(record, value)}
+        value = source._apply(payload, subject, changes, validator=_form_grammar(context)[0])
+        views = {view['form']['id']: view for view in _materialize(record, value, context)}
         for change in changes:
             if change['form']['content']['kind'] == 'source-copy' and views[change['form']['form_id']]['state'] != 'ready':
                 raise ValueError('owner-local source-copy form omits mandatory context')
@@ -640,7 +665,7 @@ def _update(owner, config, configuration_digest, context, path, request):
             'recorded_at': datetime.now(timezone.utc).isoformat(), 'source': subject.ref,
             'previous_revision': request['expected_revision'], 'results': [source._form_ref(change['form']) for change in changes]}
         value.setdefault('growth_history', []).append(receipt)
-        source._validate_history(value)
+        source._validate_history(value, validator=_form_grammar(context)[0])
         output = {**files, path.stem + '.human-forms.json': revisions._encode(value)}
     staging = _stage(context, output)
     try:

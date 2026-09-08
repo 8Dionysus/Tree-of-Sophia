@@ -25,6 +25,28 @@ MAX_TEMPLATES = 64
 MAX_PRIOR_FORMS = 256
 
 
+def compile_source_form_validators(schemas):
+    """Compile one caller-verified source grammar; perform no IO or caching.
+
+    Protected owner adapters choose and hash the same four schema bodies for
+    source-copy history and materialization. A runtime-global cached renderer
+    cannot override a different context's freshly selected grammar.
+    """
+    names = ('knowledge-assessment', 'human-form', 'human-form-set', 'human-form-template')
+    selected = {name: schemas[name] for name in names}
+    for name, schema in selected.items():
+        if schema.get('$id') != 'https://treeofsophia.local/ToS/contracts/' + name + '.schema.json':
+            raise ValueError('source form grammar has another schema identity')
+        Draft202012Validator.check_schema(schema)
+    registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema))
+                                         for schema in selected.values())
+    form = selected['human-form']
+    return (Draft202012Validator(selected['human-form-set'], registry=registry),
+            (Draft202012Validator(form, registry=registry),
+             Draft202012Validator(selected['human-form-template'], registry=registry),
+             Draft202012Validator({'$ref': form['$id'] + '#/$defs/languageContext'}, registry=registry)))
+
+
 @dataclass(frozen=True)
 class SourceBinding:
     record: Record

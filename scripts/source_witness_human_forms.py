@@ -300,13 +300,14 @@ def materialize_claim_forms(source: dict, form_set: dict, *, access_allowed: boo
                               source.get('visibility') in {'public', 'public_metadata_only'})
 
 
-def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dict, *, access_allowed: bool):
+def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dict, *, access_allowed: bool,
+                       validator=None, materializer_validators=None):
     input_bytes = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, allow_nan=False).iterencode(form_set):
         input_bytes += len(chunk.encode('utf-8'))
         if input_bytes > MAX_SET_BYTES:
             raise ValueError('human-form set exceeds input budget')
-    if not _validator().is_valid(form_set):
+    if not (validator if validator is not None else _validator()).is_valid(form_set):
         raise ValueError('human-form set schema is invalid')
     if form_set['subject']['id'] != subject.id:
         raise ValueError('human-form set belongs to another source subject')
@@ -342,7 +343,8 @@ def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dic
                                                 'metadata-adapter.unsupported-role-or-production-mode'],
                       'admission': None, 'performs_semantic_assessment': False}
         else:
-            result = materialize_form(ROOT, form, scope, [subject], prior_forms=prior)
+            result = materialize_form(ROOT, form, scope, [subject], prior_forms=prior,
+                                      validators=materializer_validators)
         output_bytes += len(json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode())
         if output_bytes > MAX_SET_OUTPUT_BYTES:
             raise ValueError('human-form set exceeds bounded metadata output')

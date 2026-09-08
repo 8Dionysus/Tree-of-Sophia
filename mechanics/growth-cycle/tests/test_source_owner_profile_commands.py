@@ -11,6 +11,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from jsonschema import ValidationError
+
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -438,24 +440,73 @@ source.run_local_command(Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_by
         self.assertTrue(self.run_command(self.creation)['replayed'])
         self.assertEqual({path.name: path.read_bytes() for path in stages[0].iterdir()}, before)
 
-    def test_source_schema_change_and_revoked_access_block_exact_retry(self):
-        self.create()
+    def test_historical_retry_uses_current_source_grammar_and_access_not_old_schema_bytes(self):
+        first = self.create()
         before = self.files()
         contract = self.public / 'ToS/contracts/occurrence-description-record.schema.json'
-        contract.write_bytes(contract.read_bytes() + b'\n')
-        with self.assertRaises(source.JournalConflict):
+        raw = contract.read_bytes()
+        contract.write_bytes(raw + b'\n')
+        replay = self.run_command(self.creation)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['receipt'], first['receipt'])
+        schema = json.loads(raw)
+        schema.setdefault('allOf', []).append({'required': ['synthetic_missing_current_field']})
+        contract.write_bytes(encode(schema))
+        with self.assertRaises((ValueError, source.JournalConflict, ValidationError)):
             self.run_command(self.creation)
+        contract.write_bytes(raw)
         self.config['source_access']['access_allowed'] = False
         self.write_owner()
         with self.assertRaises((ValueError, PermissionError)):
             self.run_command(self.creation)
         self.assertEqual(self.files(), before)
 
+    def test_historical_retry_does_not_require_original_implementation_bytes(self):
+        created = self.create()
+        revised = self.revise()
+        self.prepare_form()
+        formed = self.run_command(self.form_request)
+        before = self.files()
+        original_read = source._read
+        implementation = source.ROOT / private.IMPLEMENTATIONS[0]
+        def changed(path, limit):
+            raw = original_read(path, limit)
+            return raw + b'\n' if path == implementation else raw
+        with patch.object(source, '_read', side_effect=changed):
+            for request, receipt in ((self.creation, created['receipt']),
+                                     (self.revision, revised['receipt']),
+                                     (self.form_request, formed['receipt'])):
+                with self.subTest(operation=request['operation']):
+                    replay = self.run_command(request)
+                    self.assertTrue(replay['replayed'])
+                    self.assertEqual(replay['receipt'], receipt)
+        self.assertEqual(self.files(), before)
+
+    def test_historical_retry_checks_selected_form_grammar_after_prior_materialization(self):
+        self.create()  # Common form validators have already been used.
+        before = self.files()
+        for name in ('human-form.schema.json', 'human-form-set.schema.json'):
+            with self.subTest(contract=name):
+                contract = self.public / 'ToS/contracts' / name
+                raw = contract.read_bytes()
+                schema = json.loads(raw)
+                schema.setdefault('allOf', []).append({'required': ['synthetic_missing_current_field']})
+                contract.write_bytes(encode(schema))
+                try:
+                    with self.assertRaises((ValueError, source.JournalConflict, ValidationError)):
+                        self.run_command(self.creation)
+                finally:
+                    contract.write_bytes(raw)
+        self.assertEqual(self.files(), before)
+
     def test_replay_rechecks_late_rights_and_package_drift_before_current_materializations(self):
         self.create()
+        self.revise()
         self.prepare_form(0)
         self.run_command(self.form_request)
         original = private._dependencies
+        rights_path = self.public / self.native.rights_ref
+        original_rights = rights_path.read_bytes()
         calls = 0
         def dependencies(*args, **kwargs):
             nonlocal calls
@@ -466,19 +517,160 @@ source.run_local_command(Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_by
                 path.write_bytes(path.read_bytes() + b'\n')
             return value
         before = self.files()
-        with patch.object(private, '_dependencies', side_effect=dependencies), self.assertRaises((ValueError, source.JournalConflict)):
-            self.run_command(self.form_request)
+        try:
+            with patch.object(private, '_dependencies', side_effect=dependencies), self.assertRaises((ValueError, source.JournalConflict)):
+                self.run_command(self.form_request)
+        finally:
+            rights_path.write_bytes(original_rights)
+        original_result, original_materialize = private._result, private._materialize
+        for request in (self.creation, self.revision, self.form_request):
+            with self.subTest(operation=request['operation'], phase='response_materialization'):
+                owner_bytes, in_replay_result, revoked = self.owner.read_bytes(), False, False
+                def result(*args, **kwargs):
+                    nonlocal in_replay_result
+                    in_replay_result = kwargs.get('replayed') is True
+                    try:
+                        return original_result(*args, **kwargs)
+                    finally:
+                        in_replay_result = False
+                def materialize(*args, **kwargs):
+                    nonlocal revoked
+                    value = original_materialize(*args, **kwargs)
+                    if in_replay_result:
+                        owner = json.loads(owner_bytes)
+                        owner['source_access']['access_allowed'] = False
+                        self.owner.write_bytes(encode(owner))
+                        revoked = True
+                    return value
+                try:
+                    with patch.object(private, '_result', side_effect=result), \
+                            patch.object(private, '_materialize', side_effect=materialize):
+                        with self.assertRaises((ValueError, PermissionError, source.JournalConflict)):
+                            self.run_command(request)
+                    self.assertTrue(revoked)
+                finally:
+                    self.owner.write_bytes(owner_bytes)
         self.assertEqual(self.files(), before)
 
     def test_creation_replay_rechecks_config_after_original_bytes_are_verified(self):
         self.create()
-        original = private._creation_replay
-        def replay(*args, **kwargs):
-            value = original(*args, **kwargs)
-            self.owner.write_bytes(self.owner.read_bytes() + b'\n')
-            return value
-        with patch.object(private, '_creation_replay', side_effect=replay), self.assertRaises(source.JournalConflict):
-            self.run_command(self.creation)
+        before = self.files()
+        original_replay, original_current = private._creation_replay, private._current
+        original_dependencies = private._dependencies
+        for target in (self.owner, self.context_path):
+            for phase in ('after_history', 'during_final_dependencies'):
+                with self.subTest(target=target.name, phase=phase):
+                    retained, checking_current = target.read_bytes(), False
+                    def revoke():
+                        if target == self.owner:
+                            revoked = json.loads(retained)
+                            revoked['source_access']['access_allowed'] = False
+                            target.write_bytes(encode(revoked))
+                        else:
+                            target.write_bytes(retained + b'\n')
+                    def replay(*args, **kwargs):
+                        value = original_replay(*args, **kwargs)
+                        if phase == 'after_history':
+                            revoke()
+                        return value
+                    def current(*args, **kwargs):
+                        nonlocal checking_current
+                        checking_current = True
+                        try:
+                            return original_current(*args, **kwargs)
+                        finally:
+                            checking_current = False
+                    def dependencies(*args, **kwargs):
+                        value = original_dependencies(*args, **kwargs)
+                        if checking_current and phase == 'during_final_dependencies':
+                            revoke()
+                        return value
+                    try:
+                        with patch.object(private, '_creation_replay', side_effect=replay), \
+                                patch.object(private, '_current', side_effect=current), \
+                                patch.object(private, '_dependencies', side_effect=dependencies):
+                            with self.assertRaises((ValueError, PermissionError, source.JournalConflict)):
+                                self.run_command(self.creation)
+                    finally:
+                        target.write_bytes(retained)
+                    self.assertEqual(self.files(), before)
+
+    def test_exact_native_and_profile_retries_survive_unrelated_owned_source_growth(self):
+        from test_source_text_unit_commands import NativeUnitCommandTests
+        native_writer = NativeUnitCommandTests()
+        native_writer.setUp()
+        self.addCleanup(native_writer.doCleanups)
+        copy_contracts(native_writer.public)
+        native_writer.prepare()
+        native_created = native_writer.run_command(native_writer.request)
+        self.assertTrue(native_writer.run_command(native_writer.request)['replayed'])
+        packet_bytes = native_writer.path.read_bytes()
+        packet = json.loads(packet_bytes)
+        binding = copy.deepcopy(native_writer.fixture.binding)
+        unit, segmentation = packet['units'][0], packet['segmentations'][0]
+        binding.update(packet_ref=native_writer.source_ref, packet_sha256=source._digest(packet_bytes)[7:],
+            packet_id=packet['packet_id'], packet_version=packet['packet_version'],
+            segmentation_id=segmentation['segmentation_id'], segmentation_version=segmentation['segmentation_version'],
+            unit_id=unit['unit_id'], unit_version=unit['unit_version'], ordered_anchor_refs=unit['ordered_anchor_refs'])
+        self.public, self.store, self.native = native_writer.public, native_writer.private, native_writer.fixture
+        self.prefix, self.context_path = native_writer.prefix, native_writer.context_path
+        self.source_ref = self.prefix + 'descriptions/synthetic/occurrence.json'
+        self.path = self.store / self.source_ref
+        self.path.parent.parent.mkdir(mode=0o700)
+        self.record = occurrence(binding)
+        self.record['visibility'] = 'local_only'
+        self.config.update(source_context_ref=str(self.context_path), source_path=self.source_ref,
+                           source_binding=binding, record_id=self.record['record_id'])
+        self.write_owner()
+        created = self.create()
+        revised = self.revise()
+        self.prepare_form()
+        formed = self.run_command(self.form_request)
+        for request in (self.creation, self.revision, self.form_request):
+            self.assertTrue(self.run_command(request)['replayed'])
+        original, native_original = self.files(), native_writer.files()
+
+        # A separately delegated second situated use is a genuine new owner,
+        # not a tampered input or a second owner of any first-package identity.
+        neighbor = copy.deepcopy(self.record)
+        neighbor['record_id'] += '.neighbor'
+        second_unit = packet['units'][1]
+        neighbor['native_text_binding'].update(unit_id=second_unit['unit_id'],
+            unit_version=second_unit['unit_version'], ordered_anchor_refs=second_unit['ordered_anchor_refs'])
+        neighbor_config = {**copy.deepcopy(self.config),
+            'source_path': self.prefix + 'descriptions/neighbor/occurrence.json',
+            'record_id': neighbor['record_id'], 'source_binding': neighbor['native_text_binding'],
+            'allowed_form_ids': ['tos.form.synthetic.private-neighbor'],
+            'provenance_event_id': 'tos.event.synthetic.private-neighbor-creation'}
+        neighbor_owner = self.base / 'neighbor-owner.json'
+        neighbor_owner.write_bytes(encode(neighbor_config))
+        neighbor_owner.chmod(0o600)
+        proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+            'record': neighbor, 'forms': [{'form_id': neighbor_config['allowed_form_ids'][0],
+                                         'field_id': 'metadata.preferred-name'}]}
+        prepared = source.run_local_command(neighbor_owner, proposal)
+        neighbor_request = {**proposal, 'operation': 'source.create', 'command_id': 'synthetic-neighbor-create',
+            'expected_configuration': prepared['owner_configuration'],
+            'expected_dependencies': prepared['expected_dependencies'],
+            'expected_source': None, 'expected_revision': None}
+        neighbor_created = source.run_local_command(neighbor_owner, neighbor_request)
+        self.assertTrue(source.run_local_command(neighbor_owner, neighbor_request)['replayed'])
+        neighbor_path = self.store / neighbor_config['source_path']
+        neighbor_files = {path.name: path.read_bytes() for path in neighbor_path.parent.iterdir()}
+
+        for label, invoke, request, receipt in (
+                ('native-create', native_writer.run_command, native_writer.request, native_created['receipt']),
+                ('source-create', self.run_command, self.creation, created['receipt']),
+                ('record-revise', self.run_command, self.revision, revised['receipt']),
+                ('form-apply', self.run_command, self.form_request, formed['receipt'])):
+            with self.subTest(replay=label):
+                replay = invoke(request)
+                self.assertTrue(replay['replayed'])
+                self.assertEqual(replay['receipt'], receipt)
+        self.assertEqual(self.files(), original)
+        self.assertEqual(native_writer.files(), native_original)
+        self.assertEqual({path.name: path.read_bytes() for path in neighbor_path.parent.iterdir()}, neighbor_files)
+        self.assertFalse(neighbor_created['grants_admission'])
 
     def test_new_private_native_packet_flows_into_occurrence_creation_forms_and_revision(self):
         from test_source_text_unit_commands import NativeUnitCommandTests

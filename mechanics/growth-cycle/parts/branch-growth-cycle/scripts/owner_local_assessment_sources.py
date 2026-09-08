@@ -124,11 +124,8 @@ class OwnerLocalAssessmentSources:
             suffix or '-assessment': Draft202012Validator(schemas['knowledge-assessment' + suffix],
                 registry=registry, format_checker=FormatChecker())
             for suffix in ('', '-policy', '-authority', '-competence', '-batch')}
-        self.form_validator = Draft202012Validator(schemas['human-form-set'], registry=registry)
-        self.materializer_validators = (
-            Draft202012Validator(schemas['human-form'], registry=registry),
-            Draft202012Validator(schemas['human-form-template'], registry=registry),
-            Draft202012Validator({'$ref': schemas['human-form']['$id'] + '#/$defs/languageContext'}, registry=registry))
+        from human_forms import compile_source_form_validators
+        self.form_validator, self.materializer_validators = compile_source_form_validators(schemas)
 
     def required_languages(self, identifier, sourced):
         """Languages of the selected private subject and its explicit sources.

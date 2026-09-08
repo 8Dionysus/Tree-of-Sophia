@@ -531,8 +531,11 @@ Publication uses existing source-owner locks, protected private staging and
 atomic no-replace rename. It rechecks source/delegation dependencies and exact
 staged bytes before publication. Exact retry verifies every retained byte and
 receipt binding before excluding its own package from collision discovery,
-then freshly checks source and rights. Changed inputs, a competing directory,
-corrupt history or altered output are not overwritten or silently replayed.
+then freshly checks source and rights. It reproduces the exact original packet
+and compares current dependency snapshots before returning. A competing
+directory, corrupt history or altered output is never overwritten. Historical
+retry is distinct from requiring every previous input byte to remain current;
+see the shared replay contract below.
 Unpublished process-loss staging remains outside source discovery and is not
 accepted as a completed transaction. The issuer still owns source stability
 against noncooperating external edits; this is not a cross-filesystem transaction.
@@ -619,7 +622,11 @@ selected private metadata identity homes, excluding payload, local content,
 catalogs, archives and staging. It reserves source/native subject, form and
 creation provenance identities. Exact retry still checks current delegation,
 source/rights/schema/configuration and package integrity; an old receipt is
-not a current permission. Atomic rename/exchange has no non-atomic fallback.
+not a current permission. Source-copy history, creation, revision and display
+use the selected context's freshly read form, form-set, template and assessment
+schemas, including after another renderer has warmed its runtime-global cache.
+The same pure grammar compiler serves v4; public defaults are unchanged.
+Atomic rename/exchange has no non-atomic fallback.
 Interrupted unpublished staging is not a current source and a retry does not
 silently delete that earlier invocation's evidence.
 
@@ -629,6 +636,36 @@ directory entries, 2,048 selected metadata files and 64 MiB, with at most
 32 MiB per older metadata file. This is not an indexed or constant-cost writer,
 a cross-subject transaction, a hostile-same-account security boundary, or a
 private Claim/assessment implementation. No public projection is created.
+
+#### Historical retries while the source corpus grows
+
+For both confidential writers, `expected_dependencies` is the whole-input
+compare-and-swap gate for a **new** commit. It also remains immutable historical
+evidence in the retained request and receipt. It is not a requirement that all
+future unrelated identity inventory bytes or implementation files equal that
+old snapshot. Such a requirement would prevent replay as soon as the newly
+created native unit acquired its first legitimate Occurrence.
+
+A repeated command must bind its original request, delegated configuration,
+receipt and exact output/history. The command revalidates current source,
+rights, declared identities, current selected grammar and collision freedom,
+then compares snapshots from this retry and rechecks package bytes before
+returning. Native creation reproduces its exact original packet; source
+creation/revision reproduces the original record/form transition from retained
+history. The response marks
+`replay_input_posture: "historical_request_current_validation"` and returns the
+original receipt without rewriting its time, digest, result or dependency hash.
+
+This deliberately does **not** prove unchanged historical bytes for inputs
+which were not individually pinned: for example compatible bibliographic notes,
+manifest versions, harmless unpinned schema-byte changes or implementation
+updates. Current validation does not supply missing past fixity. The native
+packet/layer/content bindings and current configuration/context bindings stay
+exact; semantic schema refusal, changed bound text, withdrawn rights, identity
+collision and drift during the retry still fail. A changed validator accepting
+the same original bytes is not a new content assessment or admission. Existing
+v1 receipts need no rewriting or fabricated retroactive dependency manifest;
+new writes retain their full expected-snapshot gate.
 
 `OwnerLocalSourceRecordProfiles(context, source_access, source_binding)` is the
 separate read-only Python facade. `validate` and `load` always inspect metadata

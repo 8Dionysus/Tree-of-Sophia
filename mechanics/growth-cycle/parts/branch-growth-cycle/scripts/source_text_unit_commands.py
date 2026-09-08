@@ -317,8 +317,9 @@ def _package(context, target):
     return files
 
 
-def _replay(config, configuration_digest, context, path, request):
+def _replay(config, configuration_digest, context, path, request, *, owner_config):
     files = _package(context, path.parent)
+    original_files = dict(files)
     if set(files) != {path.name, CONFIG_FILE, RECEIPT_FILE, 'source-create-request.json',
                       'source-create-environment.json', 'source-create-provenance.jsonl'}:
         raise source.JournalCorruption('native package has missing or unbound files')
@@ -342,9 +343,18 @@ def _replay(config, configuration_digest, context, path, request):
         raise source.JournalCorruption('native creation package no longer binds its exact delegation and request')
     # The exclusion is earned only by byte verification above, never existence.
     subject, expected_files, dependencies, _, _ = _prepare(config, request, exclude=path.parent)
-    if (subject.ref != original.ref or dependencies != receipt['dependencies']
+    if (subject.ref != original.ref
             or any(files[name] != body for name, body in expected_files.items())):
-        raise source.JournalConflict('native retry has stale source dependencies or a different proposal')
+        raise source.JournalConflict('native retry no longer reproduces the retained exact proposal')
+    # The receipt's opaque dependency digest belongs to its original request,
+    # not to every future inventory or implementation. Revalidate current
+    # source/rights/collisions and compare two snapshots of THIS retry instead.
+    # This does not prove historical equality of unpinned bibliography inputs.
+    if (_prepare(config, request, exclude=path.parent)[2] != dependencies
+            or _package(context, path.parent) != original_files
+            or context.snapshot() != OwnerLocalSourceContext.load(config['source_context_ref']).snapshot()
+            or source._configuration(owner_config)[1:] != (configuration_digest, path)):
+        raise source.JournalConflict('native source, context, delegation or package changed during replay')
     return receipt
 
 
@@ -374,7 +384,8 @@ def run_command(owner_config, config, configuration_digest, path, request):
                                 'excluded_gaps': ['anchor_ref', 'start', 'end']},
             'position_unit': 'unicode_code_point', 'interval': 'half_open',
             'record_schema_ref': PACKET_SCHEMA, 'receipt': receipt, 'replayed': replayed,
-            'grants_admission': False, 'content_disclosure': 'owner_local_only'}
+            'grants_admission': False, 'content_disclosure': 'owner_local_only',
+            'replay_input_posture': 'historical_request_current_validation' if replayed else None}
     if operation == 'describe':
         return result()
     if operation == 'prepare-create':
@@ -393,7 +404,8 @@ def run_command(owner_config, config, configuration_digest, path, request):
         if current[1:] != (configuration_digest, path):
             raise source.JournalConflict('native delegation changed before transaction')
         if os.path.lexists(target):
-            return result(_replay(config, configuration_digest, context, path, request), True)
+            return result(_replay(config, configuration_digest, context, path, request,
+                                  owner_config=owner_config), True)
         if (request['expected_configuration'] != configuration_digest or request['expected_source'] is not None
                 or request['expected_revision'] is not None):
             raise source.JournalConflict('native creation requires exact delegation and absent source/revision')
