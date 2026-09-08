@@ -435,10 +435,114 @@ Any consumed private route sets an owner-local disclosure ceiling even when
 the underlying layer is otherwise public. `owner_local_transport` reports
 that boundary without exposing paths; exact private content still needs its
 separate read selection. Context use does not grant source writing, reviewer
-competence, assessment, publication or canon. This is currently a Python
-transport/native-reader interface: v1-v3 assessment command configurations and
+competence, assessment, publication or canon. The explicit native writer below
+uses this Python transport/native-reader interface; v1-v3 assessment command configurations and
 public source/Claim/form commands do not implicitly acquire private-source
 support. Each future writer/consumer needs its own explicit adapter.
+
+### Confidential native TextUnit creation
+
+`source_commands.py` dispatches the separately selected
+`tos_local_text_unit_create_owner_v1` configuration to
+`source_text_unit_commands.py`. Its operation is `text-unit.create`; this does
+not create a semantic Description, Occurrence, Lexeme, accepted segmentation
+or human-form set. The output uses the existing
+[`source-text-unit-packet-v1` schema](../../../../ToS/contracts/source-text-unit-packet-v1.schema.json).
+The common native resolver can read the new packet immediately through the
+same owner-local context and exact binding contract.
+
+The protected mode-0600 owner configuration contains:
+
+- `schema_version`, current local `uid`, `principal_id`, `authority_ref`,
+  `expires_at`, and exactly `allowed_operations: ["text-unit.create"]`;
+- independently selected absolute `source_context_ref`, and `source_path`
+  within its private prefix, ending in a **new** package directory followed by
+  `source-text-unit.v1.json`; its parent exists already with mode 0700;
+- `source_binding`, the existing exact native binding; separate `source_access`
+  with `read_scope: "exact_owner_local"`, `access_allowed: true` and its own
+  `authority_ref`; neither the context nor a read grant grants derivation;
+- `allowed_text_scope: {start, end}` in absolute Unicode code points within
+  the selected existing contiguous native unit, not the whole file by default;
+- opaque `packet_id`, `scheme_id`, `segmentation_id`, `scope_anchor_ref`,
+  `unit_slots: [{unit_id, anchor_ref, unit_kind}]` and `gap_anchor_refs`;
+  labels, offsets, text and ordering do not generate these identities;
+- `scheme: {scheme_name, analysis_role, boundary_basis, policies}` and the
+  existing native `method` object, plus `provenance_event_id`. The method's
+  agent equals the principal, its event equals that delegated event, and its
+  `configuration_ref` names the new package's
+  `source-create-owner-configuration.json`. `synthetic_fixture` cannot claim
+  a real `source_bound` method. The writer is a software executor; it does not
+  impersonate the declared author of the segmentation method.
+
+Use the existing source command envelope and CLI, or `run_local_command`:
+
+```python
+description = run_local_command(owner_config, {
+    "schema_version": "tos_local_source_command_v1", "operation": "describe"})
+# description exposes the delegated unit slots, scope, gap IDs and request fields.
+proposal = {
+    "schema_version": "tos_local_source_command_v1",
+    "operation": "prepare-create",
+    "spans": spans,  # each: unit_id, start, end, certainty, status_reason
+    "excluded_gaps": gaps,  # each: anchor_ref, start, end
+}
+prepared = run_local_command(owner_config, proposal)
+created = run_local_command(owner_config, {
+    **proposal, "operation": "text-unit.create", "command_id": command_id,
+    "expected_configuration": prepared["owner_configuration"],
+    "expected_dependencies": prepared["expected_dependencies"],
+    "expected_source": None, "expected_revision": None,
+})
+```
+
+`describe` reads no source text. Preparation and application resolve the exact
+metadata closure, check the recorded local-derivation rights gate **before**
+reading text, then verify unchanged UTF-8 bytes without newline or Unicode
+rewriting. A current exact-layer decision may be narrower than the aggregate
+Item gate; a Work-wide positive statement does not lift that aggregate gate.
+Inactive, denied, conflicting, unknown, permission-required or conditional
+derivation routes cannot be cleared by a submitted read grant. This initial
+writer supports `local_research_only` and unconditional `allowed`; conditional
+use needs an explicit owner use decision, not an inferred satisfaction of terms.
+
+The request supplies 1–256 ordered, nonoverlapping, positive-width spans, using
+every delegated unit slot, and at most 257 gaps. Each confidence object has
+the native `value` and maker-confidence `meaning`, never truth probability.
+Gaps must be the exact explicit complement of the spans within the scope.
+Booleans are not offsets; omitted coverage, overlap and undelegated IDs fail.
+The pure constructor preserves source scope, layer and rights refs, computes
+all exact slice hashes itself, and emits version-1 proposed units and
+segmentation with empty review/projection histories. The packet is local-only
+and never publication-authorized; stronger source restrictions survive.
+
+The atomic mode-0700 directory contains the packet, retained owner
+configuration, original request, runtime environment, native-aware provenance
+event and the existing `tos_local_source_create_receipt_v1` envelope. Files are
+0600. Dependencies bind the resolver/context closure, native identity
+membership and bytes, implementation and contracts. Native owner discovery
+covers prefix- and suffix-named text-unit/anchor JSON plus anchor and provenance
+JSONL, excludes payload/local-content/catalog and pending directories, and
+refuses aliases. It is bounded by 32,768 directory entries, 2,048 files,
+64 MiB total, 32 MiB per native metadata file, 1 MiB per JSONL record and
+65,536 top-level records (legacy text-unit JSON packets can exceed 1 MiB);
+exceeding a limit is explicit refusal, never a truncated identity check.
+
+Publication uses existing source-owner locks, protected private staging and
+atomic no-replace rename. It rechecks source/delegation dependencies and exact
+staged bytes before publication. Exact retry verifies every retained byte and
+receipt binding before excluding its own package from collision discovery,
+then freshly checks source and rights. Changed inputs, a competing directory,
+corrupt history or altered output are not overwritten or silently replayed.
+Unpublished process-loss staging remains outside source discovery and is not
+accepted as a completed transaction. The issuer still owns source stability
+against noncooperating external edits; this is not a cross-filesystem transaction.
+
+This is immutable native packet creation and retry, not native revision,
+source-layer bootstrap, private Description/Occurrence/form creation, private
+assessment admission or public projection. Those routes retain their own
+explicit contracts; no public collector gains access to the private store.
+Pure-constructor and command/CLI tests use synthetic evidence, not historical
+or linguistic acceptance.
 
 ### Descriptions bound to native text
 

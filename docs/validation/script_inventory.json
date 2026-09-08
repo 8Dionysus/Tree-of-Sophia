@@ -241,10 +241,24 @@
       "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
       "reads": ["independently selected protected local owner delegation, explicit corpus/historical/profile record or one selected declared Claim and adjacent source form set", "bounded JSON command on stdin and the shared metadata/Claim field catalog; Claim form scope binds exact source-profile/schema inputs", "source creation and profile forms: bounded native semantic identity inventory, protected membership/byte recheck and opaque fingerprint separate from public profile inputs", "source creation: authored records, claims, metadata and Claim form histories, provenance, anchors, referenced metadata and schema/registry contracts for identity and dependency closure", "v2/profile/native creation: executing script and Python executable bytes, runtime/Unicode versions and process argv digest; no environment variables or private configuration disclosure", "creation retry: bounded exact package and receipt bindings; existing source-revision archive reader for legitimate historical corrections, retained initial forms for later form versions"],
       "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file", "separately delegated historical creation: new subject directory containing record, claims, forms and creation receipt; v2 adds canonical request, environment description and serialization provenance; global create lock and staging outside source-witnesses", "declared-profile or standalone native Agent/Place/Organization creation: existing source record, exact forms, request, environment, provenance and receipt; no new claims or schema registration"],
-      "side_effects": "Unix account/path checks, bounded shared locking, fsync and atomic form-set or no-replace new-subject publication; separately delegates metadata correction to source_revisions.py and declared Claim correction to claim_revisions.py; no payload/graph writes, model calls, semantic assessment, admission or deployment",
+      "side_effects": "Unix account/path checks, bounded shared locking, fsync and atomic form-set or no-replace new-subject publication; separately delegates metadata correction to source_revisions.py, declared Claim correction to claim_revisions.py and confidential native TextUnit creation to source_text_unit_commands.py; internal native provenance mode records verified exact-source inputs under local-only disclosure; no payload/graph writes, model calls, semantic assessment, admission or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/growth-cycle/tests/test_source_commands.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/source-text-unit-packet-v1.schema.json", "ToS/contracts/native-text-unit-binding.schema.json", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/rights-record.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
+      "reads": ["protected independently selected write delegation and source context; bounded spans/gaps request", "exact native metadata closure and only separately permitted UTF-8 representation after recorded local-derivation rights checks", "bounded public and selected private native identity metadata inventory, no payload/catalog/local-content scan; implementation dependencies and exact retry package bytes"],
+      "writes": ["one new mode-0700 private source package with mode-0600 native packet, retained configuration/request/environment, provenance and existing source-create receipt", "existing shared source lock, private store writer lock and invocation-local private staging outside source discovery"],
+      "side_effects": "local-account explicit text-unit.create and exact retry, bounded atomic no-replace publication, unchanged source bytes and native IDs, fresh rights/dependency and staged-byte checks; no implicit private adapter, source-layer bootstrap, correction, linguistic assessment, admission, public collector or deployment",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_text_unit_commands.py",
       "disposition": "keep"
     },
     {
@@ -551,6 +565,20 @@
       "validation_lane": "graph_exports",
       "ci_inclusion": "release",
       "test_target": "tests/test_source_witness_bibliographic_graph.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/source_text_unit_proposal.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+      "source_truth": ["ToS/contracts/source-text-unit-packet-v1.schema.json", "ToS/contracts/source-text-layer.schema.json", "ToS/doctrine/CORPUS_FOUNDATION.md"],
+      "reads": ["in-memory verified native packet/layer, exact text, delegated identities, scope, spans/gaps and method; no file or schema I/O inside construction"],
+      "writes": [],
+      "side_effects": "pure confidential native packet proposal with computed anchors, explicit partition, stable delegated IDs and preserved restrictions; no source mutation, identity admission, assessment or publication",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_text_unit_proposal.py",
       "disposition": "keep"
     },
     {

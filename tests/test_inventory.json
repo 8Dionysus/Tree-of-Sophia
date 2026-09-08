@@ -378,6 +378,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_text_unit_proposal.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/source-text-unit-packet-v1.schema.json",
+      "protects": "pure deterministic exact-UTF8 native packet construction with explicit span/gap partition, nonzero absolute coordinates, scope-limited normalization declarations, delegated stable IDs, bounded counts, inherited visibility and proposal-only states without aliasing or mutation; synthetic tests do not prove linguistic segmentation",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_text_unit_proposal.py",
+      "failure_route": "Fix the native constructor or source-owned contract; never weaken exact anchoring, declared gaps or source restrictions to accept output.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_owner_context.py",
       "home": "tests",
       "home_scope": "root",
@@ -870,6 +885,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/growth-cycle/tests/test_occurrence_assessment_guard.py",
       "failure_route": "Fix the source-owner exact-read gate and currentness guard without turning availability or retained review history into source-visible admission.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_source_text_unit_commands.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "separately delegated exact-source native TextUnit creation and CLI retry in a confidential store, unchanged native resolver consumption, rights/lifecycle and read/write authority separation, native ID-owner discovery, protected atomic no-replace package with retained config/request/provenance, byte-bound currentness and corrupt replay/staging refusal; synthetic fixtures are not linguistic or historical acceptance",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_text_unit_commands.py",
+      "failure_route": "Fix the native source-owner adapter, protected transport or existing package primitives; do not widen rights or overwrite retained evidence to make creation pass.",
       "disposition": "keep"
     },
     {

@@ -1,4 +1,4 @@
-"""Explicit source-owner commands for forms, metadata subjects and claims.
+"""Explicit source-owner commands for forms, subjects, claims and native text.
 
 The independently selected protected configuration delegates local-account
 source writing, not semantic admission. Source prose cannot choose a path,
@@ -52,6 +52,7 @@ CLAIM_STRUCTURED_CONFIG = 'tos_local_claim_create_owner_v3'
 CLAIM_STRUCTURED_REVISION_CONFIG = 'tos_local_claim_revision_owner_v3'
 CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
+TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
 MAX_COMMAND_BYTES = 1_048_576
@@ -76,6 +77,9 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
+    if config.get('schema_version') == TEXT_UNIT_CONFIG:
+        from source_text_unit_commands import configuration
+        return configuration(config, owner_config=path)
     if config.get('schema_version') in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG}:
         from source_claim_commands import configuration
         return configuration(config)
@@ -688,7 +692,8 @@ def _validator_for_provenance(root):
 
 
 def _capture_creation_provenance(config, request, files, started_at, started_ns,
-                                 *, procedure_name=None, additional_software_refs=()):
+                                 *, procedure_name=None, additional_software_refs=(),
+                                 native_inputs=None):
     """Capture buffer serialization, not upstream research or future publication.
 
     The event and its hash-bearing receipt travel with the atomic directory.
@@ -781,6 +786,37 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
             'role': 'source-command-adapter', 'artifact_ref': ref,
             'artifact_sha256': _digest(_read(ROOT / ref, MAX_SET_BYTES))[7:],
             'verification_status': 'verified'})
+    if native_inputs is not None:
+        # Internal native adapter only. Source reading/anchor construction is
+        # not metadata-only serialization; its whole receipt stays private.
+        event['activity']['event_type'] = 'segmentation'
+        event['activity']['warnings'][0] = (
+            'Exact representation and native metadata verified; proposed anchors computed; '
+            'atomic publication occurs afterward and no linguistic assessment is performed.')
+        event['entities']['inputs'].extend(native_inputs['entities'])
+        for group in event['entities'].values():
+            for item in group:
+                item['content_disclosure'] = 'private_content'
+        event['method']['procedure']['purpose'] = (
+            'Validate a delegated interval partition against exact source bytes and construct '
+            'a new method-proposed native packet without accepting its linguistic analysis.')
+        event['method']['configuration_binding'] = binding('source-create-owner-configuration.json')
+        event['rights_and_visibility'].update(
+            rights_record_bindings=native_inputs['rights'], intended_uses=['local_research'],
+            content_visibility='local_only')
+        for index, item in enumerate(native_inputs['entities']):
+            event['derivations'].append({
+                'derivation_id': config['provenance_event_id'].replace('tos.event.', 'tos.derivation.', 1) + f'.native-{index}',
+                'input_entity_ref': item['entity_ref'],
+                'output_entity_ref': config['source_path'], 'relation': 'selection_from',
+                'influence_asserted': True,
+                'description': 'Technical exact-source dependency for proposed native anchors, not historical influence.'})
+        event['reproducibility']['known_gaps'][0] = (
+            'Upstream transcription and caller linguistic analysis are not executed or authenticated here; '
+            'the exact native source closure is bound by the command dependency snapshot.')
+        event['reproducibility']['replay_scope'] = (
+            'Exact source-byte verification and deterministic packet construction from the retained '
+            'delegation/request, not linguistic correctness or deterministic provenance timestamps.')
     _validator_for_provenance(Path(config['source_root'])).validate(event)
     files['source-create-provenance.jsonl'] = _canonical(event) + b'\n'
 
@@ -996,6 +1032,9 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
+    if config['schema_version'] == TEXT_UNIT_CONFIG:
+        from source_text_unit_commands import run_command
+        return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG}:
         from source_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
