@@ -1,5 +1,6 @@
 import {t} from './ui-i18n.mjs';
 import {readingKey} from './reader-model.mjs';
+import {validateClaimReference} from './knowledge-client.mjs';
 import {contentLanguage,validFormIdentity} from './human-forms.mjs';
 import {persistentReadingAnchorKey} from './reading-anchor.mjs';
 
@@ -27,7 +28,10 @@ export function validateReading(value){
       return [positionKey,{top:position.top,details,anchor:anchor?{key:anchor.key,offset:anchor.offset}:null}];
     });
     if(new Set(positions.map(p=>p[0])).size!==positions.length)bad();
-    return {kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,preferred:entry.preferred,positions};
+    const compound=Object.prototype.hasOwnProperty.call(entry,'claimReference');
+    if(compound&&entry.kind!=='node')bad();
+    const claim=compound?{claimReference:validateClaimReference(entry.claimReference,entry.id)}:{};
+    return {kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,preferred:entry.preferred,positions,...claim};
   });
   const keys=entries.map(entry=>readingKey(entry.kind,entry.id));
   if(new Set(keys).size!==keys.length||(entries.length?!keys.includes(value.activeKey):value.activeKey!==null))bad();

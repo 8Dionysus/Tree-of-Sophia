@@ -1,5 +1,9 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Связанный контекст утверждения не закреплён. Для полного чтения закрепите его из области, где этот контекст доступен.": {
+    "en": "The related Claim context is not pinned. For complete reading, pin it from an area where that context is available.",
+    "es": "El contexto relacionado de la afirmación no está fijado. Para leerlo completo, fíjalo desde un área donde ese contexto esté disponible."
+  },
   "Показана доступная форма названия: {0}.": {
     "en": "Showing the available title form: {0}.",
     "es": "Se muestra la forma disponible del título: {0}."

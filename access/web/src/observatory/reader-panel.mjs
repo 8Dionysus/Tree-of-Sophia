@@ -1,7 +1,7 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiNode,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
 import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,formLabel} from './reader-model.mjs';
-import {renderHumanForms} from './human-forms-view.mjs';
+import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
 import './human-forms.css';
 import {READING_KEY,readReading,emptyReading,validateReading} from './reading-resume.mjs';
 import {refreshIcons} from './icons';
@@ -43,6 +43,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     capture();return validateReading({v:1,activeKey,entries:shelf.entries.map(entry=>{
       const view=views.get(entry.key),prefix=JSON.stringify([entry.key,entry.sourceRevision,entry.contentRevision]).slice(0,-1)+',';
       return {kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,preferred:view?.preferred||'ru',
+        ...(entry.claimReference?{claimReference:entry.claimReference}:{}),
         positions:(view?.reading.exportPositions()||[]).filter(([key])=>key.startsWith(prefix))};
     })});
   }
@@ -145,9 +146,10 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   function renderDocument(view,entry){
     const snapshot=entry.snapshot,doc=readingDocument(snapshot,view.preferred);
     view.reading.capture();view.reading.enter(readingPositionKey(entry.key,snapshot,snapshot.raw.human_form_selection?.requested_language||view.preferred));
-    uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;uiText(view.title, doc.title?.text||ui("Материал"));
+    uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;view.titleText=uiText(view.title, doc.title?.text||ui("Материал"));
     view.title.dir='auto';if(doc.title?.lang)view.title.lang=doc.title.lang;else view.title.removeAttribute('lang');
     uiText(view.kind, entry.kind==='relation'?ui("Связь"):doc.kind?.text||ui("Предмет"));
+    if(doc.claimContextUnavailable)uiChildren(view.body,'append',el('p',ui('Связанный контекст утверждения не закреплён. Для полного чтения закрепите его из области, где этот контекст доступен.'),'sc-reader-gap'));
     if(!doc.title?.unavailable&&(doc.title?.fallback||!doc.title?.lang))uiChildren(view.body, "append", el('p',ui("Название: {0}{1}", [formLabel(doc.title?.key||ui("не указана")), (doc.title?.lang?'':ui("; язык не указан"))]),'sc-reader-language-note'));
     for(const block of doc.blocks){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',block.title));
@@ -157,6 +159,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       uiChildren(view.body, "append", section);
     }
     if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw));
+    if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading));
     if(doc.participants.length){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',ui("Участники связи")));
       for(const participant of doc.participants){
@@ -203,9 +206,9 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
         if(!languages.includes(view.preferred)){const option=el('option',ui("{0} — недоступна", [formLabel(view.preferred)]));option.value=view.preferred;uiChildren(view.language, "prepend", option);}
         view.language.value=view.preferred;renderDocument(view,entry);
       }else if(!entry.snapshot){
-        view.snapshot=null;uiText(view.title, entry.title?.text||ui("Материал"));uiChildren(view.body, "replaceChildren", el('p',entry.loading?ui("Получаю материал…"):ui("Материал пока недоступен."),'sc-reader-gap'));
+        view.snapshot=null;view.titleText=uiText(view.title, entry.title?.text||ui("Материал"));uiChildren(view.body, "replaceChildren", el('p',entry.loading?ui("Получаю материал…"):ui("Материал пока недоступен."),'sc-reader-gap'));
       }
-      uiText(view.tab, view.title.textContent);uiAttribute(view.body, 'aria-label', ui("Чтение: {0}", [view.title.textContent]));
+      uiText(view.tab, view.titleText);uiAttribute(view.body, 'aria-label', ui("Чтение: {0}", [view.titleText]));
       view.language.disabled=!entry.snapshot;view.refresh.disabled=entry.loading;
       const mismatch=Boolean(entry.snapshot&&shelf.sceneRevision&&entry.sourceRevision!==shelf.sceneRevision);
       const states=[entry.loading?ui("Обновляю материал…"):null,entry.error,

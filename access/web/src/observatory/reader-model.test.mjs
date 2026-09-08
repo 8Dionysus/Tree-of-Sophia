@@ -1,7 +1,10 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {readingForm,readingLanguages,readingSnapshot,readingDocument,createReadingShelf} from './reader-model.mjs';
-import {RequestError} from './knowledge-client.mjs';
+import {RequestError,KnowledgeClient} from './knowledge-client.mjs';
+import {compactFormLens,memberFormLens} from '../../fixtures/human-form-data.mjs';
+import {resolveClaimReading} from './human-forms.mjs';
+import {setUiLanguage} from './ui-i18n.mjs';
 
 const revision='a'.repeat(64),content='b'.repeat(64);
 const node=(id='opaque:one')=>({id,kind_id:'work',content_revision:content,source_refs:['ToS/test/source.md'],
@@ -11,6 +14,86 @@ const answer=(raw=node(),rev=revision,endpoints=[])=>({packet:{source_revision:r
 const target=(raw=node(),rev=revision)=>({raw,kind:'node',sourceRevision:rev,bookmark:{graph:{packet:{source_revision:rev}}}});
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
+
+const path=packet=>packet.scene.compact.claim_paths[0];
+const compoundTarget=packet=>({...target(packet.nodes.find(node=>node.id===path(packet).claim_node_id),packet.source_revision),
+  bookmark:{graph:{packet}},preferred:'ru'});
+function compoundShelf(respond){
+  const sent=[],client=new KnowledgeClient({fetcher:async(url,options)=>{
+    const spec=JSON.parse(options.body);sent.push(spec);
+    return {ok:true,json:async()=>respond(spec)};
+  }});
+  return {sent,shelf:createReadingShelf({client})};
+}
+
+test('the common shelf pins the full Claim closure and selects fresh language forms and every context atomically',async()=>{
+  for(const fixture of [compactFormLens,memberFormLens]){
+    const scene=fixture('ru'),before=structuredClone(scene),fresh=fixture('en');
+    const {shelf,sent}=compoundShelf(spec=>spec.language==='en'?fresh:fixture('ru'));
+    const {key}=shelf.pin(compoundTarget(scene));await tick();
+    assert.ok(shelf.entries[0].snapshot.claimReading);assert.equal(shelf.entries.length,1);
+    await shelf.language(key,'en');
+    const snapshot=shelf.entries[0].snapshot;
+    assert.deepEqual(snapshot.claimNodes,fresh.nodes);
+    assert.deepEqual(snapshot.claimReading,resolveClaimReading(fresh,path(fresh).reading));
+    assert.equal(snapshot.claimReading.wording.language,'en');
+    assert.deepEqual(snapshot.raw.human_form_selection,fresh.nodes.find(node=>node.id===path(fresh).claim_node_id).human_form_selection);
+    assert.deepEqual(sent.map(spec=>spec.lens_id),['sophia-observatory-claim-material','sophia-observatory-claim-material']);
+    assert.deepEqual(sent[1].limits,{nodes:fresh.nodes.length,relations:fresh.relations.length,groups:fresh.nodes.length});
+    assert.deepEqual(scene,before);
+    fresh.relations[0].qualifiers.unknown='mutated outside shelf';
+    assert.equal(snapshot.claimReading.relations[0].qualifiers.unknown,false);
+  }
+});
+
+test('compound language changes pin every context revision, while refresh and restored selectors read the current closure',async()=>{
+  const scene=compactFormLens();let fresh=compactFormLens();
+  const {shelf}=compoundShelf(()=>fresh),{key}=shelf.pin(compoundTarget(scene));await tick();
+  const reference=structuredClone(shelf.entries[0].claimReference);
+  fresh=compactFormLens('en');fresh.relations[0].content_revision='f'.repeat(64);
+  await shelf.language(key,'en');assert.equal(shelf.entries[0].snapshot,null);
+  assert.ok(shelf.entries[0].error);assert.equal(shelf.entries[0].bookmark,null);
+  fresh.source_revision='e'.repeat(64);await shelf.refresh(key);
+  assert.equal(shelf.entries[0].snapshot.sourceRevision,fresh.source_revision);
+  assert.equal(shelf.entries[0].snapshot.claimReading.relations[0].content_revision,'f'.repeat(64));
+  assert.equal(shelf.entries[0].changed,true);assert.equal(shelf.entries[0].preferred,'en');
+  shelf.restore([{kind:'node',id:path(scene).claim_node_id,sourceRevision:revision,contentRevision:content,preferred:'en',claimReference:reference}]);await tick();
+  assert.equal(shelf.entries[0].snapshot.sourceRevision,fresh.source_revision);
+  assert.deepEqual(shelf.entries[0].snapshot.claimReading,resolveClaimReading(fresh,path(fresh).reading));
+  assert.equal(shelf.entries[0].bookmark,null);
+});
+
+test('a compound pin fails closed on missing closure, missing path or wrong requested language',async()=>{
+  for(const mutate of [p=>p.nodes.pop(),p=>p.relations.pop(),p=>p.scene.compact.claim_paths=[],
+    p=>p.nodes.find(node=>node.id==='fixture:claim').human_form_selection.requested_language='ru']){
+    let fresh=memberFormLens('ru');const {shelf}=compoundShelf(()=>fresh);
+    const {key}=shelf.pin(compoundTarget(memberFormLens()));await tick();assert.ok(shelf.entries[0].snapshot);
+    fresh=memberFormLens('en');mutate(fresh);await shelf.language(key,'en');
+    assert.equal(shelf.entries[0].snapshot,null);assert.equal(shelf.entries[0].bookmark,null);assert.ok(shelf.entries[0].error);
+  }
+});
+
+test('a late compound language response cannot replace the newer entire reading packet',async()=>{
+  const old=deferred();const {shelf}=compoundShelf(spec=>spec.language==='ru'?old.promise:compactFormLens('en'));
+  const {key}=shelf.pin(compoundTarget(compactFormLens()));await shelf.language(key,'en');
+  const snapshot=shelf.entries[0].snapshot;
+  old.resolve(compactFormLens('ru'));await tick();
+  assert.equal(shelf.entries[0].snapshot,snapshot);assert.equal(snapshot.claimReading.wording.language,'en');
+});
+
+test('an old identity-only Claim pin is explicitly incomplete and repinning its current path upgrades it without another shelf slot',async()=>{
+  const scene=compactFormLens(),raw=scene.nodes.find(node=>node.id===path(scene).claim_node_id);
+  const {shelf,sent}=compoundShelf(spec=>spec.lens_id==='sophia-observatory-material'
+    ?{...answer().packet,schema:'tos_lens_result_v1',authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},nodes:[raw],relations:[]}
+    :compactFormLens(spec.language));
+  shelf.restore([{kind:'node',id:raw.id,sourceRevision:revision,contentRevision:content,preferred:'ru'}]);await tick();
+  assert.equal(readingDocument(shelf.entries[0].snapshot).claimContextUnavailable,true);
+  const key=shelf.entries[0].key;
+  assert.equal(shelf.pin(compoundTarget(scene)).existing,true);await tick();
+  assert.equal(shelf.entries.length,1);assert.equal(shelf.entries[0].key,key);
+  assert.ok(shelf.entries[0].snapshot.claimReading);assert.equal(readingDocument(shelf.entries[0].snapshot).claimContextUnavailable,false);
+  assert.deepEqual(sent.map(spec=>spec.lens_id),['sophia-observatory-material','sophia-observatory-claim-material']);
+});
 
 test('a navigation-only pin retains one identity across language changes and reopening',async()=>{
   const raw=node();raw.display.title={ru:'Запись утверждения',en:'Claim record'};
@@ -31,7 +114,12 @@ test('a navigation-only pin retains one identity across language changes and reo
 test('an identifier fallback is a UI title gap, never a selected source form or authored statement',()=>{
   const raw=node();raw.display.title={default:'claim:tos claim opaque'};raw.display.provenance={title:'identifier-fallback'};
   const snapshot=readingSnapshot(answer(raw),'node'),doc=readingDocument(snapshot,'en');
-  assert.deepEqual(doc.title,{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  assert.deepEqual({...doc.title,text:String(doc.title.text)},{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  try{
+    for(const [language,placeholder]of [['en','No readable title'],['es','No hay un título legible'],['ru','Нет читаемого названия']]){
+      setUiLanguage(language);assert.equal(String(doc.title.text),'Произведение · '+placeholder);
+    }
+  }finally{setUiLanguage('ru');}
   assert.equal(doc.humanForms,null);assert.equal(doc.blocks[0].form.text,raw.display.summary.ru);
   assert.deepEqual(snapshot.raw.display,raw.display);assert.equal(snapshot.raw.id,raw.id);
 });

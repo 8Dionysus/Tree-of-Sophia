@@ -366,6 +366,8 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   existing choice among delivered language/form variants; interface language
   never requests or invents a translated source. Both language and theme persist
   in the local preferences and workspace copy.
+  A pinned item's missing-title placeholder updates with the interface language
+  in its heading, tab and reading label without reloading the material.
   Navigation titles and previews select the supplied variant for the interface
   language through `display-language.mjs`; the inspector uses its material
   selector, and each pinned item keeps its own choice. A language switch only
@@ -511,6 +513,22 @@ context; it is never combined with wording from the older displayed scene.
 The current request must still own the same scene, selection and language
 before the card becomes ready. Loading, damaged or denied delivery clears the
 earlier wording. Ordinary node reads remain isolated to one node.
+
+The common reading shelf follows the same compound path when a Claim is pinned.
+It retains the full bounded node closure and resolved Claim context in page
+memory and renders the same semantic, epistemic and relation assertion contexts
+as the inspector. Language changes check every captured record revision.
+Durable reading stores only the Claim/path identity and exact node/relation
+selectors, alongside the existing language and position references. Refresh or
+reload re-queries that bounded selection at the current backend revision; a
+missing, changed or incomplete path clears the reading copy. It cannot silently
+downgrade a compound selection to a one-node response. Saved selectors carry
+neither source wording nor semantic acceptance, and network failures retain only
+the already marked earlier in-page copy.
+Earlier identity-only Claim pins remain readable with an explicit missing-context
+notice. Repinning from a current area that supplies the compact path upgrades the
+existing shelf slot and preserves its chosen language; no automatic source or
+closure is inferred from the old reference.
 
 This supports the two-leg Claim path with `claim-supported-by` and
 `claim-value-member` details. The latter requires the normalized
