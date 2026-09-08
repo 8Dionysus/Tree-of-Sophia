@@ -62,3 +62,18 @@ export function renderClaimContext(resolved){
   const section=el('section','','sc-form-context');section.append(el('h5',ui('Контекст чтения утверждения')));
   section.append(jsonBlock(resolved,'claim-context'));return section;
 }
+export function renderEssentialContext(context){
+  const section=el('section','','sc-form-role sc-record-context');section.dataset.contextState=context.state;
+  section.hidden=context.state==='not-declared'||context.state==='available'&&!context.items.length;
+  if(section.hidden)return section;
+  section.append(el('h5',ui('Обязательный контекст записи')));
+  if(context.state==='unavailable')section.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
+  context.items.forEach((item,index)=>{
+    const entry=el('section','','sc-form-context');entry.dataset.contextPointer=typeof item.pointer==='string'?item.pointer:'';
+    if(typeof item.pointer==='string')entry.append(el('p',item.pointer,'sc-source-ref'));
+    if(item.state==='available')entry.append(jsonBlock(item.value,'record-context:'+index));
+    else entry.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
+    section.append(entry);
+  });
+  return section;
+}

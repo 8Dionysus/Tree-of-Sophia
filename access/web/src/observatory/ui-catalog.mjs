@@ -1,5 +1,13 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Обязательный контекст записи": {
+    "en": "Required record context",
+    "es": "Contexto obligatorio del registro"
+  },
+  "Объявленный контекст недоступен в этой версии ответа.": {
+    "en": "The declared context is unavailable in this version of the response.",
+    "es": "El contexto declarado no está disponible en esta versión de la respuesta."
+  },
   "Связанный контекст утверждения не закреплён. Для полного чтения закрепите его из области, где этот контекст доступен.": {
     "en": "The related Claim context is not pinned. For complete reading, pin it from an area where that context is available.",
     "es": "El contexto relacionado de la afirmación no está fijado. Para leerlo completo, fíjalo desde un área donde ese contexto esté disponible."

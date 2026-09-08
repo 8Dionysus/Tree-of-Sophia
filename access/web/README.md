@@ -83,6 +83,11 @@ CSP is required.
   disabled. Network failure retains a labelled earlier copy, while an observed
   403/404/410 removes its reading copy. Available language/form fields retain
   their delivered wording and identify fallback or unspecified language.
+  Record context follows the inspected response's `essential_context_pointers`
+  in both the inspector and pinned reading. Delivered context retains unknown
+  fields and explicit nulls; missing pointers produce a visible gap. The
+  response's version-bound display selection owns the actual language of each
+  selected field, including a known language behind `default` or `original`.
   This compares supplied material side by side; it does not generate semantic
   conclusions, full text, translations, or stable corpus text addresses.
 - `knowledge-ui.mjs` handles paged search, inspection, scene request cancellation

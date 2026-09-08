@@ -1,10 +1,11 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,sourceOriginalTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,materialDisplayForm,sourceOriginalTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
-import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
-import {formLabel} from './reader-model.mjs';
+import {renderHumanForms,renderClaimContext,renderEssentialContext} from './human-forms-view.mjs';
+import {essentialContext} from './record-context.mjs';
+import {formLabel,formLanguageNote} from './reader-model.mjs';
 
 export async function readInspectorMaterial({client,scene,kind,raw,language,signal}){
   const path=kind==='node'?claimPathFor(scene,raw.id):null;
@@ -22,6 +23,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   let cardLanguage='ru';
   const titleNote=document.createElement('p');titleNote.className='sc-reader-language-note sc-title-language-note';titleNote.hidden=true;q('.sc-node-title').after(titleNote);
   const forms=document.createElement('div');forms.className='sc-card-forms';q('.sc-description').after(forms);
+  const descriptionNote=document.createElement('p');descriptionNote.className='sc-reader-language-note sc-description-language-note';descriptionNote.hidden=true;forms.before(descriptionNote);
   const language=document.createElement('select'),languageLabel=document.createElement('label');
   uiText(languageLabel,ui('Язык материала'));uiAttribute(language,'aria-label',ui('Язык материала'));languageLabel.append(language);forms.before(languageLabel);
   language.addEventListener('change',()=>{
@@ -134,7 +136,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   }
   function endpointName(id){return displayTitle(port.node(id),id,cardLanguage);}
   function renderTitle(raw){
-    const form=displayTitleForm(raw,cardLanguage),title=q('.sc-node-title');
+    const form=displayTitleForm(raw,cardLanguage,true),title=q('.sc-node-title');
     uiText(title,form?.text||raw.id);title.lang=form?.lang||'';
     title.dataset.requestedLanguage=cardLanguage;title.dataset.displayLanguage=form?.key||'';
     titleNote.hidden=!form?.fallback;
@@ -146,8 +148,11 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     renderTitle(raw);
     uiText(q('.sc-node-original'), kind==='node'?sourceOriginalTitle(raw):localized(raw.display.statement,'',cardLanguage));
     uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id,cardLanguage).toUpperCase():ui("ОТНОШЕНИЕ"));
-    uiText(q('.sc-description'), localized(kind==='node'?raw.display.summary:raw.display.explanation,ui("Описание пока не зафиксировано."),cardLanguage));
-    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw));
+    const description=materialDisplayForm(raw,kind==='node'?'summary':'explanation',cardLanguage);
+    uiText(q('.sc-description'), description?.text||ui("Описание пока не зафиксировано."));q('.sc-description').lang=description?.lang||'';
+    descriptionNote.hidden=Boolean(selection)||!description||!description.fallback&&Boolean(description.lang);
+    uiText(descriptionNote,descriptionNote.hidden?'':formLanguageNote(description));
+    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw),renderEssentialContext(essentialContext(raw)));
     const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
     language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;option.textContent=formLabel(value);return option;}));language.value=cardLanguage;
     uiAttribute(q('.sc-inspector'), 'aria-label', kind==='node'?ui("Выбранный узел"):ui("Выбранное отношение"));
@@ -180,7 +185,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
       renderCard(kind,raw);
-      forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;
+      forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;descriptionNote.hidden=true;
       const found=await slots.run('inspect',signal=>readInspectorMaterial({client,scene,kind,raw,language,signal}));
       if(!found.current||port.packet!==scene||cardLanguage!==language
         ||(kind==='relation'?port.selection.relationId:port.selection.nodeId)!==raw.id)return;
@@ -189,7 +194,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
       root.dataset.inspectorState='ready';
     }catch(error){
       root.dataset.inspectorState='error';
-      forms.replaceChildren(text('p','sc-form-status',error.message));q('.sc-description').hidden=true;
+      forms.replaceChildren(text('p','sc-form-status',error.message));q('.sc-description').hidden=true;descriptionNote.hidden=true;
       uiChildren(q('.sc-provenance'), "prepend", text('p','sc-inspection-error',error.message));
       if(error instanceof RevisionError)notifyFailure(error,()=>loadFocus(port.packet.focus?.node_id||raw.id,{selectFocus:false}));
       else uiChildren(q('.sc-provenance'), "prepend", button(ui("Загрузить карточку ещё раз"),()=>showCard(kind,raw)));

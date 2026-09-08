@@ -1,5 +1,6 @@
 import {t,uiComputed} from './ui-i18n.mjs';
-import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
+import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,materialDisplayForm,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
+import {essentialContext} from './record-context.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
 export {readingForm};
 import {FormContractError,validateHumanForms,formLanguages,formIdentity,claimPathFor,resolveClaimReading} from './human-forms.mjs';
@@ -9,8 +10,12 @@ export const readingKey=(kind,id)=>JSON.stringify([kind,id]);
 export function formLabel(key){
   return ({ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")})[key]||key;
 }
+export function formLanguageNote(form){
+  return uiComputed(()=>(form.fallback?t('Выбранная форма отсутствует. Показана: '):t('Показана: '))
+    +formLabel(form.lang||form.key)+(form.lang?'.':t('. Язык в этой форме не указан.')));
+}
 function readingTitle(raw,preferred='ru'){
-  const form=displayTitleForm(raw,preferred);
+  const form=displayTitleForm(raw,preferred,true);
   // Only the missing-title placeholder follows UI language. Supplied wording
   // and the item's selected content language remain unchanged.
   return form?.unavailable?{...form,text:uiComputed(()=>displayTitleForm(raw,preferred).text)}:form;
@@ -37,7 +42,7 @@ export function readingSnapshot({packet,match,endpoints:materialEndpoints,path},
   if(kind==='relation'&&![match.from_id,match.to_id].every(id=>endpoints.some(node=>node.id===id)))
     throw new ContractError(t("Для чтения связи нужны оба её участника."));
   const selectedEndpoints=kind==='relation'?[...new Set([match.from_id,match.to_id])].map(id=>endpoints.find(node=>node.id===id)):[];
-  const snapshot={kind,sourceRevision:packet.source_revision,raw:readerRecord(match),endpoints:selectedEndpoints.map(readerRecord)};
+  const snapshot={kind,sourceRevision:packet.source_revision,raw:readerRecord(match),endpoints:selectedEndpoints.map(readerRecord),essentialContext:essentialContext(match)};
   if(path){
     if(kind!=='node'||path.claim_node_id!==match.id)throw new FormContractError();
     snapshot.claimReference=claimMaterialReference(packet,path);
@@ -59,12 +64,13 @@ export function readingDocument(snapshot,language='ru'){
   const blocks=[];
   const humanForms=validateHumanForms(raw);
   if(!humanForms){
-    if(kind==='relation')blocks.push({id:'statement',title:t("Формулировка связи"),form:readingForm(display.statement,language)});
+    if(kind==='relation')blocks.push({id:'statement',title:t("Формулировка связи"),form:materialDisplayForm(raw,'statement',language)});
     blocks.push({id:'description',title:kind==='node'?t("Описание"):t("Пояснение"),state,
-      form:state==='missing'?null:readingForm(kind==='node'?display.summary:display.explanation,language)});
+      form:state==='missing'?null:materialDisplayForm(raw,kind==='node'?'summary':'explanation',language)});
   }
   return {title:readingTitle(raw,language),claimContextUnavailable:Boolean(snapshot.claimContextUnavailable),
-    kind:kind==='node'?readingForm(display.kind_label,language):null,blocks,humanForms,
+    kind:kind==='node'?materialDisplayForm(raw,'kind_label',language):null,blocks,humanForms,
+    essentialContext:snapshot.essentialContext||essentialContext(raw),
     participants:kind==='relation'?[[t("От"),raw.from_id],[t("К"),raw.to_id]].map(([role,id])=>({id,role,
       form:readingTitle(snapshot.endpoints.find(node=>node.id===id),language)})):[],
     sourceRefs:[...raw.source_refs],posture:raw.epistemic||{}};

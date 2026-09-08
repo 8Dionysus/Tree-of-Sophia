@@ -43,9 +43,18 @@ export function localized(value,fallback='',preferred='ru') {
 export const missingReadableTitle=raw=>raw?.display?.provenance?.title==='identifier-fallback';
 // Only the owner's explicit provenance marks an identifier fallback. Never
 // infer a title, statement or type from an opaque ID or a human form.
-export function displayTitleForm(raw,preferred=uiLanguage()){
+export function materialDisplayForm(raw,field,preferred='ru'){
+  const selection=raw?.display_selection;
+  if(selection===undefined)return displayForm(raw?.display?.[field],preferred);
+  if(selection?.schema_version!=='tos_display_selection_v1'||selection.content_revision!==raw?.content_revision
+    ||!selection.fields||!Object.hasOwn(selection.fields,field)||!selection.fields[field]
+    ||typeof selection.fields[field]!=='object'||Array.isArray(selection.fields[field]))return null;
+  return displayForm(raw?.display?.[field],preferred,selection.fields[field]);
+}
+export function displayTitleForm(raw,preferred=uiLanguage(),material=false){
   if(missingReadableTitle(raw))return {text:[localized(raw.display.kind_label,raw.kind_id,preferred),t('Нет читаемого названия')].filter(Boolean).join(' · '),key:null,lang:null,fallback:false,unavailable:true};
-  const form=displayForm(raw?.display?.title||raw?.display?.label,preferred);
+  const field=raw?.display?.title?'title':'label';
+  const form=material?materialDisplayForm(raw,field,preferred):displayForm(raw?.display?.[field],preferred);
   return form&&raw?.display?.provenance?.title==='navigation-template'?{...form,navigationOnly:true}:form;
 }
 export function displayTitle(raw,fallback='',preferred=uiLanguage()){

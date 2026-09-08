@@ -1,7 +1,7 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiNode,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,formLabel} from './reader-model.mjs';
-import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
+import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,formLabel,formLanguageNote} from './reader-model.mjs';
+import {renderHumanForms,renderClaimContext,renderEssentialContext} from './human-forms-view.mjs';
 import './human-forms.css';
 import {READING_KEY,readReading,emptyReading,validateReading} from './reading-resume.mjs';
 import {refreshIcons} from './icons';
@@ -139,8 +139,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       const p=el('p',part);p.dir='auto';p.dataset.readingAnchor=blockId+':'+index;uiChildren(text, "append", p);
     });uiChildren(parent, "append", text);
     if(form.fallback||!form.lang){
-      const caption=(form.fallback?ui("Выбранная форма отсутствует. Показана: "):ui("Показана: "))+formLabel(form.key)+(form.lang?'.':ui(". Язык в этой форме не указан."));
-      uiChildren(parent, "append", el('p',caption,'sc-reader-language-note'));
+      uiChildren(parent, "append", el('p',formLanguageNote(form),'sc-reader-language-note'));
     }
   }
   function renderDocument(view,entry){
@@ -159,6 +158,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       uiChildren(view.body, "append", section);
     }
     if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw));
+    uiChildren(view.body,'append',renderEssentialContext(doc.essentialContext));
     if(snapshot.claimReading)uiChildren(view.body,'append',renderClaimContext(snapshot.claimReading));
     if(doc.participants.length){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',ui("Участники связи")));
