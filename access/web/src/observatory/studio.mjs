@@ -13,6 +13,7 @@ export function createStudio(root,scene,panels,{data:{client},initialRoute,onUse
   panel.innerHTML='<div class="sc-panel-top"><span class="sc-eyebrow">МОЁ ПРОСТРАНСТВО</span><button type="button" class="sc-icon sc-studio-close" aria-label="Закрыть места и инструменты"><i data-lucide="x" aria-hidden="true"></i></button></div><h3>Места мысли</h3><div class="sc-studio-tabs" role="tablist" aria-label="Рабочее окружение"></div><div class="sc-studio-body" role="tabpanel" tabindex="0"></div><p class="sc-studio-status" role="status"></p>';root.append(panel);
   const body=panel.querySelector('.sc-studio-body'),status=panel.querySelector('.sc-studio-status');body.id='sc-studio-content';
   const retryButton=button('Повторить открытие места',()=>{onUserAction();void restore(retry);});retryButton.className='sc-studio-retry';retryButton.hidden=true;status.after(retryButton);
+  const copy=button('Сохранить и перенести исследование',()=>root.dispatchEvent(new CustomEvent('sophia-workspace-copy')));copy.className='sc-studio-copy';status.after(copy);
   function cancel(){restoreId++;requests.cancelAll();busy=false;}
   panels.register('studio',panel,()=>{cancel();opener.setAttribute('aria-expanded','false');});
   panels.configure('studio',{onResume:render});
@@ -20,7 +21,7 @@ export function createStudio(root,scene,panels,{data:{client},initialRoute,onUse
     b.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const index=event.key==='Home'?0:event.key==='End'?1:1-i;tabs[index].click();tabs[index].focus();}});return b;});
   function close(){panels.close('studio');opener.focus();}
   panel.querySelector('.sc-studio-close').addEventListener('click',close);panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}});
-  function show(){panels.open('studio');opener.setAttribute('aria-expanded','true');render();tabs[active==='places'?0:1].focus();}
+  function show(){try{if(storage)entries=readPlaces(storage);}catch(error){failure=error.message;}panels.open('studio');opener.setAttribute('aria-expanded','true');render();tabs[active==='places'?0:1].focus();}
   function report(error){failure=error.message||'Не удалось выполнить действие.';renderStatus();}
   function safe(work){try{onUserAction();work();}catch(error){report(error);}}
   const areaName=()=>localized(scene.port.node(scene.port.selection.nodeId||scene.port.packet?.focus?.node_id)?.display.title,'Моё место');
@@ -49,7 +50,11 @@ export function createStudio(root,scene,panels,{data:{client},initialRoute,onUse
     const save=el('button','Сохранить текущее место');save.type='submit';save.dataset.placeAction='save';save.disabled=busy||!scene.port.packet;
     form.append(field('Название места',input),save);form.addEventListener('submit',e=>{e.preventDefault();safe(()=>persist(input.value.trim(),crypto.randomUUID()));});body.append(form);
     for(const place of entries){const row=el('article','','sc-place');const open=button(place.name,()=>{onUserAction();void restore(place);});open.className='sc-place-open';open.dataset.placeAction='open';row.append(open,el('small',new Date(place.savedAt).toLocaleDateString('ru',{day:'numeric',month:'long'})+' · '+place.pose.vertices.length+' звёзд при сохранении'));
-      const actions=el('div','','sc-place-actions');actions.append(button('Обновить этим видом',()=>safe(()=>persist(place.name,place.id))),button('Удалить',()=>safe(()=>{deleted=place;entries=entries.filter(e=>e.id!==place.id);storage.setItem(PLACES_KEY,JSON.stringify(entries));notice='Место удалено.';render();})));row.append(actions);body.append(row);}
+      const actions=el('div','','sc-place-actions');actions.append(button('Переименовать',()=>{
+        const form=el('form'),name=el('input');name.value=place.name;name.maxLength=64;name.required=true;name.setAttribute('aria-label','Новое название места');
+        const save=el('button','Сохранить название');save.type='submit';form.append(name,save,button('Отмена',render));
+        form.addEventListener('submit',event=>{event.preventDefault();safe(()=>{entries=savePlace(storage,{...place,name:name.value.trim()});notice='Название места сохранено.';render();});});actions.replaceChildren(form);name.focus();name.select();
+      }),button('Обновить этим видом',()=>safe(()=>persist(place.name,place.id))),button('Удалить',()=>safe(()=>{deleted=place;entries=readPlaces(storage).filter(e=>e.id!==place.id);storage.setItem(PLACES_KEY,JSON.stringify(entries));notice='Место удалено.';render();})));row.append(actions);body.append(row);}
     if(deleted)body.append(button('Вернуть удалённое место',()=>safe(()=>{entries=savePlace(storage,deleted);deleted=null;notice='Место восстановлено.';render();})));
     if(!entries.length)body.append(el('p','Здесь появятся места, к которым хочется вернуться.','sc-studio-empty'));
     const last=button('Забыть последний вид',()=>safe(()=>{storage?.removeItem(RESUME_KEY);autoSave=false;notice='Автовозврат отключён до следующего открытия страницы.';renderStatus();}));last.className='sc-studio-subtle';body.append(el('p','Последний вид запоминается автоматически в этом браузере.','sc-studio-note'),last);
@@ -73,9 +78,12 @@ export function createStudio(root,scene,panels,{data:{client},initialRoute,onUse
   root.addEventListener('wheel',e=>{if(!e.target.closest('.sc-panel')){if(busy){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}schedule();}},{passive:true});
   root.addEventListener('keydown',e=>{if(busy&&!panel.contains(e.target)&&!['Tab','Shift','Control','Meta','Alt'].includes(e.key)){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}},{capture:true});
   root.addEventListener('pointerup',schedule,{passive:true});root.addEventListener('keyup',schedule,{passive:true});
+  root.addEventListener('sophia-place-saved',()=>{if(storage)entries=readPlaces(storage);if(!panel.hidden)render();});
+  root.addEventListener('sophia-workspace-replacing',()=>{started=false;autoSave=false;clearTimeout(timer);cancel();});
   window.addEventListener('pagehide',()=>{clearTimeout(timer);saveResume();cancel();});document.addEventListener('visibilitychange',()=>{if(document.hidden)saveResume();});
   refreshIcons();
   return {
+    flush(){clearTimeout(timer);saveResume();},
     selectionChanged(){if(!applying&&scene.port.packet!==lastPacket){if(busy)cancel();lastPacket=scene.port.packet;}schedule();},
     async start(){
       let resume=null;try{if(storage)resume=readResume(storage,initialRoute);}catch(error){autoSave=false;report(error);}

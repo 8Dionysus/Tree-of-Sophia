@@ -11,6 +11,8 @@
 #sophia-gestures .sc-history-list button:hover{background:#162131}
 #sophia-gestures .sc-history-list button[aria-current=step]{border-left-color:#d8bc84;background:#1b2533;color:#f2ddae}
 #sophia-gestures .sc-history-list time{font-size:10px;color:#99a8ba}
+#sophia-gestures .sc-history-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+#sophia-gestures .sc-history-list .sc-history-pin{width:auto;padding:9px 4px;font-size:10px;color:#d8bc84;white-space:nowrap}
 #sophia-gestures .sc-history-status,#sophia-gestures .sc-history-note{margin:0;font-size:11px;color:#99a8ba}
 #sophia-gestures .sc-history-status:empty{display:none}
 #sophia-gestures .sc-history-clear,#sophia-gestures .sc-history-save,#sophia-gestures .sc-history-retry{align-self:flex-start;background:transparent;border:0;color:#d8bc84;padding:4px 0;font-size:11px}

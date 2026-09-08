@@ -48,7 +48,7 @@ const data=createObservatoryData({fetcher:async(url)=>{
   }else return {ok:false,status:404};
   return {ok:true,json:async()=>body};
 }});
-const {root,scene}=mountObservatory({data,initialRoute:'?focus=fixture%3Asubject%3A0'});
+const {root,scene}=mountObservatory({data,initialRoute:location.search});
 root.dataset.fixture='true';
 new ResizeObserver(entries=>document.documentElement.style.setProperty('--fixture-bar-height',entries[0].target.getBoundingClientRect().height+'px')).observe(document.querySelector('.fixture-controls'));
 async function load(){

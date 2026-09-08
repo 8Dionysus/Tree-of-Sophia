@@ -1,4 +1,4 @@
-import {capturePlace,reopenPlace} from './place-model.mjs';
+import {capturePlace,reopenPlace,pinHistoryPlace} from './place-model.mjs';
 import {localized} from './knowledge-client.mjs';
 import {createTravelStore,createTravelNavigation,historyLabel,travelKey,HISTORY_KEY,HISTORY_LIMIT} from './travel-model.mjs';
 import './travel.css';
@@ -10,7 +10,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
   // Different mounted products/fixtures do not share a journey accidentally.
   const store=createTravelStore(storage,HISTORY_KEY+':'+location.pathname);
   const formatTime=new Intl.DateTimeFormat('ru',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-  let started=false,applying=false,busy=false,pending=false,saveTimer=null,gestureTimer=null,baseline=null,lastPlace=null,message='',failure='',retryId=null;
+  let started=false,applying=false,busy=false,pending=false,saveTimer=null,gestureTimer=null,baseline=null,lastPlace=null,message='',failure='',retryId=null,replacing=false;
   {const {entries,cursor}=store.state;lastPlace=entries[cursor]||null;}
   const back=root.querySelector('.sc-back');back.hidden=false;back.disabled=true;
   back.setAttribute('aria-label','Назад по истории');
@@ -43,6 +43,11 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
       if(index===cursor)open.setAttribute('aria-current','step');
       const time=el('time',formatTime.format(entry.savedAt));time.dateTime=new Date(entry.savedAt).toISOString();
       open.append(el('span',entry.name),time);row.append(open);list.append(row);
+      const pin=button('☆ В места',()=>{
+        onUserAction();try{if(!storage)throw new Error('Локальное хранилище недоступно.');const place=pinHistoryPlace(storage,entry);
+          root.dispatchEvent(new CustomEvent('sophia-place-saved',{detail:place}));failure='';message='Место «'+place.name+'» сохранено. Название можно изменить в «Моём пространстве».';render();
+        }catch(error){failure=error.message;render();}
+      },'sc-history-pin');pin.setAttribute('aria-label','Сохранить место: '+entry.name);pin.disabled=busy;row.append(pin);
     }
     list.scrollTop=scroll;if(focused)[...list.querySelectorAll('button')].find(b=>b.dataset.historyId===focused)?.focus();scene.invalidate();
   }
@@ -53,7 +58,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
     const value=capturePlace(packet,pose,{name:'Шаг',id:crypto.randomUUID(),route:location.search});
     value.name=historyLabel(lastPlace,value,title);return value;
   }
-  function saveLater(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{store.save();render();},700);}
+  function saveLater(){if(replacing)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>{store.save();render();},700);}
   function flush(){
     if(!started||applying||busy)return;
     pending=false;
@@ -90,10 +95,11 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
     if(!['Tab','Shift','Alt','Control','Meta'].includes(event.key)&&!panel.contains(event.target)){cancel();flush();observe();}
   },{capture:true});
   root.addEventListener('keyup',observe,{passive:true});
-  window.addEventListener('pagehide',()=>{flush();clearTimeout(saveTimer);clearTimeout(gestureTimer);store.save();navigator.cancel();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){flush();store.save();}});
+  root.addEventListener('sophia-workspace-replacing',()=>{replacing=true;started=false;pending=false;clearTimeout(saveTimer);clearTimeout(gestureTimer);navigator.cancel();});
+  window.addEventListener('pagehide',()=>{if(!replacing){flush();store.save();}clearTimeout(saveTimer);clearTimeout(gestureTimer);navigator.cancel();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&!replacing){flush();store.save();}});
   render();
-  return {observe,resume:route=>store.resume(route),start({restored=false}={}){
+  return {observe,exportState(){flush();return store.state;},flush(){flush();clearTimeout(saveTimer);store.save();},resume:route=>store.resume(route),start({restored=false}={}){
     if(restored){try{lastPlace=capture();baseline=lastPlace&&travelKey(lastPlace);}catch(error){failure=error.message;}}
     started=true;observe();render();
   }};

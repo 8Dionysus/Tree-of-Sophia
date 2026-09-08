@@ -1,5 +1,6 @@
 import {createReadingMemory} from './reading-state.mjs';
 import {createReadingShelf,readingDocument,readingLanguages,readingKey,formLabel} from './reader-model.mjs';
+import {READING_KEY,readReading,emptyReading,validateReading} from './reading-resume.mjs';
 import {refreshIcons} from './icons';
 
 const el=(tag,text='',className='')=>{const node=document.createElement(tag);node.textContent=text;node.className=className;return node;};
@@ -11,6 +12,10 @@ const postureLabels={disputed:'Оспаривается',rejected:'Отклон�
 
 export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=()=>{}}){
   const views=new Map();let activeKey=null,returnFocus=null,notice='',wide=false;
+  let storage=null,savedText=null,saveTimer=null,storageError='',writable=true,initial=emptyReading();
+  const storageKey=READING_KEY+':'+location.pathname;
+  try{storage=localStorage;savedText=storage.getItem(storageKey);initial=readReading(storage,storageKey);}catch(error){storageError=error.message;writable=false;}
+  const restoredViews=new Map(initial.entries.map(entry=>[readingKey(entry.kind,entry.id),entry]));
   const opener=button('',()=>show(),'sc-control sc-reader-open');
   opener.setAttribute('aria-label','Чтение и сопоставление');opener.setAttribute('aria-expanded','false');
   opener.innerHTML='<i data-lucide="book-open" aria-hidden="true"></i><span>Чтение</span>';
@@ -31,6 +36,23 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   };
   const entryFor=key=>shelf.entries.find(entry=>entry.key===key);
   function capture(){for(const view of views.values())view.reading.capture();}
+  function exportState(){
+    capture();return validateReading({v:1,activeKey,entries:shelf.entries.map(entry=>{
+      const view=views.get(entry.key),prefix=JSON.stringify([entry.key,entry.sourceRevision,entry.contentRevision]).slice(0,-1)+',';
+      return {kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,preferred:view?.preferred||'ru',
+        positions:(view?.reading.exportPositions()||[]).filter(([key])=>key.startsWith(prefix))};
+    })});
+  }
+  function persist(){
+    clearTimeout(saveTimer);if(!writable)return;
+    try{
+      if(!storage)throw new Error('Чтение сохраняется только до закрытия страницы: хранилище недоступно.');
+      if(storage.getItem(storageKey)!==savedText){writable=false;throw new Error('Чтение изменено в другой вкладке. Здесь новые изменения пока не сохранены.');}
+      const text=JSON.stringify(exportState());clearTimeout(saveTimer);storage.setItem(storageKey,text);savedText=text;storageError='';
+    }catch(error){storageError=error.message;}
+    status.textContent=storageError||notice||'Пара материалов, формы и позиции чтения сохраняются в этом браузере.';status.dataset.important=String(Boolean(storageError));
+  }
+  function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(persist,500);}
   function restore(){for(const view of views.values())if(!view.article.hidden)view.reading.restore();}
   panels.register('reader',panel,()=>{capture();opener.setAttribute('aria-expanded','false');});
   panels.configure('reader',{onResume:()=>{opener.setAttribute('aria-expanded','true');render();}});
@@ -51,7 +73,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     onUserAction();scene.ui.captureReading();
     try{
       const result=shelf.pin({...source,bookmark:scene.port.captureView()});activeKey=result.key;
-      notice=result.existing?'Этот материал уже оставлен для чтения.':'Материал оставлен для чтения в этой вкладке.';
+      notice=result.existing?'Этот материал уже оставлен для чтения.':'Материал оставлен для продолжения чтения.';
     }catch(error){notice=error.message;}
     show();
   }
@@ -59,7 +81,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     onUserAction();capture();shelf.remove(key);notice='Материал убран из чтения.';render();
     (views.get(activeKey)?.tab||add).focus();
   }
-  function switchTo(key){onUserAction();capture();activeKey=key;layout();restore();}
+  function switchTo(key){onUserAction();capture();activeKey=key;layout();restore();scheduleSave();}
   function returnTo(key){
     const entry=entryFor(key);if(!entry?.bookmark)return;
     if(entry.bookmark.graph.packet.source_revision!==scene.port.packet?.source_revision){notice='Данные изменились. Откройте актуальный материал в пространстве.';render();return;}
@@ -98,7 +120,9 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       const next=entries[event.key==='Home'?0:event.key==='End'?entries.length-1:(index+1)%entries.length];
       switchTo(next.key);views.get(next.key).tab.focus();
     });
-    const view={article,head,title,kind,language,refresh,state,body,back,open,evidence,sources,tab,reading:createReadingMemory(body,{limit:8}),preferred:'ru',snapshot:null};
+    const remembered=restoredViews.get(key);restoredViews.delete(key);
+    const view={article,head,title,kind,language,refresh,state,body,back,open,evidence,sources,tab,reading:createReadingMemory(body,{limit:8,onCapture:scheduleSave}),preferred:remembered?.preferred||'ru',snapshot:null};
+    if(remembered)view.reading.importPositions(remembered.positions);
     language.addEventListener('change',()=>{onUserAction();view.reading.capture();view.preferred=language.value;view.snapshot=null;render();});
     columns.append(article);tabs.append(tab);return view;
   }
@@ -181,6 +205,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       view.language.disabled=!entry.snapshot;view.refresh.disabled=entry.loading;
       const mismatch=Boolean(entry.snapshot&&shelf.sceneRevision&&entry.sourceRevision!==shelf.sceneRevision);
       const states=[entry.loading?'Обновляю материал…':null,entry.error,
+        entry.changed?'Данные изменились: чтение начато с начала актуального материала.':null,
         mismatch?'Материал и сцена относятся к разным снимкам.':null,
         entry.snapshot&&entry.error?'Показан ранее закреплённый материал.':null];
       view.state.textContent=states.filter(Boolean).join(' ');view.state.hidden=!view.state.textContent;
@@ -193,8 +218,8 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     add.disabled=!selection||(!already&&entries.length>=2);add.textContent=already?'Читать выбранное':'Добавить выбранное';
     panel.querySelector('.sc-reader-toolbar').hidden=Boolean(already)||entries.length===2;
     resume.hidden=!entries.length;resume.textContent='К чтению · '+entries.length;
-    panel.dataset.count=String(entries.length);status.textContent=notice||'Материалы сохраняются для чтения до закрытия вкладки.';
-    layout();restore();
+    panel.dataset.count=String(entries.length);status.textContent=storageError||notice||'Пара материалов, формы и позиции чтения сохраняются в этом браузере.';status.dataset.important=String(Boolean(storageError));
+    layout();restore();scheduleSave();
   }
   const resize=new ResizeObserver(()=>{
     if(panel.hidden)return;
@@ -205,8 +230,12 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     restore();
   });resize.observe(panel);
   root.addEventListener('sophia-read',event=>pinSelection({...event.detail,sourceRevision:scene.port.packet?.source_revision}));
-  window.addEventListener('pagehide',event=>{if(event.persisted)shelf.suspend();else shelf.dispose();});
+  root.addEventListener('sophia-workspace-replacing',()=>{writable=false;clearTimeout(saveTimer);shelf.suspend();});
+  window.addEventListener('pagehide',event=>{capture();persist();clearTimeout(saveTimer);if(event.persisted)shelf.suspend();else shelf.dispose();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)persist();});
   window.addEventListener('pageshow',event=>{if(event.persisted)render();});
+  activeKey=initial.activeKey;shelf.restore(initial.entries);
   refreshIcons();render();
-  return {selectionChanged(){shelf.observeRevision(scene.port.packet?.source_revision);if(!panel.hidden)render();}};
+  return {exportState,flush:persist,
+    selectionChanged(){shelf.observeRevision(scene.port.packet?.source_revision);if(!panel.hidden)render();}};
 }

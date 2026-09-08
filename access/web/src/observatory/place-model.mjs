@@ -12,7 +12,7 @@ function spec(value){
 }
 export function validatePlace(value){
   if(value?.v!==1||typeof value.name!=='string'||!value.name.trim()||value.name.length>64||typeof value.id!=='string'||!value.id||value.id.length>80
-    ||!Number.isFinite(value.savedAt)||!/^[a-f0-9]{64}$/.test(value.sourceRevision||'')||typeof value.route!=='string'||value.route.length>50000)bad();
+    ||!Number.isFinite(new Date(value.savedAt).getTime())||typeof value.savedAt!=='number'||!/^[a-f0-9]{64}$/.test(value.sourceRevision||'')||typeof value.route!=='string'||value.route.length>50000)bad();
   const valid={v:1,id:value.id,name:value.name.trim(),savedAt:value.savedAt,sourceRevision:value.sourceRevision,route:value.route,spec:spec(value.spec),draft:value.draft?validateDraft(value.draft):null,pose:validatePose(value.pose)};
   if(JSON.stringify(valid).length>65000)bad();return valid;
 }
@@ -27,6 +27,12 @@ export function capturePlace(packet,pose,{name,id,route,savedAt=Date.now()}){
 }
 export function readPlaces(storage){const text=storage.getItem(PLACES_KEY);if(!text)return [];if(text.length>800000)bad();const values=JSON.parse(text);if(!Array.isArray(values)||values.length>12)bad();const entries=values.map(validatePlace);if(new Set(entries.map(e=>e.id)).size!==entries.length)bad();return entries;}
 export function savePlace(storage,place){const value=validatePlace(place),entries=readPlaces(storage),index=entries.findIndex(e=>e.id===value.id);if(index<0){if(entries.length>=12)throw new Error('Сохранено 12 мест. Удалите ненужное место, чтобы добавить новое.');entries.unshift(value);}else entries[index]=value;storage.setItem(PLACES_KEY,JSON.stringify(entries));return entries;}
+export function pinHistoryPlace(storage,entry){
+  const place=validatePlace(entry),id=place.id;
+  const existing=readPlaces(storage).find(value=>value.id===id);
+  if(existing)return existing;
+  const pinned=validatePlace({...place,id,savedAt:Date.now()});savePlace(storage,pinned);return pinned;
+}
 export function readResume(storage,route){const text=storage.getItem(RESUME_KEY);if(!text)return null;if(text.length>65000)bad();const value=validatePlace(JSON.parse(text));return !route||route===value.route?value:null;}
 export async function reopenPlace(client,value,signal){
   const place=validatePlace(value);

@@ -69,3 +69,15 @@ test('a snapshot change is explicit, network failure preserves the reading, revo
   error=new RequestError(403,'Доступ ограничен');await shelf.refresh(key);
   assert.equal(shelf.entries[0].snapshot,null);assert.equal(shelf.entries[0].bookmark,null);
 });
+
+test('restored pairs fetch current material without carrying stored text or revision pins; late old requests stay excluded',async()=>{
+  const late=deferred(),calls=[];let first=true;
+  const shelf=createReadingShelf({client:{inspect:(kind,id,signal,source,revision)=>{calls.push({kind,id,source,revision});if(first){first=false;return late.promise;}return Promise.resolve(answer(node(id)));}}});
+  shelf.pin(target(node('old')));
+  const references=['one','two'].map(id=>({kind:'node',id,sourceRevision:revision,contentRevision:content}));
+  shelf.restore(references);await tick();
+  assert.deepEqual(shelf.entries.map(e=>e.id),['one','two']);assert.ok(shelf.entries.every(e=>e.snapshot&&!e.bookmark));
+  assert.ok(calls.slice(1).every(call=>call.source===null&&call.revision===undefined));
+  late.resolve(answer(node('old')));await tick();assert.deepEqual(shelf.entries.map(e=>e.id),['one','two']);
+  shelf.restore([{...references[0],contentRevision:'c'.repeat(64)}]);await tick();assert.equal(shelf.entries[0].changed,true);
+});

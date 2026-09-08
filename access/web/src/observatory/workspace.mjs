@@ -74,7 +74,7 @@ export function createTools(root,scene,{data:{queries},selected,panels,onChange}
     const undo=button('Отменить',()=>{workspace.undo();switchTab('notes');}),redo=button('Повторить',()=>{workspace.redo();switchTab('notes');});undo.disabled=!workspace.canUndo();redo.disabled=!workspace.canRedo();
     const upload=el('input');upload.type='file';upload.accept='.json,application/json';upload.hidden=true;upload.setAttribute('aria-label','Импорт исследования');
     upload.addEventListener('change',async()=>{const file=upload.files?.[0];if(!file)return;if(file.size>1000000){report(new Error('Файл превышает 1 МБ.'));return;}try{const packet=await file.text();workspace.importPacket(packet);switchTab('notes');status.textContent='Исследование импортировано.';}catch(error){report(error);}});
-    body.append(actions(undo,redo,button('Экспорт',download),button('Импорт',()=>upload.click())),upload);
+    body.append(actions(undo,redo,button('Экспорт записей',download),button('Импорт записей',()=>upload.click()),button('Полная копия исследования',()=>root.dispatchEvent(new CustomEvent('sophia-workspace-copy')))),upload);
     const state=workspace.getState();
     for(const [type,items]of [['Заметка',state.notes],['Гипотеза',state.hypotheses],['Предложение · ожидает рассмотрения',state.proposals]])for(const item of items.slice().reverse()){
       const entry=el('article','','sc-entry');entry.append(el('small',type),el('p',item.body||item.statement));if(item.targetId)entry.append(el('small',item.targetId));

@@ -1,7 +1,7 @@
 export const INTERFACE_KEY='tos-observatory-interface-v1';
 export const TOOL_IDS=['search','lenses','workspace','navigation','builder','evidence','sources','reader'];
 export const DEFAULT_INTERFACE={v:1,pinned:['search','lenses','workspace','navigation'],dock:'auto',text:'comfortable',labels:'normal',sizes:{}};
-const panelIds=['inspector','workspace','evidence','navigation','builder','studio','reader','history'];
+const panelIds=['inspector','workspace','evidence','navigation','builder','studio','reader','history','copy'];
 export function validateInterface(value){
   if(value?.v!==1||!Array.isArray(value.pinned)||value.pinned.length>TOOL_IDS.length||new Set(value.pinned).size!==value.pinned.length||value.pinned.some(id=>!TOOL_IDS.includes(id))
     ||!['auto','left','right'].includes(value.dock)||!['comfortable','large'].includes(value.text)||!['normal','large'].includes(value.labels)||!value.sizes||typeof value.sizes!=='object')throw new Error('Настройки интерфейса не удалось прочитать.');

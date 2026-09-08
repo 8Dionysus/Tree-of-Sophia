@@ -64,7 +64,14 @@ CSP is required.
   alongside their exact identities, versions, source references and supplied
   qualifications. Wide windows show independent columns; narrow windows use
   keyboard-accessible tabs. Reading positions and return-to-place bookmarks
-  survive panel handoffs. Nothing from this reading shelf is persisted.
+  survive panel handoffs. `reading-resume.mjs` persists only exact references,
+  preferred language/form, active item, and up to eight bounded positions per
+  item, scoped to the mounted pathname. Paragraph keys and offsets carry no
+  source text and are valid only for the exact source/content revisions.
+  Reopening fetches both materials from the current backend; a changed revision
+  starts the affected reading at the beginning with a visible notice. Full
+  response copies and graph return bookmarks remain page-local. Damaged storage
+  and unseen competing-tab changes are not overwritten; save failures are shown.
   An explicit refresh obtains a new snapshot; mismatched scene actions stay
   disabled. Network failure retains a labelled earlier copy, while an observed
   403/404/410 removes its reading copy. Available language/form fields retain
@@ -310,7 +317,7 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   continuation. Empty or failed reads leave the current scene in place.
 - `studio.mjs` adds **Моё пространство → Места / Инструменты**. The last view is
   remembered locally and restored on a matching URL or home; an explicit different
-  deep link takes precedence. Named places support update, removal and immediate
+  deep link takes precedence. Named places support renaming, update, removal and immediate
   undo. Storage failures remain visible and do not replace a damaged place list.
 - `travel-model.mjs` and `travel-panel.mjs` add **Назад / Вперёд / История**,
   including Alt+Left/Right outside text fields and direct jumps to named steps.
@@ -326,6 +333,24 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   failures keep navigation usable in this page; malformed or competing-tab
   records are not overwritten. The history panel offers retry and explicit
   clearing, which retains the current view. Clearing browser data clears history.
+  **В места** pins any history step without navigating away, retaining its own
+  query and pose. Repeated pinning retains the existing named place. Names can
+  then be edited in **Моё пространство → Места**.
+- `workspace-copy.mjs` and `workspace-copy-panel.mjs` provide **Моё пространство
+  → Сохранить и перенести исследование** and **Исследование → Полная копия
+  исследования**. The versioned local JSON copy includes history and cursor,
+  named places and lens definitions, last view, interface preferences, reading references/positions,
+  and saved research records, hypotheses, proposals and route comparisons.
+  It excludes delivered source packets, reading text, page-local response
+  caches, exploration cursors and unsaved form input. Existing record-only
+  export/import and the WebMCP research packet keep their narrower contracts.
+  Import checks every owner section and the whole file limit, previews counts,
+  offers a download of the previous copy, and requires an explicit replace.
+  Changed storage since the preview aborts replacement. A failed storage write
+  rolls back completed writes; a rollback failure remains visible. Successful
+  import suspends old page writers and reopens the page through the normal
+  owner readers, fetching current backend material. LocalStorage writes across
+  sections are synchronous with rollback, not a crash-atomic database transaction.
 - `interface-model.mjs` restricts composition to the registered local adapters.
   Search, lenses, research, navigation, lens constructor, evidence and sources can
   be pinned and reordered; all remain available in the tool list. Preferences

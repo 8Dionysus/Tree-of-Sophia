@@ -51,8 +51,8 @@ export function readingDocument(snapshot,language='ru'){
     sourceRefs:[...raw.source_refs],posture:raw.epistemic||{}};
 }
 
-// At most two explicitly selected, inspected objects live in this page. No
-// source text, response packet, bookmark or cursor is persisted to storage.
+// Source copies and graph bookmarks stay in page memory. Durable reading uses
+// exact references only and always reinspects the current backend on restore.
 export function createReadingShelf({client,onChange=()=>{}}){
   const items=new Map(),requests=new RequestSlots();let sceneRevision=null;
   const update=(key,patch)=>{if(items.has(key)){items.set(key,{...items.get(key),...patch});onChange();}};
@@ -66,7 +66,9 @@ export function createReadingShelf({client,onChange=()=>{}}){
       const snapshot=readingSnapshot(response.value,entry.kind);
       if(snapshot.raw.id!==entry.id)throw new ContractError('Сервер вернул другой предмет для чтения.');
       const bookmark=entry.bookmark?.graph?.packet?.source_revision===snapshot.sourceRevision?entry.bookmark:null;
-      update(key,{snapshot,bookmark,sourceRevision:snapshot.sourceRevision,contentRevision:snapshot.raw.content_revision,loading:false,error:null});
+      const changed=entry.sourceRevision!==snapshot.sourceRevision||entry.contentRevision!==snapshot.raw.content_revision;
+      update(key,{snapshot,bookmark,sourceRevision:snapshot.sourceRevision,contentRevision:snapshot.raw.content_revision,loading:false,error:null,
+        changed:changed||entry.changed});
     }catch(error){
       const unavailable=error instanceof RequestError&&[403,404,410].includes(error.status);
       update(key,{loading:false,error:error.message||'Материал не удалось загрузить.',
@@ -88,6 +90,12 @@ export function createReadingShelf({client,onChange=()=>{}}){
       onChange();void load(key);return {key,existing:false};
     },
     refresh:key=>load(key,true),
+    restore(references){
+      requests.cancelAll();items.clear();
+      for(const entry of references){const key=readingKey(entry.kind,entry.id);items.set(key,{key,kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,
+        contentRevision:entry.contentRevision,title:null,bookmark:null,snapshot:null,loading:true,error:null,changed:false});}
+      onChange();for(const key of items.keys())void load(key,true);
+    },
     remove(key){requests.cancel(key);items.delete(key);onChange();},
     suspend(){requests.cancelAll();for(const [key,entry]of items)if(entry.loading)items.set(key,{...entry,loading:false,error:'Загрузка прервана. Обновите материал, чтобы продолжить.'});},
     dispose(){requests.cancelAll();items.clear();},

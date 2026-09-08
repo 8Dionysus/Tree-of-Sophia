@@ -10,6 +10,7 @@ import './reader.css';
 import {createReaderPanel} from './reader-panel.mjs';
 import {createStudio} from './studio.mjs';
 import {createTravelPanel} from './travel-panel.mjs';
+import {createWorkspaceCopyPanel} from './workspace-copy-panel.mjs';
 import {createSceneFeedback} from './scene-feedback.mjs';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
@@ -78,6 +79,7 @@ for(const [id,title,icon,event]of [['builder','Конструктор линз',
 reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction});
 studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});
 travel=createTravelPanel(root,scene,panels,{client,onUserAction:userAction});
+createWorkspaceCopyPanel(root,scene,panels,{workspace:tools.workspace,reader,travel,studio,onUserAction:userAction});
 createSceneFeedback(root,scene);
 const handlers={
   ...tools.handlers,
