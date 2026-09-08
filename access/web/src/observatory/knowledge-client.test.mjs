@@ -1,7 +1,7 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle} from './knowledge-client.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
   content_revision:'b'.repeat(64),source_refs:['ToS/fixture/work.json'],display:{title:{ru:'Произведение'},kind_label:{ru:'Произведение'},summary:{ru:'Источник'}}});
@@ -10,6 +10,31 @@ const fixture={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),author
   relations:[{id:'relation:1',from_id:'graph-a:work',to_id:'graph-b:work',content_revision:'c'.repeat(64),source_refs:['ToS/fixture/relation.json'],display:{label:{ru:'Связано с'}}}]};
 const clone=()=>structuredClone(fixture);
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
+
+test('explicit identifier fallback is a missing title, retaining identity and positions through a supplied title repair',()=>{
+  const packet=clone();
+  packet.nodes=packet.nodes.map(raw=>({...raw,kind_id:'future-kind',display:{...raw.display,
+    title:{default:'claim:tos claim translation identifier'},kind_label:{default:'Supplied kind'},provenance:{title:'identifier-fallback'}}}));
+  const before=structuredClone(packet),presented=projectLens(packet);
+  for(const raw of presented){assert.equal(raw.fullName,'Supplied kind · Нет читаемого названия');assert.equal(raw.name,'Нет читаемого названия');assert.equal(raw.original,'');}
+  assert.deepEqual(packet,before);assert.deepEqual(presented.map(n=>n.id),packet.nodes.map(n=>n.id));
+  presented[0].target=[17,28,-39];
+  packet.nodes[0].display.title={ru:'Название, переданное владельцем'};packet.nodes[0].display.provenance.title='source-bound-navigation';
+  const repaired=projectLens(packet,presented);
+  assert.equal(repaired[0].fullName,'Название, переданное владельцем');assert.deepEqual(repaired[0].target,[17,28,-39]);
+  assert.equal(repaired[0].slot,presented[0].slot);
+});
+
+test('title guard uses provenance alone and leaves supplied content and relation labels verbatim',()=>{
+  const raw=node('claim:tos.claim.opaque');raw.display.title={ru:'claim:tos claim opaque'};
+  for(const title of [undefined,'projected-label','source-bound-navigation']){
+    raw.display.provenance={title};assert.equal(displayTitle(raw),raw.display.title.ru);
+  }
+  assert.equal(displayTitle(fixture.relations[0]),'Связано с');
+  raw.display.provenance.title='identifier-fallback';
+  raw.human_form_selection={roles:{caption:{wording:'Do not replace the missing name with this statement.'}}};
+  assert.equal(displayTitle(raw),'Произведение · Нет читаемого названия');
+});
 
 test('access LensResult keeps source authority and exact opaque identities',()=>{
   assert.equal(validateLens(fixture),fixture);

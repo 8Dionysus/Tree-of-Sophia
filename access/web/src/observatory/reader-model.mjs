@@ -1,5 +1,5 @@
 import {t} from './ui-i18n.mjs';
-import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision} from './knowledge-client.mjs';
+import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitle,missingReadableTitle} from './knowledge-client.mjs';
 import {FormContractError,validateHumanForms,formLanguages,formIdentity} from './human-forms.mjs';
 
 const present=value=>typeof value==='string'&&Boolean(value.trim());
@@ -14,6 +14,10 @@ export function readingForm(value,preferred='ru'){
   const keys=[preferred,'default','original','ru','en',...Object.keys(value||{}).filter(languageKey)];
   const key=keys.find(key=>present(value?.[key]));
   return key?{text:value[key],key,lang:languageKey(key)?key:null,fallback:key!==preferred}:null;
+}
+function readingTitle(raw,preferred='ru'){
+  return missingReadableTitle(raw)?{text:displayTitle(raw),key:null,lang:null,fallback:false,unavailable:true}
+    :readingForm(raw.display.title||raw.display.label,preferred);
 }
 export function readingLanguages(snapshot){
   if(snapshot.raw.human_form_selection)return [...new Set(['ru','en','es',...formLanguages(snapshot.raw)])];
@@ -55,10 +59,10 @@ export function readingDocument(snapshot,language='ru'){
     blocks.push({id:'description',title:kind==='node'?t("Описание"):t("Пояснение"),state,
       form:state==='missing'?null:readingForm(kind==='node'?display.summary:display.explanation,language)});
   }
-  return {title:readingForm(kind==='node'?display.title:display.label,language),
+  return {title:readingTitle(raw,language),
     kind:kind==='node'?readingForm(display.kind_label,language):null,blocks,humanForms,
     participants:kind==='relation'?[[t("От"),raw.from_id],[t("К"),raw.to_id]].map(([role,id])=>({id,role,
-      form:readingForm(snapshot.endpoints.find(node=>node.id===id).display.title,language)})):[],
+      form:readingTitle(snapshot.endpoints.find(node=>node.id===id),language)})):[],
     sourceRefs:[...raw.source_refs],posture:raw.epistemic||{}};
 }
 
@@ -96,7 +100,7 @@ export function createReadingShelf({client,onChange=()=>{}}){
       if(items.size>=2)throw new Error(t("Уже закреплены два материала. Уберите один из них, чтобы добавить другой."));
       if(!['node','relation'].includes(kind)||!/^[a-f0-9]{64}$/.test(sourceRevision||''))
         throw new ContractError(t("Сначала дождитесь загрузки выбранного материала."));
-      items.set(key,{key,kind,id:raw.id,title:readingForm(raw.display.title||raw.display.label),
+      items.set(key,{key,kind,id:raw.id,title:readingTitle(raw,preferred),
         sourceRevision,contentRevision:raw.content_revision,preferred:preferred||raw.human_form_selection?.requested_language||'ru',bookmark,snapshot:null,loading:true,error:null});
       onChange();void load(key);return {key,existing:false};
     },

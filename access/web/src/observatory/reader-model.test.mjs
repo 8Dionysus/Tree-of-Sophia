@@ -12,6 +12,14 @@ const target=(raw=node(),rev=revision)=>({raw,kind:'node',sourceRevision:rev,boo
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
+test('an identifier fallback is a UI title gap, never a selected source form or authored statement',()=>{
+  const raw=node();raw.display.title={default:'claim:tos claim opaque'};raw.display.provenance={title:'identifier-fallback'};
+  const snapshot=readingSnapshot(answer(raw),'node'),doc=readingDocument(snapshot,'en');
+  assert.deepEqual(doc.title,{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  assert.equal(doc.humanForms,null);assert.equal(doc.blocks[0].form.text,raw.display.summary.ru);
+  assert.deepEqual(snapshot.raw.display,raw.display);assert.equal(snapshot.raw.id,raw.id);
+});
+
 test('reading preserves exact qualifications, provenance and missing descriptions',()=>{
   const original=answer(),before=structuredClone(original),snapshot=readingSnapshot(original,'node');
   const doc=readingDocument(snapshot);

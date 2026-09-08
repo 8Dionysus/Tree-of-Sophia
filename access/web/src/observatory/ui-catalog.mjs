@@ -1,5 +1,9 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Нет читаемого названия": {
+    "en": "No readable title",
+    "es": "No hay un título legible"
+  },
   "Повторить действие": {
     "en": "Redo",
     "es": "Rehacer"

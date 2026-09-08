@@ -15,6 +15,13 @@ export class RequestError extends Error {
 export function localized(value,fallback='') {
   return [value?.ru,value?.default,value?.original,value?.en].find(v=>typeof v==='string'&&v.trim())||fallback;
 }
+export const missingReadableTitle=raw=>raw?.display?.provenance?.title==='identifier-fallback';
+// Only the owner's explicit provenance marks an identifier fallback. Never
+// infer a title, statement or type from an opaque ID or a human form.
+export function displayTitle(raw,fallback=''){
+  if(!missingReadableTitle(raw))return localized(raw?.display?.title||raw?.display?.label,fallback);
+  return [localized(raw.display.kind_label,raw.kind_id),t('Нет читаемого названия')].filter(Boolean).join(' · ');
+}
 export function focusSpec(id,{depth=1}={}) {
   return {schema_version:'tos_lens_spec_v1',lens_id:'sophia-observatory-focus',language:'ru',detail:'compact',explain:true,
     seed:{focus_node_id:id},node_query:{enabled:false},
@@ -222,10 +229,10 @@ export function projectLens(packet,previous=[]) {
   return ordered.map((raw,index)=>{
     const old=existing.get(raw.id);while(occupied.has(nextSlot))nextSlot++;
     const slot=old?.slot??nextSlot++;occupied.add(slot);
-    const fullName=localized(raw.display.title,raw.id),name=fullName.length>46?fullName.slice(0,43)+'…':fullName;
+    const fullName=displayTitle(raw,raw.id),name=missingReadableTitle(raw)?t('Нет читаемого названия'):fullName.length>46?fullName.slice(0,43)+'…':fullName;
     const h=hash(raw.id),angle=slot*2.399963229728653;
     const p=slots[slot]?.slice()||[Math.cos(angle)*(260+(slot%4)*58),Math.sin(angle)*(160+(slot%3)*47),-480+(h%740)];
-    return {id:raw.id,raw,name,fullName,original:raw.display.title.original||raw.display.title.en||'',
+    return {id:raw.id,raw,name,fullName,original:missingReadableTitle(raw)?'':raw.display.title.original||raw.display.title.en||'',
       kind:localized(raw.display.kind_label,raw.kind_id),description:localized(raw.display.summary),
       main:index<8,above:index%3===1,group:raw.id===focus?1:raw.kind_id==='agent'?0:raw.kind_id==='expression'?2:1,
       slot,p:old?.p?.slice()||p,sourcePosition:old?.sourcePosition?.slice()||p.slice(),volumeZ:old?.volumeZ??p[2],

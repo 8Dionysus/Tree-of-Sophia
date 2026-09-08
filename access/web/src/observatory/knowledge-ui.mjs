@@ -1,6 +1,6 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,ContractError,localized,displayTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
@@ -72,7 +72,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }catch(error){root.dataset.dataState='error';notifyFailure(error,()=>chooseRelation(raw,null));}
   }
   function searchRow(raw,kind,revision){
-    const title=localized(kind==='node'?raw.display.title:raw.display.label,raw.id);
+    const title=displayTitle(raw,raw.id);
     const row=button('',()=>kind==='node'?chooseNode(raw.id,revision):chooseRelation(raw,revision),'sc-result');
     const label=text('span','sc-result-label',title);
     if(kind==='relation'){
@@ -119,6 +119,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     if(!summary?.ru&&summary?.default)uiChildren(out, "append", text('p','sc-description-origin',ui("Показан исходный язык описания.")));
     const details=document.createElement('details');details.className='sc-source-details';
     uiChildren(details, "append", text('summary','',ui("Источники и статус · {0}", [raw.source_refs.length])));
+    if(missingReadableTitle(raw))uiChildren(details,'append',text('p','sc-source-status',ui('Идентификатор')+': '+raw.id));
     const posture=raw.epistemic||{};
     for(const [label,value]of [[ui("Слой"),posture.authority_layer],[ui("Рассмотрение"),posture.review_posture],[ui("Канон"),posture.canon_status]]){
       uiChildren(details, "append", text('p','sc-source-status',label+': '+(!value||value==='not-recorded'?ui("не указан"):value)));
@@ -130,12 +131,12 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }
     details.addEventListener('toggle',()=>port.cardChanged());uiChildren(out, "append", details);
   }
-  function endpointName(id){return localized(port.node(id)?.display?.title,id);}
+  function endpointName(id){return displayTitle(port.node(id),id);}
   function renderCard(kind,raw,endpoints=[]){
     const selection=validateHumanForms(raw),identity=formIdentity(raw);
     const readingKey=JSON.stringify([port.packet?.source_revision,kind,raw.id,raw.content_revision,cardLanguage,identity]);cardReading.capture();relationsReading.capture();cardReading.enter(readingKey);relationsReading.enter(readingKey);
-    uiText(q('.sc-node-title'), localized(kind==='node'?raw.display.title:raw.display.label,raw.id));
-    uiText(q('.sc-node-original'), kind==='node'?(raw.display.title.original||raw.display.title.en||''):localized(raw.display.statement));
+    uiText(q('.sc-node-title'), displayTitle(raw,raw.id));
+    uiText(q('.sc-node-original'), kind==='node'?(missingReadableTitle(raw)?'':raw.display.title.original||raw.display.title.en||''):localized(raw.display.statement));
     uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id).toUpperCase():ui("ОТНОШЕНИЕ"));
     uiText(q('.sc-description'), localized(kind==='node'?raw.display.summary:raw.display.explanation,ui("Описание пока не зафиксировано.")));
     q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw));
@@ -158,7 +159,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }else{
       for(const [label,id]of [[ui("От"),raw.from_id],[ui("К"),raw.to_id]]){
         const node=endpoints.find(n=>n.id===id)||port.node(id);
-        const b=button(label+': '+localized(node?.display.title,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');uiChildren(list, "append", b);
+        const b=button(label+': '+displayTitle(node,id),()=>chooseNode(id,port.packet.source_revision),'sc-neighbor sc-relation-row');uiChildren(list, "append", b);
       }
     }
     sourceDetails(raw,kind);
@@ -167,7 +168,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   async function showCard(kind,raw){
     cancelInspector();const scene=port.packet,language=cardLanguage;if(!scene?.source_revision)return;
     root.dataset.inspectorState='loading';
-    uiText(q('.sc-node-title'),localized(kind==='node'?raw.display.title:raw.display.label,raw.id));
+    uiText(q('.sc-node-title'),displayTitle(raw,raw.id));
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
       renderCard(kind,raw);

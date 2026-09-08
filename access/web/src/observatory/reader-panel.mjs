@@ -148,7 +148,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;uiText(view.title, doc.title?.text||ui("Материал"));
     view.title.dir='auto';if(doc.title?.lang)view.title.lang=doc.title.lang;else view.title.removeAttribute('lang');
     uiText(view.kind, entry.kind==='relation'?ui("Связь"):doc.kind?.text||ui("Предмет"));
-    if(doc.title?.fallback||!doc.title?.lang)uiChildren(view.body, "append", el('p',ui("Название: {0}{1}", [formLabel(doc.title?.key||ui("не указана")), (doc.title?.lang?'':ui("; язык не указан"))]),'sc-reader-language-note'));
+    if(!doc.title?.unavailable&&(doc.title?.fallback||!doc.title?.lang))uiChildren(view.body, "append", el('p',ui("Название: {0}{1}", [formLabel(doc.title?.key||ui("не указана")), (doc.title?.lang?'':ui("; язык не указан"))]),'sc-reader-language-note'));
     for(const block of doc.blocks){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',block.title));
       if(block.form)appendForm(section,block.form,block.id);

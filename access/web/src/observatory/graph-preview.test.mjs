@@ -24,3 +24,13 @@ test('source-provided descriptions have a bounded preview without changing sourc
   const preview=nodePreview({nodes:[raw],relations:[]},raw);
   expect(preview.body.length).toBeLessThanOrEqual(140);expect(preview.body.endsWith('…')).toBe(true);expect(raw.display.summary.ru).toBe(text);
 });
+test('missing titles remain explicit in star and relationship previews without rewriting their records',()=>{
+  const raw=node('claim:tos.claim.opaque','Claim'),other=node('Источник','Произведение');
+  raw.display.provenance={title:'identifier-fallback'};
+  const relation={id:'r',from_id:raw.id,to_id:other.id,display:{label:{ru:'Связь'},inverse_label:{ru:'Обратная связь'}}};
+  const packet={nodes:[raw,other],relations:[relation]},before=structuredClone(packet);
+  expect(nodePreview(packet,raw).title).toBe('Claim · Нет читаемого названия');
+  expect(nodePreview(packet,other).body).toBe('Обратная связь: Claim · Нет читаемого названия');
+  expect(relationPreview(packet,relation).body).toBe('Claim · Нет читаемого названия → Источник');
+  expect(packet).toEqual(before);
+});

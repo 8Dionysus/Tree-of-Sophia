@@ -5,6 +5,13 @@ bounded knowledge neighborhoods and floating search, source, and research panels
 It is a read-only consumer of the access backend. Notes, hypotheses and proposals
 remain in the existing local research workspace; they do not write to ToS.
 
+Star labels, hover previews, search, inspector headings and pinned reading treat
+the explicit `display.provenance.title = identifier-fallback` as a missing
+readable title. They show the supplied kind and that missing state; the original
+record, identity, source references and content remain intact. No ID pattern,
+kind taxonomy or human-form caption generates a name. Source-bound readable
+titles remain an upstream responsibility and are displayed as delivered.
+
 ## Run and verify
 
 From this directory, run `npm ci`, `npm run typecheck`, `npm test`, and
