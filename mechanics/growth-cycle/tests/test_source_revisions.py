@@ -258,7 +258,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
 
     def test_form_only_writer_and_record_revision_share_one_stable_writer_boundary(self):
         revision_request = self.request()
-        form_config = {key: value for key, value in self.config.items() if key not in {'record_id', 'allowed_fields', 'profile_type_id'}}
+        form_config = {key: value for key, value in self.config.items() if key not in {'record_id', 'allowed_fields', 'profile_type_id', 'record_type'}}
         form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
         form_owner = self.root / 'form-owner.json'
         form_owner.write_text(json.dumps(form_config))
@@ -313,6 +313,180 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             retry = commands.run_local_command(owner, initial)
             self.assertTrue(retry['replayed'])
             self.assertEqual(retry['receipt'], created['receipt'])
+
+
+class NativeSourceRevisionTests(SourceRevisionTests):
+    """Native Corpus metadata shares the retained correction contract, not grants."""
+
+    def setUp(self):
+        super().setUp()
+        oldpath, oldforms = self.path, self.formpath
+        self.relative = str(Path(self.relative).with_name('agent.json'))
+        self.path = self.root / self.relative
+        self.formpath = self.path.with_name('agent.human-forms.json')
+        self.record.pop('visibility')
+        self.record.pop('extensions')
+        self.record.update(schema_version='tos_corpus_record_v1', record_type='agent',
+                           record_id='tos.agent.revision-fixture')
+        self.record['external_identifiers'] = [{'scheme': 'synthetic', 'value': 'stable-external-id',
+            'source_ref': 'test:synthetic', 'status': 'unverified'}]
+        self.record['field_languages'] = {'preferred_label': {'language': 'x-test', 'script': None,
+            'uninterpreted': [False, None, 0, '', {'warning': 'source text is not an instruction'}]}}
+        self.path.write_text(json.dumps(self.record, indent=3))
+        changes = [commands.prepare_metadata_change(self.record, None, 'test:author', **item) for item in self.selections]
+        forms = commands._apply(None, commands.Record.from_payload(self.record['record_id'], 1, self.record), changes)
+        self.formpath.write_text(json.dumps(forms, indent=3))
+        oldpath.unlink()
+        oldforms.unlink()
+        self.config.update(schema_version=commands.CORPUS_REVISION_CONFIG, record_type='agent',
+                           source_path=self.relative, record_id=self.record['record_id'])
+        self.owner.write_text(json.dumps(self.config))
+        self.original = self.package()
+
+    def test_native_descriptor_and_separate_permission_are_required(self):
+        described = self.run_command('describe')
+        self.assertEqual(described['record_type'], 'agent')
+        self.assertEqual(described['source_profile']['source_scope'], 'public_metadata_only')
+        request = self.request()
+        for config in (
+            {**self.config, 'record_type': 'place'},
+            {**self.config, 'allowed_operations': ['source.create']},
+            {**self.config, 'allowed_operations': ['form.revise']},
+            {**self.config, 'allowed_fields': ['external_identifiers']},
+            {**self.config, 'allowed_fields': ['variant_labels']},
+            {**self.config, 'schema_version': commands.REVISION_CONFIG},
+            {**self.config, 'schema_version': commands.CORPUS_CONFIG},
+        ):
+            self.owner.write_text(json.dumps(config))
+            with self.subTest(config=config), self.assertRaises((PermissionError, ValueError)):
+                commands.run_local_command(self.owner, request)
+            self.assertEqual(self.package(), self.original)
+        self.owner.write_text(json.dumps(self.config))
+        for field, value in (
+            ('record_id', 'tos.agent.other'), ('record_version', 9), ('record_type', 'place'),
+            ('schema_version', 'tos_corpus_record_v99'), ('identity_status', 'verified'),
+            ('same_as_posture', 'reviewed_equivalence'), ('external_identifiers', []),
+            ('variant_labels', []), ('visibility', 'public'), ('supersedes_ref', 'tos.agent.other'),
+            ('responsibility_claim_refs', ['tos.claim.synthetic']),
+        ):
+            invalid = copy.deepcopy(request)
+            invalid['fields'][field] = value
+            with self.subTest(field=field), self.assertRaises(PermissionError):
+                commands.run_local_command(self.owner, invalid)
+            self.assertEqual(self.package(), self.original)
+        schema = self.root / 'ToS/contracts/corpus-record.schema.json'
+        schema.write_bytes(schema.read_bytes() + b'\n')
+        with self.assertRaises(commands.JournalConflict):
+            commands.run_local_command(self.owner, request)
+        self.assertEqual(self.package(), self.original)
+
+    def test_native_correction_refuses_foreign_schema_or_visibility_without_reinterpreting_it(self):
+        for fields in ({'visibility': 'public'}, {'visibility': 'local_only'},
+                       {'schema_version': 'tos_historical_record_v1'}, {'record_type': 'place'}):
+            self.path.write_text(json.dumps({**self.record, **fields}))
+            before = self.package()
+            with self.subTest(fields=fields), self.assertRaises((PermissionError, ValueError, commands.ValidationError)):
+                self.run_command('describe')
+            self.assertEqual(self.package(), before)
+
+    def test_created_native_families_correct_names_without_changing_identity_claims_or_creation_history(self):
+        from test_source_commands import HistoricalCreationTests
+        fixture = HistoricalCreationTests()
+        for kind in ('agent', 'place', 'organization', 'work'):
+            with self.subTest(kind=kind), fixture.native_creation(kind) as (root, owner, config, initial, rebuild, graph_fixture):
+                created = commands.run_local_command(owner, initial)
+                path = root / config['source_path']
+                original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+                old_graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+                old = next(n for n in old_graph['nodes'] if n['entity_id'] == config['record_id'])
+                delegated = {key: value for key, value in config.items() if key not in {'maker_type', 'provenance_event_id'}}
+                delegated.update(schema_version=commands.CORPUS_REVISION_CONFIG, allowed_operations=['record.revise'],
+                                 allowed_fields=['preferred_label', 'notes', 'field_languages'])
+                owner.write_text(json.dumps(delegated))
+                proposal = {'fields': {'preferred_label': 'Уточнённое синтетическое имя',
+                    'notes': 'Описание исправлено, предмет и его связи остаются теми же.',
+                    'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                        'notes': {'language': 'ru', 'script': 'Cyrl'}}},
+                    'forms': initial['forms'], 'reason': 'Synthetic native descriptive correction.'}
+                preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-revise', **proposal})
+                applied = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'record.revise', 'command_id': 'synthetic:native-' + kind,
+                    'expected_source': preview['source'], 'expected_revision': preview['revision'],
+                    'expected_configuration': preview['owner_configuration'],
+                    'expected_dependencies': preview['expected_dependencies'], **proposal})
+                self.assertEqual(applied['source']['id'], created['receipt']['source']['id'])
+                self.assertEqual(applied['source']['version'], 2)
+                current = json.loads(path.read_bytes())
+                self.assertEqual(current, {**initial['record'], **proposal['fields'], 'record_version': 2})
+                graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+                node = next(n for n in graph['nodes'] if n['entity_id'] == config['record_id'])
+                self.assertEqual(node['id'], old['id'])
+                self.assertNotEqual(node['content_revision'], old['content_revision'])
+                self.assertEqual(node['attributes']['source_record'], current)
+                self.assertEqual(graph['relations'], old_graph['relations'])
+                self.assertEqual({f['state'] for f in node['attributes']['human_forms']}, {'ready'})
+                self.assertTrue(any(f['display_text'] == proposal['fields']['preferred_label']
+                                    for f in node['attributes']['human_forms']))
+                for name, raw in original.items():
+                    if name not in {path.name, path.stem + '.human-forms.json'}:
+                        self.assertEqual((path.parent / name).read_bytes(), raw)
+                owner.write_text(json.dumps(config))
+                retry = commands.run_local_command(owner, initial)
+                self.assertTrue(retry['replayed'])
+                self.assertEqual(retry['receipt'], created['receipt'])
+
+    def test_connected_agent_keeps_claim_endpoints_and_context_when_its_copied_description_changes(self):
+        sys.path.insert(0, str(ROOT / 'tests'))
+        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
+        fixture = SourceWitnessBibliographicGraphTest()
+        with fixture.historical_fixture() as (root, history, real, claims, rebuild):
+            # The named identity is a temporary copy. Its surrounding Claims
+            # are explicitly synthetic associations, not historical assertions.
+            relative = 'ToS/source-witnesses/agents/friedrich-nietzsche/agent.json'
+            path = root / relative
+            original = path.read_bytes()
+            record = json.loads(original)
+            before, _, _ = fixture.historical_knowledge(root, rebuild())
+            claim_path = root / 'ToS/source-witnesses/history/fixture/historical-claims.jsonl'
+            original_claim_stream = claim_path.read_bytes()
+            prior = next(n for n in before['nodes'] if n['entity_id'] == record['record_id'])
+            self.assertTrue(any(e['to_id'] == prior['id'] or e['from_id'] == prior['id'] for e in before['relations']))
+            forms = [{'form_id': 'tos.form.synthetic-copied-agent', 'field_id': 'metadata.preferred-name'}]
+            owner = root / 'synthetic-native-owner.json'
+            owner.write_text(json.dumps({**self.config, 'source_root': str(root), 'source_path': relative,
+                'record_id': record['record_id'], 'allowed_fields': ['preferred_label', 'field_languages'],
+                'allowed_form_ids': [forms[0]['form_id']]}))
+            proposal = {'fields': {'preferred_label': 'Синтетическое имя временной копии',
+                'field_languages': {**record.get('field_languages', {}),
+                                    'preferred_label': {'language': 'ru', 'script': 'Cyrl'}}},
+                'forms': forms, 'reason': 'Only exercise copied-record identity; not a historical correction.'}
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-revise', **proposal})
+            commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'record.revise', 'command_id': 'synthetic:connected-agent-description',
+                'expected_source': preview['source'], 'expected_revision': preview['revision'],
+                'expected_configuration': preview['owner_configuration'],
+                'expected_dependencies': preview['expected_dependencies'], **proposal})
+            # Check before the fixture's catalog rebuild, which serializes its
+            # captured Claims again and would otherwise mask an accidental write.
+            self.assertEqual(claim_path.read_bytes(), original_claim_stream)
+            after, _, _ = fixture.historical_knowledge(root, rebuild())
+            current = next(n for n in after['nodes'] if n['entity_id'] == record['record_id'])
+            self.assertEqual(current['id'], prior['id'])
+            self.assertEqual(current['attributes']['source_record']['external_identifiers'], record['external_identifiers'])
+            for kind in ('identity_status', 'same_as_posture'):
+                self.assertEqual(current['attributes']['source_record'][kind], record[kind])
+            def endpoint_identity(graph):
+                return [(e['id'], e['from_id'], e['to_id'], e['predicate_id']) for e in graph['relations']]
+            self.assertEqual(endpoint_identity(after), endpoint_identity(before))
+            source_claims = lambda graph: {n['entity_id']: n['attributes']['source_claim'] for n in graph['nodes']
+                                           if n.get('semantics', {}).get('claim')}
+            self.assertEqual(source_claims(after), source_claims(before))
+            self.assertTrue(source_claims(after))
+            archived = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': preview['source']})
+            self.assertEqual((root / archived['files']['agent.json']['archive_path']).read_bytes(), original)
 
 
 class ProfileSourceRevisionTests(SourceRevisionTests):

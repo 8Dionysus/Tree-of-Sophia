@@ -16,6 +16,7 @@ internal lane membership and command order. This file explains selection;
 | AGENTS cards or route topology | `route_docs` |
 | model-facing skills or owner ports | `agent_surface` |
 | source-home structure | `source_home` |
+| semantic registry/profile changes | `semantic_registry_transition` with the exact baseline required by `docs/RELEASING.md` |
 | source witnesses, provenance, rights, or corpus mechanics | `source_witness_foundation` |
 | philosophy atlas or graph workbench | `philosophy_topology` |
 | mechanics topology or package-local checks | `mechanics_topology`, then `mechanics_local` |

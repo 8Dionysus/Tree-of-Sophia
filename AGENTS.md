@@ -115,7 +115,9 @@ mechanical validator coverage.
 
 Branch, PR, CI, merge, post-landing synchronization, and publication procedure
 lives in `docs/RELEASING.md`. `.github/AGENTS.md` owns only GitHub-native
-support surfaces. If remote status or permissions cannot be observed, report
+support surfaces. `Repo Validation` includes the explicit registry-change
+baseline and initial-introduction boundaries documented in that release route.
+If remote status or permissions cannot be observed, report
 the exact blocker rather than inferring success.
 
 ## Completion

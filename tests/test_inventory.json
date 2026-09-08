@@ -33,6 +33,21 @@
   ],
   "tests": [
     {
+      "path": "tests/test_semantic_registry_transition.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "semantic_registry_transition",
+      "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
+      "protects": "explicit immutable baseline admission, missing baseline/object failure, separately authorized first introduction without invented comparison or erased history, version bumps, retained historical schema routes and identity meaning, compatible metadata/Claim extensions, Git replacement rejection and release/CI wiring; not semantic compatibility acceptance",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_semantic_registry_transition.py",
+      "failure_route": "Fix baseline binding, shared semantic transition validation or declared release wiring without weakening historical meaning and reader routes.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_processing.py",
       "home": "access",
       "home_scope": "product-local",
@@ -1104,7 +1119,7 @@
       "family": "source_growth_command_contract",
       "validation_lane": "mechanics_local",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "protects": "explicit historical record correction with atomic form successors, byte-exact prior packages, unknown-field retention, current scope and snapshot checks, competing form/record writers, committed history inspection, actual process loss and CLI retry; not historical truth or semantic admission",
+      "protects": "explicit historical/profile record correction with atomic form successors, byte-exact prior packages, unknown-field retention, current scope and snapshot checks, competing form/record writers, committed history inspection, actual process loss and CLI retry; separately delegated native Corpus correction preserves typed ID, archived bytes/forms, external IDs, Claim endpoints and old permissions; not historical truth or semantic admission",
       "coverage_authority": "mechanics_local lane discovery",
       "mode": "blocking",
       "runtime_cost": "fast",

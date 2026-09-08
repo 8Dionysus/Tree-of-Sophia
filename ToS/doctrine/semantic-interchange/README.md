@@ -161,13 +161,38 @@ local and exact; consumed registry/schema bytes supply the graph dependency
 digests. Neither supported metadata nor a schema-valid record is accepted
 knowledge or permission to publish source contents.
 
-When a previous registry is supplied to the semantic validator, a changed
-profile must advance `profile_version`, preserve all earlier schema routes,
-and not repurpose its kind or ID prefix. Registry changes also advance the
-registry version. Compatible source evolution adds a schema route; an
-incompatible identity meaning needs an explicit successor and reference
-migration. A catalog path move likewise needs coordinated reference migration;
-it never changes the identity merely because a path changed.
+The blocking `semantic_registry_transition` lane compares current working-tree
+registries with an explicitly selected pre-change commit. Set
+`TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` before
+`python scripts/validation_lanes.py --run semantic_registry_transition` or the
+release gate; the direct validator also accepts `--baseline-commit`.
+Only a nonzero full commit OID backed by local Git objects is valid; evolution
+also requires both registry/contract snapshots. There is no missing-baseline
+skip, moving ref, implicit predecessor,
+replacement object or automatic fetch. Repo Validation supplies the event's
+exact PR base SHA or push-before SHA; local and other callers choose their
+baseline explicitly. A first introduction with both registries and both
+contracts absent requires the separate `--allow-initial-introduction` option
+or `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`; Repo Validation
+explicitly permits this case. Complete baseline ancestry must also contain no
+earlier registry/contract or `scripts/source_record_profiles.py`; shallow
+history and local Git grafts are refused. A partial snapshot, deleted prior
+reader or missing Git history is not an introduction.
+The report names `initial-introduction` and no previous-registry comparison;
+the option never bypasses comparison when previous registries exist.
+This input is a review boundary, not permission to choose a later snapshot
+that conceals an incompatible change. The gate validates each
+snapshot against its own registry contracts, then reuses the semantic
+validator's transition rules: a changed profile advances `profile_version`,
+preserves all earlier schema routes, and does not repurpose its kind or ID
+prefix; registry changes also advance the registry version. Compatible source
+evolution adds a schema route; an incompatible identity meaning needs an
+explicit successor and reference migration. A catalog path move likewise
+needs coordinated reference migration; it never changes identity merely
+because a path changed. The gate checks declared mechanics, not semantic
+compatibility of every definition, domain/range or property, or completed
+reference migration. Ordinary current-snapshot readers remain Git-independent
+and do not select or validate a change baseline.
 
 The first migration moves the three historical readers' hard-coded schema and
 catalog choices into their owner type entries. Existing historical and

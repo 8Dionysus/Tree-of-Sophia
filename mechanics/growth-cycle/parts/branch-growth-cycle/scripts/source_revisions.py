@@ -91,6 +91,16 @@ def _history(files, record):
 
 def _validate_record(config, record):
     root = Path(config['source_root'])
+    if config['schema_version'] == source.CORPUS_REVISION_CONFIG:
+        profile = source._configured_corpus_profile(config)
+        schema_raw = source._read(root / profile['schema_ref'], source.MAX_COMMAND_BYTES)
+        schema = source._json_object(schema_raw)
+        source.Draft202012Validator.check_schema(schema)
+        source.Draft202012Validator(schema, format_checker=source.FormatChecker()).validate(record)
+        if (record['schema_version'] != profile['schema_version'] or record['record_type'] != profile['record_type']
+                or record['record_id'] != config['record_id']):
+            raise PermissionError('native correction must match the exact delegated Corpus descriptor')
+        return {profile['schema_ref']: source._digest(schema_raw)}
     if config['schema_version'] == source.PROFILE_REVISION_CONFIG:
         profiles, profile = source._configured_profile(config)
         profiles.validate(profile['record_type'], record)
@@ -291,8 +301,11 @@ def run_revision(owner, config, configuration, path, request):
         files = _package(path.parent)
         record = source._json_object(files[path.name])
         if (record.get('record_id') != config['record_id']
-                or record.get('visibility') not in {'public', 'public_metadata_only'}):
+                or config['schema_version'] != source.CORPUS_REVISION_CONFIG
+                and record.get('visibility') not in {'public', 'public_metadata_only'}):
             raise PermissionError('source revision subject or visibility is outside this adapter')
+        # Corpus has no visibility extension. Its exact schema and this explicit
+        # public-metadata adapter are required; it is not a default for other schemas.
         _validate_record(config, record)
         subject = source.Record.from_payload(record['record_id'], record['record_version'], record)
         history = _history(files, record)
@@ -309,6 +322,8 @@ def run_revision(owner, config, configuration, path, request):
             **({'profile_type_id': config['profile_type_id'],
                 'source_record_profile': source._configured_profile(config)[1]}
                if config['schema_version'] == source.PROFILE_REVISION_CONFIG else {}),
+            **({'record_type': config['record_type'], 'source_profile': source._configured_corpus_profile(config)}
+               if config['schema_version'] == source.CORPUS_REVISION_CONFIG else {}),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False,
             'materializations': source.materialize_metadata_forms(record, payload, access_allowed=True) if payload else []}
 

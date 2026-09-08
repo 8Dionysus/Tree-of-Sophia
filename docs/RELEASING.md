@@ -41,6 +41,20 @@ complementary `checks` and `tests` phases in parallel, while the default command
 continues to run the complete ordered sequence for local and official release
 use.
 
+The checks phase (and the default full gate) requires an explicitly selected
+pre-change `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` in the caller's
+environment. The commit must be present locally; evolution also requires its
+registry/contract objects. Export that exact input before `python scripts/release_check.py` or the
+official release helper; no previous commit or floating branch is selected
+automatically. Repo Validation provides the exact PR-base or push-before SHA
+from its event. The tests-only phase and current-snapshot readers need no Git
+baseline. See the [semantic registry transition
+contract](../ToS/doctrine/semantic-interchange/README.md) for the focused lane
+and the limits of this mechanical change check. A genuinely first introduction
+also needs the explicit `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`
+permission; absent/partial or deleted history never silently becomes a valid
+previous registry.
+
 The current bounded route battery covers validation authority, source-home and
 mechanics topology, Experience contracts, generated parity, graph exports,
 canon contracts, intake contracts, public entry, questbook surface, route-card

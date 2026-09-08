@@ -44,6 +44,7 @@ PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 SIGN_CONFIG = 'tos_local_sign_promote_owner_v1'
 PROFILE_CREATION_CONFIGS = {PROFILE_CONFIG, SIGN_CONFIG}
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
+CORPUS_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
@@ -62,6 +63,7 @@ OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
 OWNER_CLAIM_REFERENCE_CONFIG = 'tos_local_owner_claim_command_v2'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
+CORPUS_REVISION_FIELDS = {'preferred_label', 'notes', 'field_languages', 'source_refs'}
 MAX_COMMAND_BYTES = 1_048_576
 
 
@@ -103,8 +105,9 @@ def _configuration(path):
     profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
     corpus_creation = config.get('schema_version') == CORPUS_CONFIG
+    corpus_revision = config.get('schema_version') == CORPUS_REVISION_CONFIG
     profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
-    revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG}
+    revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG}
     claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
     captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
@@ -113,11 +116,12 @@ def _configuration(path):
           | ({'record_id', 'profile_type_id', 'maker_type'} if profile_creation else set())
           | ({'promotion_assessment_owner_config', 'promotion_candidate_id'} if sign_promotion else set())
           | ({'record_id', 'record_type', 'maker_type'} if corpus_creation else set())
+          | ({'record_type'} if corpus_revision else set())
           | ({'record_id', 'allowed_fields'} if revision else set())
           | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -134,10 +138,11 @@ def _configuration(path):
             raise ValueError('invalid source-command delegation scope')
     if revision:
         values = config['allowed_fields']
-        if (not isinstance(values, list) or any(not isinstance(value, str) or value not in REVISION_FIELDS for value in values)
+        allowed_fields = CORPUS_REVISION_FIELDS if corpus_revision else REVISION_FIELDS
+        if (not isinstance(values, list) or any(not isinstance(value, str) or value not in allowed_fields for value in values)
                 or len(set(values)) != len(values)
                 or not isinstance(config['record_id'], str)
-                or not profile_revision and not re.fullmatch(r'tos\.historical-(event|process|state)\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])):
+                or not (profile_revision or corpus_revision) and not re.fullmatch(r'tos\.historical-(event|process|state)\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])):
             raise ValueError('invalid source revision identity or field scope')
     if creation:
         if (not isinstance(config['record_id'], str)
@@ -171,11 +176,11 @@ def _configuration(path):
             'artifact-witness.json', 'composite-witness.json'}:
         _, _, contracts = _native_form_source(root / relative, root)
         return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), root / relative
-    if (creation or revision and not profile_revision) and (relative.name != config['record_id'].split('.')[1] + '.json'
+    if (creation or revision and not (profile_revision or corpus_revision)) and (relative.name != config['record_id'].split('.')[1] + '.json'
                      or len(relative.parts) < 5):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
-    if profile_creation or corpus_creation or profile_revision:
-        profile = _configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]
+    if profile_creation or corpus_creation or profile_revision or corpus_revision:
+        profile = _configured_corpus_profile(config) if corpus_creation or corpus_revision else _configured_profile(config)[1]
         if profile_creation:
             if (profile.get('creation_gate') == 'sign-promotion-v1') != sign_promotion:
                 raise PermissionError('Sign identity requires its separately delegated promotion operation')
@@ -188,11 +193,11 @@ def _configuration(path):
                 os.close(_owned_path(Path(config['promotion_assessment_owner_config'])))
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
-                or not profile_revision and config['maker_type'] not in {'human', 'software', 'model'}
+                or not revision and config['maker_type'] not in {'human', 'software', 'model'}
                 or relative.name != profile['source_basename'] or len(relative.parts) < 5
                 or 'catalog' in relative.parts):
             raise PermissionError('profile writing requires its delegated identity and typed source path')
-        if not corpus_creation:
+        if not (corpus_creation or corpus_revision):
             profiles, _ = _configured_profile(config)
             profiles.validate_path(profile['record_type'], config['source_path'])
         if (corpus_creation and config['record_type'] == 'work'
@@ -214,7 +219,7 @@ def _configured_corpus_profile(config):
     """
     kind = config.get('record_type')
     if not isinstance(kind, str) or kind not in {'agent', 'place', 'organization', 'work'}:
-        raise PermissionError('native creation requires a standalone Agent, Place, Organization or initial Work')
+        raise PermissionError('native metadata writing requires Agent, Place, Organization or Work')
     return {'record_type': kind, 'id_prefix': f'tos.{kind}.', 'source_basename': kind + '.json',
             'schema_ref': 'ToS/contracts/corpus-record.schema.json', 'schema_version': 'tos_corpus_record_v1',
             'source_scope': 'public_metadata_only'}
@@ -1189,7 +1194,7 @@ def run_local_command(owner_config: Path, request: dict):
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG}:
+    if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG}:
         from source_revisions import run_revision
         return run_revision(owner_config, config, configuration, source_path, request)
     claim_id = config['claim_id'] if config['schema_version'] == CLAIM_FORM_CONFIG else None

@@ -44,6 +44,12 @@ jobs:
       - name: Run release audit
         env:
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
+          # Exact event baseline only. Missing/zero/non-commit inputs fail closed;
+          # the owner gate never chooses HEAD^, a branch, or a remote fallback.
+          TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # Permit a first introduction only when all four baseline objects
+          # and any earlier declared-profile reader are genuinely absent.
+          TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION: "1"
         run: python scripts/release_check.py --phase checks
 
   repository_tests:

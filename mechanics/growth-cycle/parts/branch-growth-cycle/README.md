@@ -1457,7 +1457,17 @@ new supported metadata kind added through that registry. It uses the same
 revision transaction, not another per-kind writer. The exact declared basename,
 ID prefix, source schema version and public-metadata visibility are required.
 Existing form, creation and historical-only grants gain no new permissions.
-Neither revision configuration
+The separate `tos_local_corpus_revision_owner_v1` uses `record_type` instead of
+`profile_type_id` for the existing Agent, Place, Organization and Work source
+descriptor. Corpus has no visibility field: the exact Corpus schema and this
+explicit public-metadata route are mandatory, not a permissive missing-value
+default for other schemas. It reuses the same package/history transaction.
+Its `allowed_fields` is restricted to `preferred_label`, `notes`,
+`field_languages` and `source_refs`; it cannot edit alternate-name judgments,
+external identifiers, identity/equivalence status or any Claim/link field.
+Creation permission is not correction permission. No native source is migrated
+to a declared-profile schema to gain this operation.
+None of these revision configurations
 revises claims, identities, rights, visibility or assessment decisions.
 The profile route also cannot change the record kind, source schema version,
 identity status or supersession links; those require their own transitions.
@@ -1479,6 +1489,8 @@ The request has `schema_version: tos_local_source_command_v1`:
   `owner_configuration`, allowed fields/operations/forms and materializations.
   The profile route additionally returns `profile_type_id` and the exact
   `source_record_profile`; consumers do not guess schemas from a filename.
+  The native Corpus route returns `record_type` and `source_profile`, including
+  its exact schema, typed identity prefix and public-metadata-only scope.
 - `prepare-revise` adds `fields` (nonempty field-value patch), `forms`
   (`{form_id, field_id}` selections) and a bounded authored `reason`.
   It returns the next source/form refs, prepared materializations and
@@ -1555,7 +1567,7 @@ paths while correcting related record/forms atomically. Separate file renames
 would expose partial changes; a new pointer-only source store would require
 migrating every existing reader. The accepted cost is bounded package copying
 and Linux-specific exchange, not global corpus copying or an indexed writer.
-General multi-subject changes, native non-profile record correction and
+General multi-subject changes, correction of other native record families and
 automatic retirement of abandoned staging remain separate Growth work.
 
 ### Declared source Claim creation
