@@ -4,10 +4,19 @@ import argparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 import gzip
+import io
 import json
 import os
 from pathlib import Path
 from source_registry_common import ROOT, PACKET, digest, encoded, read, safe
+
+
+def compressed(value: dict) -> bytes:
+    """Keep the gzip wrapper independent of Python's gzip.compress fast path."""
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode='wb', filename='', mtime=0, compresslevel=9) as stream:
+        stream.write(encoded(value))
+    return output.getvalue()
 
 
 def assess_target(root: Path, target: dict, plantings: dict, *, verify_local: bool = False) -> dict:
@@ -163,7 +172,7 @@ def main() -> int:
             if r['kind'] == 'registry' and (not args.document or r['document_id'] == args.document) and (not args.remaining or r['status'] != 'selected_versions_planted'):
                 print(json.dumps(r, ensure_ascii=False))
         return 0
-    outputs = {'coverage.current.json.gz': gzip.compress(encoded(value), mtime=0), 'COVERAGE.md': markdown(value).encode()}
+    outputs = {'coverage.current.json.gz': compressed(value), 'COVERAGE.md': markdown(value).encode()}
     for name, body in outputs.items():
         path = ROOT / PACKET / name
         if args.check:

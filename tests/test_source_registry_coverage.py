@@ -1,5 +1,6 @@
 """Coverage must distinguish selected versions, possible matches and current custody."""
 import hashlib
+import gzip
 import json
 from pathlib import Path
 import sys
@@ -8,10 +9,15 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from build_source_registry_coverage import assess_target, classify_record
+from build_source_registry_coverage import assess_target, classify_record, compressed
 
 
 class RegistryCoverageTests(unittest.TestCase):
+    def test_portable_wrapper_preserves_canonical_json_and_omits_host_metadata(self):
+        body = compressed({'text': 'α\u0313', 'scope': 'recorded intake'})
+        self.assertEqual(body[:10], bytes.fromhex('1f8b08000000000002ff'))
+        self.assertEqual(json.loads(gzip.decompress(body)), {'text': 'α\u0313', 'scope': 'recorded intake'})
+
     def fixture(self, root):
         def write(ref, obj):
             path = root / ref
