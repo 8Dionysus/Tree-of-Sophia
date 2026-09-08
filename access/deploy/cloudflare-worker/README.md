@@ -108,9 +108,20 @@ serving rows unchanged. Knowledge reads that cross publication return HTTP 409.
 bootstrap uses a streaming SQLite transaction when there is exactly one known
 local D1 store, with serving revisions verified through Wrangler on both sides.
 Run it with local dev servers stopped. `TOS_D1_LOCAL_SQLITE=0` disables this
-development-only accelerator. It never targets remote databases. Other large
-imports stream bounded files into Wrangler without breaking SQL statements or
-publication triggers; no giant JavaScript string is required.
+development-only accelerator. It never targets remote databases. Local bootstrap
+and large Wrangler imports share Python/SQLite statement framing: literal CR/LF,
+whitespace, quotes and trigger-body semicolons are preserved, incomplete input is
+rejected, and the producer's 100,000-byte SQL limit excludes its final record
+separator. Other large imports prepare one bounded file at a time using a source
+byte offset; the next file is not written until the caller has consumed the
+previous file. Owned scratch is removed on completion, error or cancellation.
+Python is therefore also required by this large-file deploy path. No giant
+JavaScript string, new SQL serialization, key grammar or read-model schema is
+introduced; already-generated multiline SQL remains compatible.
+Input must remain the trusted, immutable producer file throughout the import.
+The chunker rejects observed file replacement or metadata changes between reads;
+framing alone is not SQL syntax/safety validation or a cryptographic integrity
+check. Local execution retains SQLite's separate single-statement validation.
 
 Remote full SQL
 remains available for bootstrap/schema changes, but its sequential table swaps

@@ -205,6 +205,115 @@ class IncrementalRuntimeTests(unittest.TestCase):
             with closing(sqlite3.connect(database)) as disk:
                 self.assertEqual(revision(disk), 'b'*64)
 
+    def test_local_bootstrap_preserves_multiline_producer_literals_and_triggers(self):
+        from build_runtime import SqlStatementWriter, sql_text
+        from import_local_sqlite import import_sql, revision
+        from sql_stream import write_sql_chunk
+        value = "София's λόγος 🌳\r\n\n  \rnext\n'); COMMIT; --\n\v\f\x85\u2028\u2029last"
+        event = 'second;\r\n -- literal, not a SQL comment\n event'
+        with tempfile.TemporaryDirectory() as root, closing(self.database()) as source:
+            database, sql = Path(root) / 'local.sqlite', Path(root) / 'input.sql'
+            with closing(sqlite3.connect(database)) as disk:
+                source.backup(disk)
+            writer = SqlStatementWriter(sql)
+            writer.append('CREATE TABLE events (value TEXT);')
+            writer.append('CREATE TRIGGER record_value AFTER UPDATE ON knowledge_nodes\n'
+                          'BEGIN\nINSERT INTO events VALUES (NEW.value);\n'
+                          f'INSERT INTO events VALUES ({sql_text(event)});\nEND;')
+            writer.append(f"UPDATE knowledge_nodes SET value={sql_text(value)} WHERE id='one';")
+            writer.append('UPDATE edge_meta SET json_chunk=' + sql_text(json.dumps({'sha256': 'b'*64}))
+                          + " WHERE key='data_revision';")
+            writer.finish()
+            with closing(self.database()) as chunked:
+                offset, copied = 0, []
+                while True:
+                    part = Path(root) / 'chunk.sql'
+                    chunk = write_sql_chunk(sql, part, offset, 40)
+                    content = part.read_bytes()
+                    copied.append(content)
+                    # Exercise each independent upload file, not only concat
+                    # parity: no trigger or quoted literal may be split.
+                    chunked.executescript(content.decode('utf-8'))
+                    part.unlink()
+                    if chunk['eof']:
+                        break
+                    self.assertGreater(chunk['next_offset'], offset)
+                    offset = chunk['next_offset']
+                self.assertEqual(b''.join(copied), sql.read_bytes())
+                self.assertEqual(chunked.execute('SELECT value FROM events').fetchall(), [(value,), (event,)])
+                self.assertEqual(revision(chunked), 'b'*64)
+            self.assertEqual(import_sql(database, sql, 'a'*64, 'b'*64), writer.count)
+            with closing(sqlite3.connect(database)) as disk:
+                self.assertEqual(disk.execute("SELECT value FROM knowledge_nodes WHERE id='one'").fetchone()[0], value)
+                self.assertEqual(disk.execute('SELECT value FROM events').fetchall(), [(value,), (event,)])
+                self.assertEqual(revision(disk), 'b'*64)
+
+    def test_local_bootstrap_rejects_invalid_input_and_rolls_back_rows_and_ddl(self):
+        from import_local_sqlite import import_sql, revision
+        prefix = ("UPDATE knowledge_nodes SET value='changed' WHERE id='one';\n"
+                  'CREATE TABLE uncommitted (value TEXT);\n')
+        for suffix, error in (
+            ("INSERT INTO uncommitted VALUES ('unterminated\n\n", ValueError),
+            ("INSERT INTO uncommitted VALUES ('no semicolon')", ValueError),
+            ("INSERT INTO absent VALUES ('bad');\n", sqlite3.OperationalError),
+            ("SELECT 1; SELECT 2;\n", sqlite3.ProgrammingError),
+            ("INSERT INTO uncommitted VALUES ('" + '🌳' * 25_000 + "');\n", ValueError),
+            ("INSERT INTO uncommitted VALUES ('" + 'x' * 100_001, ValueError),
+        ):
+            with self.subTest(suffix=suffix[:50]), tempfile.TemporaryDirectory() as root, closing(self.database()) as source:
+                database, sql = Path(root) / 'local.sqlite', Path(root) / 'input.sql'
+                with closing(sqlite3.connect(database)) as disk:
+                    source.backup(disk)
+                sql.write_text(prefix + suffix, encoding='utf-8', newline='')
+                with self.assertRaises(error):
+                    import_sql(database, sql, 'a'*64, 'b'*64)
+                with closing(sqlite3.connect(database)) as disk:
+                    self.assertEqual(disk.execute("SELECT value FROM knowledge_nodes WHERE id='one'").fetchone()[0], 'old')
+                    self.assertIsNone(disk.execute("SELECT 1 FROM sqlite_master WHERE name='uncommitted'").fetchone())
+                    self.assertEqual(revision(disk), 'a'*64)
+
+    def test_local_bootstrap_accepts_exact_producer_byte_limit_and_no_final_newline(self):
+        from build_runtime import MAX_D1_SQL_STATEMENT_BYTES, SqlStatementWriter, sql_text
+        from import_local_sqlite import import_sql
+        prefix, suffix = "UPDATE knowledge_nodes SET value='", "' WHERE id='one';"
+        value = 'x' * (MAX_D1_SQL_STATEMENT_BYTES - len(prefix + suffix))
+        with tempfile.TemporaryDirectory() as root, closing(self.database()) as source:
+            database, sql = Path(root) / 'local.sqlite', Path(root) / 'input.sql'
+            with closing(sqlite3.connect(database)) as disk:
+                source.backup(disk)
+            writer = SqlStatementWriter(sql)
+            writer.append(prefix + value + suffix)
+            writer.append('UPDATE edge_meta SET json_chunk=' + sql_text(json.dumps({'sha256': 'b'*64}))
+                          + " WHERE key='data_revision';")
+            writer.finish()
+            sql.write_bytes(sql.read_bytes().removesuffix(b'\n'))
+            self.assertEqual(import_sql(database, sql, 'a'*64, 'b'*64), 2)
+            with closing(sqlite3.connect(database)) as disk:
+                self.assertEqual(disk.execute("SELECT value FROM knowledge_nodes WHERE id='one'").fetchone()[0], value)
+
+    def test_local_bootstrap_does_not_create_a_missing_database(self):
+        from import_local_sqlite import import_sql
+        with tempfile.TemporaryDirectory() as root:
+            database, sql = Path(root) / 'missing.sqlite', Path(root) / 'input.sql'
+            sql.write_text('SELECT 1;\n')
+            with self.assertRaises(sqlite3.OperationalError):
+                import_sql(database, sql, None, 'b'*64)
+            self.assertFalse(database.exists())
+
+    def test_sql_framing_bounds_unterminated_input_before_buffering_the_file(self):
+        from sql_stream import MAX_SQL_STATEMENT_BYTES, sql_statements
+        class OversizedStream:
+            calls = 0
+            def readline(self, limit):
+                self.calls += 1
+                self.limit = limit
+                return b'x' * limit
+        stream = OversizedStream()
+        with self.assertRaisesRegex(ValueError, 'exceeds 100000 bytes'):
+            next(sql_statements(stream))
+        self.assertEqual(stream.calls, 1)
+        self.assertLessEqual(stream.limit, MAX_SQL_STATEMENT_BYTES + 3)
+
     def test_utf8_chunks_are_bounded_and_lossless(self):
         from build_runtime import chunk_text
         original = "София ' λόγος 🌳 " * 100

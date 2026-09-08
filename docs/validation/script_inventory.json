@@ -328,6 +328,20 @@
       "disposition": "keep"
     },
     {
+      "path": "access/deploy/cloudflare-worker/scripts/sql_stream.py",
+      "family": "projection_builder",
+      "organ_lane": "projection/generated",
+      "owner_surface": "access/AGENTS.md",
+      "source_truth": ["access/deploy/cloudflare-worker/scripts/build_runtime.py"],
+      "reads": ["bounded producer SQL records from an explicit source byte offset"],
+      "writes": ["one exclusively created caller-selected temporary SQL chunk"],
+      "side_effects": "byte-preserving SQLite statement framing shared by local bootstrap and Wrangler chunk preparation; no database access, import, deployment or source mutation",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "focused-tests",
+      "test_target": "access/tests/test_incremental_runtime.py",
+      "disposition": "keep"
+    },
+    {
       "path": "access/packaging/build_standalone_bundle.py",
       "family": "standalone_bundle_builder",
       "organ_lane": "release",

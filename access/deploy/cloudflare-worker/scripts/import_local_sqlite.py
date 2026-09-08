@@ -13,6 +13,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from sql_stream import MAX_SQL_STATEMENT_BYTES, sql_statements
+
 
 def revision(connection):
     if not connection.execute("SELECT 1 FROM sqlite_master WHERE name='edge_meta'").fetchone():
@@ -28,18 +30,19 @@ def import_sql(database: Path, source: Path, base: str | None, target: str) -> i
     # Existing explicit file only: never create an accidental database path.
     connection = sqlite3.connect(database.resolve().as_uri() + '?mode=rw', uri=True)
     connection.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 2_000_000)
-    connection.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, 100_000)
+    connection.setlimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH, MAX_SQL_STATEMENT_BYTES)
     try:
         connection.execute('BEGIN IMMEDIATE')
         if revision(connection) != base:
             raise RuntimeError('local bootstrap baseline changed')
-        with source.open(encoding='utf-8') as stream:
-            for statement in stream:
+        with source.open('rb') as stream:
+            for statement in sql_statements(stream):
                 if not statement.strip():
                     continue
-                if not sqlite3.complete_statement(statement):
-                    raise ValueError('producer SQL must contain one complete statement per line')
-                connection.execute(statement)
+                # Completeness ensures these trailing line endings are outside
+                # literals. Exclude only the record separator from SQLite's
+                # statement budget, never normalize source text within the SQL.
+                connection.execute(statement.rstrip(b'\r\n').decode('utf-8'))
                 count += 1
         if revision(connection) != target:
             raise RuntimeError('local bootstrap target revision mismatch')
