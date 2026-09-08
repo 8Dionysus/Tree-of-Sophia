@@ -14,6 +14,13 @@ jobs:
   kag_owner_family:
     name: KAG Owner Family
     runs-on: ubuntu-latest
+    env:
+      AOA_KAG_REVISION: b95446483f25e1f59c732f5c095d4f641a1c9431
+      AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+      # The pinned composite action executes provider scripts by absolute path;
+      # expose the matching checkout so segmented-family imports cannot resolve
+      # accidentally against the consumer repository's ``scripts`` package.
+      PYTHONPATH: ${{ runner.temp }}/aoa-kag
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -24,6 +31,13 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.12"
+
+      - name: Fetch pinned aoa-kag provider imports
+        run: |
+          git init --quiet "$AOA_KAG_ROOT"
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 https://github.com/8Dionysus/aoa-kag.git "$AOA_KAG_REVISION"
+          git -C "$AOA_KAG_ROOT" checkout --quiet --detach FETCH_HEAD
+          test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
 
       - name: Check current canonical KAG owner family
         uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@b95446483f25e1f59c732f5c095d4f641a1c9431
