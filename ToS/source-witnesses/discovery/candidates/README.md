@@ -31,6 +31,55 @@ is retained as a non-Work exclusion; A04 and A05 supply the first reviewed
 Work-like candidates. Later rows remain part of the generated source snapshot
 but are not silently treated as reviewed candidates.
 
+## Readiness preparation
+
+The chronological queue and receipt replay retain their existing ordering and
+byte format. An explicit, read-only readiness view adds a second selection
+route without rewriting reviewed candidates or previous iterations:
+
+```sh
+python scripts/build_open_work_candidate_queue.py --selection-mode readiness --readiness-plan ToS/source-witnesses/discovery/readiness/first-wave.json --dry-run
+```
+
+The optional input follows `ToS/contracts/open-work-readiness-plan.schema.json`.
+It is an owner-authored plan with a reviewer, dated review, exact target,
+source URLs, intended uses, payload destination paths, and five separate
+readiness dimensions: version, access, rights, file, and branch. Each positive
+dimension returns to current, SHA-256-bound owner evidence. Rights readiness
+must explicitly cover every intended use. Imported assertions remain marked
+`imported-assertion`; they cannot supply positive readiness. This projection
+checks those records and their byte references, not the truth or competence of
+their underlying judgments. Dated access evidence remains an observation;
+acquisition must recheck the endpoint and applicable owner gates.
+
+Every target has its own `target_id` and exact source record references with
+`corpus_id`, `document_id`, `record_id`, normalized source file path and SHA-256.
+A target may optionally bind an existing `candidate_id` and exact candidate
+digest. New corpus targets need no historical candidate row. Such targets
+remain plan-only: `next_target_id` identifies their selected preparation, while
+`next_candidate_id` stays null. Their execution returns through material
+discovery, provenance, rights and planting owners. They cannot be inserted
+into historical candidate receipt replay by presenting a plan-only ID. A
+future intake into that ledger requires its own reviewed candidate record.
+
+Unmentioned historical candidates receive five explicit unknown dimensions;
+review for chronology does not become review for acquisition. Readiness order
+prefers eligible, fully prepared targets, then unblocked targets with more
+reviewed dimensions, with chronological ordering as a tie-breaker for existing
+candidates and stable target IDs otherwise. Only a target with ready version,
+access, rights and branch, and explicitly present or absent local files is
+selected. Planned destinations remain distinct from existing, byte-verified
+payloads. An absent destination is checked against the filesystem; a present
+payload requires its own matching digest reference.
+
+`--dry-run` prints the exact derived view and never writes the current queue or
+acquires material. `--check` with readiness mode checks plan references and
+selection without writing. Omitting the plan is useful for inspecting unknowns.
+The output binds the input plan digest and original chronological queue digest;
+freeze it with the acquisition provenance when executing a reviewed target.
+Readiness view generation is not publication, acquisition permission or a new
+identity/rights assessment.
+
 ## Iteration contract
 
 1. Rebuild and check `queue.current.json` from the current source snapshot.
@@ -78,8 +127,10 @@ do not promote source, rights, textual, semantic, or canon authority.
 
 For Item acquisitions, the receipt route must name the Item (or its canonical
 manifest path) and its acquisition event. Local scholarly-composite payloads
-are tracked when present and are checked for fixity; Git-ignore is not a valid
-substitute. A downloaded receipt's positive rights result must carry evidence
+use the exact representation `payload/` ignore with untracked bytes and
+tracked metadata. Presence requires exact fixity; a historical receipt or
+materialization declaration does not prove availability in another checkout.
+A downloaded receipt's positive rights result must carry evidence
 refs that either resolve to repository-relative files or are well-formed
 `http(s)` URIs; a status string alone does not authorize acquisition. The
 channel-measurement utility accepts either a superseding or an instrumented

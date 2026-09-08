@@ -393,6 +393,13 @@
     ],
     "source_witness_foundation": [
       {
+        "label": "validate complete research registry normalization",
+        "command": [
+          "python",
+          "scripts/validate_source_registry_normalization.py"
+        ]
+      },
+      {
         "label": "check reviewed open-work candidate queue parity",
         "command": ["python", "scripts/build_open_work_candidate_queue.py", "--check"]
       },
@@ -676,6 +683,13 @@
       }
     ],
     "release_check": [
+      {
+        "label": "validate complete research registry normalization",
+        "command": [
+          "python",
+          "scripts/validate_source_registry_normalization.py"
+        ]
+      },
       {
         "label": "validate validation lane manifest",
         "command": ["python", "scripts/validation_lanes.py", "--check"]

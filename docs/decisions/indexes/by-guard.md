@@ -158,6 +158,7 @@
 
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
+- [TOS-D-0060 - Traceable research registry imports and local source planting](../TOS-D-0060-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0060-research-registry-import-and-local-source-planting.md`)
 
 ## generated index parity
 
@@ -228,6 +229,7 @@
 ## local payload boundary
 
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
+- [TOS-D-0060 - Traceable research registry imports and local source planting](../TOS-D-0060-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0060-research-registry-import-and-local-source-planting.md`)
 
 ## lossless projection
 
@@ -389,6 +391,7 @@
 
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
+- [TOS-D-0060 - Traceable research registry imports and local source planting](../TOS-D-0060-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0060-research-registry-import-and-local-source-planting.md`)
 
 ## root convexity
 
@@ -456,6 +459,10 @@
 
 - [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
 
+## source traceability
+
+- [TOS-D-0060 - Traceable research registry imports and local source planting](../TOS-D-0060-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0060-research-registry-import-and-local-source-planting.md`)
+
 ## source-first authority
 
 - [TOS-D-0001 - Source-First Decision Rationale Lane](../TOS-D-0001-source-first-decision-rationale-lane.md) (`docs/decisions/TOS-D-0001-source-first-decision-rationale-lane.md`)
@@ -496,6 +503,7 @@
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0060 - Traceable research registry imports and local source planting](../TOS-D-0060-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0060-research-registry-import-and-local-source-planting.md`)
 
 ## source-home symmetry
 

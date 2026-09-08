@@ -1,0 +1,2233 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-dhammapada.2026-09-08.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.pali-canon.dhammapada",
+      "tos.expression.pali-canon.dhammapada.pli-mahasangiti-suttacentral",
+      "tos.edition.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "tos.item.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json"
+    ],
+    "description": "SuttaCentral Mahāsaṅgīti-derived Pāli root text, Roman script, preserved in the pinned Bilara published snapshot. Root edition metadata reports Dhamma Society Fund, Bangkok, 2010; SuttaCentral adapted structure/markup and sometimes punctuation.",
+    "required_properties": [
+      "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+      "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+      "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "pli"
+    ],
+    "formats": [
+      "application/json"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-dhammapada-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+      "queried_at": "2026-09-08T20:47:47.661930+00:00",
+      "elapsed_seconds": 1.055186027999298,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "bilara-kn-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "384c4ba722e9123b800b7c821e2b8383a1e7a5b659eff4c650143461a691a884",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-kn-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+      "queried_at": "2026-09-08T20:47:48.722472+00:00",
+      "elapsed_seconds": 0.3675719790007861,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "bilara-dn-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "10089b284889b5575a9ad3623682b874e9b990473df2daa1602b7f47febd40b9",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-dn-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+      "queried_at": "2026-09-08T20:47:49.090706+00:00",
+      "elapsed_seconds": 0.4909528840016719,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "bilara-mn-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "23902c36bb3b945d4de702d9ca490b9f5f5dc55f4aa8db51dff9d0d4425b96e5",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-mn-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "queried_at": "2026-09-08T20:47:51.081694+00:00",
+      "elapsed_seconds": 0.3513186639993364,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "suttacentral-licensing.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "86dadc3d00708b9f12e3043b0435271bcfe5c9e4f0693baa62812e4ab363241c",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "queried_at": "2026-09-08T20:47:51.433511+00:00",
+      "elapsed_seconds": 0.28868810099993425,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "suttacentral-root-edition.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "df1f577c80f941b05996cdd4868c6680890406827474198e422f486bd644abee",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+      "queried_at": "2026-09-08T20:47:51.722801+00:00",
+      "elapsed_seconds": 0.2975875199990696,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "bilara-LICENSE.md",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "fb244eaafc121b9f5b14dbecb20ac407b3acf6eec8c5028fc1e3bd0afb1a6f3f",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-LICENSE.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp1-20_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp1-20_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:57.939586+00:00",
+      "elapsed_seconds": 0.24687143200026185,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-7",
+          "rank": 1,
+          "title_as_displayed": "dhp1-20_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp1-20_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "4815d2ccc074f62495382f75beed6a12bf0f0e7d"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:58.186456+00:00",
+            "byte_size": 4616,
+            "sha256": "a7147ce1275b5de1b877956586b55de71e0764112919941a4a6215c9d8aa2cea",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-8",
+      "sequence": 8,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp100-115_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp100-115_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:58.191321+00:00",
+      "elapsed_seconds": 0.23258868700031599,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-8",
+          "rank": 1,
+          "title_as_displayed": "dhp100-115_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp100-115_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "f94571ed379d94f9a0f8dd2780ccf5513dd22bd7"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:58.423907+00:00",
+            "byte_size": 3872,
+            "sha256": "3758c891e228c698b6d18cb29df5dd67fb5aef61e7601befee6fd4fd032fe5ed",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-9",
+      "sequence": 9,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp116-128_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp116-128_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:58.428723+00:00",
+      "elapsed_seconds": 0.24545254300028319,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-9",
+          "rank": 1,
+          "title_as_displayed": "dhp116-128_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp116-128_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "3f271822120154b69f35b01d9771610f6865b343"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:58.674173+00:00",
+            "byte_size": 3268,
+            "sha256": "3fe7f712292d9663310c8b4ac5912401c3c7a6d183d9acbd6702d0c1ba82746c",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-10",
+      "sequence": 10,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp129-145_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp129-145_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:58.678948+00:00",
+      "elapsed_seconds": 0.2542438860000402,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-10",
+          "rank": 1,
+          "title_as_displayed": "dhp129-145_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp129-145_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "1d1d8878afaecf8c3e852d48caf5bdf6aa63e044"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:58.933188+00:00",
+            "byte_size": 3899,
+            "sha256": "8990c7bbf6b78287e8d68f7dc3df5bbdb23f661679bc3800b59b64cfbf0c883d",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-11",
+      "sequence": 11,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp146-156_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp146-156_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:58.938241+00:00",
+      "elapsed_seconds": 0.2290059699989797,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-11",
+          "rank": 1,
+          "title_as_displayed": "dhp146-156_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp146-156_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "52d7e8fcafa3d79785419a6f53c2703e32700253"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:59.167244+00:00",
+            "byte_size": 2635,
+            "sha256": "a8f7c411772a9806bccf8935d47ca1479d23e2681c66c3322c14168b15066570",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-12",
+      "sequence": 12,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp157-166_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp157-166_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:59.172174+00:00",
+      "elapsed_seconds": 0.2238135939987842,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-12",
+          "rank": 1,
+          "title_as_displayed": "dhp157-166_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp157-166_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "1dd9a48220910246a9d658adadf841dfbe4aa782"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:59.395988+00:00",
+            "byte_size": 2535,
+            "sha256": "c8dd7bc1c2d4710cb820694950575c9f7bcffbe19833de9e0270e65fed21dbe9",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-13",
+      "sequence": 13,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp167-178_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp167-178_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:59.400747+00:00",
+      "elapsed_seconds": 0.2414171760010504,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-13",
+          "rank": 1,
+          "title_as_displayed": "dhp167-178_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp167-178_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "94cc647df03fe0467b5d1e70a149200e7ba67bbd"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:59.642157+00:00",
+            "byte_size": 2773,
+            "sha256": "4520313e18ee77239531a09e0f3d4278cbaafa37ac2cf4afde44583ba03d8883",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-14",
+      "sequence": 14,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp179-196_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp179-196_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:59.647073+00:00",
+      "elapsed_seconds": 0.2287843679987418,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-14",
+          "rank": 1,
+          "title_as_displayed": "dhp179-196_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp179-196_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "dfb1c0028f6cf1d804ee66857314804827706e18"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:59.875854+00:00",
+            "byte_size": 3942,
+            "sha256": "bd4b478b1b65d97165b24532ab64223ce2de3824dbbf1cddc65935757b645cc0",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-15",
+      "sequence": 15,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp197-208_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp197-208_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:59.880627+00:00",
+      "elapsed_seconds": 0.28136980199997197,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-15",
+          "rank": 1,
+          "title_as_displayed": "dhp197-208_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp197-208_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "ecd493d0125cee86a7fc1175f1e447e29c30b97d"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:00.161995+00:00",
+            "byte_size": 2691,
+            "sha256": "669db9779c8435e115fbd4b2bb349428dac7d990ce4c8e8e1cc9d5ca1e3ca35c",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-16",
+      "sequence": 16,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp209-220_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp209-220_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:00.167107+00:00",
+      "elapsed_seconds": 0.23942738999903668,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-16",
+          "rank": 1,
+          "title_as_displayed": "dhp209-220_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp209-220_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "4c2ae40fcae7e7e638838b414034d1291b38b1c3"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:00.406532+00:00",
+            "byte_size": 2625,
+            "sha256": "54ef8f0f569167631cf1d78f8332792f9bc408d8f655bd0fb7c945046f450bf6",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-17",
+      "sequence": 17,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp21-32_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp21-32_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:00.411382+00:00",
+      "elapsed_seconds": 0.3337193200004549,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-17",
+          "rank": 1,
+          "title_as_displayed": "dhp21-32_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp21-32_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "c979bb0cc0e88a09857656e875e19751aa82677d"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:00.745101+00:00",
+            "byte_size": 2684,
+            "sha256": "371ac8e7d2b948a76d7a78cf7397ebee7d22af4d04fb4885c27ac4efb8119f1a",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-18",
+      "sequence": 18,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp221-234_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp221-234_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:00.750192+00:00",
+      "elapsed_seconds": 0.2300705809993815,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-18",
+          "rank": 1,
+          "title_as_displayed": "dhp221-234_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp221-234_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "ddfa20da049095f9c55ca957e942257a9a0de181"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:00.980268+00:00",
+            "byte_size": 3080,
+            "sha256": "374807ca82b92ef9a1eb4f4641580c4fb6c8de10de9e8ae0744014ece1e4cc01",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-19",
+      "sequence": 19,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp235-255_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp235-255_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:00.985090+00:00",
+      "elapsed_seconds": 0.2569757719993504,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-19",
+          "rank": 1,
+          "title_as_displayed": "dhp235-255_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp235-255_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "56337f701df70c7b3b59457127e072804e82bb7d"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:01.242061+00:00",
+            "byte_size": 4614,
+            "sha256": "c01788ebf7926c90be65cfa15aed02667d98b44e92946fe09398d01fa7f3476c",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-20",
+      "sequence": 20,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp256-272_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp256-272_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:01.247161+00:00",
+      "elapsed_seconds": 0.23888408200036793,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-20",
+          "rank": 1,
+          "title_as_displayed": "dhp256-272_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp256-272_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "62d1d9715cea4f5a4a265886ac866184cfe7debc"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:01.486045+00:00",
+            "byte_size": 3655,
+            "sha256": "abdfd6d2be8a14fde434ed3172a3883eb15222d34c01bed02387fee216f016e2",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-21",
+      "sequence": 21,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp273-289_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp273-289_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:01.490664+00:00",
+      "elapsed_seconds": 0.2343852939993667,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-21",
+          "rank": 1,
+          "title_as_displayed": "dhp273-289_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp273-289_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "c502d649864f921a0319640fbb8571ab510acfce"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:01.725045+00:00",
+            "byte_size": 3872,
+            "sha256": "e70fc70e9e239aefb4bd90b9c2032c5a2914f3471e939fb75d3d630d30355a0b",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-22",
+      "sequence": 22,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp290-305_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp290-305_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:01.729745+00:00",
+      "elapsed_seconds": 0.23807760199997574,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-22",
+          "rank": 1,
+          "title_as_displayed": "dhp290-305_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp290-305_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "36099b9346c79b2cc38fec7894483bdab9387514"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:01.967820+00:00",
+            "byte_size": 3572,
+            "sha256": "34bc8e2d7565e2c25da3ad88847ef367c479d49b0bb2368337355330bec9fbdc",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-23",
+      "sequence": 23,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp306-319_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp306-319_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:01.973118+00:00",
+      "elapsed_seconds": 0.23881721299949277,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-23",
+          "rank": 1,
+          "title_as_displayed": "dhp306-319_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp306-319_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "006adca213f0cc1fdfac60ffaf184d7a760433d0"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:02.211946+00:00",
+            "byte_size": 3244,
+            "sha256": "2b0e1e63b5f020835fcbfdb094e4b2f071e32b725a676c832da980a7b1292eee",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-24",
+      "sequence": 24,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp320-333_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp320-333_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:02.216711+00:00",
+      "elapsed_seconds": 0.23327909699946758,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-24",
+          "rank": 1,
+          "title_as_displayed": "dhp320-333_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp320-333_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "0da184106fb5b77a6164329e85c7e03e471c3afb"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:02.449986+00:00",
+            "byte_size": 3211,
+            "sha256": "fef02ac6b3b86e504d4fc720485638f5d3a9b5e72c706116efad107715b7c9b7",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-25",
+      "sequence": 25,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp33-43_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp33-43_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:02.454968+00:00",
+      "elapsed_seconds": 0.22517749300095602,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-25",
+          "rank": 1,
+          "title_as_displayed": "dhp33-43_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp33-43_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "f527b5042387f820fcaebe5f4715483bd460fa42"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:02.680147+00:00",
+            "byte_size": 2470,
+            "sha256": "ebfb761edc23a0b6b0da9830e940d588f0391f944eb1ed4d58f3ee18ec5a48e4",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-26",
+      "sequence": 26,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp334-359_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp334-359_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:02.684593+00:00",
+      "elapsed_seconds": 0.2370778380009142,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-26",
+          "rank": 1,
+          "title_as_displayed": "dhp334-359_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp334-359_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "a61b06cd30215d01037ded7b8480574be58a5ab4"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:02.921662+00:00",
+            "byte_size": 5758,
+            "sha256": "86f1d979fd7fed3a1b42fdde8b96b64edf9a6397d07a6ded01f8692f851a940b",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-27",
+      "sequence": 27,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp360-382_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp360-382_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:02.928142+00:00",
+      "elapsed_seconds": 0.35671830600040266,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-27",
+          "rank": 1,
+          "title_as_displayed": "dhp360-382_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp360-382_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "4b746ac35bc03431f59af5658bf415ee8415d7a5"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:03.284862+00:00",
+            "byte_size": 5028,
+            "sha256": "3a65f5a59610e3d225a201228a00420c2c04c0e55586b734f08b339b1315bf69",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-28",
+      "sequence": 28,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp383-423_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp383-423_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:03.290179+00:00",
+      "elapsed_seconds": 0.23292822500116017,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-28",
+          "rank": 1,
+          "title_as_displayed": "dhp383-423_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp383-423_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "cf17072e5741e92d3e2c19c1ca1edcfa48435d42"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:03.523108+00:00",
+            "byte_size": 12869,
+            "sha256": "df2220b447e24e565523a6800470922229e0d495a5153fd24ca0f9dc4556c23e",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-29",
+      "sequence": 29,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp44-59_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp44-59_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:03.527543+00:00",
+      "elapsed_seconds": 0.2542204839992337,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-29",
+          "rank": 1,
+          "title_as_displayed": "dhp44-59_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp44-59_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "b42a072eb1a79a2dce40a4e1c19306aec9e4d3f1"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:03.781766+00:00",
+            "byte_size": 3563,
+            "sha256": "e9d21d24286230ab68b9c66e12a046ab4d20ab489ecafe86a510959b34c45de7",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-30",
+      "sequence": 30,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp60-75_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp60-75_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:03.786745+00:00",
+      "elapsed_seconds": 0.2667507240003033,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-30",
+          "rank": 1,
+          "title_as_displayed": "dhp60-75_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp60-75_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "5829eb4768dd764896baf4c8e80c03c29d6dda19"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:04.053496+00:00",
+            "byte_size": 3744,
+            "sha256": "d223aa95d15c076b57efe9d20e391b2a12098bd2051774c791cffa3a198606ef",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-31",
+      "sequence": 31,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp76-89_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp76-89_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:04.059402+00:00",
+      "elapsed_seconds": 0.25245596199965803,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-31",
+          "rank": 1,
+          "title_as_displayed": "dhp76-89_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp76-89_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "3dd59c77b32d09f61dcd2d060b22ee6b6131e7ae"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:04.311860+00:00",
+            "byte_size": 3268,
+            "sha256": "b242e5eefbc3e8d34e40e35ee2d5b759f1f66378aa4f592d7d14cf4dd081556b",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-dhammapada-file-32",
+      "sequence": 32,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp90-99_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp90-99_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:19:04.320813+00:00",
+      "elapsed_seconds": 0.23127701099838305,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-dhammapada-file-32",
+          "rank": 1,
+          "title_as_displayed": "dhp90-99_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/dhp/dhp90-99_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "facb4872e88d485c52050cd9d076103b7e24c91d"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:19:04.552094+00:00",
+            "byte_size": 2462,
+            "sha256": "4c14683ece1e58442e54e55528b01192658a63cd079449b715f1e9a388043592",
+            "event_ref": "tos.event.acquisition.registry-20260908.dhammapada"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-dhammapada-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.055186027999298,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3675719790007861,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.4909528840016719,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3513186639993364,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28868810099993425,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2975875199990696,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24687143200026185,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-8",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23258868700031599,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-9",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24545254300028319,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-10",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2542438860000402,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-11",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2290059699989797,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-12",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2238135939987842,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-13",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2414171760010504,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-14",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2287843679987418,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-15",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28136980199997197,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-16",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23942738999903668,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-17",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3337193200004549,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-18",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2300705809993815,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-19",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2569757719993504,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-20",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23888408200036793,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-21",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2343852939993667,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-22",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23807760199997574,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-23",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23881721299949277,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-24",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23327909699946758,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-25",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.22517749300095602,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-26",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2370778380009142,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-27",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.35671830600040266,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-28",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23292822500116017,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-29",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2542204839992337,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-30",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2667507240003033,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-31",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.25245596199965803,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-dhammapada-file-32",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23127701099838305,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-dhammapada-file-7",
+    "tos-discovery-result.registry-dhammapada-file-8",
+    "tos-discovery-result.registry-dhammapada-file-9",
+    "tos-discovery-result.registry-dhammapada-file-10",
+    "tos-discovery-result.registry-dhammapada-file-11",
+    "tos-discovery-result.registry-dhammapada-file-12",
+    "tos-discovery-result.registry-dhammapada-file-13",
+    "tos-discovery-result.registry-dhammapada-file-14",
+    "tos-discovery-result.registry-dhammapada-file-15",
+    "tos-discovery-result.registry-dhammapada-file-16",
+    "tos-discovery-result.registry-dhammapada-file-17",
+    "tos-discovery-result.registry-dhammapada-file-18",
+    "tos-discovery-result.registry-dhammapada-file-19",
+    "tos-discovery-result.registry-dhammapada-file-20",
+    "tos-discovery-result.registry-dhammapada-file-21",
+    "tos-discovery-result.registry-dhammapada-file-22",
+    "tos-discovery-result.registry-dhammapada-file-23",
+    "tos-discovery-result.registry-dhammapada-file-24",
+    "tos-discovery-result.registry-dhammapada-file-25",
+    "tos-discovery-result.registry-dhammapada-file-26",
+    "tos-discovery-result.registry-dhammapada-file-27",
+    "tos-discovery-result.registry-dhammapada-file-28",
+    "tos-discovery-result.registry-dhammapada-file-29",
+    "tos-discovery-result.registry-dhammapada-file-30",
+    "tos-discovery-result.registry-dhammapada-file-31",
+    "tos-discovery-result.registry-dhammapada-file-32"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-08T20:47:47.661930+00:00",
+  "ended_at": "2026-09-08T21:19:04.552094+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260908.dhammapada",
+    "tos.event.acquisition.registry-20260908.dhammapada"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

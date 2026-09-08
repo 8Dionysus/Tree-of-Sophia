@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4430,
+    "tracked_surface_count": 4720,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1082,
+    "excluded_tracked_path_count": 1654,
     "human_scope": {
-      "bytes": 5537715,
-      "count": 917,
+      "bytes": 5803484,
+      "count": 971,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -51,9 +51,9 @@
           "lines": 155
         },
         "docs": {
-          "bytes": 574988,
-          "count": 77,
-          "lines": 9214
+          "bytes": 584390,
+          "count": 78,
+          "lines": 9324
         },
         "evals": {
           "bytes": 10934,
@@ -76,9 +76,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 259130,
+          "bytes": 261773,
           "count": 139,
-          "lines": 5524
+          "lines": 5568
         },
         "memo": {
           "bytes": 4538,
@@ -91,7 +91,7 @@
           "lines": 202
         },
         "root": {
-          "bytes": 177986,
+          "bytes": 178031,
           "count": 14,
           "lines": 3063
         },
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4339945,
-          "count": 641,
-          "lines": 72647
+          "bytes": 4593624,
+          "count": 694,
+          "lines": 75124
         }
       },
-      "lines": 93865
+      "lines": 96496
     },
     "surface_kind_counts": {
-      "executable": 256,
-      "human": 917,
-      "structured": 3257
+      "executable": 275,
+      "human": 971,
+      "structured": 3474
     },
-    "tracked_path_count": 5512,
-    "tracked_surface_count": 4430,
+    "tracked_path_count": 6374,
+    "tracked_surface_count": 4720,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -134,7 +134,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 177986,
+      "tracked_surface_bytes": 178031,
       "tracked_surface_count": 14
     },
     {
@@ -163,12 +163,12 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "executable": 4,
-        "human": 641,
-        "structured": 3181
+        "executable": 11,
+        "human": 694,
+        "structured": 3397
       },
-      "tracked_surface_bytes": 231929916,
-      "tracked_surface_count": 3826
+      "tracked_surface_bytes": 263333830,
+      "tracked_surface_count": 4102
     },
     {
       "family_id": "access",
@@ -183,11 +183,11 @@
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 77,
+        "human": 78,
         "structured": 6
       },
-      "tracked_surface_bytes": 885942,
-      "tracked_surface_count": 83
+      "tracked_surface_bytes": 908231,
+      "tracked_surface_count": 84
     },
     {
       "family_id": "evals",
@@ -220,29 +220,29 @@
       "surface_kind_counts": {
         "executable": 43,
         "human": 139,
-        "structured": 33
+        "structured": 34
       },
-      "tracked_surface_bytes": 1712645,
-      "tracked_surface_count": 215
+      "tracked_surface_bytes": 1750700,
+      "tracked_surface_count": 216
     },
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 114,
+        "executable": 124,
         "human": 2
       },
-      "tracked_surface_bytes": 3910116,
-      "tracked_surface_count": 116
+      "tracked_surface_bytes": 4068132,
+      "tracked_surface_count": 126
     },
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 65,
+        "executable": 67,
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1922872,
-      "tracked_surface_count": 68
+      "tracked_surface_bytes": 2002899,
+      "tracked_surface_count": 70
     },
     {
       "family_id": "manifests",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "58295845bc9e19211f3372d752a283f0db7c11adc37d2e77fb5ae0a7a837a1c2",
+  "tracked_surface_digest": "921aa6a6a5e497dc7aa1d3957a9074e016db2ad5aa4a2019b1ec55b2f2188ec4",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "729fb02963910ae45ac3863062f08f644b9f242fa54f6d04599fd46476d71e52",
+      "sha256": "b3c7c890bad027c1965d5ff8c30a7a6b88705820eda98d043ad9c86b4d7dfa7d",
       "surface_kind": "structured"
     },
     {
@@ -367,11 +367,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6965,
+      "bytes": 7010,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "AGENTS.md",
-      "sha256": "c94ecb020bd78e7d398667d9e13590cda7bf8c5c5cf02d08440b5bf9647c0678",
+      "sha256": "43dc2c170d8ba86cc28b2a13c7c76b87899f1451f1abc5235e6b1059c5cf6402",
       "surface_kind": "human"
     },
     {
@@ -1919,11 +1919,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1733,
+      "bytes": 6068,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/history/3d37a53816e779c7bc65a15bf51b1520bb7c2ef389b1d4ea54473f487906df28.json",
+      "sha256": "3d37a53816e779c7bc65a15bf51b1520bb7c2ef389b1d4ea54473f487906df28",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2218,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/history/README.md",
-      "sha256": "b54bc90121adc63c0f99f33d95aa14848c217e0c9255d5a65eede2697b1ff637",
+      "sha256": "02fffa623bd6b75d21972d94e963416d1f7d624e36dd5d253f2fa2dbee816541",
       "surface_kind": "human"
     },
     {
@@ -2255,11 +2263,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4232,
+      "bytes": 4840,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/open-work-candidate-queue.schema.json",
-      "sha256": "44ade461f55aa08b9522a585a04fb78ff8f6e3370d06da2fa798589c86a769fb",
+      "sha256": "d90b30f68ea47fc16ce9ef3c5a670226a8d523a099fa3314707da6512d0a84bd",
       "surface_kind": "structured"
     },
     {
@@ -2284,6 +2292,14 @@
       "family_id": "tos",
       "path": "ToS/contracts/open-work-channel-timing-receipt.schema.json",
       "sha256": "fead49d2ee74380490228cf350c741ae1752ce318c7e4f5ce6d0f2fe4f45ddee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7897,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/open-work-readiness-plan.schema.json",
+      "sha256": "6e379a9fac3c81c29cdb5ba6b18257c26940943fa5b3126da282703335709409",
       "surface_kind": "structured"
     },
     {
@@ -2335,11 +2351,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 6068,
+      "bytes": 6106,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/philosophy-source-planting.schema.json",
-      "sha256": "3d37a53816e779c7bc65a15bf51b1520bb7c2ef389b1d4ea54473f487906df28",
+      "sha256": "749f55fb4b54474e06259b63bf5f99f4074dcb17ba2c3110c49e54f2e09721fd",
       "surface_kind": "structured"
     },
     {
@@ -2439,11 +2455,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 10207,
+      "bytes": 10212,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/scholarly-composite-file-representation.schema.json",
-      "sha256": "72db03f6c675b03f22d9d3b83c3e524f1b0891ac5f98473a0036f1b9c4ef6163",
+      "sha256": "8bd1149a13cd8f330ed428a55bf5a4f8048d65423c1da8c39dd3b7230bdcc2da",
       "surface_kind": "structured"
     },
     {
@@ -2647,6 +2663,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4156,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-registry-normalization.schema.json",
+      "sha256": "22778baf9bec309709ecd59c9c50e68b44a0edf52b6cddccad4d7b42e7021eaf",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 604,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2655,11 +2679,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 7441,
+      "bytes": 10533,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-resource-inventory.schema.json",
-      "sha256": "609461ce122ee527b349bb60632147e88ffc7fa9c428788a992d024195509e35",
+      "sha256": "586f34fb0b97a5d6382dca3f813e0f181000b864e245c8f6a60d31caf6a9cfa3",
       "surface_kind": "structured"
     },
     {
@@ -2999,11 +3023,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 10440001,
+      "bytes": 11327463,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "6aee53a97bea4e4ab50d98f49e76828febd4acd9ec36f2fbcf94870922ff4725",
+      "sha256": "8b3a784ea19ca1580982bc11bce2c49e7722f8f1623229b13bf2bd1d577f36e3",
       "surface_kind": "structured"
     },
     {
@@ -3079,11 +3103,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 61193602,
+      "bytes": 62259185,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "0af861b097f527b6bcde0e02ad5a9fa4d49392527608cd1c34d9f32fa51da3c3",
+      "sha256": "745b911a491727f7ad5c3d2b134b788eeb94498bc9f5f8d261d0ede6d46e22ad",
       "surface_kind": "structured"
     },
     {
@@ -3135,11 +3159,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 40082,
+      "bytes": 40700,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "30638d7038ea85c04f461639de278bff77e61f10443dd0ada36120786868b7c0",
+      "sha256": "c5cd78ea6b7c7c1dad5eb56e3e903534effef8d43425b37c9d26007c5b70aa19",
       "surface_kind": "human"
     },
     {
@@ -3327,11 +3351,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 4103,
+      "bytes": 5528,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/README.md",
-      "sha256": "49887c24d46ccaf23b286a8df33a8a4f5e239dd5e642acb922187554261ccf2d",
+      "sha256": "080409bf7b65b5d298f665db555cdc09aaed61d88e7b05f6085a987196a136c7",
       "surface_kind": "human"
     },
     {
@@ -3735,19 +3759,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1540,
+      "bytes": 1734,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/README.md",
-      "sha256": "2e1f0fe3a79e0037819292ccbfd9688fd3a797d72f63d1c44357ec83356ccbe9",
+      "sha256": "971e85285ba1027a3d404b887345104b99aff68aec5ca2bbf544003f0143eeee",
       "surface_kind": "human"
     },
     {
-      "bytes": 845,
+      "bytes": 1398,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/branch.manifest.json",
-      "sha256": "04d876ee6caf3c74de3b3aa2a5ddf7eb073b90d0569c069fd794be616b3d46e7",
+      "sha256": "142d954a8af7b2c40b3c6c9c7888bf7bde5dcead74373bc630c728a7b5f56531",
       "surface_kind": "structured"
     },
     {
@@ -3767,11 +3791,67 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 311,
+      "bytes": 1202,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/README.md",
+      "sha256": "53560cf05e9ef312266096d9f1149d73b83942853ac27931c501934b7048e4e9",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 850,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/branch.manifest.json",
-      "sha256": "22cedf605dcd2fc863ada758cc96b70fc306cf992847c9c8fa7feef075e197b4",
+      "sha256": "d7758e64e7dd50d13a7a4e723f74326d136b57fc0e39d8abc2b31611330d865d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2261,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-ecclesiastes/README.md",
+      "sha256": "a63ab8e529496d6a6bb09ac2d7c3792f9251e0f1ae58a00460f0c5f1a2069ea6",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2816,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-ecclesiastes/source-planting.json",
+      "sha256": "763a2e12c38e9263908688963cef78796ae1c688bbf19e748736665aa3227884",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2168,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-job/README.md",
+      "sha256": "09c6ab6b58a1f829346697728d72340f4022d4219917cc17180e408fe0da3ad0",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2771,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-job/source-planting.json",
+      "sha256": "af3575e80c8dbbee792003e504e80f28151f0c1df7beb2a45680809ca80ce0e6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2215,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-proverbs/README.md",
+      "sha256": "9e60e015e687a5f74a47d2f39f7230124189b79d610920facdd811cae8c5e563",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2796,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-proverbs/source-planting.json",
+      "sha256": "cde1e870cd114d89b89609615c6ac9b197658076de4cf4794bb28c422d57fa35",
       "surface_kind": "structured"
     },
     {
@@ -3927,19 +4007,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1543,
+      "bytes": 1737,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/README.md",
-      "sha256": "4d27e71ffd78f83a0b85df10c15461d6da86cb4883624f860aeee49a6cd279a6",
+      "sha256": "0c12d9786ecde0c767be52f6034180cec2f3e36de4084720be6402d18dd3ff54",
       "surface_kind": "human"
     },
     {
-      "bytes": 794,
+      "bytes": 1175,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/branch.manifest.json",
-      "sha256": "510a144e6d661d5f0cee9c4ceb1b3fb01e5f5d24efdf8a900693ce7ea7f1124c",
+      "sha256": "f1b246b10379f01714bada704f9539178924cbfce8dc46808554957e58d0ac28",
       "surface_kind": "structured"
     },
     {
@@ -3959,11 +4039,51 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 289,
+      "bytes": 937,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/README.md",
+      "sha256": "c9454fcf0c44786896c606a499ae53236ce3cc6e3f133bb4250e451b1e426e44",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 656,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/branch.manifest.json",
-      "sha256": "1819ecaf18e6e85d62e2e215a237345b3577ab22ab0cbb36db4a53174421dae4",
+      "sha256": "56ef8220e39e0daf8ce8f39432a001d33d6f51ab013dfeaf136bef976a19ddd4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2610,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-samannaphala-sutta/README.md",
+      "sha256": "55fb791ed120115f61df817a515d43f395bd95a2c5b5bd57cb59f8c003bbd446",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2832,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-samannaphala-sutta/source-planting.json",
+      "sha256": "f3e3b1e4670f87a182cc918aa680275655a206cb87c0789045bfa80881e74f77",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2548,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-upali-sutta/README.md",
+      "sha256": "fb3e2bfdbddc90b20c179895616bbe94005e3f158d29526c437e3bbab47f26cb",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2797,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-upali-sutta/source-planting.json",
+      "sha256": "6f0b06967048e5940d90d93178a513c598d74680a278d563652331968dab122b",
       "surface_kind": "structured"
     },
     {
@@ -4215,19 +4335,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1422,
+      "bytes": 1616,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/README.md",
-      "sha256": "472db088367e7cdd2b1deec62b0a8aefbcd557816196bbfb9a1494f2d907c5be",
+      "sha256": "ac7278fb041b79eeba25b1b1b8437c8056433c54519b2d45a57cdc333ef67927",
       "surface_kind": "human"
     },
     {
-      "bytes": 1043,
+      "bytes": 1376,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/branch.manifest.json",
-      "sha256": "4b8c7ad447d54cf6e2527b1a9e66bdb4891ca5b2ee98e796493b37fed687238a",
+      "sha256": "d1e792b243b35551348a2b6e6d95a0f3ee2ec57d11fdc5226a49544e052eb7e3",
       "surface_kind": "structured"
     },
     {
@@ -4247,11 +4367,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 545,
+      "bytes": 1268,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/README.md",
+      "sha256": "806f5c666ab9bdcb65f6a472b9cc668ec13950f9f1dcd382af80e7c49e88200f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 878,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/branch.manifest.json",
-      "sha256": "63b294522c2c52ffe58c9a5049ad3f58fd22654a9044f7a8fad9135161359db2",
+      "sha256": "48d5541d77df92bf7f3eafe3cedb9f8480c6afc4d2f7df5f5673a5592e86e6f1",
       "surface_kind": "structured"
     },
     {
@@ -4260,6 +4388,38 @@
       "family_id": "tos",
       "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/papyrus-prisse-metadata-witness/source-planting.json",
       "sha256": "268be14c9355e0131b84d87066869a81bddc007debf28daad3ed31279150b441",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3209,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-be-a-scribe/README.md",
+      "sha256": "85e622177bd12c24bfd88b37d079df3da09b0aff82d226129ed4660f02565a58",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3450,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-be-a-scribe/source-planting.json",
+      "sha256": "1e3e5f86bf4cba319bc6af7b4b22c594c54b49147ad6c497c68db92c1c110f66",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-immortality-of-writers/README.md",
+      "sha256": "845ed58e89f0691b9686f96e8d940fa6786234d55162b9c76585b5633c4321de",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3505,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-immortality-of-writers/source-planting.json",
+      "sha256": "082abdd4d350f8fad8f2a6745f2e1579949a2ad666bff3fcc0b48fd34dc796cc",
       "surface_kind": "structured"
     },
     {
@@ -5103,19 +5263,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1471,
+      "bytes": 1665,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/README.md",
-      "sha256": "e460022df4d6752f71af61f55a0ffb9c3cbfd3ea7fe6e66f098fda9493a06fa2",
+      "sha256": "554379767fdeed3c09ef9306385da4001024a88370961af177c47601990f2beb",
       "surface_kind": "human"
     },
     {
-      "bytes": 778,
+      "bytes": 1630,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/branch.manifest.json",
-      "sha256": "39b0e0d7ec968292aa9c0d29ec14fe4146dc93a5bfeb6db415b17e664538eb4a",
+      "sha256": "5a070e7e2e25eea320a4c01e12aecc07216212516393f478cb7a560de482aa25",
       "surface_kind": "structured"
     },
     {
@@ -5135,11 +5295,99 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 295,
+      "bytes": 1206,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/README.md",
+      "sha256": "0cdbab7eddec3798645fe65b3b298b47d4b7c1f822a2fac2ef2bbfdaa19ad737",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1133,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/branch.manifest.json",
-      "sha256": "91b4edcf5894e3478f7f0821f75c4e3dfc461488329fab98160905c56a5034cb",
+      "sha256": "bb028ea80057ef556da6ae5e96e87e9419cf171cbfff2fb3536ab52b6e7e4bfc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8574,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-dhammapada/README.md",
+      "sha256": "e6aa5e0d8282b193ebe502b8b6e16b3ae6bc272860204de2b5e783bfba597c30",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2790,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-dhammapada/source-planting.json",
+      "sha256": "1afbc947d859c7dc32d0fc5016ea899077cd74b2d79a8bf9de703a5319fc2c07",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-itivuttaka/README.md",
+      "sha256": "75759eb15dacf7553d7ef83acb06dce1dfbe226e48b79db40471d23d7a6b047a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-itivuttaka/source-planting.json",
+      "sha256": "fcc97cc9f45de1a71f6d83321ed94dabad5e7c85b2ef763bed63bf18a1cb05d9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4418,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-khuddakapatha/README.md",
+      "sha256": "9d04f0ce82f268ae0f034740345270ed2fe555112ff712c544b7f5968a834159",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2804,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-khuddakapatha/source-planting.json",
+      "sha256": "aaca73ffecbce2280e00d1b3a2ad9f0c967fbe7540317b4c0d8361780988b097",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 19612,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-sutta-nipata/README.md",
+      "sha256": "1879c18dcfb9ea06947a4e6835fd04a76cdc50beafca6946c89e94767cde05c7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2800,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-sutta-nipata/source-planting.json",
+      "sha256": "881c926d4c8ccc07f4be7e46a0c02a093c6dee1bdebe00a76528344894736784",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 20449,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-udana/README.md",
+      "sha256": "fb9beda3e6bd606f8143d75d33c81bacb3022cf36cc15d10485da719af0e523a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2765,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-udana/source-planting.json",
+      "sha256": "b303871903c0ec7e901eb0ff2258553947c45f48edceff298afe472555592a6d",
       "surface_kind": "structured"
     },
     {
@@ -8175,19 +8423,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1469,
+      "bytes": 1663,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/README.md",
-      "sha256": "89d0bcd595cf1b0bc2d242f82f4af9d648823ad7f289421085221de7cd1c052d",
+      "sha256": "10454cf593418d6d330ca900cf0f062c410dff303593ff810328e2ede6114c1b",
       "surface_kind": "human"
     },
     {
-      "bytes": 841,
+      "bytes": 1078,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/branch.manifest.json",
-      "sha256": "04eee76b5596cfbad458ae4c554b2ef54d45537af75af0b08b2751138d15c033",
+      "sha256": "3ad09115814840a81df0b211c7c8505c8fcffdc0e1c30a7f0d169e9a4fec6652",
       "surface_kind": "structured"
     },
     {
@@ -8207,11 +8455,35 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 317,
+      "bytes": 912,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/README.md",
+      "sha256": "79bce66f151a4aba76ef1cefcd3f19bc3b8cac32b459dd07960f3edc5837c52c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 540,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/branch.manifest.json",
-      "sha256": "7e1882079885046bf548134376fccf044c810ecbbc974eb33c3f385eb5622c61",
+      "sha256": "c56d84c0884c514cc9daea62572a6c72316128937415e284d1590085757275ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2722,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/plantings/registry-sammaditthi-sutta/README.md",
+      "sha256": "d39ae60f3ae1e6b01afa4984a76c9a3788d773dc9a976e5c2e6f3ab3987d53ae",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2955,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/plantings/registry-sammaditthi-sutta/source-planting.json",
+      "sha256": "54ff64791ad8b2fc178570915f989137f668c51c1045ec6e67b189b98a7308dc",
       "surface_kind": "structured"
     },
     {
@@ -13855,6 +14127,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 40379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/first-wave-20260908.json",
+      "sha256": "fe63957563adaed179b5a1d1764d82d467e7c67f56ffb0d007d44c9bc2b44155",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 149,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -16943,6 +17223,78 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4255,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/README.md",
+      "sha256": "f32036534851a88be86f865db88fa8b76346226b966566c4718cd494d775997b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 133,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/current.json",
+      "sha256": "3cba33a3089b4952e33042963b79fde67586336182ad2bd8ccfadf52d4328e8c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 103921,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/input.manifest.json",
+      "sha256": "d1bc8180a3d7215c471722263f9b3a73d58d6ae343c3f368e6b1215816ce2820",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 192,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/delta.json",
+      "sha256": "b87cf658eb507954a735576793add93d727474ee727a97d5ad1b090eb0b67c40",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 107441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+      "sha256": "9468e2d27ac55066c87eb20a2e6c79be22ea5ee2a036d044ee7d252f4911cd5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4000452,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/snapshots/580be987e2986f05504fb92439318a1cabd9a097b4e715829371da1662b37f0f/delta.json",
+      "sha256": "2088ec499a69ba22fa94229c5e5fb60a6e3c5a2c8531d0ba91af8513b7d7b46d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 104389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/snapshots/580be987e2986f05504fb92439318a1cabd9a097b4e715829371da1662b37f0f/snapshot.json",
+      "sha256": "a18ae3cb4302fa767e7e71944ae1b880ad49e1e680531d5166970787b3a5f606",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 892443,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/snapshots/eb2c4ed056975453dc7f932a9cdbaa9af7b3a3ad0fd4667286406d62de698970/delta.json",
+      "sha256": "d2b8034135f279c51cf0849d3c7b1efc248ba7d9c9e8d16219b5c634664211e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 104389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/snapshots/eb2c4ed056975453dc7f932a9cdbaa9af7b3a3ad0fd4667286406d62de698970/snapshot.json",
+      "sha256": "d85538572739ec2d16ad5e4cd968edcc7baa4d3ffc7823ed4c3ab0106c05289f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1557,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -17863,6 +18215,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 2253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-source-planting-historical-contract-inputs.md",
+      "sha256": "e489dbb62cb8f5d6803e3606cb8f75fa002e9eab474ca18fb97deb623e74339f",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 8954,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -17951,27 +18311,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 6242,
+      "bytes": 6467,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/AGENTS.md",
-      "sha256": "bdd1742ec16c00a74a11f8ab0b26c6bcd97dfb245e7d012d91cbbb7e5e778536",
+      "sha256": "0a243a181cdc7d96cd804bf10fdbeee452a6800ddf95a29de8165217fb3ddbd2",
       "surface_kind": "human"
     },
     {
-      "bytes": 3193,
+      "bytes": 4471,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/LOCAL_STORAGE_BOUNDARY.md",
-      "sha256": "f91cd88e6034aa781013f326ad01336f69eef14a908604b9c9d3a065443df846",
+      "sha256": "d91d37fe23cb030ffdcc33114a40ab045c5ba1e85eba2110d87a92d6e27ee2c9",
       "surface_kind": "human"
     },
     {
-      "bytes": 84099,
+      "bytes": 84619,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "eaacc8d87571ed7a03e786977f4a3cc9de1fd0ba165e21c8e9a2221a11c63077",
+      "sha256": "5c7dce4f084ba1981c633a6ebb2f455b7cdcdc93cd5baa01d676ce438ee5ad34",
       "surface_kind": "human"
     },
     {
@@ -19995,7 +20355,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "f9dc8881eb9bc59e31a8eaba592bba6fd68a81a50cba2533c2ac2d456a2d91e5",
+      "sha256": "3ef226f855fe5c7c35add8ccf5cb40e36fed5b7158e97f6be3d677b98bcfa229",
       "surface_kind": "structured"
     },
     {
@@ -20327,19 +20687,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5593,
+      "bytes": 8754,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/README.md",
-      "sha256": "0f4e56e47e6599ab4c9658583e3ca89b8d0c5cac7c4d6a8c172d0b8e42a5a910",
+      "sha256": "baac9de80bbc309604331fe3e27feaa7ee2ee5be7a5b767d0ec49ad30a8d908d",
       "surface_kind": "human"
     },
     {
-      "bytes": 98804,
+      "bytes": 105015,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
-      "sha256": "5525e7af08968b042f934ab80d5587c961e3547b00eba6ca1835f8f9bafe82b1",
+      "sha256": "9dfa8307095a71fa3d2962b80bd749eb56a1079ec8f917c5b7faaac4a46d3622",
       "surface_kind": "structured"
     },
     {
@@ -20501,6 +20861,678 @@
       "path": "ToS/source-witnesses/discovery/candidates/receipts/pyramid-texts.2026-09-02.v2.json",
       "sha256": "dd3da0320fc94368ddadbd41db9f727f3ce59e7fbe7b15aa2663bfa6e2496496",
       "surface_kind": "structured"
+    },
+    {
+      "bytes": 2725,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/PREPARATION_REVIEW.md",
+      "sha256": "2444fccfc3c67c23b12e671fa061f1773532733ee1eaf66b1ae0bc06b6cde6a3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2665,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/README.md",
+      "sha256": "4017196188cc7d6b9ead8e2c4260223712763462cebd317e14885c2c695b4d1a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4893,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/RESULTS.md",
+      "sha256": "96ba9daaafda32d7270996495a361b589007651ded1cd055e036cd73326fa2d6",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7998,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+      "sha256": "965f78c01f288c4c3001f59c1c440ebd7ccdc93988c7767438631e953cb0ce06",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 264562,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/access-review.json",
+      "sha256": "6cf7e04defcbec3608bc7bbc57eecde08d62f3a410950384ce090196882f591a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 25478,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/batch-result.json",
+      "sha256": "cd927a2d523484c3e66b72fac4ac8cad47af799801f5c9075265aed5d0fb98be",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2103,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/canary-companion-repair/receipt.json",
+      "sha256": "1a63dd6ec4622572eae8472714e8465dca8d65f61cc40001acf7f30076f1f26b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 781,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/canary-result.json",
+      "sha256": "203464bd3dc4ecd2e48acf6fef2314ef7a187db85a797723fac3aad469c71378",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1476,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/LICENSE.md",
+      "sha256": "9bf4a2890c25372e4c1dc750d550bfb4eacfbfcb63c53123b0628159370d1878",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 467,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/LICENSE.md.origin.json",
+      "sha256": "a91f7378be8648dde2ecd917f08ee991a78b915781f3d5f57d72770a962f1f81",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-LICENSE.md",
+      "sha256": "fb244eaafc121b9f5b14dbecb20ac407b3acf6eec8c5028fc1e3bd0afb1a6f3f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 776,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-LICENSE.md.receipt.json",
+      "sha256": "53a684af258b4f5743206f704ca11275689673a91d8e48f5ae1d1aa977fe147f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 513,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-dn-tree.json",
+      "sha256": "10089b284889b5575a9ad3623682b874e9b990473df2daa1602b7f47febd40b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 766,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-dn-tree.json.receipt.json",
+      "sha256": "903ed5abd5a1046a6b6775cc23dda52f23a6f93d873ea91a62d4310d293a0496",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 584750,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-kn-tree.json",
+      "sha256": "384c4ba722e9123b800b7c821e2b8383a1e7a5b659eff4c650143461a691a884",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 792,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-kn-tree.json.receipt.json",
+      "sha256": "f9000d32e67b24d3eaa3e7c20eba3552139419e9b673b7b04bf53e53498e4d3e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 809,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-mn-tree.json",
+      "sha256": "23902c36bb3b945d4de702d9ca490b9f5f5dc55f4aa8db51dff9d0d4425b96e5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 766,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-mn-tree.json.receipt.json",
+      "sha256": "0be262b4befe721e3e2e2982fda9a83b5523af032851482fb64ada7ef336d2ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1476,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+      "sha256": "9bf4a2890c25372e4c1dc750d550bfb4eacfbfcb63c53123b0628159370d1878",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 775,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md.receipt.json",
+      "sha256": "fa05fd7cb8b041321b21dedd2ff561b7974c4da4391090a5cfc2dc59b10e9d33",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5027,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+      "sha256": "2da25acf89375558b843dab582bdf00833137baf1c8afe2b32cf09e251179999",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 772,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md.receipt.json",
+      "sha256": "f690dec828bd861cf27d196244a6cce60c90b4e88dc81a8574dbf9ac788fd389",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1075,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-tree.json",
+      "sha256": "c3dfc359e9bae5fa1878f908ad018ff7e4a59835f304a675ccea5e281f4a618c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 786,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-tree.json.receipt.json",
+      "sha256": "4d5b69d05ee1d86ccad306abdf5e6e0e2cca94cb4754a5ec957ce3b01003d917",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1837,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-README.md",
+      "sha256": "2e1706a36d74cb2dbf143c7dae9b3480839931582973e6e66c932d7169ffb4aa",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 767,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-README.md.receipt.json",
+      "sha256": "d8750305589da87856197f29553a707215374d53524427fcfd5e5bebe6a5ee10",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 790,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-tree.json",
+      "sha256": "abf1b630b906becc736dae7c380c88da6ac303a8690b15f7ab9ed505e12d48b1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 756,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-tree.json.receipt.json",
+      "sha256": "55aef11c440a4c86e450c3812c6a1fb0be8ddb5d5823ec10925a618c080b3327",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 654,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec1016-metadata.html.receipt.json",
+      "sha256": "6f89296e01e989d65c77842ea18a678550cd4b2a31666ae44130b6c0d9b4dcbb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 654,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec3091-metadata.html.receipt.json",
+      "sha256": "2ec2d56cc570a828b7d261dc6582b4c1583b230fe7e75e4e909027a1fd9d9013",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4483,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+      "sha256": "86dadc3d00708b9f12e3043b0435271bcfe5c9e4f0693baa62812e4ab363241c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json.receipt.json",
+      "sha256": "2a7f7a03200df6a4677f2e536d310815b5afab21dfbf45cf800373cb5bb315df",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 20554,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+      "sha256": "df1f577c80f941b05996cdd4868c6680890406827474198e422f486bd644abee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 808,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json.receipt.json",
+      "sha256": "a8756d6e1b1e78033e4d502fb9ba3e2c2135aa7e3150e94a21e789f884b1a831",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1129,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/README.md",
+      "sha256": "1a9de3c9665845ae265b6e60d1b9b2d0e0c946d255301be1fae87dbb0d7569e7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/close_local_boundaries.py",
+      "sha256": "b63e30a6e9fc16bf8688a66348b262ab419de2082120086b15e2f12cbe6c3929",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 39518,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/engine-history/059ee0f061855657578b8337f11a9cb2f2e5a1f1f63f22d4ea4242d4f9290e4a.py",
+      "sha256": "059ee0f061855657578b8337f11a9cb2f2e5a1f1f63f22d4ea4242d4f9290e4a",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 41738,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/engine-history/745c0d44c9b5f4edbf6e93c3dfc343465d6d8344ce9ad37c8ca01599af42c027.py",
+      "sha256": "745c0d44c9b5f4edbf6e93c3dfc343465d6d8344ce9ad37c8ca01599af42c027",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 751,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/engine-history/index.json",
+      "sha256": "53d5f58b70c35ed4296c21c684856802e3cea2e702ceda75ce5d74289b591cf7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/plant_first_wave.py",
+      "sha256": "7eba5ef5299a8507d70e7ee2c27a3c56bf5cc47e2585d247badd10ddba89be4e",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 6080,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/execution/report_first_wave.py",
+      "sha256": "eff7475c3c600f9b25e7e7f197417b757f7880f150f9ec91d4dcb0dbc0652f6c",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 198791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2806,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/README.md",
+      "sha256": "27c60a998dd5e7dd7f1bb810af6bc117ed6a7c549ee3bfde700c073af1cbe42e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 9469,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/apply-correction.py",
+      "sha256": "17e27814b4c26e142cdf823daba2e910966567242b0b8bad7c0757f0a4cefd8b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 1501,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/3dab7a279ea8d7b17b35cd023b09ad5e74487f74e686a7b49225fd3d35438998.md",
+      "sha256": "3dab7a279ea8d7b17b35cd023b09ad5e74487f74e686a7b49225fd3d35438998",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1470,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/60914faaff23470cabd7e602a06a8c05ffea76cf3672fe684e17737603cc385a.json",
+      "sha256": "60914faaff23470cabd7e602a06a8c05ffea76cf3672fe684e17737603cc385a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/61aa5b58792bebefd77da3917a3a9b34b0a19061a81a886fbe1a6a890e1b1846.json",
+      "sha256": "61aa5b58792bebefd77da3917a3a9b34b0a19061a81a886fbe1a6a890e1b1846",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 41738,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/745c0d44c9b5f4edbf6e93c3dfc343465d6d8344ce9ad37c8ca01599af42c027.py",
+      "sha256": "745c0d44c9b5f4edbf6e93c3dfc343465d6d8344ce9ad37c8ca01599af42c027",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 2136,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/75b043921fdba315319908a44e79235ea5571ad2909045ddd046b35f57e73415.json",
+      "sha256": "75b043921fdba315319908a44e79235ea5571ad2909045ddd046b35f57e73415",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/89e44932c82a4678217bbe6a15268702e38d4c7d700c622b5ff28494b60bab38.json",
+      "sha256": "89e44932c82a4678217bbe6a15268702e38d4c7d700c622b5ff28494b60bab38",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1511,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/9c04e18ab6d2f2e5fc5ad30ca69907984cfd6b597d65cbd1b6ee19c2b100516b.md",
+      "sha256": "9c04e18ab6d2f2e5fc5ad30ca69907984cfd6b597d65cbd1b6ee19c2b100516b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2245,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/9cbe2f4a5bdb0ac817f31ec5fe7457005fd2445a2d56163a4e2288686881936f.json",
+      "sha256": "9cbe2f4a5bdb0ac817f31ec5fe7457005fd2445a2d56163a4e2288686881936f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/a785f09f5ea2f75f0fdc06914f63217a2c6a38ef9ce0651f62c20a98967f787c.json",
+      "sha256": "a785f09f5ea2f75f0fdc06914f63217a2c6a38ef9ce0651f62c20a98967f787c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2190,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/acf3db98b9cec6c6b5b2d4ae09dce5e358fa02d1aafce21748ad079a8ab069ac.json",
+      "sha256": "acf3db98b9cec6c6b5b2d4ae09dce5e358fa02d1aafce21748ad079a8ab069ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/d71321377a2b3584151ccd6a60066805cf02edb0c67ff03eb168eeb6195f56fb.json",
+      "sha256": "d71321377a2b3584151ccd6a60066805cf02edb0c67ff03eb168eeb6195f56fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1437,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/dc368a0a0d6d07e9479ec5a7ce1d4b2dead6b1e49c0d292b20f8e45f7fc01d83.json",
+      "sha256": "dc368a0a0d6d07e9479ec5a7ce1d4b2dead6b1e49c0d292b20f8e45f7fc01d83",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2191,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/ddc1629748a2b0c58d6aff5646cf23d9263122ae3e73ce8bd94578ff692f1370.json",
+      "sha256": "ddc1629748a2b0c58d6aff5646cf23d9263122ae3e73ce8bd94578ff692f1370",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9352,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/current.json",
+      "sha256": "8f6292fe4736fe46a0b8e00201fe15f6fe5c538bb4225f01d6276e11bd7b6fce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 48233,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/topology-before/0434164e8f2f6f9a385e39ab34522978cc816f7044251962cbc79c2f89677008.json",
+      "sha256": "0434164e8f2f6f9a385e39ab34522978cc816f7044251962cbc79c2f89677008",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1050,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/preparation-checkpoint-receipt.json",
+      "sha256": "3800c953e98c5ab26ee939d2684d566cc2b53440e7a401581421dd45663f81a6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 444637,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/queue.post-acquisition.v1.json",
+      "sha256": "3ea5aa24896501ebd93b0f22f75700005637c779bde8410f7046bbc1bb43f722",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 331801,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/queue.pre-acquisition.v1.json",
+      "sha256": "659e3b26f248525390c818f437189765db139e6d2c943e39d2307230ac839964",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 306965,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/readiness.post-acquisition.v1.json",
+      "sha256": "67622f5357541f58543a66cc1e31473e7aaaffbc8aa12c8f4290d6028a93a250",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 200321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/readiness.pre-acquisition.v1.json",
+      "sha256": "8ef9eb17a5fcf93fb8ea61477c1a52d562908b1b856cbc5f79e12f58f1829b96",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 44379,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/03304ee6b456dd11cdea2c7931a451fdc27147a19082175de693486d558cbcf1.json",
+      "sha256": "03304ee6b456dd11cdea2c7931a451fdc27147a19082175de693486d558cbcf1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40620,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/0ae6c4efde39dfd8130bbebfb790f724442eade6b641cbc01a76448b6b50d3bb.json",
+      "sha256": "0ae6c4efde39dfd8130bbebfb790f724442eade6b641cbc01a76448b6b50d3bb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 46940,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/3103e615417a1bb564148fee69c335068e81b7d488e0a886135e3d161e530cfb.json",
+      "sha256": "3103e615417a1bb564148fee69c335068e81b7d488e0a886135e3d161e530cfb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 32134,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/5de4bd080065d47ff0c401daaed3d081251c45b32f18f6515660b9771664296d.json",
+      "sha256": "5de4bd080065d47ff0c401daaed3d081251c45b32f18f6515660b9771664296d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 36599,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/84e834b4ecc4f76d25d963ca2746e3badb18fb76bdde7823eaac3b6dd2b132a9.json",
+      "sha256": "84e834b4ecc4f76d25d963ca2746e3badb18fb76bdde7823eaac3b6dd2b132a9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 43121,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/90dbecb1ab9e02d574f58247c21245bf8bda974ea77ebcd1fc96d67d00c5949b.json",
+      "sha256": "90dbecb1ab9e02d574f58247c21245bf8bda974ea77ebcd1fc96d67d00c5949b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 41888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/9e12066518b5cc29a66dd01841bd18f7f583c1db644f3c6033b6d5fb84513b84.json",
+      "sha256": "9e12066518b5cc29a66dd01841bd18f7f583c1db644f3c6033b6d5fb84513b84",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 32708,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/9e299fdd47723a12c0e6a74e58bb5b55b70153c8733d3289141d96d169c99891.json",
+      "sha256": "9e299fdd47723a12c0e6a74e58bb5b55b70153c8733d3289141d96d169c99891",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 45677,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/d65ca0e9c962c3710014a5efebe342834342bc02c5d400b3fa83883d58e51672.json",
+      "sha256": "d65ca0e9c962c3710014a5efebe342834342bc02c5d400b3fa83883d58e51672",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 35043,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/ef39721e0237926936b2fe3840b7eb39d664b38f0fe03a1a6714ad1e1235268f.json",
+      "sha256": "ef39721e0237926936b2fe3840b7eb39d664b38f0fe03a1a6714ad1e1235268f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 38089,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/f23e5f9ef1de5e126537e226c832958b8ddbe113397bc70a583dca23f9aadaf3.json",
+      "sha256": "f23e5f9ef1de5e126537e226c832958b8ddbe113397bc70a583dca23f9aadaf3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 33853,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/f90c436cc396b1d537f28e664985cbbd1390f9bb127f58e94dbaab6e9619153f.json",
+      "sha256": "f90c436cc396b1d537f28e664985cbbd1390f9bb127f58e94dbaab6e9619153f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 39362,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/topology-before/fc43e15f8e7a836d6f187f8aedc1409d5ba687c1a05eb9d69f9633da9e1c6fb5.json",
+      "sha256": "fc43e15f8e7a836d6f187f8aedc1409d5ba687c1a05eb9d69f9633da9e1c6fb5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 768,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/README.md",
+      "sha256": "f6ebc7eb4969809626cf9d63198b4d0b1e958697f7e83ca8323d43323eee3de8",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/batch-foundation.txt",
+      "sha256": "ff1a5aceb6826b0627c425301d7cce03033b5e501d10b45a7178e1f0cc877a37",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/canary-after-companion-repair.txt",
+      "sha256": "ff1a5aceb6826b0627c425301d7cce03033b5e501d10b45a7178e1f0cc877a37",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 69295,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/canary-before-companion-repair.txt",
+      "sha256": "dcc15582172ef38f61f40c4ffd4ade336bc11697baae9512f646c8b2e58fb86a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 179,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/final-normalization.txt",
+      "sha256": "b61cb19b086bde0ea43fa085ca4941933a16b9c65d6b26307f8b378da0f8ee47",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/preparation-foundation.txt",
+      "sha256": "ff1a5aceb6826b0627c425301d7cce03033b5e501d10b45a7178e1f0cc877a37",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/validation/preparation-generated-parity.txt",
+      "sha256": "5e5673ab3e60011108818cd516aa77cf681d1dd4bb12c371ae49f22982cfe6c8",
+      "surface_kind": "human"
     },
     {
       "bytes": 28341,
@@ -21228,6 +22260,110 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01.v1.json",
       "sha256": "99520d20ad425d5cdc1d6d5165c2843ad4ddd2344cef9bb255215f9f567eb5fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 17695,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-be-a-scribe.2026-09-08.v1.json",
+      "sha256": "6b97e982bd695d35c9cb39d65037ee0777123fc917279615bb41b03fab953fb5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 112076,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-dhammapada.2026-09-08.v1.json",
+      "sha256": "9473c3f1936cf423fcc84646e1dd588fc464aa5cc6a3acd1e6d18389ceaa95fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14889,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-ecclesiastes.2026-09-08.v1.json",
+      "sha256": "8ed58af3f86d8a426ab1dcc406afeb2636167fc1bdb807d04a293fcb2598a4f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 17970,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-immortality-of-writers.2026-09-08.v1.json",
+      "sha256": "48ac1b36c6d6e85590a0f5b82d99e4bb488fa79c199a4fd41c6697ae4860b364",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 412645,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-itivuttaka.2026-09-08.v1.json",
+      "sha256": "ff46aedae38af3a15943effc33b0df5e2c8a784e849b1a20673af1d0a76c305f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14696,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-job.2026-09-08.v1.json",
+      "sha256": "7a5309095795775a4dfd069a1d263a855c494b1960fb7a1fee7f5a23dd4fdeb1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 52716,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-khuddakapatha.2026-09-08.v1.json",
+      "sha256": "de2eeb51d76db971d21e9f23ea147cd0e6a240b7f9c6583387e5be8ddd3b40c5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14805,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-proverbs.2026-09-08.v1.json",
+      "sha256": "4ca9ca64aab644bd6432cd573f88d686f257f74f2db28c8740adbd1a19b6e9b8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 25068,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-samannaphala-sutta.2026-09-08.v1.json",
+      "sha256": "e92e2392dd8f4c87b29cf1f368f124c41b7b8333f8339bb8fdd1c1fed6f9084f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 25099,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-sammaditthi-sutta.2026-09-08.v1.json",
+      "sha256": "6c0f7887db3094905f4168dcb0d8dc93efd28f7778f8636f6d37de759935ae83",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 277471,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-sutta-nipata.2026-09-08.v1.json",
+      "sha256": "2fd4e9fc8dad89a81aa297fee9173bd0e37694b9af0baacb2b4872352e8c3a2f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 298413,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-udana.2026-09-08.v1.json",
+      "sha256": "6b2a9e38f51473ddcccc149b3f8b5ef7c2f197bbc6539136e3654dedacab7b6c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 24862,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-upali-sutta.2026-09-08.v1.json",
+      "sha256": "e0cf90b937b402a2794957e5eef6058a3561ee452e4deeae3a8a81c015904890",
       "surface_kind": "structured"
     },
     {
@@ -24927,11 +26063,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2184,
+      "bytes": 3283,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/scholarly-composites/README.md",
-      "sha256": "f12ee488ae3b05a25da65f21f538f3467d690c80e20b7665d8c66cdd03d6adea",
+      "sha256": "743be5d709af002466a6fc2f21daa23aa1af266646cfb88d95b5136a0b9fa5bc",
       "surface_kind": "human"
     },
     {
@@ -27015,6 +28151,110 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-be-a-scribe.server-import.json",
+      "sha256": "cfef846898cf8c1c7cd69ceef2e2792b352801c0a3b0f07eeaeddcf6e8c1085e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 13899,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-dhammapada.server-import.json",
+      "sha256": "2ae2181da9ad184befc2c25d8f851cabc07465b9088b562911e1ff4edb129ffa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6076,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-ecclesiastes.server-import.json",
+      "sha256": "18cd342dfa69fdeead1afbd3912bb74092c0c9bb2069170023b2e7620cf02502",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6193,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-immortality-of-writers.server-import.json",
+      "sha256": "fcc89a4cf50a23286b66b4e13132faaab14ca17f4c36a8be3077baf294b889a4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 39911,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-itivuttaka.server-import.json",
+      "sha256": "4d68e46840d31e1eb55df28e6e1b3af80a8dbbdf535ace3400680608e00754e9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6030,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-job.server-import.json",
+      "sha256": "900b9b505e16ff548ef58e6de57347f55d1da0027e43ef1f9deb2cc90cd9b5b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8608,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-khuddakapatha.server-import.json",
+      "sha256": "cc4237b4d3d3c3e301d86d6ec1ba6e547b370bab8d7595877959b361100e6aad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6056,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-proverbs.server-import.json",
+      "sha256": "6de2a0ba03717c9757606076385b007e80a583929eeb388a9e001b60d86a1bbe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6222,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-samannaphala-sutta.server-import.json",
+      "sha256": "f0dc10bd78cbb25d7f1591d114958346c02746f60cd7926bfb51486f011c36cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6217,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-sammaditthi-sutta.server-import.json",
+      "sha256": "cd9c0aa410d8a351f8b312f8193d5dd9f01eb2fdff2efbaf051a9bb149d77c20",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28187,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-sutta-nipata.server-import.json",
+      "sha256": "89c74374d4295e538b73416a0905fe7ffc05dc2e88667a08b659b2d47195438b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 30179,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-udana.server-import.json",
+      "sha256": "b61cf08dd85a5b4dcbe789f9f4f8f5f6c3408f133763254fecd85c1188195330",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6188,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-upali-sutta.server-import.json",
+      "sha256": "0c9a57e7f0b70f3990289685af5e725ecd613109509d9ab1ebc9e235218878b7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8167,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -27316,6 +28556,182 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/digital-sumerian-corpora/electronic-text-corpus-of-sumerian-literature/work.json",
       "sha256": "6d844846fc519a1b220f83836f32276573bd7aa365e11a1e8706ea16b3f7a7d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2231,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/de-aed-tei-oraec/expression.json",
+      "sha256": "1417e1d86b71c314c357b598eeb6c3f02f76620656766932469207443a4d2c85",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2374,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/edition.json",
+      "sha256": "e86eb2f8604d651c39c1483e54b369d07d34f7770493ccbbb60012f15bbb3c46",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1487,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/component-witnesses.json",
+      "sha256": "cc9101ac3cc9afec6d19c1d4e2a08e60aaf52ff1172cecc674a513a498a03e66",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1584,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-observations.json",
+      "sha256": "d411ca3694a558463b96bb326aa063bb875f1f692386deea814bca686e880f71",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2288,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-report.md",
+      "sha256": "70a0458dbc2e07d705ad18b6fbba0cd91880993818ae24b293dfc4043453e27e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2054,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.json",
+      "sha256": "73b99f5cf5c2bb768188538d1420551a2dd9de07f2342b6b91a3d4ca2c9fa2f8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2453,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+      "sha256": "42df22c925cc2aff41a62f303ba7dc42843f38ce535a19f66645c4a2d0b35435",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2841,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/resource-inventory.json",
+      "sha256": "19307f95489d713cd052f38982a8172d47cb291d6108f50519468a48b7b95037",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 17366,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/rights.json",
+      "sha256": "bfed9868b64299769c056257ec7f92d1728d1b40eed69283ffb8bdbc9820a5f7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2464,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/expression.json",
+      "sha256": "81ec3b4603d61d6c0ebcf98d077c36b5c81d29cacbfb4da0b39a2913bb8df73a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1982,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/work.json",
+      "sha256": "f033f7ad970d27028d6093fb1728cee7308bda35c5d32a632d1908f777afe784",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2285,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/de-aed-tei-oraec/expression.json",
+      "sha256": "e964ff11a5611bb98831f44cdf0a1bd4ac169cd5e6dd02aaa5d1bbe52a9facca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2428,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/edition.json",
+      "sha256": "76bb5f41eeec4251ccf736e02ddafdf120aa8e8a5b45cf8d3d67c4873713e4c8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1520,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/component-witnesses.json",
+      "sha256": "63ddb6f74eb943530f4afd4428d409968485d60f34e5a86a5bfef00d63ea8030",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1617,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-observations.json",
+      "sha256": "d5f2ecad5078e9f99d6b42fbfdfee1ef4442be951f838a22c0595354c53c24b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-report.md",
+      "sha256": "a8aaf3040a1ebfa18b0b8335beb6ee342e10aa96873f2cb9bfc123eb104d8b8f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2086,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.json",
+      "sha256": "240b3fb8402b47e20794283bdb6848c182d26361e4ec73eb8d5dbd3cf3260dd0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2530,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+      "sha256": "bb8575b959a0d916eb490998d7a9827e3091c6b05c3caff63190c856fb4dfb1d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2874,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/resource-inventory.json",
+      "sha256": "7574a7a64004d8d5ca0df945db006e5caab972350096b1151ee22950138e56de",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 17509,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/rights.json",
+      "sha256": "704e2b653eab7a94896419cd55863358e0b9aaf28b56c81233d1ea075ab0468e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2518,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/expression.json",
+      "sha256": "31461ca7cee347bd83f6ef5848ee482453ff5a22c5ec1a43ed0b61b1b1bc90e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2025,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/work.json",
+      "sha256": "a6e477694b9a07285b86a819bc2638d9bfd6add3274dc3a235fdea7e613cde3d",
       "surface_kind": "structured"
     },
     {
@@ -30327,6 +31743,222 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1914,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/edition.json",
+      "sha256": "eb9a226031297e26ed5781752d2ed4f353e58b3de41a7f5ba47af56bd9f52111",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 570,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/forensic-observations.json",
+      "sha256": "c6afac216052c8088a0efc42e3533ba8465496dca03250ad13cfa635341b7029",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1222,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/forensic-report.md",
+      "sha256": "348b66e357cdc80b6917aab8c856c98797534a278f7c9c83ee6d935da79a4f44",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1876,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.json",
+      "sha256": "5e6221be1d2f7926e0f88c88c5f9b3ba93d5d1d1154f3f056fdedf322c32d110",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2338,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "sha256": "34a91d1ce91afb5f5e79e15d726f7a17698f1981a350599f7f99bd1a530fb9e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 153402,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/resource-inventory.json",
+      "sha256": "ef3141446c09ad05c9f7d76025956048587531342caf01ceaff69656a323a7ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 13088,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/rights.json",
+      "sha256": "9e9137bcebbd90fbc0fd842df799d53227b32e011c3b888f83a15f77555a5dcd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1835,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/expression.json",
+      "sha256": "fa36bb163cbd61ba2cddfb1013f623eac438fce86c51647afd7811ac0d03dd8c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1768,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/work.json",
+      "sha256": "31f41d276c22df8f4cb1bf0ec521cf3757d4ea6f8b315d507a47f169592142a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1868,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/edition.json",
+      "sha256": "ade8a8c7742c6927e98c57de205d7c28078f08c98e1fb6831c85d2174c71a3a3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1087,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/forensic-observations.json",
+      "sha256": "8378af7cd62c21a4ca8146a89e42b12c6b9aeadc6871f81263828530742c1371",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1203,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/forensic-report.md",
+      "sha256": "ae4ab171cac757b220df575925aeda9b63997471a8bb0883d9a1578a39f32469",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1839,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.json",
+      "sha256": "e2fb25fdd86eea14a41db0ed55ecfc1bea7bba934037e60c8ecfc579d43c4cb4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2273,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "sha256": "2bce23ac7e1b0f42b9082fedc514b90b039203325b726a9c36d0dda86ef54991",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 728882,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/resource-inventory.json",
+      "sha256": "818930019f8dbdb0bff4dd17561da3c19284a2be94bd999a2200f7bb7a0d3700",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 12989,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/rights.json",
+      "sha256": "9f9c7776c9d9ec371465fde84a86284b9238ae0163ce53eb882369c6fbe4a8de",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1789,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/expression.json",
+      "sha256": "8acbc66e494a2f4a81ae11c75641ce89bbf503bca984b207c657bf8fc82697fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1731,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/job/work.json",
+      "sha256": "8cabd64d3c914b51f985f269b44b55dd83ceef0aca9c679e7afc7b31402506d0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/edition.json",
+      "sha256": "eff6657b345264b08c69acf34844142bc86b71658f36f0252da624a3ee5e37bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 927,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/forensic-observations.json",
+      "sha256": "b7031b0e1fb80a5fe4e035425bc41f3138dc934f4c5f9b58eb6ec046617b06bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1208,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/forensic-report.md",
+      "sha256": "0322f48427c2c1c85cbc3ed4c2d3534f4f050634fa4926d770b2d97647e174bb",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1854,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.json",
+      "sha256": "06301d43f62fe964df0479b9ed9d7f592f80fa3f5c8dbbb3113d513f6e90861e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "sha256": "931b59fffa54009e3c96fbfd0ada45747edffb8adecde338b07b61ad419156e2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 622463,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/resource-inventory.json",
+      "sha256": "60c6930627f573b3bf58723a35ae4f97cf4c6d8080fdebaf31176b45df31af95",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 13044,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/rights.json",
+      "sha256": "43bb321970dbde832672954682fa1c98e1d5cd895b7e280f5975ae7e0461e078",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1809,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/expression.json",
+      "sha256": "da13614bf6176a6dabee036bd8a24653f5770a247752b790c5e9ec0194f2df63",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1746,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/work.json",
+      "sha256": "4fc72c642d55cb3d700bb463c7c5b7ad9f55143e330d0aad79efaf9b9f02726c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 244,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -30700,6 +32332,582 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/old-babylonian-scholarship/the-textual-criticism-of-sumerian-literature/work.json",
       "sha256": "517db8dc58bb0cb1f13f32d79475133652dc19e280420a41c43d3d83c20ca078",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2178,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "2f64c16743697a439d0b043dc1af8a3329d86255460dc85a35aeb95539acaea7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "1b473e35027cd1a84129af830074fe043a2880ce632a39a986165057041571bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1404,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "16f2ce60723169c2e36294f739aab570aa3b625e8b835632ed64c5e6b0eb74ac",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2012,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "a947277842ab2fa7d8a613f2e7f81f9ca0718da2a224ea7ee0cb0c8e928eb652",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 13647,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "669981f6d3081a0b0a298049d2a135152039921a7606646211cbedb35171afb8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2490431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "59437340da9f87222b7ebd8b6c2fe21d4d49fd88974901c5362f71e8c0e97624",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 11749,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "4f48fbb519623f80291164936ce8715645c77d0971a5f693f66eef2ccb327b63",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2080,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "0fff79e4be500c6a1420f37167bd497eb25befefda5cadda5b818233de791388",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/dhammapada/work.json",
+      "sha256": "93e6ea6174d49ac4bbfdbfcb643755b424193df56519c7a74218002e724090fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2178,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "84edfd873525916d081c88818e99a1d0b2172936187c5c0f4295a4287c7c72e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15991,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "c83a5590210d747a2e981d9fc8f49794ae84edab0682cd7e2f80bc1179147ecf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1406,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "9b0e4eace57e7ed60d464d6ff2f4dc2a8da3b74a6fd920e4257a53f94ff53695",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2012,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "bcc25a831cdd6089f3591679a96d29e7a2ff179f31a2fe6f8fa455433f90c4db",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 50900,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "a9174eae84f81d2d8943a2c0e517dfbd2f0e2321d63737a755de2ac066e16c0b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3368311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "7a5390d103dede1eb023dfad360c11f22c04156ce52d8167ee8256123a1bf064",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 19317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "6048dc5f427ed9a8aabd26289339741895817d1a5a9e987935057f4b0e2eea8f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2080,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "a0781cf143ae9240839148d7d3cd247472b14fd2117fa74516f3593f593f835c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/work.json",
+      "sha256": "3fde8cfd863ba785f56c53ecd3eb5e7846299c471d2f7a7a0a1f9a79689a63f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2193,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "1ef10d37dfd83f32e3a650f9e61b92b2f504365a898b8fdf8e406db31a1897e0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "219cced4ab885a421f3ad916005b8a36157ab402ecc4533d3b3994a90e0476f9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1409,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "1ec2e5ae11b5fd92d0e5151d5cc2b16d7536c4f3a2c1f49114412b5d7578d250",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2024,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "ce29e261c82fa8e6cd847328542bb80ac2f633b76b1cee467b126619a65c6503",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5985,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "b04b49017401b1d8b0b1d0004aea9b655e8641142358038cbe1533abc9078203",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 415250,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "236fd2cf726575b8be8be9eef477d173195541b933dac315bd2b9b20a8187aac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10280,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "f6e10f4fd1f443fbad93d5b86f953cf820641d0261e5481bb95193bee1336ac7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2095,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "fdc3be5b3aaa2c88cbd40388998303337b90d20c916dc5a5170b261622dd45bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1855,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/work.json",
+      "sha256": "aa93014e1e06ecf04e396e11eda56f723b864b91f8b769f3e8a0080499d643dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2220,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "a42a2450a9472c9f11192de26acdb071e7dbfa6f8a98529946e6da4fa00ab97e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 334,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "95852d2fe5516ea7cbcab104b9d3d6f48ec9c85e0f0700638cb97ac1da38ba23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "5d6616f5c12db86a40908a7136965b655f08ba04408af100ccb954acd91915ef",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2046,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "3944d130726d8fcb25cad66117be3cdfe4ff6275398ae1c72f40b05b37f2b8ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2569,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "2c27a334533ea90abddc47102a496a8c5ed14ec5c5db4a80e0bd1368b14fa0f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 720421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "b0275c2ad6bbc532d3ff1d6295c5f86a43151ec2ccbbdeaecf46ddaad3f7b4f2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9621,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "e53408cb08266ff1b391bdc627df825c7127ebcba9979898912c619cc8912348",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2122,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "4264e0bca80788a052f573bbbbcebdedb7e4c81cd5046cfa1f4b2e8b5a8be2e8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1877,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/work.json",
+      "sha256": "cf23fb6c1c255e56f195cd1a83c232a3135420ebca5ec09939c39b9dca0964bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2218,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "2a77608f86138c514833a7270870d89de03069bfa2e91358b0225197509e682b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 333,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "c25cc7794565b0897d7964d4d65d9a79287d99eea5ea28f3d0f4aa457bc6b319",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1483,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "8cb48343008ce90105cc02407fe54d90b3d032177b184412faaba162db947bb2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2106,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "bd4bb061c9db3c65219071af78d826350917beef540e29a622782d814f773dd5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2562,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "e82f97c8aa2b3e93486b456fde756ba247ee9eb66cce76d828b953d0d3c752e9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 260604,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "28fea4aca5826244edf4ba67b5631f30f3d322c33eee4f081f125c2b0528b0d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9612,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "0af0b89aa837593aafef623f2cfc0f9c842b5d27586d59a7879f0f2a8076ed2f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2120,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "57b9b42c6f7b864f807189149a030338adb0164ff6183b5e76e674851d14e049",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1937,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/work.json",
+      "sha256": "13064a12bdd91380b4213ee8db07e2d9bd0aaa669274d645dbdf980b9afa07ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2186,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "a6a95462d0cf4135aa9bbe8b2dbc22a1c13b49fab1b0fe628b3583167d9b1b04",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10723,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "208db5f307948947e2e7f732add7bff2f672e0e687b2451d956123da1a0db338",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1407,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "ebd425c272651c35b826c2f8850798c1ab812a44b769ea085f0fccc8b280167d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2018,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "72d96b085eb9f6862a5a7d70771725b54a7757a8b4ed3a6067191db25b1bf852",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 34129,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "d4e66cb5330389f3370dea0c60aaf3903c54de0a3a752ab922ee7b3aa0e58b25",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6436529,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "ac666046939f10c2e75c4ee2d82eebb003003961b0c6b11d5b73b3c9237cb248",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15903,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "84a7cc0fc0039deefd9ab43655031fb6ac84572bebfea9f2b8a5bf01c09b8002",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2088,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "ecbe340020ceb00beca229fc91cb876ca8aa11171fc579da2ea442b834bc76cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1849,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/work.json",
+      "sha256": "743aed3d17d57313bf8db47473553298f44f2f83c2caddd4841db0e9b0139826",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2159,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "c5acc01cbbc68b249883ad7ad30877d69ce229676ce6c4d273ff9c1b47c4f547",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 11489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "7e83a0657b7a82a095aa8c3ec08eee19bad0e0e4eeba120762d4b1b0a2dc5a69",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1401,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "ad08fe7b30763312b6bd80018e0a5a0fa545c1cefb7ee860fa0c64fd4b141441",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1998,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "f6f5b2f7bf214bdf163ab3a6250eaee618e7e50df8593815192a827e853a4d1d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 36938,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "69cc2f6174abff59c6efe962d7d6569ff7698c4dc7467d826d4d14f474dbd754",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3032197,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "53f94a1c8665546d475131f0b2e44e0f04e509708f16c74218534e4ff542a226",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 16456,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "e376f3ffafe9e098d5bd27c00d1d2266abc6708bd0ecdafe755b4238725b4ed7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2061,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "8393707e84cbeb159203a2b64fadfee47f7fb21d361879d5b9a7abb1b08f6f0b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1829,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/udana/work.json",
+      "sha256": "73daeb9df4707924de032a64049fa72ea6fed8eef7cd4cae42c5522ec57bb7f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2191,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json",
+      "sha256": "0362ecc60386fb3c05eb3f8d9a888db4f5e578152674987e243998f158b5d87d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json",
+      "sha256": "ba19e21bfd9b061bf7b10cc64eec1a665da4b98deea33ac0f8e4cff14129601b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1413,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+      "sha256": "400ff17d7fdf3a43be7907e16471098720ca3a902612808741c2a12293d80094",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2024,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.json",
+      "sha256": "766ffa6d4b6f1737379eb89ec11c7753a3ffa61141986f2f29ee3ed807ac371a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2522,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "sha256": "f69f3c9dccbc8aa92d12ed594b490f6b64a48afc19dcacf5cc1593a91e3078e5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 424235,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+      "sha256": "76f66ab252bc2ea556424399c8edd81d4035c15e4c62c2d142c4ca46cfc83884",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9558,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+      "sha256": "b793f2d6d70c2e0251ef6a7c50b16f55744d5f27e561a9d1c8ba17e45bd60389",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2093,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/expression.json",
+      "sha256": "539e70667b189f071ec9bae1437a67b45b3503359842d8fe04a173803c23028c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1855,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/work.json",
+      "sha256": "a50e4e0004d2b30cf5b3bdf9b2e939daff38a2bdd99e38ab1546283262ed8042",
       "surface_kind": "structured"
     },
     {
@@ -32087,6 +34295,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 4915,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0060-research-registry-import-and-local-source-planting.md",
+      "sha256": "c95d051e61a1063314c62e2617bbcdb8b8036e4fccbf5bcb2b786cfd5b0755ee",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -32095,51 +34311,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 11141,
+      "bytes": 11373,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "2d74ff54df45346022aac396997a4fe4d4011e3324a3e77af21178d4fcf7f5bd",
+      "sha256": "c29511de8d1db045a245f3feed5a5ef0e057327a50b608a12ed103c03b9eede7",
       "surface_kind": "human"
     },
     {
-      "bytes": 50301,
+      "bytes": 51486,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "1c6d2374820fbd723e79a9c611cdd393e966078946048c01dfd1d5a0fe5f4f2a",
+      "sha256": "c7caa0311640c324493043639abb351574fd76f9d748792b4322fd524de96f31",
       "surface_kind": "human"
     },
     {
-      "bytes": 28605,
+      "bytes": 29123,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "26d80c8e174a1aa78f6ba2c85654a6a7833e70617b43c3ee73b23ee183b069d8",
+      "sha256": "3c45854e7b898ee9ba9302b7c915533d9f78f134f381cf56ec2c6cfdd90f6365",
       "surface_kind": "human"
     },
     {
-      "bytes": 43869,
+      "bytes": 44797,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "72a491a460fdcfb904fbe202d275b87885f226d5ee096399a822e52e29a518ef",
+      "sha256": "ecb22fb8035eacaf4603c981682d7d5c7b4f2903758542796640db84b6eb6f44",
       "surface_kind": "human"
     },
     {
-      "bytes": 46684,
+      "bytes": 47844,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "4b80f63a8a536570a51452b699fc71cb469007bfbd40563902fd26e8ddca9369",
+      "sha256": "697adff310a596781a32c7e108cc6e5c40f1d077b6286dd494b207af11c301d6",
       "surface_kind": "human"
     },
     {
-      "bytes": 41008,
+      "bytes": 41472,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "53ee023dac8695538ad55d301c3cfcb1dc98c70592661be490a7ff6c13a620d8",
+      "sha256": "343b0d936222d6d9cf9728923f0098fea6a3be30a806a31ede99b6adf72fd16f",
       "surface_kind": "human"
     },
     {
@@ -32207,19 +34423,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 207772,
+      "bytes": 220259,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "5c4a916d892402609c796f2e203f578f456186c3f6802455cb826e0468b61f35",
+      "sha256": "d17d1b107e48279a30874e82f535c95cc9b7577713a5d0511216089aefdde69f",
       "surface_kind": "structured"
     },
     {
-      "bytes": 34440,
+      "bytes": 34840,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/validation_lanes.json",
-      "sha256": "b0f92db41e3a74e7d85203f769c93600cf5112c4cfa94e74e97cc25faf165508",
+      "sha256": "633cdda0fa947b0f85aaa42f5807b347ee6d1cfeb44e328ff6fe1abe66f5ecc1",
       "surface_kind": "structured"
     },
     {
@@ -34087,12 +36303,20 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 557,
+      "bytes": 3200,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/source-witnessing/parts/witness-route/README.md",
-      "sha256": "2006356bb9e75bceefc77ee05d079bf29eded20204e64fbd1724825e18eec1e7",
+      "sha256": "369d177fe8fad1bd7a4c7fdf1ddaf04c94da972885d358b54e5cafcc44c65cc3",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 35412,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/source-witnessing/parts/witness-route/config/registry-normalization.v1.json",
+      "sha256": "dc7d64af1f5200dcfcacc2561e53fd429d434e02bc7d6995ede908c921ee059e",
+      "surface_kind": "structured"
     },
     {
       "bytes": 1511,
@@ -34221,6 +36445,14 @@
       "path": "scripts/VALIDATION.md",
       "sha256": "7ed6cfa30ea69597d50972df3c343c298b4b9f2ec5bd475604644df2212ea3fa",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 41758,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/acquire_registry_sources.py",
+      "sha256": "ced95e3cd6ce2fc2e28de090f21d70c95e2c116a7832c5e687835136d0b0b3ef",
+      "surface_kind": "executable"
     },
     {
       "bytes": 11658,
@@ -34367,11 +36599,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 1298,
+      "bytes": 2430,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_open_work_candidate_queue.py",
-      "sha256": "67636c7e6f5388e3292e6f3ab32a2b4139a703b52702f5ca7697244b3c04cceb",
+      "sha256": "8396fdd16c697daffdc5e0e35f1215f5e551028c4b7f0043e2a90f24853400c8",
       "surface_kind": "executable"
     },
     {
@@ -34439,11 +36671,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 45114,
+      "bytes": 7262,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_source_registry_reconciliation.py",
+      "sha256": "6cf2ba38b72c4e84d54bec83088030ae8cf005eca71569bda598312e63922f98",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 55046,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_source_resource_inventories.py",
-      "sha256": "1f87e27c0829fc2d4a42b9d0645f5abb5f01ac590eb0480d1b5a6ab09da12e5c",
+      "sha256": "1da007be45844c70e3ae68ae9e019bb4cdb32fbb5a1bdc92d3212b8054fc1516",
       "surface_kind": "executable"
     },
     {
@@ -34655,6 +36895,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 1260,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/inspect_source_registry.py",
+      "sha256": "fd3a467351d4c5dd5f10e41229181664902c1b764f94d79b3e22f075d0ede667",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 12041,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -34671,11 +36919,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 132376,
+      "bytes": 614,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/normalize_source_registries.py",
+      "sha256": "483fcd287b4edb438d613bd82ee398aa62a8a32317257ea067660a2a79b21e91",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 148115,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/open_work_candidate_queue_common.py",
-      "sha256": "71dca6e56272a7ff0132f1169d67eb0ad7c06666409dac70378f1927b217ff6a",
+      "sha256": "36036c3a42379f42d0ab539b4488370c88620a292fbd9c3c9dedfbb034e7927a",
       "surface_kind": "executable"
     },
     {
@@ -34727,11 +36983,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 116060,
+      "bytes": 116317,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/plant_table_i_prepared_dossiers.py",
-      "sha256": "1c3f8571e0ee2197f69154e24bedb17e436617b4514bf8a80afa7b238ba3270f",
+      "sha256": "f69e7f698f5f77c098bfa2451afe29e3b0ac6ac93da11d20a3514435c902fdb9",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 5346,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/prepare_philosophy_source_planting.py",
+      "sha256": "d25bdee12bcd733b8226391e64c2f797fdee305f2d5826733e92f10bfd540362",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 32221,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/prepare_registry_sources.py",
+      "sha256": "c1369bc91eed94cc0c0454c1736082b8a260300643f4fba17d3c5cbf7a944fe5",
       "surface_kind": "executable"
     },
     {
@@ -34844,6 +37116,30 @@
       "family_id": "scripts",
       "path": "scripts/source_record_profiles.py",
       "sha256": "dfc5f07faea4a0045942408ae130b1e46b734377a3cd07c4541df95c71caf47b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 17790,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/source_registry_common.py",
+      "sha256": "30e98754d255f36e42d889f45cb0b7abaa616092f156b4909f1e912cb63842f7",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 6765,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/source_registry_ooxml.py",
+      "sha256": "cf7b6add7f9c9ef079225cde353dba149fd0caf3d428711b4060682b5d68fac9",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 14342,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/source_registry_values.py",
+      "sha256": "2ea31da3ebfc758035633d67a31718c23684973c8e9acc06d33d6b98f60c7f2d",
       "surface_kind": "executable"
     },
     {
@@ -35039,11 +37335,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 24616,
+      "bytes": 26355,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_philosophy_topology.py",
-      "sha256": "29413d9e701378aedf68dcd1eaed1b6188162aa7347916d0143900812d809726",
+      "sha256": "15630110cc795e0a76e2643dec393adf58970848af7ce77c448826f9dc919a5d",
       "surface_kind": "executable"
     },
     {
@@ -35060,6 +37356,14 @@
       "family_id": "scripts",
       "path": "scripts/validate_semantic_registry_transition.py",
       "sha256": "78e68c9d257bd79bbd97478ad28e23bb3e984169ff654dbd4f441bc2ccf8c234",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 1859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/validate_source_registry_normalization.py",
+      "sha256": "5d4be16ee4d9411ef4a86897c411bc668dd463426049b566559fcbdeb841c2a6",
       "surface_kind": "executable"
     },
     {
@@ -35335,11 +37639,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 88981,
+      "bytes": 91000,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "0cabe2ba16e08ec8976ad88cda81fd75e51468475286b4ca828f882de1cb76fb",
+      "sha256": "f32f0e161a3af76f1e8817e3c7653bd936e665da558a25a30852f8cd0e5e4fcd",
       "surface_kind": "structured"
     },
     {
@@ -35391,11 +37695,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 78728,
+      "bytes": 96458,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_open_work_candidate_queue.py",
-      "sha256": "53ca24451c2567af9064fd8ead2b8ca83b5114d81edf9c5d942812d5fc457579",
+      "sha256": "408759f046654f7da58b476b270fb22b6f752176c1c8e7c693a9ce5c76918bbe",
       "surface_kind": "executable"
     },
     {
@@ -35463,6 +37767,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 11247,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_registry_source_acquisition.py",
+      "sha256": "42de651d75546525ff975960ea4184ae7515634ab8fb020c6e980e9dd8d3ae4a",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 4864,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
@@ -35519,11 +37831,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 16857,
+      "bytes": 25034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_source_registry_normalization.py",
+      "sha256": "ade415c50c0632b637006f28a672384a3d75aa636bd5c88ad3ba852b9d0b990b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 24706,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_resource_inventories.py",
-      "sha256": "607e211a15e0d39009dd27617728d7308841f393f6e17f64fd9b59d86116d1f5",
+      "sha256": "54e675a9e7708093fc9e9f32409c727cb917c6608fd729f4d060b7e5f6a4ffd0",
       "surface_kind": "executable"
     },
     {
@@ -35543,11 +37863,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 533200,
+      "bytes": 546524,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_foundation.py",
-      "sha256": "9f249699e316bcc037801933a7fe634789793820f8f783df54fe17f659f75775",
+      "sha256": "db09dea2d4a85c726a15ebf9de7ade6093df0ad5d5ec7f1d0450b410e09e72ae",
       "surface_kind": "executable"
     },
     {
@@ -35599,11 +37919,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 18974,
+      "bytes": 21798,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validate_philosophy_topology.py",
-      "sha256": "ae2f3f89480662a165bf5745da98cbfae8714b0a8035a7a820850161517e0b6a",
+      "sha256": "5cc73550e7b1eada8cd3b74a75d7858788d6d6605ae107778c34456614d7367a",
       "surface_kind": "executable"
     },
     {

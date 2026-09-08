@@ -1,0 +1,124 @@
+{
+  "schema_version": "tos_oraec_observed_scope_correction_v1",
+  "status": "source-visible-post-acquisition-correction",
+  "prepared_evidence_changed": false,
+  "payload_bytes_changed": false,
+  "rights_changed": false,
+  "reviewer_ref": "model:codex",
+  "started_at": "2026-09-08T21:23:08.375421+00:00",
+  "targets": {
+    "immortality-of-writers": {
+      "corrected_version_description": "ORAEC scholarly JSON containing Egyptian written-form transliteration, German sentence translations and token glosses, and lexical/morphological annotation, derived from AED-TEI and the January 2018 database export; exact immutable ORAEC Git snapshot. No hieroglyphic representation field was observed in these acquired bytes.",
+      "limits": [
+        "Coverage is limited to verso 2.5–3.11 of pChester Beatty IV / British Museum EA 10684.",
+        "Egyptian written-form transliteration, German sentence translation, token glosses and annotations remain separate supplied components.",
+        "The broader ORAEC platform description does not establish a hieroglyphic representation in this exact raw JSON.",
+        "No source characters, gaps or editorial signs were changed; no translation, semantic or canon admission follows."
+      ],
+      "correction_event_ref": "tos.event.correction.registry-20260908.immortality-of-writers.observed-scope",
+      "observed_fields": {
+        "title": "Vso 2.5-3.11: Die großen Autoren früherer Zeiten / pChester Beatty IV = pBM EA 10684",
+        "written_form_count": 323,
+        "sentence_translation_count": 43,
+        "cotext_translation_count": 319,
+        "hieroglyphic_representation_field_observed": false
+      },
+      "file_sha256": "2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "prior_record_preimages": [
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/component-witnesses.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/89e44932c82a4678217bbe6a15268702e38d4c7d700c622b5ff28494b60bab38.json",
+          "sha256": "89e44932c82a4678217bbe6a15268702e38d4c7d700c622b5ff28494b60bab38",
+          "byte_size": 1373
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-observations.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/60914faaff23470cabd7e602a06a8c05ffea76cf3672fe684e17737603cc385a.json",
+          "sha256": "60914faaff23470cabd7e602a06a8c05ffea76cf3672fe684e17737603cc385a",
+          "byte_size": 1470
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-report.md",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/9c04e18ab6d2f2e5fc5ad30ca69907984cfd6b597d65cbd1b6ee19c2b100516b.md",
+          "sha256": "9c04e18ab6d2f2e5fc5ad30ca69907984cfd6b597d65cbd1b6ee19c2b100516b",
+          "byte_size": 1511
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/expression.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/d71321377a2b3584151ccd6a60066805cf02edb0c67ff03eb168eeb6195f56fb.json",
+          "sha256": "d71321377a2b3584151ccd6a60066805cf02edb0c67ff03eb168eeb6195f56fb",
+          "byte_size": 2427
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/de-aed-tei-oraec/expression.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/acf3db98b9cec6c6b5b2d4ae09dce5e358fa02d1aafce21748ad079a8ab069ac.json",
+          "sha256": "acf3db98b9cec6c6b5b2d4ae09dce5e358fa02d1aafce21748ad079a8ab069ac",
+          "byte_size": 2190
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/edition.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/9cbe2f4a5bdb0ac817f31ec5fe7457005fd2445a2d56163a4e2288686881936f.json",
+          "sha256": "9cbe2f4a5bdb0ac817f31ec5fe7457005fd2445a2d56163a4e2288686881936f",
+          "byte_size": 2245
+        }
+      ]
+    },
+    "be-a-scribe": {
+      "corrected_version_description": "ORAEC scholarly JSON containing Egyptian written-form transliteration, German sentence translations and token glosses, and lexical/morphological annotation, derived from AED-TEI and the January 2018 database export; exact immutable ORAEC Git snapshot. No hieroglyphic representation field was observed in these acquired bytes.",
+      "limits": [
+        "Coverage is limited to verso 3.11–4.6 of pChester Beatty IV / British Museum EA 10684.",
+        "Egyptian written-form transliteration, German sentence translation, token glosses and annotations remain separate supplied components.",
+        "The broader ORAEC platform description does not establish a hieroglyphic representation in this exact raw JSON.",
+        "No source characters, gaps or editorial signs were changed; no translation, semantic or canon admission follows."
+      ],
+      "correction_event_ref": "tos.event.correction.registry-20260908.be-a-scribe.observed-scope",
+      "observed_fields": {
+        "title": "Vso 3.11-4.6: Werde Schreiber! / pChester Beatty IV = pBM EA 10684",
+        "written_form_count": 145,
+        "sentence_translation_count": 21,
+        "cotext_translation_count": 142,
+        "hieroglyphic_representation_field_observed": false
+      },
+      "file_sha256": "b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "prior_record_preimages": [
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/component-witnesses.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/61aa5b58792bebefd77da3917a3a9b34b0a19061a81a886fbe1a6a890e1b1846.json",
+          "sha256": "61aa5b58792bebefd77da3917a3a9b34b0a19061a81a886fbe1a6a890e1b1846",
+          "byte_size": 1340
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-observations.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/dc368a0a0d6d07e9479ec5a7ce1d4b2dead6b1e49c0d292b20f8e45f7fc01d83.json",
+          "sha256": "dc368a0a0d6d07e9479ec5a7ce1d4b2dead6b1e49c0d292b20f8e45f7fc01d83",
+          "byte_size": 1437
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-report.md",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/3dab7a279ea8d7b17b35cd023b09ad5e74487f74e686a7b49225fd3d35438998.md",
+          "sha256": "3dab7a279ea8d7b17b35cd023b09ad5e74487f74e686a7b49225fd3d35438998",
+          "byte_size": 1501
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/expression.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/a785f09f5ea2f75f0fdc06914f63217a2c6a38ef9ce0651f62c20a98967f787c.json",
+          "sha256": "a785f09f5ea2f75f0fdc06914f63217a2c6a38ef9ce0651f62c20a98967f787c",
+          "byte_size": 2373
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/de-aed-tei-oraec/expression.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/75b043921fdba315319908a44e79235ea5571ad2909045ddd046b35f57e73415.json",
+          "sha256": "75b043921fdba315319908a44e79235ea5571ad2909045ddd046b35f57e73415",
+          "byte_size": 2136
+        },
+        {
+          "source_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/edition.json",
+          "retained_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/before/ddc1629748a2b0c58d6aff5646cf23d9263122ae3e73ce8bd94578ff692f1370.json",
+          "sha256": "ddc1629748a2b0c58d6aff5646cf23d9263122ae3e73ce8bd94578ff692f1370",
+          "byte_size": 2191
+        }
+      ]
+    }
+  },
+  "ended_at": "2026-09-08T21:23:08.393392+00:00"
+}

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 import re
@@ -3096,6 +3097,286 @@ def build_payload(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         provenance_events=provenance_events,
     )
 
+
+
+READINESS_DIMENSIONS = ("version", "access", "rights", "file", "branch")
+READINESS_SCHEMA_PATH = Path("ToS/contracts/open-work-readiness-plan.schema.json")
+
+
+def _readiness_ref(repo_root: Path, ref: dict[str, Any], *, location: str) -> Path:
+    relative = _safe_relative_path(ref["path"])
+    path = repo_root / relative
+    if not path.resolve().is_relative_to(repo_root.resolve()):
+        raise QueueBuildError(f"{location}: evidence escapes repository: {relative}")
+    if not path.is_file():
+        raise QueueBuildError(f"{location}: evidence does not resolve: {relative}")
+    if _sha256_file(path) != ref["sha256"]:
+        raise QueueBuildError(f"{location}: evidence digest mismatch: {relative}")
+    return relative
+
+
+def _readiness_execution_status(
+    repo_root: Path, target: dict[str, Any], dimensions: dict[str, Any]
+) -> str:
+    """Bind completion to the exact Work, local files and branch planting.
+
+    The historical queue and plans without execution state retain their old
+    behavior. This checks declared execution evidence, not semantic admission.
+    """
+    execution = target.get("execution")
+    if execution is None:
+        return "pending"
+    target_id = target["target_id"]
+    status = execution["status"]
+    refs = {
+        _readiness_ref(repo_root, ref, location=f"{target_id}:execution").as_posix()
+        for ref in execution["owner_refs"]
+    }
+    if status == "pending":
+        return status
+    if execution["evidence_posture"] != "owner-reviewed" or not refs:
+        raise QueueBuildError(f"{target_id}: execution state needs owner-reviewed evidence")
+    if any(not ref.startswith(("ToS/source-witnesses/", "ToS/philosophy/"))
+           or ref.startswith("ToS/source-witnesses/discovery/candidates/") for ref in refs):
+        raise QueueBuildError(f"{target_id}: execution evidence must return to source or philosophy owner")
+    if status != "completed":
+        return status
+    if dimensions["file"]["status"] != "present" or dimensions["branch"]["status"] != "ready":
+        raise QueueBuildError(f"{target_id}: completed execution requires present files and a ready branch")
+
+    specification = target["target"]
+    planned_ids = specification.get("planned_ids", {})
+    record_refs = specification.get("create_record_refs", {})
+    work_id = planned_ids.get("work") if isinstance(planned_ids, dict) else None
+    work_ref = record_refs.get("work") if isinstance(record_refs, dict) else None
+    if (not isinstance(work_id, str) or not work_id.startswith("tos.work.")
+            or not isinstance(work_ref, str) or work_ref not in refs
+            or not work_ref.startswith("ToS/source-witnesses/")):
+        raise QueueBuildError(f"{target_id}: completed execution requires the exact planned Work and digest evidence")
+    work = _load_json(repo_root / work_ref, repo_root)
+    if (work.get("schema_version") != "tos_corpus_record_v1"
+            or work.get("record_type") != "work" or work.get("record_id") != work_id):
+        raise QueueBuildError(f"{target_id}: completed execution Work record does not match planned identity")
+
+    from jsonschema import Draft202012Validator, FormatChecker
+
+    schema = _load_json(repo_root / "ToS/contracts/philosophy-source-planting.schema.json", repo_root)
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    matched = False
+    for ref in sorted(refs):
+        relative = Path(ref)
+        if not ref.startswith("ToS/philosophy/") or relative.name != "source-planting.json":
+            continue
+        planting = _load_json(repo_root / relative, repo_root)
+        errors = list(validator.iter_errors(planting))
+        if errors:
+            raise QueueBuildError(f"{target_id}: execution planting is invalid: {ref}: {errors[0].message}")
+        branch = planting["branch_path"]
+        source = planting["source_witness"]
+        if (source.get("work_id") != work_id or source.get("record_ref") != work_ref
+                or branch not in specification["known_tos_refs"]
+                or relative.parent.parent.name != "plantings"
+                or relative.parent.parent.parent.name != "sources"
+                or relative.parents[3].as_posix() != branch):
+            raise QueueBuildError(f"{target_id}: execution planting does not bind the planned Work and exact branch")
+        matched = True
+    if not matched:
+        raise QueueBuildError(f"{target_id}: completed execution lacks owner source-planting evidence")
+    return status
+
+
+def build_readiness_payload(
+    repo_root: Path = REPO_ROOT,
+    *,
+    readiness_plan: Path | None = None,
+) -> dict[str, Any]:
+    """Project an owner-reviewed plan without changing historical queue inputs.
+
+    Statuses remain source assertions with exact evidence return. This helper
+    checks references, bytes, eligibility and ordering, never rights or identity
+    truth. Plan-only targets do not become historical ledger candidates.
+    """
+    from jsonschema import Draft202012Validator, FormatChecker
+
+    payload = build_payload(repo_root)
+    base_digest = payload["queue_sha256"]
+    existing = {entry["candidate_id"]: entry for entry in payload["candidates"]}
+    plan_entries: list[dict[str, Any]] = []
+    plan_ref = None
+    if readiness_plan is not None:
+        relative = _safe_relative_path(readiness_plan.as_posix())
+        if not relative.as_posix().startswith("ToS/source-witnesses/discovery/"):
+            raise QueueBuildError("readiness plan must belong to ToS/source-witnesses/discovery/")
+        path = repo_root / relative
+        if not path.resolve().is_relative_to(repo_root.resolve()):
+            raise QueueBuildError("readiness plan escapes repository")
+        plan = _load_json(path, repo_root)
+        schema = _load_json(repo_root / READINESS_SCHEMA_PATH, repo_root)
+        errors = sorted(
+            Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(plan),
+            key=lambda error: str(list(error.absolute_path)),
+        )
+        if errors:
+            error = errors[0]
+            raise QueueBuildError(f"{relative}: {list(error.absolute_path)}: {error.message}")
+        plan_ref = {"path": relative.as_posix(), "sha256": _sha256_file(path)}
+        plan_entries = plan["targets"]
+
+    entries: list[dict[str, Any]] = []
+    seen_targets: set[str] = set()
+    seen_candidates: set[str] = set()
+    for target in plan_entries:
+        target_id = target["target_id"]
+        if target_id in seen_targets:
+            raise QueueBuildError(f"duplicate readiness target_id: {target_id}")
+        seen_targets.add(target_id)
+        candidate_id = target.get("candidate_id")
+        if candidate_id is not None:
+            if candidate_id not in existing:
+                raise QueueBuildError(f"{target_id}: unknown historical candidate_id {candidate_id}")
+            if candidate_id in seen_candidates:
+                raise QueueBuildError(f"duplicate readiness candidate_id: {candidate_id}")
+            seen_candidates.add(candidate_id)
+            if target.get("candidate_sha256") != existing[candidate_id]["candidate_sha256"]:
+                raise QueueBuildError(f"{target_id}: candidate digest mismatch")
+        for index, source in enumerate(target["source_record_refs"]):
+            relative_source = _readiness_ref(repo_root, source, location=f"{target_id}:source_record_refs[{index}]")
+            if relative_source.as_posix().endswith(".json.gz") or (
+                relative_source.as_posix().startswith("ToS/research-packets/source-registries/")
+                and "documents" in relative_source.parts
+            ):
+                try:
+                    data = (repo_root / relative_source).read_bytes()
+                    document = json.loads(gzip.decompress(data) if relative_source.suffix == ".gz" else data)
+                except (OSError, ValueError, EOFError) as exc:
+                    raise QueueBuildError(f"{target_id}: cannot read normalized source document: {exc}") from exc
+                if not isinstance(document, dict) or any(
+                    document.get(key) != source[key] for key in ("corpus_id", "document_id")
+                ):
+                    raise QueueBuildError(f"{target_id}: normalized source corpus/document mismatch")
+                matches = [record for record in document.get("records", []) if isinstance(record, dict)
+                    and all(record.get(key) == source[key] for key in ("corpus_id", "document_id"))
+                    and source["record_id"] in (record.get("record_id"), record.get("source_record_id"))]
+                if len(matches) != 1:
+                    raise QueueBuildError(f"{target_id}: normalized source record must resolve exactly once")
+        dimensions: dict[str, Any] = {}
+        for dimension in READINESS_DIMENSIONS:
+            observed = target["readiness"][dimension]
+            status = observed["status"]
+            refs = [
+                _readiness_ref(repo_root, ref, location=f"{target_id}:{dimension}")
+                for ref in observed["owner_refs"]
+            ]
+            positive = status in {"ready", "present", "absent"}
+            if positive:
+                if observed["evidence_posture"] != "owner-reviewed" or not refs:
+                    raise QueueBuildError(
+                        f"{target_id}:{dimension}: positive readiness needs owner-reviewed evidence"
+                    )
+                prefix = "ToS/philosophy/" if dimension == "branch" else "ToS/source-witnesses/"
+                if any(
+                    not ref.as_posix().startswith(prefix)
+                    or ref.as_posix().startswith("ToS/source-witnesses/discovery/candidates/")
+                    for ref in refs
+                ):
+                    raise QueueBuildError(f"{target_id}:{dimension}: imported or queue evidence is not owner review")
+            dimensions[dimension] = observed
+        requested_uses = set(target["acquisition"]["intended_uses"])
+        if dimensions["rights"]["status"] == "ready" and not requested_uses <= set(
+            dimensions["rights"].get("intended_uses", [])
+        ):
+            raise QueueBuildError(f"{target_id}: rights readiness does not cover every intended use")
+        for url in target["acquisition"]["source_urls"]:
+            parsed = urlsplit(url)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+                raise QueueBuildError(f"{target_id}: source URL must be credential-free HTTP(S)")
+        destinations = target["acquisition"]["destination_paths"]
+        for value in destinations:
+            dest = _safe_relative_path(value)
+            if not value.startswith("ToS/source-witnesses/") or "payload" not in dest.parts:
+                raise QueueBuildError(f"{target_id}: destination must be an owner payload path: {value}")
+            if not (repo_root / dest).resolve().is_relative_to(repo_root.resolve()):
+                raise QueueBuildError(f"{target_id}: destination escapes repository")
+        file_status = dimensions["file"]["status"]
+        if file_status == "present" and (
+            not destinations or not all((repo_root / dest).is_file() for dest in destinations)
+        ):
+            raise QueueBuildError(f"{target_id}: present file status lacks every destination file")
+        if file_status == "absent" and any((repo_root / dest).exists() for dest in destinations):
+            raise QueueBuildError(f"{target_id}: absent file status conflicts with existing destination")
+        if file_status == "present":
+            evidenced = {ref["path"] for ref in dimensions["file"]["owner_refs"]}
+            if not set(destinations) <= evidenced:
+                raise QueueBuildError(f"{target_id}: present payloads need exact digest evidence")
+        execution_status = _readiness_execution_status(repo_root, target, dimensions)
+        eligible = candidate_id is None or (
+            existing[candidate_id]["candidate_kind"] in QUEUEABLE_KINDS
+            and existing[candidate_id]["effective_status"] == READY_STATUS
+        )
+        ready = execution_status == "pending" and eligible and all(
+            dimensions[name]["status"] == "ready" for name in ("version", "access", "rights", "branch")
+        ) and file_status in {"absent", "present"} and bool(destinations) and bool(
+            target["acquisition"]["source_urls"]
+        )
+        entries.append({
+            **target,
+            "candidate_id": candidate_id,
+            "eligible": eligible,
+            "ready_for_acquisition_review": ready,
+            "next_action": (
+                "completed-owner-evidenced" if execution_status == "completed"
+                else "await-owner-resumption" if execution_status == "deferred"
+                else "resolve-execution-blocker" if execution_status == "blocked"
+                else "verify-existing-witness" if ready and file_status == "present"
+                else "acquire-after-owner-gates" if ready
+                else "resolve-owner-evidence" if eligible else "historical-terminal-or-excluded"
+            ),
+        })
+    for candidate_id, candidate in existing.items():
+        if candidate_id in seen_candidates:
+            continue
+        if candidate_id in seen_targets:
+            raise QueueBuildError(f"readiness target_id collides with historical candidate: {candidate_id}")
+        entries.append({
+            "target_id": candidate_id,
+            "candidate_id": candidate_id,
+            "candidate_sha256": candidate["candidate_sha256"],
+            "preferred_label": candidate["preferred_label"],
+            "source_record_refs": [],
+            "target": None,
+            "readiness": {name: {
+                "status": "unknown", "evidence_posture": "unreviewed", "owner_refs": [],
+                "rationale": "No explicit owner readiness plan; historical queue review is ordering-only.",
+            } for name in READINESS_DIMENSIONS},
+            "acquisition": {"source_urls": [], "destination_paths": [], "intended_uses": []},
+            "eligible": candidate["candidate_kind"] in QUEUEABLE_KINDS and candidate["effective_status"] == READY_STATUS,
+            "ready_for_acquisition_review": False,
+            "next_action": "resolve-owner-evidence",
+        })
+    def sort_key(entry: dict[str, Any]) -> tuple:
+        blocked = any(value["status"] == "blocked" for value in entry["readiness"].values())
+        known = sum(value["status"] in {"ready", "present", "absent"} for value in entry["readiness"].values())
+        candidate = existing.get(entry["candidate_id"], {})
+        selection = candidate.get("selection", {})
+        return (
+            not entry["eligible"], not entry["ready_for_acquisition_review"],
+            entry.get("execution", {}).get("status", "pending") != "pending", blocked, -known,
+            selection.get("chronology_sort_year", 10**9), selection.get("atlas_row_order", 10**9),
+            entry["target_id"],
+        )
+    entries.sort(key=sort_key)
+    selected = next((entry for entry in entries if entry["ready_for_acquisition_review"]), None)
+    payload.update({
+        "selection_mode": "readiness",
+        "chronological_queue_sha256": base_digest,
+        "readiness_plan_ref": plan_ref,
+        "readiness_entries": entries,
+        "next_target_id": selected["target_id"] if selected else None,
+        "next_candidate_id": selected["candidate_id"] if selected else None,
+        "selection_boundary": "read-only preparation; owner evidence assertions are not new verification; plan-only targets do not enter historical candidate receipt replay",
+    })
+    payload["queue_sha256"] = _queue_sha256(payload)
+    return payload
 
 def render_payload(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"

@@ -117,6 +117,34 @@ def validate_route_list(
             issues.append((entry, f"{key} entry is missing"))
 
 
+
+def validate_planting_atlas_membership(root: Path, planting: dict, location: str) -> list[Issue]:
+    """A syntactically valid ID must still return to one actual atlas row and branch."""
+    issues: list[Issue] = []
+    atlas_id = planting.get("atlas_row_id")
+    if atlas_id != planting.get("dossier_id"):
+        issues.append((location, "planting atlas_row_id and dossier_id must agree"))
+    matches = []
+    for path in sorted((root / "ToS/philosophy/atlas/master-tables").glob("*/rows.jsonl")):
+        try:
+            rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        except (OSError, json.JSONDecodeError) as exc:
+            issues.append((location, f"cannot read planting atlas membership: {exc}"))
+            continue
+        matches.extend(row for row in rows if isinstance(row, dict) and row.get("row_id") == atlas_id)
+    if len(matches) != 1:
+        issues.append((location, "planting atlas row must resolve exactly once in current master tables"))
+    branch_path = planting.get("branch_path")
+    if isinstance(branch_path, str):
+        relative = repo_relative_resolved(root, Path(branch_path))
+        if relative is None or not relative.as_posix().startswith("ToS/philosophy/"):
+            issues.append((location, "planting branch must resolve under ToS/philosophy"))
+        else:
+            branch = load_json(root, relative / "branch.manifest.json", issues)
+            if branch is not None and atlas_id not in branch.get("atlas_rows", []):
+                issues.append((location, "planting atlas row does not belong to the exact branch"))
+    return issues
+
 def run_validation(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -312,6 +340,8 @@ def run_validation(repo_root: Path | None = None) -> list[Issue]:
             for error in sorted(planting_validator.iter_errors(planting), key=lambda item: list(item.path)):
                 suffix = ".".join(str(part) for part in error.path)
                 issues.append((planting_ref if not suffix else f"{planting_ref}:{suffix}", f"source-planting schema: {error.message}"))
+
+        issues.extend(validate_planting_atlas_membership(root, planting, planting_ref))
 
         planting_id = planting.get("planting_id")
         if isinstance(planting_id, str):

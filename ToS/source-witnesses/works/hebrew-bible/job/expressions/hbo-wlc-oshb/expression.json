@@ -1,0 +1,38 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "expression",
+  "record_id": "tos.expression.hebrew-bible.job.hbo-wlc-oshb",
+  "preferred_label": "Job — hbo source-language layer",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "work_ref": "tos.work.hebrew-bible.job",
+  "language": "hbo",
+  "expression_role": "source_language",
+  "responsibility_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.registry-20260908.job.expression-edition"
+  ],
+  "notes": "Westminster Leningrad Codex digital transcription with Open Scriptures Hebrew Bible lemma and morphology annotation; immutable OSHB Git snapshot. Open Scriptures Hebrew Bible Project: modern transcription/annotation distribution, not ancient authorship. Supplied annotation or punctuation does not establish ToS source-text acceptance.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

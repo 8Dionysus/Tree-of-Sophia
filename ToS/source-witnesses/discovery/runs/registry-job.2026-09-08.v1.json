@@ -1,0 +1,303 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-job.2026-09-08.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.hebrew-bible.job",
+      "tos.expression.hebrew-bible.job.hbo-wlc-oshb",
+      "tos.edition.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef",
+      "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml"
+    ],
+    "description": "Westminster Leningrad Codex digital transcription with Open Scriptures Hebrew Bible lemma and morphology annotation; immutable OSHB Git snapshot.",
+    "required_properties": [
+      "Alternative WLC/OSHB edition for the named work need; not a copy of Sefaria or an equivalence claim.",
+      "Original XML bytes and Hebrew character order must be preserved; no NFC normalization.",
+      "Morphological analysis and lemma assignments are modern annotations, not accepted ToS analysis.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "hbo"
+    ],
+    "formats": [
+      "application/xml"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-job-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "openscriptures/morphhb upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/openscriptures/morphhb/git/trees/3d15126fb1ef74867fc1434be1942e837932691f?recursive=1",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/openscriptures/morphhb/git/trees/3d15126fb1ef74867fc1434be1942e837932691f?recursive=1",
+      "queried_at": "2026-09-08T20:47:45.625967+00:00",
+      "elapsed_seconds": 0.45940617300038866,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-job-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "morphhb-tree.json",
+          "result_url": "https://api.github.com/repos/openscriptures/morphhb/git/trees/3d15126fb1ef74867fc1434be1942e837932691f?recursive=1",
+          "originating_record_url": "https://api.github.com/repos/openscriptures/morphhb/git/trees/3d15126fb1ef74867fc1434be1942e837932691f?recursive=1",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/openscriptures/morphhb/git/trees/3d15126fb1ef74867fc1434be1942e837932691f?recursive=1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "c3dfc359e9bae5fa1878f908ad018ff7e4a59835f304a675ccea5e281f4a618c",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-job-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "openscriptures/morphhb upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/LICENSE.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/LICENSE.md",
+      "queried_at": "2026-09-08T20:47:49.582556+00:00",
+      "elapsed_seconds": 0.28672700400056783,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-job-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "morphhb-LICENSE.md",
+          "result_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/LICENSE.md",
+          "originating_record_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/LICENSE.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "9bf4a2890c25372e4c1dc750d550bfb4eacfbfcb63c53123b0628159370d1878",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-job-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "openscriptures/morphhb upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/README.md",
+      "queried_at": "2026-09-08T20:47:49.869776+00:00",
+      "elapsed_seconds": 0.37735596699894813,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-job-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "morphhb-README.md",
+          "result_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2da25acf89375558b843dab582bdf00833137baf1c8afe2b32cf09e251179999",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-job-file-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "openscriptures/morphhb",
+      "endpoint_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/wlc/Job.xml",
+      "interface_type": "bulk",
+      "interface_version": "3d15126fb1ef74867fc1434be1942e837932691f",
+      "exact_query": "GET https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/wlc/Job.xml",
+      "queried_at": "2026-09-08T21:18:53.408463+00:00",
+      "elapsed_seconds": 0.5797634070004278,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-job-file-4",
+          "rank": 1,
+          "title_as_displayed": "Job.xml",
+          "result_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/wlc/Job.xml",
+          "originating_record_url": "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "3d15126fb1ef74867fc1434be1942e837932691f"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "7145ccffb4bfe624c428acc90ecf3adf58974eab"
+            }
+          ],
+          "available_formats": [
+            "XML/OSIS"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/openscriptures/morphhb/3d15126fb1ef74867fc1434be1942e837932691f/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:53.988225+00:00",
+            "byte_size": 813715,
+            "sha256": "7db3311184122f37a8fd52f3c7c0c4a6d2da7b77ee82f4fdb26bcba9171d297f",
+            "event_ref": "tos.event.acquisition.registry-20260908.job"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-job-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.45940617300038866,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-job-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28672700400056783,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-job-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.37735596699894813,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-job-file-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.5797634070004278,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-job-file-4"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-08T20:47:45.625967+00:00",
+  "ended_at": "2026-09-08T21:18:53.988225+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260908.job",
+    "tos.event.acquisition.registry-20260908.job"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

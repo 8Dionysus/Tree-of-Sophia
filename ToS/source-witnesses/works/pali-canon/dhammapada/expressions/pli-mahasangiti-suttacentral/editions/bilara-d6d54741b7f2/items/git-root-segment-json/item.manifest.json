@@ -1,0 +1,260 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260908.dhammapada",
+  "rights_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.a7147ce1275b5de1b877956586b55de71e0764112919941a4a6215c9d8aa2cea",
+      "relative_path": "payload/dhp1-20_root-pli-ms.json",
+      "original_basename": "dhp1-20_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 4616,
+      "sha256": "a7147ce1275b5de1b877956586b55de71e0764112919941a4a6215c9d8aa2cea",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3758c891e228c698b6d18cb29df5dd67fb5aef61e7601befee6fd4fd032fe5ed",
+      "relative_path": "payload/dhp100-115_root-pli-ms.json",
+      "original_basename": "dhp100-115_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3872,
+      "sha256": "3758c891e228c698b6d18cb29df5dd67fb5aef61e7601befee6fd4fd032fe5ed",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3fe7f712292d9663310c8b4ac5912401c3c7a6d183d9acbd6702d0c1ba82746c",
+      "relative_path": "payload/dhp116-128_root-pli-ms.json",
+      "original_basename": "dhp116-128_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3268,
+      "sha256": "3fe7f712292d9663310c8b4ac5912401c3c7a6d183d9acbd6702d0c1ba82746c",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.8990c7bbf6b78287e8d68f7dc3df5bbdb23f661679bc3800b59b64cfbf0c883d",
+      "relative_path": "payload/dhp129-145_root-pli-ms.json",
+      "original_basename": "dhp129-145_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3899,
+      "sha256": "8990c7bbf6b78287e8d68f7dc3df5bbdb23f661679bc3800b59b64cfbf0c883d",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.a8f7c411772a9806bccf8935d47ca1479d23e2681c66c3322c14168b15066570",
+      "relative_path": "payload/dhp146-156_root-pli-ms.json",
+      "original_basename": "dhp146-156_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2635,
+      "sha256": "a8f7c411772a9806bccf8935d47ca1479d23e2681c66c3322c14168b15066570",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.c8dd7bc1c2d4710cb820694950575c9f7bcffbe19833de9e0270e65fed21dbe9",
+      "relative_path": "payload/dhp157-166_root-pli-ms.json",
+      "original_basename": "dhp157-166_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2535,
+      "sha256": "c8dd7bc1c2d4710cb820694950575c9f7bcffbe19833de9e0270e65fed21dbe9",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.4520313e18ee77239531a09e0f3d4278cbaafa37ac2cf4afde44583ba03d8883",
+      "relative_path": "payload/dhp167-178_root-pli-ms.json",
+      "original_basename": "dhp167-178_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2773,
+      "sha256": "4520313e18ee77239531a09e0f3d4278cbaafa37ac2cf4afde44583ba03d8883",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.bd4b478b1b65d97165b24532ab64223ce2de3824dbbf1cddc65935757b645cc0",
+      "relative_path": "payload/dhp179-196_root-pli-ms.json",
+      "original_basename": "dhp179-196_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3942,
+      "sha256": "bd4b478b1b65d97165b24532ab64223ce2de3824dbbf1cddc65935757b645cc0",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.669db9779c8435e115fbd4b2bb349428dac7d990ce4c8e8e1cc9d5ca1e3ca35c",
+      "relative_path": "payload/dhp197-208_root-pli-ms.json",
+      "original_basename": "dhp197-208_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2691,
+      "sha256": "669db9779c8435e115fbd4b2bb349428dac7d990ce4c8e8e1cc9d5ca1e3ca35c",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.54ef8f0f569167631cf1d78f8332792f9bc408d8f655bd0fb7c945046f450bf6",
+      "relative_path": "payload/dhp209-220_root-pli-ms.json",
+      "original_basename": "dhp209-220_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2625,
+      "sha256": "54ef8f0f569167631cf1d78f8332792f9bc408d8f655bd0fb7c945046f450bf6",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.371ac8e7d2b948a76d7a78cf7397ebee7d22af4d04fb4885c27ac4efb8119f1a",
+      "relative_path": "payload/dhp21-32_root-pli-ms.json",
+      "original_basename": "dhp21-32_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2684,
+      "sha256": "371ac8e7d2b948a76d7a78cf7397ebee7d22af4d04fb4885c27ac4efb8119f1a",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.374807ca82b92ef9a1eb4f4641580c4fb6c8de10de9e8ae0744014ece1e4cc01",
+      "relative_path": "payload/dhp221-234_root-pli-ms.json",
+      "original_basename": "dhp221-234_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3080,
+      "sha256": "374807ca82b92ef9a1eb4f4641580c4fb6c8de10de9e8ae0744014ece1e4cc01",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.c01788ebf7926c90be65cfa15aed02667d98b44e92946fe09398d01fa7f3476c",
+      "relative_path": "payload/dhp235-255_root-pli-ms.json",
+      "original_basename": "dhp235-255_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 4614,
+      "sha256": "c01788ebf7926c90be65cfa15aed02667d98b44e92946fe09398d01fa7f3476c",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.abdfd6d2be8a14fde434ed3172a3883eb15222d34c01bed02387fee216f016e2",
+      "relative_path": "payload/dhp256-272_root-pli-ms.json",
+      "original_basename": "dhp256-272_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3655,
+      "sha256": "abdfd6d2be8a14fde434ed3172a3883eb15222d34c01bed02387fee216f016e2",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e70fc70e9e239aefb4bd90b9c2032c5a2914f3471e939fb75d3d630d30355a0b",
+      "relative_path": "payload/dhp273-289_root-pli-ms.json",
+      "original_basename": "dhp273-289_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3872,
+      "sha256": "e70fc70e9e239aefb4bd90b9c2032c5a2914f3471e939fb75d3d630d30355a0b",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.34bc8e2d7565e2c25da3ad88847ef367c479d49b0bb2368337355330bec9fbdc",
+      "relative_path": "payload/dhp290-305_root-pli-ms.json",
+      "original_basename": "dhp290-305_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3572,
+      "sha256": "34bc8e2d7565e2c25da3ad88847ef367c479d49b0bb2368337355330bec9fbdc",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2b0e1e63b5f020835fcbfdb094e4b2f071e32b725a676c832da980a7b1292eee",
+      "relative_path": "payload/dhp306-319_root-pli-ms.json",
+      "original_basename": "dhp306-319_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3244,
+      "sha256": "2b0e1e63b5f020835fcbfdb094e4b2f071e32b725a676c832da980a7b1292eee",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.fef02ac6b3b86e504d4fc720485638f5d3a9b5e72c706116efad107715b7c9b7",
+      "relative_path": "payload/dhp320-333_root-pli-ms.json",
+      "original_basename": "dhp320-333_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3211,
+      "sha256": "fef02ac6b3b86e504d4fc720485638f5d3a9b5e72c706116efad107715b7c9b7",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ebfb761edc23a0b6b0da9830e940d588f0391f944eb1ed4d58f3ee18ec5a48e4",
+      "relative_path": "payload/dhp33-43_root-pli-ms.json",
+      "original_basename": "dhp33-43_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2470,
+      "sha256": "ebfb761edc23a0b6b0da9830e940d588f0391f944eb1ed4d58f3ee18ec5a48e4",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.86f1d979fd7fed3a1b42fdde8b96b64edf9a6397d07a6ded01f8692f851a940b",
+      "relative_path": "payload/dhp334-359_root-pli-ms.json",
+      "original_basename": "dhp334-359_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 5758,
+      "sha256": "86f1d979fd7fed3a1b42fdde8b96b64edf9a6397d07a6ded01f8692f851a940b",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3a65f5a59610e3d225a201228a00420c2c04c0e55586b734f08b339b1315bf69",
+      "relative_path": "payload/dhp360-382_root-pli-ms.json",
+      "original_basename": "dhp360-382_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 5028,
+      "sha256": "3a65f5a59610e3d225a201228a00420c2c04c0e55586b734f08b339b1315bf69",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.df2220b447e24e565523a6800470922229e0d495a5153fd24ca0f9dc4556c23e",
+      "relative_path": "payload/dhp383-423_root-pli-ms.json",
+      "original_basename": "dhp383-423_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 12869,
+      "sha256": "df2220b447e24e565523a6800470922229e0d495a5153fd24ca0f9dc4556c23e",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e9d21d24286230ab68b9c66e12a046ab4d20ab489ecafe86a510959b34c45de7",
+      "relative_path": "payload/dhp44-59_root-pli-ms.json",
+      "original_basename": "dhp44-59_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3563,
+      "sha256": "e9d21d24286230ab68b9c66e12a046ab4d20ab489ecafe86a510959b34c45de7",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.d223aa95d15c076b57efe9d20e391b2a12098bd2051774c791cffa3a198606ef",
+      "relative_path": "payload/dhp60-75_root-pli-ms.json",
+      "original_basename": "dhp60-75_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3744,
+      "sha256": "d223aa95d15c076b57efe9d20e391b2a12098bd2051774c791cffa3a198606ef",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.b242e5eefbc3e8d34e40e35ee2d5b759f1f66378aa4f592d7d14cf4dd081556b",
+      "relative_path": "payload/dhp76-89_root-pli-ms.json",
+      "original_basename": "dhp76-89_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 3268,
+      "sha256": "b242e5eefbc3e8d34e40e35ee2d5b759f1f66378aa4f592d7d14cf4dd081556b",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.4c14683ece1e58442e54e55528b01192658a63cd079449b715f1e9a388043592",
+      "relative_path": "payload/dhp90-99_root-pli-ms.json",
+      "original_basename": "dhp90-99_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 2462,
+      "sha256": "4c14683ece1e58442e54e55528b01192658a63cd079449b715f1e9a388043592",
+      "fixity_verified_at": "2026-09-08T21:19:04.553813+00:00"
+    }
+  ]
+}

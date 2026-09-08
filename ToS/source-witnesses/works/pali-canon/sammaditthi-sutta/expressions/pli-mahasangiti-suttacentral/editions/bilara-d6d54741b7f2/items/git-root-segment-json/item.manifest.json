@@ -1,0 +1,35 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.pali-canon.sammaditthi-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.pali-canon.sammaditthi-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260908.sammaditthi-sutta",
+  "rights_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.cbd4cd8a3e327da1fe7a20a88b44fd6576f9130234d54f3d9b31fe9d7fb1ef32",
+      "relative_path": "payload/mn9_root-pli-ms.json",
+      "original_basename": "mn9_root-pli-ms.json",
+      "media_type": "application/json",
+      "byte_size": 29786,
+      "sha256": "cbd4cd8a3e327da1fe7a20a88b44fd6576f9130234d54f3d9b31fe9d7fb1ef32",
+      "fixity_verified_at": "2026-09-08T21:20:19.219390+00:00"
+    }
+  ]
+}

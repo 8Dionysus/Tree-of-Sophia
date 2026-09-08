@@ -1,0 +1,53 @@
+[run] check root entry map: /usr/bin/python scripts/build_root_entry_map.py --check
+[ok] verified ToS/derived-exports/root_entry_map.min.json
+[ok] check root entry map
+[run] validate root entry map: /usr/bin/python scripts/validate_root_entry_map.py
+[ok] validated ToS/derived-exports/root_entry_map.min.json
+[ok] validate root entry map
+[run] check ToS corpus index: /usr/bin/python scripts/build_tos_corpus_index.py --check
+[ok] verified ToS/derived-exports/tos_corpus_index.min.json
+[ok] check ToS corpus index
+[run] validate ToS corpus index: /usr/bin/python scripts/validate_tos_corpus_index.py
+[ok] validated ToS/derived-exports/tos_corpus_index.min.json
+[ok] validate ToS corpus index
+[run] check source-witness bibliographic graph: /usr/bin/python scripts/build_source_witness_bibliographic_graph.py --check
+[ok] source-witness bibliographic claim graph matches authored inputs
+[ok] check source-witness bibliographic graph
+[run] validate source-witness bibliographic graph: /usr/bin/python scripts/validate_source_witness_bibliographic_graph.py
+[ok] validated source-witness bibliographic claim graph
+[ok] validate source-witness bibliographic graph
+[run] check philosophy atlas projection: /usr/bin/python scripts/build_philosophy_atlas_projection.py --check
+[ok] verified ToS/derived-exports/philosophy_atlas_projection.min.json
+[ok] check philosophy atlas projection
+[run] validate philosophy atlas projection: /usr/bin/python scripts/validate_philosophy_atlas_projection.py
+[ok] validated ToS/derived-exports/philosophy_atlas_projection.min.json
+[ok] validate philosophy atlas projection
+[run] check philosophy graph views: /usr/bin/python scripts/build_philosophy_graph_views.py --check
+[ok] verified ToS/derived-exports/philosophy_graph_views.min.json
+[ok] check philosophy graph views
+[run] validate philosophy graph views: /usr/bin/python scripts/validate_philosophy_graph_views.py
+[ok] validated ToS/derived-exports/philosophy_graph_views.min.json
+[ok] validate philosophy graph views
+[run] check philosophy graph projection: /usr/bin/python scripts/build_philosophy_graph_projection.py --check
+[ok] verified ToS/derived-exports/philosophy_graph_projection.min.json
+[ok] check philosophy graph projection
+[run] validate philosophy graph projection: /usr/bin/python scripts/validate_philosophy_graph_projection.py
+[ok] validated ToS/derived-exports/philosophy_graph_projection.min.json
+[ok] validate philosophy graph projection
+[run] check epistemic evidence projection: /usr/bin/python scripts/build_epistemic_evidence_projection.py --check
+[ok] verified ToS Evidence Lens projection
+[ok] check epistemic evidence projection
+[run] validate epistemic evidence projection: /usr/bin/python scripts/validate_epistemic_evidence_projection.py
+[ok] validated ToS Evidence Lens projection
+[ok] validate epistemic evidence projection
+[run] check philosophy post-planting audit: /usr/bin/python scripts/build_philosophy_post_planting_audit.py --check
+[ok] verified ToS philosophy post-planting audit
+[ok] check philosophy post-planting audit
+[run] validate philosophy post-planting audit: /usr/bin/python scripts/validate_philosophy_post_planting_audit.py
+[ok] validated ToS philosophy post-planting audit
+[ok] validate philosophy post-planting audit
+[run] check decision indexes: /usr/bin/python scripts/generate_decision_indexes.py --check
+[ok] check decision indexes
+[run] validate decision records: /usr/bin/python scripts/validate_decision_records.py
+[ok] decision records validated
+[ok] validate decision records

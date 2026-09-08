@@ -1,0 +1,40 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "expression",
+  "record_id": "tos.expression.egyptian-literature.be-a-scribe.egy-aed-tei-oraec",
+  "preferred_label": "Be a Scribe! — egy source-language layer",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/oraec/corpus_raw_data/tree/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-README.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec3091-metadata.html",
+    "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/component-witnesses.json",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/current.json"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "work_ref": "tos.work.egyptian-literature.be-a-scribe",
+  "language": "egy",
+  "expression_role": "source_language",
+  "responsibility_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.registry-20260908.be-a-scribe.expression-edition"
+  ],
+  "notes": "ORAEC scholarly JSON containing Egyptian written-form transliteration, German sentence translations and token glosses, and lexical/morphological annotation, derived from AED-TEI and the January 2018 database export; exact immutable ORAEC Git snapshot. No hieroglyphic representation field was observed in these acquired bytes. This Expression denotes only the Egyptian written-form/transliteration component. The modern German sentence translations and cotext_translation glosses have their own Expression and exact observed selectors. Peter Dils is the item-specific responsible scholar. The upstream README preserves the complete contributor list for the exported corpus.",
+  "record_version": 2,
+  "supersedes_ref": null
+}

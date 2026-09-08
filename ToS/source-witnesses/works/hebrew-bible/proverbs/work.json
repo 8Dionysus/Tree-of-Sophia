@@ -1,0 +1,35 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.hebrew-bible.proverbs",
+  "preferred_label": "Proverbs",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "expression_claim_refs": [
+    "tos.claim.topology.registry-20260908.proverbs.work-expression"
+  ],
+  "responsibility_claim_refs": [],
+  "notes": "Provisional work identity for the exact selected source version. Alternative WLC/OSHB edition for the named work need; not a copy of Sefaria or an equivalence claim. Original XML bytes and Hebrew character order must be preserved; no NFC normalization. Morphological analysis and lemma assignments are modern annotations, not accepted ToS analysis. No ancient author attribution is inferred from the responsibility path or modern provider.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

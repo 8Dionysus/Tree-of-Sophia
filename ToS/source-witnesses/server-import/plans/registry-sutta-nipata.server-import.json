@@ -1,0 +1,636 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-sutta-nipata",
+  "item_ref": "tos.item.pali-canon.sutta-nipata.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+    "sha256": "d4e66cb5330389f3370dea0c60aaf3903c54de0a3a752ab922ee7b3aa0e58b25",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.b3f22f47ebde3440dd6bc15d80c17d00ef12837a58a77ec5e560fda75156d2b0",
+      "relative_path": "payload/snp1.10_root-pli-ms.json",
+      "byte_size": 4458,
+      "sha256": "b3f22f47ebde3440dd6bc15d80c17d00ef12837a58a77ec5e560fda75156d2b0",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d3d12c9683ba11e50b08cf48bba1b6fa03a46a560eda81ccff8c9a503b3f2f7f",
+      "relative_path": "payload/snp1.11_root-pli-ms.json",
+      "byte_size": 2780,
+      "sha256": "d3d12c9683ba11e50b08cf48bba1b6fa03a46a560eda81ccff8c9a503b3f2f7f",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.9ff89277b3c621f88ea52dc3b5a1d54ef8c732167ad5ab8e6677cc8bc67f3d14",
+      "relative_path": "payload/snp1.12_root-pli-ms.json",
+      "byte_size": 4158,
+      "sha256": "9ff89277b3c621f88ea52dc3b5a1d54ef8c732167ad5ab8e6677cc8bc67f3d14",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ad7fbc64cbb552091c97dad870511d1ceb6a50a10abbe68ab2b298bdb2bc0992",
+      "relative_path": "payload/snp1.1_root-pli-ms.json",
+      "byte_size": 3908,
+      "sha256": "ad7fbc64cbb552091c97dad870511d1ceb6a50a10abbe68ab2b298bdb2bc0992",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.3192b6dfdc09dd645bc261d4d0a4cbf62abbbdcf07296ab7dd537b0ac2281121",
+      "relative_path": "payload/snp1.2_root-pli-ms.json",
+      "byte_size": 4305,
+      "sha256": "3192b6dfdc09dd645bc261d4d0a4cbf62abbbdcf07296ab7dd537b0ac2281121",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.1fcd46ae7c6968e076edb6eb0232449f70bd2b7e530f82eac663694696d3f9f5",
+      "relative_path": "payload/snp1.3_root-pli-ms.json",
+      "byte_size": 9400,
+      "sha256": "1fcd46ae7c6968e076edb6eb0232449f70bd2b7e530f82eac663694696d3f9f5",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.18b72dd445e3ec741ebf8fa0687d6512006a408859f9df5134a071a62962f84e",
+      "relative_path": "payload/snp1.4_root-pli-ms.json",
+      "byte_size": 5869,
+      "sha256": "18b72dd445e3ec741ebf8fa0687d6512006a408859f9df5134a071a62962f84e",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.fc9ef7aa4b95474cc823ae9aaa2d8936c1fb31b61e95469deb4c47c787630dfd",
+      "relative_path": "payload/snp1.5_root-pli-ms.json",
+      "byte_size": 2148,
+      "sha256": "fc9ef7aa4b95474cc823ae9aaa2d8936c1fb31b61e95469deb4c47c787630dfd",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d667e0b91cf2078c65dc0446a106484f0639ccf533019993e88e1ce863e09e34",
+      "relative_path": "payload/snp1.6_root-pli-ms.json",
+      "byte_size": 5486,
+      "sha256": "d667e0b91cf2078c65dc0446a106484f0639ccf533019993e88e1ce863e09e34",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.259ab2de89a1c324a40da95dc73e1372611f1aa1310a20bdf0403b414abb8d89",
+      "relative_path": "payload/snp1.7_root-pli-ms.json",
+      "byte_size": 7206,
+      "sha256": "259ab2de89a1c324a40da95dc73e1372611f1aa1310a20bdf0403b414abb8d89",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.0c7dc7cd588a66bfe800a52bc10636ceecb96f62d7106a59c29601c86d29d272",
+      "relative_path": "payload/snp1.8_root-pli-ms.json",
+      "byte_size": 2155,
+      "sha256": "0c7dc7cd588a66bfe800a52bc10636ceecb96f62d7106a59c29601c86d29d272",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.35d091a8b8e41b8e9939685fef8d9a75887de5ecb42b647720b5e9d3a5f4383f",
+      "relative_path": "payload/snp1.9_root-pli-ms.json",
+      "byte_size": 6587,
+      "sha256": "35d091a8b8e41b8e9939685fef8d9a75887de5ecb42b647720b5e9d3a5f4383f",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.57b2a7c3c22c546d7b6083a2805c84590c3cf27a087b77845c5c7c69bb82b872",
+      "relative_path": "payload/snp2.10_root-pli-ms.json",
+      "byte_size": 981,
+      "sha256": "57b2a7c3c22c546d7b6083a2805c84590c3cf27a087b77845c5c7c69bb82b872",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.29d93f9bd9e4eb329bf1ce4b634e5d90abc862ecd9660d5b6ef1e3023ce588eb",
+      "relative_path": "payload/snp2.11_root-pli-ms.json",
+      "byte_size": 1752,
+      "sha256": "29d93f9bd9e4eb329bf1ce4b634e5d90abc862ecd9660d5b6ef1e3023ce588eb",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.3ead1936a0e43fe71660a66fb6088ac3fc5f67f62ee39d9f06b002e8c372562a",
+      "relative_path": "payload/snp2.12_root-pli-ms.json",
+      "byte_size": 4892,
+      "sha256": "3ead1936a0e43fe71660a66fb6088ac3fc5f67f62ee39d9f06b002e8c372562a",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.eab070863071b29d1e17cf669d9cd6bd8a33a6b87ed2faa277f3bd61395a496c",
+      "relative_path": "payload/snp2.13_root-pli-ms.json",
+      "byte_size": 3871,
+      "sha256": "eab070863071b29d1e17cf669d9cd6bd8a33a6b87ed2faa277f3bd61395a496c",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d01b544769d5ab7b2bac3d9833e024f8db78f34a5263a664f5e1aef840a6a5cc",
+      "relative_path": "payload/snp2.14_root-pli-ms.json",
+      "byte_size": 7695,
+      "sha256": "d01b544769d5ab7b2bac3d9833e024f8db78f34a5263a664f5e1aef840a6a5cc",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.fc829e63d66ea54db8d3320c713e99969775853679591da221fc43bbd3804a3f",
+      "relative_path": "payload/snp2.1_root-pli-ms.json",
+      "byte_size": 5097,
+      "sha256": "fc829e63d66ea54db8d3320c713e99969775853679591da221fc43bbd3804a3f",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.54184b02d6ff88e84b303d2e0aa174228ba62c67458ac19048c1ca253690993c",
+      "relative_path": "payload/snp2.2_root-pli-ms.json",
+      "byte_size": 3583,
+      "sha256": "54184b02d6ff88e84b303d2e0aa174228ba62c67458ac19048c1ca253690993c",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d877f92b51654dfcd7e9f2aa363254d1809b0c33ca8300234d90f8dca10222e1",
+      "relative_path": "payload/snp2.3_root-pli-ms.json",
+      "byte_size": 1107,
+      "sha256": "d877f92b51654dfcd7e9f2aa363254d1809b0c33ca8300234d90f8dca10222e1",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.55ed614de0258f4f449878f90f52be5234c59e93ff3ca88b4878872b2a2906be",
+      "relative_path": "payload/snp2.4_root-pli-ms.json",
+      "byte_size": 2874,
+      "sha256": "55ed614de0258f4f449878f90f52be5234c59e93ff3ca88b4878872b2a2906be",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d5d560cda22a4678a82adf130c1d2fc098312d17d69936aab83c9b1a9033f833",
+      "relative_path": "payload/snp2.5_root-pli-ms.json",
+      "byte_size": 2552,
+      "sha256": "d5d560cda22a4678a82adf130c1d2fc098312d17d69936aab83c9b1a9033f833",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.8f3e3c16ebfaae9fd6d3ac1299cace00b258737e7802f406e8feaba6a432cecd",
+      "relative_path": "payload/snp2.6_root-pli-ms.json",
+      "byte_size": 1994,
+      "sha256": "8f3e3c16ebfaae9fd6d3ac1299cace00b258737e7802f406e8feaba6a432cecd",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ce4ed8b7e57895e0e42109d8d97e9fa12133f09fc99d478a327c388af3d370e7",
+      "relative_path": "payload/snp2.7_root-pli-ms.json",
+      "byte_size": 8383,
+      "sha256": "ce4ed8b7e57895e0e42109d8d97e9fa12133f09fc99d478a327c388af3d370e7",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.2d46f8247e0f190ddb9667159ad0166266380314517172cbdd8df8132db20e3a",
+      "relative_path": "payload/snp2.8_root-pli-ms.json",
+      "byte_size": 1885,
+      "sha256": "2d46f8247e0f190ddb9667159ad0166266380314517172cbdd8df8132db20e3a",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.1976e3528cb426bc5f4da5a01b72a91198e76457518c3a98a3fa0d960f78fd4c",
+      "relative_path": "payload/snp2.9_root-pli-ms.json",
+      "byte_size": 1712,
+      "sha256": "1976e3528cb426bc5f4da5a01b72a91198e76457518c3a98a3fa0d960f78fd4c",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.3ef1de16408652d1621264f183e844bee43c0d9eed53a904418b8f3a6f534546",
+      "relative_path": "payload/snp3.10_root-pli-ms.json",
+      "byte_size": 10127,
+      "sha256": "3ef1de16408652d1621264f183e844bee43c0d9eed53a904418b8f3a6f534546",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.01f575d8554a6c8ae9e60bacf85d98e230c58565ca77610e1401605c135a1cb3",
+      "relative_path": "payload/snp3.11_root-pli-ms.json",
+      "byte_size": 9919,
+      "sha256": "01f575d8554a6c8ae9e60bacf85d98e230c58565ca77610e1401605c135a1cb3",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.bc60e2c4af48deb3e38d5db9618041715fea283e025f86680a88be85fcc79870",
+      "relative_path": "payload/snp3.12_root-pli-ms.json",
+      "byte_size": 18963,
+      "sha256": "bc60e2c4af48deb3e38d5db9618041715fea283e025f86680a88be85fcc79870",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.9a4ff04690a03ab5561339e6c778933b0b45b79cbd126b437efd81655c43b88c",
+      "relative_path": "payload/snp3.1_root-pli-ms.json",
+      "byte_size": 3833,
+      "sha256": "9a4ff04690a03ab5561339e6c778933b0b45b79cbd126b437efd81655c43b88c",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.a3cd467057a95bec6df9e8d912d95d4b3e76e2394e381c21e2fcb0c3f769ddd6",
+      "relative_path": "payload/snp3.2_root-pli-ms.json",
+      "byte_size": 4969,
+      "sha256": "a3cd467057a95bec6df9e8d912d95d4b3e76e2394e381c21e2fcb0c3f769ddd6",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.0977402dd9855a21e79629b6e4262e4fdf9f6d0bb258739c9840d2f85ee0491b",
+      "relative_path": "payload/snp3.3_root-pli-ms.json",
+      "byte_size": 2594,
+      "sha256": "0977402dd9855a21e79629b6e4262e4fdf9f6d0bb258739c9840d2f85ee0491b",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.3ffc2c3df94f5116995d1033494795e360484431a915428cbcbc54f5e8296841",
+      "relative_path": "payload/snp3.4_root-pli-ms.json",
+      "byte_size": 10086,
+      "sha256": "3ffc2c3df94f5116995d1033494795e360484431a915428cbcbc54f5e8296841",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.b8b7df4f9855eba1eb191570520252a4a73ca68c0479c2fc5a261f058f998a06",
+      "relative_path": "payload/snp3.5_root-pli-ms.json",
+      "byte_size": 7761,
+      "sha256": "b8b7df4f9855eba1eb191570520252a4a73ca68c0479c2fc5a261f058f998a06",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.a842f7202fe4dc32e0a88d92866b54e243c8a0bbe5413eaaa6eb98f60a11a51d",
+      "relative_path": "payload/snp3.6_root-pli-ms.json",
+      "byte_size": 15106,
+      "sha256": "a842f7202fe4dc32e0a88d92866b54e243c8a0bbe5413eaaa6eb98f60a11a51d",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.997962b83ba3c682bf1acd55cb992ea6647557eae0332580934e24da84d2da24",
+      "relative_path": "payload/snp3.7_root-pli-ms.json",
+      "byte_size": 16628,
+      "sha256": "997962b83ba3c682bf1acd55cb992ea6647557eae0332580934e24da84d2da24",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.698d25d4441eed4f453a0d231ef7364da4da727b3099be7161d4ff7c38409b58",
+      "relative_path": "payload/snp3.8_root-pli-ms.json",
+      "byte_size": 3904,
+      "sha256": "698d25d4441eed4f453a0d231ef7364da4da727b3099be7161d4ff7c38409b58",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.da692ed4c40083378b09ca1ee3ed5b6a76baf2faa7bf5934cc53314543464b27",
+      "relative_path": "payload/snp3.9_root-pli-ms.json",
+      "byte_size": 15655,
+      "sha256": "da692ed4c40083378b09ca1ee3ed5b6a76baf2faa7bf5934cc53314543464b27",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.e17fec0a958414bdb4f30be53bd3700220af2892a540617480b3f9c8b1d4b162",
+      "relative_path": "payload/snp4.10_root-pli-ms.json",
+      "byte_size": 2753,
+      "sha256": "e17fec0a958414bdb4f30be53bd3700220af2892a540617480b3f9c8b1d4b162",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.fd14b2f8dae2c4ccbda48da7bb5ad10f51d771bde4e51efacd694a8e9ba31c2c",
+      "relative_path": "payload/snp4.11_root-pli-ms.json",
+      "byte_size": 3939,
+      "sha256": "fd14b2f8dae2c4ccbda48da7bb5ad10f51d771bde4e51efacd694a8e9ba31c2c",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ad46fd83e0f6243be26baea999c60ee6a77ef7085f7fbd719aa4c979a6e3721b",
+      "relative_path": "payload/snp4.12_root-pli-ms.json",
+      "byte_size": 3995,
+      "sha256": "ad46fd83e0f6243be26baea999c60ee6a77ef7085f7fbd719aa4c979a6e3721b",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.00f1b8b252b4908be370ff18f0de17ad118d80ee121dbbeafa3196ebf8861762",
+      "relative_path": "payload/snp4.13_root-pli-ms.json",
+      "byte_size": 4688,
+      "sha256": "00f1b8b252b4908be370ff18f0de17ad118d80ee121dbbeafa3196ebf8861762",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.d24b9082ff6839d00f3304ac720de6abff097e711a311cec1d90109c8436ac85",
+      "relative_path": "payload/snp4.14_root-pli-ms.json",
+      "byte_size": 4448,
+      "sha256": "d24b9082ff6839d00f3304ac720de6abff097e711a311cec1d90109c8436ac85",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.6a98f489e36db061341c68d73434a6e3651d66b0a87f5f1bf9692c8fd427967b",
+      "relative_path": "payload/snp4.15_root-pli-ms.json",
+      "byte_size": 3956,
+      "sha256": "6a98f489e36db061341c68d73434a6e3651d66b0a87f5f1bf9692c8fd427967b",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.25d7b8d8277192bee6ea5b23d759fd7970a8fc1b951fc99abb1a827428a65339",
+      "relative_path": "payload/snp4.16_root-pli-ms.json",
+      "byte_size": 5287,
+      "sha256": "25d7b8d8277192bee6ea5b23d759fd7970a8fc1b951fc99abb1a827428a65339",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.b3fbc7127ec42f68c7955012c868b28d454ca459d9f91eea2ef658da0b4a4066",
+      "relative_path": "payload/snp4.1_root-pli-ms.json",
+      "byte_size": 1209,
+      "sha256": "b3fbc7127ec42f68c7955012c868b28d454ca459d9f91eea2ef658da0b4a4066",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.4a147aa6fcad34be1fc4f18bc7377cb3dc7568c2ac96d3d869739914e231a8de",
+      "relative_path": "payload/snp4.2_root-pli-ms.json",
+      "byte_size": 1875,
+      "sha256": "4a147aa6fcad34be1fc4f18bc7377cb3dc7568c2ac96d3d869739914e231a8de",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.52f44a208c4d877808d4c5142fb06244e7a57b75d1a4b83925b41bb22fad65e3",
+      "relative_path": "payload/snp4.3_root-pli-ms.json",
+      "byte_size": 1886,
+      "sha256": "52f44a208c4d877808d4c5142fb06244e7a57b75d1a4b83925b41bb22fad65e3",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ac6ec0a7df685e0a501060ad62f52d56c4377f68c8bded0744a17e3c7b70fa5f",
+      "relative_path": "payload/snp4.4_root-pli-ms.json",
+      "byte_size": 1948,
+      "sha256": "ac6ec0a7df685e0a501060ad62f52d56c4377f68c8bded0744a17e3c7b70fa5f",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.809e866a028915227cd5cbfd8abc5ef7d18641d9e8cab4dd0bf466e19420e713",
+      "relative_path": "payload/snp4.5_root-pli-ms.json",
+      "byte_size": 1919,
+      "sha256": "809e866a028915227cd5cbfd8abc5ef7d18641d9e8cab4dd0bf466e19420e713",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ff04b5efed33c6f623f6bd1db347a16c89de20e6209af4219460004b7e1e1400",
+      "relative_path": "payload/snp4.6_root-pli-ms.json",
+      "byte_size": 2145,
+      "sha256": "ff04b5efed33c6f623f6bd1db347a16c89de20e6209af4219460004b7e1e1400",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.540747e0ca44b476ecff16bca8e088aaa6c46b92bffe4bb13b6e6e99cacae6a2",
+      "relative_path": "payload/snp4.7_root-pli-ms.json",
+      "byte_size": 2054,
+      "sha256": "540747e0ca44b476ecff16bca8e088aaa6c46b92bffe4bb13b6e6e99cacae6a2",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.f405ded31fa09b2b830706acffe4d4fc7adf3f7dcebdd431a334535c97512d92",
+      "relative_path": "payload/snp4.8_root-pli-ms.json",
+      "byte_size": 2540,
+      "sha256": "f405ded31fa09b2b830706acffe4d4fc7adf3f7dcebdd431a334535c97512d92",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.6359cd30641c3930d0d6ade5389fb9e0bcb2cda2054fa7c4006d0c93dac89793",
+      "relative_path": "payload/snp4.9_root-pli-ms.json",
+      "byte_size": 3630,
+      "sha256": "6359cd30641c3930d0d6ade5389fb9e0bcb2cda2054fa7c4006d0c93dac89793",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.ce1e037a56db8874da98e5a9af69ebbd3d54c4cd1b662df8f8bd254f51b4bbc9",
+      "relative_path": "payload/snp5.10_root-pli-ms.json",
+      "byte_size": 1090,
+      "sha256": "ce1e037a56db8874da98e5a9af69ebbd3d54c4cd1b662df8f8bd254f51b4bbc9",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.3e783298cc8461d10ff03c05044a0a2346f47451497de779957333d706d6717b",
+      "relative_path": "payload/snp5.11_root-pli-ms.json",
+      "byte_size": 1103,
+      "sha256": "3e783298cc8461d10ff03c05044a0a2346f47451497de779957333d706d6717b",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.4b59676e310559aec7fd67a4d68a3b04a9ada306e72f96dc05028c1cb3bf949f",
+      "relative_path": "payload/snp5.12_root-pli-ms.json",
+      "byte_size": 1368,
+      "sha256": "4b59676e310559aec7fd67a4d68a3b04a9ada306e72f96dc05028c1cb3bf949f",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.dbe7e4b41311fa57d2b597479dc7dc825115520f5bab1552f9c9503562d05ab6",
+      "relative_path": "payload/snp5.13_root-pli-ms.json",
+      "byte_size": 1177,
+      "sha256": "dbe7e4b41311fa57d2b597479dc7dc825115520f5bab1552f9c9503562d05ab6",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.020672394322c59d85ea809a91c6ea002e2a2876d7dc01c04057555a14f5a03b",
+      "relative_path": "payload/snp5.14_root-pli-ms.json",
+      "byte_size": 1695,
+      "sha256": "020672394322c59d85ea809a91c6ea002e2a2876d7dc01c04057555a14f5a03b",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.6376a822a2667b3e4682d2a0c6079b36d280d84d0ea347076899ff4d606823fc",
+      "relative_path": "payload/snp5.15_root-pli-ms.json",
+      "byte_size": 1214,
+      "sha256": "6376a822a2667b3e4682d2a0c6079b36d280d84d0ea347076899ff4d606823fc",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.517ceb536c5885235256730e97d88ad6c6332eaac417ed217a98d74d78940aa8",
+      "relative_path": "payload/snp5.16_root-pli-ms.json",
+      "byte_size": 1075,
+      "sha256": "517ceb536c5885235256730e97d88ad6c6332eaac417ed217a98d74d78940aa8",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.b389ed70b33e2ff8946faf791a499309d0ce057d22c636de7e53c0ee3198f9af",
+      "relative_path": "payload/snp5.17_root-pli-ms.json",
+      "byte_size": 1400,
+      "sha256": "b389ed70b33e2ff8946faf791a499309d0ce057d22c636de7e53c0ee3198f9af",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.5a5bc74319a5eeac39146fd3b4539c75f1f1def4cbef765760a401cfc017d3d0",
+      "relative_path": "payload/snp5.18_root-pli-ms.json",
+      "byte_size": 1983,
+      "sha256": "5a5bc74319a5eeac39146fd3b4539c75f1f1def4cbef765760a401cfc017d3d0",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.39660f23e6ce93e9c7ab499367e59cea567cbbee890d82e1c6ac7ef46c8bbfee",
+      "relative_path": "payload/snp5.19_root-pli-ms.json",
+      "byte_size": 9182,
+      "sha256": "39660f23e6ce93e9c7ab499367e59cea567cbbee890d82e1c6ac7ef46c8bbfee",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.1319deab921671539d10f855e4adf84491b1a311485ae12f92896c19c91cedce",
+      "relative_path": "payload/snp5.1_root-pli-ms.json",
+      "byte_size": 11079,
+      "sha256": "1319deab921671539d10f855e4adf84491b1a311485ae12f92896c19c91cedce",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.58d8549b1868b477fccba130b19ab32aaf28d72b2843d1abe4eac2271122c142",
+      "relative_path": "payload/snp5.2_root-pli-ms.json",
+      "byte_size": 1968,
+      "sha256": "58d8549b1868b477fccba130b19ab32aaf28d72b2843d1abe4eac2271122c142",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.a440f5644259099a24a29bfe2e4eb0e8e5bac384dd6a3263429fd3716bdf6641",
+      "relative_path": "payload/snp5.3_root-pli-ms.json",
+      "byte_size": 893,
+      "sha256": "a440f5644259099a24a29bfe2e4eb0e8e5bac384dd6a3263429fd3716bdf6641",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.a81ae9e9cc27f729fdbcfd3ffd174da92c73bdc44cbbfaa0233db81e6c41a6b8",
+      "relative_path": "payload/snp5.4_root-pli-ms.json",
+      "byte_size": 2122,
+      "sha256": "a81ae9e9cc27f729fdbcfd3ffd174da92c73bdc44cbbfaa0233db81e6c41a6b8",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.a57aae8edd15855571f06180fa749654ac056b09456cec54421a90dcdf550e9a",
+      "relative_path": "payload/snp5.5_root-pli-ms.json",
+      "byte_size": 3104,
+      "sha256": "a57aae8edd15855571f06180fa749654ac056b09456cec54421a90dcdf550e9a",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.36a6994397ef43430cae195102d978c6986f6ae653fda9f37a13d7a7cb081024",
+      "relative_path": "payload/snp5.6_root-pli-ms.json",
+      "byte_size": 2005,
+      "sha256": "36a6994397ef43430cae195102d978c6986f6ae653fda9f37a13d7a7cb081024",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.30cd38797bed50357c1c7ae6a98fbb6ceac2bd0879b2aa959e9f0cf1663be7d4",
+      "relative_path": "payload/snp5.7_root-pli-ms.json",
+      "byte_size": 2226,
+      "sha256": "30cd38797bed50357c1c7ae6a98fbb6ceac2bd0879b2aa959e9f0cf1663be7d4",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.f5b5485ee59e9ed29d93f4b86680eded1c495b1ee8ca9a2f10e15cb53128ff99",
+      "relative_path": "payload/snp5.8_root-pli-ms.json",
+      "byte_size": 2785,
+      "sha256": "f5b5485ee59e9ed29d93f4b86680eded1c495b1ee8ca9a2f10e15cb53128ff99",
+      "verified": true
+    },
+    {
+      "file_ref": "tos.file.sha256.0de2b72d33a2ecc8c45c6b3e16d5f320cd879046f3a68810d04b923faf49c569",
+      "relative_path": "payload/snp5.9_root-pli-ms.json",
+      "byte_size": 1045,
+      "sha256": "0de2b72d33a2ecc8c45c6b3e16d5f320cd879046f3a68810d04b923faf49c569",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+    "rights_record_sha256": "84a7cc0fc0039deefd9ab43655031fb6ac84572bebfea9f2b8a5bf01c09b8002",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+      "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+      "https://creativecommons.org/publicdomain/zero/1.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-08T21:20:58.066916+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260908.sutta-nipata"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

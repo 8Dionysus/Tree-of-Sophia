@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "0c7848263d8c4e2fc0e19efad2ec4f61e69d9928cf22d882e122c1f3f1b92b12",
+  "queue_sha256": "eca3b3462ec1c53ef5aa806a03d64d67b3921eed94a7e0b4fd6a54d38218cb6d",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
-      "catalog_works": 43,
-      "discovery_runs": 98,
+      "catalog_works": 56,
+      "discovery_runs": 111,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "c4f015776b62493c1861ad6674217e06adb25e1364d99b2b3fbb10fdb4165cfb",
+    "input_sha256": "747b3e45c537e5f6380b496070b392765f04ac2bfb86d7c36dbe8f671eaac228",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "6045bb9231211a261a88c9bbd6612d163ad687d2fc174664ee5600ba73fe9bb3"
+        "sha256": "4fe1194c119561792e40e567b231417e89372a96e92dd1221c01dc6eac456b7e"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "680733520ab5d9ed7d077f990a6c7e055f410d81986f47f2faccc3bb62a6a79f"
+        "sha256": "4aefb8bb80448bd8c6f323eab6c9f95222b0efd68ef93db51cd8a341cf992d4e"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1296,6 +1296,58 @@
         "sha256": "99520d20ad425d5cdc1d6d5165c2843ad4ddd2344cef9bb255215f9f567eb5fe"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-be-a-scribe.2026-09-08.v1.json",
+        "sha256": "6b97e982bd695d35c9cb39d65037ee0777123fc917279615bb41b03fab953fb5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-dhammapada.2026-09-08.v1.json",
+        "sha256": "9473c3f1936cf423fcc84646e1dd588fc464aa5cc6a3acd1e6d18389ceaa95fb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-ecclesiastes.2026-09-08.v1.json",
+        "sha256": "8ed58af3f86d8a426ab1dcc406afeb2636167fc1bdb807d04a293fcb2598a4f5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-immortality-of-writers.2026-09-08.v1.json",
+        "sha256": "48ac1b36c6d6e85590a0f5b82d99e4bb488fa79c199a4fd41c6697ae4860b364"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-itivuttaka.2026-09-08.v1.json",
+        "sha256": "ff46aedae38af3a15943effc33b0df5e2c8a784e849b1a20673af1d0a76c305f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-job.2026-09-08.v1.json",
+        "sha256": "7a5309095795775a4dfd069a1d263a855c494b1960fb7a1fee7f5a23dd4fdeb1"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-khuddakapatha.2026-09-08.v1.json",
+        "sha256": "de2eeb51d76db971d21e9f23ea147cd0e6a240b7f9c6583387e5be8ddd3b40c5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-proverbs.2026-09-08.v1.json",
+        "sha256": "4ca9ca64aab644bd6432cd573f88d686f257f74f2db28c8740adbd1a19b6e9b8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-samannaphala-sutta.2026-09-08.v1.json",
+        "sha256": "e92e2392dd8f4c87b29cf1f368f124c41b7b8333f8339bb8fdd1c1fed6f9084f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-sammaditthi-sutta.2026-09-08.v1.json",
+        "sha256": "6c0f7887db3094905f4168dcb0d8dc93efd28f7778f8636f6d37de759935ae83"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-sutta-nipata.2026-09-08.v1.json",
+        "sha256": "2fd4e9fc8dad89a81aa297fee9173bd0e37694b9af0baacb2b4872352e8c3a2f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-udana.2026-09-08.v1.json",
+        "sha256": "6b2a9e38f51473ddcccc149b3f8b5ef7c2f197bbc6539136e3654dedacab7b6c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-upali-sutta.2026-09-08.v1.json",
+        "sha256": "e0cf90b937b402a2794957e5eef6058a3561ee452e4deeae3a8a81c015904890"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-post-street-metadata.2026-08-11.v2.json",
         "sha256": "b7c93576d469099b420568a662cd555d1ad876f9875ba0a678b4f5408ef460f4"
       },
@@ -1417,7 +1469,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "5de4bd080065d47ff0c401daaed3d081251c45b32f18f6515660b9771664296d"
+        "sha256": "fcbb454bcf3c67807623b1c0881a3119402a5b309435123673eb90175e87e06d"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -1529,11 +1581,19 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "d1ba9ce0845761e08c8baff8bef0d6196bfcf6c998f54e43da4076e1806c083a"
+        "sha256": "e84061a08cd6ea6a41fad726b0dadd44fbb9d73ed90485ec3aeb2f24c3d2de41"
       },
       {
         "path": "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/provenance.jsonl",
         "sha256": "065f8ef01e36f8569335999a53c74348fa02a9731d4b064ab90494b89dc1a94f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/provenance.jsonl",
+        "sha256": "20d8636156cbfdf61b424a68062bd6f5e1d5a96a379c56a59be3c17b48e21331"
+      },
+      {
+        "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/provenance.jsonl",
+        "sha256": "5c95e3823cff932bb014b9332d31956e7cdfe52870a212b4a8af4f271b9eb879"
       },
       {
         "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/item.manifest.json",
@@ -1656,6 +1716,18 @@
         "sha256": "672a249a30062adc732422ab2023f0388fef0f0ace99226e4bcc9efc6ce608c7"
       },
       {
+        "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/provenance.jsonl",
+        "sha256": "0bffd77f8e97fda2d6653f5b109a79f0ab078442343370b15568bcdc8d1ea25a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/provenance.jsonl",
+        "sha256": "aa698a06f3e659041d286c1daf4515d2c39fc3173478e4f60792d19b4dcf5183"
+      },
+      {
+        "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/provenance.jsonl",
+        "sha256": "a5ce595867979bbf6030e407936e43385fa10f09d3656855cf875c6d6244b508"
+      },
+      {
         "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.manifest.json",
         "sha256": "6bef94e7ff0a9dce52e2d11c1335dc623085252265ca90b82739ef611df7436c"
       },
@@ -1666,6 +1738,38 @@
       {
         "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/rights.json",
         "sha256": "ddd01549c63cc9fc681d11d3a770e75aeab9ce3e00081e149a6ab414d5edbbdd"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "af1c4b921228c6f1402b151204d1f4776360c24b63dadc5e0dfd10f86eb33604"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "857ab0d480172e51cb43126f4b5b0be96cba535fbbf8ebbf46812143292ac777"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "e249a65723b09bfb30bb6d3a7194fbd96012bffe7fc9cf1d297d2f562e3a0dfd"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "349d203f084ea02a5f299106554e1ac05952b9e0416050b36f3d09dc841b593b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "8fc3c70487208c7e75857f36a41690c1516983b63de69d270ded7f911041c4e2"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "b38f99fe55307995bd0d296176a8dd981273bc59687c3475e2e26addc271e81c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "52470bf269d36eb97fa3e3cd2f9c6bea8901283dcabe32c9565fea1d708aebad"
+      },
+      {
+        "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl",
+        "sha256": "565867f562afad42bb1f6467f9cf5a08917c4c8a9d8ccb7ee8b33cfbd0b2525b"
       }
     ]
   },
