@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Ἀθηναίων πολιτεία</title>
+<author>Aristotle</author>
+<editor>Frederic G Kenyon</editor>
+
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+<name>Lisa Cerrato</name>
+<name>William Merrill</name>
+<name>Elli Mylonas</name>
+<name>David Smith</name>
+</respStmt>
+<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Digital Library Project</authority>
+<date type="release" when="1996" cert="high">Perseus 2.0</date>
+<idno type="filename">tlg0086.tlg003.perseus-grc2.xml</idno>
+<availability>
+<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+</availability>
+</publicationStmt>
+
+<sourceDesc>
+<biblStruct>
+<monogr>
+<title xml:lang="lat">Aristotelis Atheniensium Respublica</title>
+<author>Aristotle</author>
+<editor>Frederic G Kenyon</editor>
+<imprint>
+<publisher>Clarendon Press</publisher>
+<pubPlace>Oxford</pubPlace>
+<date>1920</date>
+</imprint>
+</monogr>
+<series>
+<title>Oxford Classical Texts</title>
+</series>
+<ref target="https://hdl.handle.net/2027/mdp.39015003886267?urlappend=%3Bseq=14%3Bownerid=13510798886841544-18">HathiTrust</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+
+<encodingDesc>
+
+<!--<refsDecl doctype="TEI.2">
+<state delim="." n="chunk" unit="chapter"/>
+<state unit="section"/>
+</refsDecl>-->
+<refsDecl n="CTS">
+<!--<cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+<p>This pointer pattern extracts book and chapter and section.</p>
+</cRefPattern>-->
+<cRefPattern n="subsection" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+<p>This pointer pattern extracts section and subsection.</p>
+</cRefPattern>
+<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+<p>This pointer pattern extracts section.</p>
+</cRefPattern>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="lat">Latin</language>
+<language ident="eng">English</language>
+
+</langUsage>
+</profileDesc>
+
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2024-03-06" who="Lisa Cerrato">EpiDoc and CTS conversion and general header review. Corrected fragments to reflect print edition.</change>
+<change when="2011-01-13" who="gcrane">more refinements making these files SDL compatible</change>
+<change when="2011-01-01" who="gcrane">QUOTE tags added; DEL tags added; ADD tags added; GAP entities added</change>
+<change when="2010-06-16" who="rsingh04">cleaned up bad place tags in a few texts and cleaned up the document format</change>
+<change when="2009-10-08" who="rsingh04">began reorganizing texts module by collection.  created separate work directory in texts module to keep hopper files separate from in progress files</change>
+<change when="2009-04-03" who="lcerrato">fixing bad bibl refs</change>
+<change when="2008-11-24" who="lcerrato">fixing bibl refs</change>
+<change when="2006-02-10" who="packel">places/dates now actually tagged</change>
+<change when="2005-07-25" who="packel">Converted to XML</change>
+<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+<change when="2002-02-11" who="dasmith">There are no Bekker lines in the Ath. Pol., only sections.</change>
+<change when="2000-03-24" who="mahoney">convert to P3;  organize so there's a sensible TOC not sure why the "chapter" for the fragments doesn't behave like a real beginning</change>
+<change when="2000-05-22" who="AEM"/>
+<change when="1993-05" who="WPM">Tagged in conformance with Prose.g dtd.</change>
+<change when="1992">Text was scanned at St. Olaf Spring, 1992.</change>
+</revisionDesc>
+</teiHeader>

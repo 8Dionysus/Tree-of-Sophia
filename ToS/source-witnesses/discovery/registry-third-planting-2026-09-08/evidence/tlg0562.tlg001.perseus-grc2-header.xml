@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+ <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="lat">Ad Se Ipsum</title>
+<author xml:lang="lat">Marcus Aurelius</author>
+<editor>Jan Hendrik Leopold</editor>
+ <sponsor>Perseus Project, Tufts University</sponsor>
+ <principal>Gregory Crane</principal>
+ <respStmt>
+  <resp>Prepared under the supervision of</resp>
+  <name>Lisa Cerrato</name>
+  <name>Rashmi Singhal</name> 
+  <name>Bridget Almas</name>
+ </respStmt>   
+ <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+</titleStmt>
+ 
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+ <date type="release">2011-09-12</date>
+ <idno type="filename">tlg0562.tlg001.perseus-grc2.xml</idno>
+ <availability>
+  <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+ </availability>
+</publicationStmt>
+ 
+<sourceDesc>
+<biblStruct>
+<monogr>
+<author xml:lang="lat">Marcus Aurelius</author>
+<title xml:lang="lat">M. Antoninus Imperator Ad Se Ipsum</title>
+<editor>Jan Hendrik Leopold</editor>
+<imprint>
+<publisher>Teubner</publisher>
+<pubPlace>Leipzig</pubPlace>
+<date>1908</date>
+</imprint>
+</monogr>
+ <ref target="https://archive.org/details/mantoninusimpera00marcuoft/page/n6">Internet Archive</ref>
+ <!-- Note there are missing pages in the Internet Archive linked version -->
+ <ref target="https://hdl.handle.net/2027/uc1.b3218103" type="alternate">HathiTrust</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+ 
+ <encodingDesc>
+  <editorialDecl>
+   <correction>
+    <p>Keyboarding</p>
+   </correction>
+  </editorialDecl>
+  
+  <p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+  <refsDecl n="CTS">
+   <cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+    <p>This pointer pattern extracts book, chapter, and section.</p></cRefPattern>
+   <cRefPattern n="chapter" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+    <p>This pointer pattern extracts book and chapter.</p></cRefPattern>
+   <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+    <p>This pointer pattern extracts book.</p></cRefPattern>
+  </refsDecl>
+  <refsDecl xml:id="CTS">
+   <citeStructure match="/TEI/text/body" use="@xml:base">
+     <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+       <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n">
+         <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+       </citeStructure>
+     </citeStructure>
+   </citeStructure>
+ </refsDecl>
+</encodingDesc>
+  
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+  
+  <revisionDesc>
+    <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change when="2022-01-10" who="Lisa Cerrato">EpiDoc and CTS conversion as well as checking for missing text.</change>
+  </revisionDesc>
+ </teiHeader>

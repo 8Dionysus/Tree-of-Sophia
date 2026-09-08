@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader xml:lang="eng">
+    <fileDesc>
+      <titleStmt>
+        <title xml:lang="grc">Ἀρριανοῦ τῶν Ἐπικτήτου Διατριβῶν</title>
+        <author>Epictetus</author>
+        <editor>Heinrich Schenkl</editor>
+        <sponsor>Perseus Project, Tufts University</sponsor>
+        <principal>Gregory Crane</principal>
+        <respStmt>
+          <resp>Prepared under the supervision of</resp>
+          <name>Gregory Crane</name>
+          <name>Lisa Cerrato</name>
+          <name>Anne Mahoney</name>
+          <name>David Mimno</name>
+        </respStmt>
+        <funder n="org:Tufts">Tufts University</funder>
+        
+      </titleStmt>
+      <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2003-12-05">Perseus 3.0</date>
+        <idno type="filename">tlg0557.tlg001.perseus-grc2.xml</idno>
+        <availability>
+          <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+        </availability>
+      </publicationStmt>
+      
+      <sourceDesc>
+        <biblStruct>
+          <monogr>
+            <author>Epictetus</author>
+            <title xml:lang="lat">Epicteti dissertationes ab Arriano digestae, editio maior</title>
+            <editor>Heinrich Schenkl</editor>
+            <imprint>
+              <pubPlace>Leipzig</pubPlace>
+              <publisher>Teubner</publisher>
+              <date>1916</date>
+            </imprint>
+          </monogr>
+          <ref target="https://archive.org/details/ldpd_10922736_000/page/126">The Internet Archive</ref>
+        </biblStruct>
+      </sourceDesc>
+      
+    </fileDesc>
+    <encodingDesc>
+      <editorialDecl><quotation marks="none"/>
+      <normalization><p>capitalization removed; most of supplied text (in angle brackets) omitted</p></normalization></editorialDecl>
+        <refsDecl n="CTS">
+        <cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+          <p>This pointer pattern extracts book and chapter and section</p>
+        </cRefPattern>
+        <cRefPattern n="chapter" matchPattern="(\w+).(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+          <p>This pointer pattern extracts book and chapter</p>
+        </cRefPattern>
+        <cRefPattern n="book" matchPattern="(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+          <p>This pointer pattern extracts book</p>
+        </cRefPattern>
+        </refsDecl>
+      <!--<refsDecl>
+        <refState unit="text"/>
+        <refState unit="chapter" n="chunk"/>
+        <refState unit="section"/>
+        </refsDecl>
+        
+        <refsDecl n="text=Apol.">
+        <refState unit="text"/>
+        <refState unit="section"/>
+        </refsDecl>-->
+        <refsDecl xml:id="CTS">
+      <citeStructure match="/TEI/text/body" use="@xml:base">
+        <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+          <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </citeStructure>
+    </refsDecl>
+</encodingDesc>
+    <profileDesc>
+      <langUsage>
+        <language ident="grc">Greek</language>
+        <language ident="lat">Latin</language>
+      </langUsage>
+    </profileDesc>
+    <revisionDesc>
+      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      <change when="2023-12-05" who="Lisa Cerrato">EpiDoc and CTS updates to header standards and xml base</change>
+      <change when="2020-01-24" who="Lisa Cerrato">minor revisions to header; fixed many section breaks; much of the supplied text has been omitted from this version</change>
+      <change when="2020-01-18" who="Gregory Crane">initial EpiDoc and CTS conversion</change>
+      <change when="2003-10-01" who="unknown">initial markup and digitization</change>
+    </revisionDesc>
+  </teiHeader>

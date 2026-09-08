@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="grc">Ἠθικὰ Νικομάχεια</title>
+            <author>Aristotle</author>
+            <editor>Ingram Bywater</editor>
+            
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>William Merrill</name>
+               <name>Elli Mylonas</name>
+               <name>David Smith</name>
+            </respStmt>
+            <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Digital Library Project</authority>
+            <date type="release" when="1996" cert="high">Perseus 2.0</date>
+            <idno type="filename">tlg0086.tlg010.perseus-grc2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <title xml:lang="lat">Aristotelis Ethica Nicomachea</title>
+                  <author>Aristotle</author>
+                  <editor>Ingram Bywater</editor>
+                  <imprint>
+                     <publisher>Clarendon Press</publisher>
+                     <pubPlace>Oxford</pubPlace>
+                     <date>1894</date>
+                  </imprint>                 
+               </monogr>
+               <series>
+<title>Oxford Classical Texts</title>
+</series>
+               <ref target="https://archive.org/details/aristotelis00aristuoft/page/n11/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <!--<cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+<p>This pointer pattern extracts book and chapter and section.</p>
+</cRefPattern>-->
+            <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts book and section.</p>
+            </cRefPattern>
+            <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2024-03-15" who="Lisa Cerrato">EpiDoc and CTS conversion and general header review.</change>
+         <change when="2011-01-13" who="gcrane">more refinements making these files SDL compatible</change>
+         <change when="2011-01-01" who="gcrane">QUOTE tags added; DEL tags added; ADD tags added; GAP entities added</change>
+         <change when="2010-06-16" who="rsingh04">cleaned up bad place tags in a few texts and cleaned up the document format</change>
+         <change when="2009-11-04" who="lcerrato">fixed typo Aristot. Nic. Eth. 1123a.15</change>
+         <change when="2009-10-08" who="rsingh04">began reorganizing texts module by collection.  created separate work directory in texts module to keep hopper files separate from in progress files</change>
+         <change when="2009-07-31" who="rsingh04">fixed milestone divs</change>
+         <change when="2009-06-19" who="lcerrato">fixed bad bibls</change>
+         <change when="2009-05-27" who="rsingh04">added cvs log keyword</change>
+         <change when="2008-11-24" who="lcerrato">fixing bibl refs</change>
+         <change when="2008-11-13" who="lcerrato">fixing bibls/bad cits</change>
+         <change when="2006-05-04" who="packel">removed a duplicate bekker page</change>
+         <change when="2005-07-25" who="packel">Converted to XML</change>
+         <change when="2005-03-31" who="mimno">Bekker pages are milestones</change>
+         <change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+         <change when="2001-01-18" who="amahoney">put language attribute on headers</change>
+         <change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change>
+         <change when="2000-02-24" who="amahoney">convert to P3</change>
+         <change when="1993" who="JN">Tagged in conformance with Prose.g dtd.</change>
+         <change when="1992">Text was scanned at St. Olaf Spring, 1992.</change>
+      </revisionDesc>
+   </teiHeader>

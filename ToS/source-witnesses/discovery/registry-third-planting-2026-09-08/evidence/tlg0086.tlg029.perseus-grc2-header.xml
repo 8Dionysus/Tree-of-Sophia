@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="grc">Οἰκονομικά</title>
+            <author>Aristotle</author>
+            <editor>George Cyril Armstrong</editor>            
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>William Merrill</name>
+               <name>Elli Mylonas</name>
+               <name>David Smith</name>
+            </respStmt>
+            <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+         </titleStmt>
+        
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Digital Library Project</authority>
+            <date type="release" when="1996" cert="high">Perseus 2.0</date>
+            <idno type="filename">tlg0086.tlg029.perseus-grc2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <title xml:lang="mul">The Metaphysics; The Oeconomica and The Magna Moralia</title>
+                  <author>Aristotle</author>
+                  <editor>George Cyril Armstrong</editor>
+                  <imprint>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <date type="printing">1935</date>
+                  </imprint>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/aristotlemetaphy0000aris_x4v7/page/326/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="subsection" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+<p>This pointer pattern extracts book and section and subsection.</p>
+</cRefPattern>            
+            <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts book and section.</p>
+            </cRefPattern>
+            <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      
+      <profileDesc>
+         <langUsage>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2024-03-21" who="Lisa Cerrato">EpiDoc and CTS conversion and general header review.</change>
+         <change when="2011-01-13" who="gcrane">more refinements making these files SDL compatible</change>
+         <change when="2011-01-01" who="gcrane">QUOTE tags added; DEL tags added; ADD tags added; GAP entities added</change>
+         <change when="2010-06-16" who="rsingh04">cleaned up bad place tags in a few texts and cleaned up the document format</change>
+         <change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+         <change when="2009-10-08" who="rsingh04">began reorganizing texts module by collection.  created separate work directory in texts module to keep hopper files separate from in progress files</change>
+         <change when="2009-05-27" who="rsingh04">added cvs log keyword</change>
+         <change when="1993-08" who="wpm">Made the cardbreaks in Bk 3 same as english</change>
+         <change when="1993-06" who="wpm">Tagged in conformance with Prose.g dtd.</change>
+       <change when="1992">Text was scanned at St. Olaf Spring, 1992.</change></revisionDesc>
+   </teiHeader>

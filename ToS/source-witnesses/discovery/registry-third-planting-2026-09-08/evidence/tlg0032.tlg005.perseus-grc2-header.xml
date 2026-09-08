@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+		<titleStmt>
+			<title xml:lang="grc">Ἀπολογία Σωκράτους</title>
+			<editor>Edgar Carew Marchant</editor>
+			<author>Xenophon</author>
+			<sponsor>Perseus Project, Tufts University</sponsor>
+			 <principal>Gregory Crane</principal>
+			<respStmt>
+				<resp>Prepared under the supervision of</resp>
+				<name>Lisa Cerrato</name>
+				<name>William Merrill</name>
+				<name>Elli Mylonas</name>
+				<name>David Smith</name>
+			</respStmt>
+			<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+		</titleStmt>
+	
+	<publicationStmt>
+	<publisher>Trustees of Tufts University</publisher>
+	<pubPlace>Medford, MA</pubPlace>
+	<authority>Perseus Project</authority>
+	<date type="release" when="1996">Perseus 2.0</date> 
+	<idno type="filename">tlg0032.tlg005.perseus-grc2.xml</idno>
+	<availability>
+			<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+	</availability>	
+	</publicationStmt>
+	<sourceDesc>
+		<biblStruct>
+			<monogr>
+				<author>Xenophon</author>
+				<title xml:lang="lat">Xenophontis opera omnia</title>
+				<editor>Edgar Carew Marchant</editor>
+				<edition>Editio Altera</edition>
+				<imprint>
+					<pubPlace>Oxford</pubPlace>
+					<publisher>Clarendon Press</publisher>
+					<date>1921</date>
+					<date type="reprint">1971</date>
+				</imprint>
+				<biblScope unit="volume">2</biblScope>
+			</monogr>
+			<series>
+				<title xml:lang="lat">Scriptorum classicorum bibliotheca Oxoniensis</title>
+			</series>
+			<ref target="archive.org/details/operaomniarecogn02xenouoft/page/271/mode/2up">Internet Archive</ref>
+		</biblStruct>
+	</sourceDesc>
+			      
+		
+
+		    </fileDesc>
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+		    		    <refsDecl xml:id="CTS">
+		      <citeStructure match="/TEI/text/body" use="@xml:base">
+		        <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		      </citeStructure>
+		    </refsDecl>
+</encodingDesc>
+		    <profileDesc>
+			      <langUsage>
+				        <language ident="grc">Greek</language>
+				        <language ident="eng">English</language>
+			      </langUsage>
+		    </profileDesc>
+		    <revisionDesc>
+		      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+		    	<change when="2016-11-09" who="Lisa Cerrato">EpiDoc and CTS conversion work</change>
+		    	<change when="2014-08-01" who="Bridget Almas">converted milestones to divs (and lsqb and rsqb to unicode entities)</change>
+		    	<change when="2014-07-01" who="Stella Dee">split speeches and converted to unicode</change>
+		    	<change when="1992-10-30" who="DAS">added HEAD's and REFDECL's; glued minor works together</change>
+		    	<change when="1992-06-01" who="DAS">inserted section and chapter tags and TEI header; CheckMarked</change>
+		    	<change when="1992-06-01" who="EM and WPM">chopped into files</change>
+		    </revisionDesc>
+	  </teiHeader>

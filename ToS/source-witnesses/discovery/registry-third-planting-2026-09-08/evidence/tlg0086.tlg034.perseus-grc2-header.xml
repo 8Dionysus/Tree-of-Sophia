@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+           <title xml:lang="grc">Περὶ ποιητικῆς</title>
+            <author>Aristotle</author>
+           <editor>Rudolf Kassel</editor>
+           <sponsor>Perseus Project, Tufts University</sponsor>
+           <principal>Gregory Crane</principal>
+           <respStmt>
+             <resp>Prepared under the supervision of</resp>
+             <name>Lisa Cerrato</name>
+             <name>William Merrill</name>
+             <name>Elli Mylonas</name>
+             <name>David Smith</name>
+           </respStmt>
+           <funder n="org:AnnCPB" >The Annenberg CPB/Project</funder>
+         </titleStmt>
+        
+
+        <publicationStmt>
+          <publisher>Trustees of Tufts University</publisher>
+          <pubPlace>Medford, MA</pubPlace>
+          <authority>Perseus Digital Library Project</authority>
+          <date type="release" when="1996" cert="high">Perseus 2.0</date>
+          <idno type="filename">tlg0086.tlg034.perseus-grc2.xml</idno>
+          <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+          </availability>
+        </publicationStmt>
+
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                 <title xml:lang="lat">Aristotelis De arte poetica liber</title>
+                  <author>Aristotle</author>
+                  <editor>Rudolf Kassel</editor>
+                  <imprint>
+                     <publisher>Clarendon Press</publisher>
+                     <pubPlace>Oxford, UK</pubPlace>
+                     <date type="printing">1965</date>
+                  </imprint>
+               </monogr>
+              <ref target="https://digital.slub-dresden.de/werkansicht/dlf/112360/13?tx_dlf%5Bpagegrid%5D=0&amp;cHash=9dfdbc0be1f7342c999475fe8cca21bf">SLUB</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+
+      <encodingDesc>
+        <refsDecl n="CTS">
+          <!--<cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+            <p>This pointer pattern extracts book and chapter and section.</p>
+          </cRefPattern>            -->
+          <cRefPattern n="subchapter" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and subchapter.</p>
+          </cRefPattern>
+          <cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+          </cRefPattern>
+        </refsDecl>
+         <refsDecl n="text=1">
+            <refState unit="text"/>
+            <refState unit="chapter" n="chunk"/>
+            <refState unit="subchapter"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+    
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+    
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+        <change when="2024-10-15" who="Lisa Cerrato">finished markup with spacing and breaks; checked Bekker lines and pages against print; regularized other elements</change>
+        <change when="2024-10-11" who="GRC">(1) updates to unicode (with pargraphs etc. properly encoded) and to updated epiDoc compliant TEI XML; (2) square brackets and angle brackets have been converted to TEI add and del markup (which may not work in our current CSS); (3) imported the chapter/section breaks from the Bekker edition--these should now be the dominant citation scheme with Bekker pages being accesible from a secondary table of contents in Perseus 6; (4) used the same apostraphe character as in the perseus-grc2 version.  The addition of chapters and sections to Kassel should be noted prominently.</change>
+        <change when="2009-05-27" who="rsingh04">added cvs log keyword</change>
+        <change when="1993-04" who="WPM">Tagged in conformance with Prose.e dtd.</change>
+        <change when="1992">Text was scanned at St. Olaf Spring, 1992.</change>
+</revisionDesc>
+ </teiHeader>

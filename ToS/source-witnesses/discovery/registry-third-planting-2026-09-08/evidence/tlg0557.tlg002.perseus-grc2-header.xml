@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="grc">Ἐγχειρίδιον</title>
+                <author>Epictetus</author>
+                <editor>Heinrich Schenkl</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Gregory Crane</name>
+                    <name>Lisa Cerrato</name>
+                    <name>Anne Mahoney</name>
+                    <name>David Mimno</name>
+                </respStmt>
+                <funder n="org:Tufts">Tufts University</funder>
+                
+            </titleStmt>
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release" when="2003-12-05">Perseus 3.0</date>
+                <idno type="filename">tlg0557.tlg002.perseus-grc2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+                </availability>
+            </publicationStmt>
+            
+            <sourceDesc>
+                <biblStruct>
+                    <monogr>
+                        <author>Epictetus</author>
+                        <title xml:lang="lat">Epicteti dissertationes ab Arriano digestae, editio maior</title>
+                        <editor>Heinrich Schenkl</editor>
+                        <imprint>
+                            <pubPlace>Leipzig</pubPlace>
+                            <publisher>Teubner</publisher>
+                            <date>1916</date>
+                        </imprint>
+                    </monogr>
+                    <ref target="https://archive.org/details/ldpd_10922736_000/page/620">The Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+            
+        </fileDesc>
+        <encodingDesc>
+            <editorialDecl><quotation marks="none"/></editorialDecl>
+            <refsDecl n="CTS">
+                <cRefPattern n="section"
+                    matchPattern="(\w+).(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                    <p>This pointer pattern extracts chapter and section</p>
+                </cRefPattern>
+                <cRefPattern n="chapter"
+                    matchPattern="(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts chapter</p>
+                </cRefPattern>
+            </refsDecl>
+            
+                                    <refsDecl xml:id="CTS">
+                    <citeStructure match="/TEI/text/body" use="@xml:base">
+                      <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+                        <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+                      </citeStructure>
+                    </citeStructure>
+                  </refsDecl>
+</encodingDesc>
+  
+  <profileDesc>
+   <langUsage>
+    <language ident="grc">Greek</language>
+    <language ident="lat">Latin</language>
+   </langUsage>
+  </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2023-12-05" who="Lisa Cerrato">EpiDoc and CTS updates to header standards and xml base</change>
+            <change when="2020-01-21" who="Lisa Cerrato">minor revisions to header</change>
+            <change when="2020-01-18" who="Gregory Crane">initial EpiDoc and CTS conversion</change>
+            <change when="2003-10-01" who="unknown">initial markup and digitization</change>
+        </revisionDesc>
+ </teiHeader>

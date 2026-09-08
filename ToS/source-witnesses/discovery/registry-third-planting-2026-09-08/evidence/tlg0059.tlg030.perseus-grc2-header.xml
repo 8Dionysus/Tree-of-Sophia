@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="grc">Πολιτεία</title>
+                <author>Plato</author>
+                <editor>John Burnet</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Lisa Cerrato</name>
+                    <name>William Merrill</name>
+                    <name>Elli Mylonas</name>
+                    <name>David Smith</name>
+                </respStmt>
+                <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+            </titleStmt>
+            
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release">1996</date>
+            </publicationStmt> 
+            <notesStmt>
+                <note anchored="true">Text was scanned at St. Olaf Spring, 1992.</note>
+                <note>Perseus 2.0</note>
+            </notesStmt>
+            <sourceDesc>
+                <biblStruct>
+                    <monogr>
+                        <author>Plato</author>
+                        <title xml:lang="lat">Platonis Opera</title>
+                        <editor>John Burnet</editor>                       
+                        <imprint>
+                            <pubPlace>Oxford</pubPlace>
+                            <publisher>Clarendon Press</publisher>
+                            <date>1905</date>
+                        </imprint>
+                        <biblScope unit="volume">4</biblScope>
+                    </monogr> 
+                    <ref target="https://archive.org/details/operarecognovitb04platuoft/page/9/mode/1up">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                <p>This pointer pattern extracts book and section</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+        </refsDecl>
+            <refsDecl>
+                <refState unit="book"/>
+                <refState unit="section"/>
+            </refsDecl>
+
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+              <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n" n="chunk"/>
+            </citeStructure>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="grc">Greek</language>
+                <language ident="eng">English</language>
+            </langUsage>
+            <particDesc>
+                <person><persName>Σωκράτης</persName></person>
+            </particDesc>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2017-09-26" who="Lisa Cerrato">improvements to CTS conversion work; various header updates</change>
+            <change when="2015-04-15" who="Stella Dee">converted to CTS EpiDoc</change>
+            <change when="1992-07-01" who="DAS">Tagged in conformance with Prose.e dtd</change>
+        </revisionDesc>
+    </teiHeader>

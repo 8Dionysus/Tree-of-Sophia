@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="grc">Ἱέρων</title>
+				<author>Xenophon</author>
+				<editor>Edgar Carew Marchant</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>Elli Mylonas</name>
+					<name>David Smith</name>
+				</respStmt>
+				<funder n="org:AnnCPB">The Annenberg CPB Project</funder>
+
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1996">Perseus 2.0</date> 
+				<idno type="filename">tlg0032.tlg008.perseus-grc2.xml</idno>
+				<availability>
+					<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+				</availability>
+			</publicationStmt>
+
+
+			<sourceDesc>
+					<biblStruct>
+						<monogr>
+							<author>Xenophon</author>
+							<title xml:lang="lat">Opera Omnia</title>
+							<editor>Edgar Carew Marchant</editor>
+							<imprint>
+								<publisher>Clarendon Press</publisher>
+								<pubPlace>Oxford</pubPlace>
+								<date>1920</date>
+								<date type="reprint">1969</date>
+							</imprint>
+							<biblScope unit="volume">5</biblScope>
+						</monogr>
+						<ref target="https://archive.org/details/operaomniarecogn05xenouoft/page/4/mode/2up">The Internet Archive</ref>
+					</biblStruct>
+				</sourceDesc>
+
+		</fileDesc>
+		
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+).(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+					<p>This pointer pattern extracts chapter and section</p>
+				</cRefPattern>
+				<cRefPattern n="chapter" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts chapter</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<!--<refState unit="book" delim="."/>-->
+				<refState unit="chapter" delim="."/>
+				<refState unit="section"/>
+			</refsDecl>
+			<!--<refsDecl>
+				<refState unit="text"/>
+				<refState unit="chapter"/>
+				<refState unit="section"/>
+			</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+		      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+		    </citeStructure>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="grc">Greek</language>
+				<language ident="eng">English</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2016-12-02" who="Lisa Cerrato">CTS and EpiDoc conversion</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split speeches and converted to unicode</change>
+			<change when="1992-10-30" who="das">added HEAD's and REFDECL's; glued minor works together</change>
+			<change when="1992-08-11" who="das">changed chapters to div2's</change>
+			<change when="1992-06-01" who="das">inserted section and chapter tags and TEI header; CheckMarked</change>
+			<change when="1992-06-01" who="em and wpm">chopped into files</change>
+			</revisionDesc>
+	</teiHeader>

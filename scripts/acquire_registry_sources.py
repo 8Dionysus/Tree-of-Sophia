@@ -152,6 +152,8 @@ def load_preparation(root: Path, path: Path, *, allow_unbound: bool = False) -> 
         if target["repository"] not in ALLOWED_REPOSITORIES or not re.fullmatch(r"[a-f0-9]{40}", target["pin"]):
             raise ValueError("unapproved repository or unpinned version")
         package = packages[slug]
+        if target.get("metadata_evidence_refs") is not None:
+            selected_metadata_observations(manifest, target)
         for ref in package["records"]:
             safe_path(root, ref)
             if not ref.startswith(f"{SOURCE}/works/{target['family']}/{slug}/"):
@@ -234,6 +236,28 @@ def transfer(root: Path, target: dict, entry: dict, log: Path) -> tuple[bytes, d
         raise
 
 
+def tei_division_addresses(edition: ET.Element) -> list[str]:
+    """Qualify local division numbers by their source-supplied ancestors."""
+    addresses: list[str] = []
+    seen: set[tuple[tuple[str, str], ...]] = set()
+    def visit(node: ET.Element, parents: tuple[tuple[str, str], ...]) -> None:
+        for child in node:
+            address = parents
+            if child.tag == "{http://www.tei-c.org/ns/1.0}div":
+                label = child.get("subtype") or child.get("type")
+                number = child.get("n")
+                if not label or not number:
+                    raise ValueError("Perseus text division lacks a supplied type or number")
+                address += ((label, number),)
+                if address in seen:
+                    raise ValueError("Perseus qualified division address is duplicated")
+                seen.add(address)
+                addresses.append(json.dumps(address, ensure_ascii=False, separators=(",", ":")))
+            visit(child, address)
+    visit(edition, ())
+    return addresses
+
+
 def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
     report = {"target_slug": target["slug"], "file_count": len(bodies), "byte_size": sum(len(body) for _, body in bodies),
               "source_bytes_changed": False, "textual_acceptance": False, "files": []}
@@ -256,9 +280,19 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
         sections = [node.get("n") for node in editions[0].iter(ns + "div") if node.get("subtype") == "section"]
         text = "".join(editions[0].itertext())
         greek = sum("\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff" for char in text)
-        if not sections or len(sections) != len(set(sections)) or greek < 1000:
-            raise ValueError("Perseus section identity or nonempty Greek text check failed")
-        report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"], "section_count": len(sections), "first_section": sections[0], "last_section": sections[-1], "greek_character_count": greek})
+        if coverage.get("citation_scope") == "hierarchical_divisions":
+            addresses = tei_division_addresses(editions[0])
+            if not addresses or greek < 1000:
+                raise ValueError("Perseus qualified divisions or nonempty Greek text check failed")
+            report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"],
+                "division_count": len(addresses), "first_division": addresses[0], "last_division": addresses[-1],
+                "division_addresses_sha256": sha256(("\n".join(addresses)+"\n").encode()),
+                "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+                "greek_character_count": greek})
+        else:
+            if not sections or len(sections) != len(set(sections)) or greek < 1000:
+                raise ValueError("Perseus section identity or nonempty Greek text check failed")
+            report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"], "section_count": len(sections), "first_section": sections[0], "last_section": sections[-1], "greek_character_count": greek})
         report["coverage_limit"] = "Complete pinned supplied file; no independent critical-edition or missing-passage judgment."
     elif coverage["kind"] == "osis-book":
         namespace = "{http://www.bibletechnologies.net/2003/OSIS/namespace}"
@@ -491,11 +525,23 @@ def refresh_topology(root: Path, evidence_root: Path, ended: str) -> None:
     write_jsonl_record(path, batch)
 
 
+def selected_metadata_observations(preparation: dict, target: dict) -> list[dict]:
+    refs = target.get("metadata_evidence_refs")
+    if refs is None:
+        return [value for value in preparation["metadata_observations"] if (target["provider"] in value["retained_ref"] or target["provider"] == "bilara" and "suttacentral" in value["retained_ref"])]
+    if not refs or len(refs) != len(set(refs)):
+        raise ValueError("target metadata evidence refs are empty or duplicated")
+    matching = [value for value in preparation["metadata_observations"] if value["retained_ref"] in refs]
+    if len(matching) != len(refs) or {value["retained_ref"] for value in matching} != set(refs):
+        raise ValueError("target metadata evidence is not exactly bound by the preparation")
+    return matching
+
+
 def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: dict, transfers: list[dict], acquisition: dict) -> None:
     slug = target["slug"]
     run_ref = f"{SOURCE}/discovery/runs/registry-{slug}.2026-09-08.v1.json"
     event_id = f"tos.event.discovery.registry-20260908.{slug}"
-    matching = [value for value in preparation["metadata_observations"] if (target["provider"] in value["retained_ref"] or target["provider"] == "bilara" and "suttacentral" in value["retained_ref"])]
+    matching = selected_metadata_observations(preparation, target)
     channels, selected = [], []
     for index, observation in enumerate(matching, 1):
         channels.append({"channel_id": f"channel-{slug}-metadata-{index}", "sequence": index, "channel_type": "specialized-scholarly-project", "role": "originating-record",

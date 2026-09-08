@@ -17,6 +17,30 @@ import acquire_registry_sources as acquisition
 
 
 class RegistrySourceAcquisitionTests(unittest.TestCase):
+    def test_large_batch_keeps_target_evidence_exact_and_rejects_missing_refs(self) -> None:
+        preparation = {"metadata_observations": [{"retained_ref": ref} for ref in ('perseus/license', 'perseus/one', 'perseus/other')]}
+        target = {"provider": "perseus", "metadata_evidence_refs": ['perseus/license', 'perseus/one']}
+        self.assertEqual(acquisition.selected_metadata_observations(preparation, target), preparation['metadata_observations'][:2])
+        for refs in ([], ['missing'], ['perseus/one', 'perseus/one']):
+            with self.subTest(refs=refs), self.assertRaises(ValueError):
+                acquisition.selected_metadata_observations(preparation, {**target, 'metadata_evidence_refs': refs})
+        self.assertEqual(acquisition.selected_metadata_observations(preparation, {'provider': 'perseus'}), preparation['metadata_observations'])
+
+    def test_perseus_hierarchical_citations_distinguish_repeated_section_numbers(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        books = ''.join(f'<div type="textpart" subtype="book" n="{number}">'
+            '<div type="textpart" subtype="section" n="1">' + '\u03b1' * 600 + '</div></div>' for number in ('1', '2'))
+        body = prefix + ('<text><body><div type="edition" n="urn:cts:greekLit:test.grc1" xml:lang="grc">'
+            + books + '</div></body></text></TEI>').encode()
+        target = {"slug": "fixture", "coverage": {"kind": "perseus-tei-work", "citation_scope": "hierarchical_divisions",
+            "cts_urn": "urn:cts:greekLit:test.grc1", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertEqual(report["files"][0]["division_count"], 4)
+        self.assertEqual(json.loads(report["files"][0]["last_division"]), [["book", "2"], ["section", "1"]])
+        for altered in (body.replace(b'n="2"', b'n="1"'), body.replace(b'n="2"', b'')):
+            with self.subTest(altered=altered[-200:]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, altered)])
+
     def test_perseus_checks_reviewed_header_cts_language_and_section_identity(self) -> None:
         prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
         body = prefix + ('<text><body><div type="edition" n="urn:cts:greekLit:test.grc1" xml:lang="grc">'

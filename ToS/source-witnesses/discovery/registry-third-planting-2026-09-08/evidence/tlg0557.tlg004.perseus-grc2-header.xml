@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="lat">Gnomologium Epicteteum (e Stobaei libris 1-2)</title>
+<author>Epictetus</author>
+ <editor>Heinrich Schenkl</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+<name>Gregory Crane</name>
+<name>Lisa Cerrato</name>
+<name>Anne Mahoney</name>
+<name>David Mimno</name>
+</respStmt>
+<funder n="org:Tufts">Tufts University</funder>
+
+            </titleStmt>
+            <publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+<date type="release" when="2023-12-13">Perseus 5.0</date>
+<idno type="filename">tlg0557.tlg004.perseus-grc2.xml</idno>
+<availability>
+<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+</availability>
+            </publicationStmt>
+            
+<sourceDesc>
+<biblStruct>
+<monogr>
+    <title xml:lang="lat">Epicteti Dissertationes ab Arriano digestae</title>
+    <author>Epictetus</author>
+        <editor>Heinrich Schenkl</editor>
+  <imprint>
+        <pubPlace>Leipzig</pubPlace>
+        <publisher>B. G. Teubner</publisher>
+        <date>1916</date>
+    </imprint>
+</monogr>
+<ref target="https://archive.org/details/ldpd_10922736_000/page/596">The Internet Archive</ref>
+</biblStruct>
+            </sourceDesc>
+        </fileDesc>
+
+        <encodingDesc>
+            <refsDecl n="CTS">
+                <cRefPattern n="sentence" matchPattern="(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts sentence.</p>
+                </cRefPattern>
+            </refsDecl>
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="sentence" delim=":" match="div[@type='edition']/div[@subtype='sentence']" use="@n"/>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+
+        <profileDesc>
+            <langUsage>
+<language ident="grc">Greek</language>
+<language ident="lat">Latin</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    </revisionDesc>
+</teiHeader>

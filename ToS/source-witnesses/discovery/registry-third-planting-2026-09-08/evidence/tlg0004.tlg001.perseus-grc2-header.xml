@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="grc">Βίοι καὶ γνῶμαι τῶν ἐν φιλοσοφίᾳ εὐδοκιμησάντων</title>
+                <author xml:lang="lat">Diogenes Laertius</author>
+                <editor>R. D. Hicks</editor>
+                
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Bridget Almas</name>
+                    <name>Lisa Cerrato</name>
+                    <name>Rashmi Singhal</name>
+                </respStmt>
+                <funder>National Endowment for the Humanities Division of Preservation and Access</funder></titleStmt>
+            <publicationStmt>
+                <publisher>Cultural Heritage Langauge Technologies</publisher>
+                <pubPlace>Kansas City Missouri</pubPlace>
+                <date when="2005-11-01">November 1, 2005</date>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Digital Library Project</authority>
+                <date cert="medium" type="release">2009</date>
+                <idno type="filename">tlg0004.tlg001.perseus-grc2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+                </availability>
+            </publicationStmt>
+
+            <sourceDesc>
+                <biblStruct>
+                    <monogr>
+                        <author>Diogenes Laertius</author>
+                        <title rend="italic">Lives of Eminent Philosophers</title>
+                        <editor role="translator">R. D. Hicks</editor>
+                        <imprint>
+                            <pubPlace>Cambridge, MA</pubPlace>
+                            <publisher>Harvard University Press</publisher>
+                            <pubPlace>London</pubPlace>
+                            <publisher>William Heinemann Ltd.</publisher>
+                            <date>1925</date>
+                        </imprint>
+                        <extent>Two volumes</extent>
+                    </monogr>
+                    <ref target="https://archive.org/details/livesofeminentph01diog/page/2">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+
+        <encodingDesc>
+            <editorialDecl>
+                <quotation marks="none"/>
+                <correction status="low"> <p>Data Entry</p> </correction>
+            </editorialDecl>
+            <p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+            <refsDecl n="CTS">
+                <cRefPattern matchPattern="(\w+).(\w+).(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+                    <p>This pointer pattern extracts book, chapter, and section.</p></cRefPattern>
+                <cRefPattern matchPattern="(\w+).(\w+)" n="chapter" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                    <p>This pointer pattern extracts book and chapter.</p></cRefPattern>
+                <cRefPattern matchPattern="(\w+)" n="book" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts book.</p></cRefPattern>
+            </refsDecl>
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+              <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n">
+                <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+              </citeStructure>
+            </citeStructure>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+        
+        <profileDesc>
+            <langUsage>
+                <language ident="grc">Greek</language>
+                <language ident="eng">English</language>
+                <language ident="lat">Latin</language>
+                <language ident="fre">French</language>
+            </langUsage>
+        </profileDesc>
+ 
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2022-08-10" who="Lisa Cerrato">EpiDoc and CTS conversion and general header review.</change>
+            <change when="2016-10-03" who="Lisa Cerrato">removed superfluous note empty tags that actually represented sections; fixed Roman numerals in 10.139ff</change>
+            <change when="2010-06-24" who="gcrane">edits to improve named entities</change>
+             <change who="rsingh04" when="2009-12-09">moved more xml files around based on copyright status</change> 
+            <change who="rsingh04" when="2009-11-17">moved more texts around based on copyright status</change> 
+            <change who="student AD" when="2009-07-30">adding section numbers, putting foreign lang tags on footnotes - ad</change> 
+            <change who="student AD" when="2009-07-23">adding section numbers, putting foreign lang tags on footnotes - ad</change> 
+            <change who="student AD" when="2009-07-17">student adding section numbers, putting foreign lang tags on footnotes - ad</change> 
+            <change who="student AD" when="2009-07-16">student adding milestone numbers - ad</change> 
+            <change who="student AD" when="2009-07-02">student adding section numbers, putting foreign lang tags on footnotes - ad</change> 
+            <change who="student AD" when="2009-06-26">student adding section numbers, putting foreign lang tags on footnotes - ad</change> 
+            <change who="student AD" when="2009-06-24">student adding section numbers, putting foreign lang tags on footnotes - ad</change> 
+            <change who="rsingh04" when="2009-06-22">beta code versions of diogenes, greek and english. also combined the two volumes of each text (originally in incunabula/Diogenes[English|Greek][1|2].xml into one. still need to add sections for citation support</change>
+            <change who="RS" when="2009-06-22">unspecified file update or migration</change> 	
+        </revisionDesc>
+    </teiHeader>

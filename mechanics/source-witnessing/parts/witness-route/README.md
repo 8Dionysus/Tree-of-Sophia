@@ -50,6 +50,15 @@ its exact plan, per-transfer history, source-scope corrections, canary result
 and batch execution record. A supplied provider description can be corrected
 against actual payload fields while retaining the earlier observation and bytes.
 
+Larger preparations may bind `metadata_evidence_refs` per target, so each
+discovery record carries only its own reviewed source observations. The exact
+refs must resolve before installation. Perseus editions with nested books,
+chapters or sections use the explicit `hierarchical_divisions` citation scope:
+local numbers are qualified by their source-supplied ancestor type/number
+pairs. These structural addresses do not assert remote CTS resolution or
+critical completeness. The original flat-section checks remain in place for
+earlier preparations.
+
 Post-acquisition readiness records use explicit `execution` status.
 `completed` requires digest-bound local files and the exact Work/branch planting
 record. Completed, deferred and blocked entries remain in history and are not

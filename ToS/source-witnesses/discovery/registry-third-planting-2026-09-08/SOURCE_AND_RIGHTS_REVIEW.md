@@ -1,0 +1,31 @@
+# Third planting: 51 exact Greek source editions
+
+Reviewed by Codex, 2026-09-08, for the Operator's requested larger planting pass. This is a bounded source-visible identity, branch-fit and licensed local-use assessment. Textual/semantic acceptance, disputed ancient authorship, chronology, canon, human review and public source-file distribution are not claimed.
+
+## Selection and source review
+
+The retained metadata covers 70 candidate files at PerseusDL/canonical-greekLit commit `341e309c821d5eca8c976bebca77c28b10bad58f`. The selected 51 are 23 further Platonic-corpus works, nine Aristotelian-corpus works, fifteen Plutarch works, Epictetus Discourses and Handbook, Marcus Aurelius Ad Se Ipsum, and Diogenes Laertius Vitae philosophorum. All selected CTS Work/Edition declarations, full TEI header prefixes, title/contributor statements, source descriptions, notes and publication/licence statements were inspected. Transport receipts explicitly distinguish bounded header-prefix reads from acquisition of complete source bodies.
+
+Plato uses the supplied Burnet/Oxford volumes dated 1903, 1905, 1910 and 1915. Aristotle carries distinct editors and print manifestations: Kenyon, Susemihl, Bywater, Ross, Armstrong, Kassel and Bekker, with the literal supplied publication statements retained per edition. Their dates include modern twentieth-century editions; this intake does not infer public-domain status from the ancient author. Plutarch uses the supplied Vernardakes/Teubner Moralia volumes (1888–1895); Epictetus uses Schenkl 1916; Marcus Aurelius uses Leopold 1908; Diogenes Laertius uses Hicks 1925. These are supplier statements, not independently authenticated scan equivalence. Preserve source OCR/correction history as upstream history; ToS changes no source bytes.
+
+The existing A25 Scaife/Perseus corpus anchor covers the selected Plato/Aristotle source-language editions. Existing A29 anchors separately cover Plutarch, Epictetus and Meditations. A26's Diogenes Laertius Books 6–10 source need is grounded by one complete supplied ten-book edition with the additional scope stated explicitly. A registry entry denoting only an author corpus remains a broad lead after any constituent planting. A translation-specific entry is not used as evidence that its Greek source is the same version.
+
+Nineteen candidate files remain metadata-only and deferred: fourteen Xenophon works need suitable reviewed branch anchoring; Plato's Letters need an epistolary collection/constituent representation; three Epictetus fragment/gnomology files need the transmitting-witness and compilation route; the short Plutarch Compendium is held with the registry conflict below. Their metadata availability is not an acquisition or planting claim.
+
+## Registry identity correction
+
+A26-R061 reports the title «Об общих понятиях против стоиков» but supplies CTS `tlg0007.tlg137.perseus-grc2`. The exact upstream CTS and header identify `tlg137` as *Compendium argumenti Stoicos absurdiora poetis dicere*. The titled work *De communibus notitiis adversus Stoicos* is instead `tlg138`, explicitly identified by the retained `tlg0007.tlg138-cts.xml` and its Greek header. This is a source-visible mismatch in the imported research record. Its original cells and normalized assertions remain unchanged and inspectable. The reviewed selected `tlg138` edition is linked through the independently correct A29 Plutarch corpus lead, not by silently accepting A26-R061. Owner: source-registry reviewed correspondence/intake; next condition: an explicit correction of the reported title-to-CTS relation with these exact source refs before that original row can be treated as an exact match.
+
+## Rights assessment
+
+The pinned [Perseus README](https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md) grants CC BY-SA 4.0 unless otherwise indicated and warns that header accuracy remains under review. The retained repository README and licence are exact evidence. Each selected file was checked separately: many state CC BY-SA 4.0 explicitly in their header; the remaining selected Platonic headers and On Virtues and Vices have no conflicting exception. CTS metadata and supplied notes expose no additional conflicting licence condition. Rights are assessed by digital text, editorial, encoding/presentation and metadata layers within supplier authority.
+
+Local reproduction and processing rely on the positive licence, not availability or copyright-term expiry. Retain all headers, attribution, editor/contributor credits, licence links and notices. Identify any future modifications; shared adaptations carry applicable share-alike conditions and no additional restrictions. Preserve the repository request to offer source modifications to Perseus; none are made here. See [CC BY-SA 4.0 legal code](https://creativecommons.org/licenses/by-sa/4.0/legalcode.en). This bounded assessment is not a universal legal or manuscript-rights determination.
+
+The source files remain local-only ignored Item payloads. Metadata, fixity, provenance, rights and branch routes are tracked. Publication of the Operator's research inputs and source metadata is separate from transferring these source text payloads.
+
+## Acquisition and review controls
+
+Freeze the preparation and run the exact commit/session checkpoint-review before source installation. Each acquisition must match the pinned Git blob and size, the reviewed header SHA-256, the exact CTS edition and Greek language, and nonempty Greek text. Qualify nested division numbers by all supplied ancestor type/number pairs: repeated section 1 in different books is valid; an identical full address is ambiguous and fails validation. The resulting structural addresses do not claim successful remote CTS resolution. Preserve byte order, code points and the complete file, then record local SHA-256 and resource inventory.
+
+The larger batch keeps target-specific metadata refs so one Work's discovery history does not masquerade as a query of every other Work. Rebuild owned catalogs, registry coverage, branch projections and currentness after verified local custody. A green structural check never accepts a reading, an attribution or a doctrine.

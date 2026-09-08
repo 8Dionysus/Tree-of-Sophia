@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader>
+    <fileDesc>
+        <titleStmt>
+            <title xml:lang="grc">Περὶ τύχης</title>
+            <author>Plutarch</author>
+            <editor>Grēgorios N. Vernardakēs</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+                <resp>Prepared under the supervision of</resp>
+                <name>Bridget Almas</name>
+                <name>Lisa Cerrato</name>
+                <name>Rashmi Singhal</name>
+                <name>Angelia Hanhardt</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            
+            <respStmt>
+                <persName>Charlotte Houghton</persName>
+                <orgName>Center for Hellenic Studies</orgName>
+                <resp>CTS conversion</resp>
+            </respStmt>
+        </titleStmt>
+        <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2010-12-13">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg074.perseus-grc2.xml</idno>
+          <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+        </publicationStmt>
+        <sourceDesc>
+            <biblStruct>
+                
+                <monogr>
+                    <author>Plutarch</author>
+                    <title>Moralia</title>
+                    <editor>Grēgorios N. Vernardakēs</editor>
+                    <imprint>
+                        <pubPlace>Leipzig</pubPlace>
+                        <publisher>Teubner</publisher>
+                        <date>1888</date>
+                    </imprint>
+                    <biblScope unit="volume">1</biblScope>
+                </monogr>
+                <ref target="http://archive.org/stream/moralia01plut#page/236/mode/2up">Internet Archive</ref>
+            </biblStruct>
+        </sourceDesc>
+    </fileDesc>
+    <encodingDesc>
+        <editorialDecl> <quotation marks="none"/></editorialDecl>
+     
+        <refsDecl n="CTS">
+          <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                     <p>This pointer pattern extracts section.</p>		                    
+           </cRefPattern>
+        </refsDecl>
+        <refsDecl>
+            <refState unit="section"/>
+        </refsDecl>
+        <refsDecl xml:id="CTS">
+      <citeStructure match="/TEI/text/body" use="@xml:base">
+        <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+      </citeStructure>
+    </refsDecl>
+</encodingDesc>
+    <profileDesc>
+        <langUsage>
+            <language ident="grc">Greek</language>
+            <language ident="eng">English</language>
+        </langUsage>
+    </profileDesc>
+    <revisionDesc>
+      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+        <change when="2018-07-03" who="Charlotte Houghton">EpiDoc and CTS conversion, formatting</change>
+        <change when="2010-05-01" who="RS">tagged and parsed</change>
+    </revisionDesc>
+</teiHeader>
