@@ -13,6 +13,30 @@ export class RevisionError extends Error {
 export class RequestError extends Error {
   constructor(status,message){super(message);this.status=status;}
 }
+// Durable reading stores selectors only. The backend must supply and validate
+// the complete current path again; saved IDs never stand in for source text.
+export function validateClaimReference(value,claimId){
+  const id=value=>typeof value==='string'&&value.length>0&&value.length<=2048;
+  const ids=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(id);
+  if(!value||value.claimId!==claimId||!id(claimId)||!id(value.pathId)||!id(value.relationType)
+    ||!ids(value.nodeIds,3)||value.nodeIds.length!==3||value.nodeIds[1]!==claimId
+    ||!ids(value.relationIds,2)||value.relationIds.length!==2
+    ||!ids(value.detailRelationIds,BUDGET.relations-2)
+    ||!ids(value.closureNodeIds,BUDGET.nodes)||!value.closureNodeIds.length
+    ||new Set(value.closureNodeIds).size!==value.closureNodeIds.length
+    ||!value.nodeIds.every(nodeId=>value.closureNodeIds.includes(nodeId))
+    ||new Set([...value.relationIds,...value.detailRelationIds]).size!==value.relationIds.length+value.detailRelationIds.length)
+    throw new FormContractError();
+  return Object.fromEntries(['claimId','pathId','relationType','nodeIds','relationIds','detailRelationIds','closureNodeIds']
+    .map(key=>[key,structuredClone(value[key])]));
+}
+export function claimMaterialReference(packet,path){
+  const closure=claimPathClosure(packet,path);
+  return validateClaimReference({claimId:path.claim_node_id,pathId:path.id,relationType:path.relation_type_id,
+    nodeIds:path.node_ids,relationIds:path.relation_ids,detailRelationIds:path.detail_relation_ids,closureNodeIds:closure.nodeIds},path.claim_node_id);
+}
+export const materialVersions=packet=>Object.fromEntries(['nodes','relations'].map(kind=>
+  [kind,Object.fromEntries(packet[kind].map(item=>[item.id,item.content_revision]))]));
 export function localized(value,fallback='',preferred='ru') {
   return displayForm(value,preferred)?.text||fallback;
 }
@@ -196,30 +220,35 @@ export class KnowledgeClient {
     return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
   }
   async readClaimMaterial(scene,path,signal,{language='ru'}={}){
+    validateArea(scene);
+    return this.readClaimReference(claimMaterialReference(scene,path),signal,
+      {language,expected:scene.source_revision,versions:materialVersions(scene)});
+  }
+  async readClaimReference(reference,signal,{language='ru',expected=null,versions=null}={}){
     if(!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
-    validateArea(scene);const closure=claimPathClosure(scene,path);
-    if(closure.nodeIds.length>BUDGET.nodes||closure.relationIds.length>BUDGET.relations)
-      throw new ContractError(t('Область превышает бюджет отображения.'));
+    const ref=validateClaimReference(reference,reference?.claimId);
+    const closure={nodeIds:ref.closureNodeIds,relationIds:[...ref.relationIds,...ref.detailRelationIds]};
     // Exact selectors supply the closure. A focus can suppress a valid compact
     // path when that node is the Claim or is also referenced as its grounds.
-    const spec={...focusSpec(path.node_ids[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
+    const spec={...focusSpec(ref.nodeIds[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
       node_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.nodeIds}]},
       relation_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.relationIds}]},
       traversal:{depth:0,direction:'either',profile:'all'},
       limits:{nodes:closure.nodeIds.length,relations:closure.relationIds.length,groups:closure.nodeIds.length}};
-    const packet=await this.compile(spec,signal,scene.source_revision);
+    const packet=await this.compile(spec,signal,expected);
     const exact=(items,ids)=>items.length===ids.length&&items.every(item=>ids.includes(item.id));
     if(!exact(packet.nodes,closure.nodeIds)||!exact(packet.relations,closure.relationIds))
       throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
     for(const kind of ['nodes','relations'])for(const item of packet[kind]){
-      if(item.content_revision!==scene[kind].find(old=>old.id===item.id)?.content_revision)throw new RevisionError();
+      if(versions&&item.content_revision!==versions[kind]?.[item.id])throw new RevisionError();
       validateHumanForms(item,language);
     }
-    const selected=claimPathFor(packet,path.claim_node_id);if(!selected)throw new FormContractError();
+    const selected=claimPathFor(packet,ref.claimId);if(!selected)throw new FormContractError();
     const returned=claimPathClosure(packet,selected);
-    if(selected.id!==path.id||selected.relation_type_id!==path.relation_type_id
-      ||JSON.stringify(selected.node_ids)!==JSON.stringify(path.node_ids)
-      ||JSON.stringify(selected.relation_ids)!==JSON.stringify(path.relation_ids)
+    if(selected.id!==ref.pathId||selected.relation_type_id!==ref.relationType
+      ||JSON.stringify(selected.node_ids)!==JSON.stringify(ref.nodeIds)
+      ||JSON.stringify(selected.relation_ids)!==JSON.stringify(ref.relationIds)
+      ||!exact(returned.nodeIds.map(id=>({id})),closure.nodeIds)
       ||!exact(returned.relationIds.map(id=>({id})),closure.relationIds))throw new FormContractError();
     return {packet,match:returned.node,endpoints:[],path:selected};
   }
