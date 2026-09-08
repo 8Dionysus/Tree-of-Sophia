@@ -1,0 +1,41 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2",
+  "preferred_label": "Immortality of Writers — oraec Git snapshot b83a0ee5fae2",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/oraec/corpus_raw_data/tree/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-README.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec1016-metadata.html",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/oraec-scope-correction/current.json"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec",
+    "tos.expression.egyptian-literature.immortality-of-writers.de-aed-tei-oraec"
+  ],
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.registry-20260908.immortality-of-writers.edition-item"
+  ],
+  "edition_statement": "Immutable oraec/corpus_raw_data commit b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd; ORAEC scholarly JSON containing Egyptian written-form transliteration, German sentence translations and token glosses, and lexical/morphological annotation, derived from AED-TEI and the January 2018 database export; exact immutable ORAEC Git snapshot. No hieroglyphic representation field was observed in these acquired bytes.",
+  "notes": "Exact supplied digital edition; its Egyptian transliteration and German translation/gloss components remain separate. Peter Dils is the item-specific responsible scholar. The upstream README preserves the complete contributor list for the exported corpus.",
+  "record_version": 2,
+  "supersedes_ref": null
+}

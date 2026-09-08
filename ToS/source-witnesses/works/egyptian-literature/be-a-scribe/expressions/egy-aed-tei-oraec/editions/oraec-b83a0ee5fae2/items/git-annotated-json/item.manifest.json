@@ -1,0 +1,35 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260908.be-a-scribe",
+  "rights_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/oraec/corpus_raw_data/tree/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-README.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec3091-metadata.html",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "relative_path": "payload/oraec3091.json",
+      "original_basename": "oraec3091.json",
+      "media_type": "application/json",
+      "byte_size": 33766,
+      "sha256": "b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "fixity_verified_at": "2026-09-08T21:18:55.526992+00:00"
+    }
+  ]
+}

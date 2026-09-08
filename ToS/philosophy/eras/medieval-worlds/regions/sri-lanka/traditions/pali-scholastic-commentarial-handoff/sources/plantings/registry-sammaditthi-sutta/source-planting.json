@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.t2-39.registry-sammaditthi-sutta",
+  "atlas_row_id": "T2-39",
+  "dossier_id": "T2-39",
+  "branch_path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff",
+  "source_backlog_anchor": {
+    "line": 14,
+    "path": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/source-anchor-backlog.jsonl",
+    "source_label": "SuttaCentral",
+    "source_row_index": 2,
+    "source_table_index": 14
+  },
+  "source_witness": {
+    "work_id": "tos.work.pali-canon.sammaditthi-sutta",
+    "record_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/registry-sammaditthi-sutta.2026-09-08.v1.json",
+  "provenance_event_ref": "tos.event.discovery.registry-20260908.sammaditthi-sutta",
+  "research_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+  "fulfilled_source_needs": [
+    "MN 9 is a canonical antecedent of its commentarial reception; the selected Pali root is a separate version from the Sujato translation described in the registry.",
+    "Exact prepared version is locally retained: 1 immutable files; Item manifest fixes SHA-256 and resource inventory records observed coverage."
+  ],
+  "remaining_controls": [
+    "No medieval commentary is acquired by planting its canonical antecedent.",
+    "No attribution of the canonical text to Buddhaghosa and no commentary completeness claim.",
+    "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+    "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+    "For MN 9 the registry describes a Sujato translation and also points to the cognate root; this selects the separate root version as an antecedent to the later commentarial branch.",
+    "Local file custody and branch route do not admit text, translation, semantics or canon."
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-08T21:20:57.949018+00:00",
+  "record_version": 1
+}

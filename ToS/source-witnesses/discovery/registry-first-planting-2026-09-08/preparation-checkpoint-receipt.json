@@ -1,0 +1,23 @@
+{
+  "schema_version": "tos_registry_preparation_checkpoint_receipt_v1",
+  "status": "passed",
+  "manifest_sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74",
+  "commit": "8861fecf8e328a874887e875b255876061c80ac9",
+  "runtime_session_id": "01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "checkpoint_review_ref": "agent-review:8861fecf8:20260908T211104Z",
+  "agent_review_status": "reviewed",
+  "passed_checks": [
+    "complete source registry normalization",
+    "17 normalization tests; independent 356308-field comparison",
+    "8 acquisition safety tests",
+    "16 source resource inventory tests",
+    "41 readiness queue tests",
+    "13 philosophy topology tests",
+    "source foundation, source home, mechanics, philosophy topology",
+    "complete generated_parity sequence",
+    "documentation cross-corpus/currentness",
+    "inventories and validation lanes"
+  ],
+  "manual_review_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/PREPARATION_REVIEW.md",
+  "no_payload_acquired_at_checkpoint": true
+}

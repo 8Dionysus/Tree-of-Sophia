@@ -1,0 +1,1043 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-khuddakapatha.2026-09-08.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.pali-canon.khuddakapatha",
+      "tos.expression.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral",
+      "tos.edition.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "tos.item.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json"
+    ],
+    "description": "SuttaCentral Mahāsaṅgīti-derived Pāli root text, Roman script, preserved in the pinned Bilara published snapshot. Root edition metadata reports Dhamma Society Fund, Bangkok, 2010; SuttaCentral adapted structure/markup and sometimes punctuation.",
+    "required_properties": [
+      "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+      "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+      "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "pli"
+    ],
+    "formats": [
+      "application/json"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-khuddakapatha-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+      "queried_at": "2026-09-08T20:47:47.661930+00:00",
+      "elapsed_seconds": 1.055186027999298,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "bilara-kn-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/e2c11bd977c2768a322f14a06d721a6263a72d62?recursive=1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "384c4ba722e9123b800b7c821e2b8383a1e7a5b659eff4c650143461a691a884",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-kn-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+      "queried_at": "2026-09-08T20:47:48.722472+00:00",
+      "elapsed_seconds": 0.3675719790007861,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "bilara-dn-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/985db01adf1ce6e3371159f5960892fe3691dca8",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "10089b284889b5575a9ad3623682b874e9b990473df2daa1602b7f47febd40b9",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-dn-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+      "queried_at": "2026-09-08T20:47:49.090706+00:00",
+      "elapsed_seconds": 0.4909528840016719,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "bilara-mn-tree.json",
+          "result_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+          "originating_record_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/suttacentral/bilara-data/git/trees/f0e956618fd089176cb797125a68a8b9ea59a3b2",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "23902c36bb3b945d4de702d9ca490b9f5f5dc55f4aa8db51dff9d0d4425b96e5",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-mn-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+      "queried_at": "2026-09-08T20:47:51.081694+00:00",
+      "elapsed_seconds": 0.3513186639993364,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "suttacentral-licensing.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/suttacentral/5c7470b58bcc0bb50887d3a6ed54f4687703f176/client/localization/elements/licensing_en.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "86dadc3d00708b9f12e3043b0435271bcfe5c9e4f0693baa62812e4ab363241c",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+      "queried_at": "2026-09-08T20:47:51.433511+00:00",
+      "elapsed_seconds": 0.28868810099993425,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "suttacentral-root-edition.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/sc-data/36c4fddac3ef3c0cda0ffc07760a04d39b8c2eae/misc/root_edition.json",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "df1f577c80f941b05996cdd4868c6680890406827474198e422f486bd644abee",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "suttacentral/bilara-data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+      "queried_at": "2026-09-08T20:47:51.722801+00:00",
+      "elapsed_seconds": 0.2975875199990696,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "bilara-LICENSE.md",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+          "originating_record_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "fb244eaafc121b9f5b14dbecb20ac407b3acf6eec8c5028fc1e3bd0afb1a6f3f",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/bilara-LICENSE.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp1_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp1_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:55.580040+00:00",
+      "elapsed_seconds": 0.24235126199891965,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-7",
+          "rank": 1,
+          "title_as_displayed": "kp1_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp1_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "aea9f03b54f17845aa6ad9fdd0dc800570f8b8ab"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:55.822390+00:00",
+            "byte_size": 686,
+            "sha256": "0d5f12be438dbda96a11206fd1484e3bf67f3287c873b06a9ff60315b24ae6d3",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-8",
+      "sequence": 8,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp2_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp2_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:55.827031+00:00",
+      "elapsed_seconds": 0.2413278829990304,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-8",
+          "rank": 1,
+          "title_as_displayed": "kp2_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp2_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "012bd736533155bf6203cf73fc2ca62332079413"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:56.068356+00:00",
+            "byte_size": 934,
+            "sha256": "a853e42554cb11527bac08350e2453976fafdde32eada84fedd8840f1be3bf68",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-9",
+      "sequence": 9,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp3_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp3_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:56.073438+00:00",
+      "elapsed_seconds": 0.24261183500129846,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-9",
+          "rank": 1,
+          "title_as_displayed": "kp3_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp3_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "6e00c4f506dc9217356b3b12d251c2699b5a7863"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:56.316047+00:00",
+            "byte_size": 459,
+            "sha256": "153917014196b7fc9b83c025baa198d44f3eca8ed5199c358404f56fac0e98e6",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-10",
+      "sequence": 10,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp4_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp4_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:56.320741+00:00",
+      "elapsed_seconds": 0.23522407900054532,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-10",
+          "rank": 1,
+          "title_as_displayed": "kp4_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp4_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "e551c9d221d88dacd39c69d8f61b00f8fc763449"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:56.555959+00:00",
+            "byte_size": 915,
+            "sha256": "c04f6a32d7e1161a8e170c61c4e1135b7d1b275b1385c208c0dce4bdd3d69c45",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-11",
+      "sequence": 11,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp5_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp5_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:56.560747+00:00",
+      "elapsed_seconds": 0.23775898100029735,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-11",
+          "rank": 1,
+          "title_as_displayed": "kp5_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp5_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "4c599480e889dbee7aa14438356beff2323de299"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:56.798501+00:00",
+            "byte_size": 2698,
+            "sha256": "607183d79bf1a87532d1240979e06491c7ba2f1beaee06d7180b7bc0a182d7d1",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-12",
+      "sequence": 12,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp6_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp6_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:56.803054+00:00",
+      "elapsed_seconds": 0.24708896100128186,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-12",
+          "rank": 1,
+          "title_as_displayed": "kp6_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp6_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "ff25be8036329ef598a61b6ab0961326f352cff4"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:57.050136+00:00",
+            "byte_size": 4809,
+            "sha256": "ac87a462ffd911e0a820671af44ba7b616d9b9f9e035af12784b4251a1bdc646",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-13",
+      "sequence": 13,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp7_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp7_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:57.055253+00:00",
+      "elapsed_seconds": 0.24457645300026343,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-13",
+          "rank": 1,
+          "title_as_displayed": "kp7_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp7_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "df48e8caa4cf78e759080892b94f92085657348b"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:57.299827+00:00",
+            "byte_size": 2443,
+            "sha256": "7274eff2cb9a3740ae02b360ef5c70c5ab934d4ad4d6faa8f1076a3e0c3734c1",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-14",
+      "sequence": 14,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp8_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp8_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:57.304502+00:00",
+      "elapsed_seconds": 0.2642571209999005,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-14",
+          "rank": 1,
+          "title_as_displayed": "kp8_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp8_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "de2e67efae513d7bbb5281a1eea5ee1081606509"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:57.568757+00:00",
+            "byte_size": 2878,
+            "sha256": "686a8527e4e6affbb119f8f5b71d5edab05140ffc736e819347b0bc8cb9130f2",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-15",
+      "sequence": 15,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "suttacentral/bilara-data",
+      "endpoint_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp9_root-pli-ms.json",
+      "interface_type": "bulk",
+      "interface_version": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "exact_query": "GET https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp9_root-pli-ms.json",
+      "queried_at": "2026-09-08T21:18:57.573759+00:00",
+      "elapsed_seconds": 0.2380850730005477,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-khuddakapatha-file-15",
+          "rank": 1,
+          "title_as_displayed": "kp9_root-pli-ms.json",
+          "result_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/root/pli/ms/sutta/kn/kp/kp9_root-pli-ms.json",
+          "originating_record_url": "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "d6d54741b7f2ddfeca82f02c3f95eb3990b4e351"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "54427771cbcfa099dd0f7c5fe85d95254120e3aa"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/suttacentral/bilara-data/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351/LICENSE.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:57.811842+00:00",
+            "byte_size": 2063,
+            "sha256": "b70e1d9bdfb14622948b6c10c9627003ab4c2c36901df5fcb4df3ae54d6e9ede",
+            "event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-khuddakapatha-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.055186027999298,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3675719790007861,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.4909528840016719,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3513186639993364,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28868810099993425,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2975875199990696,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24235126199891965,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-8",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2413278829990304,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-9",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24261183500129846,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-10",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23522407900054532,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-11",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23775898100029735,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-12",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24708896100128186,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-13",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24457645300026343,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-14",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2642571209999005,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-khuddakapatha-file-15",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2380850730005477,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-khuddakapatha-file-7",
+    "tos-discovery-result.registry-khuddakapatha-file-8",
+    "tos-discovery-result.registry-khuddakapatha-file-9",
+    "tos-discovery-result.registry-khuddakapatha-file-10",
+    "tos-discovery-result.registry-khuddakapatha-file-11",
+    "tos-discovery-result.registry-khuddakapatha-file-12",
+    "tos-discovery-result.registry-khuddakapatha-file-13",
+    "tos-discovery-result.registry-khuddakapatha-file-14",
+    "tos-discovery-result.registry-khuddakapatha-file-15"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-08T20:47:47.661930+00:00",
+  "ended_at": "2026-09-08T21:18:57.811842+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260908.khuddakapatha",
+    "tos.event.acquisition.registry-20260908.khuddakapatha"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

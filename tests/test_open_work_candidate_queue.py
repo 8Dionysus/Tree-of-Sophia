@@ -249,6 +249,133 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         _write_json(repo / path, plan)
         return path, plan
 
+    def mark_completed_readiness_target(self, repo: Path, plan: dict) -> None:
+        schema_path = Path("ToS/contracts/philosophy-source-planting.schema.json")
+        _write_json(repo / schema_path, json.loads((REPO_ROOT / schema_path).read_text()))
+        target = plan["targets"][0]
+        branch = "ToS/philosophy/eras/synthetic"
+        work_ref = "ToS/source-witnesses/works/synthetic/work.json"
+        work_id = "tos.work.synthetic"
+        planting_ref = branch + "/sources/plantings/synthetic/source-planting.json"
+        _write_json(repo / work_ref, {"schema_version": "tos_corpus_record_v1", "record_type": "work", "record_id": work_id})
+        _write_json(repo / planting_ref, {
+            "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+            "schema_version": "tos_philosophy_source_planting_v1", "planting_id": "tos.planting.synthetic",
+            "atlas_row_id": "A01", "dossier_id": "A01", "branch_path": branch,
+            "source_backlog_anchor": {"path": branch + "/sources/source-anchor-backlog.jsonl", "line": 1,
+                                      "source_table_index": 1, "source_row_index": 1, "source_label": "Synthetic source"},
+            "source_witness": {"work_id": work_id, "record_ref": work_ref, "relationship": "grounds_source_backlog_anchor"},
+            "discovery_ref": "ToS/source-witnesses/discovery/runs/synthetic/discovery.json",
+            "provenance_event_ref": "tos.event.annotation.synthetic",
+            "research_ref": "ToS/research-packets/synthetic/records.json",
+            "fulfilled_source_needs": ["Synthetic locally accessible witness"],
+            "remaining_controls": ["No semantic or textual admission"],
+            "research_order": ["official_and_classical_documentation", "established_top_scholarship", "fresh_current_relevance_check"],
+            "authority": {"source_status": "metadata_witness_planted", "review_status": "unreviewed",
+                          "source_text_admitted": False, "semantic_status": "not_started",
+                          "graph_status": "not_promoted", "canon_status": "not_canon", "human_task_created": False},
+            "status": "source_witness_planted",
+            "maker": {"maker_type": "model", "agent_ref": "codex:synthetic", "human_review_performed": False},
+            "created_at": "2026-09-08T12:00:00Z", "record_version": 1,
+        })
+        payload_path = repo / target["acquisition"]["destination_paths"][0]
+        payload_path.parent.mkdir(parents=True, exist_ok=True)
+        payload_path.write_text("<source>synthetic local witness</source>")
+        def ref(path):
+            return {"path": path, "sha256": hashlib.sha256((repo / path).read_bytes()).hexdigest()}
+        target["target"].update(known_tos_refs=[branch], planned_ids={"work": work_id}, create_record_refs={"work": work_ref})
+        target["readiness"]["file"].update(status="present", owner_refs=[ref(target["acquisition"]["destination_paths"][0])])
+        target["execution"] = {"status": "completed", "evidence_posture": "owner-reviewed",
+                               "owner_refs": [ref(work_ref), ref(planting_ref)],
+                               "rationale": "The planned Work is locally available and planted in its exact branch; no semantic admission."}
+
+    def test_completed_readiness_target_remains_visible_without_repeated_selection(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        before = build_payload(repo)
+        self.mark_completed_readiness_target(repo, plan)
+        target = plan["targets"][0]
+        execution = target.pop("execution")
+        _write_json(repo / path, plan)
+        legacy = build_readiness_payload(repo, readiness_plan=path)
+        self.assertEqual(target["target_id"], legacy["next_target_id"])
+        self.assertEqual("verify-existing-witness", legacy["readiness_entries"][0]["next_action"])
+        self.assertNotIn("execution", legacy["readiness_entries"][0])
+        target["execution"] = execution
+        _write_json(repo / path, plan)
+        completed = build_readiness_payload(repo, readiness_plan=path)
+        self.assertIsNone(completed["next_target_id"])
+        entry = next(row for row in completed["readiness_entries"] if row["target_id"] == target["target_id"])
+        self.assertEqual("completed-owner-evidenced", entry["next_action"])
+        self.assertEqual(execution, entry["execution"])
+        self.assertFalse(entry["ready_for_acquisition_review"])
+        self.assertEqual(before, build_payload(repo))
+
+    def test_completed_readiness_needs_current_present_file_and_exact_work_identity(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        self.mark_completed_readiness_target(repo, plan)
+        target = plan["targets"][0]
+        destination = repo / target["acquisition"]["destination_paths"][0]
+        destination.unlink()
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "evidence does not resolve|present file status"):
+            build_readiness_payload(repo, readiness_plan=path)
+        self.mark_completed_readiness_target(repo, plan)
+        work_ref = target["execution"]["owner_refs"][0]
+        work = json.loads((repo / work_ref["path"]).read_text())
+        work["record_id"] = "tos.work.other"
+        _write_json(repo / work_ref["path"], work)
+        work_ref["sha256"] = hashlib.sha256((repo / work_ref["path"]).read_bytes()).hexdigest()
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "Work record does not match planned identity"):
+            build_readiness_payload(repo, readiness_plan=path)
+
+    def test_completed_readiness_rejects_arbitrary_or_wrongly_bound_planting_json(self) -> None:
+        repo = self.make_repo()
+        path, original = self.make_readiness_plan(repo)
+        for change, message, change_known_branch in (
+            (lambda value: value.update(arbitrary=True), "planting is invalid", False),
+            (lambda value: value["source_witness"].update(work_id="tos.work.other"), "planned Work and exact branch", False),
+            (lambda value: value.update(branch_path="ToS/philosophy/eras/other"), "planned Work and exact branch", False),
+            (lambda value: value.update(branch_path="ToS/philosophy/eras/other"), "planned Work and exact branch", True),
+        ):
+            with self.subTest(message=message):
+                plan = copy.deepcopy(original)
+                self.mark_completed_readiness_target(repo, plan)
+                planting_ref = plan["targets"][0]["execution"]["owner_refs"][1]
+                planting = json.loads((repo / planting_ref["path"]).read_text())
+                change(planting)
+                if change_known_branch:
+                    plan["targets"][0]["target"]["known_tos_refs"] = [planting["branch_path"]]
+                _write_json(repo / planting_ref["path"], planting)
+                planting_ref["sha256"] = hashlib.sha256((repo / planting_ref["path"]).read_bytes()).hexdigest()
+                _write_json(repo / path, plan)
+                with self.assertRaisesRegex(QueueBuildError, message):
+                    build_readiness_payload(repo, readiness_plan=path)
+
+    def test_deferred_and_blocked_readiness_wait_for_explicit_owner_resumption(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        target = plan["targets"][0]
+        for status, next_action in (("deferred", "await-owner-resumption"), ("blocked", "resolve-execution-blocker")):
+            with self.subTest(status=status):
+                target["execution"] = {"status": status, "evidence_posture": "owner-reviewed",
+                                       "owner_refs": target["readiness"]["version"]["owner_refs"],
+                                       "rationale": "Synthetic owner decision with retained evidence."}
+                _write_json(repo / path, plan)
+                result = build_readiness_payload(repo, readiness_plan=path)
+                self.assertIsNone(result["next_target_id"])
+                entry = next(row for row in result["readiness_entries"] if row["target_id"] == target["target_id"])
+                self.assertEqual(next_action, entry["next_action"])
+        target["execution"]["status"] = "pending"
+        _write_json(repo / path, plan)
+        self.assertEqual(target["target_id"], build_readiness_payload(repo, readiness_plan=path)["next_target_id"])
+        target["execution"].update(status="deferred", evidence_posture="imported-assertion")
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "owner-reviewed"):
+            build_readiness_payload(repo, readiness_plan=path)
+
     def test_readiness_supports_new_corpus_targets_without_rewriting_history(self) -> None:
         repo = self.make_repo()
         before = build_payload(repo)

@@ -51,6 +51,26 @@ def append_jsonl(path: Path, value: dict) -> None:
         stream.write(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
+def write_jsonl_record(path: Path, value: dict) -> None:
+    """Write the owner's one-record JSONL batch without pretty-printing it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+
+
+def manifest_fixity(manifest: dict) -> str:
+    return "".join(f"{entry['sha256']}  {entry['relative_path']}\n" for entry in manifest["payload_files"])
+
+
+def rights_with_file_scopes(prepared_rights: dict, manifest: dict) -> dict:
+    """Bind observed Files and keep explicitly public-domain layers distinct."""
+    rights = copy.deepcopy(prepared_rights)
+    rights["scope_refs"] = list(dict.fromkeys([*rights["scope_refs"], *(entry["file_id"] for entry in manifest["payload_files"])]))
+    for layer in rights.get("layer_assessments", []):
+        if layer.get("assessment_status") == "public_domain_reviewed":
+            layer["rights_statement_uri"] = "https://creativecommons.org/publicdomain/mark/1.0/"
+    return rights
+
+
 def safe_path(root: Path, ref: str) -> Path:
     if not isinstance(ref, str) or not ref or "\\" in ref or "\0" in ref:
         raise ValueError("invalid repository path")
@@ -284,7 +304,7 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
             raise ValueError("ORAEC JSON bundle is empty or not structured")
         components = {"egy": {}, "de": {}}
         source_keys = {"writtenform", "transliteration", "transcription", "hiero", "hieroglyphs", "hieroglyphic"}
-        translated_keys = {"translation", "germantranslation", "translationde", "gloss", "wordtranslation"}
+        translated_keys = {"translation", "germantranslation", "translationde", "gloss", "wordtranslation", "cotexttranslation"}
         def visit(value: object, pointer: str = "") -> None:
             if isinstance(value, dict):
                 for key, child in value.items():
@@ -363,8 +383,11 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
         "original_basename": entry["basename"], "media_type": entry["media_type"], "byte_size": len(body), "sha256": sha256(body), "fixity_verified_at": ended} for entry, body in bodies]
     validate_json(item_manifest, "source-item-manifest", root)
     write_json(item_manifest_path, item_manifest)
+    (item_root / "fixity.sha256").write_text(manifest_fixity(item_manifest), encoding="utf-8")
     rights_path = item_root / "rights.json"
-    write_json(rights_path, package["rights"])
+    acquired_rights = rights_with_file_scopes(package["rights"], item_manifest)
+    validate_json(acquired_rights, "rights-record", root)
+    write_json(rights_path, acquired_rights)
     write_json(item_root / "forensic-observations.json", observations)
     inventory = build_inventory(repo_root=root, manifest_path=item_manifest_path, payload_source_root=root / SOURCE, event_date=ended[:10])
     if inventory is None:
@@ -376,7 +399,7 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
         f"The {len(bodies)} original files ({observations['byte_size']} bytes) match the prepared Git blob identities and sizes. "
         "The Item manifest records computed SHA-256. The files were opened and parsed locally; source bytes and code-point order were preserved.\n\n"
         "`forensic-observations.json` records the exact observed format and target-specific mechanical coverage. "
-        "`resource-inventory.json` contains the owner's text-free enumeration. "
+        "`resource-inventory.json` contains the owner's text-free enumeration."
         + ("`component-witnesses.json` identifies the separate Egyptian and German components in the same immutable JSON file.\n\n" if observations.get("component_witnesses") else "\n\n")
         + "\n".join("- " + limit for limit in target["limits"]) + "\n\n"
         + target["responsibility"] + "\n\n"
@@ -391,9 +414,11 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     receipts = [f"{target['paths']['item_root']}/forensic-report.md", log.relative_to(root).as_posix()]
     events = [event(item_manifest["acquisition_event_ref"], "acquisition", min(row["started_at"] for row in transfers), max(row["ended_at"] for row in transfers), inputs, payload_outputs,
         name="pinned-upstream-immutable-acquisition", configuration={"source_urls": [entry["url"] for entry in target["files"]], "byte_identity": "exact Git blob SHA-1 and local SHA-256", "source_bytes_changed": False}, rights_ref=rights_ref, receipts=receipts),
-        event(f"tos.event.rights-assessment.registry-20260908.{target['slug']}", "rights_assessment", package["rights"]["assessed_at"], package["rights"]["assessed_at"], inputs,
+        event(f"tos.event.rights-assessment.registry-20260908.{target['slug']}", "rights_assessment", package["rights"]["assessed_at"], ended, inputs,
             [{"ref": rights_ref, "role": "layer-separated-license-assessment", "sha256": sha256(rights_path.read_bytes())}], name="prepared-provider-license-scope-assessment",
-            configuration={"jurisdictions_reviewed": ["MX"], "publication_authority": False, "human_legal_review_performed": False}, rights_ref=rights_ref, receipts=[rights_ref]),
+            configuration={"jurisdictions_reviewed": ["MX"], "publication_authority": False, "human_legal_review_performed": False,
+                "acquired_rights_transformations": ["Bind every computed File ID to the assessed Item scope.", "Use the Public Domain Mark URI for layers explicitly assessed from provider public-domain statements; retain the separate digital-object license."],
+                "prepared_rights_template_unchanged": True, "file_scope_binding_performed_at": ended}, rights_ref=rights_ref, receipts=[rights_ref]),
         event(inventory["provenance_event_ref"], "forensic_inspection", started, ended, payload_outputs,
             [{"ref": item_manifest["resource_inventory_ref"], "role": "tracked_text_free_resource_inventory", "sha256": sha256((item_root / "resource-inventory.json").read_bytes())}],
             name="source-resource-inventory", configuration={"profiles": sorted({entry["profile"] for entry in inventory["files"]}), "source_text_included": False}, rights_ref=rights_ref, receipts=receipts)]
@@ -441,7 +466,7 @@ def refresh_topology(root: Path, evidence_root: Path, ended: str) -> None:
                 required_inputs[evidence_ref] = {"ref": evidence_ref, "role": "declared-" + kind, "sha256": sha256(evidence_path.read_bytes())}
     batch["inputs"], batch["outputs"], batch["ended_at"] = [required_inputs[key] for key in sorted(required_inputs)], outputs, ended
     batch["event_version"] += 1
-    write_json(path, batch)
+    write_jsonl_record(path, batch)
 
 
 def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: dict, transfers: list[dict], acquisition: dict) -> None:
@@ -498,13 +523,19 @@ def verify_target(root: Path, target: dict) -> dict:
         body = safe_path(root, f"{target['paths']['item_root']}/payload/{expected['basename']}").read_bytes()
         digest = check_file(body, expected)
         entry = indexed[expected["basename"]]
-        if entry["sha256"] != digest or entry["file_id"] != "tos.file.sha256." + digest:
+        if entry["sha256"] != digest or entry["file_id"] != "tos.file.sha256." + digest or entry["byte_size"] != len(body) or entry["relative_path"] != "payload/" + expected["basename"]:
             raise ValueError("installed File identity differs")
         bodies.append((expected, body))
     inspect_payloads(target, bodies)
     for field in ("rights_ref", "provenance_ref", "forensic_report_ref", "resource_inventory_ref"):
         if not safe_path(root, manifest[field]).is_file():
             raise ValueError(f"installed Item companion missing: {field}")
+    if (item_root / "fixity.sha256").read_text(encoding="utf-8") != manifest_fixity(manifest):
+        raise ValueError("installed fixity companion differs from the exact manifest")
+    rights = json.loads(safe_path(root, manifest["rights_ref"]).read_bytes())
+    validate_json(rights, "rights-record", root)
+    if not {manifest["item_id"], *(entry["file_id"] for entry in manifest["payload_files"])} <= set(rights["scope_refs"]):
+        raise ValueError("installed rights scope does not cover the Item and every File")
     for key in target["ids"]:
         if not safe_path(root, target["paths"][key]).is_file():
             raise ValueError("installed corpus identity record missing")

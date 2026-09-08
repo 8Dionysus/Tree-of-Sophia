@@ -18,7 +18,9 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 
 | Surface | Role |
 | --- | --- |
+| [Sources and local texts](sources/README.md) | named works, exact versions, and local file routes |
 | `sources/source-anchor-backlog.jsonl` | future real source witness and edition anchors for this branch |
+| `sources/plantings/` | exact source-witness routes already planted from backlog anchors |
 | `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |
 
 Global proposed node and relation rows for this branch are aggregated in `ToS/philosophy/graph-workbench/proposed-nodes/table-ii-prepared-dossiers.jsonl` and `ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl`.

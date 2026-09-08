@@ -1,0 +1,39 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.hebrew-bible.ecclesiastes.hbo-wlc-oshb.oshb-3d15126fb1ef",
+  "preferred_label": "Ecclesiastes (Qohelet) — morphhb Git snapshot 3d15126fb1ef",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.hebrew-bible.ecclesiastes.hbo-wlc-oshb"
+  ],
+  "publication_claim_refs": [],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.registry-20260908.ecclesiastes.edition-item"
+  ],
+  "edition_statement": "Immutable openscriptures/morphhb commit 3d15126fb1ef74867fc1434be1942e837932691f; Westminster Leningrad Codex digital transcription with Open Scriptures Hebrew Bible lemma and morphology annotation; immutable OSHB Git snapshot.",
+  "notes": "Digital snapshot identity, not an ancient publication date. Open Scriptures Hebrew Bible Project: modern transcription/annotation distribution, not ancient authorship.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

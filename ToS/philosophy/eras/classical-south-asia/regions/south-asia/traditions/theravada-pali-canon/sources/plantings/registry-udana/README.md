@@ -1,0 +1,107 @@
+# Udāna
+
+SuttaCentral Mahāsaṅgīti-derived Pāli root text, Roman script, preserved in the pinned Bilara published snapshot. Root edition metadata reports Dhamma Society Fund, Bangkok, 2010; SuttaCentral adapted structure/markup and sometimes punctuation.
+
+Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.
+
+## Local source files
+
+- [ud1.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.10_root-pli-ms.json)
+- [ud1.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.1_root-pli-ms.json)
+- [ud1.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.2_root-pli-ms.json)
+- [ud1.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.3_root-pli-ms.json)
+- [ud1.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.4_root-pli-ms.json)
+- [ud1.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.5_root-pli-ms.json)
+- [ud1.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.6_root-pli-ms.json)
+- [ud1.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.7_root-pli-ms.json)
+- [ud1.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.8_root-pli-ms.json)
+- [ud1.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.9_root-pli-ms.json)
+- [ud2.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.10_root-pli-ms.json)
+- [ud2.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.1_root-pli-ms.json)
+- [ud2.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.2_root-pli-ms.json)
+- [ud2.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.3_root-pli-ms.json)
+- [ud2.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.4_root-pli-ms.json)
+- [ud2.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.5_root-pli-ms.json)
+- [ud2.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.6_root-pli-ms.json)
+- [ud2.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.7_root-pli-ms.json)
+- [ud2.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.8_root-pli-ms.json)
+- [ud2.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.9_root-pli-ms.json)
+- [ud3.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.10_root-pli-ms.json)
+- [ud3.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.1_root-pli-ms.json)
+- [ud3.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.2_root-pli-ms.json)
+- [ud3.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.3_root-pli-ms.json)
+- [ud3.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.4_root-pli-ms.json)
+- [ud3.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.5_root-pli-ms.json)
+- [ud3.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.6_root-pli-ms.json)
+- [ud3.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.7_root-pli-ms.json)
+- [ud3.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.8_root-pli-ms.json)
+- [ud3.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.9_root-pli-ms.json)
+- [ud4.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.10_root-pli-ms.json)
+- [ud4.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.1_root-pli-ms.json)
+- [ud4.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.2_root-pli-ms.json)
+- [ud4.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.3_root-pli-ms.json)
+- [ud4.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.4_root-pli-ms.json)
+- [ud4.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.5_root-pli-ms.json)
+- [ud4.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.6_root-pli-ms.json)
+- [ud4.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.7_root-pli-ms.json)
+- [ud4.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.8_root-pli-ms.json)
+- [ud4.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.9_root-pli-ms.json)
+- [ud5.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.10_root-pli-ms.json)
+- [ud5.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.1_root-pli-ms.json)
+- [ud5.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.2_root-pli-ms.json)
+- [ud5.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.3_root-pli-ms.json)
+- [ud5.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.4_root-pli-ms.json)
+- [ud5.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.5_root-pli-ms.json)
+- [ud5.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.6_root-pli-ms.json)
+- [ud5.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.7_root-pli-ms.json)
+- [ud5.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.8_root-pli-ms.json)
+- [ud5.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.9_root-pli-ms.json)
+- [ud6.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.10_root-pli-ms.json)
+- [ud6.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.1_root-pli-ms.json)
+- [ud6.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.2_root-pli-ms.json)
+- [ud6.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.3_root-pli-ms.json)
+- [ud6.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.4_root-pli-ms.json)
+- [ud6.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.5_root-pli-ms.json)
+- [ud6.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.6_root-pli-ms.json)
+- [ud6.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.7_root-pli-ms.json)
+- [ud6.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.8_root-pli-ms.json)
+- [ud6.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.9_root-pli-ms.json)
+- [ud7.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.10_root-pli-ms.json)
+- [ud7.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.1_root-pli-ms.json)
+- [ud7.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.2_root-pli-ms.json)
+- [ud7.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.3_root-pli-ms.json)
+- [ud7.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.4_root-pli-ms.json)
+- [ud7.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.5_root-pli-ms.json)
+- [ud7.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.6_root-pli-ms.json)
+- [ud7.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.7_root-pli-ms.json)
+- [ud7.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.8_root-pli-ms.json)
+- [ud7.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.9_root-pli-ms.json)
+- [ud8.10_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.10_root-pli-ms.json)
+- [ud8.1_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.1_root-pli-ms.json)
+- [ud8.2_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.2_root-pli-ms.json)
+- [ud8.3_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.3_root-pli-ms.json)
+- [ud8.4_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.4_root-pli-ms.json)
+- [ud8.5_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.5_root-pli-ms.json)
+- [ud8.6_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.6_root-pli-ms.json)
+- [ud8.7_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.7_root-pli-ms.json)
+- [ud8.8_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.8_root-pli-ms.json)
+- [ud8.9_root-pli-ms.json](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.9_root-pli-ms.json)
+
+## Exact owner records
+
+- [Work](../../../../../../../../../../source-witnesses/works/pali-canon/udana/work.json)
+- [Expression](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/expression.json)
+- [Edition](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/edition.json)
+- [Item and SHA-256](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json)
+- [Rights](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json)
+- [Provenance](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/provenance.jsonl)
+- [Observed coverage](../../../../../../../../../../source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/forensic-observations.json)
+
+## Limits
+
+- The entire Sutta-pitaka remains outside this batch.
+- Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.
+- Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.
+- A supplied root text does not establish a universally original reading or ToS textual acceptance.
+- Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.
+- Local file custody and branch route do not admit text, translation, semantics or canon.

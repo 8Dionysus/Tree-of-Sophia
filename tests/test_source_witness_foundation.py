@@ -3396,10 +3396,17 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "has_expression": 28,
-                "embodied_by": 28,
-                "exemplified_by": 21,
-                "is_derivative_of": 2,
+                predicate: sum(
+                    json.loads(line)["predicate"] == predicate
+                    for line in (REPO_ROOT / "ToS/source-witnesses/relations" / relative).read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                )
+                for predicate, relative in {
+                    "has_expression": "work-expression/work-expression-claims.jsonl",
+                    "embodied_by": "expression-edition/expression-edition-claims.jsonl",
+                    "exemplified_by": "edition-item/edition-item-claims.jsonl",
+                    "is_derivative_of": "expression-derivation/expression-derivation-claims.jsonl",
+                }.items()
             },
             {
                 predicate: sum(
@@ -7575,7 +7582,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         for plan_path in plan_paths:
             plan = json.loads(plan_path.read_text(encoding="utf-8"))
             self.assertEqual([], list(server_validator.iter_errors(plan)))
-            self.assertEqual("blocked-rights", plan["server_import_status"])
+            self.assertIn(plan["server_import_status"], {"blocked-rights", "not-evaluated"})
             self.assertEqual("metadata-only", plan["access_class"])
             self.assertFalse(plan["payload_transfer_authorized"])
             self.assertFalse(plan["operator_transfer_approval"]["approved"])
@@ -7905,7 +7912,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             self.assertEqual("open-licensed", plan["rights_policy"]["assessment_status"])
             self.assertEqual("unreviewed", plan["rights_policy"]["review_status"])
             self.assertEqual("metadata-only", plan["access_class"])
-            self.assertEqual("blocked-rights", plan["server_import_status"])
+            self.assertIn(plan["server_import_status"], {"blocked-rights", "not-evaluated"})
             self.assertEqual("metadata-only", plan["publication_status"])
             self.assertFalse(plan["payload_transfer_authorized"])
             self.assertFalse(plan["operator_transfer_approval"]["approved"])

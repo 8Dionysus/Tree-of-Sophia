@@ -1,0 +1,36 @@
+{
+  "schema_version": "tos_observed_bundle_components_v1",
+  "item_ref": "tos.item.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+  "components": [
+    {
+      "expression_ref": "tos.expression.egyptian-literature.be-a-scribe.egy-aed-tei-oraec",
+      "language": "egy",
+      "file_id": "tos.file.sha256.b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "file_sha256": "b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "selectors": [
+        {
+          "json_pointer_pattern": "/oraec3091/sentences/*/token/*/written_form",
+          "nonempty_string_count": 145
+        }
+      ],
+      "selection_posture": "observed supplied fields; no extraction or text acceptance"
+    },
+    {
+      "expression_ref": "tos.expression.egyptian-literature.be-a-scribe.de-aed-tei-oraec",
+      "language": "de",
+      "file_id": "tos.file.sha256.b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "file_sha256": "b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "selectors": [
+        {
+          "json_pointer_pattern": "/oraec3091/sentences/*/token/*/cotext_translation",
+          "nonempty_string_count": 142
+        },
+        {
+          "json_pointer_pattern": "/oraec3091/sentences/*/translation",
+          "nonempty_string_count": 21
+        }
+      ],
+      "selection_posture": "observed supplied fields; no extraction or text acceptance"
+    }
+  ]
+}

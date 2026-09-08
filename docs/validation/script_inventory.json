@@ -931,13 +931,16 @@
         "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
         "ToS/source-witnesses/discovery/candidates/receipts/*.json",
         "ToS/source-witnesses/discovery/timings/*.json",
-        "ToS/contracts/open-work-candidate*.schema.json"
+        "ToS/contracts/open-work-candidate*.schema.json",
+        "ToS/contracts/open-work-readiness-plan.schema.json",
+        "ToS/contracts/philosophy-source-planting.schema.json"
       ],
       "reads": [
-        "the exact source population declared by the candidate queue route"
+        "the exact source population declared by the candidate queue route",
+        "optional readiness execution plan, digest-bound local payloads and Work records, and exact branch planting evidence"
       ],
       "writes": [],
-      "side_effects": "library only",
+      "side_effects": "read-only queue library; completed, deferred and blocked execution remains visible without repeat selection; no semantic admission or source mutation",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_open_work_candidate_queue.py",
@@ -2656,7 +2659,8 @@
         "ToS/philosophy/philosophy.manifest.json",
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
-        "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+        "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
+        "existing authored ToS/philosophy/**/sources/README.md entrypoints"
       ],
       "reads": [
         "operator-local Table I, Table II, and Table III DOCX sections declared by ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
@@ -2664,7 +2668,8 @@
         "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl",
         "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl",
-        "ToS/philosophy/philosophy.manifest.json"
+        "ToS/philosophy/philosophy.manifest.json",
+        "presence of the branch-owned sources/README.md for a conditional source navigation link"
       ],
       "writes": [
         "ToS/philosophy/atlas/dossiers/*.jsonl",
