@@ -1287,3 +1287,61 @@ German analysis or a complete semantic range. Exact Occurrence, TextLayer,
 Anchor and TextUnit remain the native text-evidence owner's next route; a
 written representation is not evidence that a particular token has been
 addressed. Reader rollback retains these sources and their operation history.
+
+### Exact-bound occurrence descriptions
+
+The [Occurrence profile](../../contracts/occurrence-description-record.schema.json)
+describes a particular use through the existing semantic metadata reader. Its
+`native_text_binding` is an immutable return to a native TextUnit, segmentation,
+ordered Anchor set and frozen TextLayer, not another copy of those evidence
+objects. The description has its own `tos.occurrence.*` ID. Required
+`occurrence_account`, `context_account`, scope and continuity criterion retain
+the researched meaning and uncertainty; unit kind and proposed boundary status
+stay with the native packet. A sentence or paragraph is not silently renamed a
+word. Existing native semantic occurrences keep their IDs and adapters.
+
+The source profile explicitly declares `native_binding_adapter:
+source-text-unit-v1`. Missing adapters, unknown native schemas, wrong IDs or
+versions, changed bytes, wrong ordered anchors, broken source/rights closure
+and nonpublic bindings fail closed. The common public catalog/form/revision
+readers validate metadata without opening text. Initial `source.create`
+additionally verifies the exact, separately public UTF-8 representation.
+`public_content_declared` and `content_verified` are distinct observations;
+neither grants publication or establishes linguistic correctness. A public
+description of a private unit is refused even when it contains no quotation:
+a lexical join or short-span digest can itself disclose private content.
+
+Description correction cannot change `native_text_binding` or semantic scope.
+A different source use requires explicit identity handling. The same native
+unit may support competing descriptions; neither its address nor a shared
+spelling merges them automatically. All human name/hover forms retain the
+binding as required context alongside scope and semantic content. The shared
+readers preserve unknown content and extensions, and no type-specific screen
+is required.
+
+`occurrence_has_form`, `occurrence_of_lexeme` and `occurrence_has_sense` are
+separate, grounded linguistic-analysis Claims to a written form, Lexeme and
+contextual sense respectively. Each requires a qualified statement, relation
+basis and attestation scope. They are nontransitive and have no global
+one-reading cardinality rule. Exact source binding is not proof of any of
+these assignments. The common source-Claim contract also accepts an explicit
+`polarity` of `positive`, `negative` or `unknown`; omission is unspecified,
+not positive. Polarity is separate from uncertainty, dispute and admission.
+Opposed propositions use distinct Claim identities; ordinary descriptive
+correction cannot flip this identity-bearing field. Source-visible assessment
+checks agreement between polarity and wording; a flag cannot rewrite a quote.
+
+An occurrence and any source-bound form or Claim selecting it require an exact
+read of that same **complete binding** through the explicit v3 native selection
+before scoped assessment admission is usable. An unrelated unit, metadata-only
+selection or a past successful creation does not satisfy this gate. Metadata
+inspection remains available without text, but cannot recover a usable old
+admission by switching back to v2. This derived source-read gate is separate
+from access permission, policy qualification and the immutable review history;
+see the [assessment command contract](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-textunit-return-and-assessment).
+
+This adapter does not clear the current DTA, eKGWB or operator-held IA text for
+public release. The existing real lexical descriptions remain provisional;
+their private source returns are not replaced with fabricated public packets.
+Private authored occurrence storage, real admitted linguistic analysis, native
+writer operations and UI consumption remain explicit foundation work.

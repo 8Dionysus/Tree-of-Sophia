@@ -237,7 +237,7 @@ def metadata_field_catalog(source: dict) -> list[dict]:
                 for pointer, field_id, role in zip(pointers,
                     ('metadata.preferred-name', 'metadata.source-note'), ('name', 'hover'))]
     context = ['/' + key for key in ('identity_status', 'same_as_posture', 'semantic_scope', 'semantic_content',
-                                   'form_identity') if key in source]
+                                   'form_identity', 'native_text_binding') if key in source]
     declarations = source.get('field_languages', {})
     if not _field_language_validator().is_valid(declarations):
         raise ValueError('source field-language declarations violate the source contract')

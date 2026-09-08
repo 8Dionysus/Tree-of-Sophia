@@ -141,6 +141,7 @@ class SourceRecordProfiles:
         self.schemas = {}
         self._native_semantic_identities = None
         self.native_identity_input_digests = {}
+        self._native_text_resolver = None
         seen = {key: set() for key in ('record_type', 'id_prefix', 'source_basename', 'catalog_filename')}
         for entry in self.registry.get('types', []):
             profile = entry.get('source_record_profile')
@@ -155,6 +156,10 @@ class SourceRecordProfiles:
                 and profile['catalog_filename'] == 'composites.jsonl')
             if 'retained_native_adapter' in profile and not retained_composite:
                 raise SourceProfileError(f'{kind}: incompatible retained native adapter')
+            if ('native_binding_adapter' in profile
+                    and (profile['reader'] != 'semantic-metadata-v1'
+                         or profile['native_binding_adapter'] != 'source-text-unit-v1')):
+                raise SourceProfileError(f'{kind}: native text binding requires its explicit semantic adapter')
             role, family = {'corpus-metadata-v1': ('identity', 'tos.entity.identity'),
                             'semantic-metadata-v1': ('semantic', 'tos.entity.semantic-object')}[profile['reader']]
             if (entry.get('abstract') is not False or entry.get('object_role') != role
@@ -299,6 +304,45 @@ class SourceRecordProfiles:
             # Do not disclose the hidden packet body, label or interpretation.
             raise SourceProfileError('subject identity is already owned by a native semantic packet; explicit owner migration required')
 
+    def validate_native_binding(self, kind: str, source: dict, *, verify_content=False) -> dict | None:
+        """Keep native evidence identity separate from its public description.
+
+        A metadata read neither needs nor reads the text bytes. Initial source
+        creation explicitly verifies the declared public representation. This
+        route never opens private content or exports a private packet by join.
+        The complete binding is immutable under ordinary descriptive revision.
+        """
+        adapter = self.profiles[kind].get('native_binding_adapter')
+        if adapter is None:
+            if 'native_text_binding' in source:
+                raise SourceProfileError('native text binding requires an explicitly declared profile adapter')
+            return None
+        from native_text_binding import NativeTextBindingResolver, NativeTextBindingError
+        if self._native_text_resolver is None:
+            self._native_text_resolver = NativeTextBindingResolver(self.root.absolute())
+        try:
+            summary = self._native_text_resolver.resolve(source.get('native_text_binding'),
+                                                       verify_content=verify_content)
+            if not summary['public_content_declared']:
+                raise SourceProfileError('public source description cannot disclose a nonpublic native text binding')
+            for ref, digest in self._native_text_resolver.schema_digests.items():
+                if ref in self.input_digests and self.input_digests[ref] != digest:
+                    raise SourceProfileError('native text grammar changed during profile resolution')
+                self.input_digests[ref] = digest
+            return summary
+        except NativeTextBindingError as error:
+            raise SourceProfileError('source description has an unresolved or unsafe native text binding') from error
+
+    def native_text_snapshot(self, *, read_bytes=None) -> str | None:
+        """Opaque bound dependency closure, absent for unrelated profiles."""
+        if self._native_text_resolver is None:
+            return None
+        from native_text_binding import NativeTextBindingError
+        try:
+            return self._native_text_resolver.snapshot(read_bytes=read_bytes)
+        except NativeTextBindingError as error:
+            raise SourceProfileError('native text binding changed during profile resolution') from error
+
     def validate(self, kind: str, source: dict) -> None:
         profile = self.profiles[kind]
         if source.get('visibility') not in {'public', 'public_metadata_only'}:
@@ -317,6 +361,7 @@ class SourceRecordProfiles:
         except Unresolvable as error:
             raise SourceProfileError(f'{kind}: source schema has an undeclared dependency') from error
         self.assert_identity_not_native(source['record_id'])
+        self.validate_native_binding(kind, source)
 
     def catalog_entry(self, kind: str, source: dict, ref: str) -> dict:
         self.validate(kind, source)

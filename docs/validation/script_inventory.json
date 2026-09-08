@@ -573,7 +573,7 @@
       "organ_lane": "shared-library",
       "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
       "source_truth": ["ToS/doctrine/semantic-interchange/entity-types.v1.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/semantic-entity-type-registry.schema.json", "ToS/contracts/semantic-relation-type-registry.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/contracts/source-claim-record.schema.json", "explicit source schema routes declared by each profile"],
-      "reads": ["bounded exact local source metadata/claims and source-owned profile/schema bytes", "source-witnesses/semantic-annotation*.json metadata discovered recursively outside payload/local-content/catalog, and semantic-annotation-packet-v2.schema.json, only for native identity reservation; restricted bodies and locators are not projected"],
+      "reads": ["bounded exact local source metadata/claims and source-owned profile/schema bytes", "source-witnesses/semantic-annotation*.json metadata discovered recursively outside payload/local-content/catalog, and semantic-annotation-packet-v2.schema.json, only for native identity reservation; restricted bodies and locators are not projected", "explicit native-binding profiles: bounded native metadata closure through native_text_binding; initial source creation additionally verifies exact separately public text, never private content"],
       "writes": [],
       "side_effects": "none; shared source-profile validation and lossless catalog binding, no code execution, remote retrieval, growth, assessment or publication authority",
       "validation_lane": "graph_exports",

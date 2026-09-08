@@ -433,6 +433,7 @@ class NativeTextBindingResolver:
             'segmentation_version': segment['segmentation_version'],
             'layer_id': layer['layer_id'], 'layer_version': layer['layer_version'],
             'language': rep['language'], 'effective_visibility': rights['effective_visibility'],
+            'public_content_declared': bool(declared_public),
             'public_content_available': bool(verify_content and declared_public),
             'native_status': {'unit_boundary_posture': unit['boundary_posture'],
                               'segmentation_status': segment['status'],

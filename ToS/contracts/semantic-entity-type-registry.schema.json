@@ -36,6 +36,7 @@
       "description": "A source-owned metadata reader contract, not an admission or write capability. Other source shapes retain their native adapters.",
       "required": ["profile_version", "reader", "record_type", "id_prefix", "source_basename", "catalog_filename", "schemas", "graph_layer"],
       "properties": {
+        "native_binding_adapter": {"enum": ["source-text-unit-v1"], "description": "Explicit return from a semantic description to an immutable native_text_binding. The current public metadata reader requires a separately public native packet and text layer; declaring this adapter grants neither publication nor linguistic acceptance."},
         "retained_native_adapter": {"enum": ["scholarly-composite-v1"], "description": "Explicit coexistence with the unchanged native composite-witness adapter. Only the composite type may declare this route; it does not convert or duplicate native identity."},
         "profile_version": {"type": "integer", "minimum": 1},
         "reader": {"enum": ["corpus-metadata-v1", "semantic-metadata-v1"]},

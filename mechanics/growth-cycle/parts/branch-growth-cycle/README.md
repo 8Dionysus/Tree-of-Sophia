@@ -392,6 +392,35 @@ closure/admission checks from real source-visible review. No private native
 packet is made public by this adapter, and no human-only historical record is
 relabeled as an agent act.
 
+### Descriptions bound to native text
+
+The registry-declared `source-text-unit-v1` profile adapter connects a public
+Occurrence description to the same native resolver. The ordinary source
+creation contract verifies exact public content; catalog, form and descriptive
+revision reads check the complete metadata closure without reading payload.
+Their dependency fingerprints include the separately held opaque native text
+snapshot. The fixed binding is outside the ordinary `record.revise` fields;
+name and hover forms must retain it as context. This is not a private source
+writer or a grant to release an operator-held text.
+
+For assessment, v2 metadata-only inspection remains available, but a source
+record with `native_text_binding` requires a v3 exact selection of that same
+complete binding for usable admission. This applies also when the occurrence
+supports a selected Claim or source-bound form. No caller-supplied boolean
+waives it. `describe` exposes `command_context.source_read` with `required`
+and `ready`; a missing exact read limits supported operations to describe and
+inspect. `append` refuses it. The owner derives the engine's
+`SubjectContext.source_read_ready` (default true for unrelated subjects), whose
+qualification failure is `subject.exact-source-unverified`, separately from
+`subject.access-denied`. Thus metadata-only inspect cannot revive a prior
+exact-read admission; retained review events and receipts are not erased.
+
+Any assessment command selecting native-bound source metadata rechecks that
+closure under the journal lock and again after blob creation, before head
+publication. Creation/form/revision likewise bind their protected native
+dependency snapshot. This closes observed stale-input edges; the issuer still
+owns a stable multi-file snapshot, not a filesystem transaction.
+
 ## Human-form materialization
 
 `scripts/human_forms.py` renders the source-owned

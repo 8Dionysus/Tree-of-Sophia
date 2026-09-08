@@ -574,6 +574,9 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         snapshot = metadata_profiles.native_identity_snapshot(read_bytes=protected_identity_read, only_if_used=True)
         if identity_snapshots is not None and snapshot is not None:
             identity_snapshots['native_semantic_identity_snapshot'] = snapshot
+        text_snapshot = metadata_profiles.native_text_snapshot(read_bytes=protected_identity_read)
+        if identity_snapshots is not None and text_snapshot is not None:
+            identity_snapshots['native_text_binding_snapshot'] = text_snapshot
     return resolved, fixity
 
 
@@ -822,8 +825,24 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         elif body['schema_version'] == 'tos_human_form_v1':
             if scope['assertion_layer'] != 'human_projection' or scope['maker_id'] != body.get('creator_id'):
                 raise PermissionError('configured scope disagrees with source-owned form layer or maker')
+    # A public occurrence description is metadata about a use, not proof that
+    # its text was read. Match the ENTIRE fixed binding, not merely a unit ID.
+    # This applies to supporting occurrence records and source-bound forms too;
+    # selecting an unrelated native unit cannot qualify their source return.
+    required_native_bindings = [item['payload']['native_text_binding'] for item in regular_sourced
+                                if 'native_text_binding' in item['payload']]
+    if ('native_text_binding' in current.payload
+            or current.payload.get('schema_version') == 'tos_occurrence_description_record_v1'):
+        required_native_bindings.append(current.payload.get('native_text_binding'))
+    source_read_ready = all(isinstance(binding, dict) and any(
+        _canonical(row['payload'].get('native_binding')) == _canonical(binding)
+        and row['payload'].get('content_verified') is True for row in native_records)
+        for binding in required_native_bindings)
+    if operation == 'materialize-form' and not source_read_ready:
+        raise PermissionError('native-bound form materialization requires the same explicitly selected exact text read')
     context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
-                             tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True)
+                             tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True,
+                             source_read_ready=source_read_ready)
     source_form = source_bound and identifier in {item['id'] for item in sourced} and current.payload.get('schema_version') == 'tos_human_form_v1'
     if 'form_language_context' in scope and not source_form:
         raise PermissionError('form linguistic context is outside a source-form scope')
@@ -848,6 +867,10 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                                              *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
                                                and current.payload['content'].get('kind') == 'freeform' else [])],
                                          'grants_authority': False}
+            if required_native_bindings:
+                result['command_context']['source_read'] = {'required': True, 'ready': source_read_ready}
+                if not source_read_ready:
+                    result['command_context']['supported_operations'] = ['describe', 'inspect']
             if source_bound:
                 digests = {item['path']: item['digest'] for item in fixity}
                 result['command_context']['source_records'] = [
@@ -864,6 +887,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                     if any(not row['content_verified'] for row in native_summaries):
                         result['command_context']['supported_operations'] = ['describe', 'inspect']
     else:
+        if not source_read_ready:
+            raise PermissionError('native-bound source assessment requires the same explicitly selected exact text read')
         if any(not row['content_verified'] for row in native_summaries):
             raise PermissionError('native assessment append requires an explicit exact text read')
         execution = config['execution_profile']
@@ -899,7 +924,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 raise JournalConflict('native assessment supporting source snapshot changed')
         result = journal.append(engine, context, reviews, command_id=request['command_id'],
                                 expected_revision=revision, now=now,
-                                **({'snapshot_guard': native_snapshot_guard} if native_bound else {}))
+                                **({'snapshot_guard': native_snapshot_guard}
+                                   if native_bound or 'native_text_binding_snapshot' in identity_snapshots else {}))
     return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
             'authentication': 'local-unix-account', 'result': result}
 

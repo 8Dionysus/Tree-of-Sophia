@@ -320,7 +320,7 @@ class NativeTextBindingTests(unittest.TestCase):
             "unit_id": self.fixture.binding["unit_id"], "unit_version": 1, "unit_kind": "surface_token",
             "segmentation_id": self.fixture.binding["segmentation_id"], "segmentation_version": 1,
             "layer_id": self.fixture.layer["layer_id"], "layer_version": 1, "language": "und",
-            "effective_visibility": "local_only", "public_content_available": False,
+            "effective_visibility": "local_only", "public_content_declared": False, "public_content_available": False,
             "native_status": {"unit_boundary_posture": "method_proposed", "segmentation_status": "proposed",
                               "layer_review_status": "unreviewed"},
             "assessment_applied": False,

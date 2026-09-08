@@ -18,6 +18,7 @@
     "maker": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/maker"},
     "provenance_event_ref": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/provenance_event_ref"},
     "epistemic_status": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/epistemic_status"},
+    "polarity": {"enum": ["positive", "negative", "unknown"], "description": "The proposition's asserted polarity, independent of uncertainty, review and admission. Omission is unspecified, not positive. Source-visible assessment must check agreement with the qualified statement; this field cannot flip source wording mechanically."},
     "confidence": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/confidence"},
     "alternative_claim_refs": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/alternative_claim_refs"},
     "counterevidence_refs": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/counterevidence_refs"},

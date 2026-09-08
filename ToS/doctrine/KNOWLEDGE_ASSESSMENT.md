@@ -142,6 +142,16 @@ qualified research admission do not authorize a public projection. See the
 [native command contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-textunit-return-and-assessment)
 for scope discovery, byte rechecks and the unchanged issuer boundary.
 
+A description bound to a native textual use is not itself evidence of an
+exact text read. Its source-owner adapter requires a matching complete native
+binding and explicitly verified content for current assessment use, including
+when that description supports a Claim or human form. Metadata-only inspection
+remains possible but cannot recover usable admission from earlier exact-read
+history. The source-read condition is separate from access permission and
+reviewer authority; byte verification still does not prove transcription or
+linguistic quality. A failed current gate preserves earlier assessment events
+and receipts rather than rewriting their historical status.
+
 The engine enforces the declared relationship and authority invariants. Actual
 agent accuracy, calibrated languages, trusted command binding, existing-corpus
 migration and consumer integration remain separate required evidence in the

@@ -79,6 +79,7 @@ class SubjectContext:
     maker_id: str
     requested_use: str
     access_allowed: bool = False
+    source_read_ready: bool = True
 
 
 class ExecutionBinding(Protocol):
@@ -226,6 +227,8 @@ class AssessmentEngine:
             reasons.append("reviewer.authentication")
         if context.access_allowed is not True:
             reasons.append("subject.access-denied")
+        if context.source_read_ready is not True:
+            reasons.append("subject.exact-source-unverified")
         if not context.languages or not context.maker_id:
             reasons.append("subject.scope-incomplete")
         issued = _instant(assessment["issued_at"])

@@ -200,7 +200,7 @@ def _ground_claims(config, claims, *, initial):
             'source_ref': node['source_ref'], 'source_sha256': 'sha256:' + node['source_sha256'],
             'source_line': node.get('source_line'), 'evidence_kind': node['properties']['evidence_kind']}
     dependencies = source._digest(source._canonical({'records': records, 'claims': prior_claims,
-        'source_profiles': metadata.input_digests, 'existing_claim_profiles': input_digests,
+        'source_profiles': source._profile_input_snapshot(metadata), 'existing_claim_profiles': input_digests,
         'new_claim_profiles': profiles.input_digests, 'events': events, 'anchors': anchors, 'evidence': evidence,
         'selected_source_bindings': source_bindings,
         'provenance_contract': source._digest(source._read(root / 'ToS/contracts/provenance-event-v2.schema.json', source.MAX_SET_BYTES)),
@@ -208,7 +208,7 @@ def _ground_claims(config, claims, *, initial):
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-             'scripts/source_record_profiles.py', 'scripts/build_source_witness_catalog.py',
+             'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/build_source_witness_catalog.py',
              'scripts/source_witness_bibliographic_graph_common.py')}}))
     return {SOURCE_CLAIM_BASENAME: raw}, dependencies, source_bindings
 

@@ -843,6 +843,36 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_occurrence_assessment_guard.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "exact-read eligibility for native-bound descriptions and freeform materialization, canonical complete binding rather than unit-ID or bool/int equality, preserved history without metadata-only admission reuse, and journal commit-edge currentness; synthetic scope/grants are not competence evidence",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_occurrence_assessment_guard.py",
+      "failure_route": "Fix the source-owner exact-read gate and currentness guard without turning availability or retained review history into source-visible admission.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_occurrence_growth.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "distinct exact-bound Occurrence identity, immutable native return and unknown fields through public source creation/revision/forms/catalog/graph/assessment; metadata versus content checks, private-join refusal, recorded rights and dependency currentness; synthetic fixtures grant no linguistic or publication authority",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_occurrence_growth.py",
+      "failure_route": "Fix the explicit source-owner native-binding adapter and shared operations without exposing restricted text or fabricating a source packet.",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/tests/test_native_text_assessment.py",
       "home": "mechanics/growth-cycle/tests",
       "home_scope": "mechanic-level",

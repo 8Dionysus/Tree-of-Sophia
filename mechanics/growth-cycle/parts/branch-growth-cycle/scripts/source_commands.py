@@ -283,6 +283,7 @@ def _native_form_source(source_path, root):
 def _profile_input_snapshot(profiles):
     """Protected profile closure with an opaque, separately held native hash."""
     native_snapshot = profiles.native_identity_snapshot(read_bytes=_read, only_if_used=True)
+    native_text_snapshot = profiles.native_text_snapshot(read_bytes=_read)
     total = 0
     for ref, digest in profiles.input_digests.items():
         raw = _read(profiles.root / ref, MAX_COMMAND_BYTES)
@@ -292,6 +293,9 @@ def _profile_input_snapshot(profiles):
         if hashlib.sha256(raw).hexdigest() != digest:
             raise JournalConflict('source profile contract changed during resolution')
     return {'source_contracts': {ref: 'sha256:' + digest for ref, digest in profiles.input_digests.items()},
+            **({'native_binding_implementation': _digest(_read(ROOT / 'scripts/native_text_binding.py', MAX_COMMAND_BYTES))}
+               if native_text_snapshot is not None else {}),
+            **({'native_text_binding_snapshot': native_text_snapshot} if native_text_snapshot is not None else {}),
             **({'native_semantic_identity_snapshot': native_snapshot} if native_snapshot is not None else {})}
 
 
@@ -537,6 +541,7 @@ def _initial_source_record(config, source, profiles=None):
             or source.get('supersedes_ref') is not None or source['identity_status'] != 'provisional'
             or source['same_as_posture'] != 'no_equivalence_claim'):
         raise PermissionError('creation requires a delegated provisional initial identity')
+    profiles.validate_native_binding(profile['record_type'], source, verify_content=True)
     return Record.from_payload(source['record_id'], 1, source)
 
 
@@ -651,6 +656,7 @@ def _prepare_creation(config, request):
     dependencies = _digest(_canonical({'records': records, 'claims': existing_claims,
         'source_profiles': profiles.input_digests,
         'native_semantic_identity_snapshot': profiles.native_identity_snapshot(read_bytes=_read),
+        'native_text_binding_snapshot': profiles.native_text_snapshot(read_bytes=_read),
         'source_claim_profiles': claim_profile_inputs,
         'provenance_contract': provenance_contract,
         'events': events, 'anchors': anchors, 'evidence': evidence, 'forms': form_inputs,
@@ -666,6 +672,7 @@ def _prepare_creation(config, request):
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
             'scripts/source_witness_human_forms.py', 'scripts/build_source_witness_catalog.py',
             'scripts/source_record_profiles.py',
+            'scripts/native_text_binding.py',
             'scripts/source_witness_bibliographic_graph_common.py',
             'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
             'ToS/contracts/human-form-template.schema.json')}}))
