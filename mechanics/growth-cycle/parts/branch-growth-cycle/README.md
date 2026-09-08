@@ -275,11 +275,34 @@ access and calibrated languages still belong to the trusted issuer. Inline
 copies cannot shadow source-bound IDs. An origin ID is issuer-owned provenance,
 not manufactured from a file path or a count of copies.
 
+For declared Claims in `source-claims.jsonl`, the adapter also derives an exact
+mandatory grounding set from the profile's identity endpoints. Each endpoint
+must be cited in assessment `evidence` as support, challenge or context; merely
+loading it into the snapshot is insufficient. A selected form of that Claim
+inherits its Claim and the same endpoint grounding. Matching native TextUnit
+views and layers are added for native-bound endpoints, using their exact full
+binding and original origin. Unknown value fields and unrelated selected
+records are not inferred dependencies. This is the declared endpoint/native
+closure, not automatic resolution of arbitrary source URLs or evidence prose.
+`describe.command_context.required_sources` exposes the exact required record
+refs. Correction of an endpoint invalidates dependent use without rewriting
+the Claim or prior assessment; an unrelated selected record does not invalidate
+that assessment. Missing native reads still leave inspection possible but
+cannot yield usable admission. An unrelated metadata-only native selection
+does not block a Claim whose own complete grounding was read exactly.
+A source form of a Claim requires that exact current Claim through a declared,
+source-selected profile even when no other Claim is selected. An inline copy,
+unsupported Claim family or non-exact subject reference cannot qualify it.
+
 The owner snapshot binds the configuration, each exact source-file byte digest,
 every selected full record, and consumed registry/schema byte digests. Source
 and profile files together share the 8 MiB unique-input budget. Profile inputs
 are ownership-checked and rehashed after resolution; observed drift is refused.
-In-read source modification is refused. This does not
+All source-bound commands recheck the protected configuration and selected
+source snapshot at the journal lock, after blob creation before publication,
+on replay, and before returning a current read. A concurrent journal-head
+change also refuses that read. Unpublished blobs remain outside committed
+history. In-read source modification is refused. This does not
 make independently changing source files transactional: the issuer must keep
 the agreed multi-file snapshot stable during the operation. A source change
 invalidates an old command snapshot; a subject change also requires updating

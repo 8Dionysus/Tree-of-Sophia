@@ -913,6 +913,195 @@ class AssessmentPolicyTests(unittest.TestCase):
             config['subjects'][subject.id][field] = original
         self.assertFalse(list((path.parent / 'journal').iterdir()))
 
+    def public_claim_assessment_fixture(self):
+        """Synthetic assessment over source copies, never a real admission."""
+        root, bindings, rows = self.declared_source_fixture()
+        self.subject = Record.from_payload(**rows[0])
+        self.source = Record.from_payload(**{**rows[3], 'origin_id': 'synthetic-public-origin'})
+        self.source_b = Record.from_payload(**{**rows[6], 'origin_id': 'synthetic-public-origin'})
+        self.context = SubjectContext(self.subject, self.subject.payload['assertion_layer'], 'low', ('de', 'ru'),
+                                      self.subject.payload['maker']['agent_ref'], 'research', True)
+        self.records = [self.eval_evidence, self.executor]
+        for index, competency in enumerate(self.competencies):
+            self.competencies[index] = Record.from_payload(competency.id, competency.version,
+                {**competency.payload, 'assertion_layers': [self.context.assertion_layer]})
+            grant = self.authorities[index]
+            self.authorities[index] = Record.from_payload(grant.id, grant.version,
+                {**grant.payload, 'assertion_layers': [self.context.assertion_layer],
+                 'competence_refs': [self.competencies[index].ref]})
+        path, config, _ = self.local_command_fixture()
+        config.update(schema_version='tos_local_assessment_owner_v2', source_root=str(root),
+                      source_records=[{**binding, 'origin_id': 'synthetic-public-origin'} for binding in bindings])
+        path.write_text(json.dumps(config))
+        describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                    'subject_id': self.subject.id}
+        return path, config, describe, bindings
+
+    def test_public_claim_requires_exact_endpoint_citations_and_retains_history_on_drift(self):
+        from assessment_journal import AssessmentRejected, AssessmentJournal
+        path, config, describe, bindings = self.public_claim_assessment_fixture()
+        described = self.run_local(path, describe)
+        required = described['result']['command_context'].get('required_sources', [])
+        self.assertEqual(required, sorted([self.source.ref, self.source_b.ref], key=lambda ref: ref['id']))
+        self.assertNotIn(self.subject.ref, required)
+        # All seven source records are loaded, but only the two exact endpoints
+        # ground this Claim. Their presence alone must not qualify a judgment.
+        review = self.review().assessment
+        request = {**describe, 'operation': 'append', 'expected_subject': self.subject.ref,
+            'expected_snapshot': described['owner_snapshot'], 'expected_revision': None,
+            'command_id': 'synthetic-public-closure', 'assessments': [review]}
+        with self.assertRaises(AssessmentRejected):
+            self.run_local(path, request)
+        self.assertEqual(AssessmentJournal(Path(config['journal_directory']))._load(self.subject.id), (None, []))
+        review['evidence'].append({'record': self.source_b.ref, 'stance': 'context',
+                                  'locator': 'Synthetic typed endpoint, not independent corroboration.'})
+        first = self.run_local(path, request)['result']
+        self.assertTrue(first['current_admission']['can_use'])
+        replay = self.run_local(path, request)['result']
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(first['receipt'], replay['receipt'])
+        journal = AssessmentJournal(Path(config['journal_directory']))
+        history_before = journal._load(self.subject.id)
+        source_root = Path(config['source_root'])
+        original_claim = (source_root / bindings[0]['path']).read_bytes()
+
+        # A changed unrelated selected source updates the command snapshot,
+        # but cannot invalidate the unchanged Claim's qualified judgment.
+        unrelated_path = source_root / bindings[4]['path']
+        unrelated = json.loads(unrelated_path.read_text())
+        unrelated['notes'] += ' Synthetic unrelated correction.'
+        unrelated_path.write_text(json.dumps(unrelated))
+        self.assertTrue(self.run_local(path, describe)['result']['current_admission']['can_use'])
+        endpoint_path = source_root / bindings[6]['path']
+        endpoint = json.loads(endpoint_path.read_text())
+        endpoint['notes'] += ' Synthetic relevant correction.'
+        endpoint_path.write_text(json.dumps(endpoint))
+        current = self.run_local(path, describe)
+        self.assertFalse(current['result']['current_admission']['can_use'])
+        reasons = current['result']['current_admission']['invalid_assessments'][0]['reasons']
+        self.assertIn('evidence.stale-or-missing', reasons)
+        self.assertIn('evidence.required-source-omitted', reasons)
+        self.assertEqual(journal._load(self.subject.id), history_before)
+        self.assertEqual((source_root / bindings[0]['path']).read_bytes(), original_claim)
+
+    def test_public_claim_form_requires_source_selected_claim_and_canonical_subject_ref(self):
+        from assessment_journal import JournalConflict
+        for mutation in ('missing-selected-claim', 'inline-only-claim', 'boolean-version', 'wrong-digest',
+                         'form-masquerading-as-claim'):
+            with self.subTest(mutation=mutation):
+                path, config, describe, bindings = self.public_claim_assessment_fixture()
+                claim = self.subject
+                form = {'schema_version': 'tos_human_form_v1', 'form_id': 'tos.form.synthetic-claim-grounding',
+                    'form_version': 1, 'subject': claim.ref, 'role': 'hover', 'language': 'ru',
+                    'script': 'Cyrl', 'creator_id': 'synthetic-writer', 'revises': None,
+                    'bindings': {'context': {'record': claim.ref, 'pointer': ''}},
+                    'content': {'kind': 'freeform', 'text': 'Синтетическая проверка привязки Claim.'}}
+                relative = str(Path(bindings[0]['path']).with_suffix('.human-forms.json'))
+                form_path = Path(config['source_root']) / relative
+                shadow_form = None
+
+                def save_form():
+                    form_path.write_text(json.dumps({'schema_version': 'tos_human_form_set_v1',
+                        'subject': claim.ref, 'forms': [shadow_form, form] if shadow_form else [form],
+                        'prior_forms': []}))
+                    record = Record.from_payload(form['form_id'], 1, form)
+                    config['subjects'] = {record.id: {'record': record.ref,
+                        'assertion_layer': 'human_projection', 'risk': 'low', 'languages': ['ru', 'de'],
+                        'maker_id': 'synthetic-writer', 'requested_use': 'research', 'access_allowed': True}}
+                    path.write_text(json.dumps(config))
+
+                config['source_records'].append({'path': relative, 'record_id': form['form_id'], 'origin_id': None})
+                describe['subject_id'] = form['form_id']
+                save_form()
+                required = self.run_local(path, describe)['result']['command_context']['required_sources']
+                self.assertEqual(required, sorted([claim.ref, self.source.ref, self.source_b.ref], key=lambda ref: ref['id']))
+                if mutation in ('missing-selected-claim', 'inline-only-claim'):
+                    # No declared Claim remains to incidentally initialize its
+                    # profile resolver. An inline copy is not owner selection.
+                    config['source_records'] = [row for row in config['source_records']
+                                                if not row['record_id'].startswith('tos.claim.')]
+                    if mutation == 'inline-only-claim':
+                        config['records'].append({'id': claim.id, 'version': claim.version,
+                            'payload': claim.payload, 'origin_id': 'synthetic-inline-shadow'})
+                elif mutation == 'form-masquerading-as-claim':
+                    shadow_form = {**copy.deepcopy(form), 'form_id': 'tos.claim.synthetic-form-shadow'}
+                    shadow = Record.from_payload(shadow_form['form_id'], 1, shadow_form)
+                    form['subject'] = shadow.ref
+                    config['source_records'].insert(0, {'path': relative, 'record_id': shadow.id, 'origin_id': None})
+                else:
+                    form['subject'] = {**claim.ref, **({'version': True} if mutation == 'boolean-version'
+                                                     else {'digest': 'sha256:' + '0' * 64})}
+                save_form()
+                with self.assertRaises((JournalConflict, ValueError)):
+                    self.run_local(path, describe)
+                self.assertFalse(list(Path(config['journal_directory']).iterdir()))
+
+    def test_public_source_snapshot_is_rechecked_at_commit_replay_and_current_read_edges(self):
+        from contextlib import contextmanager
+        from assessment_journal import AssessmentJournal, JournalConflict
+        for edge in ('after-lock', 'after-blob', 'before-replay', 'after-inspect', 'owner-after-inspect'):
+            with self.subTest(edge=edge):
+                path, config, describe, bindings = self.public_claim_assessment_fixture()
+                described = self.run_local(path, describe)
+                review = self.review().assessment
+                review['evidence'].append({'record': self.source_b.ref, 'stance': 'context',
+                                          'locator': 'Synthetic required endpoint.'})
+                request = {**describe, 'operation': 'append', 'expected_subject': self.subject.ref,
+                    'expected_snapshot': described['owner_snapshot'], 'expected_revision': None,
+                    'command_id': 'synthetic-public-current-edges', 'assessments': [review]}
+                journal = AssessmentJournal(Path(config['journal_directory']))
+                if edge in ('before-replay', 'after-inspect', 'owner-after-inspect'):
+                    self.assertTrue(self.run_local(path, request)['result']['current_admission']['can_use'])
+                before = journal._load(self.subject.id)
+                changed = []
+
+                def mutate():
+                    if edge == 'owner-after-inspect':
+                        config['authorities'][0]['payload']['state'] = 'revoked'
+                        path.write_text(json.dumps(config))
+                    else:
+                        target = Path(config['source_root']) / bindings[6]['path']
+                        body = json.loads(target.read_text())
+                        body['notes'] += ' Synthetic concurrent source correction.'
+                        target.write_text(json.dumps(body))
+                    changed.append(True)
+
+                if edge in ('after-lock', 'before-replay'):
+                    original = AssessmentJournal._locked
+
+                    @contextmanager
+                    def locked_then_changed(owner, home):
+                        with original(owner, home):
+                            mutate()
+                            yield
+
+                    hooked = patch.object(AssessmentJournal, '_locked', locked_then_changed)
+                elif edge == 'after-blob':
+                    original = AssessmentJournal._write_blob
+
+                    def blob_then_changed(owner, *args, **kwargs):
+                        original(owner, *args, **kwargs)
+                        mutate()
+
+                    hooked = patch.object(AssessmentJournal, '_write_blob', blob_then_changed)
+                else:
+                    original = AssessmentJournal.inspect
+
+                    def inspected_then_changed(owner, *args, **kwargs):
+                        result = original(owner, *args, **kwargs)
+                        mutate()
+                        return result
+
+                    hooked = patch.object(AssessmentJournal, 'inspect', inspected_then_changed)
+                    request = describe
+                with hooked, self.assertRaises(JournalConflict):
+                    self.run_local(path, request)
+                self.assertEqual(changed, [True])
+                self.assertEqual(journal._load(self.subject.id), before)
+                if edge == 'after-blob':
+                    self.assertEqual(len(list(journal._home(self.subject.id).glob('*.json'))), 1)
+                    self.assertFalse((journal._home(self.subject.id) / 'head').exists())
+
     def test_lexical_assessment_snapshot_binds_native_inventory_without_disclosing_it(self):
         """Native annotation is a synthetic restricted-shape fixture, not evidence."""
         from assessment_journal import JournalConflict

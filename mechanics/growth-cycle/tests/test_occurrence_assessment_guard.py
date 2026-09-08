@@ -20,10 +20,11 @@ sys.path[:0] = [str(ROOT / "mechanics/growth-cycle/tests"), str(ROOT / "scripts"
                str(ROOT / "tests"),
                str(ROOT / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts")]
 
-from assessment_journal import AssessmentJournal
+from assessment_journal import AssessmentJournal, AssessmentRejected, JournalConflict
 from knowledge_assessment import AssessmentEngine, Record
 from native_text_binding import NativeTextBindingError, NativeTextBindingResolver
 from source_record_profiles import SourceProfileError, SourceRecordProfiles
+from source_witness_human_forms import claim_forms_path
 from test_native_text_assessment import NativeAssessmentFixture, ORIGIN
 from test_occurrence_growth import copy_contracts, occurrence
 
@@ -81,6 +82,214 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         fixture.config["subjects"][unit.id] = scope
         fixture.config["native_text_units"][0]["binding"] = binding
         fixture.save()
+
+    def claim_fixture(self, *, form=False, read_scope="exact_public"):
+        """An artificial pair assignment; no real Claim or assessment is made."""
+        fixture = self.fixture(read_scope=read_scope)
+        fixture.occurrence_subject = fixture.subject
+        fixture.occurrence_path = fixture.config["source_records"][0]["path"]
+        lexical = copy.deepcopy(fixture.subject.payload)
+        lexical.pop("native_text_binding")
+        lexical.update(schema_version="tos_lexical_description_record_v1", record_type="lexical-form",
+                       record_id="tos.lexical-form.synthetic.claim-grounding")
+        lexical["form_identity"] = {"written_representation": "synthetic-form", "language": "und",
+            "script": "Latn", "representation_kind": "unknown",
+            "notation_scope": "Synthetic fixture representation only.",
+            "unicode_posture": "preserved_as_supplied"}
+        lexical["semantic_content"] = {"form_account": "Synthetic form, not historical evidence.",
+                                       "language": "en", "script": "Latn"}
+        lexical_path = "ToS/source-witnesses/lexical-descriptions/synthetic-claim/lexical-form.json"
+        fixture.native.write_json(lexical_path, lexical)
+        fixture.lexical = Record.from_payload(lexical["record_id"], 1, lexical)
+        claim = {"schema_version": "tos_semantic_relation_claim_v1", "claim_type": "relation",
+            "claim_id": "tos.claim.synthetic.exact-form-assignment", "claim_version": 1,
+            "assertion_layer": "linguistic_analysis", "subject_ref": fixture.subject.id,
+            "predicate": "occurrence_has_form", "object": fixture.lexical.id,
+            "evidence_refs": [fixture.native.policy_ref],
+            "maker": {"maker_type": "software", "agent_ref": "software:synthetic-claim-fixture"},
+            "provenance_event_ref": "tos.event.synthetic-claim-fixture", "epistemic_status": "inferred",
+            "review_status": "unreviewed", "visibility": "public_metadata_only",
+            "qualifiers": {"statement": "Synthetic assignment only, not a linguistic conclusion.",
+                "statement_language": "en", "statement_script": "Latn",
+                "relation_basis": "Synthetic pair for source-closure mechanics.",
+                "attestation_scope": "Only the exact synthetic occurrence and form."}}
+        fixture.claim_path = "ToS/source-witnesses/relations/synthetic-claim/source-claims.jsonl"
+        fixture.native.write_bytes(fixture.claim_path, (json.dumps(claim) + "\n").encode())
+        fixture.claim = Record.from_payload(claim["claim_id"], 1, claim)
+        fixture.config["source_records"].extend([
+            {"path": lexical_path, "record_id": fixture.lexical.id, "origin_id": ORIGIN},
+            {"path": fixture.claim_path, "record_id": fixture.claim.id, "origin_id": ORIGIN}])
+        fixture.required = [fixture.occurrence_subject.ref, fixture.lexical.ref,
+                            fixture.native_subject.ref, fixture.layer.ref]
+        fixture.subject = fixture.claim
+        layer, maker = claim["assertion_layer"], claim["maker"]["agent_ref"]
+        if form:
+            body = {"schema_version": "tos_human_form_v1", "form_id": "tos.form.synthetic.claim-grounding",
+                "form_version": 1, "subject": fixture.claim.ref, "role": "hover",
+                "language": "ru", "script": "Cyrl", "creator_id": "software:synthetic-form-fixture",
+                "revises": None, "bindings": {"context": {"record": fixture.claim.ref, "pointer": ""}},
+                "content": {"kind": "freeform", "text": "Синтетическое описание спорного разбора, не реальный вывод."}}
+            path = claim_forms_path(Path(fixture.claim_path), fixture.claim.id).as_posix()
+            fixture.native.write_json(path, {"schema_version": "tos_human_form_set_v1",
+                "subject": fixture.claim.ref, "forms": [body], "prior_forms": []})
+            fixture.subject = Record.from_payload(body["form_id"], 1, body)
+            fixture.config["source_records"].append(
+                {"path": path, "record_id": fixture.subject.id, "origin_id": ORIGIN})
+            fixture.required.append(fixture.claim.ref)
+            layer, maker = "human_projection", body["creator_id"]
+        fixture.required.sort(key=lambda ref: ref["id"])
+        fixture.identifier = fixture.subject.id
+        fixture.config["subjects"][fixture.identifier] = {"record": fixture.subject.ref,
+            "assertion_layer": layer, "risk": "low", "languages": ["en", "ru", "und"],
+            "maker_id": maker, "requested_use": "research", "access_allowed": True}
+        for index, competence in enumerate(fixture.config["competencies"]):
+            competence["payload"].update(assertion_layers=["linguistic_analysis", "human_projection"],
+                                          languages=["en", "ru", "und"])
+            fixture.config["authorities"][index]["payload"].update(
+                assertion_layers=["linguistic_analysis", "human_projection"], languages=["en", "ru", "und"],
+                subject_prefixes=["tos.claim.", "tos.form."],
+                competence_refs=[Record.from_payload(**competence).ref])
+        fixture.save()
+        return fixture
+
+    def claim_request(self, fixture):
+        request = fixture.request()
+        request["assessments"][0].update(profile_id="interpretation", evidence=[{
+            "record": ref, "stance": "supports" if ref["id"] in {
+                fixture.occurrence_subject.id, fixture.layer.id} else "context",
+            "locator": "Synthetic exact source dependency; these records share one origin."}
+            for ref in fixture.required])
+        return request
+
+    @staticmethod
+    def journal_bytes(fixture):
+        journal = fixture.owner.parent / "journal"
+        return {path.relative_to(journal): path.read_bytes()
+                for path in journal.rglob("*") if path.is_file()}
+
+    def test_public_claim_native_closure_requires_each_citation_for_claim_and_form(self):
+        for form in (False, True):
+            with self.subTest(form=form):
+                fixture = self.claim_fixture(form=form)
+                described = fixture.describe()["result"]["command_context"]
+                self.assertEqual(described["required_sources"], fixture.required)
+                self.assertEqual(described["source_read"], {"required": True, "ready": True})
+                self.assertNotIn(fixture.subject.ref, described["required_sources"])
+                request = self.claim_request(fixture)
+                original_claim = (fixture.root / fixture.claim_path).read_bytes()
+                # Each omitted reference remains in the same complete engine
+                # snapshot. Supporting origin count stays sufficient without
+                # either the Occurrence or layer citation, so only closure fails.
+                for missing in fixture.required:
+                    with self.subTest(omitted=missing["id"]):
+                        incomplete = copy.deepcopy(request)
+                        incomplete["assessments"][0]["evidence"] = [row for row in
+                            incomplete["assessments"][0]["evidence"] if row["record"] != missing]
+                        with self.assertRaises(AssessmentRejected) as rejected:
+                            fixture.run(incomplete)
+                        self.assertEqual(rejected.exception.invalid_assessments[0]["reasons"],
+                                         ["evidence.required-source-omitted"])
+                        self.assertEqual(fixture.head_paths(), [])
+                first = fixture.run(request)["result"]
+                self.assertTrue(first["current_admission"]["can_use"])
+                history = self.journal_bytes(fixture)
+                replay = fixture.run(request)["result"]
+                self.assertTrue(replay["replayed"])
+                self.assertEqual(replay["receipt"], first["receipt"])
+                self.assertEqual(self.journal_bytes(fixture), history)
+                self.assertEqual((fixture.root / fixture.claim_path).read_bytes(), original_claim)
+                if form:
+                    result = fixture.run(fixture.request("materialize-form"))["result"]
+                    self.assertEqual(result["materialization"]["state"], "ready")
+                    self.assertEqual(result["materialization"]["display_text"],
+                                     fixture.subject.payload["content"]["text"])
+
+    def test_public_claim_native_metadata_history_is_not_exact_admission(self):
+        for mode in ("v2", "metadata_only", "other-unit", "same-unit-other-packet"):
+            with self.subTest(mode=mode):
+                fixture = self.claim_fixture(read_scope="metadata_only" if mode == "metadata_only" else "exact_public")
+                if mode == "v2":
+                    self.disable_native_read(fixture)
+                if mode in {"other-unit", "same-unit-other-packet"}:
+                    self.select_other_packet(fixture, same_unit=mode == "same-unit-other-packet")
+                else:
+                    (fixture.root / fixture.native.content_ref).unlink()
+                result = fixture.describe()["result"]
+                self.assertEqual(result["command_context"]["source_read"], {"required": True, "ready": False})
+                self.assertEqual(result["command_context"]["supported_operations"], ["describe", "inspect"])
+                self.assertFalse(fixture.run(fixture.request("inspect"))["result"]["current_admission"]["can_use"])
+                with self.assertRaises(PermissionError):
+                    fixture.run(self.claim_request(fixture))
+                self.assertEqual(fixture.head_paths(), [])
+
+        fixture = self.claim_fixture(form=True)
+        first = fixture.run(self.claim_request(fixture))["result"]
+        history = self.journal_bytes(fixture)
+        original_claim = (fixture.root / fixture.claim_path).read_bytes()
+        self.disable_native_read(fixture)
+        (fixture.root / fixture.native.content_ref).unlink()
+        for operation in ("describe", "inspect"):
+            result = (fixture.describe() if operation == "describe"
+                      else fixture.run(fixture.request("inspect")))["result"]
+            self.assertFalse(result["current_admission"]["can_use"])
+            self.assertEqual(result["revision"], first["revision"])
+            self.assertEqual(result["batch_count"], 1)
+            self.assertIn("subject.exact-source-unverified", {
+                reason for row in result["current_admission"]["invalid_assessments"] for reason in row["reasons"]})
+        with self.assertRaises(PermissionError):
+            fixture.run(fixture.request("materialize-form"))
+        self.assertEqual(self.journal_bytes(fixture), history)
+        self.assertEqual((fixture.root / fixture.claim_path).read_bytes(), original_claim)
+
+    def test_public_claim_native_closure_excludes_unrelated_reads_and_detects_exact_drift(self):
+        fixture = self.claim_fixture()
+        packet = copy.deepcopy(fixture.native.packet)
+        packet["packet_id"] = "tos.source-text-unit-packet.sid-" + "d" * 32
+        other_id = "tos.text-unit.sid-" + "e" * 32
+        packet["units"][0]["unit_id"] = other_id
+        packet["segmentations"][0]["ordered_unit_refs"] = [other_id]
+        path = fixture.native.native_home + "/source-text-unit.unrelated.v1.json"
+        fixture.native.write_json(path, packet)
+        binding = {**copy.deepcopy(fixture.native.binding), "unit_id": other_id,
+            "packet_id": packet["packet_id"], "packet_ref": path, "packet_sha256": fixture.native.file_digest(path)}
+        selected = NativeTextBindingResolver(fixture.root).assessment_records(binding, origin_id=ORIGIN)
+        other_unit = Record.from_payload(**selected["records"][0])
+        self.assertFalse(other_unit.payload["content_verified"])
+        other_scope = copy.deepcopy(fixture.config["subjects"][fixture.native_subject.id])
+        other_scope["record"] = other_unit.ref
+        fixture.config["subjects"][other_id] = other_scope
+        fixture.config["native_text_units"].append(
+            {"binding": binding, "origin_id": ORIGIN, "read_scope": "metadata_only"})
+        other = occurrence(binding)
+        other["record_id"] = "tos.occurrence.synthetic.unrelated"
+        other_path = "ToS/source-witnesses/lexical-descriptions/synthetic-unrelated/occurrence.json"
+        fixture.native.write_json(other_path, other)
+        fixture.config["source_records"].append(
+            {"path": other_path, "record_id": other["record_id"], "origin_id": ORIGIN})
+        fixture.save()
+        context = fixture.describe()["result"]["command_context"]
+        self.assertEqual(context["required_sources"], fixture.required)
+        self.assertEqual(context["source_read"], {"required": True, "ready": True})
+        request = self.claim_request(fixture)
+        first = fixture.run(request)["result"]
+        self.assertTrue(first["current_admission"]["can_use"])
+        history = self.journal_bytes(fixture)
+        original_claim = (fixture.root / fixture.claim_path).read_bytes()
+        other["notes"] += " Synthetic unrelated description correction."
+        fixture.native.write_json(other_path, other)
+        self.assertTrue(fixture.describe()["result"]["current_admission"]["can_use"])
+        with self.assertRaises(JournalConflict):
+            fixture.run(request)  # Global command snapshot remains stricter than Claim eligibility.
+        changed = copy.deepcopy(fixture.occurrence_subject.payload)
+        changed["notes"] += " Synthetic relevant description correction."
+        fixture.native.write_json(fixture.occurrence_path, changed)
+        current = fixture.describe()["result"]
+        self.assertFalse(current["current_admission"]["can_use"])
+        reasons = current["current_admission"]["invalid_assessments"][0]["reasons"]
+        self.assertIn("evidence.stale-or-missing", reasons)
+        self.assertIn("evidence.required-source-omitted", reasons)
+        self.assertEqual(self.journal_bytes(fixture), history)
+        self.assertEqual((fixture.root / fixture.claim_path).read_bytes(), original_claim)
 
     def test_exact_occurrence_guard_covers_evaluation_publication_and_replay(self):
         control = self.fixture()

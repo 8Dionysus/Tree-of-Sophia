@@ -2700,6 +2700,59 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(before, label_renamed["entities"][2]["entity_id"])
         self.assertFalse(list(validator.iter_errors(label_renamed)))
 
+    def test_semantic_annotation_v2_sign_promotion_requires_accepting_decision(self) -> None:
+        """Synthetic legacy review shapes, not real human acts or admitted Signs."""
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/semantic-annotation-packet-v2.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator = validator_for(schema)(schema, format_checker=FormatChecker())
+        packet = json.loads(
+            (REPO_ROOT / "ToS/research-packets/foundation-laboratory-2026-07/"
+             "semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        review = {
+            "review_id": "tos.review.sid-11111111111111111111111111111111",
+            "reviewer_kind": "human",
+            "reviewer_ref": "human:synthetic-unit-test-not-an-actual-review",
+            "review_kind": "sign_promotion",
+            "competence": [
+                {"scope": scope, "status": "evidence_attested", "evidence_refs": ["synthetic:competence-control"]}
+                for scope in ("source_reading", "semantic_interpretation")
+            ],
+            "review_mode": "source_visible_unassisted",
+            "decision": "accept",
+            "rationale": "Synthetic review-shaped control only; no human review or promotion occurred.",
+            "reviewed_at": "2026-08-11T12:00:00Z",
+            "unassisted_baseline": {
+                "required": True,
+                "status": "frozen",
+                "frozen_before_model_suggestions": True,
+                "evidence_ref": "synthetic:baseline-control-not-an-actual-reading",
+            },
+        }
+        for status in ("accepted", "accepted_with_limits"):
+            for decision in ("accept", "accept_with_limits", "reject", "defer", "disputed", "supersede"):
+                with self.subTest(admission_status=status, decision=decision):
+                    candidate = copy.deepcopy(packet)
+                    sign = next(entity for entity in candidate["entities"] if entity["entity_kind"] == "sign")
+                    sign["admission_status"] = status
+                    sign["admission_review_refs"] = [review["review_id"]]
+                    candidate["reviews"] = [{**copy.deepcopy(review), "decision": decision}]
+                    # Every case has the same complete, schema-valid legacy baseline and competence.
+                    self.assertFalse(list(validator.iter_errors(candidate)))
+                    issues = foundation._semantic_annotation_v2_issues(candidate)
+                    if decision in {"accept", "accept_with_limits"}:
+                        self.assertEqual([], issues)
+                    else:
+                        self.assertEqual(
+                            [f"accepted sign lacks an accepting sign-promotion review: {sign['entity_id']}"],
+                            issues,
+                        )
+
     def test_translation_alignment_v1_synthetic_abc_preserves_competing_maps(
         self,
     ) -> None:

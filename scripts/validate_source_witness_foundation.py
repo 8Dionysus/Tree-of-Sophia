@@ -2154,10 +2154,12 @@ def _semantic_annotation_v2_issues(packet: dict[str, Any]) -> list[str]:
             promotion_reviews = [
                 review_by_id[ref]
                 for ref in entity.get("admission_review_refs", [])
-                if ref in review_by_id and review_by_id[ref].get("review_kind") == "sign_promotion"
+                if ref in review_by_id
+                and review_by_id[ref].get("review_kind") == "sign_promotion"
+                and review_by_id[ref].get("decision") in accepting_decisions
             ]
             if not promotion_reviews:
-                messages.append(f"accepted {entity_kind} lacks a sign-promotion review: {entity_id}")
+                messages.append(f"accepted {entity_kind} lacks an accepting sign-promotion review: {entity_id}")
             for review in promotion_reviews:
                 baseline = review.get("unassisted_baseline", {})
                 if not (

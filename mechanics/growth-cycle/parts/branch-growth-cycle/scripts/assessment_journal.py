@@ -394,7 +394,8 @@ def _keys(payload: Any, expected: set[str]) -> None:
 
 
 def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
-                    identity_snapshots: dict | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+                    identity_snapshots: dict | None = None,
+                    claim_dependencies: dict | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Resolve bounded explicit public inputs, without selecting corpus neighbors.
 
     Record identity selects JSONL entries and current forms, not line numbers
@@ -525,6 +526,8 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         origin = binding['origin_id']
         Record.from_payload(record.id, record.version, payload, origin_id=origin)
         resolved.append({'id': record.id, 'version': record.version, 'payload': payload, 'origin_id': origin})
+    selected_records = {item['id']: Record.from_payload(**item) for item in resolved}
+    declared_dependencies = {}
     if claim_profiles is not None:
         # Endpoints must be in this independently selected source snapshot,
         # not inline shadows or discovered by crawling the surrounding corpus.
@@ -559,6 +562,25 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         for item in resolved:
             if item['id'] in declared_claims:
                 claim_profiles.validate(item['payload'], objects)
+                declared_dependencies[item['id']] = [selected_records[identifier].ref
+                    for identifier in sorted(claim_profiles.identity_refs(item['payload']))]
+    source_claim_ids = frozenset(declared_dependencies)
+    for item in resolved:
+        body = item['payload']
+        if body.get('schema_version') != 'tos_human_form_v1':
+            continue
+        subject_ref = body.get('subject')
+        identifier = subject_ref.get('id') if isinstance(subject_ref, dict) else None
+        if isinstance(identifier, str) and identifier.startswith('tos.claim.'):
+            # This guard must also run when NO Claim was source-selected:
+            # an inline shadow or an unsupported family cannot supply closure.
+            if identifier not in source_claim_ids:
+                raise ValueError('source Claim form requires its source-selected declared Claim')
+            if _canonical(selected_records[identifier].ref) != _canonical(subject_ref):
+                raise JournalConflict('source Claim form binds a different current subject')
+            declared_dependencies[item['id']] = [subject_ref, *declared_dependencies[identifier]]
+    if claim_dependencies is not None:
+        claim_dependencies.update(declared_dependencies)
     dependencies = dict(native_dependencies)
     for profiles in (metadata_profiles, claim_profiles):
         if profiles is not None:
@@ -596,6 +618,39 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         if identity_snapshots is not None and text_snapshot is not None:
             identity_snapshots['native_text_binding_snapshot'] = text_snapshot
     return resolved, fixity
+
+
+def _public_claim_required_sources(identifier, dependencies, sourced, native_summaries):
+    """Exact declared Claim grounding, including its native endpoint returns.
+
+    Only owner-selected, source-resolved records participate. Unknown value
+    fields and unrelated selected neighbors never become inferred references.
+    A missing native read is separately denied by source_read_ready; it cannot
+    be supplied as an inline record or as a claim in assessment prose.
+    """
+    records = {row['id']: Record.from_payload(**row) for row in sourced}
+    selected = {}
+
+    def add(ref):
+        record = records.get(ref['id'])
+        if record is None or _canonical(record.ref) != _canonical(ref) or record.id == identifier:
+            raise JournalConflict('public Claim grounding differs from its selected source snapshot')
+        selected[record.id] = record
+
+    for ref in dependencies.get(identifier, ()):
+        add(ref)
+    for record in list(selected.values()):
+        binding = record.payload.get('native_text_binding')
+        if not isinstance(binding, dict):
+            continue
+        for summary in native_summaries:
+            refs = ([summary['record'], summary['evidence_record']] if 'record' in summary
+                    else summary.get('record_refs', ()))
+            if any((unit := records.get(ref['id'])) is not None and _canonical(unit.ref) == _canonical(ref)
+                    and _canonical(unit.payload.get('native_binding')) == _canonical(binding) for ref in refs):
+                for ref in refs:
+                    add(ref)
+    return tuple(selected[key] for key in sorted(selected))
 
 
 def _materialize_source_form(config, sourced, form_sets, engine, context, history, *, now, contract_root,
@@ -824,11 +879,13 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         source_root = Path(config['source_root']) if source_bound else None
         native_config = config
     sourced, regular_sourced, form_sets, identity_snapshots = [], [], {}, {}
+    public_claim_dependencies = {}
     native_summaries, native_resolvers, native_contracts, native_records = [], [], {}, []
     explicit_native_targets = set()
     if source_bound:
         sourced, fixity = _source_records(source_root, config['source_records'],
-                                         form_sets=form_sets, identity_snapshots=identity_snapshots)
+                                         form_sets=form_sets, identity_snapshots=identity_snapshots,
+                                         claim_dependencies=public_claim_dependencies)
         regular_sourced = list(sourced)
         if private_sources is not None:
             selected_public = {item['id']: item for item in sourced}
@@ -864,6 +921,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             identity_snapshots['native_text_snapshots'] = [resolver.snapshot() for resolver in native_resolvers]
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
                                        'resolved_records': sourced, **identity_snapshots,
+                                       **({'public_claim_dependencies': public_claim_dependencies}
+                                          if public_claim_dependencies else {}),
                                        **({'owner_local_sources': private_snapshot,
                                            'configuration_bytes': hashlib.sha256(encoded).hexdigest()}
                                           if owner_local else {})})
@@ -924,8 +983,11 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise ValueError('owner subject scope is incomplete')
     if scope['access_allowed'] is not True:
         raise PermissionError('subject access is not allowed')
-    required_sources = private_sources.required_sources(identifier) if private_sources is not None else ()
-    claim_source_bound = private_sources is not None and identifier in private_sources.claim_dependencies
+    public_claim_bound = identifier in public_claim_dependencies
+    required_sources = (_public_claim_required_sources(identifier, public_claim_dependencies, sourced,
+                                                       native_summaries) if public_claim_bound
+                        else private_sources.required_sources(identifier) if private_sources is not None else ())
+    claim_source_bound = public_claim_bound or (private_sources is not None and identifier in private_sources.claim_dependencies)
     active_native_summaries = native_summaries
     if claim_source_bound:
         dependency_ids = {record.id for record in required_sources}
@@ -979,13 +1041,13 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                                 confidential_root=owner_context.private_root if owner_context is not None else None,
                                 batch_validator=private_sources.assessment_validators['-batch'] if private_sources is not None else None)
 
-    def native_snapshot_guard():
-        # Recheck after waiting for a lock, at the commit edge, and before v4
-        # returns a current read. Unpublished blobs remain separate from history.
+    def source_snapshot_guard():
+        # Recheck after waiting for a lock, at the commit edge, and before any
+        # source-bound current read returns. Unpublished blobs stay outside history.
         with os.fdopen(_owned_path(owner_config), 'rb') as stream:
             current_config = stream.read(len(encoded) + 1)
         if current_config != encoded:
-            raise JournalConflict('protected native assessment configuration changed')
+            raise JournalConflict('protected source assessment configuration changed')
         for resolver in native_resolvers:
             resolver.snapshot()
         if owner_context is not None:
@@ -995,13 +1057,15 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             confidential_journal(owner_context, config['journal_directory'])
             if private_sources.snapshot() != private_snapshot:
                 raise JournalConflict('private assessment supporting source snapshot changed')
-        current_identities = {}
+        current_identities, current_dependencies = {}, {}
         current_records, current_fixity = _source_records(source_root, config['source_records'],
-                                                          identity_snapshots=current_identities)
+                                                          identity_snapshots=current_identities,
+                                                          claim_dependencies=current_dependencies)
         if (current_records != regular_sourced or current_fixity != fixity
+                or current_dependencies != public_claim_dependencies
                 or any(identity_snapshots.get(key) != value for key, value in current_identities.items())
                 or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots'}):
-            raise JournalConflict('native assessment supporting source snapshot changed')
+            raise JournalConflict('assessment supporting source snapshot changed')
 
     now = datetime.now(timezone.utc).isoformat()
     if operation == 'materialize-form':
@@ -1072,12 +1136,11 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         reviews = [Submission(item, config['principal_id'], executor) for item in assessments]
         result = journal.append(engine, context, reviews, command_id=request['command_id'],
                                 expected_revision=revision, now=now,
-                                **({'snapshot_guard': native_snapshot_guard}
-                                   if native_bound or 'native_text_binding_snapshot' in identity_snapshots else {}))
-    if owner_local:
-        native_snapshot_guard()
+                                **({'snapshot_guard': source_snapshot_guard} if source_bound else {}))
+    if source_bound:
+        source_snapshot_guard()
         if journal._load(identifier)[0] != result['revision']:
-            raise JournalConflict('private assessment history changed before returning the current view')
+            raise JournalConflict('source assessment history changed before returning the current view')
     return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
             'authentication': 'local-unix-account', 'result': result,
             **({'visibility': 'local_only', 'publication_authorized': False} if owner_local else {})}
