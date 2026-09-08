@@ -93,15 +93,30 @@ class AssessmentJournal:
     """
 
     def __init__(self, directory: Path, *, contract_root: Path | None = None,
-                 lock_timeout_seconds: float = 5.0, protected_storage: bool = False):
+                 lock_timeout_seconds: float = 5.0, protected_storage: bool = False,
+                 confidential_root: Path | None = None, batch_validator=None):
+        if confidential_root is not None:
+            if not directory.is_absolute() or not directory.is_relative_to(confidential_root):
+                raise PermissionError('confidential journal leaves its selected owner root')
+            from source_owner_context import _open
+            os.close(_open(directory, directory=True, private_root=confidential_root))
         self.directory = directory.resolve()
         if not 0 <= lock_timeout_seconds <= 60:
             raise ValueError('lock timeout must be between zero and sixty seconds')
         self.lock_timeout_seconds = lock_timeout_seconds
-        self.protected_storage = protected_storage
+        self.protected_storage = protected_storage or confidential_root is not None
+        self.confidential_root = confidential_root
         if not self.directory.parent.is_dir():
             raise ValueError('the configured owner parent directory must already exist')
-        self.validator = _validators((contract_root or Path(__file__).resolve().parents[5]).resolve())['-batch']
+        self.validator = (batch_validator if batch_validator is not None else
+                          _validators((contract_root or Path(__file__).resolve().parents[5]).resolve())['-batch'])
+
+    def _check_path(self, path, *, directory=False):
+        if self.confidential_root is not None:
+            from source_owner_context import _open
+            os.close(_open(path, directory=directory, private_root=self.confidential_root))
+        else:
+            os.close(_owned_path(path, directory=directory))
 
     def _home(self, subject_id: str) -> Path:
         # Hashes partition storage only; they do not replace ToS identity.
@@ -114,14 +129,14 @@ class AssessmentJournal:
         home.mkdir(mode=0o700, exist_ok=True)
         _sync_directory(self.directory)
         if self.protected_storage:
-            os.close(_owned_path(home, directory=True))
+            self._check_path(home, directory=True)
         lock_path = home / '.writer.lock'
         descriptor = os.open(lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
         with os.fdopen(descriptor, 'a+b') as lock:
             if not stat.S_ISREG(os.fstat(lock.fileno()).st_mode):
                 raise JournalCorruption('writer lock must be a regular file')
             if self.protected_storage:
-                os.close(_owned_path(lock_path))
+                self._check_path(lock_path)
             deadline = time.monotonic() + self.lock_timeout_seconds
             while True:
                 try:
@@ -140,14 +155,14 @@ class AssessmentJournal:
     def _load(self, subject_id: str) -> tuple[str | None, list[dict[str, Any]]]:
         home = self._home(subject_id)
         if self.protected_storage and (home.exists() or home.is_symlink()):
-            os.close(_owned_path(home, directory=True))
+            self._check_path(home, directory=True)
         head = home / 'head'
         if head.is_symlink():
             raise JournalCorruption('a head pointer cannot be a symlink')
         if not head.exists():
             return None, []
         if self.protected_storage:
-            os.close(_owned_path(head))
+            self._check_path(head)
         if not head.is_file() or head.stat().st_size > 65:
             raise JournalCorruption('invalid head pointer')
         try:
@@ -164,7 +179,7 @@ class AssessmentJournal:
                 seen.add(cursor)
                 path = home / (cursor + '.json')
                 if self.protected_storage:
-                    os.close(_owned_path(path))
+                    self._check_path(path)
                 if path.stat().st_size > MAX_RECORD_BYTES:
                     raise JournalCorruption('batch exceeds its record size limit')
                 batch = json.loads(path.read_text(encoding='utf-8'))
@@ -221,7 +236,7 @@ class AssessmentJournal:
     def _write_blob(self, home: Path, revision: str, payload: bytes) -> None:
         target = home / (revision + '.json')
         if self.protected_storage and (target.exists() or target.is_symlink()):
-            os.close(_owned_path(target))
+            self._check_path(target)
         if target.exists():
             if target.read_bytes() != payload:
                 raise JournalCorruption('immutable batch name has conflicting bytes')
@@ -283,6 +298,8 @@ class AssessmentJournal:
                 if old['request']['command_id'] == command_id:
                     if old['request_digest'] != request_digest:
                         raise JournalConflict('command ID is already bound to a different request')
+                    if snapshot_guard is not None:
+                        snapshot_guard()
                     return {'revision': current, 'receipt': old, 'replayed': True,
                             'current_admission': engine.evaluate(context, (), now=now, trusted_history=history)}
             if current != expected_revision:
@@ -450,6 +467,7 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
         path = Path(relative)
         if (path.is_absolute() or path.as_posix() != relative or '..' in path.parts
                 or path.parts[:2] != ('ToS', 'source-witnesses')
+                or path.is_relative_to('ToS/source-witnesses/owner-local')
                 or any(part in ('payload', 'local-content', 'catalog') for part in path.parts)
                 or path.suffix not in ('.json', '.jsonl')):
             raise PermissionError('source binding must name an explicit source-witness metadata file')
@@ -580,7 +598,9 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
     return resolved, fixity
 
 
-def _materialize_source_form(config, sourced, form_sets, engine, context, history, *, now, contract_root):
+def _materialize_source_form(config, sourced, form_sets, engine, context, history, *, now, contract_root,
+                             owner_local_paths=None, owner_local_form_validator=None,
+                             materializer_validators=None):
     """Render the selected form from this exact source/journal snapshot only.
 
     This owner lane requires whole-subject context for assessed freeform. It
@@ -602,13 +622,15 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
     if subject.ref != subject_ref:
         raise JournalConflict('form binds a different subject snapshot')
     paths = {binding['record_id']: Path(binding['path']) for binding in config['source_records']}
+    paths.update({identity: Path(path) for identity, path in (owner_local_paths or {}).items()})
     if subject.id not in paths or form.id not in paths:
         raise PermissionError('native evidence needs its own explicit form adapter')
     source_path, form_path = paths[subject.id], paths[form.id]
     expected = (claim_forms_path(source_path, subject.id) if source_path.name == 'source-claims.jsonl'
                 else source_path.with_name(source_path.stem + '.human-forms.json'))
     package = form_sets.get(form_path.as_posix())
-    if form_path != expected or package is None or not _validator().is_valid(package):
+    validator = (owner_local_form_validator if owner_local_form_validator is not None else _validator())
+    if form_path != expected or package is None or validator is None or not validator.is_valid(package):
         raise ValueError('form must belong to its validated adjacent source set')
     if package['subject'] != subject.ref:
         raise JournalConflict('form set binds a different subject snapshot')
@@ -634,19 +656,15 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
                       language_context=language_binding)
     return materialize_form(contract_root, form, scope,
                             [engine.records[identity] for identity in selected], prior_forms=prior,
-                            engine=engine, trusted_history=history, now=now)
+                            engine=engine, trusted_history=history, now=now,
+                            **({'validators': materializer_validators} if materializer_validators is not None else {}))
 
 
-def _native_text_records(config):
-    """Explicit owner-local v3 selection, not a corpus crawl or public reader."""
-    scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
-    if scripts not in sys.path:
-        sys.path.insert(0, scripts)
-    from native_text_binding import NativeTextBindingResolver
+def _validate_native_selections(config):
     selections, subjects = config['native_text_units'], config['subjects']
     if not isinstance(selections, list) or len(selections) > 64 or not isinstance(subjects, dict):
         raise ValueError('native assessment selection exceeds its bounded contract')
-    seen, observed, total = set(), {}, 0
+    seen = set()
     # Validate every private-read authorization before opening any native text.
     for selection in selections:
         _keys(selection, {'binding', 'origin_id', 'read_scope'})
@@ -665,6 +683,17 @@ def _native_text_records(config):
             raise PermissionError('native unit is outside the protected owner access scope')
         _keys(scope, {'record', 'assertion_layer', 'risk', 'languages', 'maker_id',
                       'requested_use', 'access_allowed'})
+
+
+def _native_text_records(config, *, owner_context=None):
+    """Explicit owner-local selection, not a corpus crawl or public reader."""
+    scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    from native_text_binding import NativeTextBindingResolver
+    _validate_native_selections(config)
+    selections, subjects = config['native_text_units'], config['subjects']
+    observed, total = {}, 0
 
     def protected_read(path, limit):
         nonlocal total
@@ -691,7 +720,8 @@ def _native_text_records(config):
 
     records, summaries, resolvers, contracts = {}, [], [], {}
     for selection in selections:
-        resolver = NativeTextBindingResolver(Path(config['source_root']), read_bytes=protected_read)
+        resolver = NativeTextBindingResolver(Path(config['source_root']), read_bytes=protected_read,
+                                            **({'owner_context': owner_context} if owner_context is not None else {}))
         adapted = resolver.assessment_records(selection['binding'], origin_id=selection['origin_id'],
             verify_content=selection['read_scope'] != 'metadata_only',
             allow_private_content=selection['read_scope'] == 'exact_owner_local')
@@ -716,8 +746,20 @@ def _native_text_records(config):
     return list(records.values()), summaries, resolvers, contracts
 
 
+PUBLIC_SOURCE_OWNER_VERSIONS = frozenset({'tos_local_assessment_owner_v1',
+    'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3'})
+
+
+def run_public_source_command(owner_config: Path, request: dict[str, Any], *,
+                              contract_root: Path | None = None) -> dict[str, Any]:
+    """Keep the existing graph adapter out of confidential v4 source inputs."""
+    return run_local_command(owner_config, request, contract_root=contract_root,
+                             accepted_owner_versions=PUBLIC_SOURCE_OWNER_VERSIONS)
+
+
 def run_local_command(owner_config: Path, request: dict[str, Any], *,
-                      contract_root: Path | None = None) -> dict[str, Any]:
+                      contract_root: Path | None = None,
+                      accepted_owner_versions: frozenset[str] | None = None) -> dict[str, Any]:
     """Apply one command as the configured local account, never a claimed UID.
 
     The operator selects the owner configuration independently of the request.
@@ -731,34 +773,76 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     if len(encoded) > 8 * MAX_RECORD_BYTES:
         raise ValueError('owner configuration exceeds the 8 MiB snapshot budget')
     config = _json_object(encoded)
+    if accepted_owner_versions is not None and config.get('schema_version') not in accepted_owner_versions:
+        raise PermissionError('assessment consumer does not accept this source-owner version')
     fields = {'schema_version', 'uid', 'principal_id', 'execution_profile',
               'policy', 'authorities', 'competencies', 'records', 'subjects', 'journal_directory'}
-    native_bound = config.get('schema_version') == 'tos_local_assessment_owner_v3'
+    owner_local = config.get('schema_version') == 'tos_local_assessment_owner_v4'
+    native_bound = owner_local or config.get('schema_version') == 'tos_local_assessment_owner_v3'
     source_bound = native_bound or config.get('schema_version') == 'tos_local_assessment_owner_v2'
     if source_bound:
-        fields |= {'source_root', 'source_records'}
+        fields |= {'source_context_ref' if owner_local else 'source_root', 'source_records'}
+    if owner_local:
+        fields.add('owner_local_source_records')
     if native_bound:
         fields.add('native_text_units')
     _keys(config, fields)
-    if (config['schema_version'] not in ('tos_local_assessment_owner_v1', 'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3')
+    if (config['schema_version'] not in PUBLIC_SOURCE_OWNER_VERSIONS | {'tos_local_assessment_owner_v4'}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
     snapshot = 'sha256:' + _digest(config)
+    owner_context, private_sources, private_snapshot = None, None, None
+    if owner_local:
+        scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        from source_owner_context import OwnerLocalSourceContext, _read
+        from owner_local_assessment_sources import OwnerLocalAssessmentSources, source_access, confidential_journal
+        if _read(owner_config, 8 * MAX_RECORD_BYTES, confidential_file=True) != encoded:
+            raise JournalConflict('confidential assessment configuration changed during selection')
+        selections = config['native_text_units']
+        if not isinstance(selections, list) or len(selections) > 64:
+            raise ValueError('private native assessment selection exceeds its bounded contract')
+        native_selections = []
+        for selection in selections:
+            _keys(selection, {'binding', 'origin_id', 'source_access'})
+            scope = source_access(selection['source_access'])
+            native_selections.append({'binding': selection['binding'], 'origin_id': selection['origin_id'], 'read_scope': scope})
+        _validate_native_selections({**config, 'native_text_units': native_selections})
+        owner_context = OwnerLocalSourceContext.load(config['source_context_ref'])
+        confidential_journal(owner_context, config['journal_directory'])
+        # Runtime-only normalization; exact retained config still owns the hash.
+        source_root = owner_context.public_root
+        native_config = {**config, 'source_root': str(source_root), 'native_text_units': native_selections}
+        private_sources = OwnerLocalAssessmentSources(owner_context, config['owner_local_source_records'])
+        private_snapshot = private_sources.snapshot()
+    else:
+        source_root = Path(config['source_root']) if source_bound else None
+        native_config = config
     sourced, regular_sourced, form_sets, identity_snapshots = [], [], {}, {}
     native_summaries, native_resolvers, native_contracts, native_records = [], [], {}, []
     if source_bound:
-        sourced, fixity = _source_records(Path(config['source_root']), config['source_records'],
+        sourced, fixity = _source_records(source_root, config['source_records'],
                                          form_sets=form_sets, identity_snapshots=identity_snapshots)
         regular_sourced = list(sourced)
+        if private_sources is not None:
+            if {item['id'] for item in sourced} & {item['id'] for item in private_sources.records}:
+                raise ValueError('private source records cannot shadow public selected identities')
+            sourced.extend(private_sources.records)
+            form_sets.update(private_sources.form_sets)
         if native_bound:
-            native_records, native_summaries, native_resolvers, native_contracts = _native_text_records(config)
+            native_records, native_summaries, native_resolvers, native_contracts = _native_text_records(
+                native_config, owner_context=owner_context)
             if {item['id'] for item in sourced} & {item['id'] for item in native_records}:
                 raise ValueError('source records cannot shadow native assessment identities')
             sourced.extend(native_records)
             identity_snapshots['native_text_snapshots'] = [resolver.snapshot() for resolver in native_resolvers]
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
-                                       'resolved_records': sourced, **identity_snapshots})
+                                       'resolved_records': sourced, **identity_snapshots,
+                                       **({'owner_local_sources': private_snapshot,
+                                           'configuration_bytes': hashlib.sha256(encoded).hexdigest()}
+                                          if owner_local else {})})
     if len(_canonical(request)) > MAX_RECORD_BYTES:
         raise ValueError('command exceeds the 1 MiB input budget')
     operation = request.get('operation') if isinstance(request, dict) else None
@@ -790,7 +874,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                               record(config['policy']),
                               [record(item) for item in config['authorities']],
                               [record(item) for item in config['competencies']],
-                              [record(item) for item in [*config['records'], *sourced]])
+                              [record(item) for item in [*config['records'], *sourced]],
+                              **({'validators': private_sources.assessment_validators} if private_sources is not None else {}))
     subjects = config['subjects']
     identifier = request['subject_id']
     if (not isinstance(subjects, dict) or len(subjects) > MAX_ASSESSMENTS
@@ -815,6 +900,13 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise ValueError('owner subject scope is incomplete')
     if scope['access_allowed'] is not True:
         raise PermissionError('subject access is not allowed')
+    if (private_sources is not None and identifier in {row['id'] for row in sourced}
+            and identifier not in {row['id'] for row in native_records}):
+        required_languages = private_sources.required_languages(identifier, sourced)
+        required_languages.update(row['language'].casefold() for row in native_summaries
+                                  if isinstance(row.get('language'), str) and row['language'])
+        if not required_languages <= {language.casefold() for language in scope['languages']}:
+            raise PermissionError('private assessment scope omits source or authored-form languages')
     if identifier in {item['id'] for item in sourced}:
         body = current.payload
         if 'claim_id' in body and 'claim_version' in body:
@@ -829,7 +921,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     # its text was read. Match the ENTIRE fixed binding, not merely a unit ID.
     # This applies to supporting occurrence records and source-bound forms too;
     # selecting an unrelated native unit cannot qualify their source return.
-    required_native_bindings = [item['payload']['native_text_binding'] for item in regular_sourced
+    required_native_bindings = [item['payload']['native_text_binding'] for item in sourced
                                 if 'native_text_binding' in item['payload']]
     if ('native_text_binding' in current.payload
             or current.payload.get('schema_version') == 'tos_occurrence_description_record_v1'):
@@ -838,6 +930,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         _canonical(row['payload'].get('native_binding')) == _canonical(binding)
         and row['payload'].get('content_verified') is True for row in native_records)
         for binding in required_native_bindings)
+    if owner_local and any(not row['content_verified'] for row in native_summaries):
+        source_read_ready = False
     if operation == 'materialize-form' and not source_read_ready:
         raise PermissionError('native-bound form materialization requires the same explicitly selected exact text read')
     context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
@@ -849,14 +943,44 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     directory = Path(config['journal_directory'])
     descriptor = _owned_path(directory, directory=True)
     os.close(descriptor)
-    journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True)
+    journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True,
+                                confidential_root=owner_context.private_root if owner_context is not None else None,
+                                batch_validator=private_sources.assessment_validators['-batch'] if private_sources is not None else None)
+
+    def native_snapshot_guard():
+        # Recheck after waiting for a lock, at the commit edge, and before v4
+        # returns a current read. Unpublished blobs remain separate from history.
+        with os.fdopen(_owned_path(owner_config), 'rb') as stream:
+            current_config = stream.read(len(encoded) + 1)
+        if current_config != encoded:
+            raise JournalConflict('protected native assessment configuration changed')
+        for resolver in native_resolvers:
+            resolver.snapshot()
+        if owner_context is not None:
+            from source_owner_context import _read
+            if _read(owner_config, len(encoded), confidential_file=True) != encoded:
+                raise JournalConflict('confidential assessment configuration changed')
+            confidential_journal(owner_context, config['journal_directory'])
+            if private_sources.snapshot() != private_snapshot:
+                raise JournalConflict('private assessment supporting source snapshot changed')
+        current_identities = {}
+        current_records, current_fixity = _source_records(source_root, config['source_records'],
+                                                          identity_snapshots=current_identities)
+        if (current_records != regular_sourced or current_fixity != fixity
+                or any(identity_snapshots.get(key) != value for key, value in current_identities.items())
+                or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots'}):
+            raise JournalConflict('native assessment supporting source snapshot changed')
+
     now = datetime.now(timezone.utc).isoformat()
     if operation == 'materialize-form':
         if not source_form:
             raise PermissionError('form materialization requires a source-bound form scope')
         revision, chain = journal._load(identifier)
         materialized = _materialize_source_form(config, sourced, form_sets, engine, context,
-            journal._history(chain), now=now, contract_root=contract_root or Path(__file__).resolve().parents[5])
+            journal._history(chain), now=now, contract_root=contract_root or Path(__file__).resolve().parents[5],
+            owner_local_paths=private_sources.paths if private_sources is not None else None,
+            owner_local_form_validator=private_sources.form_validator if private_sources is not None else None,
+            materializer_validators=private_sources.materializer_validators if private_sources is not None else None)
         result = {'revision': revision, 'batch_count': len(chain),
                   'current_admission': materialized['admission'], 'materialization': materialized}
     elif operation in ('inspect', 'describe'):
@@ -886,6 +1010,13 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                         for path, digest in sorted(native_contracts.items())]
                     if any(not row['content_verified'] for row in native_summaries):
                         result['command_context']['supported_operations'] = ['describe', 'inspect']
+                if private_sources is not None:
+                    result['command_context']['owner_local_source_records'] = [
+                        {'record': record(item).ref, 'origin_id': item['origin_id']}
+                        for item in private_sources.records]
+                    result['command_context']['owner_local_contracts'] = [
+                        {'path': path, 'digest': 'sha256:' + digest}
+                        for path, digest in sorted(private_sources.contracts.items())]
     else:
         if not source_read_ready:
             raise PermissionError('native-bound source assessment requires the same explicitly selected exact text read')
@@ -905,29 +1036,17 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                                               or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
             raise ValueError('invalid assessment batch or expected revision')
         reviews = [Submission(item, config['principal_id'], executor) for item in assessments]
-        def native_snapshot_guard():
-            # A command may have waited for the journal lock. Recheck again
-            # after writing its immutable blob but BEFORE making it history.
-            # Failed publication can retain an orphan; it never deletes history.
-            with os.fdopen(_owned_path(owner_config), 'rb') as stream:
-                current_config = stream.read(len(encoded) + 1)
-            if current_config != encoded:
-                raise JournalConflict('protected native assessment configuration changed')
-            for resolver in native_resolvers:
-                resolver.snapshot()
-            current_identities = {}
-            current_records, current_fixity = _source_records(Path(config['source_root']), config['source_records'],
-                                                              identity_snapshots=current_identities)
-            if (current_records != regular_sourced or current_fixity != fixity
-                    or any(identity_snapshots.get(key) != value for key, value in current_identities.items())
-                    or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots'}):
-                raise JournalConflict('native assessment supporting source snapshot changed')
         result = journal.append(engine, context, reviews, command_id=request['command_id'],
                                 expected_revision=revision, now=now,
                                 **({'snapshot_guard': native_snapshot_guard}
                                    if native_bound or 'native_text_binding_snapshot' in identity_snapshots else {}))
+    if owner_local:
+        native_snapshot_guard()
+        if journal._load(identifier)[0] != result['revision']:
+            raise JournalConflict('private assessment history changed before returning the current view')
     return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
-            'authentication': 'local-unix-account', 'result': result}
+            'authentication': 'local-unix-account', 'result': result,
+            **({'visibility': 'local_only', 'publication_authorized': False} if owner_local else {})}
 
 
 def main() -> int:

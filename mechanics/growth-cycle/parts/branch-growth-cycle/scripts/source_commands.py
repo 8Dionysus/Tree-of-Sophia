@@ -213,9 +213,9 @@ def _form_ref(value):
     return Record.from_payload(value['form_id'], value['form_version'], value).ref
 
 
-def _validate_history(payload):
+def _validate_history(payload, *, validator=None):
     """Retained versions must form one complete, nonbranching chain per form."""
-    _validator().validate(payload)
+    (validator if validator is not None else _validator()).validate(payload)
     indexed, current, commands = {}, set(), set()
     for form in [*payload['prior_forms'], *payload['forms']]:
         ref = _form_ref(form)

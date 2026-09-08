@@ -190,8 +190,10 @@ def _independent_seats(options: Mapping[str, set[str]]) -> int:
 
 class AssessmentEngine:
     def __init__(self, root: Path, policy: Record, authorities: Sequence[Record],
-                 competencies: Sequence[Record], records: Sequence[Record]):
-        self.validators = _validators(root.resolve())
+                 competencies: Sequence[Record], records: Sequence[Record], *, validators=None):
+        # A source-bound adapter can supply one freshly pinned grammar. This
+        # is an internal dependency, never a field from assessment prose.
+        self.validators = validators if validators is not None else _validators(root.resolve())
         self.policy = policy
         self.authorities = _index(authorities)
         self.competencies = _index(competencies)

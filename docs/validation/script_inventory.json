@@ -225,12 +225,26 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/knowledge-assessment-batch.schema.json", "ToS/contracts/native-text-unit-assessment-subject.schema.json"],
-      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/historical/form and declared metadata/Claim files, exact selected endpoint closure and registry/schema digests, and bounded JSON request on stdin", "declared metadata profiles: bounded native semantic identity inventory with protected byte/membership recheck; only its opaque hash joins owner_snapshot, not native paths in public source_contracts", "v3: explicit native TextUnit bindings, protected metadata closure and optional exact public or owner-local UTF-8 representation; raw configuration and consumed dependencies rechecked under journal lock and before head publication"],
+      "reads": ["configured source-owner assessment hash chain and trusted engine/context/authenticated submissions", "local CLI: independently selected protected owner snapshot, explicit bounded source-witness corpus/claim/historical/form and declared metadata/Claim files, exact selected endpoint closure and registry/schema digests, and bounded JSON request on stdin", "declared metadata profiles: bounded native semantic identity inventory with protected byte/membership recheck; only its opaque hash joins owner_snapshot, not native paths in public source_contracts", "v3: explicit native TextUnit bindings, protected metadata closure and optional exact public or owner-local UTF-8 representation; raw configuration and consumed dependencies rechecked under journal lock and before head publication", "v4: independently selected confidential context, exact private semantic records/current forms and native text through owner_local_assessment_sources.py; confidential journal and raw configuration snapshots, currentness and source-language scope; public graph entry refuses v4 before private IO"],
       "writes": ["immutable assessment batches and atomic per-subject head in the explicitly configured owner directory"],
       "side_effects": "Unix UID/path checks, file locking and fsync; appends qualified assessment history, not source assertions, model attestation, canon, public API authorization or publication",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/owner_local_assessment_sources.py",
+      "family": "source_assessment_selection",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/human-form-set.schema.json", "scripts/source_owner_record_profiles.py"],
+      "reads": ["independently configured owner-local context and bounded exact semantic source records/current adjacent forms", "public registry/profile grammar, source-context form schemas and metadata-only native closure; opaque snapshot rechecks"],
+      "writes": [],
+      "side_effects": "read-only protected owner-local source selection and shared form-lineage validation; no source mutation, corpus scan, model calls, independent assessment, admission, projection or publication",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_owner_local_assessment.py",
       "disposition": "keep"
     },
     {

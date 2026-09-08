@@ -90,7 +90,7 @@ def materialize_form(root: Path, form: Record, scope: FormScope, records: Sequen
                      templates: Sequence[Record] = (), engine: AssessmentEngine | None = None,
                      prior_forms: Sequence[Record] = (),
                      reviews: Sequence[Submission] = (), trusted_history: Sequence[Submission] = (),
-                     now: str | None = None) -> dict[str, Any]:
+                     now: str | None = None, validators=None) -> dict[str, Any]:
     """Bounded pure rendering with explicit stale/missing/assessment states.
 
 Trusted templates are admitted by their source owner before this call, not by
@@ -118,7 +118,8 @@ policy result bound to this exact form and current dependency snapshot.
             or len(scope.source_languages) > 256
             or form.size_bytes + sum(record.size_bytes for record in (*records, *templates, *prior_forms)) > MAX_INPUT_BYTES):
         return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
-    form_validator, template_validator, language_context_validator = _validators(root)
+    form_validator, template_validator, language_context_validator = (
+        validators if validators is not None else _validators(root))
     payload = form.payload
     if not form_validator.is_valid(payload):
         return stop('invalid', 'form.schema')

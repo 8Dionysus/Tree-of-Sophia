@@ -51,9 +51,9 @@ class AssessedFormSnapshot:
         self._observed = {}
 
     def _resolve(self, subject, form_ref, source_path, form_path):
-        from assessment_journal import JournalConflict, run_local_command
+        from assessment_journal import JournalConflict, run_public_source_command
         identity = form_ref['id']
-        described = run_local_command(self.owner_config, {
+        described = run_public_source_command(self.owner_config, {
             'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': identity})
         context = described['result']['command_context']
         snapshot = described['owner_snapshot']
@@ -67,7 +67,7 @@ class AssessedFormSnapshot:
             raise JournalConflict('graph and assessment owner bind different source/form inputs')
         request = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'materialize-form',
                    'subject_id': identity, 'expected_subject': form_ref, 'expected_snapshot': snapshot}
-        reply = run_local_command(self.owner_config, request)
+        reply = run_public_source_command(self.owner_config, request)
         result = reply['result']
         packet = result['materialization']
         if packet['subject'] != subject.ref or packet['form'] != form_ref:
@@ -84,12 +84,12 @@ class AssessedFormSnapshot:
 
     def verify_current(self):
         """Fail on observed change; do not silently rebuild only part of a graph."""
-        from assessment_journal import JournalConflict, run_local_command
+        from assessment_journal import JournalConflict, run_public_source_command
         if set(self._observed) != self.form_ids:
             raise ValueError('selected assessed forms are not all present in the graph')
         for identity in sorted(self._observed):
             observed = self._observed[identity]
-            current = run_local_command(self.owner_config, observed['request'])
+            current = run_public_source_command(self.owner_config, observed['request'])
             if current != observed['reply']:
                 raise JournalConflict('assessment graph snapshot changed before return')
 

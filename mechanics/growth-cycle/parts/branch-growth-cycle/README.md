@@ -639,6 +639,105 @@ digests are visible, private source dependencies opaque. The facade has no
 catalog or export method and does not itself grant derivation rights or reserve
 identities. Commands provide those separate checks.
 
+### Confidential source assessment v4
+
+`tos_local_assessment_owner_v4` uses the same assessment policy, authority,
+competence, subject, command and journal grammar. It adds confidential source
+selection, not a second assessment engine or implicit permission to publish.
+V1/v2/v3 remain supported. In particular, v3 already supports authorized private
+representation bytes inside `source_root`; v4 adds the explicit authored-store
+transport described above, rather than reclassifying that existing access.
+
+V4 retains all common v1 configuration fields and `source_records`, replaces
+`source_root` with the independently selected `source_context_ref`, and requires
+both of these bounded lists (empty is allowed):
+
+- `owner_local_source_records`: at most 64 selections of `{path, record_id,
+  profile_type_id, origin_id, source_access, source_binding, form_ids}`. The
+  profile is an existing `semantic-metadata-v1` type. The path must resolve to
+  its typed metadata package in the selected store, and the actual record
+  must be `local_only`. `source_binding` is the complete fixed native binding
+  for Occurrence, otherwise `null`; non-native profiles use metadata-only
+  scope. No private Claim stream reader is implied.
+- `native_text_units`: at most 64 selections of `{binding, origin_id,
+  source_access}`. Each native unit still requires the exact subject scope,
+  maker and source language of the v3 contract. Both native records retain
+  their same origin. Supporting layers do not become assessment targets.
+
+In both lists `source_access` is exactly `{read_scope, access_allowed,
+authority_ref}`. `read_scope` is `metadata_only` or `exact_owner_local`, access
+must be the boolean `true`, and the authority reference must be nonempty.
+This protected issuer input grants bounded reading only; assessment admission
+still needs current policy, authenticated principal, delegated action and
+competence. A command cannot supply or widen this scope.
+
+Each `form_ids` list explicitly selects at most 32 distinct **current** forms
+from the source's derived adjacent `<stem>.human-forms.json` path. A caller
+cannot submit arbitrary private form paths, choose a predecessor as current,
+replace the subject or import unselected neighboring forms. Source records,
+whole form sets, unknown fields and prior form history remain unchanged.
+The source-context root owns the exact assessment, policy, authority,
+competence, batch, form, form-set and template schemas used for v4. Their byte
+digests join the private snapshot. History checking, assessment engine, journal
+and materializer receive the same freshly built validators through internal
+dependencies, never request fields. A cached validator from another checkout
+cannot override that selected grammar; v1/v2/v3 keep their existing defaults.
+
+The description's maker is an issuer-owned descriptive act, not automatically
+the segmentation maker. A form retains its own `creator_id` and
+`human_projection` layer. Private description/form scopes must cover their
+actual authored languages, selected public or private form bindings and native source language;
+omitting a language cannot evade competence requirements. Unknown language
+remains unknown, not an invented translation or linguistic classification.
+
+An Occurrence or form based on it requires an explicitly selected **same full
+native binding** with verified exact text. Metadata-only selection permits
+description and inspection but not append or assessed materialization. Any
+metadata-only native evidence in a v4 selection also makes the current
+assessment unusable for another subject; the unchanged supporting layer ID
+cannot revive an old positive decision after exact reading is withdrawn.
+Private freeform `materialize-form` uses the existing whole-subject binding
+and assessment route, returning wording only while that assessment qualifies.
+Reading a source-copy form or recording its assessment does not turn it into
+an agent-authored freeform or mutate its source.
+
+V4 owner configuration and context files require mode 0600. The independently
+selected, pre-existing `journal_directory` must be a dedicated directory
+inside the context's private root, not that root itself. Every private journal
+directory is mode 0700; locks, batches and heads are mode 0600 even with a
+permissive umask. Read and replay reject unsafe existing modes. The same
+immutable batches, subject lock, head publication and retained-orphan recovery
+apply; no alternative private history format is introduced.
+
+The owner snapshot binds exact configuration bytes, context, selected public
+records, private records/forms/grammar and native closure. V4 rechecks them
+at the append/replay edges and before every returned current view, and checks
+that the journal head did not change during the read. A source, form, schema,
+context, rights or verified-content change is a conflict/refusal, not partial
+acceptance. Metadata/profile selection shares an 8-MiB/128-distinct-file budget;
+native resolution retains its separate 16-MiB/128-file aggregate budget. All
+selected records together stay within the existing 1,024-record engine limit.
+These bounds do not isolate hostile same-account editors or create a
+cross-subject filesystem transaction.
+
+Every v4 response carries `visibility: local_only` and
+`publication_authorized: false`. `describe` exposes exact private record/form
+refs and origins, not their bodies, private paths or native short-span hashes.
+`owner_local_contracts` exposes only the public grammar and registry fixity.
+Explicit freeform materialization and retained assessment prose can contain
+private content; their local-only result must not enter a public projection.
+The existing `AssessedFormSnapshot` graph adapter uses
+`run_public_source_command`, which accepts only v1/v2/v3 immediately after
+reading the protected version discriminator. V4 is refused before opening its
+source context, private records, native content or journal. The ordinary
+`source_records` selector likewise rejects the reserved owner-local namespace
+before file reading. No UI, public-reader or publication route is added here.
+
+Reproduce with the synthetic checks in
+`mechanics/growth-cycle/tests/test_owner_local_assessment.py`, plus the existing
+native and common assessment tests. Successful synthetic qualification proves
+the mechanics, not real-language competence, source quality or legal permission.
+
 ### Descriptions bound to native text
 
 The registry-declared `source-text-unit-v1` profile adapter connects a public
