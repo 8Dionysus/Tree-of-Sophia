@@ -34,6 +34,162 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_lexical_comparison_claims_keep_history_and_translation_source_bound(self):
+        """Synthetic comparisons test grammar and reading, never etymological truth."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        cases = {
+            'lexical_inherited_from': ('lexeme', ('chronology_basis',)),
+            'lexical_borrowed_from': ('lexeme', ('chronology_basis',)),
+            'lexical_formed_from': ('lexeme', ('chronology_basis',)),
+            'lexical_cognate_with': ('lexeme', ('common_origin_basis',)),
+            'lexical_sense_developed_from': ('sense', ('chronology_basis',)),
+            'lexical_translation_correspondence': ('sense', ('translation_scope', 'preserved_aspects', 'limitations')),
+        }
+        self.assertTrue(set(cases).issubset(SourceClaimProfiles(REPO_ROOT).profiles),
+                        'The six lexical comparison predicates need declared source Claim profiles.')
+        common = {'statement': 'Только синтетическое сравнение; не принятое суждение о языке.',
+            'statement_language': 'ru', 'statement_script': 'Cyrl',
+            'relation_basis': 'An artificial comparison, not an inference from matching labels.',
+            'attestation_scope': 'Only this synthetic research fixture; no actual token is asserted.',
+            'source_scope': 'The bounded source use in the artificial comparison.',
+            'target_scope': 'The bounded target use; unrelated senses remain open.',
+            'source_language': 'de', 'target_language': 'en',
+            'unknown_extension': {'relative': {'anchor_ref': 'tos.sense.not-a-dependency'}, 'values': [False, None]}}
+        with self.historical_fixture() as (root, history, real, baseline, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'lexical-description-record',
+                         'source-claim-record', 'semantic-relation-claim', 'linguistic-relation-claim',
+                         'lexical-comparison-claim', 'semantic-relation-type-registry'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            records = {}
+            record_reader = SourceRecordProfiles(root)
+            for kind in ('lexeme', 'sense'):
+                content = ({'lexical_account': 'An artificial lexical referent.',
+                            'grammatical_account': 'A synthetic analysis, not accepted grammar.'} if kind == 'lexeme' else
+                           {'sense_account': 'An artificial situated reading.',
+                            'interpretation_context': 'This synthetic context only.',
+                            'semantic_range': 'Other readings are not excluded.'})
+                for suffix in ('a', 'b', 'c'):
+                    record = {**copy.deepcopy(history[0][1]),
+                        'schema_version': 'tos_lexical_description_record_v1', 'record_type': kind,
+                        'record_id': f'tos.{kind}.synthetic-comparison-{suffix}',
+                        'preferred_label': 'Одинаковая метка', 'notes': 'Синтетический предмет сравнения.',
+                        'field_languages': {field: {'language': 'ru', 'script': 'Cyrl'}
+                            for field in ('preferred_label', 'notes')},
+                        'semantic_scope': {'scope_note': 'One artificial research referent.',
+                            'identity_criterion': 'Description correction preserves this referent, not a historical transition.',
+                            'language': 'en', 'script': 'Latn'},
+                        'semantic_content': {**content, 'language': 'en', 'script': 'Latn'}}
+                    record_reader.validate(kind, record)
+                    path = root / f'ToS/source-witnesses/lexical-descriptions/comparison-{kind}-{suffix}/{kind}.json'
+                    path.parent.mkdir(parents=True)
+                    path.write_text(json.dumps(record, ensure_ascii=False), encoding='utf-8')
+                    records[kind, suffix] = record
+            objects = {record['record_id']: record for record in records.values()}
+            reader, claims = SourceClaimProfiles(root), []
+            for predicate, (kind, required) in cases.items():
+                qualifiers = {**copy.deepcopy(common), **{field: f'{field}: A scoped synthetic account; alternatives remain open.'
+                                                         for field in required}}
+                claim = {**copy.deepcopy(baseline[0]), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': 'tos.claim.synthetic-' + predicate.replace('_', '-'),
+                    'subject_ref': records[kind, 'a']['record_id'], 'object': records[kind, 'b']['record_id'],
+                    'predicate': predicate, 'assertion_layer': 'linguistic_analysis', 'polarity': 'positive',
+                    'qualifiers': qualifiers}
+                with self.subTest(predicate=predicate):
+                    reader.validate(claim, objects)
+                    relation = reader.relations[predicate]
+                    expected_type = 'tos.entity.' + ('lexical-sense' if kind == 'sense' else kind)
+                    self.assertEqual(relation['relation_type_id'], 'tos.relation.' + predicate.replace('_', '-'))
+                    self.assertEqual(relation['domain_type_ids'], [expected_type])
+                    self.assertEqual(relation['range_type_ids'], [expected_type])
+                    self.assertEqual(relation['directionality'], 'symmetric' if predicate == 'lexical_cognate_with' else 'directed')
+                    self.assertFalse(relation['transitive'])
+                    self.assertIsNone(relation['cardinality']['per_subject_max'])
+                    self.assertIsNone(relation['cardinality']['per_object_max'])
+                    self.assertEqual(reader.profiles[predicate]['reader'], 'semantic-relation-v1')
+                    self.assertEqual(reader.identity_refs(claim), {claim['subject_ref'], claim['object']})
+                for field in (*(field for field in common if field != 'unknown_extension'), *required):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                    with self.subTest(predicate=predicate, missing=field), self.assertRaises(SourceProfileError):
+                        reader.validate(invalid, objects)
+                for field in ('source_scope', 'target_scope', *required):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'][field] = ' '
+                    with self.subTest(predicate=predicate, empty=field), self.assertRaises(SourceProfileError):
+                        reader.validate(invalid, objects)
+                for field in ('source_language', 'target_language'):
+                    for value in (None, 'und'):
+                        reader.validate({**claim, 'qualifiers': {**qualifiers, field: value}}, objects)
+                    with self.subTest(predicate=predicate, bad_language=field), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, 'qualifiers': {**qualifiers, field: 'not a language tag'}}, objects)
+                other_kind = 'sense' if kind == 'lexeme' else 'lexeme'
+                for endpoint in ('subject_ref', 'object'):
+                    with self.subTest(predicate=predicate, endpoint=endpoint), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, endpoint: records[other_kind, 'a']['record_id']}, objects)
+                for change in ({'assertion_layer': 'source_observation'}, {'review_status': 'accepted'}, {'evidence_refs': []}):
+                    with self.subTest(predicate=predicate, change=change), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, **change}, objects)
+                # The same pair supports distinct proposals, denials and uncertainty, not merged truth.
+                claims.extend({**copy.deepcopy(claim), 'claim_id': claim['claim_id'] + '.' + polarity, 'polarity': polarity}
+                              for polarity in ('positive', 'negative', 'unknown'))
+            # Multiple formation inputs and a proposed chain remain only their explicit Claims.
+            for predicate, source, target, suffix in (
+                    ('lexical_formed_from', 'a', 'c', 'second-component'),
+                    ('lexical_cognate_with', 'b', 'c', 'second-pair')):
+                template = next(claim for claim in claims if claim['predicate'] == predicate)
+                extra = {**copy.deepcopy(template), 'claim_id': template['claim_id'] + '.' + suffix,
+                         'subject_ref': records['lexeme', source]['record_id'], 'object': records['lexeme', target]['record_id']}
+                reader.validate(extra, objects)
+                claims.append(extra)
+            # Unknown compared language is independent of the proposal's polarity.
+            unknown_language = {**copy.deepcopy(claims[0]), 'claim_id': 'tos.claim.synthetic-comparison-unknown-language',
+                'qualifiers': {**copy.deepcopy(claims[0]['qualifiers']), 'source_language': None, 'target_language': 'und'}}
+            reader.validate(unknown_language, objects)
+            claims.append(unknown_language)
+            claim_path = root / 'ToS/source-witnesses/lexical-descriptions/comparison-claims/source-claims.jsonl'
+            claim_path.parent.mkdir(parents=True)
+            claim_path.write_text(''.join(json.dumps(claim, ensure_ascii=False) + '\n' for claim in claims), encoding='utf-8')
+            projection = rebuild()
+            graph, _, _ = self.historical_knowledge(root, projection)
+            projected = {node['entity_id']: node for node in graph['nodes']
+                         if node['entity_id'] in {claim['claim_id'] for claim in claims}}
+            traces = [trace for trace in projection['claim_traces'] if trace['predicate'] in cases]
+            self.assertEqual({trace['claim_ref'] for trace in traces}, {claim['claim_id'] for claim in claims})
+            self.assertEqual(len(traces), len(claims))
+            self.assertFalse(projection['relation_model']['direct_subject_object_edges'])
+            for claim in claims:
+                node = projected[claim['claim_id']]
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                self.assertEqual(node['semantics']['claim']['relation_type_id'],
+                                 'tos.relation.' + claim['predicate'].replace('_', '-'))
+            for record in records.values():
+                node = next(node for node in graph['nodes'] if node['entity_id'] == record['record_id'])
+                self.assertEqual(node['attributes']['source_record'], record)
+                self.assertNotIn('time', node['semantics'])
+            from tos_access.knowledge import execute_knowledge_lens
+            for field in ('source_scope', 'target_scope', 'source_language', 'target_language', 'chronology_basis',
+                          'common_origin_basis', 'translation_scope', 'preserved_aspects', 'limitations'):
+                value = next(claim['qualifiers'][field] for claim in claims if field in claim['qualifiers'])
+                property_id = 'tos.property.claim-lexical-' + field.replace('_', '-')
+                spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'synthetic-lexical-comparison-property',
+                    'node_query': {'filters': [{'property_id': property_id, 'op': 'eq', 'value': value}]},
+                    'relation_query': {'enabled': False}, 'detail': 'full'}
+                with self.subTest(property_id=property_id):
+                    result = execute_knowledge_lens(graph, spec)
+                    expected = {claim['claim_id'] for claim in claims if claim['qualifiers'].get(field) == value}
+                    self.assertEqual({node['entity_id'] for node in result['nodes']}, expected)
+                    for node in result['nodes']:
+                        self.assertEqual(node['attributes']['source_claim'], next(
+                            claim for claim in claims if claim['claim_id'] == node['entity_id']))
+                    absent = copy.deepcopy(spec)
+                    absent['node_query']['filters'][0]['value'] = 'absent synthetic lexical comparison value'
+                    self.assertEqual(execute_knowledge_lens(graph, absent)['nodes'], [])
+            unknown_spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'synthetic-unknown-compared-language',
+                'node_query': {'filters': [{'property_id': 'tos.property.claim-lexical-target-language',
+                                           'op': 'eq', 'value': 'und'}]},
+                'relation_query': {'enabled': False}, 'detail': 'full'}
+            self.assertEqual({node['entity_id'] for node in execute_knowledge_lens(graph, unknown_spec)['nodes']},
+                             {unknown_language['claim_id']})
+
     def test_lexical_profiles_preserve_form_lexeme_sense_and_competing_readings(self):
         """Artificial lexical data; spelling is neither identity nor attestation."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

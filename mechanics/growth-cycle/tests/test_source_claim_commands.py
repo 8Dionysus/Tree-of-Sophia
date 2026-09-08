@@ -17,6 +17,141 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_lexical_comparisons_create_copy_and_correct_through_shared_commands(self):
+        """Synthetic lexical history changes no endpoint identity or real language fact."""
+        cases = {
+            'lexical_inherited_from': ('lexeme', {'chronology_basis': 'Synthetic later to earlier scope.'}),
+            'lexical_borrowed_from': ('lexeme', {'chronology_basis': 'Synthetic borrowing chronology is disputed.'}),
+            'lexical_formed_from': ('lexeme', {'chronology_basis': 'Synthetic formation follows the proposed base.'}),
+            'lexical_cognate_with': ('lexeme', {'common_origin_basis': 'Synthetic common-origin comparison only.'}),
+            'lexical_sense_developed_from': ('sense', {'chronology_basis': 'Synthetic later reading, not record time.'}),
+            'lexical_translation_correspondence': ('sense', {
+                'translation_scope': 'Only the artificial rendering task.',
+                'preserved_aspects': 'A proposed shared aspect, not complete equivalence.',
+                'limitations': 'Other aspects remain different or unknown.'}),
+        }
+        with self.creation() as (root, owner, creator, baseline, creation, rebuild, graph_fixture):
+            for name in ('source-metadata-record', 'semantic-description-record', 'lexical-description-record',
+                         'semantic-relation-claim', 'linguistic-relation-claim', 'lexical-comparison-claim'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            identities, source_bytes = {}, {}
+            for kind in ('lexeme', 'sense'):
+                for side in ('source', 'target'):
+                    identifier = f'tos.{kind}.synthetic-comparison-{side}'
+                    content = ({'lexical_account': 'Artificial lexical grouping.', 'grammatical_account': 'Test grammar only.'}
+                               if kind == 'lexeme' else {'sense_account': 'Artificial situated reading.',
+                                   'interpretation_context': 'One test use.', 'semantic_range': 'Other readings remain open.'})
+                    source = {'schema_version': 'tos_lexical_description_record_v1', 'record_type': kind,
+                        'record_id': identifier, 'record_version': 1, 'preferred_label': 'Synthetic lexical referent',
+                        'notes': 'Synthetic endpoint; no actual etymology or translation is asserted.',
+                        'field_languages': {field: {'language': 'en', 'script': 'Latn'} for field in ('preferred_label', 'notes')},
+                        'semantic_scope': {'scope_note': 'Only this test referent.',
+                            'identity_criterion': 'A source correction is not historical lexical change.', 'language': 'en', 'script': 'Latn'},
+                        'semantic_content': {**content, 'language': 'en', 'script': 'Latn'},
+                        'identity_status': 'provisional', 'source_refs': baseline['evidence_refs'],
+                        'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only'}
+                    path = root / f'ToS/source-witnesses/lexical-descriptions/command-{kind}-{side}/{kind}.json'
+                    path.parent.mkdir(parents=True)
+                    path.write_text(json.dumps(source, ensure_ascii=False), encoding='utf-8')
+                    identities[kind, side] = identifier
+                    source_bytes[path] = path.read_bytes()
+            claims = []
+            for index, (predicate, (kind, specific)) in enumerate(cases.items()):
+                claims.append({**copy.deepcopy(baseline), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': 'tos.claim.synthetic-command-' + predicate.replace('_', '-'),
+                    'subject_ref': identities[kind, 'source'], 'object': identities[kind, 'target'],
+                    'predicate': predicate, 'assertion_layer': 'linguistic_analysis',
+                    'polarity': ('positive', 'negative', 'unknown')[index % 3],
+                    'qualifiers': {'statement': 'Синтетическое сравнение с оговорками; не суждение об истории языка.',
+                        'statement_language': 'ru', 'statement_script': 'Cyrl',
+                        'relation_basis': 'Artificial evidence for a command contract only.',
+                        'attestation_scope': 'This synthetic comparison, not all uses of either lexical subject.',
+                        'source_scope': 'Artificial source scope.', 'target_scope': 'Artificial target scope.',
+                        'source_language': 'de', 'target_language': 'x-test', **specific,
+                        'unknown': {'false': False, 'absent': None, 'literal_ref': 'tos.lexeme.not-a-dependency'}}})
+            creator.update(allowed_claim_ids=[claim['claim_id'] for claim in claims],
+                allowed_subject_refs=[identities[kind, 'source'] for kind in ('lexeme', 'sense')],
+                allowed_object_refs=[identities[kind, 'target'] for kind in ('lexeme', 'sense')], allowed_predicates=list(cases))
+            owner.write_text(json.dumps(creator))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': claims}
+            invalid = copy.deepcopy(proposal)
+            invalid['claims'][-1]['qualifiers'].pop('limitations')
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, invalid)
+            self.assertFalse((root / creator['source_path']).parent.exists())
+            prepared = commands.run_local_command(owner, proposal)
+            creation.update(claims=claims, expected_configuration=prepared['owner_configuration'],
+                expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+            contract = root / 'ToS/contracts/lexical-comparison-claim.schema.json'
+            original_contract = contract.read_bytes()
+            contract.write_bytes(original_contract + b'\n')
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, creation)
+            self.assertFalse((root / creator['source_path']).parent.exists())
+            contract.write_bytes(original_contract)
+            created = commands.run_local_command(owner, creation)
+            path = root / creator['source_path']
+            original = path.read_bytes()
+            self.assertEqual([json.loads(line) for line in original.splitlines()], claims)
+            self.assertFalse(created['grants_admission'])
+            self.assertEqual(commands.run_local_command(owner, creation)['receipt'], created['receipt'])
+            base_config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            for claim in claims:
+                form_id = 'tos.form.synthetic-command-' + claim['predicate'].replace('_', '-')
+                owner.write_text(json.dumps({**base_config, 'schema_version': 'tos_local_claim_form_owner_v1',
+                    'claim_id': claim['claim_id'], 'allowed_operations': ['form.create'], 'allowed_form_ids': [form_id]}))
+                preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare', 'field_id': 'claim.statement', 'form_id': form_id})
+                copied = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'apply', 'command_id': 'synthetic-form:' + claim['predicate'],
+                    'expected_source': preview['source'], 'expected_configuration': preview['owner_configuration'],
+                    'expected_revision': preview['revision'], 'changes': [preview['prepared_change']]})
+                form = copied['materializations'][0]
+                self.assertEqual(form['state'], 'ready')
+                self.assertEqual(form['display_text'], claim['qualifiers']['statement'])
+                self.assertEqual(form['context'][0]['value'], claim)
+                self.assertFalse(form['standalone_reading'])
+                self.assertIsNone(form['admission'])
+            self.assertEqual(path.read_bytes(), original)
+            # Correcting a chronology account is a Claim successor, never a new lexical subject.
+            selected = claims[4]
+            form_id = 'tos.form.synthetic-command-' + selected['predicate'].replace('_', '-')
+            owner.write_text(json.dumps({**base_config, 'schema_version': 'tos_local_claim_revision_owner_v1',
+                'claim_id': selected['claim_id'], 'allowed_operations': ['claim.revise'], 'allowed_fields': ['qualifiers'],
+                'allowed_evidence_refs': creator['allowed_evidence_refs'], 'allowed_form_ids': [form_id]}))
+            correction = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'qualifiers': {'chronology_basis': 'Corrected synthetic chronology account; dates still unknown.'}},
+                'forms': [{'form_id': form_id, 'field_id': 'claim.statement'}],
+                'reason': 'Correct the research account, not either lexical referent.'}
+            preview = commands.run_local_command(owner, correction)
+            revised = commands.run_local_command(owner, {**correction, 'operation': 'claim.revise',
+                'command_id': 'synthetic:lexical-comparison-correction', 'expected_configuration': preview['owner_configuration'],
+                'expected_source': preview['source'], 'expected_revision': preview['revision'],
+                'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']})
+            expected = {**selected, 'claim_version': 2,
+                'qualifiers': {**selected['qualifiers'], **correction['fields']['qualifiers']}}
+            self.assertEqual(revised['materializations'][0]['context'][0]['value'], expected)
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': preview['source']})
+            self.assertEqual(prior['record'], selected)
+            current_lines = path.read_bytes().splitlines(keepends=True)
+            for index, line in enumerate(original.splitlines(keepends=True)):
+                if index != 4:
+                    self.assertEqual(current_lines[index], line)
+            self.assertEqual({source: source.read_bytes() for source in source_bytes}, source_bytes)
+            owner.write_text(json.dumps(creator))
+            self.assertEqual(commands.run_local_command(owner, creation)['receipt'], created['receipt'])
+            graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+            from tos_access.knowledge import select_human_forms
+            for claim in claims:
+                current = expected if claim is selected else claim
+                node = next(node for node in graph['nodes'] if node['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], current)
+                form = select_human_forms(node, 'ru')['roles']['statement']['packet']
+                self.assertEqual(form['context'][0]['value'], current)
+                self.assertIsNone(form['admission'])
+
     def test_layer_correction_requires_exact_separate_authority_and_preserves_history(self):
         """Correct a synthetic layer label, never replace the proposition or admit it."""
         with self.creation() as (root, owner, creator, claim, creation, *_):

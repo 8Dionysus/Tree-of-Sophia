@@ -1288,6 +1288,68 @@ Anchor and TextUnit remain the native text-evidence owner's next route; a
 written representation is not evidence that a particular token has been
 addressed. Reader rollback retains these sources and their operation history.
 
+### Lexical history and translation comparison
+
+The [lexical comparison contract](../../contracts/lexical-comparison-claim.schema.json)
+adds source Claims to the existing lexical subjects and common command plane.
+It does not add a universal etymological tree, a second lexical identity or a
+type-specific reader. These predicates have distinct source meanings:
+
+| Predicate | Endpoints and reading | Required specific account |
+| --- | --- | --- |
+| `lexical_inherited_from` | later Lexeme → proposed predecessor Lexeme | `chronology_basis`; inheritance, not borrowing |
+| `lexical_borrowed_from` | borrowing Lexeme → proposed donor Lexeme | `chronology_basis`; no complete transfer of senses is implied |
+| `lexical_formed_from` | formed Lexeme → proposed lexical base | `chronology_basis`; lexical word formation, not inflection or a description revision |
+| `lexical_cognate_with` | Lexeme ↔ Lexeme | `common_origin_basis`; common origin, not direct descent |
+| `lexical_sense_developed_from` | later situated Sense → proposed earlier Sense | `chronology_basis`; historical change, not correction of a Sense record |
+| `lexical_translation_correspondence` | source Sense → proposed target Sense | `translation_scope`, `preserved_aspects`, `limitations` |
+
+Every Claim also requires the common qualified statement, relation basis and
+attestation scope, plus separate `source_scope`, `target_scope`,
+`source_language` and `target_language`. These languages describe the compared
+usage scopes, not the language of the statement or source record. Unknown
+language remains null or explicitly undetermined; a language tag is not a
+Language identity, an attested language assignment or a competence grant.
+Plain scope and basis fields are content, not executable references.
+
+No predicate is transitively closed. Cognacy is symmetric in its reading, not
+an instruction to duplicate a Claim or infer an unrecorded third pair. No
+one-base, one-predecessor, one-sense or one-rendering cardinality is imposed.
+Several proposed formation bases or rival etymologies remain separate Claims
+with their own evidence and qualifiers. This Lexeme-to-Lexeme formation route
+does not pretend to represent every morpheme or complete morphological parse.
+
+Chronology wording preserves the source's order, bounds and uncertainty; it
+does not create a sortable date, historical event or data-capture time.
+Correcting this wording advances the Claim record and retains its prior
+version. It does not mean that a lexical or semantic change happened when the
+database was edited. Historical dating and normalized time queries keep their
+existing separate source contracts.
+
+A proposed translation pair is neither identity nor a reversible or complete
+equivalence. Its preserved aspects and limitations must remain in the human
+reading context. A missing target Sense, absent pair or negative Claim does
+not establish universal untranslatability. A bounded account of whether an
+equivalent was found, how fully a use can be rendered, or what was searched
+requires its own explicit value/assessment contract; this relation does not
+manufacture that result.
+
+The common `claims.create`, `claim.revise`, source-copy forms and qualified
+assessment routes retain their separate grants and exact snapshots. All
+comparisons have concrete endpoint types and source-visible evidence. The
+independently selected assessment scope must cover both compared languages,
+the description language, task and risk; source qualifiers cannot supply that
+authority. Inheritance, borrowing and the other names do not assess the Claim.
+
+Discovery exposes the nine comparison fields through
+`tos.property.claim-lexical-*` property IDs on Claim nodes. The ordinary reader
+returns the complete source Claim and its unmodified unknown fields; a
+source-copy statement retains that Claim as mandatory context. No UI-specific
+field hiding, new screen or redesign is part of this contract.
+These are open Claim properties: a field filter alone does not assert that a
+matching Claim uses one of these six predicates. A lexical-only selection also
+names its relation/predicate condition.
+
 ### Exact-bound occurrence descriptions
 
 The [Occurrence profile](../../contracts/occurrence-description-record.schema.json)

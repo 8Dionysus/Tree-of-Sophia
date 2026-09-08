@@ -15,6 +15,7 @@
     "ToS/contracts/historical-context-record.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/intellectual-formation-record.schema.json",
+    "ToS/contracts/lexical-comparison-claim.schema.json",
     "ToS/contracts/lexical-description-record.schema.json",
     "ToS/contracts/linguistic-description-record.schema.json",
     "ToS/contracts/linguistic-relation-claim.schema.json",
@@ -160,13 +161,13 @@
     "letter": 1,
     "historical-event": 1,
     "historical-process": 1,
-    "lexeme": 1,
-    "sense": 1,
+    "lexeme": 4,
+    "sense": 3,
     "artifact": 18,
-    "object_total": 292,
-    "claim": 353,
-    "total": 645
+    "object_total": 297,
+    "claim": 357,
+    "total": 654
   },
-  "catalog_sha256": "acc4947631fdba2fb2364f27f7a04bb14233425aad0ba0a4f5dee0972a4d0d0c",
+  "catalog_sha256": "4fba6b294952828f0c6abdb0103586e41da8f90fed7d7b12e9f8eebe7e33d529",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

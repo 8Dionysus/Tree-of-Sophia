@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4376,
+    "tracked_surface_count": 4411,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1005,
+    "excluded_tracked_path_count": 1012,
     "human_scope": {
-      "bytes": 5346013,
-      "count": 916,
+      "bytes": 5364718,
+      "count": 918,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4212004,
-          "count": 627,
-          "lines": 70640
+          "bytes": 4230709,
+          "count": 629,
+          "lines": 70935
         }
       },
-      "lines": 91092
+      "lines": 91387
     },
     "surface_kind_counts": {
       "executable": 250,
-      "human": 916,
-      "structured": 3210
+      "human": 918,
+      "structured": 3243
     },
-    "tracked_path_count": 5381,
-    "tracked_surface_count": 4376,
+    "tracked_path_count": 5423,
+    "tracked_surface_count": 4411,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 627,
-        "structured": 3134
+        "human": 629,
+        "structured": 3167
       },
-      "tracked_surface_bytes": 229283745,
-      "tracked_surface_count": 3765
+      "tracked_surface_bytes": 229627555,
+      "tracked_surface_count": 3800
     },
     {
       "family_id": "access",
@@ -222,7 +222,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 1481024,
+      "tracked_surface_bytes": 1492518,
       "tracked_surface_count": 227
     },
     {
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1757141,
+      "tracked_surface_bytes": 1770458,
       "tracked_surface_count": 67
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f1a143d35f880249cd2478eb0cb569ee758874fec75f46901a6a3844c4e82c7c",
+  "tracked_surface_digest": "a7bcb3b2b412282437ea3de92d0796d5017a39868e8cd5e7aa02429421ba2f5d",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -2031,6 +2031,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/lexical-comparison-claim.schema.json",
+      "sha256": "b4779c06951cd4e8c9866af4a0957bb5acb7c09276722e04e53d7f034b83c5ae",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3888,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2975,11 +2983,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9364529,
+      "bytes": 9505336,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "aabee4cf8cd54ed23e9f4fbb0b6e1dd1f4b18ccfad4c48c081a004257d52977e",
+      "sha256": "c6e66138edb680ad7de0dab86e1b330c3e4689fa292f2a4ec901cd56c3bafc41",
       "surface_kind": "structured"
     },
     {
@@ -3055,11 +3063,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59947386,
+      "bytes": 60018833,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "23f8d3a250379001172de8ab92c184f10be3bb0d03372cdb93e38a358db656be",
+      "sha256": "d5f92de17355b34fa9894e2b6021b31d1360dceb7892d0e1e224049bd3e36433",
       "surface_kind": "structured"
     },
     {
@@ -3135,11 +3143,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 87190,
+      "bytes": 88061,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "a74567c19b26cce197c6c9efe28eab298fe3b0e4248124f33d848133871bf624",
+      "sha256": "4bd5507ae3a9c89c48efc4253cba3a2ef91e58423bff44a5e5b0981d71954f7a",
       "surface_kind": "human"
     },
     {
@@ -3255,11 +3263,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 92905,
+      "bytes": 97047,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "0d8ad58cafad95feec3cb4185b33b183c793cb58475988ef560df60f2becfc13",
+      "sha256": "ffebebfe720497c93fe74eafeeb3577493b6332f102f4dc9537da1f61a66eb3b",
       "surface_kind": "human"
     },
     {
@@ -3271,19 +3279,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 203824,
+      "bytes": 208946,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "b1cb6249076c1cb3aa8d96e18edaf4a54845fa6f189d61b05409d27ccf60a78d",
+      "sha256": "9aebccc34f0f0d637f8d0e2c4474bcd7219ff92f9fd396f1d5f98ebd2d8fdac1",
       "surface_kind": "structured"
     },
     {
-      "bytes": 287446,
+      "bytes": 299463,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "912ab6752e37b35df23f41294c9faf256be7a1a1b81d52450af43a61f89e1900",
+      "sha256": "f7ef71e82a683de9664a9fbfafd250e4205780bd95068ac586f8bdcd176b07f4",
       "surface_kind": "structured"
     },
     {
@@ -17615,11 +17623,27 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 2539,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-duden-lexical-source-reading.md",
+      "sha256": "21335e7fc25ca287ba31c8046435f5ac112b9a89cdcfc6c12bae8366c99d2801",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 3896,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
       "sha256": "1e34a46d652ac85aab8f605d5246cd69ddc81bb4c6ec2aac19f24abb1ddec2b4",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 10728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-lexical-comparison-review.md",
+      "sha256": "085b8a21a677d75d005abc969c038ca6a10a007cf843f60718f9bef1a67e1b58",
       "surface_kind": "human"
     },
     {
@@ -19839,19 +19863,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 7123,
+      "bytes": 7548,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/README.md",
-      "sha256": "2824c42db5900e7ae2a2a14b68495682a6a631a37359087831099ad059d48a9c",
+      "sha256": "8320473ef4b62d60a0dc699540756f302b9b8bd6a8454b5cf3c498301284efbf",
       "surface_kind": "human"
     },
     {
-      "bytes": 8379,
+      "bytes": 8437,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "74147340406755b4af98faefb29e25da5d815d520ab4dfb63836e8b255a62b28",
+      "sha256": "ef372b4c74eec4a5528ed06164bc95d0f294569704638f77f00c29d747602db1",
       "surface_kind": "structured"
     },
     {
@@ -22407,6 +22431,206 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5089,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e5c1f2389714faa848f5d44cec49d51/sense.human-forms.json",
+      "sha256": "d904ce91f29186dfb2a5f065c15f10438280cb6665390f3345c4f873420ed49b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e5c1f2389714faa848f5d44cec49d51/sense.json",
+      "sha256": "1eaf6b88d0dee4d80d176814993978a7a8cb5dede00d22b9ba3899f669962b8e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e5c1f2389714faa848f5d44cec49d51/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1539,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e5c1f2389714faa848f5d44cec49d51/source-create-receipt.json",
+      "sha256": "6bc47b02a18e35b99a921b015679a4cca9b620630c544ebba1733f51b9cf1021",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2780,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e5c1f2389714faa848f5d44cec49d51/source-create-request.json",
+      "sha256": "5d77789a7132f9c3c0779410b53b8b97877b0a5883bce64e76ff1dad496ed617",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5105,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-30290680bc434a34b4ffe7609d7dd064/lexeme.human-forms.json",
+      "sha256": "270680e38c8ecac74b3a372c52ef13f79ef0e0d1402f1f92a9a5c97c117de7c7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2413,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-30290680bc434a34b4ffe7609d7dd064/lexeme.json",
+      "sha256": "f3dfdacc9ed7f9accde1bc7bf7ad9b1e43f77f36933ed8b4324f6657d02294b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-30290680bc434a34b4ffe7609d7dd064/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1543,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-30290680bc434a34b4ffe7609d7dd064/source-create-receipt.json",
+      "sha256": "d9bd31cefbee2dd654bf909f65b189ff7bda9796ec9887955570108317472f51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2819,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-30290680bc434a34b4ffe7609d7dd064/source-create-request.json",
+      "sha256": "0ef43fb1c73626d9e89b77d379a74a0313bb3de0af8e3905336e6bfbcbc65d38",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5104,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/lexeme.human-forms.json",
+      "sha256": "d37cd9de6b2f6240bc67fa807b4f885cc83af6a75333ff15d0ee6cee4ba2c806",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2185,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/lexeme.json",
+      "sha256": "ddcb30cf54bea46131a4d3512c2d34b251d8f8d74074f99501ae03e27cb192ab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1543,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/source-create-receipt.json",
+      "sha256": "a2ff968137b7d940c871cf44795c64ddfc5cd23f3647a88da15f6bd5dce0b9d7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2591,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/source-create-request.json",
+      "sha256": "da277afa0b21ed09b5a9b5c2c6a8f387488eacfef64dd31345b923accdda4792",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5104,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/lexeme.human-forms.json",
+      "sha256": "fa0cad6ec25d27c5e17fd720d65b567198eaa041275595fd569bad5dcd02a8e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2121,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/lexeme.json",
+      "sha256": "9f9df02265748e4e935be8e3c1a9dd9c1cd29d37e8ffc2331fdde75fe1ba5a3d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1543,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/source-create-receipt.json",
+      "sha256": "07a018ab6413b1ecc672882608d18c930dba3ea7bd9baa99dbefb5647580d799",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/source-create-request.json",
+      "sha256": "ebaf0a530a85b565a98b07edeaa3f22a4cf4cb3c4a0ba63f4bbca913752153e8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5089,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-bc1a456cd57447c08f6118bf128c2b92/sense.human-forms.json",
+      "sha256": "2d09465d9bf03148fb4fb683bcf9c02ea8573ec271dd2509aba717fc0069161a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2120,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-bc1a456cd57447c08f6118bf128c2b92/sense.json",
+      "sha256": "18e6671b96433c57d07a5fdb2c105d34e617f901977471cce28776b598845751",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-bc1a456cd57447c08f6118bf128c2b92/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1539,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-bc1a456cd57447c08f6118bf128c2b92/source-create-receipt.json",
+      "sha256": "1833a93273b97f09d87965bbcf4d13e8a87ff3d63ffa15c0003672bc61d1498d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2520,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-bc1a456cd57447c08f6118bf128c2b92/source-create-request.json",
+      "sha256": "61b71168dd41ae2dfd8c154a6448b6cc91ddab96c35d521b8c6e92998dd1874e",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7837,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23068,6 +23292,62 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/burnet-fragments-research/source-create-request.json",
       "sha256": "65de9136aee42c4f12ce2ee2bd129514018895ec7253ae51f647a55c0aadfd22",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-claims.315606c3f39a498025a40b3cd544e5a607ee2e99350386755e713f38fdbfb224.human-forms.json",
+      "sha256": "1872cc3a9b2d03c308fd782382ed471f33369518fecdb2ce22cf81be67726ebf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3897,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-claims.48c871030ac51d9710fdd19bfec41e4aa24598b24da6f084a2e5754b435d9c1e.human-forms.json",
+      "sha256": "37d9d7e39ce063da43be4999bd7aa7d0762dc5bea649378e1597d96e68f85d3b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3897,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-claims.c5b2d737e60e4eec61f65990538baea1754333e261504088675fca53a4e25be9.human-forms.json",
+      "sha256": "f0e737779706e38d37f55690d5173fceb4074b6c0d05378d81609a42112a8a21",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-claims.efc90fbe3b81780e040f7b4f3ac7982512babdf585421e59cf9b8fa60e8c12f4.human-forms.json",
+      "sha256": "37996c96be4e4e12b22640ff4987a4355b844a674b7dd61c88d5cdd376d35b6d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4293,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-create-receipt.json",
+      "sha256": "54d505bb0bd9349b59c63904fcdd3769cffa3f5fd3c9815173eb9fe9f9045c54",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 12419,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-create-request.json",
+      "sha256": "6b2f5310743b681cb150620d209016da03cde985084079e43c707c8d79992b7f",
       "surface_kind": "structured"
     },
     {
@@ -33167,11 +33447,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 100677,
+      "bytes": 112171,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
-      "sha256": "e457909c7497aba67b37eb970fc47d59ae8dad769d5330ae56a4ac64b8b63451",
+      "sha256": "5596adc37fd6396138534a487289a1d2e4894ae73d700fc2877ba68814633d99",
       "surface_kind": "executable"
     },
     {
@@ -35103,19 +35383,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 287748,
+      "bytes": 300886,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "fb99a31de7127e871d635d4458ce072d30c006c00c53e96aecfb4909d99979d0",
+      "sha256": "62611b8bfdd31446830034bb93174206a4f2a5b379734318cbb1552cd68f8fd5",
       "surface_kind": "executable"
     },
     {
-      "bytes": 529351,
+      "bytes": 529530,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_foundation.py",
-      "sha256": "184eef6be3678dd764231af3ed3846903f1ca57d27c788f0421d8e3fe14a7729",
+      "sha256": "8f8ca612aaa661232b3193955e1700cd6cb9c2576ce9045689d4dd37bf6593f1",
       "surface_kind": "executable"
     },
     {
