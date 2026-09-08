@@ -620,6 +620,23 @@ def project_text_packet(packet: dict[str, Any], source_ref: str) -> tuple[list[d
     return nodes, edges
 
 
+def _nearest_branch_parents(branch_paths: list[str]) -> dict[str, str]:
+    ordered = sorted(branch_paths, key=lambda item: (len(Path(item).parts), item))
+    # Preserve the previous lexical tie-break for equivalent path spellings.
+    refs_by_path: dict[Path, str] = {}
+    for path_ref in ordered:
+        refs_by_path.setdefault(Path(path_ref), path_ref)
+    parents = {}
+    for child_ref in ordered:
+        # Path.parents is nearest-first. Only authored branches may be parents;
+        # unrepresented intermediate directories do not create graph nodes.
+        for parent in Path(child_ref).parents:
+            if parent in refs_by_path:
+                parents[child_ref] = refs_by_path[parent]
+                break
+    return parents
+
+
 def build_source_navigation(diagnostics: list[dict[str, str]], *,
                             assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
     """Join authored topology and source records into a read-only descent graph."""
@@ -730,16 +747,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
             properties={"branch_path": path_ref, "role": str(manifest.get("role") or "")},
         )
 
-    branch_paths = sorted(branch_by_path, key=lambda item: (len(Path(item).parts), item))
-    for child_path in branch_paths:
-        parent_candidates = [
-            path_ref
-            for path_ref in branch_paths
-            if path_ref != child_path and Path(path_ref) in Path(child_path).parents
-        ]
-        if not parent_candidates:
-            continue
-        parent_path = max(parent_candidates, key=lambda item: len(Path(item).parts))
+    for child_path, parent_path in _nearest_branch_parents(list(branch_by_path)).items():
         parent_id = str(branch_by_path[parent_path]["branch_id"])
         child_id = str(branch_by_path[child_path]["branch_id"])
         add_edge(

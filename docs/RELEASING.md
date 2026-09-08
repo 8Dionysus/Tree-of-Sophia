@@ -61,14 +61,14 @@ canon contracts, intake contracts, public entry, questbook surface, route-card
 structure, decision records, and repo-local tests. Keep the exact command order
 in the lane manifest, then run it through `python scripts/release_check.py`.
 
-The repo-local KAG family is temporarily frozen under
-[`kag/AGENTS.md`](../kag/AGENTS.md). The blocking `local_kag_provider` lane
-checks the exact frozen manifest and shard integrity; source-currentness drift
-is expected while regeneration is paused. Do not regenerate that family as a
-release preparation step. Only an explicit ToS operator unfreeze command can
-resume the full provider/regeneration route in
-[`kag/VALIDATION.md`](../kag/VALIDATION.md). This does not relax other release
-checks or activate a downstream runtime.
+Repo-local KAG index-family parity is an explicit GitHub gate. TOS-D-0044
+ended the temporary freeze; the blocking `local_kag_provider` lane checks
+source currentness and integrity under [`kag/AGENTS.md`](../kag/AGENTS.md).
+When tracked sources change, regenerate the seven canonical indexes with the
+workflow-pinned `aoa-kag` revision and verify full, incremental and
+family-contract parity before the final PR commit. Follow
+[`kag/VALIDATION.md`](../kag/VALIDATION.md); regeneration does not activate a
+downstream runtime or grant semantic or artifact authority.
 
 After all `Repo Validation` gates pass, the workflow also builds and validates
 the standalone access product and uploads `tree-of-sophia-standalone.zip` with
@@ -89,7 +89,7 @@ task-local reconciliation ledger.
 | Edge | Published provider identity | Current source/CI identity | Exactness rule |
 | --- | --- | --- | --- |
 | `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | Frozen local family identity in `kag/indexes/hot_profile.json`; CI runs the local freeze-only integrity lane, not a provider regeneration action. | The published identity stays historical. Frozen-family integrity does not prove current ToS source parity or downstream admission. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider source snapshot `14ee1e33e43749d23c557b3ef526eca7edb36196`; workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@14ee1e33e43749d23c557b3ef526eca7edb36196` | Keep the published provider body, current source snapshot, and workflow action explicit and distinct; `14ee1e33` is an unreleased/current source pin, not a retagged `v0.5.0`. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer

@@ -39,8 +39,9 @@ witnesses, canon, Zarathustra, and the philosophy domain tree route through
   to their owning surfaces.
 - Package `PROVENANCE.md` bridges active routes to former placement or source
   lineage.
-- Package-local `legacy/` exists only for real moved-path, raw-receipt, or old
-  naming accounting that returns to an active part.
+- Historical moved-path, raw-receipt, and old-name accounting returns through
+  `PROVENANCE.md` to an immutable Git commit and original path, not a recreated
+  archive directory. Current receipts remain with the active owning part.
 - Source witnesses, philosophy branches, canon nodes, review ledgers, and the
   Zarathustra core route to `ToS/`.
 - Runtime activation, proof verdicts, memory truth, SDK authority, AoA
@@ -60,5 +61,5 @@ release-facing.
 ## Closeout
 
 Report which mechanic package changed, whether pressure was shared or local,
-which part owns the payload, whether `PROVENANCE.md` or `legacy/` was needed,
+which part owns the payload, whether historical retrieval through `PROVENANCE.md` was needed,
 which stronger owner stayed stronger, and which validator proved the topology.

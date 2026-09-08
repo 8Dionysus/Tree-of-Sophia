@@ -717,7 +717,20 @@ def normalized_title(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table-i") -> Dossier:
+def parse_dossier(
+    path: Path,
+    master_row: dict[str, Any],
+    table_id: str = "table-i",
+    *,
+    validate_only: bool = False,
+) -> Dossier:
+    """Parse a dossier, or validate its identity and structured headers only.
+
+    Readiness checks do not need the extracted planting rows.  The validation
+    mode retains every exception-producing identity/header guard while
+    avoiding construction of every DOCX table cell; the planting path keeps
+    the complete extraction when ``validate_only`` is false.
+    """
     dossier_id = extract_dossier_id(path)
     if master_row.get("row_id") != dossier_id or master_row.get("table_id") != table_id:
         raise ValueError(f"{dossier_id} does not match its {table_id} master row")
@@ -748,9 +761,9 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
     master_table = {"table-i": "I", "table-ii": "II", "table-iii": "III"}.get(table_id, table_id)
     identity_diagnostics: list[str] = []
 
+    metadata_families = {"dossier_identity_metadata", "dossier_identity_metadata_alias"}
     for table_index, table in enumerate(document.tables, 1):
         header = table_header(table)
-        rows = table_body(table)
         family = table_family(header)
         if not blocked and family in STRUCTURED_FAMILIES:
             field_map = structured_header_field_map(family, header)
@@ -760,6 +773,40 @@ def parse_dossier(path: Path, master_row: dict[str, Any], table_id: str = "table
                     f"{dossier_id} structured {family} table {table_index} has unmapped headers: "
                     f"{unmapped_headers}"
                 )
+        if validate_only and family not in metadata_families:
+            if family == "proposed_nodes" and node_label_overrides:
+                for row_index, cells in enumerate(table_body(table), 1):
+                    row = row_dict(header, cells)
+                    original_id = (
+                        structured_row_value(row, family, "original_node_id")
+                        or f"{dossier_id}-node-{row_index:03d}"
+                    )
+                    label_override = node_label_overrides.get(original_id)
+                    if label_override is None:
+                        continue
+                    if not isinstance(label_override, dict):
+                        raise ValueError(
+                            f"{dossier_id} node label override for {original_id} must be an object"
+                        )
+                    reviewed_label = scrub(str(label_override.get("label") or ""))
+                    review_reason = scrub(str(label_override.get("reason") or ""))
+                    if not reviewed_label or not review_reason:
+                        raise ValueError(
+                            f"{dossier_id} node label override for {original_id} requires label and reason"
+                        )
+                    applied_node_label_overrides.add(original_id)
+            continue
+        rows = table_body(table)
+        if validate_only:
+            for cells in rows:
+                row = row_dict(header, cells)
+                field_name = row_value(row, "Поле", "Параметр")
+                field_value = row_value(row, "Значение", "Идентификация")
+                if field_name == "ROW_TO_EXPAND":
+                    observed_row_value = field_value or observed_row_value
+                if field_name == "Таблица":
+                    observed_table_value = field_value or observed_table_value
+            continue
         if blocked:
             coverage_class = "quarantined_identity_mismatch"
             coverage_family = "blocked_master_identity_mismatch"

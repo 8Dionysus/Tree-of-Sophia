@@ -8,7 +8,7 @@
 
 ## agent interface
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 
 ## agent lane
 
@@ -44,8 +44,8 @@
 
 ## claim graph
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## command lane
 
@@ -70,13 +70,13 @@
 
 ## constructor backend
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0045 - Incremental read-model publication](../TOS-D-0045-incremental-read-model-publication.md) (`docs/decisions/TOS-D-0045-incremental-read-model-publication.md`)
 - [TOS-D-0046 - Resumable neighborhood checkpoints](../TOS-D-0046-resumable-neighborhood-checkpoints.md) (`docs/decisions/TOS-D-0046-resumable-neighborhood-checkpoints.md`)
 - [TOS-D-0047 - Shared D1 exploration checkpoints](../TOS-D-0047-shared-d1-exploration-checkpoints.md) (`docs/decisions/TOS-D-0047-shared-d1-exploration-checkpoints.md`)
 - [TOS-D-0048 - Incremental normalization dependencies](../TOS-D-0048-incremental-normalization-dependencies.md) (`docs/decisions/TOS-D-0048-incremental-normalization-dependencies.md`)
 - [TOS-D-0049 - Content-verified build stages](../TOS-D-0049-content-verified-build-stages.md) (`docs/decisions/TOS-D-0049-content-verified-build-stages.md`)
 - [TOS-D-0050 - Incremental checks with disposable bounded cache](../TOS-D-0050-incremental-checks-bounded-cache.md) (`docs/decisions/TOS-D-0050-incremental-checks-bounded-cache.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## context
 
@@ -101,7 +101,7 @@
 
 ## declarative lens
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 
 ## deployment route
 
@@ -114,7 +114,7 @@
 
 ## entity registry
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## era
 
@@ -127,6 +127,7 @@
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 
 ## executable action
 
@@ -172,7 +173,7 @@
 
 ## human display
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 
 ## human forms
 
@@ -235,10 +236,11 @@
 - [TOS-D-0026 - Exact-Current Federated Provider Identities](../TOS-D-0026-exact-current-federated-provider-identities.md) (`docs/decisions/TOS-D-0026-exact-current-federated-provider-identities.md`)
 - [TOS-D-0027 - Same-Day Campaign Release Consolidation](../TOS-D-0027-same-day-campaign-release-consolidation.md) (`docs/decisions/TOS-D-0027-same-day-campaign-release-consolidation.md`)
 - [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
+- [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 
 ## normalized knowledge graph
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 
 ## owner handoff
 
@@ -316,7 +318,7 @@
 
 ## relation registry
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## review
 
@@ -338,8 +340,8 @@
 
 ## semantic interchange
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## skill helper boundary
 
@@ -381,6 +383,7 @@
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 
 ## support
 
@@ -388,6 +391,7 @@
 - [TOS-D-0003 - Philosophy Domain Tree](../TOS-D-0003-philosophy-domain-tree.md) (`docs/decisions/TOS-D-0003-philosophy-domain-tree.md`)
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 
 ## synthesis
 

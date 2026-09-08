@@ -9,6 +9,27 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Runs the root validation collection once through pytest, retaining all
+  `unittest.TestCase` coverage while including the eight top-level pytest
+  regressions previously omitted by unittest discovery; the same route emits
+  bounded slow-test diagnostics without duplicating the full suite.
+
+- Searches active naming references from retired-token occurrences instead of
+  rechecking every unrelated path-shaped word. Length-preserving case mapping
+  retains Unicode boundaries, exact allowlists, and original diagnostics while
+  reducing whole-corpus validator work without a persistent result cache.
+
+- Finds source-navigation branch parents through a per-build path index
+  instead of comparing every branch with every other branch. The nearest
+  authored ancestor, path-alias tie-break, output order, and complete generated
+  corpus index remain unchanged; focused corpus checks avoid the quadratic
+  traversal without persistent caches or skipped validation.
+
+- Speeds up focused source-witness negatives by testing the same payload and
+  rights guards used by full corpus validation, without rebuilding unrelated
+  schema and corpus checks. The aggregate planting CLI test uses minimal
+  package inputs; separate real DOCX readiness integrations remain in place.
+
 - Moves the public `treeofsophia.com` access product from an operator-machine
   Cloudflare Tunnel to a repository-driven Cloudflare Worker with Static
   Assets and a generated D1 read model. Merges to `main` can rebuild and

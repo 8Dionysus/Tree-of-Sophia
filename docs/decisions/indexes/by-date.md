@@ -106,10 +106,12 @@
 
 ## 2026-09-04
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
+- [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 - [TOS-D-0045 - Incremental read-model publication](../TOS-D-0045-incremental-read-model-publication.md) (`docs/decisions/TOS-D-0045-incremental-read-model-publication.md`)
 - [TOS-D-0046 - Resumable neighborhood checkpoints](../TOS-D-0046-resumable-neighborhood-checkpoints.md) (`docs/decisions/TOS-D-0046-resumable-neighborhood-checkpoints.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## 2026-09-05
 

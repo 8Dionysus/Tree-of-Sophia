@@ -66,7 +66,7 @@ def validate_local_docx_contents(table_id: str) -> tuple[dict[str, str], ...]:
         dossier_id = extract_dossier_id(path)
         try:
             master_row = master_rows_by_id[dossier_id]
-            parse_dossier(path, master_row, table_id)
+            parse_dossier(path, master_row, table_id, validate_only=True)
             docx_package_metadata(path)
         except (Exception, SystemExit) as exc:
             errors.append(

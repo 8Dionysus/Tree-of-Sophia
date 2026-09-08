@@ -89,6 +89,13 @@ No rights, canon, lived-witness consent, agent competence or human signature
 is acquired by these schema/reader checks. The existing extensible profile
 decision TOS-D-0044 remains the rationale; no parallel registry is created.
 
+2026-09-08 integration note: the preceding historical TOS-D-0044 reference
+names the registry decision at
+`d187c3c8ff7a7cb261d0be017c5dcb735643c8aa:docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`,
+now [TOS-D-0059](../../docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md)
+after the explicit pre-landing ID-collision correction. It does not name the
+independently landed KAG-unfreeze decision.
+
 The reader currently supports identity relations, not all value/temporal/role
 profiles. Creating a metadata record does not authorize Claim creation.
 General Claim publication/revision, assessment/admission and real letter,

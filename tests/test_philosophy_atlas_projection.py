@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import sys
 import unittest
@@ -21,8 +22,21 @@ from philosophy_atlas_projection_common import (  # noqa: E402
 
 
 class PhilosophyAtlasProjectionTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        # One fresh production build per class run; individual tests still get
+        # independent objects. No persisted result or source-edit reuse.
+        cls._built_projection = None
+        cls.addClassCleanup(setattr, cls, "_built_projection", None)
+
+    @classmethod
+    def rebuilt_projection(cls) -> dict[str, object]:
+        if cls._built_projection is None:
+            cls._built_projection = build_payload()
+        return copy.deepcopy(cls._built_projection)
+
     def test_generated_projection_matches_builder(self) -> None:
-        expected = render_payload(build_payload())
+        expected = render_payload(self.rebuilt_projection())
         current = PROJECTION_PATH.read_text(encoding="utf-8")
         self.assertEqual(current, expected)
 
@@ -134,7 +148,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         )
 
     def test_unresolved_dossier_endpoints_keep_candidate_endpoint(self) -> None:
-        payload = build_payload()
+        payload = self.rebuilt_projection()
         edges = {edge["edge_id"]: edge for edge in payload["edges"]}
         nodes = {node["node_id"]: node for node in payload["nodes"]}
         edge = edges["edge:candidate-relation:table-iii-t3-45-relation-046"]
@@ -148,7 +162,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         )
 
     def test_endpoint_placeholders_preserve_all_observed_roles(self) -> None:
-        payload = build_payload()
+        payload = self.rebuilt_projection()
         endpoint_ids = {
             node["node_id"]
             for node in payload["nodes"]
@@ -179,7 +193,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(shared["properties"]["endpoint_role"], "source_and_target")
 
     def test_reviewed_qualified_endpoints_resolve_inside_target_dossiers(self) -> None:
-        payload = build_payload()
+        payload = self.rebuilt_projection()
         edges = {edge["edge_id"]: edge for edge in payload["edges"]}
         expected_targets = {
             "edge:candidate-relation:table-ii-t2-03-relation-038": "candidate-node:table-ii-t2-02-node-001",
@@ -199,7 +213,7 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
             self.assertEqual(edge["properties"]["endpoint_alias_ref"], ENDPOINT_ALIASES_REF)
 
     def test_reviewed_origin_role_aliases_resolve_unqualified_cross_dossier_endpoints(self) -> None:
-        payload = build_payload()
+        payload = self.rebuilt_projection()
         edges = {edge["edge_id"]: edge for edge in payload["edges"]}
         expected = {
             "edge:candidate-relation:table-ii-t2-06-relation-008": (

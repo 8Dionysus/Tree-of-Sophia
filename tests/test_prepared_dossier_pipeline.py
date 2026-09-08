@@ -275,6 +275,139 @@ class PreparedDossierPipelineTest(unittest.TestCase):
         self.assertIn("malformed docProps/custom.xml", errors[0]["message"])
         validate_local_docx_contents.cache_clear()
 
+    def test_validation_only_keeps_identity_guards_without_row_extraction(self) -> None:
+        master_row = next(
+            row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-ii/rows.jsonl"
+            )
+            if row["row_id"] == "T2-10"
+        )
+        table_iii_master_row = next(
+            row
+            for row in planting_pipeline.load_jsonl(
+                REPO_ROOT / "ToS/philosophy/atlas/master-tables/table-iii/rows.jsonl"
+            )
+            if row["row_id"] == "T3-77"
+        )
+
+        def table(header: tuple[str, ...], *body: tuple[str, ...]) -> SimpleNamespace:
+            rows = [SimpleNamespace(cells=[SimpleNamespace(text=value) for value in header])]
+            rows.extend(
+                SimpleNamespace(cells=[SimpleNamespace(text=value) for value in values])
+                for values in body
+            )
+            return SimpleNamespace(rows=rows)
+
+        def assert_same_error(
+            document: SimpleNamespace,
+            dossier_master_row: dict[str, object],
+            table_id: str,
+            message: str,
+        ) -> None:
+            outcomes: list[tuple[str, str]] = []
+            for validate_only in (False, True):
+                with self.subTest(table_id=table_id, validate_only=validate_only, message=message):
+                    with patch.object(planting_pipeline, "load_docx_document", return_value=document):
+                        with self.assertRaisesRegex(ValueError, message) as raised:
+                            planting_pipeline.parse_dossier(
+                                Path(f"{dossier_master_row['row_id']}.docx"),
+                                dossier_master_row,
+                                table_id,
+                                validate_only=validate_only,
+                            )
+                    outcomes.append((type(raised.exception).__name__, str(raised.exception)))
+            self.assertEqual(outcomes[0], outcomes[1])
+
+        document = SimpleNamespace(
+            paragraphs=[SimpleNamespace(text="Falsafa и авиценновский синтез")],
+            tables=[table(planting_pipeline.NODE_TABLE)],
+        )
+        with (
+            patch.object(planting_pipeline, "load_docx_document", return_value=document),
+            patch.object(
+                planting_pipeline,
+                "table_body",
+                side_effect=AssertionError("validation-only mode must not extract unused rows"),
+            ),
+        ):
+            validated = planting_pipeline.parse_dossier(
+                Path("T2-10.docx"), master_row, "table-ii", validate_only=True
+            )
+        self.assertEqual(validated.node_rows, [])
+
+        assert_same_error(
+            SimpleNamespace(
+                paragraphs=[SimpleNamespace(text="Falsafa и авиценновский синтез")],
+                tables=[
+                    table(
+                        (
+                            "ID / источник",
+                            "Тип",
+                            "Что даёт",
+                            "Доступ / где искать",
+                            "Надёжность",
+                            "Неизвестный столбец",
+                        )
+                    )
+                ],
+            ),
+            master_row,
+            "table-ii",
+            "unmapped headers",
+        )
+        assert_same_error(
+            SimpleNamespace(paragraphs=[SimpleNamespace(text="неверный заголовок")], tables=[]),
+            master_row,
+            "table-ii",
+            "DOCX title does not match",
+        )
+        assert_same_error(
+            SimpleNamespace(
+                paragraphs=[SimpleNamespace(text="Falsafa и авиценновский синтез")],
+                tables=[table(("Поле", "Значение"), ("Таблица", "III"))],
+            ),
+            master_row,
+            "table-ii",
+            "DOCX table identity is not table-ii",
+        )
+        assert_same_error(
+            SimpleNamespace(
+                paragraphs=[SimpleNamespace(text="Falsafa и авиценновский синтез")],
+                tables=[table(("Поле", "Значение"), ("ROW_TO_EXPAND", "T2-11"))],
+            ),
+            master_row,
+            "table-ii",
+            "DOCX ROW_TO_EXPAND does not match",
+        )
+
+        node_document = SimpleNamespace(
+            paragraphs=[SimpleNamespace(text="Феминистская философия и intersectional theory")],
+            tables=[
+                table(
+                    planting_pipeline.NODE_TABLE,
+                    ("T3-77-N40", "Тип", "Label", "Период", "Связи", "1"),
+                )
+            ],
+        )
+        original_table_iii_route = planting_pipeline.PACKAGE_ROUTES["table-iii"]["T3-77"]
+        override_cases = (
+            ("malformed", {"T3-77-N40": "malformed"}, "must be an object"),
+            ("missing label", {"T3-77-N40": {"reason": "reviewed"}}, "requires label and reason"),
+            ("missing reason", {"T3-77-N40": {"label": "reviewed"}}, "requires label and reason"),
+            (
+                "unmatched id",
+                {"T3-77-N99": {"label": "reviewed", "reason": "reviewed"}},
+                "did not match extracted node ids",
+            ),
+        )
+        for case, overrides, message in override_cases:
+            with self.subTest(override_case=case):
+                route = dict(original_table_iii_route)
+                route["reviewed_node_label_overrides"] = overrides
+                with patch.dict(planting_pipeline.PACKAGE_ROUTES["table-iii"], {"T3-77": route}):
+                    assert_same_error(node_document, table_iii_master_row, "table-iii", message)
+
     def test_compatibility_entrypoint_rejects_failed_aggregate_readiness_before_reads_or_writes(self) -> None:
         failed_readiness = {
             "ready_to_plant": False,
@@ -434,7 +567,23 @@ class PreparedDossierPipelineTest(unittest.TestCase):
                 self.assertFalse(table_ii["package_ready_to_plant"])
 
     def test_planting_cli_is_explicitly_aggregate_only(self) -> None:
-        payload = readiness_payload()
+        package_readiness = {
+            table_id: {
+                "table_id": table_id,
+                "supported": True,
+                "package_ready_to_plant": True,
+                "planting_entrypoint": "scripts/plant_prepared_dossiers.py --plant",
+            }
+            for table_id in ("table-i", "table-ii", "table-iii")
+        }
+        with (
+            patch(
+                "plant_prepared_dossiers.table_readiness",
+                side_effect=lambda table_id: package_readiness[table_id],
+            ),
+            patch("plant_prepared_dossiers.discover_local_docx_ids", return_value={}),
+        ):
+            payload = readiness_payload()
         self.assertEqual(
             payload["tables"]["table-i"]["planting_entrypoint"],
             "scripts/plant_prepared_dossiers.py --plant",

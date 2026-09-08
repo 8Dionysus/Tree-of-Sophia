@@ -30,25 +30,25 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "56e1f08235eb7089c08edb31046c7623a9040a7cdd4fe74d25b04c0a9b383f95",
+  "manifest_sha256": "53d4059c376f3effda42f7bbde29bce7a249bba26c934a741bb221306417e7a8",
   "owner_ports": [
     {
       "id": "eval_port",
       "inputs": [
         {
-          "bytes": 1460,
+          "bytes": 1451,
           "path": "evals/AGENTS.md",
-          "sha256": "eecd37f6f76be01c82e98ef36a8ad5bada7dbb6dc06d01ba89f720f42490dd10"
+          "sha256": "35f86a352d50f2ce639ac4cfa4d67753451d3c83583a3f33f84cc8c85ae7385b"
         },
         {
-          "bytes": 290,
+          "bytes": 288,
           "path": "evals/PORT.yaml",
-          "sha256": "aee850f7f77b536b1fe5b0a81d9c6829a3b96f2a538338307dbb0e6ebcde45c9"
+          "sha256": "22b2c1d4d6aee339250857b96e9388ed4c6cdd1e3834bd182bb7e8820498d893"
         },
         {
-          "bytes": 868,
+          "bytes": 1000,
           "path": "evals/README.md",
-          "sha256": "fa76fd721c8af352999eb5768da002948aed05e6773184ca5ae1de80fcf0a4a8"
+          "sha256": "92897a1065dce8e8ba59b0b163a7250b106df730bc33b171e7426833db012905"
         },
         {
           "bytes": 355,
@@ -56,9 +56,9 @@
           "sha256": "272a564ba4b3c2a0abcc962be9b84e8a8dc67dd12d4940bc8fd8d432c360947c"
         },
         {
-          "bytes": 345,
+          "bytes": 502,
           "path": "evals/suites/README.md",
-          "sha256": "887c567bf75d474e022befa59cf035fc5cc5ae7dfb1195b0b6d0bb05fec02d82"
+          "sha256": "094496e7f9fc6787385aba6cc5126be9eaf2bccff16837d1cadf273016554476"
         },
         {
           "bytes": 292,
@@ -72,9 +72,9 @@
       "id": "kag_provider",
       "inputs": [
         {
-          "bytes": 2419,
+          "bytes": 2114,
           "path": "kag/AGENTS.md",
-          "sha256": "d2fe139cad532fcc080800ad1d516ae7015b9bab34f029ea9ebe0bb15bdc2e80"
+          "sha256": "0e0f806defdee433cfdf9ef4d4ade12c00a3e86590e73ba34382c98dfe75c5d1"
         },
         {
           "bytes": 1735,
@@ -122,9 +122,9 @@
           "sha256": "dece31afca3c60df28a780f1ea5f969625e6cc7272d3cbfa526da9c714ea61d7"
         },
         {
-          "bytes": 2717,
+          "bytes": 2741,
           "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-          "sha256": "fa00a06dde5b8ce12eb1bea28fbcc44abec6def9ba9584fac888bb464a7bb551"
+          "sha256": "04f1c878382f1d8bd7f5b9712627bdc312f8205f17f3632f1a66278fd13c3827"
         }
       ],
       "manifest": "kag/manifest.json"

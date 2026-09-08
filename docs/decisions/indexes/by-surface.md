@@ -4,8 +4,6 @@
 
 ## access/backend
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0045 - Incremental read-model publication](../TOS-D-0045-incremental-read-model-publication.md) (`docs/decisions/TOS-D-0045-incremental-read-model-publication.md`)
 - [TOS-D-0046 - Resumable neighborhood checkpoints](../TOS-D-0046-resumable-neighborhood-checkpoints.md) (`docs/decisions/TOS-D-0046-resumable-neighborhood-checkpoints.md`)
 - [TOS-D-0047 - Shared D1 exploration checkpoints](../TOS-D-0047-shared-d1-exploration-checkpoints.md) (`docs/decisions/TOS-D-0047-shared-d1-exploration-checkpoints.md`)
@@ -15,20 +13,26 @@
 - [TOS-D-0053 - Source-described conceptions without retyping existing Concept nodes](../TOS-D-0053-source-described-conceptions.md) (`docs/decisions/TOS-D-0053-source-described-conceptions.md`)
 - [TOS-D-0054 - Compatible scholarly composite record shapes](../TOS-D-0054-compatible-scholarly-composite-record-shapes.md) (`docs/decisions/TOS-D-0054-compatible-scholarly-composite-record-shapes.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## access/contract
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 
 ## access/deployment
 
 - [TOS-D-0042 - TOS-D-0042 Repository-driven Cloudflare edge](../TOS-D-0042-repository-driven-cloudflare-edge.md) (`docs/decisions/TOS-D-0042-repository-driven-cloudflare-edge.md`)
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0045 - Incremental read-model publication](../TOS-D-0045-incremental-read-model-publication.md) (`docs/decisions/TOS-D-0045-incremental-read-model-publication.md`)
 - [TOS-D-0047 - Shared D1 exploration checkpoints](../TOS-D-0047-shared-d1-exploration-checkpoints.md) (`docs/decisions/TOS-D-0047-shared-d1-exploration-checkpoints.md`)
 - [TOS-D-0048 - Incremental normalization dependencies](../TOS-D-0048-incremental-normalization-dependencies.md) (`docs/decisions/TOS-D-0048-incremental-normalization-dependencies.md`)
 - [TOS-D-0049 - Content-verified build stages](../TOS-D-0049-content-verified-build-stages.md) (`docs/decisions/TOS-D-0049-content-verified-build-stages.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+
+## agent route
+
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 
 ## agent-instructions
 
@@ -84,8 +88,8 @@
 
 ## corpus/contract
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## derived-export
 
@@ -97,8 +101,6 @@
 
 ## docs/architecture
 
-- [TOS-D-0043 - Backend-defined knowledge lenses](../TOS-D-0043-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0043-backend-defined-knowledge-lenses.md`)
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0045 - Incremental read-model publication](../TOS-D-0045-incremental-read-model-publication.md) (`docs/decisions/TOS-D-0045-incremental-read-model-publication.md`)
 - [TOS-D-0046 - Resumable neighborhood checkpoints](../TOS-D-0046-resumable-neighborhood-checkpoints.md) (`docs/decisions/TOS-D-0046-resumable-neighborhood-checkpoints.md`)
 - [TOS-D-0047 - Shared D1 exploration checkpoints](../TOS-D-0047-shared-d1-exploration-checkpoints.md) (`docs/decisions/TOS-D-0047-shared-d1-exploration-checkpoints.md`)
@@ -110,6 +112,8 @@
 - [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 - [TOS-D-0056 - Claim-scoped reference values](../TOS-D-0056-claim-scoped-reference-values.md) (`docs/decisions/TOS-D-0056-claim-scoped-reference-values.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## docs/decisions
 
@@ -155,6 +159,8 @@
 - [TOS-D-0038 - Standalone Access Is A ToS Product Boundary](../TOS-D-0038-standalone-access-product-boundary.md) (`docs/decisions/TOS-D-0038-standalone-access-product-boundary.md`)
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
+- [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 
 ## docs/testing
 
@@ -182,8 +188,8 @@
 
 ## doctrine/ontology
 
-- [TOS-D-0044 - Stable semantic interchange registry](../TOS-D-0044-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 
 ## documentation/families
 
@@ -209,6 +215,10 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 
+## github/checks
+
+- [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
+
 ## github/workflow
 
 - [TOS-D-0042 - TOS-D-0042 Repository-driven Cloudflare edge](../TOS-D-0042-repository-driven-cloudflare-edge.md) (`docs/decisions/TOS-D-0042-repository-driven-cloudflare-edge.md`)
@@ -218,10 +228,15 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 
+## kag/provider
+
+- [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
+
 ## legacy/provenance
 
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 
 ## mechanics/agon
 
@@ -255,6 +270,7 @@
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
 - [TOS-D-0028 - Mechanics Executable Route Map](../TOS-D-0028-mechanics-executable-route-map.md) (`docs/decisions/TOS-D-0028-mechanics-executable-route-map.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
 
 ## owner-ports
 
@@ -340,6 +356,8 @@
 - [TOS-D-0039 - Reviewed Open-Work Candidate Loop](../TOS-D-0039-reviewed-open-work-candidate-loop.md) (`docs/decisions/TOS-D-0039-reviewed-open-work-candidate-loop.md`)
 - [TOS-D-0040 - File-Backed Scholarly Composite Representations](../TOS-D-0040-file-backed-scholarly-composite-representations.md) (`docs/decisions/TOS-D-0040-file-backed-scholarly-composite-representations.md`)
 - [TOS-D-0041 - TOS-D-0041 Prompt-light agent routes and on-demand validation](../TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md) (`docs/decisions/TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md`)
+- [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
+- [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 
 ## source-home
 

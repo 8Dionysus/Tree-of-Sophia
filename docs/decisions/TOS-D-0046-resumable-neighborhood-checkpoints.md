@@ -22,7 +22,7 @@ Extend the local access service with a separate resumable-neighborhood contract.
 Retain the BFS frontier, visited identities, current adjacency position, fixed
 query and graph revision in disposable server checkpoints. Existing LensSpec
 compilation remains stateless. This extends, without replacing, the constructor
-boundary in [TOS-D-0043](TOS-D-0043-backend-defined-knowledge-lenses.md).
+boundary in [TOS-D-0058](TOS-D-0058-backend-defined-knowledge-lenses.md).
 
 The first implementation is process-local: bounded cache, fixed expiry, opaque
 random cursors and immutable replay. It is available to local HTTP and native

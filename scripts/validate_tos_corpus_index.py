@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the ToS whole-corpus index derived export."""
+"""Validate the ToS whole-corpus index, including one canonical rebuild."""
 
 from __future__ import annotations
 
@@ -56,12 +56,13 @@ def require_declared_authority_layers(payload: dict[str, object]) -> None:
 
 def main() -> int:
     expected_payload = build_payload()
-    current_payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
+    current_text = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
+    current_payload = json.loads(current_text)
     validate_payload_schema(current_payload)
     require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
     require_no_error_diagnostics(current_payload, "committed ToS corpus index")
     require_declared_authority_layers(current_payload)
-    if render_payload(current_payload) != render_payload(expected_payload):
+    if current_text != render_payload(expected_payload):
         raise SystemExit("ToS/derived-exports/tos_corpus_index.min.json does not match the canonical rebuild")
 
     counts = current_payload.get("counts", {})

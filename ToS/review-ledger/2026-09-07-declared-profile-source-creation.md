@@ -68,6 +68,13 @@ agent competence, human signature, rights clearance or canon promotion is
 asserted. The existing TOS-D-0044 rationale is sufficient; no new ADR merely
 narrates this common writer extension.
 
+2026-09-08 integration note: the preceding historical TOS-D-0044 reference
+names the registry decision at
+`d187c3c8ff7a7cb261d0be017c5dcb735643c8aa:docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`,
+now [TOS-D-0059](../../docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md)
+after the explicit pre-landing ID-collision correction. It does not name the
+independently landed KAG-unfreeze decision.
+
 The command still scans metadata for global identity and dependency closure.
 It does not establish indexed incremental growth, general record revision,
 claim growth, identity merge/split or all nine subject profiles. Historical

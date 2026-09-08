@@ -59,5 +59,5 @@ staging and atomic replay. These checks do not prove deployment, load capacity,
 semantic review or public acceptance.
 
 Implementation: [edge read model](../../access/deploy/cloudflare-worker/README.md).
-Semantic identity remains with [TOS-D-0044](TOS-D-0044-stable-semantic-interchange-registry.md)
+Semantic identity remains with [TOS-D-0059](TOS-D-0059-stable-semantic-interchange-registry.md)
 and its stronger ToS registry sources.

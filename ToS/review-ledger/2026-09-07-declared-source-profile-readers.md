@@ -103,6 +103,13 @@ TOS-D-0044 already owns the stable-registry and lossless-reader decision. The
 current doctrine and this review describe the narrower executable extension;
 no new ADR is needed merely to narrate the adapter refactor.
 
+2026-09-08 integration note: the preceding historical TOS-D-0044 reference
+names the registry decision at
+`d187c3c8ff7a7cb261d0be017c5dcb735643c8aa:docs/decisions/TOS-D-0044-stable-semantic-interchange-registry.md`,
+now [TOS-D-0059](../../docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md)
+after the explicit pre-landing ID-collision correction. It does not name the
+independently landed KAG-unfreeze decision.
+
 Rollback is to the earlier coordinated reader/registry/catalog-schema set,
 not removal of source files or history. New profile records require a reader
 that understands their declared grammar; an old reader must not silently

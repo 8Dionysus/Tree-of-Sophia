@@ -4,6 +4,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +14,7 @@ if str(SCRIPTS) not in sys.path:
 
 from tos_corpus_index_common import (  # noqa: E402
     TOS_CORPUS_INDEX_PATH,
+    _nearest_branch_parents,
     build_payload,
     render_payload,
     tracked_tos_paths,
@@ -40,6 +42,41 @@ class ToSCorpusIndexTest(unittest.TestCase):
         rendered = json.dumps(nodes)
         self.assertNotIn('exact_sha256', rendered)
         self.assertTrue(all(n['properties']['content_available'] is False for n in nodes))
+
+    def test_branch_parents_preserve_nearest_authored_ancestor_and_path_identity(self) -> None:
+        paths = [
+            "tree/a/deep/leaf", "tree/ab/leaf", "tree/a", "tree/ab",
+            "elsewhere/a", "tree/a//", "tree", "tree/a/gap/leaf",
+            "tree/a/deep", "tree/a/./",
+        ]
+        expected = {
+            "tree/a": "tree", "tree/a/./": "tree", "tree/a//": "tree",
+            "tree/ab": "tree", "tree/a/deep": "tree/a",
+            "tree/a/gap/leaf": "tree/a", "tree/ab/leaf": "tree/ab",
+            "tree/a/deep/leaf": "tree/a/deep",
+        }
+        for input_paths in (paths, list(reversed(paths)), []):
+            with self.subTest(input_paths=input_paths):
+                self.assertEqual(_nearest_branch_parents(input_paths), expected if input_paths else {})
+
+    def test_validator_rejects_noncanonical_encoding_with_one_rebuild(self) -> None:
+        import validate_tos_corpus_index as validator
+
+        # Isolate serialization parity from the independently tested schema
+        # and whole-corpus build; both encodings parse to the expected object.
+        payload = {"counts": {}}
+        for text in (' {"counts": {}}\n', '{"counts": {}, "counts": {}}\n'):
+            with (
+                self.subTest(text=text),
+                patch.object(validator, "build_payload", return_value=payload) as build,
+                patch.object(validator, "validate_payload_schema"),
+                patch.object(validator, "TOS_CORPUS_INDEX_PATH") as source,
+            ):
+                source.read_text.return_value = text
+                self.assertEqual(json.loads(text), payload)
+                with self.assertRaisesRegex(SystemExit, "canonical rebuild"):
+                    validator.main()
+                build.assert_called_once_with()
 
     def test_generated_index_matches_builder(self) -> None:
         expected = render_payload(build_payload())

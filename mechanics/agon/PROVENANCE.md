@@ -16,7 +16,7 @@ If those surfaces answer the task, stop there.
 
 ## Legacy Route
 
-Detailed old-path accounting lives in [legacy/INDEX.md](legacy/INDEX.md).
+Historical old-path accounting is preserved in [TOS-D-0043](../../docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md).
 
 ## Distillation Rule
 
