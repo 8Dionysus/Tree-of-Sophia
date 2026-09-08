@@ -1,10 +1,10 @@
 import {test,expect} from 'vitest';
 import {capturePlace} from './place-model.mjs';
-import {createTravelStore,createTravelNavigation,validateHistory,historyLabel,travelKey,HISTORY_KEY,HISTORY_LIMIT} from './travel-model.mjs';
+import {createTravelStore,createTravelNavigation,validateHistory,historyLabel,travelKey,compactHistory,HISTORY_KEY,HISTORY_LIMIT} from './travel-model.mjs';
 
 const packet={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},
   nodes:[{id:'opaque:a',source_refs:['ToS/example'],content_revision:'b'.repeat(64),display:{title:{ru:'Частный текст не входит в историю'}}}],relations:[],page:{next_cursor:'ephemeral-cursor'}};
-function place(id,source=packet){return capturePlace(source,{lens:'constellations',yaw:Number(id)||0,pitch:0,zoom:1,pan:{x:0,y:0},selectedId:'opaque:a',relationId:null,panelOpen:true,cardTab:'about',vertices:[]},{name:'Шаг '+id,id:String(id),route:'?focus=opaque%3Aa',savedAt:1});}
+function place(id,source=packet){return capturePlace(source,{lens:'constellations',yaw:Number(id)||0,pitch:0,zoom:1,pan:{x:0,y:0},selectedId:'opaque:'+id,relationId:null,panelOpen:true,cardTab:'about',vertices:[]},{name:'Шаг '+id,id:String(id),route:'?focus=opaque%3Aa',savedAt:1});}
 function storage(){const values=new Map();return {getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};}
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
@@ -55,10 +55,37 @@ test('failed reopen keeps the current step; explicit retry can succeed',async()=
   await expect(navigation.go('0')).rejects.toThrow('недоступен');expect(store.state.cursor).toBe(1);expect(applied).toBe(0);
   fail=false;expect((await navigation.go('0')).current).toBe(true);expect(store.state.cursor).toBe(0);expect(applied).toBe(1);
 });
-test('step names distinguish selections, lenses, areas and camera movement',()=>{
-  const first=place(1),next=place(2);expect(historyLabel(first,next,'Имя')).toBe('Изменён ракурс');
-  next.pose.selectedId='opaque:b';expect(historyLabel(first,next,'Бета')).toBe('Выбрано: Бета');next.pose.selectedId=first.pose.selectedId;
+test('step names identify materials and lenses; camera changes retain the current name',()=>{
+  const first=place(1),next=structuredClone(first);next.pose.yaw=2;expect(historyLabel(first,next,'Имя')).toBe(first.name);
+  next.pose.selectedId='opaque:b';expect(historyLabel(first,next,'Бета')).toBe('Бета');next.pose.selectedId=first.pose.selectedId;
   next.pose.lens='plane';expect(historyLabel(first,next,'Имя')).toBe('Линза: Карта связей');
-  next.spec.seed.node_ids=['opaque:b'];expect(historyLabel(first,next,'Бета')).toBe('Открыта область: Бета');
-  next.draft={changed:true};expect(historyLabel(first,next,'Имя')).toBe('Изменена линза');
+  next.spec.seed.node_ids=['opaque:b'];expect(historyLabel(first,next,'Бета')).toBe('Бета');
+  next.draft={changed:true};expect(historyLabel(first,next,'Имя')).toBe('Линза: Имя');
+});
+
+test('camera and card changes update the current stop without losing forward history or its identity',()=>{
+  const s=storage(),store=createTravelStore(s);for(let i=0;i<3;i++)store.record(place(i));store.move('1');
+  const changed={...place(1),id:'new-id',savedAt:800,pose:{...place(1).pose,yaw:8,zoom:2,cardTab:'relations'}};
+  store.record(changed);store.save();const restored=createTravelStore(s).state;
+  expect(restored.entries.map(e=>e.id)).toEqual(['0','1','2']);expect(restored.cursor).toBe(1);
+  expect(restored.entries[1].pose.yaw).toBe(8);expect(restored.entries[1].pose.cardTab).toBe('relations');expect(restored.entries[1].savedAt).toBe(1);
+});
+test('legacy camera runs collapse around the cursor and keep other meaningful visits intact',()=>{
+  const a=place(1),b=place(2),c=place(3),pan=(source,id,yaw)=>({...source,id,name:'Изменён ракурс',pose:{...source.pose,yaw}});
+  const old={v:1,entries:[a,pan(a,'a2',4),b,pan(b,'b2',5),pan(b,'b3',6),c],cursor:3};
+  const clean=compactHistory(old);expect(clean.entries.map(e=>e.id)).toEqual(['1','2','3']);expect(clean.cursor).toBe(1);
+  expect(clean.entries[0].pose.yaw).toBe(4);expect(clean.entries[1].pose.yaw).toBe(5);expect(clean.entries[1].name).toBe(b.name);
+  expect(compactHistory(clean)).toEqual(clean);
+  const s=storage();s.setItem(HISTORY_KEY,JSON.stringify(old));createTravelStore(s);expect(JSON.parse(s.getItem(HISTORY_KEY))).toEqual(clean);
+  expect(old.entries).toHaveLength(6);
+});
+
+test('updating a larger current pose keeps the total bound and never trims away the current stop',()=>{
+  const entries=Array.from({length:100},(_,i)=>place(i)),old={v:1,entries,cursor:0};
+  const padding=Math.floor((1200000-JSON.stringify(old).length-1000)/100);
+  for(const entry of entries)entry.route+='x'.repeat(padding);
+  const s=storage();s.setItem(HISTORY_KEY,JSON.stringify(old));const store=createTravelStore(s);
+  store.record({...entries[0],id:'new-id',route:entries[0].route+'y'.repeat(5000),pose:{...entries[0].pose,zoom:2}});store.save();
+  const result=createTravelStore(s).state;expect(result.cursor).toBe(0);expect(result.entries[0].id).toBe('0');expect(result.entries[0].pose.zoom).toBe(2);
+  expect(s.getItem(HISTORY_KEY).length).toBeLessThanOrEqual(1200000);expect(result.entries.length).toBeLessThan(100);
 });

@@ -7,10 +7,10 @@ const button=(text,action)=>{const node=el('button',text);node.type='button';nod
 function download(copy){const url=URL.createObjectURL(new Blob([JSON.stringify(copy,null,2)],{type:'application/json'}));
   const link=el('a');link.href=url;link.download='sophia-workspace-'+new Date().toISOString().slice(0,10)+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export function createWorkspaceCopyPanel(root,scene,panels,{workspace,reader,travel,studio,onUserAction=()=>{}}){
-  let storage=null,pending=null,before=null,previous=null,readTurn=0;
+  let storage=null,pending=null,before=null,previous=null,readTurn=0,returnFocus=null;
   try{storage=localStorage;}catch{}
   const panel=el('section','','sc-panel sc-workspace-copy');panel.hidden=true;panel.setAttribute('aria-label','Копия исследования');
-  const top=el('div','','sc-panel-top');const close=button('×',()=>{panels.close('copy');root.querySelector('.sc-studio-open')?.focus();});close.className='sc-icon';close.setAttribute('aria-label','Закрыть копию исследования');
+  const top=el('div','','sc-panel-top');const close=button('×',()=>{panels.close('copy');(returnFocus||root.querySelector('.sc-studio-open'))?.focus();});close.className='sc-icon';close.setAttribute('aria-label','Закрыть копию исследования');
   top.append(el('span','МОЁ ИССЛЕДОВАНИЕ','sc-eyebrow'),close);
   const heading=el('h3','Сохранить и перенести'),description=el('p','В копию входят история, места, сохранённые линзы, настройки, записи и пара материалов для чтения. Тексты материалов при открытии загружаются заново.');
   const output=el('div','','sc-copy-preview'),status=el('p','','sc-copy-status');status.setAttribute('role','status');
@@ -26,7 +26,7 @@ export function createWorkspaceCopyPanel(root,scene,panels,{workspace,reader,tra
   const content=el('div','','sc-copy-content');content.append(heading,description,actions,upload,output,status);panel.append(top,content);root.append(panel);
   function discard(){readTurn++;pending=null;before=null;previous=null;output.replaceChildren();}
   panels.register('copy',panel,discard);
-  function show(){onUserAction();discard();status.textContent='';panels.open('copy');heading.tabIndex=-1;heading.focus();scene.invalidate();}
+  function show(){const from=document.activeElement?.closest('[data-panel-id]')?.dataset.panelId;returnFocus=root.querySelector(from==='settings'?'.sc-settings-open':from==='workspace'?'.sc-workspace-open':'.sc-studio-open');onUserAction();discard();status.textContent='';panels.open('copy');heading.tabIndex=-1;heading.focus();scene.invalidate();}
   root.addEventListener('sophia-workspace-copy',show);
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close.click();}});
   upload.addEventListener('change',async()=>{

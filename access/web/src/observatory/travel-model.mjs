@@ -19,21 +19,41 @@ export function travelKey(place){
   const {panelOpen,...pose}=place.pose;
   return JSON.stringify([place.sourceRevision,place.spec,place.draft,pose]);
 }
+// A journey follows materials and queries. Camera, card tabs and refreshed
+// data belong to the current stop and must not consume the forward branch.
+export function journeyKey(place){
+  return JSON.stringify([place.spec,place.draft,place.pose.lens,place.pose.selectedId,place.pose.relationId]);
+}
+const legacyName=name=>/^(Измен[её]н ракурс|Открыт смысл|Открыты связи|Обновлена область)$/.test(name);
+function fallbackName(entry){
+  const name=entry.draft?.name||entry.spec.title;
+  return (typeof name==='string'&&name.trim()?name:'Область исследования').slice(0,64);
+}
+export function compactHistory(value){
+  const state=validateHistory(value),entries=[];let cursor=-1;
+  for(let i=0;i<state.entries.length;i++){
+    const entry=state.entries[i],previous=entries.at(-1);
+    if(previous&&journeyKey(previous)===journeyKey(entry)){
+      // Keep the cursor's exact pose if it lies inside a collapsed run.
+      if(i<=state.cursor||cursor!==entries.length-1)entries[entries.length-1]={...entry,id:previous.id,savedAt:previous.savedAt,name:previous.name};
+    }else entries.push({...entry,name:legacyName(entry.name)?fallbackName(entry):entry.name.replace(/^(Начало|Выбрано|Открыта область): /,'')||entry.name});
+    if(i===state.cursor)cursor=entries.length-1;
+  }
+  return {v:1,entries,cursor};
+}
 export function historyLabel(previous,next,title){
-  const short=String(title||'область').slice(0,42);
-  if(!previous)return ('Начало: '+short).slice(0,64);
-  if(JSON.stringify(previous.draft)!==JSON.stringify(next.draft))return 'Изменена линза';
-  if(JSON.stringify(previous.spec)!==JSON.stringify(next.spec))return ('Открыта область: '+short).slice(0,64);
-  if(next.pose.relationId!==previous.pose.relationId&&next.pose.relationId)return ('Выбрана связь: '+short).slice(0,64);
-  if(next.pose.selectedId!==previous.pose.selectedId)return next.pose.selectedId?('Выбрано: '+short).slice(0,64):'Общий вид';
+  const short=String(title||'Область исследования').slice(0,64);
+  if(!previous)return short;
+  if(JSON.stringify(previous.draft)!==JSON.stringify(next.draft))return ('Линза: '+(next.draft?.name||short)).slice(0,64);
+  if(JSON.stringify(previous.spec)!==JSON.stringify(next.spec))return short;
+  if(next.pose.relationId!==previous.pose.relationId&&next.pose.relationId)return ('Связь: '+short).slice(0,64);
+  if(next.pose.selectedId!==previous.pose.selectedId)return next.pose.selectedId?short:'Общий вид';
   if(next.pose.lens!==previous.pose.lens)return 'Линза: '+({plane:'Карта связей',orbits:'Орбиты мысли',constellations:'Созвездия мысли'})[next.pose.lens];
-  if(next.pose.cardTab!==previous.pose.cardTab)return next.pose.cardTab==='relations'?'Открыты связи':'Открыт смысл';
-  if(next.sourceRevision!==previous.sourceRevision)return 'Обновлена область';
-  return 'Изменён ракурс';
+  return previous.name==='Область исследования'||legacyName(previous.name)?short:previous.name;
 }
 export function createTravelStore(storage,key=HISTORY_KEY){
   let state=empty(),baseline=null,error='',writable=true;
-  try{baseline=storage?.getItem(key)||null;if(baseline){if(baseline.length>MAX_TEXT)bad();state=validateHistory(JSON.parse(baseline));}}
+  try{baseline=storage?.getItem(key)||null;if(baseline){if(baseline.length>MAX_TEXT)bad();state=compactHistory(JSON.parse(baseline));}}
   catch(cause){error=cause.message;writable=false;}
   function save(){
     if(!storage){error='История действует до закрытия страницы: хранилище недоступно.';return false;}
@@ -43,13 +63,22 @@ export function createTravelStore(storage,key=HISTORY_KEY){
       const text=JSON.stringify(state);storage.setItem(key,text);baseline=text;error='';return true;
     }catch(cause){error=cause.message||'Браузер не сохранил историю.';return false;}
   }
+  function trim(){
+    while(state.entries.length>HISTORY_LIMIT||JSON.stringify(state).length>MAX_TEXT){
+      if(state.cursor>0){state.entries.shift();state.cursor--;}else state.entries.pop();
+    }
+  }
+  if(baseline&&writable&&JSON.stringify(state)!==baseline)save();
   return {
     get state(){return structuredClone(state);},get error(){return error;},save,
     record(place){
       const entry=historyEntry(place),current=state.entries[state.cursor];
-      if(current&&travelKey(current)===travelKey(entry))return false;
+      if(current&&travelKey(current)===travelKey(entry)&&current.name===entry.name)return false;
+      if(current&&journeyKey(current)===journeyKey(entry)){
+        state.entries[state.cursor]={...entry,id:current.id,savedAt:current.savedAt,name:entry.name};trim();return true;
+      }
       state.entries=state.entries.slice(0,state.cursor+1);state.entries.push(entry);state.cursor=state.entries.length-1;
-      while(state.entries.length>HISTORY_LIMIT||JSON.stringify(state).length>MAX_TEXT){state.entries.shift();state.cursor--;}
+      trim();
       return true;
     },
     move(id){const index=state.entries.findIndex(e=>e.id===id);if(index<0)return false;state.cursor=index;return true;},

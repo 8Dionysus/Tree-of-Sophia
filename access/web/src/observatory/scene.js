@@ -74,6 +74,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
   let w=1,h=740,dpr=1,base=1,selected=-1,hover=-1,lens='constellations',yaw=0,pitch=-.055,tyaw=0,tpitch=-.055,zoom=1,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},time=0,skyTime=0,last=0,raf=0,visible=true,drag=null,settling=0,frameCount=0,drawSum=0,frameSum=0;
   let calm=0,cardTab='about',layoutDirty=true,overlayReturnPanel=false,windowDrag=null,pinch=null;
   let wheelLastAt=-Infinity,wheelDirection=0,wheelKind='',wheelResponsiveUntil=0,wheelEvents=0;
+  let motionPreference='system';
   let inputMode='trackpad',nativeGesture=null,nativeGestureUntil=-Infinity;
   const panGain=.55,panResponse=22;
   let windowPosition={x:0,y:0,manual:false},obstacles=[],panelBounds=null;
@@ -152,6 +153,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     announce('Отношение: '+q('.sc-node-title').textContent);q('#so-about-tab').focus();
   }
   const scenePort={
+    setControls({inputMode:mode,motion}){inputMode=mode;motionPreference=motion;design.playing=motion==='running'||motion==='system'&&!reduced.matches;syncInputMode();syncMotion();},
     setHistory(controller){navigationHistory=controller;history.length=0;},
     get packet(){return scenePacket;},
     get selection(){return {nodeId:nodes[selected]?.id||null,relationId:selectedRelation};},
@@ -270,14 +272,14 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     refreshIcons();layoutDirty=true;
   }
   function zoomAt(next,x=w*.5,y=h*.54){next=clamp(next,.65,2.2);const ratio=next/tzoom;tpan.x=x-w*.5-(x-w*.5-tpan.x)*ratio;tpan.y=y-h*.54-(y-h*.54-tpan.y)*ratio;tzoom=next;settling=1;kick();}
-  function syncMotion(){root.dataset.motion=design.playing?'running':'paused';q('.sc-motion').setAttribute('aria-pressed',String(!design.playing));q('.sc-motion').setAttribute('aria-label',design.playing?'Приостановить движение':'Включить движение');q('.sc-motion').innerHTML=design.playing?'<i data-lucide="pause" aria-hidden="true"></i>':'<i data-lucide="play" aria-hidden="true"></i>';refreshIcons();kick();}
+  function syncMotion(){q('.sc-motion').dataset.tooltip=design.playing?'Остановить фоновое движение звёзд. Навигация останется доступна.':'Возобновить фоновое движение звёзд.';root.dataset.motion=design.playing?'running':'paused';q('.sc-motion').setAttribute('aria-pressed',String(!design.playing));q('.sc-motion').setAttribute('aria-label',design.playing?'Приостановить движение':'Включить движение');q('.sc-motion').innerHTML=design.playing?'<i data-lucide="pause" aria-hidden="true"></i>':'<i data-lucide="play" aria-hidden="true"></i>';refreshIcons();kick();}
   function moveNodeFocus(e,i){const direction={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!direction)return;e.preventDefault();const p=nodes[i].screen;let best=-1,score=Infinity;nodes.forEach((n,j)=>{if(j===i||n.el.hidden)return;const dx=n.screen.x-p.x,dy=n.screen.y-p.y,dot=dx*direction[0]+dy*direction[1];if(dot<=0)return;const distance=dx*dx+dy*dy,s=distance/Math.max(1,dot)+Math.abs(dx*direction[1]-dy*direction[0])*1.5;if(s<score){score=s;best=j}});if(best>=0)nodes[best].el.focus();}
   q('.sc-back').addEventListener('click',back);
   q('.sc-close').addEventListener('click',()=>closeInspector());q('.sc-focus').addEventListener('click',()=>{if(selected>=0){remember();focus(selected)}});
   q('.sc-search-open').addEventListener('click',()=>openOverlay('search'));q('.sc-search-close').addEventListener('click',()=>closeSearch());q('#sc-query').addEventListener('input',search);
   q('.sc-lenses-open').addEventListener('click',()=>openOverlay('lenses'));q('.sc-lenses-close').addEventListener('click',()=>closeLenses());root.querySelectorAll('.sc-lens').forEach(b=>b.addEventListener('click',()=>setLens(b.dataset.lens)));
-  q('.sc-overview').addEventListener('click',overview);q('.sc-plus').addEventListener('click',()=>{endWheelResponse();remember();zoomAt(tzoom*1.18)});q('.sc-minus').addEventListener('click',()=>{endWheelResponse();remember();zoomAt(tzoom/1.18)});q('.sc-motion').addEventListener('click',()=>{design.playing=!design.playing;syncMotion()});
-  q('.sc-input-mode').addEventListener('click',()=>{endWheelResponse();inputMode=inputMode==='trackpad'?'mouse':'trackpad';syncInputMode();announce(inputMode==='trackpad'?'Тачпад: два пальца — перемещение, щипок — приближение':'Мышь: колесо — масштаб, перетаскивание — вращение');kick()});
+  q('.sc-overview').addEventListener('click',overview);q('.sc-plus').addEventListener('click',()=>{endWheelResponse();remember();zoomAt(tzoom*1.18)});q('.sc-minus').addEventListener('click',()=>{endWheelResponse();remember();zoomAt(tzoom/1.18)});q('.sc-motion').addEventListener('click',()=>{design.playing=!design.playing;motionPreference=design.playing?'running':'paused';syncMotion();root.dispatchEvent(new CustomEvent('sophia-controls-change',{detail:{motion:motionPreference}}))});
+  q('.sc-input-mode').addEventListener('click',()=>{endWheelResponse();inputMode=inputMode==='trackpad'?'mouse':'trackpad';syncInputMode();root.dispatchEvent(new CustomEvent('sophia-controls-change',{detail:{inputMode}}));announce(inputMode==='trackpad'?'Тачпад: два пальца — перемещение, щипок — приближение':'Мышь: колесо — масштаб, перетаскивание — вращение');kick()});
   root.querySelectorAll('.sc-card-tab').forEach((b,i)=>{b.addEventListener('click',()=>setCardTab(i?'relations':'about'));b.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const value=e.key==='Home'?'about':e.key==='End'?'relations':cardTab==='about'?'relations':'about';setCardTab(value);q('#so-'+value+'-tab').focus()}})});
   q('.sc-search').addEventListener('keydown',e=>{const results=[...root.querySelectorAll('.sc-result')],index=results.indexOf(e.target);if(e.target===q('#sc-query')&&e.key==='Enter'&&results[0]){e.preventDefault();results[0].click()}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const next=index+(e.key==='ArrowDown'?1:-1);if(next<0)q('#sc-query').focus();else results[Math.min(next,results.length-1)]?.focus()}});
   root.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!q('.sc-search').hidden)closeSearch();else if(!q('.sc-lenses').hidden)closeLenses();else if(!panel.hidden)closeInspector();e.stopPropagation()}if(e.key==='/'&&!e.target.closest('input,textarea,select,[contenteditable]')){e.preventDefault();openOverlay('search')}});
@@ -429,7 +431,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
   function kick(){if(!raf&&visible&&!document.hidden)raf=requestAnimationFrame(draw)}
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;last=0}else kick()});
   const observer=new IntersectionObserver(es=>{visible=es[0].isIntersecting;if(visible)kick();else{cancelAnimationFrame(raf);raf=0;last=0}});observer.observe(root);new ResizeObserver(resize).observe(root);
-  reduced.addEventListener('change',e=>{design.playing=!e.matches;syncMotion()});
+  reduced.addEventListener('change',e=>{if(motionPreference==='system'){design.playing=!e.matches;syncMotion()}});
   knowledgeUI=attachKnowledgeUI(root,scenePort,{client,initialFocus,initialLens});
   paintNebula();resize();syncMotion();syncInputMode();root.dataset.lens=lens;updateContext();if(autoStart)knowledgeUI.start();document.fonts?.ready.then(()=>{measureLabels();kick()});
   refreshIcons();

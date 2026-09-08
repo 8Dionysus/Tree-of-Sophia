@@ -43,7 +43,7 @@ export function createLensPanel(root,scene,panels,{data:{client},onUserAction}){
   }
   function updateActiveQuery(){
     const value=draftForPacket(scene.port.packet);activeQuery.hidden=!value;
-    if(value){activeQuery.textContent='Линза: '+value.name+' · условия';activeQuery.title=queryLines(value,context?.catalog.source_revision===scene.port.packet.source_revision?context:null).join('\n');}
+    if(value){activeQuery.textContent='Линза: '+value.name+' · условия';activeQuery.dataset.tooltip=queryLines(value,context?.catalog.source_revision===scene.port.packet.source_revision?context:null).slice(0,2).join(' · ').slice(0,250);}
   }
   const stop=()=>{generation++;clearTimeout(timer);timer=null;scheduled=false;requests.cancelAll();busy=false;};
   panels.register('builder',panel,stop);

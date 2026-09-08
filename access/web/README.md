@@ -322,9 +322,12 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
 - `travel-model.mjs` and `travel-panel.mjs` add **Назад / Вперёд / История**,
   including Alt+Left/Right outside text fields and direct jumps to named steps.
   The list and cursor survive reload in local browser storage, scoped to the
-  mounted pathname. A new action after going back discards the forward branch.
-  Selection, query/lens, card section and camera are steps; opening tools is not.
-  Wheel bursts become one step after settling. Persistence retains at most 100
+  mounted pathname. A new material, area or lens after going back starts a new
+  branch. Camera movement, card sections and refreshed data update the current
+  stop while preserving its identity and the forward branch. Consecutive old
+  camera-only rows collapse on load or import, preserving the current pose;
+  explicitly saved places are independent and remain intact. Step names identify
+  the material or lens. Persistence retains at most 100
   steps and 1.2 million JSON characters (older entries are trimmed first).
   Only bounded place requests, identities and poses are stored, never source
   packets or exploration cursors. Every jump reloads current owner data before
@@ -336,9 +339,25 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   **В места** pins any history step without navigating away, retaining its own
   query and pose. Repeated pinning retains the existing named place. Names can
   then be edited in **Моё пространство → Места**.
+- `settings-panel.mjs` adds a permanent **Настройки** button outside the scrolling
+  tool strip. Existing text, star-label, docking, pinned-tool and window-size
+  preferences live here, alongside persistent mouse/trackpad and ambient-motion
+  choices. Older preference files gain control defaults without losing existing
+  values. Footer controls and settings share the same preferences. Resetting
+  appearance and controls leaves places, notes, history and reading intact.
+  The panel also links to history, the full workspace copy and last-view reset.
+  Interface/reading languages and themes have no placeholder controls yet.
+- `context-hints.mjs` provides one bounded contextual tooltip for controls,
+  stars and relations. Hover waits 400 ms; keyboard focus reveals the same
+  explanation, Escape dismisses it before the enclosing panel, and gestures
+  hide pending/visible hints. It preserves focus and selection, stays inside
+  the viewport, and can be hovered for reading. Important control instructions
+  remain in settings on touch devices; a star's inclusion explanation is also
+  available in its card under **Почему звезда в этой области**. Inclusion
+  describes query execution, never philosophical authority.
 - `workspace-copy.mjs` and `workspace-copy-panel.mjs` provide **Моё пространство
   → Сохранить и перенести исследование** and **Исследование → Полная копия
-  исследования**. The versioned local JSON copy includes history and cursor,
+  исследования**, also available in **Настройки → Локальные данные**. The versioned local JSON copy includes history and cursor,
   named places and lens definitions, last view, interface preferences, reading references/positions,
   and saved research records, hypotheses, proposals and route comparisons.
   It excludes delivered source packets, reading text, page-local response

@@ -125,7 +125,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
       for(const relation of relationships){
         const outgoing=relation.from_id===raw.id,other=outgoing?relation.to_id:relation.from_id;
         const label=outgoing?localized(relation.display.label):localized(relation.display.inverse_label)||'← '+localized(relation.display.label);
-        const b=button('',()=>port.selectRelation(relation.id),'sc-neighbor sc-relation-row');
+        const b=button('',()=>port.selectRelation(relation.id),'sc-neighbor sc-relation-row');b.dataset.tooltip=localized(relation.display.statement,'Открыть связь и её основания.').slice(0,260);
         b.append(text('small','',label),text('span','',endpointName(other)));list.append(b);
       }
       if(!relationships.length)list.append(text('p','sc-empty','В этой области связи не показаны.'));

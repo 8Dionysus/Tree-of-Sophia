@@ -11,6 +11,8 @@ import {createReaderPanel} from './reader-panel.mjs';
 import {createStudio} from './studio.mjs';
 import {createTravelPanel} from './travel-panel.mjs';
 import {createWorkspaceCopyPanel} from './workspace-copy-panel.mjs';
+import {createSettingsPanel} from './settings-panel.mjs';
+import {createContextHints,describeControls} from './context-hints.mjs';
 import {createSceneFeedback} from './scene-feedback.mjs';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
@@ -74,13 +76,16 @@ function selectedSource(){const selection=scene.port.selection,kind=selection.re
 for(const [id,title,icon,event]of [['builder','Конструктор линз','◈',null],['evidence','Основания','✧','sophia-evidence'],['sources','Источники','◇','sophia-sources']]){
   const opener=document.createElement('button');opener.type='button';opener.className='sc-control sc-tool-shortcut';opener.setAttribute('aria-label',title);const symbol=document.createElement('b');symbol.textContent=icon;const label=document.createElement('span');label.textContent=title;opener.append(symbol,label);root.querySelector('.sc-header-actions').append(opener);
   const launch=()=>{userAction();if(id==='builder')root.querySelector('.sc-builder-open').click();else{const source=selectedSource();if(source)root.dispatchEvent(new CustomEvent(event,{detail:source}));else scene.port.announce('Сначала выберите звезду или связь.');}};
+  opener.dataset.tooltip=id==='builder'?'Собрать собственную область по условиям.':'Открыть '+title.toLowerCase()+' выбранной звезды или связи.';
   opener.addEventListener('click',launch);panels.addTool(id,{title,opener,launch,available:()=>id==='builder'||Boolean(selectedSource())});
 }
 reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction});
 studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});
 travel=createTravelPanel(root,scene,panels,{client,onUserAction:userAction});
 createWorkspaceCopyPanel(root,scene,panels,{workspace:tools.workspace,reader,travel,studio,onUserAction:userAction});
+createSettingsPanel(root,scene,panels,{studio,onUserAction:userAction});
 createSceneFeedback(root,scene);
+describeControls(root);createContextHints(root);
 const handlers={
   ...tools.handlers,
   ...evidence.handlers,

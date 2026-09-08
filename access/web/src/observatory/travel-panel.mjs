@@ -24,7 +24,8 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
   const retry=button('Повторить переход',()=>void go(retryId),'sc-history-retry');retry.hidden=true;
   const save=button('Повторить сохранение',()=>{store.save();render();},'sc-history-save');save.hidden=true;
   const clear=button('Очистить историю',()=>{onUserAction();navigator.cancel();clearTimeout(saveTimer);flush();store.clear(lastPlace);message='Оставлен только текущий вид.';failure='';retryId=null;render();},'sc-history-clear');
-  panel.append(top,list,status,retry,save,el('p',`До ${HISTORY_LIMIT} последних шагов в этом браузере. Запросы и ракурсы сохраняются; тексты загружаются заново.`,'sc-history-note'),clear);root.append(panel);
+  panel.append(top,list,status,retry,save,el('p',`До ${HISTORY_LIMIT} переходов в этом браузере. Положение камеры запоминается внутри шага.`,'sc-history-note'),clear);root.append(panel);
+  root.addEventListener('sophia-history-open',()=>opener.click());
   panels.register('history',panel,()=>{opener.setAttribute('aria-expanded','false');if(!applying)cancel();});
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();}});
   function close(){panels.close('history');opener.focus();}
@@ -32,14 +33,16 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
     const {entries,cursor}=store.state;
     root.dataset.history=String(entries.length);root.dataset.historyCursor=String(cursor);root.dataset.historyBusy=String(busy);
     back.disabled=cursor<=0;forward.disabled=cursor<0||cursor>=entries.length-1;
+    back.dataset.tooltip=back.disabled?'Это начало сохранённого пути.':'Предыдущий материал или область. Alt + ←.';
+    forward.dataset.tooltip=forward.disabled?'Дальше сохранённых переходов нет.':'Следующий материал или область. Alt + →.';
     opener.textContent='История'+(entries.length?' · '+(cursor+1)+'/'+entries.length:'')+' ▾';
-    opener.dataset.unsaved=String(Boolean(store.error));opener.title=store.error||'Выбрать шаг пути';
+    opener.dataset.unsaved=String(Boolean(store.error));opener.dataset.tooltip=store.error||'Вернуться к материалу или области исследования.';
     panel.setAttribute('aria-busy',String(busy));status.textContent=failure||store.error||message;
     retry.hidden=!retryId||!failure;retry.disabled=busy;save.hidden=!store.error;clear.disabled=busy;
     if(panel.hidden)return;
     const focused=document.activeElement?.dataset.historyId,scroll=list.scrollTop;list.replaceChildren();
     for(let index=entries.length-1;index>=0;index--){const entry=entries[index],row=el('li');
-      const open=button('',()=>void go(entry.id));open.dataset.historyId=entry.id;
+      const open=button('',()=>void go(entry.id));open.dataset.historyId=entry.id;open.dataset.tooltip='Открыть этот материал и восстановить положение пространства.';
       if(index===cursor)open.setAttribute('aria-current','step');
       const time=el('time',formatTime.format(entry.savedAt));time.dateTime=new Date(entry.savedAt).toISOString();
       open.append(el('span',entry.name),time);row.append(open);list.append(row);
@@ -47,7 +50,7 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
         onUserAction();try{if(!storage)throw new Error('Локальное хранилище недоступно.');const place=pinHistoryPlace(storage,entry);
           root.dispatchEvent(new CustomEvent('sophia-place-saved',{detail:place}));failure='';message='Место «'+place.name+'» сохранено. Название можно изменить в «Моём пространстве».';render();
         }catch(error){failure=error.message;render();}
-      },'sc-history-pin');pin.setAttribute('aria-label','Сохранить место: '+entry.name);pin.disabled=busy;row.append(pin);
+      },'sc-history-pin');pin.dataset.tooltip='Сохранить область, линзу и положение камеры для возвращения. Название можно изменить в местах.';pin.setAttribute('aria-label','Сохранить место: '+entry.name);pin.disabled=busy;row.append(pin);
     }
     list.scrollTop=scroll;if(focused)[...list.querySelectorAll('button')].find(b=>b.dataset.historyId===focused)?.focus();scene.invalidate();
   }
@@ -62,8 +65,8 @@ export function createTravelPanel(root,scene,panels,{client,onUserAction=()=>{}}
   function flush(){
     if(!started||applying||busy)return;
     pending=false;
-    try{const value=capture();if(!value)return;const key=travelKey(value);if(key===baseline)return;
-      baseline=key;lastPlace=value;store.record(value);saveLater();render();
+    try{const value=capture();if(!value)return;const key=travelKey(value);if(key===baseline&&value.name===store.state.entries[store.state.cursor]?.name)return;
+      baseline=key;store.record(value);lastPlace=store.state.entries[store.state.cursor]||value;saveLater();render();
     }catch(error){failure=error.message;render();}
   }
   function observe(){if(!started||applying||busy||pending)return;pending=true;queueMicrotask(()=>{if(pending)flush();});}

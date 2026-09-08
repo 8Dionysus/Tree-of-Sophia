@@ -1,6 +1,5 @@
 import {RequestSlots,localized} from './knowledge-client.mjs';
 import {capturePlace,readPlaces,savePlace,readResume,reopenPlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
-import {DEFAULT_INTERFACE} from './interface-model.mjs';
 import {refreshIcons} from './icons';
 const el=(tag,text='',className='')=>{const e=document.createElement(tag);e.textContent=text;e.className=className;return e;};
 const button=(text,action)=>{const b=el('button',text);b.type='button';b.addEventListener('click',action);return b;};
@@ -57,22 +56,17 @@ export function createStudio(root,scene,panels,{data:{client},initialRoute,onUse
       }),button('Обновить этим видом',()=>safe(()=>persist(place.name,place.id))),button('Удалить',()=>safe(()=>{deleted=place;entries=readPlaces(storage).filter(e=>e.id!==place.id);storage.setItem(PLACES_KEY,JSON.stringify(entries));notice='Место удалено.';render();})));row.append(actions);body.append(row);}
     if(deleted)body.append(button('Вернуть удалённое место',()=>safe(()=>{entries=savePlace(storage,deleted);deleted=null;notice='Место восстановлено.';render();})));
     if(!entries.length)body.append(el('p','Здесь появятся места, к которым хочется вернуться.','sc-studio-empty'));
-    const last=button('Забыть последний вид',()=>safe(()=>{storage?.removeItem(RESUME_KEY);autoSave=false;notice='Автовозврат отключён до следующего открытия страницы.';renderStatus();}));last.className='sc-studio-subtle';body.append(el('p','Последний вид запоминается автоматически в этом браузере.','sc-studio-note'),last);
+    body.append(el('p','Последний вид запоминается автоматически в этом браузере.','sc-studio-note'));
   }
-  function option(label,key,values){const select=el('select');for(const [value,text]of values){const opt=el('option',text);opt.value=value;select.append(opt);}select.value=panels.preferences[key];select.addEventListener('change',()=>safe(()=>{panels.setPreferences({...panels.preferences,[key]:select.value});renderStatus();}));return field(label,select);}
   function renderTools(){
-    body.append(el('p','Закрепите нужное в верхней панели. Все инструменты доступны и отсюда.','sc-studio-note'));
-    const preferences=panels.preferences,available=panels.toolList(),ordered=[...preferences.pinned,...available.map(t=>t.id).filter(id=>!preferences.pinned.includes(id))];
-    for(const id of ordered){const tool=available.find(t=>t.id===id);if(!tool)continue;const row=el('div','','sc-tool-choice'),check=el('input');check.type='checkbox';check.checked=preferences.pinned.includes(id);check.setAttribute('aria-label','Закрепить: '+tool.title);
-      check.addEventListener('change',()=>safe(()=>{const current=panels.preferences;panels.setPreferences({...current,pinned:check.checked?[...current.pinned,id]:current.pinned.filter(i=>i!==id)});renderToolsOnly(id);}));
-      const launch=button(tool.title,()=>safe(()=>panels.launch(id)));launch.disabled=!tool.available;row.append(check,launch);
-      if(check.checked){const up=button('↑',()=>safe(()=>{const current=panels.preferences,index=current.pinned.indexOf(id);if(index>0){[current.pinned[index-1],current.pinned[index]]=[current.pinned[index],current.pinned[index-1]];panels.setPreferences(current);renderToolsOnly(id);}}));up.setAttribute('aria-label','Выше: '+tool.title);up.disabled=preferences.pinned[0]===id;row.append(up);}body.append(row);
+    body.append(el('p','Откройте нужный инструмент. Закрепление и порядок кнопок доступны в настройках.','sc-studio-note'));
+    for(const tool of panels.toolList()){
+      const launch=button(tool.title,()=>safe(()=>panels.launch(tool.id)));launch.setAttribute('aria-disabled',String(!tool.available));
+      launch.dataset.tooltip=tool.available?'Открыть инструмент «'+tool.title+'».':'Сначала выберите звезду или связь.';
+      const row=el('div','','sc-tool-choice');row.append(launch);body.append(row);
     }
-    body.append(option('Сторона окна','dock',[['auto','По свободному месту'],['left','Слева'],['right','Справа']]),option('Текст для чтения','text',[['comfortable','Обычный'],['large','Крупнее']]),option('Подписи звёзд','labels',[['normal','Обычные'],['large','Крупнее']]));
-    body.append(button('Восстановить исходное расположение',()=>safe(()=>{panels.setPreferences(structuredClone(DEFAULT_INTERFACE));notice='Исходные настройки восстановлены.';render();})));
-    body.append(el('p','Размер окна меняется кнопкой ↔ или за угол. На клавиатуре: стрелки на уголке, Home — сброс.','sc-studio-note'));
+    body.append(button('Настроить инструменты',()=>root.dispatchEvent(new CustomEvent('sophia-settings-open'))));
   }
-  function renderToolsOnly(id){render();[...body.querySelectorAll('input')].find(input=>input.getAttribute('aria-label')==='Закрепить: '+panels.toolList().find(t=>t.id===id)?.title)?.focus();}
   function render(){const top=body.scrollTop;body.replaceChildren();panel.querySelector('h3').textContent=active==='places'?'Места мысли':'Мои инструменты';tabs.forEach((b,i)=>{const selected=active===(i?'tools':'places');b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;});body.setAttribute('aria-labelledby','sc-studio-'+active);if(active==='places')renderPlaces();else renderTools();body.scrollTop=top;renderStatus();scene.invalidate();}
   root.addEventListener('pointerdown',e=>{if(busy&&!panel.contains(e.target)){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}},{capture:true});
   root.addEventListener('wheel',e=>{if(!e.target.closest('.sc-panel')){if(busy){cancel();notice='Возвращение прервано вашим действием.';renderStatus();}schedule();}},{passive:true});
@@ -83,6 +77,7 @@ export function createStudio(root,scene,panels,{data:{client},initialRoute,onUse
   window.addEventListener('pagehide',()=>{clearTimeout(timer);saveResume();cancel();});document.addEventListener('visibilitychange',()=>{if(document.hidden)saveResume();});
   refreshIcons();
   return {
+    forgetResume(){storage?.removeItem(RESUME_KEY);autoSave=false;},
     flush(){clearTimeout(timer);saveResume();},
     selectionChanged(){if(!applying&&scene.port.packet!==lastPacket){if(busy)cancel();lastPacket=scene.port.packet;}schedule();},
     async start(){

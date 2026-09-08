@@ -1,0 +1,6 @@
+#sophia-gestures .sc-context-hint{position:absolute;z-index:100;max-width:min(290px,calc(100cqw - 24px));width:max-content;padding:10px 13px;border:1px solid #354356;border-radius:5px;background:#101927f5;color:#d4dce6;box-shadow:0 8px 28px #0005;font:12px/1.65 system-ui,sans-serif;letter-spacing:0;text-align:left;white-space:normal;overflow-wrap:anywhere;pointer-events:auto;user-select:text;cursor:default}
+#sophia-gestures .sc-node-context{font:11px/1.8 system-ui,sans-serif;color:#a7b8cc;margin:12px 0}
+
+#sophia-gestures .sc-node-context summary{cursor:pointer;color:#c4b99e}
+#sophia-gestures .sc-node-context p{font:inherit;color:inherit;margin:8px 0}
+#sophia-gestures button[aria-disabled=true]{opacity:.45}

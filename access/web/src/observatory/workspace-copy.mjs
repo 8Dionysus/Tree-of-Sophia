@@ -1,6 +1,6 @@
 import {createResearchWorkspace} from '../research-workspace';
 import {validatePlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
-import {validateHistory,HISTORY_KEY} from './travel-model.mjs';
+import {compactHistory,HISTORY_KEY} from './travel-model.mjs';
 import {validateInterface,INTERFACE_KEY} from './interface-model.mjs';
 import {validateReading,READING_KEY} from './reading-resume.mjs';
 import {readSaved,SAVED_LENSES_KEY} from './lens-model.mjs';
@@ -16,7 +16,7 @@ export function validateWorkspaceCopy(input){
   if(!Array.isArray(value.lenses))bad();const lenses=readSaved({getItem:()=>JSON.stringify(value.lenses)});
   if(new Set(lenses.map(lens=>lens.name)).size!==lenses.length)bad();
   const research=createResearchWorkspace({persistence:false});research.importPacket(JSON.stringify(value.research));
-  return {schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:validateHistory(value.history),places,lenses,
+  return {schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:compactHistory(value.history),places,lenses,
     resume:value.resume===null?null:validatePlace(value.resume),preferences:validateInterface(value.preferences),reading:validateReading(value.reading),research:JSON.parse(research.exportPacket())};
 }
 export function copyStorageKeys(pathname){return [HISTORY_KEY+':'+pathname,PLACES_KEY,RESUME_KEY,INTERFACE_KEY,READING_KEY+':'+pathname,'tos-research-workspace-v1',SAVED_LENSES_KEY];}
