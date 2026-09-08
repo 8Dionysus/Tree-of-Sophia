@@ -349,6 +349,20 @@ human-only packet formats preserve their history and require an explicit
 assessment adapter. Model subwords and virtual nodes cannot promote themselves to an
 occurrence, lexeme, sense, sign, concept, relation, or graph fact.
 
+`tos_native_text_unit_binding_v1` is an exact return to an existing native unit,
+not another textual subject. It pins packet, layer, selected segmentation,
+unit versions and ordered anchors; byte fixity and canonical assessment-record
+digests remain different. Its bounded resolver can validate metadata without
+opening source text, or explicitly verify the frozen UTF-8 representation.
+The v3 local assessment adapter retains the native unit identity and historical
+packet fields. A separate layer record supplies evidence of the same origin;
+neither adaptation nor exact-byte verification accepts a linguistic boundary.
+Research assessment is recorded separately under
+[KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md), without fabricating an old
+human review or widening access/publication. The executable read scopes and
+currentness limits live in the
+[growth-cycle contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-textunit-return-and-assessment).
+
 TEI, CoNLL-U, Web Annotation, ISO/LAF-family JSON, retrieval chunks, and graph
 forms are status-preserving derived projections. The public-synthetic A/B/C
 laboratory proves only range, digest, reference, coverage, gap, competition,

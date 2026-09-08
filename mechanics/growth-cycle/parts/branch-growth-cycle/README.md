@@ -300,6 +300,98 @@ replay, revocation, protected paths and adversarial requests with synthetic
 review records. No real-language calibration or authenticated remote/model
 execution is inferred from these checks.
 
+### Native TextUnit return and assessment
+
+`tos_local_assessment_owner_v3` preserves the v2 fields and adds exactly
+`native_text_units`: at most 64 explicit `{binding, origin_id, read_scope}`
+selections. `binding` follows
+[`native-text-unit-binding.schema.json`](../../../../ToS/contracts/native-text-unit-binding.schema.json).
+It identifies one frozen native packet and layer by path, native ID/version and
+raw-byte digest, plus one segmentation, unit and ordered anchor sequence. It
+also explicitly selects the Work/Expression/Edition/Item metadata of that
+packet; no corpus search supplies missing dependencies. This adapter is for
+native packet v1 source-bearing units, not synthetic laboratory packets,
+semantic annotation v2, unbound spans, a new TextLayer or a source writer.
+
+| `read_scope` | Read and command boundary |
+| --- | --- |
+| `metadata_only` | Validate native metadata closure; no content read. `describe` and `inspect` only. |
+| `exact_public` | Additionally verify the exact UTF-8 representation, only when current recorded source/layer/packet rights gates allow public content. |
+| `exact_owner_local` | Additionally verify private content under the protected selected unit scope's explicit `access_allowed: true`; no public permission follows. |
+
+Every selected unit requires its own protected subject scope before any native
+text is opened. The scope pins its exact derived record ref, source language,
+selected segmentation maker and either `textual_observation` or
+`linguistic_analysis`. Risk, research use, principal, competence and authority
+retain the existing issuer/engine contract. Read permission alone does not
+qualify a judgment. Each configured native selection must have an exact read
+for `append`; metadata-only layer evidence cannot bypass that restriction by
+being used for another subject. Supporting layers are evidence, not implicitly
+authorized assessment targets. Existing ordinary source-form materialization
+remains separate; a native unit requires its own explicit form adapter.
+
+The read-only `scripts/native_text_binding.py` library provides
+`NativeTextBindingResolver(root).resolve(binding, verify_content=False,
+allow_private_content=False)` and `snapshot()`. It checks exact native schemas,
+selected unit/segmentation membership and anchor order, text-layer ancestry,
+editorial policy and declared maker configuration bytes, source-anchor/file
+identity, Item manifest topology and recorded rights/publication dependencies.
+It never reads the original Item payload, fetches a URL, executes a selector or
+method, reruns OCR, or grants semantic, legal or publication authority.
+Exact mode reads full representation bytes without universal-newline or
+Unicode rewriting, then checks absolute Unicode-code-point half-open anchors,
+span hashes, declared scope, coverage and gaps. Successful return is not proof
+of the original payload, OCR/transcription quality or linguistic correctness.
+
+For protected configuration preparation, the same resolver's
+`assessment_records(binding, origin_id=..., verify_content=...,
+allow_private_content=...)` returns `records` and a text-free `summary`.
+Construct `Record.from_payload(**records[0]).ref` for the pinned unit scope;
+`records[1]` is its distinct native layer evidence. Do not inline either into
+the v3 configuration: `native_text_units` selects them freshly on every call.
+Both carry the issuer's same `origin_id`, not two independent sources.
+The unit retains its native ID/version but its canonical digest describes
+[`tos_native_text_unit_assessment_subject_v1`](../../../../ToS/contracts/native-text-unit-assessment-subject.schema.json):
+the full unchanged packet, immutable binding, canonical layer ref, opaque
+closure fingerprint and content-verification posture. It is neither a new
+authored subject nor a raw packet-file digest. All packet fields survive;
+the complete view must fit the existing 1 MiB Record limit. Metadata and exact
+views deliberately have different assessment targets. Native historical review,
+boundary and segmentation statuses are not rewritten by journal admission.
+
+Each resolver bounds metadata and exact content separately at 8 MiB and 128
+dependencies, with at most 1 MiB per metadata file and 16 predecessor levels.
+A v3 command additionally shares a 16 MiB/128-distinct-file native budget
+across all selections; native and ordinary records together retain the
+existing 1,024-record and engine snapshot limits. Overflow is explicit refusal,
+never partial evidence. These are defensive bounds, not measured UI budgets.
+No directory scan is performed for native-unit resolution. The ordinary v2
+metadata-profile identity check, if selected separately, retains its own
+documented bounded inventory and budget.
+
+`describe` adds `command_context.native_text_units` (unit/layer record refs,
+read posture and original native statuses) and `native_contracts` (public
+schema paths/digests only). It does not return native packet bodies, source
+text, private locators, rights inputs or short-span hashes. Opaque dependency
+fingerprints bind those inputs inside the owner snapshot. This is a local
+owner response, not automatic public-safe export clearance.
+
+For v3 append the journal calls a snapshot guard after acquiring the subject
+lock, before replay/evaluation, and again after writing an immutable blob but
+before publishing the head. The guard rereads exact protected configuration
+bytes, native dependencies and ordinary selected source inputs. A changed
+packet, layer, rights gate, verified content or schema is a refusal. A failed
+late check can retain an unreferenced blob but cannot publish a new history
+head. The issuer must still keep the selected files stable: these checks do
+not create a filesystem transaction or isolate hostile same-UID writers.
+V1/v2 commands preserve their existing snapshot and replay contracts.
+
+Tests in `tests/test_native_text_binding.py` and
+`mechanics/growth-cycle/tests/test_native_text_assessment.py` separate synthetic
+closure/admission checks from real source-visible review. No private native
+packet is made public by this adapter, and no human-only historical record is
+relabeled as an agent act.
+
 ## Human-form materialization
 
 `scripts/human_forms.py` renders the source-owned

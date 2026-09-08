@@ -378,6 +378,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_native_text_binding.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/contracts/native-text-unit-binding.schema.json",
+      "protects": "exact native unit/layer/anchor/source-scope/rights metadata closure, optional byte-exact UTF-8 return with CRLF/NFD and nonzero anchors, no metadata-only content read, explicit private access, fail-closed visibility and identity, immutable input rechecks, dependency budgets and no fabricated historical review; fixtures are synthetic, not linguistic or rights evidence",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_native_text_binding.py",
+      "failure_route": "Fix the native source/binding contracts or resolver; do not replace exact evidence with labels or widen private access to satisfy a test.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_witness_bibliographic_graph.py",
       "home": "tests",
       "home_scope": "root",
@@ -825,6 +840,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/questbook/tests/test_validate_questbook_surface.py",
       "failure_route": "Fix mechanics/questbook source surfaces or validator behavior before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_native_text_assessment.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "mechanics_schema_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "native-ID-preserving exact owner-local assessment with separate same-origin layer evidence, explicit source scope, metadata-only refusal, no raw private native fixity in responses, unchanged native statuses, replay and current revocation, pre-publication dependency rechecks and v1/v2 compatibility; synthetic admission does not prove competence",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_native_text_assessment.py",
+      "failure_route": "Fix the source-owner native assessment adapter or journal guard, without relabeling legacy review or replacing real assessment by validation.",
       "disposition": "keep"
     },
     {

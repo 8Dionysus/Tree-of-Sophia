@@ -131,6 +131,17 @@ source-owned maker/layer and nonpublic-claim restrictions cannot be replaced
 by an inline record. Discovering command context does not grant admission,
 and an unreviewed real source remains unreviewed until qualified assessment.
 
+The native TextUnit adapter adds an explicit exact source return for existing
+packet v1 records. It binds a selected native unit without replacing its ID,
+version or embedded historical review. The assessment digest belongs to a
+versioned derived view of the fixed packet and selected layer dependency,
+not to the raw native unit bytes. A separate layer evidence record retains the
+same source origin; it does not multiply corroboration. Metadata-only reads
+cannot append assessments through this adapter. Exact owner-local reads and
+qualified research admission do not authorize a public projection. See the
+[native command contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-textunit-return-and-assessment)
+for scope discovery, byte rechecks and the unchanged issuer boundary.
+
 The engine enforces the declared relationship and authority invariants. Actual
 agent accuracy, calibrated languages, trusted command binding, existing-corpus
 migration and consumer integration remain separate required evidence in the

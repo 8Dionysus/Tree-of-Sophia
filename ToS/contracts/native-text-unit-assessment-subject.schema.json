@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/native-text-unit-assessment-subject.schema.json",
+  "title": "Versioned owner-local native TextUnit assessment view",
+  "description": "A derived assessment target, never a newly authored subject or public carrier. Record ID/version are selected native unit ID/version; its digest hashes this canonical view, not naked unit or packet bytes. Distinct text-layer evidence has the same origin, not independent corroboration. Content verification proves exact return mechanics, not source quality or semantic admission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "native_binding", "packet", "text_layer", "content_verified", "input_snapshot"],
+  "properties": {
+    "schema_version": {"const": "tos_native_text_unit_assessment_subject_v1"},
+    "native_binding": {"$ref": "https://tree-of-sophia.local/ToS/contracts/native-text-unit-binding.schema.json"},
+    "packet": {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json"},
+    "text_layer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^tos\\.text-layer\\."},
+        "version": {"type": "integer", "minimum": 1},
+        "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    },
+    "content_verified": {"type": "boolean"},
+    "input_snapshot": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+  }
+}

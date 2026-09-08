@@ -23,7 +23,7 @@ import stat
 import sys
 import tempfile
 import time
-from typing import Any, Iterator, Sequence
+from typing import Any, Callable, Iterator, Sequence
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from knowledge_assessment import (
@@ -251,7 +251,8 @@ class AssessmentJournal:
             staging.unlink(missing_ok=True)
 
     def append(self, engine: AssessmentEngine, context: SubjectContext, reviews: Sequence[Submission],
-               *, command_id: str, expected_revision: str | None, now: str) -> dict[str, Any]:
+               *, command_id: str, expected_revision: str | None, now: str,
+               snapshot_guard: Callable[[], None] | None = None) -> dict[str, Any]:
         """Atomically record qualified judgments, including rejections/deferrals.
 
         A successful commit does not mean the assertion was admitted. Replay
@@ -274,6 +275,8 @@ class AssessmentJournal:
         request_digest = _digest(request)
         home = self._home(context.record.id)
         with self._locked(home):
+            if snapshot_guard is not None:
+                snapshot_guard()
             current, chain = self._load(context.record.id)
             history = self._history(chain)
             for old in chain:
@@ -311,6 +314,8 @@ class AssessmentJournal:
                 raise ValueError('batch exceeds bounded journal size')
             revision = hashlib.sha256(payload).hexdigest()
             self._write_blob(home, revision, payload)
+            if snapshot_guard is not None:
+                snapshot_guard()
             self._publish_head(home, revision)
             return {'revision': revision, 'receipt': batch, 'replayed': False, 'current_admission': result}
 
@@ -594,6 +599,8 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
     if subject.ref != subject_ref:
         raise JournalConflict('form binds a different subject snapshot')
     paths = {binding['record_id']: Path(binding['path']) for binding in config['source_records']}
+    if subject.id not in paths or form.id not in paths:
+        raise PermissionError('native evidence needs its own explicit form adapter')
     source_path, form_path = paths[subject.id], paths[form.id]
     expected = (claim_forms_path(source_path, subject.id) if source_path.name == 'source-claims.jsonl'
                 else source_path.with_name(source_path.stem + '.human-forms.json'))
@@ -627,6 +634,85 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
                             engine=engine, trusted_history=history, now=now)
 
 
+def _native_text_records(config):
+    """Explicit owner-local v3 selection, not a corpus crawl or public reader."""
+    scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    from native_text_binding import NativeTextBindingResolver
+    selections, subjects = config['native_text_units'], config['subjects']
+    if not isinstance(selections, list) or len(selections) > 64 or not isinstance(subjects, dict):
+        raise ValueError('native assessment selection exceeds its bounded contract')
+    seen, observed, total = set(), {}, 0
+    # Validate every private-read authorization before opening any native text.
+    for selection in selections:
+        _keys(selection, {'binding', 'origin_id', 'read_scope'})
+        binding = selection['binding']
+        if not isinstance(binding, dict) or not isinstance(binding.get('unit_id'), str):
+            raise ValueError('native assessment binding lacks a unit identity')
+        identifier = binding['unit_id']
+        if identifier in seen:
+            raise ValueError('native assessment selection repeats a unit identity')
+        seen.add(identifier)
+        if (not isinstance(selection['read_scope'], str)
+                or selection['read_scope'] not in {'metadata_only', 'exact_public', 'exact_owner_local'}):
+            raise ValueError('native assessment read scope is unknown')
+        scope = subjects.get(identifier)
+        if not isinstance(scope, dict) or scope.get('access_allowed') is not True:
+            raise PermissionError('native unit is outside the protected owner access scope')
+        _keys(scope, {'record', 'assertion_layer', 'risk', 'languages', 'maker_id',
+                      'requested_use', 'access_allowed'})
+
+    def protected_read(path, limit):
+        nonlocal total
+        if path not in observed and len(observed) >= 128:
+            raise ValueError('native assessment exceeds shared dependency budgets')
+        read_limit = min(limit, 16 * MAX_RECORD_BYTES - total) if path not in observed else limit
+        with os.fdopen(_owned_path(path), 'rb') as stream:
+            before = os.fstat(stream.fileno())
+            raw = stream.read(read_limit + 1)
+            after = os.fstat(stream.fileno())
+        if len(raw) > read_limit:
+            raise ValueError('native assessment exceeds shared dependency budgets')
+        if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+            raise JournalConflict('native assessment dependency changed during read')
+        digest = hashlib.sha256(raw).hexdigest()
+        if path in observed and observed[path] != digest:
+            raise JournalConflict('native assessment dependency changed during command')
+        if path not in observed:
+            total += len(raw)
+            if total > 16 * MAX_RECORD_BYTES:
+                raise ValueError('native assessment exceeds shared dependency budgets')
+            observed[path] = digest
+        return raw
+
+    records, summaries, resolvers, contracts = {}, [], [], {}
+    for selection in selections:
+        resolver = NativeTextBindingResolver(Path(config['source_root']), read_bytes=protected_read)
+        adapted = resolver.assessment_records(selection['binding'], origin_id=selection['origin_id'],
+            verify_content=selection['read_scope'] != 'metadata_only',
+            allow_private_content=selection['read_scope'] == 'exact_owner_local')
+        unit, layer = adapted['records']
+        for row in (unit, layer):
+            if row['id'] in records and records[row['id']] != row:
+                raise ValueError('native assessment repeats an identity with different source or origin')
+            records[row['id']] = row
+        packet = unit['payload']['packet']
+        segment = next(row for row in packet['segmentations']
+                       if row['segmentation_id'] == selection['binding']['segmentation_id'])
+        scope = subjects[unit['id']]
+        if (scope.get('assertion_layer') not in {'textual_observation', 'linguistic_analysis'}
+                or scope.get('maker_id') != segment['maker']['agent_ref']
+                or scope.get('languages') != [adapted['summary']['language']]):
+            raise PermissionError('native assessment scope disagrees with unit layer, language or maker')
+        summaries.append({'record': Record.from_payload(**unit).ref,
+                          'evidence_record': Record.from_payload(**layer).ref,
+                          'read_scope': selection['read_scope'], **adapted['summary']})
+        resolvers.append(resolver)
+        contracts.update(resolver.schema_digests)
+    return list(records.values()), summaries, resolvers, contracts
+
+
 def run_local_command(owner_config: Path, request: dict[str, Any], *,
                       contract_root: Path | None = None) -> dict[str, Any]:
     """Apply one command as the configured local account, never a claimed UID.
@@ -644,19 +730,30 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     config = _json_object(encoded)
     fields = {'schema_version', 'uid', 'principal_id', 'execution_profile',
               'policy', 'authorities', 'competencies', 'records', 'subjects', 'journal_directory'}
-    source_bound = config.get('schema_version') == 'tos_local_assessment_owner_v2'
+    native_bound = config.get('schema_version') == 'tos_local_assessment_owner_v3'
+    source_bound = native_bound or config.get('schema_version') == 'tos_local_assessment_owner_v2'
     if source_bound:
         fields |= {'source_root', 'source_records'}
+    if native_bound:
+        fields.add('native_text_units')
     _keys(config, fields)
-    if (config['schema_version'] not in ('tos_local_assessment_owner_v1', 'tos_local_assessment_owner_v2')
+    if (config['schema_version'] not in ('tos_local_assessment_owner_v1', 'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3')
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
     snapshot = 'sha256:' + _digest(config)
-    sourced, form_sets, identity_snapshots = [], {}, {}
+    sourced, regular_sourced, form_sets, identity_snapshots = [], [], {}, {}
+    native_summaries, native_resolvers, native_contracts, native_records = [], [], {}, []
     if source_bound:
         sourced, fixity = _source_records(Path(config['source_root']), config['source_records'],
                                          form_sets=form_sets, identity_snapshots=identity_snapshots)
+        regular_sourced = list(sourced)
+        if native_bound:
+            native_records, native_summaries, native_resolvers, native_contracts = _native_text_records(config)
+            if {item['id'] for item in sourced} & {item['id'] for item in native_records}:
+                raise ValueError('source records cannot shadow native assessment identities')
+            sourced.extend(native_records)
+            identity_snapshots['native_text_snapshots'] = [resolver.snapshot() for resolver in native_resolvers]
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
                                        'resolved_records': sourced, **identity_snapshots})
     if len(_canonical(request)) > MAX_RECORD_BYTES:
@@ -696,6 +793,9 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     if (not isinstance(subjects, dict) or len(subjects) > MAX_ASSESSMENTS
             or not isinstance(identifier, str) or identifier not in subjects):
         raise PermissionError('subject is outside the configured command scope')
+    if (identifier in {row['id'] for row in native_records}
+            and identifier not in {row['unit_id'] for row in native_summaries}):
+        raise PermissionError('native supporting layer is evidence, not a selected unit assessment target')
     scope = subjects[identifier]
     scope_fields = {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'}
     if source_bound and 'form_language_context' in scope:
@@ -753,10 +853,19 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 result['command_context']['source_records'] = [
                     {'record': record(item).ref, 'path': binding['path'],
                      'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
-                    for item, binding in zip(sourced, config['source_records'], strict=True)]
+                    for item, binding in zip(regular_sourced, config['source_records'], strict=True)]
                 paths = {binding['path'] for binding in config['source_records']}
                 result['command_context']['source_contracts'] = [item for item in fixity if item['path'] not in paths]
+                if native_bound:
+                    result['command_context']['native_text_units'] = native_summaries
+                    result['command_context']['native_contracts'] = [
+                        {'path': path, 'digest': 'sha256:' + digest}
+                        for path, digest in sorted(native_contracts.items())]
+                    if any(not row['content_verified'] for row in native_summaries):
+                        result['command_context']['supported_operations'] = ['describe', 'inspect']
     else:
+        if any(not row['content_verified'] for row in native_summaries):
+            raise PermissionError('native assessment append requires an explicit exact text read')
         execution = config['execution_profile']
         _keys(execution, {'id', 'version', 'digest'})
         executor = engine.records.get(execution['id'])
@@ -771,8 +880,26 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                                               or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
             raise ValueError('invalid assessment batch or expected revision')
         reviews = [Submission(item, config['principal_id'], executor) for item in assessments]
+        def native_snapshot_guard():
+            # A command may have waited for the journal lock. Recheck again
+            # after writing its immutable blob but BEFORE making it history.
+            # Failed publication can retain an orphan; it never deletes history.
+            with os.fdopen(_owned_path(owner_config), 'rb') as stream:
+                current_config = stream.read(len(encoded) + 1)
+            if current_config != encoded:
+                raise JournalConflict('protected native assessment configuration changed')
+            for resolver in native_resolvers:
+                resolver.snapshot()
+            current_identities = {}
+            current_records, current_fixity = _source_records(Path(config['source_root']), config['source_records'],
+                                                              identity_snapshots=current_identities)
+            if (current_records != regular_sourced or current_fixity != fixity
+                    or any(identity_snapshots.get(key) != value for key, value in current_identities.items())
+                    or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots'}):
+                raise JournalConflict('native assessment supporting source snapshot changed')
         result = journal.append(engine, context, reviews, command_id=request['command_id'],
-                                expected_revision=revision, now=now)
+                                expected_revision=revision, now=now,
+                                **({'snapshot_guard': native_snapshot_guard} if native_bound else {}))
     return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
             'authentication': 'local-unix-account', 'result': result}
 
