@@ -214,7 +214,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## github/checks
 
@@ -232,7 +232,7 @@
 ## kag/provider
 
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## legacy/provenance
 
@@ -298,7 +298,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## research
 
@@ -430,7 +430,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## validation/currentness
 

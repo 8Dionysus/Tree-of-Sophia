@@ -74,8 +74,8 @@ class ValidateActiveNamingTests(unittest.TestCase):
     def test_repository_kag_family_is_outside_authored_naming_checks(self) -> None:
         for relative_path in (
             "kag/indexes/index_family.manifest.json",
-            "kag/indexes/shards/source/00.jsonl",
-            "kag/indexes/shards/event/0.jsonl",
+            "kag/indexes/segments/source/00.jsonl",
+            "kag/indexes/segments/event/0.jsonl",
             "kag/receipts/index_family_budget/digest.json",
         ):
             with self.subTest(relative_path=relative_path):

@@ -26,7 +26,7 @@ jobs:
           python-version: "3.12"
 
       - name: Check current canonical KAG owner family
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@d9b00bc456ea95dd8447311331ee83ba51afa023
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@b95446483f25e1f59c732f5c095d4f641a1c9431
         with:
           history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
           event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
@@ -36,6 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
+      AOA_KAG_REVISION: b95446483f25e1f59c732f5c095d4f641a1c9431
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -61,9 +62,20 @@ jobs:
           git -C "$AOA_STATS_ROOT" checkout --quiet --detach FETCH_HEAD
           test "$(git -C "$AOA_STATS_ROOT" rev-parse HEAD)" = "$AOA_STATS_REVISION"
 
+      - name: Fetch pinned aoa-kag provider owner
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+        run: |
+          git init --quiet "$AOA_KAG_ROOT"
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 https://github.com/8Dionysus/aoa-kag.git "$AOA_KAG_REVISION"
+          git -C "$AOA_KAG_ROOT" checkout --quiet --detach FETCH_HEAD
+          test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
+
       - name: Run release audit
         env:
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+          AOA_KAG_REVISION: ${{ env.AOA_KAG_REVISION }}
           # Exact event baseline only. Missing/zero/non-commit inputs fail closed;
           # the owner gate never chooses HEAD^, a branch, or a remote fallback.
           TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || github.event.before }}

@@ -41,6 +41,7 @@ EXCLUDED_FILES = {
     "scripts/validate_active_naming.py",
 }
 GENERATED_KAG_PREFIXES = (
+    Path("kag/indexes/segments"),
     Path("kag/indexes/shards"),
     Path("kag/receipts/index_family_budget"),
 )

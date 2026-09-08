@@ -84,7 +84,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## derived-exports
 
@@ -146,7 +146,10 @@
 - [TOS-D-0041 - TOS-D-0041 Prompt-light agent routes and on-demand validation](../TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md) (`docs/decisions/TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md`)
 - [TOS-D-0042 - TOS-D-0042 Repository-driven Cloudflare edge](../TOS-D-0042-repository-driven-cloudflare-edge.md) (`docs/decisions/TOS-D-0042-repository-driven-cloudflare-edge.md`)
 - [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+
+## docs/route-law
+
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## doctrine
 
@@ -176,6 +179,10 @@
 - [TOS-D-0002 - ToS Source-Home Topology](../TOS-D-0002-tos-source-home-topology.md) (`docs/decisions/TOS-D-0002-tos-source-home-topology.md`)
 - [TOS-D-0009 - Validation Lane Command Authority](../TOS-D-0009-validation-lane-command-authority.md) (`docs/decisions/TOS-D-0009-validation-lane-command-authority.md`)
 
+## generated carrier
+
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+
 ## local KAG provider
 
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
@@ -198,7 +205,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## philosophy
 

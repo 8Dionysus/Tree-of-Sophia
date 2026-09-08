@@ -235,7 +235,7 @@
       "layer": "local-kag-provider",
       "mode": "blocking",
       "owner_surface": "kag/AGENTS.md",
-      "purpose": "Protect the complete ToS KAG provider, source ownership, current source hashes, shard integrity, record counts and family binding.",
+      "purpose": "Protect the complete ToS KAG provider, source ownership, current source hashes, segmented-family integrity, bounded record reads and family binding.",
       "command_sequence": "local_kag_provider",
       "failure_route": "kag/AGENTS.md",
       "does_not_own": [

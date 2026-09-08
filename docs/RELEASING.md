@@ -64,15 +64,14 @@ in the lane manifest, then run it through `python scripts/release_check.py`.
 Repo-local KAG index-family parity is an explicit GitHub gate. TOS-D-0044
 ended the temporary freeze; the blocking `local_kag_provider` lane checks
 source currentness and integrity under [`kag/AGENTS.md`](../kag/AGENTS.md).
-When tracked sources change, regenerate the seven canonical indexes with the
-workflow-pinned `aoa-kag` revision and verify full, incremental and
-family-contract parity before the final PR commit. For a corpus that exceeds
-the v3/v4 materialisation ceiling, the source-owned
-[`kag/provider-pin.json`](../kag/provider-pin.json) selects the explicitly
-versioned segmented family; validate its bounded segments without assembling
-the complete compatibility view. Follow
-[`kag/VALIDATION.md`](../kag/VALIDATION.md); regeneration does not activate a
-downstream runtime or grant semantic or artifact authority.
+The current ToS carrier is the v5 bounded segmented family, selected only by
+the exact `kag/provider_pin.json` checkout. When tracked sources change,
+regenerate its segments with the pinned `aoa-kag` revision and verify full,
+incremental, family-contract, bounded-provider, and compatibility checks before
+the final PR commit. v3/v4 readers remain explicit rollback carriers and are
+never a silent fallback. Follow [`kag/VALIDATION.md`](../kag/VALIDATION.md);
+regeneration does not activate a downstream runtime or grant semantic or
+artifact authority.
 
 After all `Repo Validation` gates pass, the workflow also builds and validates
 the standalone access product and uploads `tree-of-sophia-standalone.zip` with
@@ -93,7 +92,7 @@ task-local reconciliation ledger.
 | Edge | Published provider identity | Current source/CI identity | Exactness rule |
 | --- | --- | --- | --- |
 | `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | segmented provider source snapshot `d9b00bc456ea95dd8447311331ee83ba51afa023`; workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@d9b00bc456ea95dd8447311331ee83ba51afa023`; consumer pin `kag/provider-pin.json` | Keep the published provider body, segmented source snapshot, workflow action, and ToS consumer pin explicit and distinct; `d9b00bc4` is an unreleased/current source pin, not a retagged `v0.5.0`. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider/action source snapshot `b95446483f25e1f59c732f5c095d4f641a1c9431`; `kag/provider_pin.json` and workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@b95446483f25e1f59c732f5c095d4f641a1c9431` | Keep the published provider body, current source/action pin, and segmented consumer adapter explicit and distinct; `b9544648` is an unreleased/current source pin, not a retagged `v0.5.0`. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer

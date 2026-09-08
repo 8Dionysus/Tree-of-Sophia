@@ -30,7 +30,7 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "44737083d14af61d4a69c6e6891b9f700490101e643714306df2304b5812e04f",
+  "manifest_sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
   "owner_ports": [
     {
       "id": "eval_port",
@@ -56,9 +56,9 @@
           "sha256": "272a564ba4b3c2a0abcc962be9b84e8a8dc67dd12d4940bc8fd8d432c360947c"
         },
         {
-          "bytes": 786,
+          "bytes": 502,
           "path": "evals/suites/README.md",
-          "sha256": "26f88bcaeb2e0ec2f595fb3cfd000c737e15b07b13fbaf0b50f95059782b2c16"
+          "sha256": "094496e7f9fc6787385aba6cc5126be9eaf2bccff16837d1cadf273016554476"
         },
         {
           "bytes": 292,
@@ -72,24 +72,34 @@
       "id": "kag_provider",
       "inputs": [
         {
-          "bytes": 2114,
+          "bytes": 2552,
           "path": "kag/AGENTS.md",
-          "sha256": "0e0f806defdee433cfdf9ef4d4ade12c00a3e86590e73ba34382c98dfe75c5d1"
+          "sha256": "54b1f5ae337baef90f1d1e7bee10ae43cb580cbe6ec66f394691d7a7c89d1483"
         },
         {
-          "bytes": 2043,
+          "bytes": 1778,
           "path": "kag/manifest.json",
-          "sha256": "2149a1b5b82eee29728a7927b32c808f33724f274ea7cbfc29caabe4ab074d38"
+          "sha256": "1a8ad98aefbf1cd3202470ae5b3c1789274047dcc839ae91ce3d8a4983f5f081"
         },
         {
-          "bytes": 1156,
-          "path": "kag/provider-pin.json",
-          "sha256": "bde8e127ae1a8ab3f17cbc96d7ab926132ef24eb9053b87918d44ae1a37aa640"
+          "bytes": 1151,
+          "path": "kag/provider_pin.json",
+          "sha256": "b17bcb4e21796a598df68d7485aadd2424edbbe3eee08e2b7195ab45e566dac8"
         },
         {
-          "bytes": 1475,
+          "bytes": 1727,
           "path": "kag/README.md",
-          "sha256": "9d621ab32f18160a24fb5504445233a3aedd0fa1f001d2538acb653e946e7bba"
+          "sha256": "c9e44f9f1fabbac82a0d85239753ff717cdf5eae52ef72fd73fc57be490436dd"
+        },
+        {
+          "bytes": 14474,
+          "path": "scripts/validate_local_kag_provider.py",
+          "sha256": "be307004592e6e53247c2698c955444868b5e406567c53afc66534f37aad35f1"
+        },
+        {
+          "bytes": 9674,
+          "path": "scripts/validate_local_segmented_kag_provider.py",
+          "sha256": "1e10870882b1e6f9de1758e10e73c8bf654a792194f2de84b6c83fa8810d1395"
         },
         {
           "bytes": 1436,

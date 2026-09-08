@@ -132,4 +132,4 @@
 - [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 - [TOS-D-0056 - Claim-scoped reference values](../TOS-D-0056-claim-scoped-reference-values.md) (`docs/decisions/TOS-D-0056-claim-scoped-reference-values.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)

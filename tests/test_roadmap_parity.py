@@ -95,10 +95,10 @@ class RoadmapParityTestCase(unittest.TestCase):
             "`aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57`",
             release_contract,
         )
-        provider_ref = "d9b00bc456ea95dd8447311331ee83ba51afa023"
+        provider_ref = "b95446483f25e1f59c732f5c095d4f641a1c9431"
         action_ref = provider_ref
         self.assertIn(
-            "segmented provider source snapshot `" + provider_ref + "`",
+            "current provider/action source snapshot `" + provider_ref + "`",
             release_contract,
         )
         self.assertIn(
@@ -111,7 +111,7 @@ class RoadmapParityTestCase(unittest.TestCase):
             workflow,
         )
         self.assertFalse((REPO_ROOT / "kag/indexes/hot_profile.json").exists())
-        self.assertNotIn("AOA_KAG_ROOT", workflow)
+        self.assertIn("AOA_KAG_ROOT", workflow)
         self.assertIn("uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@" + action_ref, workflow)
         self.assertIn('needs.kag_owner_family.result', workflow)
         self.assertNotIn("--freeze-only", workflow)

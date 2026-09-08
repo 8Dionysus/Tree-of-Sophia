@@ -34,7 +34,7 @@
 
 ## bounded reads
 
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## canon promotion
 
@@ -108,7 +108,6 @@
 - [TOS-D-0029 - Model-facing skill and owner-port route architecture](../TOS-D-0029-agent-tool-owner-port-documentation-architecture.md) (`docs/decisions/TOS-D-0029-agent-tool-owner-port-documentation-architecture.md`)
 - [TOS-D-0031 - TOS-D-0031 AGENTS route topology and progressive disclosure](../TOS-D-0031-agents-route-topology-and-progressive-disclosure.md) (`docs/decisions/TOS-D-0031-agents-route-topology-and-progressive-disclosure.md`)
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
 
 ## derivation lineage
 
@@ -138,7 +137,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## exact-byte provenance
 
@@ -155,6 +154,10 @@
 ## expression identity
 
 - [TOS-D-0022 - Expression Derivation Is Not Equivalence](../TOS-D-0022-expression-derivation-is-not-equivalence.md) (`docs/decisions/TOS-D-0022-expression-derivation-is-not-equivalence.md`)
+
+## fail-closed rollback
+
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## family coverage
 
@@ -268,10 +271,6 @@
 
 - [TOS-D-0004 - Operational Route Cards](../TOS-D-0004-operational-route-cards.md) (`docs/decisions/TOS-D-0004-operational-route-cards.md`)
 - [TOS-D-0006 - Research Packet Authority Correction](../TOS-D-0006-research-packet-authority-correction.md) (`docs/decisions/TOS-D-0006-research-packet-authority-correction.md`)
-
-## migration rollback
-
-- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
 
 ## naming discipline
 
@@ -461,6 +460,10 @@
 ## source authority
 
 - [TOS-D-0029 - Model-facing skill and owner-port route architecture](../TOS-D-0029-agent-tool-owner-port-documentation-architecture.md) (`docs/decisions/TOS-D-0029-agent-tool-owner-port-documentation-architecture.md`)
+
+## source currentness
+
+- [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
 
 ## source return
 

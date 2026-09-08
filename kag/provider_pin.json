@@ -1,0 +1,30 @@
+{
+  "schema_version": "tos-aoa-kag-segmented-provider-pin-v1",
+  "owner": "Tree-of-Sophia",
+  "provider": {
+    "repository": "8Dionysus/aoa-kag",
+    "revision": "b95446483f25e1f59c732f5c095d4f641a1c9431",
+    "family_schema": "aoa-repo-local-kag-segmented-family-v1",
+    "schema_ref": "aoa-kag:schemas/repo-local-kag-segmented-family.schema.json",
+    "producer": "aoa-kag:scripts/repo_local/segmented_family.py",
+    "builder": "scripts/generate_repo_local_kag_index.py",
+    "validator": "scripts/validate_repo_local_kag_family.py",
+    "reader": "scripts/repo_local/segmented_family.py",
+    "consumer_adapter": "scripts/validate_local_segmented_kag_provider.py"
+  },
+  "selection": {
+    "mode": "explicit_provider_pin",
+    "root_environment": "AOA_KAG_ROOT",
+    "revision_environment": "AOA_KAG_REVISION",
+    "require_clean_checkout": true
+  },
+  "rollback": {
+    "mode": "explicit_dual_read",
+    "selection": "family_digest",
+    "legacy_schemas": [
+      "aoa-repo-local-kag-family-manifest-v3",
+      "aoa-repo-local-kag-distribution-manifest-v1"
+    ],
+    "on_failure": "retain-last-good-manifest-and-do-not-fallback-silently"
+  }
+}

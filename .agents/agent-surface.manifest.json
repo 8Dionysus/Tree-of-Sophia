@@ -211,8 +211,10 @@
       "currentness_inputs": [
         "kag/AGENTS.md",
         "kag/manifest.json",
-        "kag/provider-pin.json",
+        "kag/provider_pin.json",
         "kag/README.md",
+        "scripts/validate_local_kag_provider.py",
+        "scripts/validate_local_segmented_kag_provider.py",
         "kag/indexes/provider_readiness_index.json",
         "kag/nodes/kag_export_capsule.json",
         "kag/nodes/derived_export_route.json",
@@ -224,12 +226,13 @@
       ],
       "generated_family": {
         "manifest": "kag/indexes/index_family.manifest.json",
-        "shards": "kag/indexes/shards/",
+        "segments": "kag/indexes/segments/",
         "receipt_root": "kag/receipts/index_family_budget/",
-        "freshness": "family digest, canonical generator check, family validator, and budget receipt",
+        "freshness": "family digest, canonical generator check, segmented family validator, bounded provider adapter, and budget receipt",
         "currentness_boundary": "separate generated-family carrier; the KAG family indexes this currentness read model, so hashing the raw family here would create a self-index cycle",
         "builder": "aoa-kag:scripts/generate_repo_local_kag_index.py",
-        "validator": "aoa-kag:scripts/validate_repo_local_kag_family.py"
+        "validator": "aoa-kag:scripts/validate_repo_local_kag_family.py",
+        "consumer_adapter": "scripts/validate_local_segmented_kag_provider.py"
       },
       "carrier_classes": [
         "machine_manifest",
