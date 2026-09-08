@@ -497,18 +497,30 @@ The current request must still own the same scene, selection and language
 before the card becomes ready. Loading, damaged or denied delivery clears the
 earlier wording. Ordinary node reads remain isolated to one node.
 
-This supports the existing two-leg Claim path with `claim-supported-by` details.
-New path-detail relation kinds require an explicit compatible owner contract;
-they fail closed here. Visual path collapsing, explicit candidate selection and
-an over-budget recovery endpoint are outside this UI slice. The painter, camera,
-gestures, motion and panel placement retain their existing owners.
+This supports the two-leg Claim path with `claim-supported-by` and
+`claim-value-member` details. The latter requires the normalized
+`semantics.claim.value_member_node_ids` declaration. If that field is present or
+the packet contains a member edge from this Claim, the list must be nonempty,
+contain unique string IDs and have every node present. Exactly one member edge
+must leave this Claim for each declared ID; their target sets must match exactly.
+Every such edge must be included in the path details and reading context, even
+if a malformed path tries to omit it. The client reads no arbitrary
+`object.members` fields or kind labels to infer this set. These structural
+references carry mandatory context and do not establish accepted membership or
+a Sign judgment. Existing atomic, language, revision and budget checks apply to
+the entire closure. Other detail kinds fail closed.
+
+Visual path collapsing, explicit candidate selection and an over-budget recovery
+endpoint are outside this UI slice. The painter, camera, gestures, motion and
+panel placement retain their existing owners.
 
 `fixtures/human-forms.html` provides synthetic full, ambiguous, stale,
 over-budget, damaged-context, delayed and restricted deliveries. Its optional
 preservation probe reports reading references and positions without exporting
 source text. These examples are test data, not ToS knowledge or assessment.
-The `?forms=compact` and `?forms=diagnostic` variants exercise the real inspector
-call path and pair restoration with a role-less diagnostic respectively.
+The `?forms=compact`, `?forms=members` and `?forms=diagnostic` variants exercise
+the real inspector call path, three exact synthetic TextUnit member references,
+and pair restoration with a role-less diagnostic respectively.
 
 This slice passed 149 frontend tests, TypeScript and the Vite build. The access
 lane passed 109 tests in its full run; its remaining schema test passed after
@@ -534,3 +546,13 @@ known/restored relation equality. The application chunk warning remains
 (908.78 kB, 255.86 kB gzip). Full access and release lanes were not repeated for
 this UI-only repair; the affected frontend and real HTTP consumer checks provide
 its bounded validation evidence.
+
+The additive member-context consumer passed 181 frontend tests, TypeScript and
+Vite. Focused checks cover three members, missing nodes/edges, omitted context,
+duplicate or wrong members, absent/empty/malformed declarations, current language
+packets, member record revisions and the unchanged ordinary path. Browser
+fixtures exercise the actual inspector with full RU/EN forms and fail closed
+when the third member node or edge is missing. The application chunk is
+909.27 kB (255.97 kB gzip), retaining the existing warning. Joint real HTTP
+verification of this additive contract waits for the backend source freeze;
+earlier Duden canaries do not establish the new member-context contract.

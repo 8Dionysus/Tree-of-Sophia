@@ -151,9 +151,22 @@ export function claimPathClosure(packet,path){
     requireForm(relation?.from_id===node.id&&relation.to_id===path.node_ids[index===0?0:2]
       &&relation.relation_type_id===['tos.relation.has-subject','tos.relation.has-object'][index]);
   }
+  const memberRelations=[];
   for(const id of path.detail_relation_ids){
     const relation=relations.find(item=>item.id===id);
-    requireForm(relation?.from_id===node.id&&relation.relation_type_id==='tos.relation.claim-supported-by');
+    requireForm(relation?.from_id===node.id&&['tos.relation.claim-supported-by','tos.relation.claim-value-member'].includes(relation.relation_type_id));
+    if(relation.relation_type_id==='tos.relation.claim-value-member')memberRelations.push(relation);
+  }
+  const allMemberRelations=packet.relations.filter(relation=>relation.from_id===node.id&&relation.relation_type_id==='tos.relation.claim-value-member');
+  if(own(claim,'value_member_node_ids')||allMemberRelations.length){
+    const memberIds=claim.value_member_node_ids;
+    // Only the normalized declaration owns the complete reference set. These
+    // structural edges do not establish accepted membership or a Sign judgment.
+    requireForm(strings(memberIds)&&memberIds.length>0&&memberIds.every(Boolean)
+      &&new Set(memberIds).size===memberIds.length&&memberRelations.length===memberIds.length
+      &&memberRelations.length===allMemberRelations.length
+      &&new Set(memberRelations.map(relation=>relation.to_id)).size===memberIds.length
+      &&memberRelations.every(relation=>memberIds.includes(relation.to_id)));
   }
   const nodeIds=[...new Set([...path.node_ids,...relations.flatMap(relation=>[relation.from_id,relation.to_id])])];
   requireForm(nodeIds.every(id=>typeof id==='string'&&packet.nodes.some(item=>item.id===id)));

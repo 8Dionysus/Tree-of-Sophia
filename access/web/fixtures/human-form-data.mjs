@@ -60,3 +60,35 @@ export function compactFormLens(language='ru'){
       vertex_ids:[vertex('fixture:subject'),vertex('fixture:object')],relation_ids:[],claim_paths:[path],
       folded_vertex_ids:[vertex(claim.id),vertex('fixture:evidence')],retained_claims:[]}}};
 }
+
+// Three exact synthetic TextUnit references; structural edges carry context,
+// not accepted membership or a Sign judgment.
+export function memberFormLens(language='ru'){
+  const packet=compactFormLens(language),path=packet.scene.compact.claim_paths[0];
+  const claim=packet.nodes.find(node=>node.id===path.claim_node_id);
+  const members=[1,2,3].map(index=>{
+    const node=formNode('fixture:text-unit:'+index);delete node.human_form_selection;
+    node.entity_id='tos.fixture.text-unit.'+index;node.type_id='tos.entity.text-unit';node.kind_id='text-unit';
+    node.display.title.ru='Проверочный TextUnit '+index;
+    node.source_refs=['UI fixture exact span '+index+'; not a ToS source'];
+    node.attributes={span:{start:(index-1)*10,end:index*10},fixture_only:true};return node;
+  });
+  claim.semantics.claim.value_member_node_ids=members.map(node=>node.id);
+  const vertex=node=>'tos-scene:entity:'+node.entity_id;
+  for(const member of members){
+    const relation={id:'fixture:claim-member:'+member.id,from_id:claim.id,to_id:member.id,
+      relation_type_id:'tos.relation.claim-value-member',content_revision:content,
+      source_refs:['UI fixture; not a ToS source'],display:{label:{ru:'Объявленный участник значения'}},
+      epistemic:{review_posture:'unreviewed',confidence:null}};
+    packet.nodes.push(member);packet.relations.push(relation);
+    packet.scene.vertices.push({id:vertex(member),entity_id:member.entity_id,node_ids:[member.id],representative_node_id:member.id});
+    packet.scene.arcs.push({relation_id:relation.id,from_id:vertex(claim),to_id:vertex(member)});
+    packet.scene.compact.folded_vertex_ids.push(vertex(member));
+    path.detail_relation_ids.push(relation.id);path.reading.relation_context_ids.push(relation.id);
+  }
+  for(const selected of Object.values(claim.human_form_selection.roles))if(selected.packet){
+    selected.packet.context.push({slot:'member-context',binding:{record:selected.packet.subject,pointer:'/claim/value_member_node_ids'},
+      value:{declared_node_ids:[...claim.semantics.claim.value_member_node_ids],accepted_membership:false,sign_judgment:null}});
+  }
+  return packet;
+}

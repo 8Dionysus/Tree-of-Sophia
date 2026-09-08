@@ -1,19 +1,20 @@
 import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
-import {formNode,formLens,compactFormLens,ref} from './human-form-data.mjs';
+import {formNode,formLens,compactFormLens,memberFormLens,ref} from './human-form-data.mjs';
 import {validateReading,readReading,READING_KEY} from '../src/observatory/reading-resume.mjs';
 
 const fixtureMode=new URL(location.href).searchParams.get('forms');
-if(['compact','diagnostic'].includes(fixtureMode))document.querySelector('#forms-mode').value=fixtureMode;
+if(['compact','members','diagnostic'].includes(fixtureMode))document.querySelector('#forms-mode').value=fixtureMode;
 const requests=[];
 const data=createObservatoryData({fetcher:async(url,options={})=>{
   const spec=JSON.parse(options.body||'{}'),mode=document.querySelector('#forms-mode').value,material=['sophia-observatory-material','sophia-observatory-claim-material'].includes(spec.lens_id);
   requests.push({lens:spec.lens_id,language:spec.language});if(requests.length>12)requests.shift();
   if(material&&mode==='slow')await new Promise(resolve=>setTimeout(resolve,spec.language==='ru'?2000:100));
   if(material&&mode==='restricted')return {ok:false,status:403};
-  if(fixtureMode==='compact'){
-    const packet=compactFormLens(spec.language||'ru');
+  if(['compact','members'].includes(fixtureMode)){
+    const packet=(fixtureMode==='members'?memberFormLens:compactFormLens)(spec.language||'ru');
     if(material&&mode==='invalid')packet.relations.pop();
+    if(material&&mode==='missing-node')packet.nodes.pop();
     if(spec.lens_id==='sophia-observatory-material'){
       packet.nodes=packet.nodes.filter(node=>node.id===spec.seed?.focus_node_id);packet.relations=[];delete packet.scene;
       packet.focus=packet.nodes.length?{node_id:packet.nodes[0].id}:null;
@@ -41,7 +42,7 @@ const data=createObservatoryData({fetcher:async(url,options={})=>{
   const packet=formLens(selected);packet.counts={nodes:selected.length,relations:0,matched_nodes:selected.length,truncated_nodes:0,truncated_relations:0};
   return {ok:true,json:async()=>packet};
 }});
-const {root,scene}=mountObservatory({data,initialRoute:fixtureMode==='compact'?'?focus=fixture:subject&selection=fixture:claim':'?focus=fixture:forms:a'});root.dataset.fixture='true';
+const {root,scene}=mountObservatory({data,initialRoute:['compact','members'].includes(fixtureMode)?'?focus=fixture:subject&selection=fixture:claim':'?focus=fixture:forms:a'});root.dataset.fixture='true';
 new ResizeObserver(entries=>document.documentElement.style.setProperty('--fixture-bar-height',entries[0].target.getBoundingClientRect().height+'px')).observe(document.querySelector('.fixture-controls'));
 document.querySelector('#forms-check').addEventListener('click',()=>{
   const output=document.querySelector('#forms-proof');if(!output.hidden){output.hidden=true;return;}output.hidden=false;
