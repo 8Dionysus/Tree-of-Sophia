@@ -180,6 +180,16 @@ class OwnerLocalProfileCommandTests(unittest.TestCase):
         self.assertTrue(self.run_command(self.creation)['replayed'])
         self.assertEqual(self.run_command(self.creation)['receipt'], result['receipt'])
 
+    def test_generic_private_creation_cannot_bypass_sign_promotion(self):
+        self.config.update(profile_type_id='tos.entity.sign', record_id='tos.sign.synthetic-private-bypass',
+                           source_path=self.prefix + 'descriptions/synthetic/sign.json')
+        self.write_owner()
+        with self.assertRaisesRegex(PermissionError, 'explicit promotion adapter'):
+            self.run_command({'operation': 'prepare-create', 'record': {
+                'schema_version': 'tos_sign_description_record_v1', 'record_type': 'sign',
+                'record_id': self.config['record_id'], 'record_version': 1}, 'forms': self.forms})
+        self.assertFalse((self.store / self.config['source_path']).parent.exists())
+
     def test_revision_keeps_exact_original_archive_native_identity_unknowns_and_forms(self):
         created = self.create()
         original = self.files()

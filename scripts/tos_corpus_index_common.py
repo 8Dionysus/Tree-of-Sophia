@@ -571,7 +571,7 @@ def project_text_packet(packet: dict[str, Any], source_ref: str) -> tuple[list[d
         # Only the adapter kind changes; source kind, identity and body remain
         # exact, including lexical_sense's native spelling and admission state.
         kind = entity['entity_kind'].replace('_', '-')
-        if entity['entity_kind'] in {'occurrence', 'lexeme', 'lexical_sense'}:
+        if entity['entity_kind'] in {'occurrence', 'lexeme', 'lexical_sense', 'sign'}:
             kind = 'annotation-' + kind
         identifier = add(entity['entity_id'], kind, record,
                          labels[0]['value'] if labels else None)

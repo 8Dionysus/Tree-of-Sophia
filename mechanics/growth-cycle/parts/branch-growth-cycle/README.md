@@ -26,6 +26,63 @@ adapter or proof of agent competence. Local invariant checks belong to
 
 ## Source-owner journal
 
+### Sign issuance through the shared source command
+
+The existing `source_commands.py --owner-config /absolute/owner.json` entry
+accepts the separately delegated `tos_local_sign_promote_owner_v1` configuration.
+It has the public profile-creation fields (`uid`, `principal_id`, `source_root`,
+`source_path`, `authority_ref`, `allowed_form_ids`, `allowed_operations`,
+`expires_at`, `record_id`, `profile_type_id`, `maker_type`,
+`provenance_event_id`) and exactly two additional owner-selected fields:
+`promotion_assessment_owner_config` (protected absolute configuration path)
+and `promotion_candidate_id` (one concrete Claim ID). `profile_type_id` is
+`tos.entity.sign`; the delegated operation is `sign.promote`, not `source.create`.
+The usual initial source directory, ID, provenance, source-copy form, size,
+same-account and no-replace transaction constraints remain in force.
+
+The selected assessment owner must be public source-bound v2/v3, use the same
+source root, and select a `tos_source_occurrence_motif_claim_v1` Claim with
+`semantic_interpretation` layer. Its scope independently requests
+`sign-promotion` at moderate/high risk and uses authorized, competence-bound
+assessment under the source-owned policy. Exact native reading and all member
+dependencies are required. Inline targets and owner-local v4 configurations
+cannot be used to publish a Sign description through this public adapter.
+This restriction does not grant permission to disclose protected material.
+
+`describe` returns the shared operation/field catalog plus `promotion.eligible`,
+current admission and, when eligible, `promotion.basis`. Copy this exact basis
+into the proposed `tos_sign_description_record_v1` record's `promotion_basis`.
+Use `prepare` for source-copy field selection and `prepare-create` for the
+same record/forms transaction preview. Apply `sign.promote` with
+`command_id`, `record`, `forms`, exact `expected_configuration`,
+`expected_dependencies`, and null `expected_source`/`expected_revision`.
+The caller cannot insert an assessment, scope, clock, grant or owner path into
+the command request. Name/notes forms retain the complete issuance basis and
+limits as required context; their wording is not automatically assessed prose.
+
+The command reevaluates the selected assessment before preparation and again
+at the publication edge, holding the same subject journal lock through final
+evaluation and directory publication. Normal assessment append/withdraw cannot
+interleave between these two steps. Lock order is corpus then journal; busy
+writers return the existing bounded retry signal. External source/configuration
+publishers must keep their owner inputs stable for the command duration, as in
+the other same-account source operations. A changed candidate, dependency, journal, policy or
+grant conflicts or closes the gate. Files, source-copy forms, provenance and
+receipt appear together via the existing no-replace directory publication.
+An exact replay verifies the historical creation, including original bytes
+and retained revisions; it does not reissue the ID or return current admission.
+An old receipt cannot authorize a different target or a second Sign from the
+same candidate. The current source writer delegation still must be valid on
+replay. Revocation does not erase the journal or historical Sign.
+
+The registry marks this profile with an executable `creation_gate`; both
+generic public `source.create` and generic private profile creation refuse it.
+Ordinary descriptive revision cannot edit `promotion_basis`. This first
+transition does not support arbitrary annotation candidates, private Sign
+issuance, identity merges/splits or canon transitions. The exact historical
+candidate is inspectable in source data; a dedicated cross-carrier graph edge
+to its historical version remains separate work, not an implied accepted fact.
+
 `scripts/assessment_journal.py` implements immutable source-owned assessment
 batches and an atomic per-subject head pointer under an explicitly configured
 owner directory. `ToS/contracts/knowledge-assessment-batch.schema.json` owns

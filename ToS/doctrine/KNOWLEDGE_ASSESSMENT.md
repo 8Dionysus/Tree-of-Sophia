@@ -82,6 +82,36 @@ can be researched without pretending that its assertion has been settled.
 
 ## History and withdrawal
 
+### Candidate-to-Sign issuance
+
+`assessment-policy.v2.json` is an additive policy successor. Version 1 and
+existing assessment/grant references remain historical and are not rewritten.
+Its separate `sign-promotion` use judges whether one exact qualified motif
+Claim warrants an independently addressable research Sign. An ordinary
+`research` admission does not authorize issuing that identity. The source
+writer additionally needs an explicit `sign.promote` delegation; a model
+response cannot supply either grant.
+
+Moderate-risk issuance requires a competent reviewer independent of the
+candidate's maker, exact native grounds and counterevidence search. High-risk
+issuance requires two independent reviewer groups. This is not a judgment
+that two pre-existing subjects are identical: one witness can ground its own
+interpretive hypothesis, and copying that witness does not create new origins.
+The stronger identity-equivalence profile is unchanged. The issuer sets risk;
+low-risk scope cannot enter this transition. Agents, humans and mixed reviews
+use the same policy criteria, without a fabricated human event.
+
+The initial adapter accepts a public, source-bound qualified motif Claim,
+not arbitrary annotations or inline model output. Every declared Occurrence
+and its exact native text dependency must be assessed. A Sign's immutable
+`promotion_basis` binds the candidate, policy, qualified assessment refs,
+required source versions and journal snapshot at issuance, with all limits.
+This records a past act, not current `can_use`, truth, canon or publication.
+Later correction, withdrawal or revoked competence invalidates dependent use
+without deleting the Sign ID or editing its birth record. Descriptive fixes
+cannot replace the candidate; a second ID for the same candidate requires an
+explicit lineage route, not another initial issuance.
+
 Assessment events are immutable. Correction creates a new assessment and exact
 supersession links for the same subject. An actor may supersede its own prior
 judgment within its current authority; superseding another actor's decision
@@ -115,6 +145,7 @@ decision boundary, not by the mere fact that knowledge is philosophical.
 - `ToS/contracts/knowledge-assessment-competence.schema.json`
 - `ToS/contracts/knowledge-assessment-batch.schema.json`
 - `ToS/doctrine/semantic-interchange/assessment-policy.v1.json`
+- `ToS/doctrine/semantic-interchange/assessment-policy.v2.json`
 - `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py`
 - `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py`
 

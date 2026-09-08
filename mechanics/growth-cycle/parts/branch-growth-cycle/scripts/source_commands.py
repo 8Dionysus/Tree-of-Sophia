@@ -6,7 +6,7 @@ principal, grant or executable. Access remains read-only.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import ctypes
 from datetime import datetime, timezone
 import errno
@@ -41,6 +41,8 @@ OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
 CREATION_CONFIGS = {'tos_local_historical_create_owner_v1', 'tos_local_historical_create_owner_v2'}
 PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
+SIGN_CONFIG = 'tos_local_sign_promote_owner_v1'
+PROFILE_CREATION_CONFIGS = {PROFILE_CONFIG, SIGN_CONFIG}
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
@@ -98,7 +100,8 @@ def _configuration(path):
         from claim_revisions import configuration
         return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
-    profile_creation = config.get('schema_version') == PROFILE_CONFIG
+    profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
+    sign_promotion = config.get('schema_version') == SIGN_CONFIG
     corpus_creation = config.get('schema_version') == CORPUS_CONFIG
     profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
     revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG}
@@ -108,18 +111,19 @@ def _configuration(path):
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
           | ({'record_id', 'allowed_claim_ids', 'maker_type'} if creation else set())
           | ({'record_id', 'profile_type_id', 'maker_type'} if profile_creation else set())
+          | ({'promotion_assessment_owner_config', 'promotion_candidate_id'} if sign_promotion else set())
           | ({'record_id', 'record_type', 'maker_type'} if corpus_creation else set())
           | ({'record_id', 'allowed_fields'} if revision else set())
           | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, PROFILE_CONFIG, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
             or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
         raise PermissionError('source-command delegation is invalid or expired')
-    operations = ('source.create',) if profile_creation or corpus_creation else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
+    operations = ('sign.promote',) if sign_promotion else ('source.create',) if profile_creation or corpus_creation else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
     for key, allowed in (('allowed_operations', operations), ('allowed_form_ids', None)):
         values = config[key]
         if (not isinstance(values, list) or len(values) > 32
@@ -172,6 +176,16 @@ def _configuration(path):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
     if profile_creation or corpus_creation or profile_revision:
         profile = _configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]
+        if profile_creation:
+            if (profile.get('creation_gate') == 'sign-promotion-v1') != sign_promotion:
+                raise PermissionError('Sign identity requires its separately delegated promotion operation')
+            if sign_promotion:
+                if (config['profile_type_id'] != 'tos.entity.sign'
+                        or not isinstance(config['promotion_candidate_id'], str)
+                        or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', config['promotion_candidate_id'])
+                        or not isinstance(config['promotion_assessment_owner_config'], str)):
+                    raise PermissionError('Sign promotion requires its exact independently selected candidate and assessment owner')
+                os.close(_owned_path(Path(config['promotion_assessment_owner_config'])))
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
                 or not profile_revision and config['maker_type'] not in {'human', 'software', 'model'}
@@ -524,6 +538,94 @@ def _initial_historical_record(config, source):
     return Record.from_payload(source['record_id'], 1, source)
 
 
+def _sign_promotion(config, *, require_ready=True):
+    """Read a current source-bound judgment; never trust a submitted verdict.
+
+    Issuance is separately delegated by SIGN_CONFIG. This public metadata
+    operation cannot consume inline targets or confidential assessment roots.
+    Its small returned basis records the past check, not continuing admission.
+    """
+    from assessment_journal import run_local_command as assessment_command, _source_records
+    owner = Path(config['promotion_assessment_owner_config'])
+    encoded = _read(owner, 8 * MAX_COMMAND_BYTES)
+    assessment_config = _json_object(encoded)
+    root = Path(config['source_root'])
+    if (assessment_config.get('schema_version') not in {'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3'}
+            or assessment_config.get('source_root') != str(root)):
+        raise PermissionError('Sign promotion needs the same public source root and a source-bound assessment owner')
+    candidate_id = config['promotion_candidate_id']
+    selected = [row for row in assessment_config.get('source_records', [])
+                if isinstance(row, dict) and row.get('record_id') == candidate_id]
+    if len(selected) != 1:
+        raise PermissionError('Sign promotion candidate must be one selected authored Claim, not an inline record')
+    # The Claim's typed endpoints and all motif members belong to the same
+    # configured closure. Selecting only its row would discard the grounds
+    # before the shared adapter can validate domain/range and completeness.
+    records, _ = _source_records(root, assessment_config['source_records'])
+    candidate = next((row for row in records if row['id'] == candidate_id), None)
+    body = candidate['payload'] if candidate else {}
+    if (body.get('schema_version') != 'tos_source_occurrence_motif_claim_v1'
+            or body.get('predicate') != 'occurrence_motif_proposal'
+            or body.get('assertion_layer') != 'semantic_interpretation'
+            or body.get('visibility') not in {'public', 'public_metadata_only'}):
+        raise PermissionError('this Sign transition requires an exact qualified public motif Claim')
+    view = assessment_command(owner, {'schema_version': 'tos_local_assessment_command_v1',
+        'operation': 'describe', 'subject_id': candidate_id}, contract_root=root,
+        accepted_owner_versions=frozenset({'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3'}))
+    result = view['result']
+    context, admission = result['command_context'], result['current_admission']
+    expected = Record.from_payload(**candidate).ref
+    if (_read(owner, 8 * MAX_COMMAND_BYTES) != encoded or context['subject'] != expected
+            or admission['subject'] != expected):
+        raise JournalConflict('Sign candidate or assessment owner changed during resolution')
+    if (context['scope']['requested_use'] != 'sign-promotion'
+            or context['scope']['risk'] not in {'moderate', 'high'}
+            or context['scope']['assertion_layer'] != 'semantic_interpretation'):
+        raise PermissionError('research admission or a lowered risk does not delegate Sign promotion')
+    ready = (admission['use'] == 'sign-promotion' and admission['can_use'] is True
+             and admission['status'] in {'admitted', 'admitted-with-limits'}
+             and bool(admission['assessment_refs']) and result['revision'] is not None
+             and bool(context.get('required_sources'))
+             and context.get('source_read', {}).get('ready') is True)
+    basis = None
+    if ready:
+        basis = {'schema_version': 'tos_sign_promotion_basis_v1', 'candidate': expected,
+            'policy': admission['policy'], 'required_sources': context['required_sources'],
+            'assessment_refs': admission['assessment_refs'], 'owner_snapshot': view['owner_snapshot'],
+            'journal_revision': result['revision'], 'status': admission['status'],
+            'use': 'sign-promotion', 'limits': admission['limits'], 'grants_current_use': False}
+    elif require_ready:
+        raise PermissionError('Sign promotion lacks current qualified assessment and exact source reading')
+    return {'eligible': ready, 'basis': basis, 'current_admission': admission,
+            'grants_issuance_authority': False}
+
+
+@contextmanager
+def _sign_promotion_lock(config):
+    """Serialize final current judgment -> issuance with normal journal writes.
+
+    Lock order is corpus creation then the selected assessment subject. The
+    assessment journal does not acquire the corpus lock. A later withdrawal
+    remains valid history, but cannot precede issuance after its final check.
+    External configuration/source publishers retain their ordinary obligation
+    to keep owner inputs stable during the operation (same-UID trust boundary).
+    """
+    from assessment_journal import AssessmentJournal
+    owner = Path(config['promotion_assessment_owner_config'])
+    encoded = _read(owner, 8 * MAX_COMMAND_BYTES)
+    selected = _json_object(encoded)
+    if (selected.get('schema_version') not in {'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3'}
+            or selected.get('source_root') != config['source_root']):
+        raise PermissionError('Sign publication requires the same public assessment owner')
+    directory = Path(selected['journal_directory'])
+    os.close(_owned_path(directory, directory=True))
+    journal = AssessmentJournal(directory, contract_root=Path(config['source_root']), protected_storage=True)
+    with journal._locked(journal._home(config['promotion_candidate_id'])):
+        if _read(owner, 8 * MAX_COMMAND_BYTES) != encoded:
+            raise JournalConflict('Sign assessment owner changed while waiting for its journal')
+        yield
+
+
 def _initial_source_record(config, source, profiles=None):
     if config['schema_version'] == CORPUS_CONFIG:
         profile = _configured_corpus_profile(config)
@@ -551,9 +653,14 @@ def _initial_source_record(config, source, profiles=None):
                        for value in source.get(key, []))):
             raise PermissionError('native creation requires a provisional standalone identity without accepted attributions')
         return Record.from_payload(source['record_id'], 1, source)
-    if config['schema_version'] != PROFILE_CONFIG:
+    if config['schema_version'] not in PROFILE_CREATION_CONFIGS:
         return _initial_historical_record(config, source)
     profiles, profile = _configured_profile(config, profiles)
+    if profile.get('creation_gate'):
+        if config['schema_version'] != SIGN_CONFIG or profile['creation_gate'] != 'sign-promotion-v1':
+            raise PermissionError('this source profile requires its explicit creation gate')
+        if _canonical(source.get('promotion_basis')) != _canonical(_sign_promotion(config)['basis']):
+            raise JournalConflict('Sign description must retain the exact current promotion basis')
     profiles.validate(profile['record_type'], source)
     if (source['record_id'] != config['record_id'] or source['record_version'] != 1
             or source.get('supersedes_ref') is not None or source['identity_status'] != 'provisional'
@@ -586,6 +693,11 @@ def _prepare_creation(config, request):
     objects = {row['record_id']: row for rows in records.values() for row in rows}
     if source['record_id'] in objects:
         raise JournalConflict('subject identity already exists in authored sources')
+    if config['schema_version'] == SIGN_CONFIG:
+        for row in records.get('sign', []):
+            prior = profiles.load('sign', row['source_record_ref'])
+            if prior['promotion_basis']['candidate']['id'] == config['promotion_candidate_id']:
+                raise JournalConflict('candidate already has a Sign identity; revision or explicit lineage is required')
     form_inputs = {}
     new_form_ids = {selection['form_id'] for selection in selections}
     adjacent_forms = set()
@@ -676,6 +788,9 @@ def _prepare_creation(config, request):
         'native_semantic_identity_snapshot': profiles.native_identity_snapshot(read_bytes=_read),
         'native_text_binding_snapshot': profiles.native_text_snapshot(read_bytes=_read),
         'source_claim_profiles': claim_profile_inputs,
+        **({'promotion_implementation': _digest(_read(ROOT /
+            'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py', MAX_SET_BYTES))}
+           if config['schema_version'] == SIGN_CONFIG else {}),
         'provenance_contract': provenance_contract,
         'events': events, 'anchors': anchors, 'evidence': evidence, 'forms': form_inputs,
         'contracts': {ref: _digest(_read(root / ref, MAX_SET_BYTES)) for ref in (
@@ -934,9 +1049,9 @@ def _creation_replay(config, source_path, request, receipt):
 
 
 def _create_source(owner_config, config, configuration, source_path, request):
-    profile_creation = config['schema_version'] in {PROFILE_CONFIG, CORPUS_CONFIG}
+    profile_creation = config['schema_version'] in {*PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}
     corpus_creation = config['schema_version'] == CORPUS_CONFIG
-    creation_operation = 'source.create' if profile_creation else CREATION_OPERATION
+    creation_operation = 'sign.promote' if config['schema_version'] == SIGN_CONFIG else 'source.create' if profile_creation else CREATION_OPERATION
     claim_fields = set() if profile_creation else {'claims'}
     fields = {'schema_version', 'operation'}
     if request.get('operation') == creation_operation:
@@ -970,7 +1085,10 @@ def _create_source(owner_config, config, configuration, source_path, request):
             'creation_provenance_event_id': config.get('provenance_event_id'),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False}
     if request['operation'] == 'describe':
-        return result()
+        response = result()
+        if config['schema_version'] == SIGN_CONFIG:
+            response['promotion'] = _sign_promotion(config, require_ready=False)
+        return response
     if creation_operation not in config['allowed_operations']:
         raise PermissionError('source creation is not delegated')
     if request['operation'] == 'prepare':
@@ -1018,7 +1136,8 @@ def _create_source(owner_config, config, configuration, source_path, request):
             raise JournalConflict('prepared creation dependencies are stale')
         if config.get('provenance_event_id'):
             _capture_creation_provenance(config, request, files, started_at, started_ns,
-                procedure_name='source-corpus-metadata-serialization' if corpus_creation else None)
+                procedure_name='sign-promoted-identity-serialization' if config['schema_version'] == SIGN_CONFIG
+                else 'source-corpus-metadata-serialization' if corpus_creation else None)
         receipt = {'schema_version': ('tos_local_source_create_receipt_v1' if profile_creation else 'tos_local_historical_create_receipt_v1'),
             'command_id': request['command_id'], 'request_digest': request_digest,
             'principal_id': config['principal_id'], 'authority_ref': config['authority_ref'],
@@ -1033,10 +1152,11 @@ def _create_source(owner_config, config, configuration, source_path, request):
         try:
             for name, raw in files.items():
                 _publish(staging / name, raw)
-            current_dependencies = _prepare_creation(config, request)[2]
-            if (_configuration(owner_config)[1] != configuration or current_dependencies != dependencies):
-                raise JournalConflict('creation configuration or source dependencies changed')
-            _publish_new_directory(staging, target)
+            with _sign_promotion_lock(config) if config['schema_version'] == SIGN_CONFIG else nullcontext():
+                current_dependencies = _prepare_creation(config, request)[2]
+                if (_configuration(owner_config)[1] != configuration or current_dependencies != dependencies):
+                    raise JournalConflict('creation configuration or source dependencies changed')
+                _publish_new_directory(staging, target)
         finally:
             if staging.exists():
                 # Exact private staging directory and only this call's files.
@@ -1067,7 +1187,7 @@ def run_local_command(owner_config: Path, request: dict):
     if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_REFERENCE_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
         from claim_revisions import run_command
         return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:
+    if config['schema_version'] in {*CREATION_CONFIGS, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG}:
         from source_revisions import run_revision

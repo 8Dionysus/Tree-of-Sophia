@@ -238,6 +238,10 @@ def metadata_field_catalog(source: dict) -> list[dict]:
                     ('metadata.preferred-name', 'metadata.source-note'), ('name', 'hover'))]
     context = ['/' + key for key in ('identity_status', 'same_as_posture', 'semantic_scope', 'semantic_content',
                                    'form_identity', 'native_text_binding') if key in source]
+    if source.get('record_type') == 'sign':
+        # Birth evidence and limits travel with every source-copy wording.
+        # They never supply this HumanForm's current semantic admission.
+        context.append('/promotion_basis')
     declarations = source.get('field_languages', {})
     if not _field_language_validator().is_valid(declarations):
         raise ValueError('source field-language declarations violate the source contract')

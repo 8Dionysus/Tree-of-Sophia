@@ -241,6 +241,261 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         f.save()
         return f
 
+    def promotion_fixture(self, *, high=False):
+        from datetime import datetime
+        clock_patch = patch('assessment_journal.datetime')
+        clock = clock_patch.start()
+        self.addCleanup(clock_patch.stop)
+        clock.now.return_value = datetime.fromisoformat('2026-09-05T12:00:00+00:00')
+        f = self.motif_fixture()
+        policy = Record.from_payload('tos.policy.knowledge-assessment', 2,
+            json.loads((ROOT / 'ToS/doctrine/semantic-interchange/assessment-policy.v2.json').read_text()))
+        f.config['policy'] = {'id': policy.id, 'version': policy.version,
+                             'payload': policy.payload, 'origin_id': None}
+        f.policy.policy = policy
+        f.scope.update(requested_use='sign-promotion', risk='high' if high else 'moderate')
+        for index, row in enumerate(f.config['competencies']):
+            row['payload']['profile_ids'].extend(['sign-promotion', 'sign-promotion-high'])
+            authority = f.config['authorities'][index]['payload']
+            authority.update(policy=policy.ref, uses=['research', 'sign-promotion'],
+                competence_refs=[Record.from_payload(**row).ref])
+            authority['profile_ids'].extend(['sign-promotion', 'sign-promotion-high'])
+        f.save()
+        f.promotion_config = {'source_root': str(f.root), 'promotion_candidate_id': f.identifier,
+                             'promotion_assessment_owner_config': str(f.owner)}
+        request = self.claim_request(f)
+        request['assessments'][0].update(policy=policy.ref,
+            profile_id='sign-promotion-high' if high else 'sign-promotion')
+        return f, request
+
+    def test_sign_promotion_is_a_separate_current_agent_use_with_exact_grounding(self):
+        from source_commands import _sign_promotion
+        f, request = self.promotion_fixture()
+        self.assertFalse(_sign_promotion(f.promotion_config, require_ready=False)['eligible'])
+        with self.assertRaises(PermissionError):
+            _sign_promotion(f.promotion_config)
+        native_before = (f.root / f.native.packet_ref).read_bytes()
+        result = f.run(request)
+        view = _sign_promotion(f.promotion_config)
+        basis = view['basis']
+        self.assertTrue(view['eligible'])
+        self.assertEqual(basis['candidate'], f.claim.ref)
+        self.assertEqual(basis['required_sources'], f.required)
+        self.assertEqual(basis['journal_revision'], result['result']['revision'])
+        self.assertEqual(basis['use'], 'sign-promotion')
+        self.assertFalse(basis['grants_current_use'])
+        self.assertFalse(view['grants_issuance_authority'])
+        self.assertEqual(view['current_admission']['reviewer_kinds'], ['agent'])
+        self.assertEqual(native_before, (f.root / f.native.packet_ref).read_bytes())
+        self.assertEqual(f.claim.payload['review_status'], 'unreviewed')
+        self.assertNotIn(str(f.owner), json.dumps(basis))
+
+    def test_research_or_lowered_risk_does_not_authorize_sign_issuance(self):
+        from source_commands import _sign_promotion
+        f = self.motif_fixture()
+        f.run(self.claim_request(f))
+        config = {'source_root': str(f.root), 'promotion_candidate_id': f.identifier,
+                  'promotion_assessment_owner_config': str(f.owner)}
+        with self.assertRaisesRegex(PermissionError, 'research admission'):
+            _sign_promotion(config)
+        f, request = self.promotion_fixture()
+        f.scope['risk'] = 'low'
+        f.save()
+        with self.assertRaisesRegex(PermissionError, 'lowered risk'):
+            _sign_promotion(f.promotion_config)
+
+    def test_sign_promotion_keeps_limits_and_closes_on_revocation_or_metadata_only(self):
+        from source_commands import _sign_promotion
+        f, request = self.promotion_fixture()
+        request['assessments'][0].update(decision='admit-with-limits',
+            limits=['Only this exact synthetic candidate; no universal sign inventory.'])
+        result = f.run(request)
+        basis = _sign_promotion(f.promotion_config)['basis']
+        self.assertEqual(basis['status'], 'admitted-with-limits')
+        self.assertEqual(basis['limits'], request['assessments'][0]['limits'])
+        authority = f.config['authorities'][0]
+        authority['version'] += 1
+        authority['payload'].update(authority_version=authority['version'], state='revoked')
+        f.save()
+        self.assertFalse(_sign_promotion(f.promotion_config, require_ready=False)['eligible'])
+        with self.assertRaises(PermissionError):
+            _sign_promotion(f.promotion_config)
+        self.assertTrue(result['result']['receipt']['admission_at_commit']['can_use'])
+        self.assertEqual(AssessmentJournal(Path(f.config['journal_directory']))._load(f.identifier)[0],
+                         result['result']['revision'])
+        f, request = self.promotion_fixture()
+        f.run(request)
+        for selection in f.config['native_text_units']:
+            selection['read_scope'] = 'metadata_only'
+        # Rebound native evidence changes its digest. Both source reading and
+        # exact evidence stay false; an earlier positive vote cannot repair it.
+        f.save()
+        self.assertFalse(_sign_promotion(f.promotion_config, require_ready=False)['eligible'])
+
+    def test_consequential_sign_promotion_needs_independent_reviewers_not_source_copies(self):
+        from source_commands import _sign_promotion
+        f, request = self.promotion_fixture(high=True)
+        first = f.run(request)
+        self.assertFalse(_sign_promotion(f.promotion_config, require_ready=False)['eligible'])
+        second = copy.deepcopy(request['assessments'][0])
+        actor = f.config['authorities'][1]['payload']['actor_id']
+        second.update(assessment_id='tos.review.synthetic-sign-second',
+            authority=Record.from_payload(**f.config['authorities'][1]).ref,
+            competence=Record.from_payload(**f.config['competencies'][1]).ref,
+            reviewer={'actor_id': actor, 'kind': 'agent'})
+        f.config['principal_id'] = actor
+        f.save()
+        request.update(command_id='synthetic-sign-second', assessments=[second],
+            expected_snapshot=f.describe()['owner_snapshot'], expected_revision=first['result']['revision'])
+        f.run(request)
+        self.assertTrue(_sign_promotion(f.promotion_config)['eligible'])
+        self.assertEqual({row['origin_id'] for row in f.config['source_records']}, {ORIGIN})
+        # Two account labels cannot manufacture independent reviewer groups.
+        first_group = f.config['authorities'][0]['payload']['independence_group']
+        authority = f.config['authorities'][1]
+        authority['version'] += 1
+        authority['payload'].update(authority_version=authority['version'], independence_group=first_group)
+        f.save()
+        described = f.describe()
+        same_group = copy.deepcopy(second)
+        same_group.update(assessment_id='tos.review.synthetic-sign-same-group',
+            authority=Record.from_payload(**authority).ref,
+            supersedes=[Record.from_payload(second['assessment_id'], 1, second).ref])
+        request.update(command_id='synthetic-sign-same-group', assessments=[same_group],
+            expected_snapshot=described['owner_snapshot'], expected_revision=described['result']['revision'])
+        f.run(request)
+        view = _sign_promotion(f.promotion_config, require_ready=False)
+        self.assertFalse(view['eligible'])
+        self.assertEqual(view['current_admission']['status'], 'deferred')
+        self.assertIn(same_group['assessment_id'], {ref['id'] for ref in view['current_admission']['assessment_refs']})
+
+    def test_sign_promotion_rejects_inline_candidate_and_confidential_owner_before_read(self):
+        from source_commands import _sign_promotion
+        f, request = self.promotion_fixture()
+        f.config['source_records'] = [row for row in f.config['source_records'] if row['record_id'] != f.identifier]
+        f.config['records'].append({'id': f.subject.id, 'version': f.subject.version,
+            'payload': f.subject.payload, 'origin_id': ORIGIN})
+        f.save()
+        with self.assertRaisesRegex(PermissionError, 'not an inline record'):
+            _sign_promotion(f.promotion_config)
+        f.config['schema_version'] = 'tos_local_assessment_owner_v4'
+        f.save()
+        with self.assertRaisesRegex(PermissionError, 'public source root'):
+            _sign_promotion(f.promotion_config)
+
+    def sign_command_fixture(self):
+        import os
+        import source_commands as commands
+        f, review = self.promotion_fixture()
+        f.run(review)
+        config = {'schema_version': commands.SIGN_CONFIG, 'uid': os.getuid(),
+            'principal_id': 'software:synthetic-sign-writer', 'source_root': str(f.root),
+            'source_path': 'ToS/source-witnesses/signs/synthetic-one/sign.json',
+            'authority_ref': 'fixture:separate-operator-sign-issuance-grant',
+            'allowed_form_ids': ['tos.form.synthetic-sign.name', 'tos.form.synthetic-sign.note'],
+            'allowed_operations': ['sign.promote'], 'expires_at': '2099-01-01T00:00:00Z',
+            'record_id': 'tos.sign.synthetic-one', 'profile_type_id': 'tos.entity.sign',
+            'maker_type': 'software', 'provenance_event_id': 'tos.event.synthetic-sign-issuance',
+            **{key: value for key, value in f.promotion_config.items() if key != 'source_root'}}
+        (f.root / 'ToS/source-witnesses/signs').mkdir()
+        owner = f.owner.parent / 'sign-owner.json'
+        owner.write_text(json.dumps(config)); owner.chmod(0o600)
+        described = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+        body = {'schema_version': 'tos_sign_description_record_v1', 'record_type': 'sign',
+            'record_id': config['record_id'], 'record_version': 1, 'preferred_label': 'Условный знак',
+            'notes': 'Synthetic Sign of the exact candidate, not historical or linguistic evidence.',
+            'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                'notes': {'language': 'en', 'script': 'Latn'}},
+            'identity_status': 'provisional', 'source_refs': [f.claim_path],
+            'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim',
+            'visibility': 'public_metadata_only', 'promotion_basis': described['promotion']['basis']}
+        preview_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+            'record': body, 'forms': [
+                {'form_id': config['allowed_form_ids'][0], 'field_id': 'metadata.preferred-name'},
+                {'form_id': config['allowed_form_ids'][1], 'field_id': 'metadata.source-note'}]}
+        prepared = commands.run_local_command(owner, preview_request)
+        request = {**preview_request, 'operation': 'sign.promote', 'command_id': 'synthetic-sign-once',
+            'expected_configuration': described['owner_configuration'], 'expected_source': None,
+            'expected_revision': None, 'expected_dependencies': prepared['expected_dependencies']}
+        return f, owner, config, request
+
+    def test_sign_command_issues_atomically_replays_history_and_refuses_generic_or_duplicate_issuance(self):
+        import source_commands as commands
+        f, owner, config, request = self.sign_command_fixture()
+        before = (f.root / f.native.packet_ref).read_bytes()
+        publish = commands._publish_new_directory
+        checked = []
+        def checked_publish(staging, target):
+            # A normal append/withdraw uses this same independent lock handle.
+            # It must be unable to publish a head between final check and rename.
+            journal = AssessmentJournal(Path(f.config['journal_directory']), lock_timeout_seconds=0,
+                                        protected_storage=True)
+            with self.assertRaises(commands.JournalBusy):
+                with journal._locked(journal._home(f.identifier)):
+                    self.fail('assessment writer interleaved at Sign publication')
+            checked.append(True)
+            publish(staging, target)
+        with patch.object(commands, '_publish_new_directory', checked_publish):
+            result = commands.run_local_command(owner, request)
+        self.assertEqual(checked, [True])
+        self.assertFalse(result['grants_admission'])
+        self.assertEqual(result['supported_operations'], ['sign.promote'])
+        path = f.root / config['source_path']
+        body = json.loads(path.read_bytes())
+        self.assertEqual(body, request['record'])
+        self.assertEqual(before, (f.root / f.native.packet_ref).read_bytes())
+        replay = commands.run_local_command(owner, request)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['receipt'], result['receipt'])
+        forms = json.loads(path.with_name('sign.human-forms.json').read_bytes())
+        self.assertTrue(all(any(binding['pointer'] == '/promotion_basis' for binding in form['bindings'].values())
+                            for form in forms['forms']))
+        generic = {key: value for key, value in config.items() if not key.startswith('promotion_')}
+        generic.update(schema_version=commands.PROFILE_CONFIG, allowed_operations=['source.create'])
+        owner.write_text(json.dumps(generic))
+        with self.assertRaisesRegex(PermissionError, 'separately delegated'):
+            commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+        config.update(record_id='tos.sign.synthetic-duplicate',
+            source_path='ToS/source-witnesses/signs/synthetic-duplicate/sign.json')
+        owner.write_text(json.dumps(config))
+        with self.assertRaisesRegex(JournalConflict, 'candidate already has a Sign'):
+            commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'record': {**body, 'record_id': config['record_id']}, 'forms': request['forms']})
+
+    def test_sign_command_refuses_withdrawn_basis_at_final_publish_without_losing_history(self):
+        import source_commands as commands
+        f, owner, config, request = self.sign_command_fixture()
+        target = f.root / config['source_path']
+        forged = copy.deepcopy(request)
+        forged['record']['promotion_basis']['candidate']['digest'] = 'sha256:' + '0' * 64
+        with self.assertRaisesRegex(JournalConflict, 'exact current promotion basis'):
+            commands.run_local_command(owner, forged)
+        aliased = copy.deepcopy(request)
+        aliased['record']['promotion_basis']['candidate']['version'] = float(
+            aliased['record']['promotion_basis']['candidate']['version'])
+        with self.assertRaisesRegex(JournalConflict, 'exact current promotion basis'):
+            commands.run_local_command(owner, aliased)
+        with self.assertRaises(ValueError):
+            commands.run_local_command(owner, {**request, 'assessments': [{'decision': 'admit'}]})
+        self.assertFalse(target.parent.exists())
+        original_publish = commands._publish
+        changed = False
+        def revoke_after_staging(path, encoded):
+            nonlocal changed
+            original_publish(path, encoded)
+            if path.name == 'source-create-receipt.json' and not changed:
+                changed = True
+                authority = f.config['authorities'][0]
+                authority['version'] += 1
+                authority['payload'].update(authority_version=authority['version'], state='revoked')
+                f.save()
+        with patch.object(commands, '_publish', revoke_after_staging), self.assertRaises(PermissionError):
+            commands.run_local_command(owner, request)
+        self.assertTrue(changed)
+        self.assertFalse(target.parent.exists())
+        self.assertEqual(list((f.root / 'ToS').glob('.source-create-*.pending')), [])
+        self.assertTrue(f.head_paths())
+
     def test_motif_claim_and_form_assessment_require_every_member_and_native_ground(self):
         for form in (False, True):
             with self.subTest(form=form):

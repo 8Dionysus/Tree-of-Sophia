@@ -891,9 +891,44 @@ The initial motif profile allows two to eight members within the existing
 bounded native reader. That is a disclosed first execution limit, not a
 philosophical maximum or completion of large-corpus motif discovery. Larger
 sets need an explicit bounded continuation/storage contract; truncation must
-not masquerade as a complete hypothesis. Sign promotion, real competence and
-the historical or philosophical merit of a motif remain separate work.
+not masquerade as a complete hypothesis. Sign issuance has the separate bounded
+route below; real competence and the historical or philosophical merit of a
+motif are not established by these mechanics.
 The rationale is [TOS-D-0056](../../../docs/decisions/TOS-D-0056-claim-scoped-reference-values.md).
+
+## Sign after a qualified candidate
+
+An authored `tos.entity.sign` uses `tos_sign_description_record_v1` in
+`sign.json`, read by the common semantic metadata profile into the source
+catalog, graph, focus, inspection and source-copy forms. Its identity belongs
+to one exact concrete candidate, not its editable name or a universal reading.
+Its immutable `promotion_basis` retains the Claim version/digest, policy,
+assessment references, full source closure, journal snapshot and limitations.
+This is historical issuance evidence with `grants_current_use: false`.
+Description corrections do not change that basis or repair withdrawn judgment.
+
+The [Sign command](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#sign-issuance-through-the-shared-source-command)
+executes the doctrine's candidate-before-Sign rule. It accepts a qualified
+public motif Claim under separately delegated `sign.promote`, exact native
+reading and fresh competence-scoped assessment for `sign-promotion` use.
+The registry's `creation_gate` prevents generic public or private creation
+from minting Sign IDs. Research admission alone is insufficient; identity
+issuance is neither identity equivalence nor canon. Policy v2 and existing
+source/journal locks preserve scope, independent review and atomicity.
+
+An existing native semantic-annotation-v2 `sign` remains its own source-owned
+record and ID, now exposed through `tos.entity.annotation-sign`; the adapter
+does not invent a new description or turn a historical human review into an
+agent act. Native IDs stay reserved against authored-profile collisions.
+Both human forms and technical inspection preserve limits and the original
+issuance context. Current use still needs its own fresh judgment.
+
+The first command supports qualified motif Claims, not arbitrary annotations
+or private Sign issuance. Its synthetic source/command tests are not a real
+competence or historical-sign result. The exact historical candidate remains
+in the source record; cross-carrier traversal to that historical version is
+not yet emitted as a graph edge. This limitation must not be hidden by a direct
+fact edge or by silently attaching the current, possibly revised candidate.
 
 ## Independent genre, content form, medium and file format
 

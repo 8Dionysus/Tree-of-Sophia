@@ -429,6 +429,8 @@ def _result(config, configuration_digest, path, *, state=None, receipt=None, rep
 
 
 def _prepare_create(config, context, path, request, *, exclude=None):
+    if _profiles(config, context)[1].get('creation_gate'):
+        raise PermissionError('this profile requires its explicit promotion adapter, not generic private source creation')
     record = request['record']
     if (not isinstance(record, dict) or record.get('record_id') != config['record_id']
             or record.get('record_version') != 1 or record.get('identity_status') != 'provisional'

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/sign-description-record.schema.json",
+  "title": "Source-described Sign with its exact historical promotion basis",
+  "description": "The identity issued for one exact concrete candidate after source-visible competent assessment. The immutable issuance basis is historical evidence, not current admission, canon, publication permission or a definition of every possible meaning. This record does not replace native semantic-annotation v2 signs.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {
+      "required": ["notes", "field_languages", "promotion_basis"],
+      "properties": {
+        "schema_version": {"const": "tos_sign_description_record_v1"},
+        "record_type": {"const": "sign"},
+        "record_id": {"pattern": "^tos\\.sign\\."},
+        "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.sign\\."},
+        "notes": {"type": "string", "pattern": "\\S", "description": "Substantive account of this concrete Sign, its limits and uncertainty; wording remains subject to source-visible assessment."},
+        "field_languages": {"required": ["preferred_label", "notes"]},
+        "promotion_basis": {"$ref": "#/$defs/promotionBasis"}
+      }
+    }
+  ],
+  "$defs": {
+    "promotionBasis": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Immutable birth record bound by the promotion command to its fresh trusted assessment. Schema validity alone proves neither assessment competence nor authorized issuance. Later source or assessment changes do not rewrite this history and require current assessment for each later use.",
+      "required": ["schema_version", "candidate", "policy", "required_sources", "assessment_refs", "owner_snapshot", "journal_revision", "status", "use", "limits", "grants_current_use"],
+      "properties": {
+        "schema_version": {"const": "tos_sign_promotion_basis_v1"},
+        "candidate": {
+          "allOf": [
+            {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"},
+            {"properties": {"id": {"pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}}}
+          ]
+        },
+        "policy": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"},
+        "required_sources": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"}},
+        "assessment_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"}},
+        "owner_snapshot": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "journal_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "status": {"enum": ["admitted", "admitted-with-limits"]},
+        "use": {"const": "sign-promotion"},
+        "limits": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "\\S"}},
+        "grants_current_use": {"const": false}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "admitted-with-limits"}}}, "then": {"properties": {"limits": {"minItems": 1}}}},
+        {"if": {"properties": {"status": {"const": "admitted"}}}, "then": {"properties": {"limits": {"maxItems": 0}}}}
+      ]
+    }
+  },
+  "unevaluatedProperties": false
+}

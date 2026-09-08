@@ -155,6 +155,12 @@ class SourceRecordProfiles:
             if not validator.is_valid(profile):
                 raise SourceProfileError('source-record profile violates its declared contract')
             kind = profile['record_type']
+            authored_sign = (kind == 'sign' and entry['type_id'] == 'tos.entity.sign'
+                             and profile['reader'] == 'semantic-metadata-v1')
+            if (('creation_gate' in profile and not authored_sign)
+                    or (authored_sign and profile.get('creation_gate') != 'sign-promotion-v1')
+                    or ((kind == 'sign' or entry['type_id'] == 'tos.entity.sign') and not authored_sign)):
+                raise SourceProfileError(f'{kind}: creation gate requires the exact authored Sign profile')
             retained_composite = (kind == 'composite' and entry['type_id'] == 'tos.entity.composite'
                 and profile.get('retained_native_adapter') == 'scholarly-composite-v1'
                 and profile['reader'] == 'corpus-metadata-v1'

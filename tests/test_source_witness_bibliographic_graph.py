@@ -2155,6 +2155,166 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_claim'], claim)
 
     @contextmanager
+    def synthetic_sign_fixture(self):
+        """Structural read fixture only: no assessment, competence or issuance proof."""
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('source-metadata-record', 'sign-description-record'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            exact = lambda identity: {'id': identity, 'version': 1, 'digest': 'sha256:' + '1' * 64}
+            source = {**copy.deepcopy(history[0][1]),
+                'schema_version': 'tos_sign_description_record_v1', 'record_type': 'sign',
+                'record_id': 'tos.sign.synthetic-reader-only', 'preferred_label': 'Условный знак',
+                'notes': 'Искусственный предмет проверки чтения; оценки и выдачи Sign не было.\r\nΩ',
+                'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                    'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                'promotion_basis': {'schema_version': 'tos_sign_promotion_basis_v1',
+                    'candidate': {'id': claims[0]['claim_id'], 'version': 1,
+                                  'digest': 'sha256:' + canonical_digest(claims[0])},
+                    'policy': exact('tos.policy.synthetic-no-authority'),
+                    'required_sources': [exact(real[0]['record_id'])],
+                    'assessment_refs': [exact('tos.assessment.synthetic-not-issued')],
+                    'owner_snapshot': 'sha256:' + '2' * 64, 'journal_revision': '3' * 64,
+                    'status': 'admitted-with-limits', 'use': 'sign-promotion',
+                    'limits': ['Synthetic historical basis only; no real issuance or current use.'],
+                    'grants_current_use': False}}
+            path = root / 'ToS/source-witnesses/semantic-descriptions/synthetic-reader/sign.json'
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(source, ensure_ascii=False))
+            yield root, source, path, rebuild
+
+    def test_sign_profile_requires_exact_historical_basis_without_current_admission(self):
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        with self.synthetic_sign_fixture() as (root, source, path, _rebuild):
+            profiles = SourceRecordProfiles(root)
+            self.assertEqual(profiles.profiles['sign']['creation_gate'], 'sign-promotion-v1')
+            self.assertEqual(profiles.catalog_files['sign'], 'signs.jsonl')
+            profiles.validate('sign', source)
+            self.assertEqual(profiles.load('sign', path.relative_to(root).as_posix()), source)
+            no_limits = copy.deepcopy(source)
+            no_limits['promotion_basis'].update(status='admitted', limits=[])
+            profiles.validate('sign', no_limits)
+            for field in ('promotion_basis', 'notes', 'field_languages'):
+                invalid = copy.deepcopy(source)
+                del invalid[field]
+                with self.subTest(missing=field), self.assertRaises(SourceProfileError):
+                    profiles.validate('sign', invalid)
+            for update in ({'notes': ' \n'}, {'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'}}},
+                           {'semantic_scope': {'identity_criterion': 'An arbitrary universal definition'}},
+                           {'current_admission': {'can_use': True}}, {'record_id': 'tos.concept.synthetic'}):
+                with self.subTest(update=update), self.assertRaises(SourceProfileError):
+                    profiles.validate('sign', {**source, **update})
+            for field, value in (
+                ('grants_current_use', True), ('use', 'research-use'), ('status', 'proposed'), ('status', 'admitted'),
+                ('required_sources', []), ('assessment_refs', []), ('owner_snapshot', '2' * 64), ('journal_revision', 'sha256:' + '3' * 64),
+                ('limits', []), ('unexpected_authority', True),
+                ('candidate', {'id': 'tos.sign.other', 'version': 1, 'digest': 'sha256:' + '1' * 64}),
+                ('candidate', {'id': 'tos.claim.other', 'version': 0, 'digest': 'sha256:' + '1' * 64}),
+                ('candidate', {'id': 'tos.claim.other', 'version': 1, 'digest': 'wrong'}),
+                ('policy', {**source['promotion_basis']['policy'], 'can_use': True}),
+            ):
+                invalid = copy.deepcopy(source)
+                invalid['promotion_basis'][field] = value
+                with self.subTest(field=field, value=value), self.assertRaises(SourceProfileError):
+                    profiles.validate('sign', invalid)
+
+    def test_sign_creation_gate_and_native_mapping_have_one_exact_owner(self):
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        with self.historical_fixture() as (root, _history, _real, _claims, _rebuild):
+            path = root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            registry = json.loads(path.read_bytes())
+            mutations = (
+                ('sign', lambda e: e['source_record_profile'].pop('creation_gate')),
+                ('sign', lambda e: e['source_record_profile'].update(creation_gate='anything')),
+                ('sign', lambda e: e['source_record_profile'].update(reader='corpus-metadata-v1')),
+                ('sign', lambda e: e.update(type_id='tos.entity.other-sign')),
+                ('conception', lambda e: e['source_record_profile'].update(creation_gate='sign-promotion-v1')),
+                ('annotation-sign', lambda e: e['source_mappings'].append(
+                    {'source_graph': 'source-navigation', 'source_kind_id': 'sign'})),
+            )
+            for kind, mutate in mutations:
+                changed = copy.deepcopy(registry)
+                mutate(next(e for e in changed['types'] if e['type_id'] == 'tos.entity.' + kind))
+                path.write_text(json.dumps(changed))
+                with self.subTest(kind=kind), self.assertRaises(SourceProfileError):
+                    SourceRecordProfiles(root)
+            path.write_text(json.dumps(registry))
+            SourceRecordProfiles(root)
+            for graph, kind, expected in (('source-claims', 'sign', 'tos.entity.sign'),
+                                         ('source-navigation', 'sign', 'tos.entity.sign'),
+                                         ('source-navigation', 'annotation-sign', 'tos.entity.annotation-sign')):
+                owners = [e['type_id'] for e in registry['types'] if
+                          {'source_graph': graph, 'source_kind_id': kind} in e['source_mappings']]
+                self.assertEqual(owners, [expected])
+
+    def test_sign_source_catalog_both_graph_carriers_focus_and_forms_preserve_birth_limits(self):
+        """Source-copy forms prove exact return only, never semantic review."""
+        from source_commands import prepare_metadata_change, _apply
+        from knowledge_assessment import Record
+        import tos_corpus_index_common as corpus_builder
+        with self.synthetic_sign_fixture() as (root, source, path, rebuild):
+            changes = [prepare_metadata_change(source, None, 'test:sign-no-authority',
+                form_id='tos.form.synthetic-sign-' + role, field_id=field) for role, field in
+                (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+            formset = _apply(None, Record.from_payload(source['record_id'], 1, source), changes)
+            path.with_name('sign.human-forms.json').write_text(json.dumps(formset))
+            projection = rebuild()
+            catalog_path = root / 'ToS/source-witnesses/catalog/signs.jsonl'
+            catalog = [json.loads(line) for line in catalog_path.read_text().splitlines()]
+            self.assertEqual([e['record_id'] for e in catalog], [source['record_id']])
+            graph, entities, relations = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node, select_human_forms
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            nodes = [n for n in graph['nodes'] if n['entity_id'] == source['record_id']]
+            self.assertEqual(len(nodes), 2)
+            for node in nodes:
+                self.assertEqual(node['type_id'], 'tos.entity.sign')
+                self.assertEqual(node['attributes']['source_record'], source)
+                self.assertNotIn('tos.entity.identity', node['semantics']['type_ancestors'])
+                for role, wording in (('name', source['preferred_label']), ('hover', source['notes'])):
+                    packet = select_human_forms(node, 'ru')['roles'][role]['packet']
+                    self.assertEqual(packet['display_text'], wording)
+                    self.assertIsNone(packet['admission'])
+                    self.assertTrue(any(c['binding']['pointer'] == '/promotion_basis'
+                        and c['value'] == source['promotion_basis'] for c in packet['context']))
+            focus = focus_knowledge_node(graph, source['record_id'], depth=1)
+            self.assertTrue(any(n['entity_id'] == source['record_id'] for n in focus['nodes']))
+            self.assertTrue(all(n['attributes']['source_record']['promotion_basis'] == source['promotion_basis']
+                for n in focus['nodes'] if n['entity_id'] == source['record_id']))
+            # Exact-copy materialization also rejects a form that hides birth limits.
+            stripped = copy.deepcopy(formset)
+            for form in stripped['forms']:
+                form['bindings'] = {slot: binding for slot, binding in form['bindings'].items()
+                                    if binding['pointer'] != '/promotion_basis'}
+            materialized = materialize_metadata_forms(source, stripped, access_allowed=True)
+            self.assertTrue(all(p['state'] == 'invalid' and p['display_text'] is None for p in materialized))
+
+    def test_native_v2_sign_adapter_preserves_original_identity_and_body(self):
+        from tos_corpus_index_common import project_text_packet
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        ref = 'ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json'
+        packet = json.loads((REPO_ROOT / ref).read_text())
+        self.assertFalse(packet['rights_and_visibility']['private_source_used'])
+        self.assertEqual(packet['rights_and_visibility']['source_content_visibility'], 'public_synthetic')
+        nodes, _edges = project_text_packet(packet, ref)
+        native = [e for e in packet['entities'] if e['entity_kind'] == 'sign']
+        projected = [n for n in nodes if n['node_kind'] == 'annotation-sign']
+        self.assertEqual(len(projected), len(native))
+        self.assertFalse(any(n['node_kind'] == 'sign' for n in nodes))
+        for entity in native:
+            node = next(n for n in projected if n['properties']['record_id'] == entity['entity_id'])
+            for key, value in entity.items():
+                self.assertEqual(node['properties'][key], value)
+        with self.synthetic_sign_fixture() as (root, source, path, _rebuild):
+            schema_ref = 'ToS/contracts/semantic-annotation-packet-v2.schema.json'
+            (root / schema_ref).write_bytes((REPO_ROOT / schema_ref).read_bytes())
+            path.with_name('semantic-annotation.synthetic.json').write_text(json.dumps(packet))
+            with self.assertRaisesRegex(SourceProfileError, 'already owned by a native semantic packet'):
+                SourceRecordProfiles(root).validate('sign', {**source, 'record_id': native[0]['entity_id']})
+
+    @contextmanager
     def historical_fixture(self):
         """Synthetic history associations to unchanged real bibliographic identities.
 
