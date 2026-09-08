@@ -20,13 +20,36 @@ from build_agent_surface_currentness import (
     REPO_ROOT,
     SKILLS_ROOT,
     build_currentness,
+    legacy_projection_ids,
     parse_skill,
+    profile_skill_ids,
     rendered_currentness,
 )
 
 
 Issue = tuple[str, str]
-EXPECTED_SKILLS = {
+EXPECTED_SKILLS: set[str] = set()
+EXPECTED_PROFILE_SKILLS = {
+    "aoa-decision",
+    "aoa-eval",
+    "aoa-knowledge-stewardship",
+    "aoa-checkpoint-closeout-bridge",
+    "aoa-memo-writeback",
+    "aoa-session-harvest",
+    "aoa-session-recovery",
+    "aoa-evals-skills",
+    "aoa-memo",
+    "aoa-stats",
+    "aoa-kag",
+    "aoa-agents-skills",
+    "aoa-session-progression-lift",
+    "aoa-summon",
+    "os-abyss-artifact-trust-loop",
+    "abyss-self-diagnostic-spine",
+    "aoa-session-memory-global-route",
+    "aoa-session-memory-evidence-route",
+}
+EXPECTED_LEGACY_PROJECTIONS = {
     "aoa-adr-write",
     "aoa-approval-gate-check",
     "aoa-automation-opportunity-scan",
@@ -53,6 +76,25 @@ EXPECTED_SKILLS = {
     "aoa-summon",
     "aoa-tdd-slice",
 }
+EXPECTED_PROFILE_SOURCES = (
+    ("shared-home", "aoa-skills", "self", None, frozenset({
+        "aoa-decision", "aoa-eval", "aoa-knowledge-stewardship",
+        "aoa-checkpoint-closeout-bridge", "aoa-memo-writeback",
+        "aoa-session-harvest", "aoa-session-recovery",
+    })),
+    ("owner-port", "aoa-evals", "aoa-evals", None, frozenset({"aoa-evals-skills"})),
+    ("owner-port", "aoa-memo", "aoa-memo", None, frozenset({"aoa-memo"})),
+    ("owner-port", "aoa-stats", "aoa-stats", None, frozenset({"aoa-stats"})),
+    ("owner-port", "aoa-kag", "aoa-kag", None, frozenset({"aoa-kag"})),
+    ("owner-port", "aoa-agents", "aoa-agents", None, frozenset({
+        "aoa-agents-skills", "aoa-session-progression-lift", "aoa-summon",
+    })),
+    ("owner-port", "abyss-machine", "abyss-machine", None, frozenset({"os-abyss-artifact-trust-loop"})),
+    ("owner-port", "abyss-stack", "abyss-stack", None, frozenset({"abyss-self-diagnostic-spine"})),
+    ("owner-link", ".aoa", ".aoa", "install-user-skill", frozenset({
+        "aoa-session-memory-global-route", "aoa-session-memory-evidence-route",
+    })),
+)
 EXPECTED_PORTS = {"eval_port", "stats_port", "kag_provider", "memo_port"}
 EXPECTED_PROBES = {
     "source_authority",
@@ -2521,6 +2563,158 @@ def _check_local_reference_routes(root: Path, package_path: Path) -> list[Issue]
     return issues
 
 
+def profile_binding_issues(
+    manifest: Mapping[str, Any],
+) -> tuple[list[Issue], set[str]]:
+    """Validate the authored OS-user profile binding without reading `$HOME`.
+
+    The profile source and installer remain external owner surfaces.  This
+    check only verifies that ToS records the accepted selection and does not
+    silently turn it back into a repository-local projection.
+    """
+    issues: list[Issue] = []
+    location = f"{MANIFEST_PATH.as_posix()}#profile_binding"
+    binding = manifest.get("profile_binding")
+    if not isinstance(binding, Mapping):
+        return [(location, "profile_binding must be an object")], set()
+    expected_scalars = {
+        "schema_version": "tos_os_skill_profile_binding_v1",
+        "profile": "os-user-default",
+        "runtime": "codex",
+        "scope": "user",
+        "install_root": "$HOME/.codex/skills",
+        "install_mode": "managed-copy",
+        "source_manifest": "aoa-skills:config/os_skill_profiles.json",
+        "source_ref": "aoa-skills@616ce49eed8a605782fb2f295060ae916e04c7a6",
+        "resolver": "aoa-skills:scripts/bundles/install_os_skill_profile.py",
+    }
+    for key, expected in expected_scalars.items():
+        if binding.get(key) != expected:
+            issues.append((location, f"{key} must be {expected!r}"))
+    sources = binding.get("sources")
+    if not isinstance(sources, list) or not sources:
+        return issues + [(location, "sources must be a non-empty list")], set()
+    actual_source_keys: list[tuple[str, str, str, str | None, frozenset[str]]] = []
+    selected: list[str] = []
+    for index, source in enumerate(sources):
+        source_location = f"{location}.sources[{index}]"
+        if not isinstance(source, Mapping):
+            issues.append((source_location, "source must be an object"))
+            continue
+        kind, repo, root, owner_operation, skills = (
+            source.get("kind"), source.get("repo"), source.get("root"),
+            source.get("owner_operation"), source.get("skills")
+        )
+        if kind not in {"shared-home", "owner-port", "owner-link"}:
+            issues.append((source_location, "kind must be shared-home, owner-port, or owner-link"))
+        if kind == "owner-link" and owner_operation != "install-user-skill":
+            issues.append((source_location, "owner-link owner_operation must be install-user-skill"))
+        if kind in {"shared-home", "owner-port"} and owner_operation is not None:
+            issues.append((source_location, "shared-home and owner-port sources must not declare owner_operation"))
+        if not isinstance(repo, str) or not repo:
+            issues.append((source_location, "repo must be a non-empty string"))
+        if not isinstance(root, str) or not root or root.startswith("/") or ".." in Path(root).parts:
+            issues.append((source_location, "root must be a safe relative owner root"))
+        if not isinstance(skills, list) or not skills:
+            issues.append((source_location, "skills must be a non-empty list"))
+            continue
+        source_names: list[str] = []
+        for skill_index, skill in enumerate(skills):
+            skill_location = f"{source_location}.skills[{skill_index}]"
+            if kind == "owner-link":
+                if not isinstance(skill, Mapping):
+                    issues.append((skill_location, "owner-link skill must be an object"))
+                    continue
+                name, path, version = skill.get("name"), skill.get("path"), skill.get("version")
+                if not isinstance(name, str) or not name:
+                    issues.append((skill_location, "owner-link skill needs a non-empty name"))
+                    continue
+                if not isinstance(path, str) or not path.startswith("skills/") or ".." in Path(path).parts:
+                    issues.append((skill_location, "owner-link path must be a safe skills/ path"))
+                if not isinstance(version, str) or not version:
+                    issues.append((skill_location, "owner-link skill needs a version"))
+            else:
+                name = skill
+                if not isinstance(name, str) or not name:
+                    issues.append((skill_location, "profile skill name must be a non-empty string"))
+                    continue
+            source_names.append(name)
+            selected.append(name)
+        if isinstance(kind, str) and isinstance(repo, str) and isinstance(root, str):
+            actual_source_keys.append((kind, repo, root, owner_operation, frozenset(source_names)))
+
+    expected_source_keys = [
+        (kind, repo, root, owner_operation, skills)
+        for kind, repo, root, owner_operation, skills in EXPECTED_PROFILE_SOURCES
+    ]
+    if actual_source_keys != expected_source_keys:
+        issues.append((location, "sources do not match the accepted os-user-default selection"))
+    if len(selected) != len(set(selected)):
+        issues.append((location, "profile selection contains duplicate skills"))
+    selected_set = set(selected)
+    if selected_set != EXPECTED_PROFILE_SKILLS:
+        issues.append((location, f"profile skills must be {sorted(EXPECTED_PROFILE_SKILLS)}"))
+    duplicate_boundary = binding.get("duplicate_boundary")
+    if not isinstance(duplicate_boundary, str) or ".agents/skills" not in duplicate_boundary:
+        issues.append((location, "duplicate_boundary must prohibit a repository-local projection"))
+    claim_limits = binding.get("claim_limits")
+    if not isinstance(claim_limits, list) or not claim_limits or not all(isinstance(item, str) and item for item in claim_limits):
+        issues.append((location, "claim_limits must be a non-empty list of strings"))
+    return issues, selected_set
+
+
+def legacy_projection_crosswalk_issues(manifest: Mapping[str, Any]) -> list[Issue]:
+    issues: list[Issue] = []
+    location = f"{MANIFEST_PATH.as_posix()}#legacy_projection_migration"
+    migration = manifest.get("legacy_projection_migration")
+    if not isinstance(migration, Mapping):
+        return [(location, "legacy_projection_migration must be an object")]
+    expected_scalars = {
+        "schema_version": "tos_legacy_skill_projection_crosswalk_v1",
+        "source_catalog": "aoa-skills:capabilities/legacy-skill-migration.yaml",
+        "source_ref": "aoa-skills@6eaeca11820adbbbe54f79a75c0ca5a54e0c4a15",
+        "legacy_projection_root": ".agents/skills/",
+        "post_migration_local_projection": "absent",
+        "entry_count": 25,
+    }
+    for key, expected in expected_scalars.items():
+        if migration.get(key) != expected:
+            issues.append((location, f"{key} must be {expected!r}"))
+    entries = migration.get("entries")
+    if not isinstance(entries, list) or not entries:
+        return issues + [(location, "entries must be a non-empty list")]
+    names: list[str] = []
+    actions = {"retain-advertised", "merge-mode", "route-owner-object"}
+    target_kinds = {"skill", "mode", "workflow", "guard"}
+    required = ("legacy_name", "legacy_path", "action", "target_id", "target_kind", "target_owner", "compatibility", "evidence_state", "reason")
+    for index, entry in enumerate(entries):
+        entry_location = f"{location}.entries[{index}]"
+        if not isinstance(entry, Mapping):
+            issues.append((entry_location, "entry must be an object"))
+            continue
+        for key in required:
+            if not isinstance(entry.get(key), str) or not entry[key]:
+                issues.append((entry_location, f"{key} must be a non-empty string"))
+        name = entry.get("legacy_name")
+        if isinstance(name, str):
+            names.append(name)
+        if entry.get("action") not in actions:
+            issues.append((entry_location, "action is not a recognized migration action"))
+        if entry.get("target_kind") not in target_kinds:
+            issues.append((entry_location, "target_kind is not a recognized destination kind"))
+        legacy_path = entry.get("legacy_path")
+        if isinstance(legacy_path, str) and not legacy_path.startswith("skills/"):
+            issues.append((entry_location, "legacy_path must remain an aoa-skills source path"))
+    if len(names) != len(set(names)):
+        issues.append((location, "crosswalk contains duplicate legacy names"))
+    if set(names) != EXPECTED_LEGACY_PROJECTIONS:
+        issues.append((location, f"crosswalk names must be {sorted(EXPECTED_LEGACY_PROJECTIONS)}"))
+    claim_limits = migration.get("claim_limits")
+    if not isinstance(claim_limits, list) or not claim_limits or not all(isinstance(item, str) and item for item in claim_limits):
+        issues.append((location, "claim_limits must be a non-empty list of strings"))
+    return issues
+
+
 def validate_manifest(
     root: Path = REPO_ROOT,
     *,
@@ -2566,6 +2760,10 @@ def validate_manifest(
     ):
         if not isinstance(budget.get(key), int) or budget[key] <= 0:
             issues.append((MANIFEST_PATH.as_posix(), f"context_budget.{key} must be positive"))
+
+    profile_issues, profile_skill_set = profile_binding_issues(manifest)
+    issues.extend(profile_issues)
+    issues.extend(legacy_projection_crosswalk_issues(manifest))
 
     packages = manifest.get("skills")
     package_by_id: dict[str, dict[str, Any]] = {}
@@ -2631,11 +2829,14 @@ def validate_manifest(
     }
     declared = set(package_by_id)
     if discovered != EXPECTED_SKILLS:
-        issues.append((SKILLS_ROOT.as_posix(), f"discovered skills differ from expected 25: {sorted(discovered)}"))
+        issues.append((SKILLS_ROOT.as_posix(), f"discovered repository-local skills differ from expected empty set: {sorted(discovered)}"))
     if declared != EXPECTED_SKILLS:
-        issues.append((MANIFEST_PATH.as_posix(), f"declared skills differ from expected 25: {sorted(declared)}"))
+        issues.append((MANIFEST_PATH.as_posix(), f"declared repository-local skills differ from expected empty set: {sorted(declared)}"))
     if discovered != declared:
         issues.append((MANIFEST_PATH.as_posix(), "manifest skill ids do not match local package discovery"))
+    skills_root = root / SKILLS_ROOT
+    if skills_root.exists() and any(skills_root.iterdir()):
+        issues.append((SKILLS_ROOT.as_posix(), "stale repository-local projection remains; selected bundles belong to the OS user profile"))
 
     families = manifest.get("skill_families")
     if not isinstance(families, dict):
@@ -2646,21 +2847,19 @@ def validate_manifest(
         if not isinstance(family, dict):
             issues.append((MANIFEST_PATH.as_posix(), f"{family_id} family must be an object"))
             continue
-        members = family.get("skills")
+        members = family.get("profile_skills")
         if not isinstance(members, list) or not members:
-            issues.append((MANIFEST_PATH.as_posix(), f"{family_id}.skills must be non-empty"))
+            issues.append((MANIFEST_PATH.as_posix(), f"{family_id}.profile_skills must be non-empty"))
             continue
         family_members.update(members)
         for required_field in ("consumer", "load_moment", "canonical_owner", "freshness", "next_organ", "negative_controls"):
             if not family.get(required_field):
                 issues.append((MANIFEST_PATH.as_posix(), f"{family_id}.{required_field} is required"))
         for member in members:
-            if member not in declared:
-                issues.append((MANIFEST_PATH.as_posix(), f"{family_id} names unknown skill {member}"))
-            elif package_by_id[member].get("family") != family_id:
-                issues.append((MANIFEST_PATH.as_posix(), f"{member} family assignment disagrees"))
-    if family_members != declared:
-        issues.append((MANIFEST_PATH.as_posix(), "skill families do not cover exactly the declared skills"))
+            if member not in profile_skill_set:
+                issues.append((MANIFEST_PATH.as_posix(), f"{family_id} names unknown profile skill {member}"))
+    if family_members != profile_skill_set:
+        issues.append((MANIFEST_PATH.as_posix(), "profile skill families do not cover exactly the selected profile skills"))
 
     ports = manifest.get("owner_ports")
     if not isinstance(ports, dict):
@@ -2721,8 +2920,8 @@ def validate_manifest(
         if not isinstance(depth, int) or depth <= 0 or depth > maximum_depth:
             issues.append((MANIFEST_PATH.as_posix(), f"{probe_id} exceeds mandatory reading depth budget"))
         for skill_id in probe.get("skill_ids", []):
-            if skill_id not in declared:
-                issues.append((MANIFEST_PATH.as_posix(), f"{probe_id} names unknown skill {skill_id}"))
+            if skill_id not in profile_skill_set:
+                issues.append((MANIFEST_PATH.as_posix(), f"{probe_id} names unknown profile skill {skill_id}"))
         port_id = probe.get("port_id")
         if port_id is not None and port_id not in ports:
             issues.append((MANIFEST_PATH.as_posix(), f"{probe_id} names unknown port {port_id}"))

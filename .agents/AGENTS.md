@@ -11,6 +11,11 @@ This card applies to `.agents/` and all descendants unless a nearer
 repo-local skills, Codex Spark guidance, prompts, handoff material, and other
 model-facing support surfaces.
 
+The current profile-owned discovery route is declared in the authored
+`.agents/agent-surface.manifest.json` and explained by `.agents/README.md`;
+repository-local skill projections are created only for an explicitly admitted
+ToS-owned procedure.
+
 Durable ToS meaning, repeatable mechanics, proof authority, memory authority,
 runtime state, and public repository entrypoints route to their owning homes.
 

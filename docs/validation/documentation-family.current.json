@@ -29,16 +29,16 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4418,
+    "tracked_surface_count": 4257,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1020,
+    "excluded_tracked_path_count": 970,
     "human_scope": {
-      "bytes": 5504076,
-      "count": 1022,
-      "excluded_skill_launch_metadata": 25,
+      "bytes": 5168709,
+      "count": 900,
+      "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
           "bytes": 94461,
@@ -46,19 +46,14 @@
           "lines": 1523
         },
         "agents-other": {
-          "bytes": 17683,
+          "bytes": 16934,
           "count": 5,
-          "lines": 378
-        },
-        "agents-skills": {
-          "bytes": 340056,
-          "count": 122,
-          "lines": 6530
+          "lines": 375
         },
         "docs": {
-          "bytes": 531482,
+          "bytes": 531581,
           "count": 72,
-          "lines": 8638
+          "lines": 8640
         },
         "evals": {
           "bytes": 3954,
@@ -116,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4084424,
+          "bytes": 4089763,
           "count": 612,
-          "lines": 68683
+          "lines": 68751
         }
       },
-      "lines": 94849
+      "lines": 88386
     },
     "surface_kind_counts": {
-      "executable": 234,
-      "human": 1047,
-      "structured": 3137
+      "executable": 228,
+      "human": 900,
+      "structured": 3129
     },
-    "tracked_path_count": 5438,
-    "tracked_surface_count": 4418,
+    "tracked_path_count": 5227,
+    "tracked_surface_count": 4257,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -144,13 +139,9 @@
     },
     {
       "family_id": "agents-skills",
-      "surface_kind_counts": {
-        "executable": 6,
-        "human": 147,
-        "structured": 8
-      },
-      "tracked_surface_bytes": 389237,
-      "tracked_surface_count": 161
+      "surface_kind_counts": {},
+      "tracked_surface_bytes": 0,
+      "tracked_surface_count": 0
     },
     {
       "family_id": "agents-other",
@@ -158,7 +149,7 @@
         "human": 5,
         "structured": 3
       },
-      "tracked_surface_bytes": 166592,
+      "tracked_surface_bytes": 146512,
       "tracked_surface_count": 8
     },
     {
@@ -176,7 +167,7 @@
         "human": 612,
         "structured": 3053
       },
-      "tracked_surface_bytes": 228298345,
+      "tracked_surface_bytes": 228620655,
       "tracked_surface_count": 3669
     },
     {
@@ -195,7 +186,7 @@
         "human": 72,
         "structured": 6
       },
-      "tracked_surface_bytes": 818286,
+      "tracked_surface_bytes": 822129,
       "tracked_surface_count": 78
     },
     {
@@ -231,7 +222,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 1014193,
+      "tracked_surface_bytes": 1015107,
       "tracked_surface_count": 215
     },
     {
@@ -240,7 +231,7 @@
         "executable": 108,
         "human": 2
       },
-      "tracked_surface_bytes": 3728920,
+      "tracked_surface_bytes": 3743301,
       "tracked_surface_count": 110
     },
     {
@@ -250,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1578330,
+      "tracked_surface_bytes": 1590239,
       "tracked_surface_count": 62
     },
     {
@@ -283,24 +274,24 @@
   "generated_by": "scripts/build_documentation_family_currentness.py",
   "schema_version": "tos_documentation_family_currentness_v1",
   "source_map": "docs/validation/documentation_family_map.json",
-  "source_map_sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
+  "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f9b9a272a9752f5d57499dd201289424fb0b2a1803627c645c74edf9ffcbea67",
+  "tracked_surface_digest": "76cf088dd665d7601879f70f45608d863139b63de6c14b75576306272fae382b",
   "tracked_surfaces": [
     {
-      "bytes": 1489,
+      "bytes": 1736,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/AGENTS.md",
-      "sha256": "4c21e698ee4a012ee428de56bc9bf808871d1ff41bb74e71dbc8ea3ce2847a36",
+      "sha256": "58f9423a633795a89f159a318cdad4be82461c0f848123ab9be62b9cc6114b04",
       "surface_kind": "human"
     },
     {
-      "bytes": 7957,
+      "bytes": 6961,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/README.md",
-      "sha256": "ffa6b5eb46f84abc317907a52c56ae6d17aa4993f989f7e242f52db74ceb36d1",
+      "sha256": "540e8df67cef90069a892a0ac8e2d367a19dc4f43dfe77c9278bcd5b3d517fcc",
       "surface_kind": "human"
     },
     {
@@ -312,1316 +303,28 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 40779,
+      "bytes": 8240,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "9bcf6afa6be7de070e1b97507f6ec81b0723f3271fc701847f03244737dbeb4b",
+      "sha256": "8a9306c1976a45587b14c8aefab79f0988e49c8ffb55447f8d93f638965ec66c",
       "surface_kind": "structured"
     },
     {
-      "bytes": 21261,
+      "bytes": 34509,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.manifest.json",
-      "sha256": "6bcfd39698d98c1070c17b92d855c9f31523167c31ab1988f736191c5acc2dec",
+      "sha256": "56e1f08235eb7089c08edb31046c7623a9040a7cdd4fe74d25b04c0a9b383f95",
       "surface_kind": "structured"
     },
     {
-      "bytes": 86869,
+      "bytes": 86829,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "8795e78811cbf3f3db25705a4b55dd52d032a34f844cc319f6e140cafe9dce6c",
+      "sha256": "f4f09e36eb2f6a82c890d9e20491d89fc4efb2375ea4d963eae854ffdfa4ea5f",
       "surface_kind": "structured"
-    },
-    {
-      "bytes": 8271,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-adr-write/SKILL.md",
-      "sha256": "34c277591506b9e7903914096c9cfe946ea089dd2687d04c441d54c14b2e29aa",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 462,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-adr-write/agents/openai.yaml",
-      "sha256": "603a7f73ae5f1e52dafbd2cb8434123161a59289637bdf1301f66bec00d6a2be",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1495,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-adr-write/examples/example.md",
-      "sha256": "1b58eaf246f2df4efbf4ad3dc4539e0543bcfcde7c9d4b2daf58a9f4f8ab0395",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4433,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-adr-write/references/decision-boundary-lenses.md",
-      "sha256": "43c1c2db59cca9a9ae8b0a70f5775777cbae125c81e5f61655870c71e9d1ff75",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 640,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-adr-write/references/decision-note.template.md",
-      "sha256": "2d3a72a252f4b60a572a48059d021f34b04ab0bc0e6fa87546a252fa834c938e",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4446,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-approval-gate-check/SKILL.md",
-      "sha256": "77c14d5ab14b8e6839e42773f3b7b87fd69a355d9f3756d5e4bb851807201c15",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 443,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-approval-gate-check/agents/openai.yaml",
-      "sha256": "aeaff362d4329bd0967f21cb44786c409a53b64c279b3e0e69ff3ca36f6303b2",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 988,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-approval-gate-check/checks/review.md",
-      "sha256": "6bd41343b8785544de83766f90bd21b93b896aa87949c476c7a417b9d5ed2001",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1270,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-approval-gate-check/examples/runtime.md",
-      "sha256": "8df2a25434c807b0a1f661918a8847abd9e6e15df305136389b41c720203fa7e",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 8803,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/SKILL.md",
-      "sha256": "83fa9ea56ec9bf6ee4d3dcaea5d2ae018c9900e6bbf295e60096467c8784fee8",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 512,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/agents/openai.yaml",
-      "sha256": "376d48119054589ea97f3d2ca1758e9cb86c82c4413639d73d75a191889ae838",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1813,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/checks/review.md",
-      "sha256": "0141b043cdcdb448bdeb9fe91102f4b6d1ea9b8ada5af708998c56dd24b1cd8e",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2102,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/examples/runtime.md",
-      "sha256": "dc84b66b337d7a0ce7f4e738e97a8e575659abdf2bb7142d713d035e0bb1235a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 744,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/automation-candidate-receipt-schema.yaml",
-      "sha256": "20f326e775a17b39065c04829ec59309b7142add7d9785312a4f792bddcb5eec",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2496,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/automation-fit-matrix.md",
-      "sha256": "b030263ee29dd564a17170e189686a3eeb8f9252e73a2559f3c5ca7aa4f7c327",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 989,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/automation-opportunity-packet-schema.yaml",
-      "sha256": "25cdf594f5b120639a06201ea4c187f84ca06470f062198938261a3bee5d3c06",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1293,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/checkpoint-boundary.md",
-      "sha256": "3f45a9150db31af9fd5ae707e9d385f898e6ae3fd2e774ec2111c5e7153839e5",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1000,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "43593494e84940c64330a006a0445033fc09f74b71224dbc9d3a898e6e36c8cd",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1188,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/playbook-seed-bridge.md",
-      "sha256": "ce2eed0d1ba31f2192b9d06d413a0e9997e0591f77d0f6f443d5f6b1e619dac4",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1098,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/session-harvest-integration.md",
-      "sha256": "4a9a11cb9e40c6b15a5f01a352b65a1efc07722f1b077388c3b2b31a56f9af8d",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-automation-opportunity-scan/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6915,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-bounded-context-map/SKILL.md",
-      "sha256": "53c8e862c9359faa17c09dc288274f6fcbe86d4f9bd8e54a920e52d1be07933c",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 439,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-bounded-context-map/agents/openai.yaml",
-      "sha256": "e068db385063d74ddbe604c72804574321daf968f3b3b5a3c79d8c99a4a62611",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1941,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-bounded-context-map/examples/example.md",
-      "sha256": "064334ef81882500678dcc65615137ac0bd795480a901d687c9d2f4dfa2d9455",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6609,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-bounded-context-map/references/boundary-lenses.md",
-      "sha256": "84068adea8295b67dd1810d7051cb761f5a8142af31748dcc7482eb4aa441952",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 736,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-bounded-context-map/references/context-map.template.md",
-      "sha256": "658236ac8e6f3fa85d4af97d07c4043254cb349c282252c539000374e13c9c36",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 5586,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-change-protocol/SKILL.md",
-      "sha256": "b2520cd09af06053bd8832ff9f2ed2997831054445477273cd26e3b945850d89",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 395,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-change-protocol/agents/openai.yaml",
-      "sha256": "19c9d8c484b85bfac8beba4916f17a68935973577f4c74d80181463009bfa38b",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1523,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-change-protocol/checks/review.md",
-      "sha256": "96e3ea36a43869afe74cfc749a09ea181e8f1f34a56d17715546eef3d26b9516",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1738,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-change-protocol/examples/runtime.md",
-      "sha256": "87791a109844b1201f4d7840d1b42ca2f2a96ad0695a0f10fac16c42ce29c89c",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 10144,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/SKILL.md",
-      "sha256": "260727fa0b4bc4b83da0808cacd2947507f704e065d7971c8f0b50bdf54830e0",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 515,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/agents/openai.yaml",
-      "sha256": "9ffa3cf29372b22ce320112feb22f7a6cfd8504be5bcee2d29013c24c1cc0ae7",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1537,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/checks/review.md",
-      "sha256": "f1755482da17ea3f6a185e13262dfd7a40a26237ef2fa7eec8a9d20adf5ba686",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1987,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/examples/runtime.md",
-      "sha256": "722e178a92d429034f2a79b2bba82baf42d6cc3536865cd6ce3051ba2139cbc2",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1074,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/references/checkpoint-closeout-execution-report-schema.yaml",
-      "sha256": "d5ac9105eaeff73f88396ca5af99b026fc1632590bb66ff5f8fe2f952a014eec",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 974,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "07b6c970e3fb93bc4b49c238b12260f78250b6307cc2e786fe42c9b35c17359f",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-checkpoint-closeout-bridge/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6624,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-commit-growth-seam/SKILL.md",
-      "sha256": "3579507656a9680c6448b8cb0798bef4c588574ead55c87a05a619c459aa3142",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 482,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-commit-growth-seam/agents/openai.yaml",
-      "sha256": "3d221044a22a1c3f51e6eec73ccdca67be5686123c1b754c7f9808a65a396367",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1074,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-commit-growth-seam/checks/review.md",
-      "sha256": "06791eb6ddefda2908c52b17f2e796bcdaf82ea7e7f8e6244f5a887140ff9c47",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1899,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-commit-growth-seam/examples/runtime.md",
-      "sha256": "88d714dc02c471f317d8c25021bae6242060a9b0cfd325183ea44146d5ffb5d4",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 5866,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-contract-test/SKILL.md",
-      "sha256": "f966cf9acc169f43dbdbbf6a24e5ea2a52a354ab992a8172b0558ce874ab32d6",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 428,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-contract-test/agents/openai.yaml",
-      "sha256": "389f68eb9f44d9d0f5ac4f277ed07a72ea5b024bfae6628842ba68a2612a2003",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1867,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-contract-test/examples/example.md",
-      "sha256": "a00dda1ca7ce0702d8a21d3f15ed73bd0137357ec7c22af3758a0b2d7ff83cab",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4600,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-contract-test/references/contract-shapes.md",
-      "sha256": "9409525b8e52be381acfec517234b78d20e0408b3fe6a9acab87df5dfbca64d6",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6408,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-core-logic-boundary/SKILL.md",
-      "sha256": "de793750042007cfd50adfd040d4d95928e622dcef6201a234e2fdc8bbbd20a3",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 445,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-core-logic-boundary/agents/openai.yaml",
-      "sha256": "24c9ceb3959e0fde9895115712227ee1097efc80dd26ab9642113d523cc56f66",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2150,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-core-logic-boundary/examples/example.md",
-      "sha256": "8d035f0f74ac833d49177ccae461770276afcfd0630c7cb97eb5d4fe69c462c9",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 5131,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-core-logic-boundary/references/core-boundary-shapes.md",
-      "sha256": "df825d59dbbc4ab5e1cf28c913d68ff5aaeecaab7761e48edaf951dd32b0aae1",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4863,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/SKILL.md",
-      "sha256": "fef64c9479e51af6abcb096ae402d11dcb0946c828f95ace08d077cff3f0b1f0",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 437,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/agents/openai.yaml",
-      "sha256": "4a76d760aaec004ae61643111a52fe13e8a5a7fdda65d70d775f457e579f4d2f",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 745,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/assets/dry_run_contract.template.json",
-      "sha256": "4ecd683e8503fcb63f15b254aacf1c1194f4178cd5c433a38bfd135513e2de8b",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 1377,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/assets/dry_run_report.schema.json",
-      "sha256": "aa51b7dcb6bea8c4ebcdeac246393d9a2d5f012b78f3562ec7941f03f8d00b4f",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 962,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/checks/review.md",
-      "sha256": "6db3f939b7b19e4ba8d91673eae4e8ea74bf4e0df298ef660c869a2a302944fd",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1138,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/examples/runtime.md",
-      "sha256": "1321fc858d8d92f93c74c784b4abc1c2859c3d61a1607deb525456fb04bbb70d",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 449,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/references/confirmation_seam.md",
-      "sha256": "e4b614e2654a77cb7e67cb8f1348cd7d20aaed8a930b4fd8e503cd2166ebe614",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 538,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/references/dry_run_limitations.md",
-      "sha256": "b131942c6b4bccf003eb946a9ba7abfb15d35bd9f817a3c9487e15831e3f6356",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 5952,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/scripts/dry_run_contract.py",
-      "sha256": "679498e2f8e139bc6c68fbaeb023c82a68f062a2aab04557a9e4b6d89f5adc94",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 3643,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-dry-run-first/scripts/preview_gap_check.py",
-      "sha256": "e87633e8ddb0a07a9ad703148c7dc82c5b2c20c46d2fa9b8a9948365224a9ade",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 5530,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-invariant-coverage-audit/SKILL.md",
-      "sha256": "2b4aa6740b4405d38f26757fd1a9510e4b2cadd9dfa37945a69427809d529525",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 459,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-invariant-coverage-audit/agents/openai.yaml",
-      "sha256": "d6d0d2e18af879a4b23093e54646c6ae34cc7c912e42f96653b6b357b37420e1",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1987,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-invariant-coverage-audit/examples/example.md",
-      "sha256": "89d852dabb324539bd57676088bd72eb7570de06af52f8f9aa2e1793ed9923b5",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4401,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-invariant-coverage-audit/references/coverage-audit-shapes.md",
-      "sha256": "6d59049e6371995f6cd1b6944ab6e9fb6cccfafab8eb8601c29e344f3035563a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6751,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/SKILL.md",
-      "sha256": "3bb3ec18b33095297063c61c375d36eaebabb8edf60f0e34d035d49f7880387a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 464,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/agents/openai.yaml",
-      "sha256": "7c9fae46d5095ffdd4354ceac573888e1dc7f8102709d5eb7c3d36f9155c1f82",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 557,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/assets/local_stack_bringup.template.json",
-      "sha256": "3a7acf4aeebcb2cec01bde28ab5380dfe19fbd6f85daaa9cbd3d822dd5656288",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 1358,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/assets/local_stack_report.schema.json",
-      "sha256": "a8d4cf1ae3160118d0cb2985ad7d23a6ca37bae3ece369419dd5721183f54684",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 1250,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/checks/review.md",
-      "sha256": "765995cb6df99aec197beb6db4cf168f7a13a3ec418a217790b63ca83c384f4c",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1637,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/examples/runtime.md",
-      "sha256": "4fbe1a35fec00e8e973afd354eba175928a2c500a773e19d69a84bf4f5fcb9c7",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 463,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/references/bounded_lifecycle_visibility.md",
-      "sha256": "38e5c080beddc2d7a1681268cf0b422698eb04ba420506b0571edfc15a77b319",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 323,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/references/render_truth_before_start.md",
-      "sha256": "44d74089c50f419080661c9bdc4d5cc0fb10a1960f32a7322ecd6cda463f0183",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4288,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/scripts/bringup_contract.py",
-      "sha256": "3f33dc49122e254fca13ca58a38311a687d5e5c917762981a33529721282cf9e",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 3007,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-local-stack-bringup/scripts/readiness_summary.py",
-      "sha256": "07c5ee1cc208e82c9b7ae1c462ca78c3eb3970298ae46003cd5ab80666954f87",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 6254,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-port-adapter-refactor/SKILL.md",
-      "sha256": "53ee15115b26c13c04784a116677dca5fa04e9efb2d79fbf5c8872d5838a8a98",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 450,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-port-adapter-refactor/agents/openai.yaml",
-      "sha256": "0d61f9979ef39acdb6a6da8f7884a5b5bf086ec911de11cbb6042bb1c7dbad87",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1803,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-port-adapter-refactor/examples/example.md",
-      "sha256": "84322cd87811318406eadac5fccde0712147f34657d14254c43479391bc5d456",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4593,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-port-adapter-refactor/references/adapter-seam-shapes.md",
-      "sha256": "be01e48b90776d71cf194b70d1bbaf2bc56bb291523d3162a0c4e451de64e9ce",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6111,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-property-invariants/SKILL.md",
-      "sha256": "3fbdf00d1a1a3172d4cc2aeb87a5aaccb53701bdc6fa9df13c2ba7786790a841",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 445,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-property-invariants/agents/openai.yaml",
-      "sha256": "3825844807926892471b07295f5808c12d8fec86bdd01fd84353dce92468593e",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1974,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-property-invariants/examples/example.md",
-      "sha256": "343002a472e989351387b6b3770a860532279973b56a40325ef4c1d344119340",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4778,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-property-invariants/references/invariant-shapes.md",
-      "sha256": "85f2509112b6a74d0c6df1912ce600b8187ce8332e509955cb960f0d74e88f39",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 9953,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/SKILL.md",
-      "sha256": "8ff631f4df15ea3966df4108fd03171525629c37b9fe894c7af606b90097d43d",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 442,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/agents/openai.yaml",
-      "sha256": "bb5c0fb612f3ec2de0428c12b85e381db69522bd018a97a42c61ba8e6c617d50",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2032,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/checks/review.md",
-      "sha256": "8cb4c20723825c569d513042290272d683743c7865b8ac6a49f62d87059921a3",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2440,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/examples/runtime.md",
-      "sha256": "771713c03cdb2d6277f2491ef74e8038bf43b13f050c7cc3793e323405e66592",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 967,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "ae8b387619603f06a682a31ddd6f2648f1f1ffb647fbe0b56936327dc085652f",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2076,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/references/promotion-outcomes.md",
-      "sha256": "c64f8f359075097fec916aa13f27c9e9350b98a0ae836ea4b2980adf67607178",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 806,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/references/quest-promotion-receipt-schema.yaml",
-      "sha256": "b95b9f69eacae1287b21ff82a07500bfdd04554779876a5941fcede705b613df",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 962,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-quest-harvest/references/stats-event-envelope.md",
-      "sha256": "848a0239a14eab9b1e72461308a0703de35c29ae853be8bf34e60635c5d93055",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4121,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/SKILL.md",
-      "sha256": "e680f692cd84e485a2c6c28714cb65104090e8c52535db8ddc34851a6471cdce",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 440,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/agents/openai.yaml",
-      "sha256": "f297baec1ff762b537aeb00670d805f5583435978f93c608a74ece12747fca24",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 680,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/assets/infra_change_contract.template.json",
-      "sha256": "3f03ae71abdcd3f79903fc2c0e49ac6499efebc9910d2c05d5d7e2ea2fd4ba64",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 1678,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/assets/infra_change_report.schema.json",
-      "sha256": "c40d431e09eddc6c188d20fe2c8d75822b8bac6be473da369715acc913f4badc",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 1041,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/checks/review.md",
-      "sha256": "f279ebe32fcac7f3014b30f966c593886788025fd4d78a619eb9855a48776fcc",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1203,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/examples/runtime.md",
-      "sha256": "937f0fa236f5266f407dfcbcca46e969b6d342c292515af6e2247416b2ed3126",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 406,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/references/risk_surface_matrix.md",
-      "sha256": "6e6e1387bde97f0b0a6aa8b2348698d1a2c0ff654231febe15210a2d38d9ee43",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 419,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/references/verification_and_rollback_ladder.md",
-      "sha256": "dea9c168056d0338c5ed512845e2736c8d9bef84aafae2c375344c4e42600fab",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6679,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/scripts/infra_change_contract.py",
-      "sha256": "b1805279f675bf94ba2313d481d453ec70c56c3a245e2747f3c1fcd6b10fa143",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 3175,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-safe-infra-change/scripts/risk_surface_scan.py",
-      "sha256": "88b6260627a9c15f75fb58d38d55a506f9230ba2cef1940e8ea09fd70bd417a5",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 6138,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-sanitized-share/SKILL.md",
-      "sha256": "fa79915fb03c1d58201da4057ccb9dc0ea82b154017ae2c5a3ec469b7722b68a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 452,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-sanitized-share/agents/openai.yaml",
-      "sha256": "d0d32ce8780acd573bf2035844479b7ec536687403720b678a02f2b52bebe36b",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1073,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-sanitized-share/checks/review.md",
-      "sha256": "0a1194b2a1d6650b85412d9efcc01483ed20baaf9197730196313913b69578d6",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1264,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-sanitized-share/examples/runtime.md",
-      "sha256": "296d837576ebcf25cf5bed88da5bf485e55aa69a29f288da2c7ac885e59ae2df",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 14427,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/SKILL.md",
-      "sha256": "922733c8cfd4eb2c58d1e258557d8ce8711925a7289fdec79ad1f61868e24080",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 524,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/agents/openai.yaml",
-      "sha256": "5449f16fe882782bbb52236d17d093a2faac15b7baa0c89b00b405828e8243ac",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2724,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/checks/review.md",
-      "sha256": "4818d4a1e13185857e61eaa1bfc31391e7ce5f12d2df34c5f82a1f95efc602f5",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 3320,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/examples/runtime.md",
-      "sha256": "51d6dcf33d2b1b7bffcbd7e4d8a827718d9c7f7a15bbfa4dd9eed4f266ecb46a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1049,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/candidate-lineage-receipt-schema.yaml",
-      "sha256": "28d9717641da71759c439034bc9b052c8824cb13312849425db2e955b0987453",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 982,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "8767544f68044fdf22c061d00efbc6d5aabf8f408e504f1e47078e3c81cb2df5",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 728,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/family-shape.md",
-      "sha256": "854c08b10697a5ee3882dfd3840f0f0f6f212458b258466121238c0dd6fbc4a1",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1408,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/harvest-packet-contract.md",
-      "sha256": "17ddc60fd818545de8a50c322ff207f2afa95e345a442fb262b41c2860766986",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1013,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/harvest-packet-receipt-schema.yaml",
-      "sha256": "2456cc7ef410ac7a045399c3ba8bd878818e2225975f83e957296e70bc0a3025",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2100,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/owner-layer-map.md",
-      "sha256": "651ba9e9ea35c6ac8b7ff6f9742db57721b5998cbba03b1e9501b5b00729d7ca",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 817,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/rpg-reflection-posture.md",
-      "sha256": "a18802e0e6ebfc0b050a0327b0ebc75b47e2ae9d89b9ffd4edfa7fe7551518eb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-donor-harvest/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 8746,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/SKILL.md",
-      "sha256": "de83ec905eb3d1f0bc81c63dcb73b3f487e102e527fc225d175977cf13f99332",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 469,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/agents/openai.yaml",
-      "sha256": "84c4cc21dffbb03aa6ca3d00e90bef54f961c48af1f1eaa2f54997f3eccaed60",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2007,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/checks/review.md",
-      "sha256": "59e8213f6aed415d1aee30baeff831240cbf2f788bb6e086fba69f49fc047798",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2135,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/examples/runtime.md",
-      "sha256": "1eec3147a9a3c87e7e1d31e199e5d25484ad0df1dcea26f2970a4c2b90a193dc",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 991,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "4167002622b5eae872ffe64bf0cca04e48716b5ecc65d6c7500c5f98d336d4db",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1055,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/references/progression-axes.md",
-      "sha256": "d9b24f6469d708b56dafe9e16b3d45fbc16057cc65e1f150e8f89041733cb4a1",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 804,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/references/progression-delta-receipt-schema.yaml",
-      "sha256": "27e027d34af603c384f7c697eff67eac5ed5521808ae7c2f049897af449c2c95",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-progression-lift/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6518,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/SKILL.md",
-      "sha256": "7d6d3fa93722020b448f7b5345bd3b98499a99239a19a2a4b0cd6e6248440014",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 470,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/agents/openai.yaml",
-      "sha256": "58ffab7c36373037789880dcbc7d5e107aa50ec6dbbc3e2a3afceca4f8e166db",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1604,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/checks/review.md",
-      "sha256": "3761285db2c5968b6fdde8aac212ec937b93bbc04c4fe5f927b5f0749ecb81fc",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2042,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/examples/runtime.md",
-      "sha256": "5a510ddc0bbec84623232f7019b6375ab7bf64b21f2edc94ed9a77b980959da2",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 977,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "01316491cefb11b58a4c267c64618780895d9ebcc927bce7339b2df34dbbe30f",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 630,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/references/decision-fork-receipt-schema.yaml",
-      "sha256": "49f6797fde32d11feb187d2de5def28e949b657235884492575e3bb6e31bdc72",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-route-forks/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 7252,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/SKILL.md",
-      "sha256": "2234379cea3b5fc8de77598c090ee215a489c62d212482cb289544b64bbec260",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 471,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/agents/openai.yaml",
-      "sha256": "a60c521cf40a767ee8b6b37d8249e58ed88ac83ed942b9328908408e7baa1900",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1630,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/checks/review.md",
-      "sha256": "da6535945d3b7a4b27959c39d911a14f34229ee811a53f3b7ea05963efcc2bc4",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1856,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/examples/runtime.md",
-      "sha256": "081c851a5de109021301a27e81bcdf43a827e09eb08dfa2b4315d7fcb9e494f8",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 984,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "cc7111e6c56c1dfb49ca656b3bc162403de297a12ae531d53d433de98755aab3",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 815,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/references/diagnosis-packet-receipt-schema.yaml",
-      "sha256": "6e467895ff371c6be336262c174eeef6a2be09de6e3fcac8b035d6a665c2adca",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-diagnose/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 6866,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/SKILL.md",
-      "sha256": "2fdc2159700fa50547277af53047cbdd6f04618c517d703577c4c09e98a83644",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 491,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/agents/openai.yaml",
-      "sha256": "650958e3734721d47ff055a829aa4b6240ff350f3fb08a048c0da11be60cdd3b",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1605,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/checks/review.md",
-      "sha256": "a9d16d68ba7371269bb1a0c55612bd0b5d852ea896422a7d8e817027f096fdb7",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1810,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/examples/runtime.md",
-      "sha256": "1c9ebd42d8b3287b6bc4b5e55f290103c5b9f30e9eba30ea66f0eae9ed71f9f1",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1064,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/references/checkpoint-bridge.md",
-      "sha256": "bfebaf41e48822898d6f2d919e850949380b29addba0796fc49cae6a8a256ac4",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 976,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/references/core-skill-application-receipt-schema.yaml",
-      "sha256": "8637070359e48d527796398e6d3deffda96132f99d29734e5e15ac8a2ca97988",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 791,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/references/repair-cycle-receipt-schema.yaml",
-      "sha256": "c12f9a0ba2ee0dbf3185d3c82870575b2f92f3feb810b133469b54c87d975d27",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-session-self-repair/references/stats-event-envelope.md",
-      "sha256": "4a83bd53c13f34d8355fdf7dfaf6266aa99c4e90c63e227dc426600de738f7bb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 8963,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-source-of-truth-check/SKILL.md",
-      "sha256": "a73f84a7e75fbe3b94d62c2da394d87b11bf085a1540647dca507e2e66072b60",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 437,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-source-of-truth-check/agents/openai.yaml",
-      "sha256": "749b8ae6c633d46bf407c5528fd5e5752302df314f9bcf253aa13dc8d86711ab",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2730,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-source-of-truth-check/examples/example.md",
-      "sha256": "3fd8a3c77ed5cb6326eba06229fea91f0ba4f9b5d37ec9d751927f35a200cfdb",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 4082,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-source-of-truth-check/references/authority-surface-shapes.md",
-      "sha256": "cb293a3c0910a6ff0921e49fb3de1c4fdbb06e66bd4de19cbcb445bb87af769c",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 9397,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/SKILL.md",
-      "sha256": "7059926cf22763d007527fd102cfa3d0accca10a8bfd982c83e27bd0255d836a",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 460,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/agents/openai.yaml",
-      "sha256": "32095ee0e16ab8f42053537fbf8a2ac4f93bae978fdad3c961a771d309f1e18e",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1956,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/checks/review.md",
-      "sha256": "de2212a096acf0a035227437fcfa87c5b0de2ce573a6deab992542b037f5e5f7",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 2689,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/examples/runtime.md",
-      "sha256": "346364a18b61ebbc0a8ccac5c0723402e5e44c9aadaefc923a9276701c3633af",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 203,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/references/no-raw-traces-rule.md",
-      "sha256": "418793b7e7eaf4bf4c0a13d4a59bf85c4c97975fd98af1e23f56eef3fc367036",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 616,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/references/passport-lane-matrix.v3.md",
-      "sha256": "b055e38690ca45a133a963d90930bc56281efb2f33fefda64267d3ec65f543ce",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 3097,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/references/summon-request-v3.schema.json",
-      "sha256": "cf40528ffc09e038747cec62e2ab77f5cf63aa5824df92bf7b4d9d59223ebd25",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 1498,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-summon/references/summon-result-v3.schema.json",
-      "sha256": "dc9a410b919bae76116e3d4e7e194691f877504756bfb4f9d3976b00fb398bf3",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 5478,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-tdd-slice/SKILL.md",
-      "sha256": "a9f82fdd839c72ce840db9c2826bfd21ce92b95576668227fe2a1ffa6b0c87c1",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 415,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-tdd-slice/agents/openai.yaml",
-      "sha256": "9ece822d74d32272257d67ec58566f049a8855da3d3df882eccaac5a10c2ffe0",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 1793,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-tdd-slice/examples/example.md",
-      "sha256": "006f405b4576a40bb260daf8ad7cdc51815df3975efdacadaf41ea0801182636",
-      "surface_kind": "human"
-    },
-    {
-      "bytes": 3573,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "agents-skills",
-      "path": ".agents/skills/aoa-tdd-slice/references/tdd-slice-shapes.md",
-      "sha256": "0c3b53314671ffa75a899cc12532eb55bda69b97b5d032339fe6a34db5420e58",
-      "surface_kind": "human"
     },
     {
       "bytes": 3321,
@@ -4216,11 +2919,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9033661,
+      "bytes": 9223030,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "b17ea8ecbe412bfc7a371af74556db4fe01a7595140ee87131e93f9406a9d473",
+      "sha256": "f072e5ea4cc7f42c601400a026d04ac222f78c6411505efeb099c21ebe0de9ce",
       "surface_kind": "structured"
     },
     {
@@ -4296,11 +2999,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59738113,
+      "bytes": 59844285,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "9194b2d642ea9d038ce673b09ce20487447d70ebfd39317fce0e7b7a3dae93a1",
+      "sha256": "63a39e596045ad207fe98d7ae776cc9edd92b939966237cab3c9bf2905d53b52",
       "surface_kind": "structured"
     },
     {
@@ -4352,11 +3055,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 34329,
+      "bytes": 34958,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "24020c86ec4a87512e69d8c835e080fe0bd8051eb421220d1c12231e4e7d19f1",
+      "sha256": "f44794cd330a83ae3fafa56fa96274b9852471670e3996641b5ecd5a1a3470a1",
       "surface_kind": "human"
     },
     {
@@ -4376,11 +3079,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 82092,
+      "bytes": 82852,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "1d15b692a0cbb144800288c317bb4376f8ea38938be5de87d886238e62414c8d",
+      "sha256": "32fe38401c67ec61da9058b27be4ca547b8dbcac3cd53f526a74c719d8b0c510",
       "surface_kind": "human"
     },
     {
@@ -4496,11 +3199,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 79652,
+      "bytes": 83602,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "1215cefc32e3746155ade09fbce6a43ae2880a88b2a8dc829358b2baa6850f69",
+      "sha256": "e4350abdf12b8d8a2042152d43a9c55296217d576f5e9f6e52c5f144f611df2e",
       "surface_kind": "human"
     },
     {
@@ -4512,19 +3215,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 183199,
+      "bytes": 193261,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "bc07a0c2be12eb39a9e501ba694381aebe4147222f6cd626b0cb215658917525",
+      "sha256": "0ee1a3eabb68993850699a85cd1ebd890d5a58b6aedaac88201c08730d7fa169",
       "surface_kind": "structured"
     },
     {
-      "bytes": 265730,
+      "bytes": 276577,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "d538d19882292c53b0396a8ad9b7f7b95ab46aa0ee04ec280655d555de43ff3a",
+      "sha256": "1aeee75888796767847c0d3cb955474d71ffdb62ae96ff39ebf6bd03b476e31c",
       "surface_kind": "structured"
     },
     {
@@ -20960,11 +19663,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7552,
+      "bytes": 8073,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "3ca44c2476dc9276b2e94dd76d0c9d6760fcc253218b8ba691610b3b10f0f6e4",
+      "sha256": "f3e4df40e6c6f2fd77c414a3e3ff38956133068b691d6ab4519410a6276f42fb",
       "surface_kind": "structured"
     },
     {
@@ -32184,19 +30887,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 14345,
+      "bytes": 14444,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/SCRIPT_TOPOLOGY.md",
-      "sha256": "93066602818ca4a1932fa7fc3198ffc6847bd1e80f0364b23f78e835d04b55d6",
+      "sha256": "709302f72340774f165a7a9e014296386bfe1f5364755c39ea9da12aa1fb4623",
       "surface_kind": "human"
     },
     {
-      "bytes": 22553,
+      "bytes": 22513,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/agents_route_inventory.json",
-      "sha256": "e951ecec4cf9ab9f58677e6131cfe03e4c2177d32448814707809b88780d01a1",
+      "sha256": "582165a341a91a61cfbfedc45d6feabeecfaac8ff97cb3bc83696b3534212dfd",
       "surface_kind": "structured"
     },
     {
@@ -32216,19 +30919,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 33753,
+      "bytes": 41469,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/documentation_family_map.json",
-      "sha256": "d70a5059be9cc7547289e4c8be380d23b3aeb9e53bb10e4cb82abf2177ea0896",
+      "sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
       "surface_kind": "structured"
     },
     {
-      "bytes": 191797,
+      "bytes": 187865,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "ec43619737772213bd32dcb828501f159eb23a6e4e7b4e0ee3061efab64a1b83",
+      "sha256": "f90bd81a3e0320836e59966797388d197aecef54fff039a5301ba2ee1e22372b",
       "surface_kind": "structured"
     },
     {
@@ -33624,11 +32327,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 105773,
+      "bytes": 106687,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "bd7fcec4399002e263212ac9c0ce7a62cff52d6ea31763a9d90d19b26579765d",
+      "sha256": "4f3365252fecf39ecb0558c33dea939d236ddc8aba2bb6eccc40518e77224e59",
       "surface_kind": "executable"
     },
     {
@@ -34240,11 +32943,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 14740,
+      "bytes": 18371,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_agent_surface_currentness.py",
-      "sha256": "d24264b87251bcc64190f264b4f810233913e05a41d4e1e1aa825120bb5cb8c0",
+      "sha256": "bec1595a29029189e0ec0dad9bdfdcc92142cafcb78a042101c9765e8344aaff",
       "surface_kind": "executable"
     },
     {
@@ -34856,11 +33559,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 119587,
+      "bytes": 130375,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_agent_surface.py",
-      "sha256": "43649ddbbcd30ef715d258e69cdc46aabd3109acd62958e646985fb7d4c9c2a9",
+      "sha256": "d28ee4fc62328fe59ea84421c115567d19c8bd5219b0dfd4d396f100f02cc0d8",
       "surface_kind": "executable"
     },
     {
@@ -34872,11 +33575,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 44211,
+      "bytes": 44173,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_documentation_cross_corpus.py",
-      "sha256": "32ce113a0cb8140e3185710392af03f341d2f717846b00b615d8af66c5cf89e0",
+      "sha256": "3768eb32d300e86f514491b5a52f0d40b3911b2145ed38a6cba6f6e5ff8a1fab",
       "surface_kind": "executable"
     },
     {
@@ -35168,11 +33871,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 70914,
+      "bytes": 71819,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_agent_surface.py",
-      "sha256": "d0215a4a9715ab07c601bbe3d1471904a80efd1820d2ba0ca646e85b55782426",
+      "sha256": "e16fa7c7cd94cb04b83ef36fa799ae1072d1360e6a3f9c0700c96ba71f1edc63",
       "surface_kind": "executable"
     },
     {
@@ -35432,11 +34135,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 8129,
+      "bytes": 7889,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_script_topology.py",
-      "sha256": "e680223c05dc4bdf8baa3c9f56cd2803655e48866db9296a92571d438cc29aac",
+      "sha256": "2d33c9a0e32d176bda77d2643f6e2088be835118c31a93614f21215fc86a98b5",
       "surface_kind": "executable"
     },
     {
@@ -35448,11 +34151,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 266434,
+      "bytes": 277678,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "27ba0b6f877efa032c78a5e806d33b043b13fbc29aad2453c9f3d8925fc875a0",
+      "sha256": "6e51991c1cdecf90bbe02cfa51c9fb09bfea2bf8472cc62ab9faff5d6f748f84",
       "surface_kind": "executable"
     },
     {

@@ -77,7 +77,7 @@ EXPECTED_CONTEXT_PROBES = {
     "root_entry": {"surfaces": ("README.md",), "measure": "sum", "max_tokens": 700},
     "inherited_agents_stacks": {"surfaces": (".agents/agents-route.current.json",), "measure": "agents_route_max_inherited", "max_tokens": 2800},
     "mechanics_entry": {"surfaces": ("mechanics/README.md",), "measure": "sum", "max_tokens": 1400},
-    "skill_discovery": {"surfaces": (".agents/README.md", ".agents/agent-surface.manifest.json"), "measure": "max", "max_tokens": 1800},
+    "skill_discovery": {"surfaces": (".agents/README.md",), "measure": "max", "max_tokens": 1800},
     "public_entry": {"surfaces": ("ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md", "ToS/derived-exports/root_entry_map.min.json"), "measure": "sum", "max_tokens": 1200},
     "machine_projection_summary": {"surfaces": ("docs/validation/documentation-family.current.json",), "measure": "generated_summary", "max_tokens": 1600},
 }

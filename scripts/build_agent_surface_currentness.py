@@ -300,6 +300,41 @@ def load_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
     return json.loads((root / MANIFEST_PATH).read_text(encoding="utf-8"))
 
 
+def profile_skill_ids(manifest: dict[str, Any]) -> list[str]:
+    """Return the selected user-profile skill names in source order.
+
+    The Tree-of-Sophia map records this binding without copying the selected
+    owner packages into the repository.  Owner-link entries use an object
+    shape while shared and owner-port entries use strings, matching the
+    profile source contract.
+    """
+    binding = manifest.get("profile_binding")
+    if not isinstance(binding, dict):
+        return []
+    result: list[str] = []
+    for source in binding.get("sources", []):
+        if not isinstance(source, dict):
+            continue
+        for skill in source.get("skills", []):
+            if isinstance(skill, str):
+                result.append(skill)
+            elif isinstance(skill, dict) and isinstance(skill.get("name"), str):
+                result.append(skill["name"])
+    return result
+
+
+def legacy_projection_ids(manifest: dict[str, Any]) -> list[str]:
+    """Return historical projection names from the authored crosswalk."""
+    migration = manifest.get("legacy_projection_migration")
+    if not isinstance(migration, dict):
+        return []
+    return [
+        entry["legacy_name"]
+        for entry in migration.get("entries", [])
+        if isinstance(entry, dict) and isinstance(entry.get("legacy_name"), str)
+    ]
+
+
 def collect_port_inputs(root: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     ports = manifest.get("owner_ports", {})
@@ -342,6 +377,7 @@ def build_currentness(root: Path = REPO_ROOT) -> dict[str, Any]:
             for record in package_records
             if (root / record["entrypoint"]).parent.joinpath("agents/openai.yaml").is_file()
         ),
+        "profile_skill_bindings": len(profile_skill_ids(manifest)),
     }
     probe_depths = {
         probe["id"]: probe["mandatory_reading_depth"]
@@ -356,6 +392,59 @@ def build_currentness(root: Path = REPO_ROOT) -> dict[str, Any]:
         "builder": "scripts/build_agent_surface_currentness.py",
         "package_inventory": package_inventory,
         "packages": package_records,
+        "profile_binding": {
+            "schema_version": (
+                manifest.get("profile_binding", {}).get("schema_version")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "profile": (
+                manifest.get("profile_binding", {}).get("profile")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "runtime": (
+                manifest.get("profile_binding", {}).get("runtime")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "scope": (
+                manifest.get("profile_binding", {}).get("scope")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "install_root": (
+                manifest.get("profile_binding", {}).get("install_root")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "install_mode": (
+                manifest.get("profile_binding", {}).get("install_mode")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "source_manifest": (
+                manifest.get("profile_binding", {}).get("source_manifest")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "resolver": (
+                manifest.get("profile_binding", {}).get("resolver")
+                if isinstance(manifest.get("profile_binding"), dict)
+                else None
+            ),
+            "source_count": (
+                len(manifest.get("profile_binding", {}).get("sources", []))
+                if isinstance(manifest.get("profile_binding"), dict)
+                and isinstance(manifest.get("profile_binding", {}).get("sources"), list)
+                else 0
+            ),
+            "skill_ids": profile_skill_ids(manifest),
+        },
+        "legacy_projection": {
+            "entry_count": len(legacy_projection_ids(manifest)),
+            "legacy_ids": legacy_projection_ids(manifest),
+        },
         "task_probe_depths": probe_depths,
         "owner_ports": collect_port_inputs(root, manifest),
     }
