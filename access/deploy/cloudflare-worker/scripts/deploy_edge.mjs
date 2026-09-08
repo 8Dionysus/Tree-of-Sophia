@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, copyFileSync, createReadStream, mkdtempSync, openSync, writeSync, closeSync, rmSync, statSync, readdirSync } from "node:fs";
+import { readFileSync, copyFileSync, mkdtempSync, rmSync, statSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
-import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 export const REVISION_QUERY = "SELECT GROUP_CONCAT(json_chunk, '') AS json FROM (SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part);";
@@ -78,40 +77,50 @@ function remoteRevision(location = "--remote") {
   );
 }
 
-// Producer SQL has exactly one complete statement per line, including triggers.
-// Bound Wrangler's input string, not just individual database statements.
+// Use the same SQLite framing as local bootstrap. Physical lines may be inside
+// source literals or triggers. One child writes one bounded file; the next is
+// not produced until this generator resumes after the caller imports that file.
+// Input is trusted, immutable producer SQL, not arbitrary caller-supplied SQL.
 export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024) {
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+    throw new Error('SQL import chunk size must be a positive safe integer');
+  }
+  const source = resolve(path);
+  const identity = () => {
+    const stat = statSync(source, { bigint: true });
+    return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':');
+  };
+  const initialIdentity = identity();
+  const unchanged = () => {
+    if (identity() !== initialIdentity) throw new Error('SQL import source changed between chunks');
+  };
   const directory = mkdtempSync(join(dirname(path), '.tos-import-'));
-  let descriptor = null;
-  let target = null;
-  let size = 0;
+  let offset = 0;
   let part = 0;
-  const lines = createInterface({ input: createReadStream(path), crlfDelay: Infinity });
   try {
-    for await (const line of lines) {
-      const statement = line + '\n';
-      const bytes = Buffer.byteLength(statement);
-      if (descriptor !== null && size + bytes > maximumBytes) {
-        closeSync(descriptor);
-        descriptor = null;
-        yield target;
+    while (true) {
+      unchanged();
+      const target = join(directory, `part-${part++}.sql`);
+      const result = spawnSync('python', [fileURLToPath(new URL('./sql_stream.py', import.meta.url)),
+        '--source', source, '--output', target, '--offset', String(offset),
+        '--maximum-bytes', String(maximumBytes)], { encoding: 'utf8', maxBuffer: 8192 });
+      if (result.status !== 0) {
+        throw new Error(`SQL import framing failed: ${result.error?.message ?? result.stderr.trim()}`);
       }
-      if (descriptor === null) {
-        target = join(directory, `part-${part++}.sql`);
-        descriptor = openSync(target, 'wx');
-        size = 0;
+      unchanged();
+      const chunk = JSON.parse(result.stdout);
+      if (!Number.isSafeInteger(chunk.next_offset) || chunk.next_offset < offset
+          || !Number.isSafeInteger(chunk.bytes) || chunk.bytes < 0
+          || chunk.next_offset - offset !== chunk.bytes || typeof chunk.eof !== 'boolean'
+          || (!chunk.eof && chunk.bytes === 0)) {
+        throw new Error('SQL import framing returned invalid progress');
       }
-      writeSync(descriptor, statement);
-      size += bytes;
-    }
-    if (descriptor !== null) {
-      closeSync(descriptor);
-      descriptor = null;
-      yield target;
+      if (chunk.bytes) yield target;
+      rmSync(target);
+      if (chunk.eof) break;
+      offset = chunk.next_offset;
     }
   } finally {
-    lines.close();
-    if (descriptor !== null) closeSync(descriptor);
     // Only this invocation's mkdtemp directory, never a caller path.
     rmSync(directory, { recursive: true });
   }
