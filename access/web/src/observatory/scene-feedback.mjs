@@ -1,3 +1,20 @@
+import {t,ui,uiComputed,uiChildren,uiText} from './ui-i18n.mjs';
+import {nodePreview,describePreview} from './graph-preview.mjs';
+import {localized} from './knowledge-client.mjs';
+
+export function inclusionDescription(packet,nodeId){
+  if(packet?.inclusion?.authority!=='query-execution-not-semantic-proof')return '';
+  const cause=packet.inclusion.nodes?.[nodeId];
+  if(cause?.kind==='selector')return t("Эта звезда соответствует условиям выбора исходных узлов.");
+  if(cause?.kind==='focus')return t("Центр выбранной области.");
+  if(!['traversal','endpoint'].includes(cause?.kind))return '';
+  const relation=packet.relations.find(r=>r.id===cause.via_relation_id),via=packet.nodes.find(n=>n.id===cause.via_node_id);
+  const parts=[t("Эта звезда добавлена окружением; условия исходных узлов не обязаны выполняться.")];
+  if(relation)parts.push(t("Через связь «{0}»{1}.", [localized(relation.display?.label,relation.id), (via?t(" с «{0}»", [localized(via.display?.title,via.id)]):'')]));
+  if(Number.isInteger(cause.depth)&&cause.depth>0)parts.push(t("Шаг от исходной области: {0}.", [cause.depth]));
+  return parts.join(' ');
+}
+
 export function inclusionRoles(packet){
   const result=new Map();
   if(packet?.inclusion?.authority!=='query-execution-not-semantic-proof')return result;
@@ -8,40 +25,31 @@ export function inclusionRoles(packet){
   return result;
 }
 export function createSceneFeedback(root,scene){
-  const legend=document.createElement('div');legend.className='sc-inclusion-legend';legend.hidden=true;legend.title='Причина появления в области; не оценка истинности или значимости';root.querySelector('.sc-context').append(legend);
-  let previous=null,timer=null,activeHint=null,hintId=0;
-  const descriptions={matched:'Эта звезда соответствует условиям линзы.',focus:'Центр выбранной области.',context:'Эта звезда добавлена через связи с выбранной областью.'};
-  function hideHint(){if(!activeHint)return;activeHint.querySelector('.sc-inclusion-hint').hidden=true;delete activeHint.dataset.hintOpen;activeHint=null;}
-  function showHint(element){
-    if(!element||element.hidden||element===activeHint)return;
-    hideHint();const hint=element.querySelector('.sc-inclusion-hint');if(!hint)return;
-    activeHint=element;hint.hidden=false;element.dataset.hintOpen='true';
-    // Measure only when opening; the hint then travels with the existing node.
-    const area=root.getBoundingClientRect(),node=element.getBoundingClientRect(),box=hint.getBoundingClientRect();
-    const x=Math.max(area.left+12,Math.min(node.left+(node.width-box.width)/2,area.right-box.width-12));
-    const below=node.bottom+22,y=below+box.height<area.bottom-90?below:node.top-box.height-22;
-    hint.style.left=(x-node.left)+'px';hint.style.top=(Math.max(area.top+90,y)-node.top)+'px';
+  const legend=document.createElement('div');legend.className='sc-inclusion-legend';legend.hidden=true;uiChildren(root.querySelector('.sc-context'), "append", legend);
+  let previous=null,timer=null;
+  const context=document.createElement('details');context.className='sc-node-context';context.hidden=true;
+  const summary=document.createElement('summary');uiText(summary, ui("Почему звезда в этой области"));const explanation=document.createElement('p');uiChildren(context, "append", summary, explanation);root.querySelector('.sc-provenance').after(context);
+  function selectionContext(){
+    const selection=scene.port.selection;uiText(explanation, selection.relationId?'':inclusionDescription(scene.port.packet,selection.nodeId));context.hidden=!explanation.textContent;
   }
-  root.addEventListener('pointerover',event=>showHint(event.target.closest?.('.sc-node')));
-  root.addEventListener('pointerout',event=>{if(activeHint?.contains(event.target)&&!activeHint.contains(event.relatedTarget)&&!activeHint.contains(document.activeElement))hideHint();});
-  root.addEventListener('focusin',event=>showHint(event.target.closest?.('.sc-node')));
-  root.addEventListener('focusout',event=>{if(activeHint?.contains(event.target)&&!activeHint.contains(event.relatedTarget))hideHint();});
-  window.addEventListener('keydown',event=>{if(event.key==='Escape'&&activeHint){hideHint();event.preventDefault();event.stopPropagation();}},{capture:true});
-  root.addEventListener('pointerdown',hideHint,{capture:true});root.addEventListener('click',hideHint);
-  root.addEventListener('wheel',hideHint,{passive:true});
-  window.addEventListener('resize',hideHint);
   function update(){
-    const packet=scene.port.packet;if(!packet||packet===previous)return;
-    hideHint();clearTimeout(timer);const oldIds=new Set(previous?.nodes.map(n=>n.id)||[]),roles=inclusionRoles(packet),totals={matched:0,focus:0,context:0};
+    selectionContext();const packet=scene.port.packet;if(!packet||packet===previous)return;
+    clearTimeout(timer);const oldIds=new Set(previous?.nodes.map(n=>n.id)||[]),roles=inclusionRoles(packet),totals={matched:0,focus:0,context:0};
     for(const element of root.querySelectorAll('.sc-node')){const role=roles.get(element.dataset.id);element.dataset.inclusion=role||'';element.dataset.entering=String(Boolean(previous&&!oldIds.has(element.dataset.id)));
-      let hint=element.querySelector('.sc-inclusion-hint');
-      if(role){totals[role]++;if(!hint){hint=document.createElement('span');hint.className='sc-inclusion-hint';hint.id='sc-inclusion-hint-'+(++hintId);hint.setAttribute('role','tooltip');element.append(hint);}hint.hidden=true;hint.textContent=descriptions[role];element.setAttribute('aria-describedby',hint.id);}
-      else{hint?.remove();element.removeAttribute('aria-describedby');}
+      const raw=packet.nodes.find(node=>node.id===element.dataset.id);
+      describePreview(element,nodePreview(packet,raw));
+      if(role)totals[role]++;
+
     }
-    legend.replaceChildren();for(const [role,label]of [['matched','По условиям'],['focus','Центр'],['context','Окружение']])if(totals[role]){const item=document.createElement('span');item.dataset.role=role;item.textContent=label+' '+totals[role];legend.append(item);}
+    uiChildren(legend, "replaceChildren");for(const [role,label]of [['matched',ui("По условиям")],['focus',ui("Центр")],['context',ui("Окружение")]])if(totals[role]){const item=document.createElement('span');item.dataset.role=role;uiText(item, uiComputed(()=>label+' '+totals[role]));uiChildren(legend, "append", item);}
     legend.hidden=!roles.size;previous=packet;scene.invalidate();
     timer=setTimeout(()=>{for(const element of root.querySelectorAll('.sc-node[data-entering="true"]'))element.dataset.entering='false';},1600);
   }
-  const observer=new MutationObserver(update);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision','data-node-count','data-relation-count']});
-  update();window.addEventListener('pagehide',()=>{hideHint();clearTimeout(timer);});return {update};
+  const observer=new MutationObserver(update);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision','data-node-count','data-relation-count','data-selected','data-inspector-id','data-inspector-kind']});
+  document.addEventListener('sophia-ui-language',()=>{
+    if(!root.isConnected||!scene.port.packet)return;
+    selectionContext();
+    for(const element of root.querySelectorAll('.sc-node'))describePreview(element,nodePreview(scene.port.packet,scene.port.node(element.dataset.id)));
+  });
+  update();window.addEventListener('pagehide',()=>{clearTimeout(timer);});return {update};
 }

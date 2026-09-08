@@ -515,6 +515,32 @@ class KnowledgeContractTests(unittest.TestCase):
         invalid['compact']['claim_paths'][0]['reading']['standalone'] = True
         self.assertFalse(validator.is_valid(invalid))
 
+        # A query may keep both principal legs while excluding a value-member
+        # edge. The retained assertion is valid transport, never a complete fold.
+        members = copy.deepcopy(before)
+        from tos_access.knowledge import _assertion_context
+        for node in members['nodes']:
+            contexts = node['semantics'].get('assertion_contexts', [])
+            node['semantics']['assertion_contexts'] = [
+                _assertion_context({key: entry['value'] for key, entry in context['fields'].items()})
+                for context in contexts]
+        claim = next(n for n in members['nodes'] if n['id'] == 'c')
+        claim['semantics']['claim']['value_member_node_ids'] = ['evidence']
+        members['relations'].append({**copy.deepcopy(edge), 'id': 'c-member',
+            'from_id': 'c', 'to_id': 'evidence', 'relation_type_id': 'tos.relation.claim-value-member'})
+        for detail in ('full', 'compact'):
+            spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'member-context', 'detail': detail}
+            complete = execute_knowledge_lens(members, spec)
+            self.assertIn('c', [p['claim_node_id'] for p in complete['scene']['compact']['claim_paths']])
+            partial = execute_knowledge_lens(members, {**spec, 'relation_query': {'filters': [
+                {'field': 'relation_type_id', 'op': 'neq', 'value': 'tos.relation.claim-value-member'}]}})
+            self.assertIn({'node_id': 'c', 'reason': 'incomplete-value-member-context'},
+                          partial['scene']['compact']['retained_claims'])
+            self.assertNotIn('c', [p['claim_node_id'] for p in partial['scene']['compact']['claim_paths']])
+            self.assertTrue({'subject', 'c', 'object', 'evidence'} <= {n['id'] for n in partial['nodes']})
+            for result in (complete, partial):
+                Draft202012Validator(self.schemas['lens-result.v1.schema.json'], registry=self.registry).validate(result)
+
     def test_overview_crosses_identity_carriers_without_a_relation_hop(self):
         from tos_access.exploration import ExplorationService
         graph = build_knowledge_graph(*self.fixture())

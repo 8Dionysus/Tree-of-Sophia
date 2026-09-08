@@ -26,8 +26,6 @@
 #sophia-gestures .sc-node:is([data-inclusion=matched],[data-inclusion=focus]){--sc-inclusion-light:226 188 121;--sc-inclusion-opacity:.75}
 #sophia-gestures .sc-node[data-inclusion]:not([data-inclusion=""])::after{content:'';position:absolute;width:56px;height:56px;left:50%;top:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;background:radial-gradient(circle,rgb(var(--sc-inclusion-light)/.26),rgb(var(--sc-inclusion-light)/.09) 28%,transparent 70%);opacity:var(--sc-inclusion-opacity);pointer-events:none;transition:opacity .18s ease-out}
 #sophia-gestures .sc-node:is(:hover,:focus-visible)::after{opacity:1}
-#sophia-gestures .sc-node[data-hint-open=true]{z-index:2}
-#sophia-gestures .sc-inclusion-hint{position:absolute;width:224px;max-width:calc(100cqw - 32px);padding:9px 12px;border:1px solid #344457;border-radius:4px;background:#0c1522f2;color:#cbd6e3;font:11px/1.7 system-ui,sans-serif;letter-spacing:.1px;text-align:left;white-space:normal;pointer-events:auto;cursor:default}
 #sophia-gestures .sc-node[data-entering=true]::before{content:'';position:absolute;inset:6px;border:1px solid #d8bc8480;border-radius:50%;pointer-events:none;animation:sc-arrival 1.6s ease-out both}
 @keyframes sc-arrival{0%{transform:scale(.6);opacity:0}20%{opacity:.85}100%{transform:scale(1.6);opacity:0}}
 #sophia-gestures .sc-studio{display:flex;flex-direction:column;padding:17px 22px;background:linear-gradient(145deg,#121b29,#0c1420 70%);border-color:#465060;box-shadow:0 22px 65px #0008}
@@ -72,3 +70,30 @@
   #sophia-gestures :is(.sc-description,.sc-source-text,.sc-reading-text){font-size:15px}
 }
 @media(prefers-reduced-motion:reduce){#sophia-gestures .sc-panel:not([hidden]),#sophia-gestures .sc-node[data-entering=true]::before{animation:none}#sophia-gestures .sc-node[data-entering=true]::before{opacity:.45}#sophia-gestures .sc-node[data-inclusion]:not([data-inclusion=""])::after{transition:none}}
+
+/* All windows share a reachable title grip and eight resize edges. */
+#sophia-gestures .sc-panel[data-window-id]>.sc-panel-top{cursor:grab;touch-action:none;user-select:none}
+#sophia-gestures .sc-panel-move{flex:none;width:28px;height:28px;justify-content:center;padding:0;font-size:20px;color:#9faec0}
+#sophia-gestures .sc-panel[data-window-id]{max-width:calc(100% - 30px)}
+#sophia-gestures .sc-panel[data-window-id][data-window-sized=true]{width:min(var(--sc-panel-width),calc(100% - 30px));height:min(var(--sc-panel-height),var(--sc-window-height-limit));max-height:var(--sc-window-height-limit)}
+#sophia-gestures .sc-panel[data-window-id][data-floating=true]{left:var(--sc-window-x)!important;top:var(--sc-window-y)!important;right:auto!important;bottom:auto!important;transform:none!important;max-height:var(--sc-window-height-limit)}
+#sophia-gestures .sc-panel[data-floating=true]:not([data-window-sized=true]){width:min(430px,calc(100% - 30px))}
+#sophia-gestures .sc-window-edge{position:absolute;z-index:4;touch-action:none}
+#sophia-gestures .sc-window-edge-n{top:0;left:24px;right:24px;height:6px;cursor:ns-resize}
+#sophia-gestures .sc-window-edge-s{bottom:0;left:24px;right:24px;height:6px;cursor:ns-resize}
+#sophia-gestures .sc-window-edge-e{right:0;top:24px;bottom:24px;width:6px;cursor:ew-resize}
+#sophia-gestures .sc-window-edge-w{left:0;top:24px;bottom:24px;width:6px;cursor:ew-resize}
+#sophia-gestures .sc-window-edge:is(.sc-window-edge-nw,.sc-window-edge-ne,.sc-window-edge-sw,.sc-window-edge-se){width:22px;height:22px}
+#sophia-gestures .sc-window-edge-nw{left:0;top:0;cursor:nwse-resize}
+#sophia-gestures .sc-window-edge-ne{right:0;top:0;cursor:nesw-resize}
+#sophia-gestures .sc-window-edge-sw{left:0;bottom:0;cursor:nesw-resize}
+#sophia-gestures .sc-panel[data-window-id] .sc-window-edge-se{left:auto;right:0;bottom:0;transform:none;cursor:nwse-resize;display:block}
+#sophia-gestures :is(.sc-search,.sc-lenses)[data-window-id]{display:flex;flex-direction:column}
+#sophia-gestures .sc-search-results{min-height:0;overflow:auto;overscroll-behavior:contain}
+#sophia-gestures .sc-lenses[data-window-id]{overflow-y:auto;overscroll-behavior:contain}
+@container(max-width:650px){
+  #sophia-gestures .sc-panel[data-window-id] .sc-window-handle{cursor:grab}
+  #sophia-gestures .sc-panel[data-window-id] .sc-window-handle svg{display:block}
+  #sophia-gestures .sc-panel[data-floating=true]:not([data-window-sized=true]){max-height:42dvh}
+  #sophia-gestures .sc-panel .sc-panel-resize{display:block;width:28px;height:28px}
+}

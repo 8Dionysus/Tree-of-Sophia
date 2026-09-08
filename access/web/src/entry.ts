@@ -3,5 +3,5 @@ const params = new URLSearchParams(location.search);
 if (params.get("workspace") === "classic" || params.has("mode") || params.has("view")) {
   void import("./main");
 } else {
-  void import("./observatory/app.mjs");
+  void import("./observatory/app.mjs").then(({mountObservatory}) => mountObservatory());
 }

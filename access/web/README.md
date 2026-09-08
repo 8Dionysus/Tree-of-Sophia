@@ -5,12 +5,39 @@ bounded knowledge neighborhoods and floating search, source, and research panels
 It is a read-only consumer of the access backend. Notes, hypotheses and proposals
 remain in the existing local research workspace; they do not write to ToS.
 
+Star labels, hover previews, search, inspector headings and pinned reading treat
+the explicit `display.provenance.title = identifier-fallback` as a missing
+readable title. They show the supplied kind and that missing state; the original
+record, identity, source references and content remain intact. No ID pattern,
+kind taxonomy or human-form caption generates a name. Source-bound readable
+titles remain an upstream responsibility and are displayed as delivered.
+
 ## Run and verify
 
 From this directory, run `npm ci`, `npm run typecheck`, `npm test`, and
 `npm run build`. `npm run dev` proxies `/api` to the local review backend on
 `127.0.0.1:44258`; change that development target for another local backend.
 Production always uses same-origin APIs.
+
+`/static/fixtures/reader.html` on the development server mounts the same
+Observatory with an injected connection and explicitly artificial materials.
+It exercises long and multilingual reading, absent descriptions, two-item
+comparison, changed snapshots, delayed/offline/restricted reads, and the
+40-node/80-relation scene budget. Its short frame sample is a local diagnostic,
+not a sustained performance guarantee. Fixtures are not production build entries.
+
+`/static/fixtures/lens.html` also exercises search, capability-bound conditions,
+context and returns to paired reading at either 6 or 40 nodes. Its optional
+ten-minute probe keeps bounded frame/event histograms and at most 121 samples.
+Keep the application and tab visible: the embedded browser can throttle a hidden
+task even when page visibility reports otherwise. Save the displayed report
+before editing source, because development reloads reset it. The report separates
+frame intervals, listener-to-next-rAF callback delay, slow Event Timing entries,
+long tasks, DOM size and optional Chromium heap estimates. Panel delay ends at
+that callback, not completed paint or remote response. Event counts include
+automation; trusted events are counted separately. Heap estimates are not
+retained-size measurements or proof of leak freedom. These diagnostics remain
+local to the development fixture and are not a production telemetry service.
 
 `dist/` is tracked. Rebuild it from source. Both HTTP and edge adapters load the
 stable `/static/assets/tos-graph.js` bootstrap and `tos-graph.css`; imported view
@@ -22,12 +49,42 @@ CSP is required.
 - `src/entry.ts` selects the default Observatory. Existing `mode`/`view` links and
   `workspace=classic` still load `src/main.ts`, with its full research commands.
   The old shell is a compatibility route, not the template for new panels.
-- `src/observatory/scene.js` owns camera, selection, navigation history, sky and
+- `src/observatory/scene.js` owns camera, selection, sky and
   layout. `gpu-canvas.js` batches the accepted painter through Three 0.185.1;
   Canvas remains the fallback if GPU creation fails.
+- `scene-history.mjs` compares the bounded pose and geometry while retaining the
+  page-owned response packet by reference. Camera and selection history never
+  serializes source text. A newly delivered packet stays a distinct boundary,
+  including its packet-local query metadata, even with an equal fingerprint.
+  The standalone scene fallback keeps at most 24 live views; the mounted
+  Observatory delegates its journey to the persistent history adapter below.
 - `knowledge-client.mjs` validates LensResult authority, revision, unique opaque
   IDs, closed relation endpoints, and a 40-node/80-relation display budget.
   A large corpus never directly determines per-frame scene size.
+- `data-services.mjs` supplies one page-owned knowledge client and the existing
+  query operations to all Observatory consumers. Request cancellation and
+  contract checks remain with each consumer. `mountObservatory` accepts this
+  connection explicitly; components do not create private API connections.
+- `reader-model.mjs` and `reader-panel.mjs` provide **Читать** in the selected
+  card and **Моё пространство → Инструменты → Чтение и сопоставление**.
+  At most two inspected objects or relations remain in this browser page,
+  alongside their exact identities, versions, source references and supplied
+  qualifications. Wide windows show independent columns; narrow windows use
+  keyboard-accessible tabs. Reading positions and return-to-place bookmarks
+  survive panel handoffs. `reading-resume.mjs` persists only exact references,
+  preferred language/form, active item, and up to eight bounded positions per
+  item, scoped to the mounted pathname. Paragraph keys and offsets carry no
+  source text and are valid only for the exact source/content revisions.
+  Reopening fetches both materials from the current backend; a changed revision
+  starts the affected reading at the beginning with a visible notice. Full
+  response copies and graph return bookmarks remain page-local. Damaged storage
+  and unseen competing-tab changes are not overwritten; save failures are shown.
+  An explicit refresh obtains a new snapshot; mismatched scene actions stay
+  disabled. Network failure retains a labelled earlier copy, while an observed
+  403/404/410 removes its reading copy. Available language/form fields retain
+  their delivered wording and identify fallback or unspecified language.
+  This compares supplied material side by side; it does not generate semantic
+  conclusions, full text, translations, or stable corpus text addresses.
 - `knowledge-ui.mjs` handles paged search, inspection, scene request cancellation
   and explicit retry. A failed request retains the current graph. Inspection
   checks both source and content revisions before entering the card cache.
@@ -93,6 +150,26 @@ CSP is required.
   IDs, not data snapshots or authority; reopening recompiles current data.
   Arbitrary backend LensSpecs, server persistence and paginated custom-lens
   expansion are outside this first constructor slice.
+- `lens-conditions.mjs` and `lens-condition-editor.mjs` add up to 12 conjunctive
+  conditions each for selector roots and relations. Named display/status fields
+  require catalog and schema support. Registered semantic properties additionally
+  require the `property_id` capability and schema selector; the UI sends that
+  identity unchanged and never substitutes its advertised internal field path.
+  Operations are the intersection of the property's declared operations, the
+  catalog value contracts, the LensSpec schema and supported value controls.
+  Text, numbers, booleans and lists retain their types; no implicit language,
+  unit or Unicode conversion is performed. Property definition and applicability
+  remain visible. Missing properties or operations block execution until the
+  condition is repaired or removed. Center-mode node conditions and disabled
+  relation conditions remain explicitly dormant in the definition.
+- The constructor separates edited conditions from the query of the displayed
+  packet. Empty results offer explicit scope/search/condition adjustments and
+  retain the previous graph; errors do the same. Recorded inclusion distinguishes
+  selector matches from traversal context and names delivered traversal witnesses.
+  A contextual button reopens the current lens, and previous/original view
+  actions preserve scene history, camera and the independent reading shelf.
+  Local definitions and links now use v2; v1 definitions migrate on read. Older
+  clients reject v2 instead of silently losing the new conditions.
 - `lens-vocabulary.mjs` groups choices by advertised registry roles and relation
   definitions, filters them by exact source mappings, and sorts readable labels
   or catalog-wide frequency. Groups start collapsed and share one panel scroll;
@@ -247,17 +324,105 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   continuation. Empty or failed reads leave the current scene in place.
 - `studio.mjs` adds **Моё пространство → Места / Инструменты**. The last view is
   remembered locally and restored on a matching URL or home; an explicit different
-  deep link takes precedence. Named places support update, removal and immediate
+  deep link takes precedence. Named places support renaming, update, removal and immediate
   undo. Storage failures remain visible and do not replace a damaged place list.
+- `travel-model.mjs` and `travel-panel.mjs` add **Назад / Вперёд / История**,
+  including Alt+Left/Right outside text fields and direct jumps to named steps.
+  The list and cursor survive reload in local browser storage, scoped to the
+  mounted pathname. A new material, area or lens after going back starts a new
+  branch. Camera movement, card sections and refreshed data update the current
+  stop while preserving its identity and the forward branch. Consecutive old
+  camera-only rows collapse on load or import, preserving the current pose;
+  explicitly saved places are independent and remain intact. Step names identify
+  the material or lens. Persistence retains at most 100
+  steps and 1.2 million JSON characters (older entries are trimmed first).
+  Only bounded place requests, identities and poses are stored, never source
+  packets or exploration cursors. Every jump reloads current owner data before
+  moving the cursor. Failure, cancellation and late replies preserve the current
+  view. Changed revisions and unavailable selections are reported. Storage
+  failures keep navigation usable in this page; malformed or competing-tab
+  records are not overwritten. The history panel offers retry and explicit
+  clearing, which retains the current view. Clearing browser data clears history.
+  **В места** pins any history step without navigating away, retaining its own
+  query and pose. Repeated pinning retains the existing named place. Names can
+  then be edited in **Моё пространство → Места**.
+- `settings-panel.mjs` adds a permanent **Настройки** button outside the scrolling
+  tool strip. Existing text, star-label, docking, pinned-tool and window-size
+  preferences live here, alongside interface language, theme and action controls.
+  Dragging can rotate or pan; Shift temporarily reverses that choice. Scrolling
+  defaults to automatic action selection: smooth pixel gestures pan, notched
+  deltas zoom, and pinch zooms. Browsers do not expose device identity, so smooth
+  wheels can use an explicit pan/zoom override. Sensitivity has three levels.
+  Older mouse preferences preserve their zoom choice; other old records gain
+  automatic defaults. Ambient motion remains a persistent footer control.
+  Resetting appearance and controls leaves the interface language, places,
+  notes, history and reading intact.
+  The panel also links to history, the full workspace copy and last-view reset.
+- `ui-i18n.mjs` and `ui-catalog.mjs` provide Russian, English and Spanish interface
+  text. Switching language updates explicitly marked UI text and attributes in
+  place, preserving nested controls, focus and unsaved form contents. Raw source
+  titles, descriptions, vocabulary labels and user notes remain opaque even when
+  their wording matches an interface message. Each reading item keeps its own
+  existing choice among delivered language/form variants; interface language
+  never requests or invents a translated source. Both language and theme persist
+  in the local preferences and workspace copy.
+  Navigation titles and previews select the supplied variant for the interface
+  language through `display-language.mjs`; the inspector uses its material
+  selector, and each pinned item keeps its own choice. A language switch only
+  relabels existing stars, preserving their IDs, positions and camera. Missing
+  variants use the same explicit fallback as reading. The original-title slot
+  shows only a supplied source `original`, never an English substitute.
+  Navigation-template titles remain navigation-only, including in reading;
+  they do not create source wording or a ready HumanForm.
+- `themes.css` adds a light interface with warm paper surfaces and dark text for
+  panels, controls and contextual hints. The space and stars retain their night
+  palette. The existing dark theme remains the default.
+- `panel-geometry.mjs` gives every popup, including search, lenses and the selected
+  card, a draggable header and eight resize edges/corners. Arrow keys on the move
+  handle move the window; the corner handle changes its size. Home resets the
+  respective geometry. Sizes and normalized positions persist locally, adapt to
+  available viewport space and travel with the workspace copy. Window gestures
+  do not change the camera, graph selection, source data or navigation history.
+- `context-hints.mjs` provides one bounded contextual tooltip for controls,
+  stars and relations. Hover waits 400 ms; keyboard focus reveals the same
+  explanation, Escape dismisses it before the enclosing panel, and gestures
+  hide pending/visible hints. It preserves focus and selection, stays inside
+  the viewport, and can be hovered for reading. Important control instructions
+  remain in settings on touch devices; a star's inclusion explanation is also
+  available in its card under **Почему звезда в этой области**. Inclusion
+  describes query execution, never philosophical authority.
+- `graph-preview.mjs` builds compact star hints from every currently supplied kind
+  and directed relationship label, without a browser-owned role allowlist.
+  Authored/source-derived summaries take precedence; otherwise up to two visible
+  relationships provide context. Each field is bounded. Synthesized technical
+  metadata is not substituted for a substantive description. Canvas relationships
+  highlight on hover and open their existing owner-backed card on click. One
+  keyboard entry cycles visible relationships with arrows and opens with Enter;
+  it avoids adding a button for every edge to the tab order.
+- `workspace-copy.mjs` and `workspace-copy-panel.mjs` provide **Моё пространство
+  → Сохранить и перенести исследование** and **Исследование → Полная копия
+  исследования**, also available in **Настройки → Локальные данные**. The versioned local JSON copy includes history and cursor,
+  named places and lens definitions, last view, interface preferences, reading references/positions,
+  and saved research records, hypotheses, proposals and route comparisons.
+  It excludes delivered source packets, reading text, page-local response
+  caches, exploration cursors and unsaved form input. Existing record-only
+  export/import and the WebMCP research packet keep their narrower contracts.
+  Import checks every owner section and the whole file limit, previews counts,
+  offers a download of the previous copy, and requires an explicit replace.
+  Changed storage since the preview aborts replacement. A failed storage write
+  rolls back completed writes; a rollback failure remains visible. Successful
+  import suspends old page writers and reopens the page through the normal
+  owner readers, fetching current backend material. LocalStorage writes across
+  sections are synchronous with rollback, not a crash-atomic database transaction.
 - `interface-model.mjs` restricts composition to the registered local adapters.
   Search, lenses, research, navigation, lens constructor, evidence and sources can
   be pinned and reordered; all remain available in the tool list. Preferences
   contain no executable code, service endpoints or additional write authority.
   Existing WebMCP and backend action contracts remain the execution boundary.
 
-Camera changes in this slice are limited to the validated saved-view bridge,
-initial-load sequencing, and card-section/read-position restoration. Accepted
-wheel/pinch/pan gains, projection and GPU painting remain the baseline. New
+Camera changes include the validated saved-view bridge, initial-load sequencing,
+card-section/read-position restoration and configurable action routing. Projection
+and GPU painting remain the baseline; normal sensitivity retains existing gains. New
 visual arrival effects respect reduced motion. Small-screen connection lists,
 previously hidden by prototype CSS, are available again. Resize grips support
 arrows and Home; tabs retain roving keyboard focus.
@@ -283,3 +448,126 @@ A bounded explanation appears on hover or keyboard focus, is linked through
 `aria-describedby`, and can be dismissed with Escape or a scene gesture. Tooltip
 placement is measured on opening only; it follows the existing node transform.
 The painter, camera and gesture handlers are unchanged by this presentation fix.
+
+The subsequent interface refinement passed 132 frontend tests, TypeScript,
+Vite build, and the standalone access lane (110 tests plus source-profile
+validation). Browser checks covered RU/EN/ES switching with saved notes and an
+unsaved draft intact, persistent window geometry, explicit and automatic scroll
+actions, Shift drag routing, edge hover/click/keyboard access, and responsive
+390x844 windows without horizontal overflow. Light-theme reading controls and
+the mobile reading header were checked after contrast/layout corrections. The
+built preview loaded ten real ToS objects with the new assets and no sampled
+console warnings/errors. Physical touch hardware, broad performance profiling,
+CI, deployment and integration with the future backend remain separate checks.
+
+### Complete human form delivery
+
+`KnowledgeClient.readMaterial` reads an isolated, validated, full `LensResult`
+with a content-language preference and zero traversal depth. The visible graph
+does not consume this separate result. Restoring a relation may first use the
+existing inspect route to discover its endpoints; a single full lens response
+then owns the displayed record and endpoints at the checked revision. There is
+no new backend endpoint or invented inspect response schema.
+
+`human-forms.mjs` checks the delivered selection, exact form references, material
+revision, language declaration, mandatory context and authority flags. It does
+not select among candidates, materialize source forms or perform assessment.
+The canonical ToS human-form materialization and access selection contracts
+remain the owners; this isolated UI branch does not copy their implementation.
+
+Inspector and pinned reading share `human-forms-view.mjs`. All seven roles are
+available: name, caption, hover, statement, grounds, history and technical.
+Ready wording and every mandatory context value are one complete scrolling
+unit. Unknown context fields, bindings, false, zero, null and empty values remain
+intact. Provenance, form identity and source-snapshot assessment details stay
+separate from semantic acceptance. Role-specific diagnostics do not attribute
+another role's stale or restricted candidate to the selected role. Ambiguity,
+missing delivery, unavailable forms and delivery limits remain explicit.
+
+Small graph hints refer to the full card instead of truncating a human form.
+Legacy display fields retain their existing navigation role. Content-language
+choices query the backend; fallback reports the actual delivered language.
+Interface localization does not translate source wording or mandatory context.
+
+Reading stores references and positions only. The position key includes the
+source and material revisions, requested language and exact selected form
+identities, states and actual languages. Earlier four-part position keys remain
+readable. Reload fetches current packets; invalid or revoked material clears
+the displayed copy. Late language responses cannot replace a newer choice.
+Network failure can retain an explicitly marked earlier in-page copy.
+Only the shared, bounded reading-anchor grammar leaves page memory. A local
+diagnostic anchor such as a candidate without a role exports as `anchor: null`,
+retaining its numeric position and allowed details state. The importer still
+rejects unknown anchors; one diagnostic cannot invalidate the saved pair.
+
+The inspector follows `scene.compact.claim_paths`. A selected Claim uses
+`KnowledgeClient.readClaimMaterial` to fetch the exact path nodes, both legs,
+declared evidence relations and their endpoints as one full LensResult at the
+captured revision and requested language. Exact selectors with zero traversal
+need no focus seed; a focus can suppress a path when it also supplies grounds.
+Every returned identity and content revision is checked. The new response owns
+the wording pointer, entire form packet, semantic, epistemic and relation
+context; it is never combined with wording from the older displayed scene.
+The current request must still own the same scene, selection and language
+before the card becomes ready. Loading, damaged or denied delivery clears the
+earlier wording. Ordinary node reads remain isolated to one node.
+
+This supports the two-leg Claim path with `claim-supported-by` and
+`claim-value-member` details. The latter requires the normalized
+`semantics.claim.value_member_node_ids` declaration. If that field is present or
+the packet contains a member edge from this Claim, the list must be nonempty,
+contain unique string IDs and have every node present. Exactly one member edge
+must leave this Claim for each declared ID; their target sets must match exactly.
+Every such edge must be included in the path details and reading context, even
+if a malformed path tries to omit it. The client reads no arbitrary
+`object.members` fields or kind labels to infer this set. These structural
+references carry mandatory context and do not establish accepted membership or
+a Sign judgment. Existing atomic, language, revision and budget checks apply to
+the entire closure. Other detail kinds fail closed.
+
+Visual path collapsing, explicit candidate selection and an over-budget recovery
+endpoint are outside this UI slice. The painter, camera, gestures, motion and
+panel placement retain their existing owners.
+
+`fixtures/human-forms.html` provides synthetic full, ambiguous, stale,
+over-budget, damaged-context, delayed and restricted deliveries. Its optional
+preservation probe reports reading references and positions without exporting
+source text. These examples are test data, not ToS knowledge or assessment.
+The `?forms=compact`, `?forms=members` and `?forms=diagnostic` variants exercise
+the real inspector call path, three exact synthetic TextUnit member references,
+and pair restoration with a role-less diagnostic respectively.
+
+This slice passed 149 frontend tests, TypeScript and the Vite build. The access
+lane passed 109 tests in its full run; its remaining schema test passed after
+an unnecessary schema copy was removed. Source-profile validation passed.
+Browser checks covered all seven roles, role-specific states, damaged-context
+rejection, late-response cancellation, a 390 px viewport and two-material
+reload with separate languages and scroll positions. The built UI also read
+a real Duden Claim with its complete qualifications and context, an explicit
+Spanish-to-Russian fallback and unavailable undeclared original forms. Vite
+reports the application chunk above its 900 kB warning threshold (905.15 kB).
+This is local delivery evidence; CI, merge, deployment, backend assessment,
+physical touch and performance acceptance remain separate.
+
+The subsequent compact-reading and persistence repair passed 163 frontend tests,
+TypeScript and Vite. Its browser fixtures verified distinct RU/EN packets,
+late-response suppression, unavailable original, missing context, access denial,
+and a saved diagnostic position restored for both materials after reload.
+The real canonical HTTP canary exercised the actual inspector consumer with
+four Duden Claim nodes and three context relations. EN and ES requests preserved
+the backend's RU fallback; undeclared original had no wording. The ordinary
+HTTP client canary also passed focus, search, exploration, evidence, paths and
+known/restored relation equality. The application chunk warning remains
+(908.78 kB, 255.86 kB gzip). Full access and release lanes were not repeated for
+this UI-only repair; the affected frontend and real HTTP consumer checks provide
+its bounded validation evidence.
+
+The additive member-context consumer passed 181 frontend tests, TypeScript and
+Vite. Focused checks cover three members, missing nodes/edges, omitted context,
+duplicate or wrong members, absent/empty/malformed declarations, current language
+packets, member record revisions and the unchanged ordinary path. Browser
+fixtures exercise the actual inspector with full RU/EN forms and fail closed
+when the third member node or edge is missing. The application chunk is
+909.27 kB (255.97 kB gzip), retaining the existing warning. Joint real HTTP
+verification of this additive contract waits for the backend source freeze;
+earlier Duden canaries do not establish the new member-context contract.
