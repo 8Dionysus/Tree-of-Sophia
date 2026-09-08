@@ -1,8 +1,9 @@
+import {t} from './ui-i18n.mjs';
 import {ContractError,RevisionError} from './knowledge-client.mjs';
 import {sourceRefs} from './evidence-model.mjs';
 
 export const pathAvailable=raw=>raw?.source_graph==='philosophy'&&typeof raw.native_id==='string'&&Boolean(raw.native_id);
-const fail=()=>{throw new ContractError('Маршрут не удалось связать с текущими данными. Обновите область.');};
+const fail=()=>{throw new ContractError(t("Маршрут не удалось связать с текущими данными. Обновите область."));};
 export function explorationQuery(id,{depth=2,direction='either',profile='overview'}={}){
   // Focus + primary nodes + both endpoints of every edge fit the 40-node scene.
   return {focus_node_id:id,max_depth:depth,direction,profile,page_nodes:10,page_relations:14};
@@ -65,12 +66,12 @@ export function bindPath(path,packet,start,end){
       from_node_id:nodes.get(step.from_node_id).id,to_node_id:nodes.get(step.to_node_id).id,edge_direction:step.edge_direction}))};
 }
 export async function loadPaths(start,end,revision,{client,queries,signal,direction='either',maxDepth=6,alternativeLimit=3,excluded=[]}){
-  if(!pathAvailable(start)||!pathAvailable(end)||excluded.some(r=>!pathAvailable(r)))throw new Error('Маршруты пока доступны между объектами философского графа.');
-  if(start.id===end.id)throw new Error('Выберите две разные звезды.');
+  if(!pathAvailable(start)||!pathAvailable(end)||excluded.some(r=>!pathAvailable(r)))throw new Error(t("Маршруты пока доступны между объектами философского графа."));
+  if(start.id===end.id)throw new Error(t("Выберите две разные звезды."));
   if(!['outgoing','incoming','either'].includes(direction)||!Number.isInteger(maxDepth)||maxDepth<1||maxDepth>8
-    ||!Number.isInteger(alternativeLimit)||alternativeLimit<1||alternativeLimit>5||excluded.length>64)throw new Error('Выберите глубину от 1 до 8 и до 5 вариантов.');
+    ||!Number.isInteger(alternativeLimit)||alternativeLimit<1||alternativeLimit>5||excluded.length>64)throw new Error(t("Выберите глубину от 1 до 8 и до 5 вариантов."));
   // The older endpoint represents exclusion lists with commas, not opaque arrays.
-  if(excluded.some(r=>r.native_id.includes(',')))throw new Error('Эту связь пока нельзя исключить через доступный маршрут поиска.');
+  if(excluded.some(r=>r.native_id.includes(',')))throw new Error(t("Эту связь пока нельзя исключить через доступный маршрут поиска."));
   const subjects=[[start,'node'],[end,'node'],...excluded.map(r=>[r,'relation'])];
   const check=()=>Promise.all(subjects.map(([raw,kind])=>client.inspect(kind,raw.id,signal,revision,raw.content_revision)));
   await check();signal?.throwIfAborted();

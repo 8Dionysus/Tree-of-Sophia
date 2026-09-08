@@ -341,12 +341,33 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   then be edited in **Моё пространство → Места**.
 - `settings-panel.mjs` adds a permanent **Настройки** button outside the scrolling
   tool strip. Existing text, star-label, docking, pinned-tool and window-size
-  preferences live here, alongside persistent mouse/trackpad and ambient-motion
-  choices. Older preference files gain control defaults without losing existing
-  values. Footer controls and settings share the same preferences. Resetting
-  appearance and controls leaves places, notes, history and reading intact.
+  preferences live here, alongside interface language, theme and action controls.
+  Dragging can rotate or pan; Shift temporarily reverses that choice. Scrolling
+  defaults to automatic action selection: smooth pixel gestures pan, notched
+  deltas zoom, and pinch zooms. Browsers do not expose device identity, so smooth
+  wheels can use an explicit pan/zoom override. Sensitivity has three levels.
+  Older mouse preferences preserve their zoom choice; other old records gain
+  automatic defaults. Ambient motion remains a persistent footer control.
+  Resetting appearance and controls leaves the interface language, places,
+  notes, history and reading intact.
   The panel also links to history, the full workspace copy and last-view reset.
-  Interface/reading languages and themes have no placeholder controls yet.
+- `ui-i18n.mjs` and `ui-catalog.mjs` provide Russian, English and Spanish interface
+  text. Switching language updates explicitly marked UI text and attributes in
+  place, preserving nested controls, focus and unsaved form contents. Raw source
+  titles, descriptions, vocabulary labels and user notes remain opaque even when
+  their wording matches an interface message. Each reading item keeps its own
+  existing choice among delivered language/form variants; interface language
+  never requests or invents a translated source. Both language and theme persist
+  in the local preferences and workspace copy.
+- `themes.css` adds a light interface with warm paper surfaces and dark text for
+  panels, controls and contextual hints. The space and stars retain their night
+  palette. The existing dark theme remains the default.
+- `panel-geometry.mjs` gives every popup, including search, lenses and the selected
+  card, a draggable header and eight resize edges/corners. Arrow keys on the move
+  handle move the window; the corner handle changes its size. Home resets the
+  respective geometry. Sizes and normalized positions persist locally, adapt to
+  available viewport space and travel with the workspace copy. Window gestures
+  do not change the camera, graph selection, source data or navigation history.
 - `context-hints.mjs` provides one bounded contextual tooltip for controls,
   stars and relations. Hover waits 400 ms; keyboard focus reveals the same
   explanation, Escape dismisses it before the enclosing panel, and gestures
@@ -355,6 +376,14 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   remain in settings on touch devices; a star's inclusion explanation is also
   available in its card under **Почему звезда в этой области**. Inclusion
   describes query execution, never philosophical authority.
+- `graph-preview.mjs` builds compact star hints from every currently supplied kind
+  and directed relationship label, without a browser-owned role allowlist.
+  Authored/source-derived summaries take precedence; otherwise up to two visible
+  relationships provide context. Each field is bounded. Synthesized technical
+  metadata is not substituted for a substantive description. Canvas relationships
+  highlight on hover and open their existing owner-backed card on click. One
+  keyboard entry cycles visible relationships with arrows and opens with Enter;
+  it avoids adding a button for every edge to the tab order.
 - `workspace-copy.mjs` and `workspace-copy-panel.mjs` provide **Моё пространство
   → Сохранить и перенести исследование** and **Исследование → Полная копия
   исследования**, also available in **Настройки → Локальные данные**. The versioned local JSON copy includes history and cursor,
@@ -376,9 +405,9 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   contain no executable code, service endpoints or additional write authority.
   Existing WebMCP and backend action contracts remain the execution boundary.
 
-Camera changes in this slice are limited to the validated saved-view bridge,
-initial-load sequencing, and card-section/read-position restoration. Accepted
-wheel/pinch/pan gains, projection and GPU painting remain the baseline. New
+Camera changes include the validated saved-view bridge, initial-load sequencing,
+card-section/read-position restoration and configurable action routing. Projection
+and GPU painting remain the baseline; normal sensitivity retains existing gains. New
 visual arrival effects respect reduced motion. Small-screen connection lists,
 previously hidden by prototype CSS, are available again. Resize grips support
 arrows and Home; tabs retain roving keyboard focus.
@@ -404,3 +433,14 @@ A bounded explanation appears on hover or keyboard focus, is linked through
 `aria-describedby`, and can be dismissed with Escape or a scene gesture. Tooltip
 placement is measured on opening only; it follows the existing node transform.
 The painter, camera and gesture handlers are unchanged by this presentation fix.
+
+The subsequent interface refinement passed 132 frontend tests, TypeScript,
+Vite build, and the standalone access lane (110 tests plus source-profile
+validation). Browser checks covered RU/EN/ES switching with saved notes and an
+unsaved draft intact, persistent window geometry, explicit and automatic scroll
+actions, Shift drag routing, edge hover/click/keyboard access, and responsive
+390x844 windows without horizontal overflow. Light-theme reading controls and
+the mobile reading header were checked after contrast/layout corrections. The
+built preview loaded ten real ToS objects with the new assets and no sampled
+console warnings/errors. Physical touch hardware, broad performance profiling,
+CI, deployment and integration with the future backend remain separate checks.

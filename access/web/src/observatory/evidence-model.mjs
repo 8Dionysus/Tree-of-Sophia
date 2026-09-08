@@ -1,3 +1,4 @@
+import {t} from './ui-i18n.mjs';
 import {ContractError,RevisionError,localized} from './knowledge-client.mjs';
 
 export const sourceRefs=item=>[...new Set([item?.source_ref,...(item?.source_refs||[])].filter(value=>typeof value==='string'&&value))];
@@ -17,7 +18,7 @@ export function validateEvidence(packet,raw,kind,route){
     ||!sourceRefs(selection).some(ref=>sourceRefs(raw).includes(ref))
     ||!['challenge_relations','context_relations','neighbor_nodes','source_refs','routes','source_anchors','gaps'].every(key=>Array.isArray(packet[key]))
     ||typeof packet.conclusion?.can_conclude!=='boolean'){
-    throw new ContractError('Основания не удалось связать с выбранным объектом. Обновите область.');
+    throw new ContractError(t("Основания не удалось связать с выбранным объектом. Обновите область."));
   }
   return packet;
 }
@@ -53,7 +54,7 @@ export function reading(item,nodes=[]){
 
 export function compareEvidence(result,selection){
   const packet=result.packet;
-  if(!packet)throw new Error('Для этого объекта сравнение прочтений пока не подключено.');
+  if(!packet)throw new Error(t("Для этого объекта сравнение прочтений пока не подключено."));
   const others=items=>items.filter(item=>(item.edge_id||item.node_id)!==packet.item_id).map(item=>reading(item,[packet.selection,...packet.neighbor_nodes]));
   const competing=others(packet.challenge_relations),context=others(packet.context_relations);
   return {schema:'tos_interpretation_comparison_v1',selection,binding:result.binding,

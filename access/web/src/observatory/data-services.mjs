@@ -1,3 +1,4 @@
+import {t} from './ui-i18n.mjs';
 import {KnowledgeClient,RequestError} from './knowledge-client.mjs';
 import {createToSQueryOperations} from '../query-operations';
 
@@ -11,7 +12,7 @@ export function createObservatoryData({fetcher,timeoutMs=60000}={}){
     try{return await transport.request(url,options);}
     catch(error){
       if(error instanceof RequestError&&error.status===404)
-        throw new RequestError(404,'Этот материал пока недоступен в выбранном способе просмотра.');
+        throw new RequestError(404,t("Этот материал пока недоступен в выбранном способе просмотра."));
       throw error;
     }
   });

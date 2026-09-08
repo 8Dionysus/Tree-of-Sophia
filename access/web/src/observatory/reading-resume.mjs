@@ -1,3 +1,4 @@
+import {t} from './ui-i18n.mjs';
 import {readingKey} from './reader-model.mjs';
 
 export const READING_KEY='tos-observatory-reading-v1';
@@ -5,7 +6,7 @@ export const emptyReading=()=>({v:1,activeKey:null,entries:[]});
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const language=value=>typeof value==='string'&&value.length<=64&&/^(default|original|[a-z]{2,8}(?:-[a-z0-9]{1,8})*)$/i.test(value);
 const bounded=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
-const bad=()=>{throw new Error('Сохранённое чтение повреждено. Исходная запись оставлена в браузере.');};
+const bad=()=>{throw new Error(t("Сохранённое чтение повреждено. Исходная запись оставлена в браузере."));};
 export function validateReading(value){
   if(value?.v!==1||!Array.isArray(value.entries)||value.entries.length>2)bad();
   const entries=value.entries.map(entry=>{

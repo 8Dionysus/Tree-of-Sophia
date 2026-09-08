@@ -1,3 +1,4 @@
+import {t,uiLanguage} from './ui-i18n.mjs';
 import {localized} from './knowledge-client.mjs';
 
 // Presentation groups use the advertised type registry, never ID prefixes or
@@ -7,7 +8,7 @@ const groups={
   authorship:'Авторство и передача',evidence:'Источники и свидетельства',structure:'Структура источников',
   other:'Другие типы',technical:'Технические типы',unavailable:'Выбрано вне этих источников',
 };
-const order=Object.keys(groups),collator=new Intl.Collator('ru',{numeric:true,sensitivity:'base'});
+const order=Object.keys(groups);
 export function lensVocabulary(catalog,key){
   const relation=key==='predicates',registry=catalog.semantic_registries||{};
   const entities=new Map((registry.entity_types?.entries||[]).map(e=>[e.type_id,e]));
@@ -34,6 +35,7 @@ export function lensVocabulary(catalog,key){
   });
 }
 export function vocabularyGroups(items,{sources,selected=[],query='',sort='alphabet'}={}){
+  const collator=new Intl.Collator(uiLanguage(),{numeric:true,sensitivity:'base'});
   const needle=query.trim().toLocaleLowerCase('ru'),chosen=new Set(selected),result=new Map();
   const candidates=[...items];
   for(const id of chosen)if(!items.some(item=>item.id===id))candidates.push({id,title:id,group:'other',sources:[],sourceKnown:false,count:0});
@@ -44,5 +46,5 @@ export function vocabularyGroups(items,{sources,selected=[],query='',sort='alpha
     const group=available?item.group:'unavailable';
     if(!result.has(group))result.set(group,[]);result.get(group).push({...item,selected:chosen.has(item.id),available});
   }
-  return order.filter(key=>result.has(key)).map(key=>({key,title:groups[key],items:result.get(key).sort((a,b)=>Number(b.selected)-Number(a.selected)||(sort==='frequency'?b.count-a.count:0)||collator.compare(a.title,b.title)||collator.compare(a.id,b.id))}));
+  return order.filter(key=>result.has(key)).map(key=>({key,title:t(groups[key]),items:result.get(key).sort((a,b)=>Number(b.selected)-Number(a.selected)||(sort==='frequency'?b.count-a.count:0)||collator.compare(a.title,b.title)||collator.compare(a.id,b.id))}));
 }

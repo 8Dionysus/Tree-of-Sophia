@@ -1,10 +1,11 @@
+import {t} from './ui-i18n.mjs';
 import {validatePlace} from './place-model.mjs';
 
 export const HISTORY_KEY='tos-observatory-history-v1';
 export const HISTORY_LIMIT=100;
 const MAX_TEXT=1200000;
 const empty=()=>({v:1,entries:[],cursor:-1});
-const bad=()=>{throw new Error('Историю не удалось прочитать. Сохранённая запись осталась в браузере.');};
+const bad=()=>{throw new Error(t("Историю не удалось прочитать. Сохранённая запись осталась в браузере."));};
 function historyEntry(value){const entry=validatePlace(value);if(!Number.isFinite(new Date(entry.savedAt).getTime()))bad();return entry;}
 export function validateHistory(value){
   if(value?.v!==1||!Array.isArray(value.entries)||value.entries.length>HISTORY_LIMIT||!Number.isInteger(value.cursor)
@@ -27,7 +28,7 @@ export function journeyKey(place){
 const legacyName=name=>/^(Измен[её]н ракурс|Открыт смысл|Открыты связи|Обновлена область)$/.test(name);
 function fallbackName(entry){
   const name=entry.draft?.name||entry.spec.title;
-  return (typeof name==='string'&&name.trim()?name:'Область исследования').slice(0,64);
+  return (typeof name==='string'&&name.trim()?name:t("Область исследования")).slice(0,64);
 }
 export function compactHistory(value){
   const state=validateHistory(value),entries=[];let cursor=-1;
@@ -42,13 +43,13 @@ export function compactHistory(value){
   return {v:1,entries,cursor};
 }
 export function historyLabel(previous,next,title){
-  const short=String(title||'Область исследования').slice(0,64);
+  const short=String(title||t("Область исследования")).slice(0,64);
   if(!previous)return short;
-  if(JSON.stringify(previous.draft)!==JSON.stringify(next.draft))return ('Линза: '+(next.draft?.name||short)).slice(0,64);
+  if(JSON.stringify(previous.draft)!==JSON.stringify(next.draft))return (t("Линза: {0}", [(next.draft?.name||short)])).slice(0,64);
   if(JSON.stringify(previous.spec)!==JSON.stringify(next.spec))return short;
-  if(next.pose.relationId!==previous.pose.relationId&&next.pose.relationId)return ('Связь: '+short).slice(0,64);
-  if(next.pose.selectedId!==previous.pose.selectedId)return next.pose.selectedId?short:'Общий вид';
-  if(next.pose.lens!==previous.pose.lens)return 'Линза: '+({plane:'Карта связей',orbits:'Орбиты мысли',constellations:'Созвездия мысли'})[next.pose.lens];
+  if(next.pose.relationId!==previous.pose.relationId&&next.pose.relationId)return (t("Связь: {0}", [short])).slice(0,64);
+  if(next.pose.selectedId!==previous.pose.selectedId)return next.pose.selectedId?short:t("Общий вид");
+  if(next.pose.lens!==previous.pose.lens)return t("Линза: {0}", [({plane:t("Карта связей"),orbits:t("Орбиты мысли"),constellations:t("Созвездия мысли")})[next.pose.lens]]);
   return previous.name==='Область исследования'||legacyName(previous.name)?short:previous.name;
 }
 export function createTravelStore(storage,key=HISTORY_KEY){
@@ -56,12 +57,12 @@ export function createTravelStore(storage,key=HISTORY_KEY){
   try{baseline=storage?.getItem(key)||null;if(baseline){if(baseline.length>MAX_TEXT)bad();state=compactHistory(JSON.parse(baseline));}}
   catch(cause){error=cause.message;writable=false;}
   function save(){
-    if(!storage){error='История действует до закрытия страницы: хранилище недоступно.';return false;}
+    if(!storage){error=t("История действует до закрытия страницы: хранилище недоступно.");return false;}
     if(!writable)return false;
     try{
-      if(storage.getItem(key)!==baseline){writable=false;throw new Error('История изменилась в другой вкладке. Новые шаги этой вкладки пока не сохранены; откройте страницу заново, чтобы загрузить общую историю.');}
+      if(storage.getItem(key)!==baseline){writable=false;throw new Error(t("История изменилась в другой вкладке. Новые шаги этой вкладки пока не сохранены; откройте страницу заново, чтобы загрузить общую историю."));}
       const text=JSON.stringify(state);storage.setItem(key,text);baseline=text;error='';return true;
-    }catch(cause){error=cause.message||'Браузер не сохранил историю.';return false;}
+    }catch(cause){error=cause.message||t("Браузер не сохранил историю.");return false;}
   }
   function trim(){
     while(state.entries.length>HISTORY_LIMIT||JSON.stringify(state).length>MAX_TEXT){

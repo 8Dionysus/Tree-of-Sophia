@@ -1,3 +1,4 @@
+import {ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
 import shell from './shell.html?raw';
 import './scene.css';
 import './connected.css';
@@ -7,6 +8,7 @@ import './navigation.css';
 import './lens.css';
 import './reading.css';
 import './reader.css';
+import './themes.css';
 import {createReaderPanel} from './reader-panel.mjs';
 import {createStudio} from './studio.mjs';
 import {createTravelPanel} from './travel-panel.mjs';
@@ -30,7 +32,7 @@ import {createObservatoryData} from './data-services.mjs';
 
 export function mountObservatory({host=document.getElementById('app'),data=createObservatoryData(),initialRoute=location.search}={}){
 if(!host)throw new Error('Observatory mount point is missing.');
-host.innerHTML=shell;
+uiHTML(host, shell);
 const root=host.firstElementChild;
 let scene,tools,evidence,navigation,builder,studio,reader,travel,registry,syncing=false,lastContext='';
 const {client}=data;
@@ -71,12 +73,12 @@ evidence=createEvidencePanel(root,scene,panels,{data,selected,onUserAction:()=>r
 navigation=createNavigationPanel(root,scene,panels,{data,selected,commit,onUserAction:()=>registry?.notifyStateChange()});
 builder=createLensPanel(root,scene,panels,{data,onUserAction:()=>registry?.notifyStateChange()});
 const userAction=()=>registry?.notifyStateChange();
-for(const [id,title,selector]of [['search','Поиск','.sc-search-open'],['lenses','Линзы','.sc-lenses-open'],['workspace','Исследование','.sc-workspace-open'],['navigation','Маршруты','.sc-navigation-open']]){const opener=root.querySelector(selector);panels.addTool(id,{title,opener,launch:()=>opener.click()});}
+for(const [id,title,selector]of [['search',ui("Поиск"),'.sc-search-open'],['lenses',ui("Линзы"),'.sc-lenses-open'],['workspace',ui("Исследование"),'.sc-workspace-open'],['navigation',ui("Маршруты"),'.sc-navigation-open']]){const opener=root.querySelector(selector);panels.addTool(id,{title,opener,launch:()=>opener.click()});}
 function selectedSource(){const selection=scene.port.selection,kind=selection.relationId?'relation':'node',raw=kind==='relation'?scene.port.relation(selection.relationId):scene.port.node(selection.nodeId);return raw?{raw,kind}:null;}
-for(const [id,title,icon,event]of [['builder','Конструктор линз','◈',null],['evidence','Основания','✧','sophia-evidence'],['sources','Источники','◇','sophia-sources']]){
-  const opener=document.createElement('button');opener.type='button';opener.className='sc-control sc-tool-shortcut';opener.setAttribute('aria-label',title);const symbol=document.createElement('b');symbol.textContent=icon;const label=document.createElement('span');label.textContent=title;opener.append(symbol,label);root.querySelector('.sc-header-actions').append(opener);
-  const launch=()=>{userAction();if(id==='builder')root.querySelector('.sc-builder-open').click();else{const source=selectedSource();if(source)root.dispatchEvent(new CustomEvent(event,{detail:source}));else scene.port.announce('Сначала выберите звезду или связь.');}};
-  opener.dataset.tooltip=id==='builder'?'Собрать собственную область по условиям.':'Открыть '+title.toLowerCase()+' выбранной звезды или связи.';
+for(const [id,title,icon,event]of [['builder',ui("Конструктор линз"),'◈',null],['evidence',ui("Основания"),'✧','sophia-evidence'],['sources',ui("Источники"),'◇','sophia-sources']]){
+  const opener=document.createElement('button');opener.type='button';opener.className='sc-control sc-tool-shortcut';uiAttribute(opener, 'aria-label', title);const symbol=document.createElement('b');uiText(symbol, icon);const label=document.createElement('span');uiText(label, title);uiChildren(opener, "append", symbol, label);uiChildren(root.querySelector('.sc-header-actions'), "append", opener);
+  const launch=()=>{userAction();if(id==='builder')root.querySelector('.sc-builder-open').click();else{const source=selectedSource();if(source)root.dispatchEvent(new CustomEvent(event,{detail:source}));else scene.port.announce(ui("Сначала выберите звезду или связь."));}};
+  uiAttribute(opener, "data-tooltip", id==='builder'?ui("Собрать собственную область по условиям."):ui("Открыть {0} выбранной звезды или связи.", [title.toLowerCase()]));
   opener.addEventListener('click',launch);panels.addTool(id,{title,opener,launch,available:()=>id==='builder'||Boolean(selectedSource())});
 }
 reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction});
@@ -92,7 +94,7 @@ const handlers={
   'tos.page.inspect-selection':()=>selected(),
   'tos.page.open-view':async(input,{signal})=>{
     scene.ui.cancelPending();
-    if(input.mode!=='philosophy'||(input.graph_mode&&input.graph_mode!=='nodes')||!['constellations','observatory'].includes(String(input.view_id)))throw new Error('Эта линза открывается в расширенном исследовательском режиме.');
+    if(input.mode!=='philosophy'||(input.graph_mode&&input.graph_mode!=='nodes')||!['constellations','observatory'].includes(String(input.view_id)))throw new Error(ui("Эта линза открывается в расширенном исследовательском режиме."));
     const packet=await client.compile(focusSpec(String(input.focus_id||DEFAULT_FOCUS)),signal);
     signal.throwIfAborted();commit(()=>scene.port.setGraph(packet,{selectFocus:Boolean(input.focus_id)}));return {view_id:'observatory'};
   },
@@ -102,7 +104,7 @@ const handlers={
     if(commit(()=>tools.chooseGap(id)))return selected();
     if(scene.port.node(id)){commit(()=>scene.port.selectNode(id));return selected();}
     if(scene.port.relation(id)){commit(()=>scene.port.selectRelation(id));return selected();}
-    const hit=searchHits.get(id);if(!hit)throw new Error('Выберите объект из текущей области или результатов поиска.');
+    const hit=searchHits.get(id);if(!hit)throw new Error(ui("Выберите объект из текущей области или результатов поиска."));
     const packet=await client.compile(hit.from_id?relationSpec(hit):focusSpec(id),signal,searchRevision);
     signal.throwIfAborted();commit(()=>{scene.port.setGraph(packet,{selectFocus:!hit.from_id});if(hit.from_id)scene.port.selectRelation(id,{rememberView:false});});return selected();
   },
@@ -111,8 +113,8 @@ const handlers={
     const query=String(input.query||'').trim().slice(0,256);
     const packet=await client.search(query,signal);signal.throwIfAborted();
     scene.openSearch();scene.ui.cancelSearch();root.querySelector('#sc-query').value=query;
-    const results=root.querySelector('.sc-search-results');results.replaceChildren();searchHits.clear();searchRevision=packet.source_revision;
-    for(const [kind,list]of [['node',packet.nodes],['relation',packet.relations]])for(const raw of list){searchHits.set(raw.id,raw);results.append(scene.ui.searchRow(raw,kind,packet.source_revision));}
+    const results=root.querySelector('.sc-search-results');uiChildren(results, "replaceChildren");searchHits.clear();searchRevision=packet.source_revision;
+    for(const [kind,list]of [['node',packet.nodes],['relation',packet.relations]])for(const raw of list){searchHits.set(raw.id,raw);uiChildren(results, "append", scene.ui.searchRow(raw,kind,packet.source_revision));}
     scene.invalidate();return {query,result_count:packet.counts.matching_nodes+packet.counts.matching_relations,
       results:[...searchHits.values()].map(raw=>({id:raw.id,label:localized(raw.display.title||raw.display.label),kind:raw.kind_id||'relation',summary:localized(raw.display.summary||raw.display.statement)}))};
   },

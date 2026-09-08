@@ -1,10 +1,11 @@
+import {t} from './ui-i18n.mjs';
 import {ContractError,RequestSlots,RequestError,checkRevision} from './knowledge-client.mjs';
 
 const present=value=>typeof value==='string'&&Boolean(value.trim());
 const languageKey=key=>!['default','original'].includes(key)&&/^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$/i.test(key);
 export const readingKey=(kind,id)=>JSON.stringify([kind,id]);
 export function formLabel(key){
-  return ({ru:'Русский',en:'English',original:'Исходная форма',default:'Форма по умолчанию'})[key]||key;
+  return ({ru:t("Русский"),en:'English',original:t("Исходная форма"),default:t("Форма по умолчанию")})[key]||key;
 }
 // Preserve the delivered wording and the actual selected field. In particular,
 // `default` and `original` are not language tags and do not imply a translation.
@@ -28,25 +29,25 @@ export function readingSnapshot({packet,match},kind){
   checkRevision(packet);
   if(!['node','relation'].includes(kind)||!present(match?.id)||!match.display
     ||!/^[a-f0-9]{64}$/.test(match.content_revision||'')||!Array.isArray(match.source_refs)||!match.source_refs.length)
-    throw new ContractError('Материал не содержит точной версии и источника.');
+    throw new ContractError(t("Материал не содержит точной версии и источника."));
   const endpoints=kind==='relation'?(packet.endpoints||[]):[];
   if(kind==='relation'&&![match.from_id,match.to_id].every(id=>endpoints.some(node=>node.id===id)))
-    throw new ContractError('Для чтения связи нужны оба её участника.');
+    throw new ContractError(t("Для чтения связи нужны оба её участника."));
   const selectedEndpoints=kind==='relation'?[...new Set([match.from_id,match.to_id])].map(id=>endpoints.find(node=>node.id===id)):[];
   const snapshot={kind,sourceRevision:packet.source_revision,raw:readerRecord(match),endpoints:selectedEndpoints.map(readerRecord)};
-  if(JSON.stringify(snapshot).length>500000)throw new ContractError('Материал слишком велик для закреплённой карточки. Откройте его источник.');
+  if(JSON.stringify(snapshot).length>500000)throw new ContractError(t("Материал слишком велик для закреплённой карточки. Откройте его источник."));
   return snapshot;
 }
 export function readingDocument(snapshot,language='ru'){
   const {raw,kind}=snapshot,display=raw.display;
   const state=kind==='node'?display.summary_state:display.explanation_state;
   const blocks=[];
-  if(kind==='relation')blocks.push({id:'statement',title:'Формулировка связи',form:readingForm(display.statement,language)});
-  blocks.push({id:'description',title:kind==='node'?'Описание':'Пояснение',state,
+  if(kind==='relation')blocks.push({id:'statement',title:t("Формулировка связи"),form:readingForm(display.statement,language)});
+  blocks.push({id:'description',title:kind==='node'?t("Описание"):t("Пояснение"),state,
     form:state==='missing'?null:readingForm(kind==='node'?display.summary:display.explanation,language)});
   return {title:readingForm(kind==='node'?display.title:display.label,language),
     kind:kind==='node'?readingForm(display.kind_label,language):null,blocks,
-    participants:kind==='relation'?[['От',raw.from_id],['К',raw.to_id]].map(([role,id])=>({id,role,
+    participants:kind==='relation'?[[t("От"),raw.from_id],[t("К"),raw.to_id]].map(([role,id])=>({id,role,
       form:readingForm(snapshot.endpoints.find(node=>node.id===id).display.title,language)})):[],
     sourceRefs:[...raw.source_refs],posture:raw.epistemic||{}};
 }
@@ -64,14 +65,14 @@ export function createReadingShelf({client,onChange=()=>{}}){
         latest?null:entry.sourceRevision,latest?undefined:entry.contentRevision));
       if(!response.current||!items.has(key))return;
       const snapshot=readingSnapshot(response.value,entry.kind);
-      if(snapshot.raw.id!==entry.id)throw new ContractError('Сервер вернул другой предмет для чтения.');
+      if(snapshot.raw.id!==entry.id)throw new ContractError(t("Сервер вернул другой предмет для чтения."));
       const bookmark=entry.bookmark?.graph?.packet?.source_revision===snapshot.sourceRevision?entry.bookmark:null;
       const changed=entry.sourceRevision!==snapshot.sourceRevision||entry.contentRevision!==snapshot.raw.content_revision;
       update(key,{snapshot,bookmark,sourceRevision:snapshot.sourceRevision,contentRevision:snapshot.raw.content_revision,loading:false,error:null,
         changed:changed||entry.changed});
     }catch(error){
       const unavailable=error instanceof RequestError&&[403,404,410].includes(error.status);
-      update(key,{loading:false,error:error.message||'Материал не удалось загрузить.',
+      update(key,{loading:false,error:error.message||t("Материал не удалось загрузить."),
         ...(unavailable?{snapshot:null,bookmark:null}:{} )});
     }
   }
@@ -82,9 +83,9 @@ export function createReadingShelf({client,onChange=()=>{}}){
     pin({raw,kind,sourceRevision,bookmark}){
       const key=readingKey(kind,raw.id);
       if(items.has(key))return {key,existing:true};
-      if(items.size>=2)throw new Error('Уже закреплены два материала. Уберите один из них, чтобы добавить другой.');
+      if(items.size>=2)throw new Error(t("Уже закреплены два материала. Уберите один из них, чтобы добавить другой."));
       if(!['node','relation'].includes(kind)||!/^[a-f0-9]{64}$/.test(sourceRevision||''))
-        throw new ContractError('Сначала дождитесь загрузки выбранного материала.');
+        throw new ContractError(t("Сначала дождитесь загрузки выбранного материала."));
       items.set(key,{key,kind,id:raw.id,title:readingForm(raw.display.title||raw.display.label),
         sourceRevision,contentRevision:raw.content_revision,bookmark,snapshot:null,loading:true,error:null});
       onChange();void load(key);return {key,existing:false};
@@ -97,7 +98,7 @@ export function createReadingShelf({client,onChange=()=>{}}){
       onChange();for(const key of items.keys())void load(key,true);
     },
     remove(key){requests.cancel(key);items.delete(key);onChange();},
-    suspend(){requests.cancelAll();for(const [key,entry]of items)if(entry.loading)items.set(key,{...entry,loading:false,error:'Загрузка прервана. Обновите материал, чтобы продолжить.'});},
+    suspend(){requests.cancelAll();for(const [key,entry]of items)if(entry.loading)items.set(key,{...entry,loading:false,error:t("Загрузка прервана. Обновите материал, чтобы продолжить.")});},
     dispose(){requests.cancelAll();items.clear();},
   };
 }

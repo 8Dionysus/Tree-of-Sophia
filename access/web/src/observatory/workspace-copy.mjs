@@ -1,3 +1,4 @@
+import {t} from './ui-i18n.mjs';
 import {createResearchWorkspace} from '../research-workspace';
 import {validatePlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
 import {compactHistory,HISTORY_KEY} from './travel-model.mjs';
@@ -6,7 +7,7 @@ import {validateReading,READING_KEY} from './reading-resume.mjs';
 import {readSaved,SAVED_LENSES_KEY} from './lens-model.mjs';
 
 export const COPY_SCHEMA='tos_observatory_workspace_v1',COPY_FILE_LIMIT=12000000;
-const bad=()=>{throw new Error('Файл не является полной копией исследования или содержит повреждённые данные.');};
+const bad=()=>{throw new Error(t("Файл не является полной копией исследования или содержит повреждённые данные."));};
 export function validateWorkspaceCopy(input){
   const text=typeof input==='string'?input:JSON.stringify(input);if(typeof text!=='string'||text.length>4000000)bad();
   const value=JSON.parse(text);
@@ -21,13 +22,13 @@ export function validateWorkspaceCopy(input){
 }
 export function copyStorageKeys(pathname){return [HISTORY_KEY+':'+pathname,PLACES_KEY,RESUME_KEY,INTERFACE_KEY,READING_KEY+':'+pathname,'tos-research-workspace-v1',SAVED_LENSES_KEY];}
 export function snapshotCopyStorage(storage,pathname){
-  if(!storage)throw new Error('Локальное хранилище недоступно. Скопируйте исследование в файл.');
+  if(!storage)throw new Error(t("Локальное хранилище недоступно. Скопируйте исследование в файл."));
   return new Map(copyStorageKeys(pathname).map(key=>[key,storage.getItem(key)]));
 }
 export function commitWorkspaceCopy(storage,pathname,input,before){
   const copy=validateWorkspaceCopy(input),keys=copyStorageKeys(pathname);
   if(keys.some(key=>!before.has(key)||storage.getItem(key)!==before.get(key)))
-    throw new Error('Исследование изменилось после проверки файла. Выберите файл заново, чтобы сравнить с текущими данными.');
+    throw new Error(t("Исследование изменилось после проверки файла. Выберите файл заново, чтобы сравнить с текущими данными."));
   const values=[copy.history,copy.places,copy.resume,copy.preferences,copy.reading,copy.research,copy.lenses],written=[];
   try{
     keys.forEach((key,index)=>{const text=values[index]===null?null:JSON.stringify(values[index]);
@@ -35,8 +36,8 @@ export function commitWorkspaceCopy(storage,pathname,input,before){
   }catch(cause){
     let restored=true;
     for(const key of written.reverse())try{const original=before.get(key);if(original===null)storage.removeItem(key);else storage.setItem(key,original);}catch{restored=false;}
-    throw new Error(restored?'Браузер не смог сохранить копию. Прежнее исследование восстановлено.':
-      'Браузер не смог восстановить все прежние записи. Скачайте прежнюю копию перед закрытием страницы.',{cause});
+    throw new Error(restored?t("Браузер не смог сохранить копию. Прежнее исследование восстановлено."):
+      t("Браузер не смог восстановить все прежние записи. Скачайте прежнюю копию перед закрытием страницы."),{cause});
   }
   return copy;
 }

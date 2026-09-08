@@ -4,3 +4,11 @@
 #sophia-gestures .sc-node-context summary{cursor:pointer;color:#c4b99e}
 #sophia-gestures .sc-node-context p{font:inherit;color:inherit;margin:8px 0}
 #sophia-gestures button[aria-disabled=true]{opacity:.45}
+
+#sophia-gestures .sc-context-hint .sc-hint-kind{display:block;font-size:10px;letter-spacing:.7px;color:#dfc697;margin-bottom:3px}
+#sophia-gestures .sc-context-hint :is(.sc-hint-title,.sc-hint-body){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+#sophia-gestures .sc-context-hint .sc-hint-title{font-weight:500;color:#eff0ea}
+#sophia-gestures .sc-context-hint .sc-hint-body{font-size:11px;color:#aebfd0;margin-top:5px}
+
+#sophia-gestures .sc-relation-key{position:absolute;left:0;top:0;width:28px;height:28px;border:1px solid #e3c089;border-radius:50%;background:#0c1526;opacity:0;pointer-events:none;z-index:3}
+#sophia-gestures .sc-relation-key:focus-visible{opacity:1;box-shadow:0 0 18px #e3c08950}

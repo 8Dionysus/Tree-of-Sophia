@@ -1,3 +1,4 @@
+import {t} from './ui-i18n.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
@@ -5,7 +6,7 @@ const executedSpecs=new WeakMap();
 export const specForPacket=packet=>executedSpecs.get(packet)||null;
 export class ContractError extends Error {}
 export class RevisionError extends Error {
-  constructor(){super('Данные изменились. Обновите область, чтобы продолжить.');}
+  constructor(){super(t("Данные изменились. Обновите область, чтобы продолжить."));}
 }
 export class RequestError extends Error {
   constructor(status,message){super(message);this.status=status;}
@@ -27,19 +28,19 @@ export function relationSpec(relation){
   spec.limits={nodes:2,relations:1,groups:2};return spec;
 }
 export function checkRevision(packet,expected) {
-  if(!/^[a-f0-9]{64}$/.test(packet?.source_revision||''))throw new ContractError('Ответ не содержит версию данных.');
+  if(!/^[a-f0-9]{64}$/.test(packet?.source_revision||''))throw new ContractError(t("Ответ не содержит версию данных."));
   if(expected&&packet.source_revision!==expected)throw new RevisionError();
   return packet;
 }
 function checkItems(items,kind) {
-  if(!Array.isArray(items))throw new ContractError('Неверный список объектов.');
+  if(!Array.isArray(items))throw new ContractError(t("Неверный список объектов."));
   const ids=new Set();
   for(const item of items) {
     if(!item||typeof item.id!=='string'||!item.id||ids.has(item.id)||!item.display
       ||!localized(kind==='node'?item.display.title:item.display.label)
       ||!/^[a-f0-9]{64}$/.test(item.content_revision||'')
       ||!Array.isArray(item.source_refs)||!item.source_refs.length
-      ||item.source_refs.some(ref=>typeof ref!=='string'||!ref))throw new ContractError('Неполный или повторяющийся объект.');
+      ||item.source_refs.some(ref=>typeof ref!=='string'||!ref))throw new ContractError(t("Неполный или повторяющийся объект."));
     ids.add(item.id);
   }
   return ids;
@@ -48,16 +49,16 @@ function validateArea(packet,expected=null) {
   checkRevision(packet,expected);
   if(packet.authority_boundary?.is_source!==false
     ||packet.authority_boundary?.is_canon!==false
-    ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError('Неподдерживаемый контракт области.');
+    ||packet.authority_boundary?.writes_to_tree!==false)throw new ContractError(t("Неподдерживаемый контракт области."));
   if(!Array.isArray(packet.nodes)||!Array.isArray(packet.relations)
-    ||packet.nodes.length>BUDGET.nodes||packet.relations.length>BUDGET.relations)throw new ContractError('Область превышает бюджет отображения.');
+    ||packet.nodes.length>BUDGET.nodes||packet.relations.length>BUDGET.relations)throw new ContractError(t("Область превышает бюджет отображения."));
   const ids=checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');
-  if(packet.relations.some(r=>!ids.has(r.from_id)||!ids.has(r.to_id)))throw new ContractError('Связь не содержит оба конца в области.');
-  if(packet.focus&&!ids.has(packet.focus.node_id))throw new ContractError('Центр отсутствует в области.');
+  if(packet.relations.some(r=>!ids.has(r.from_id)||!ids.has(r.to_id)))throw new ContractError(t("Связь не содержит оба конца в области."));
+  if(packet.focus&&!ids.has(packet.focus.node_id))throw new ContractError(t("Центр отсутствует в области."));
   return packet;
 }
 export function validateLens(packet,expected=null) {
-  if(packet?.schema!=='tos_lens_result_v1')throw new ContractError('Неподдерживаемый контракт линзы.');
+  if(packet?.schema!=='tos_lens_result_v1')throw new ContractError(t("Неподдерживаемый контракт линзы."));
   return validateArea(packet,expected);
 }
 // Exploration pages remain exploration packets; they are never relabelled as a LensResult.
@@ -76,7 +77,7 @@ export function validateExploration(packet,expected=null,previous=null) {
     ||[...page.primary_node_ids,...page.context_node_ids].some(id=>!ids.has(id))
     ||packet.counts?.scope!=='cumulative-discovered-not-global-total'
     ||packet.inclusion?.authority!=='query-execution-not-semantic-proof'
-    ||(packet.status==='paused'?!/^[a-f0-9]{64}$/.test(page.next_cursor||''):page.next_cursor!==null))throw new ContractError('Неполная страница раскрытия связей.');
+    ||(packet.status==='paused'?!/^[a-f0-9]{64}$/.test(page.next_cursor||''):page.next_cursor!==null))throw new ContractError(t("Неполная страница раскрытия связей."));
   if(previous&&(packet.snapshot_revision!==previous.snapshot_revision
     ||packet.focus.node_id!==previous.focus.node_id
     ||page.number!==previous.page.number+1
@@ -112,37 +113,37 @@ export class KnowledgeClient {
       headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});
     if(!response.ok) {
       if(response.status===409)throw new RevisionError();
-      throw new RequestError(response.status,({400:'Запрос не удалось исполнить.',403:'Доступ к материалу ограничен.',404:'Объект больше не доступен.',410:'Срок сохранённого обхода истёк.',413:'Область слишком велика. Выберите более узкий центр.',503:'Этот способ просмотра пока не доступен.'})[response.status]||'Не удалось получить данные. Попробуйте ещё раз.');
+      throw new RequestError(response.status,({400:t("Запрос не удалось исполнить."),403:t("Доступ к материалу ограничен."),404:t("Объект больше не доступен."),410:t("Срок сохранённого обхода истёк."),413:t("Область слишком велика. Выберите более узкий центр."),503:t("Этот способ просмотра пока не доступен.")})[response.status]||t("Не удалось получить данные. Попробуйте ещё раз."));
     }
     const packet=await response.json();
-    if(!packet||typeof packet!=='object')throw new ContractError('Неверный ответ сервера.');
+    if(!packet||typeof packet!=='object')throw new ContractError(t("Неверный ответ сервера."));
     return packet;
     } catch(error) {
-      if(timedOut)throw new RequestError(504,'Сервер отвечает дольше обычного. Попробуйте ещё раз.');
-      if(!controller.signal.aborted&&(error instanceof TypeError||error?.name==='NetworkError'))throw new RequestError(0,'Нет связи с данными. Проверьте соединение и повторите запрос.');
-      if(error instanceof SyntaxError)throw new ContractError('Сервер вернул нечитаемый ответ. Повторите запрос.');
+      if(timedOut)throw new RequestError(504,t("Сервер отвечает дольше обычного. Попробуйте ещё раз."));
+      if(!controller.signal.aborted&&(error instanceof TypeError||error?.name==='NetworkError'))throw new RequestError(0,t("Нет связи с данными. Проверьте соединение и повторите запрос."));
+      if(error instanceof SyntaxError)throw new ContractError(t("Сервер вернул нечитаемый ответ. Повторите запрос."));
       throw error;
     } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
   }
   async search(query,signal,offset=0) {
     const packet=checkRevision(await this.request('/search?'+new URLSearchParams({query,limit:6,offset}),{signal}));
-    if(packet.schema!=='tos_knowledge_search_v1'||packet.nodes?.length>6||packet.relations?.length>6)throw new ContractError('Неподдерживаемый ответ поиска.');
+    if(packet.schema!=='tos_knowledge_search_v1'||packet.nodes?.length>6||packet.relations?.length>6)throw new ContractError(t("Неподдерживаемый ответ поиска."));
     checkItems(packet.nodes,'node');checkItems(packet.relations,'relation');return packet;
   }
   async compile(spec,signal,expected=null){const owned=structuredClone(spec),packet=validateLens(await this.request('/lenses/compile',{signal,body:owned}),expected);executedSpecs.set(packet,owned);return packet;}
   async explore(query,signal,expected,previous=null){
     const packet=validateExploration(await this.request('/explore',{signal,body:query}),expected,previous);
-    if(!previous&&Object.entries(query).some(([key,value])=>JSON.stringify(packet.query?.[key])!==JSON.stringify(value)))throw new ContractError('Сервер вернул другую область раскрытия.');
+    if(!previous&&Object.entries(query).some(([key,value])=>JSON.stringify(packet.query?.[key])!==JSON.stringify(value)))throw new ContractError(t("Сервер вернул другую область раскрытия."));
     return packet;
   }
   async inspect(kind,id,signal,expected,contentRevision) {
     const packet=checkRevision(await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal}),expected);
-    if(packet.schema!==(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'))throw new ContractError('Неверная карточка.');
+    if(packet.schema!==(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'))throw new ContractError(t("Неверная карточка."));
     checkItems(packet.matches,kind);
     const match=packet.matches.find(item=>item.id===id);
-    if(!match)throw new ContractError('Не найден точный идентификатор карточки.');
+    if(!match)throw new ContractError(t("Не найден точный идентификатор карточки."));
     if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
-    if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError('Неполные концы связи.');}
+    if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError(t("Неполные концы связи."));}
     return {packet,match};
   }
   capabilities(signal){return this.request('/explore/capabilities',{signal});}
