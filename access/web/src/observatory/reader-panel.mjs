@@ -146,7 +146,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   function renderDocument(view,entry){
     const snapshot=entry.snapshot,doc=readingDocument(snapshot,view.preferred);
     view.reading.capture();view.reading.enter(readingPositionKey(entry.key,snapshot,snapshot.raw.human_form_selection?.requested_language||view.preferred));
-    uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;uiText(view.title, doc.title?.text||ui("Материал"));
+    uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;view.titleText=uiText(view.title, doc.title?.text||ui("Материал"));
     view.title.dir='auto';if(doc.title?.lang)view.title.lang=doc.title.lang;else view.title.removeAttribute('lang');
     uiText(view.kind, entry.kind==='relation'?ui("Связь"):doc.kind?.text||ui("Предмет"));
     if(doc.claimContextUnavailable)uiChildren(view.body,'append',el('p',ui('Связанный контекст утверждения не закреплён. Для полного чтения закрепите его из области, где этот контекст доступен.'),'sc-reader-gap'));
@@ -206,9 +206,9 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
         if(!languages.includes(view.preferred)){const option=el('option',ui("{0} — недоступна", [formLabel(view.preferred)]));option.value=view.preferred;uiChildren(view.language, "prepend", option);}
         view.language.value=view.preferred;renderDocument(view,entry);
       }else if(!entry.snapshot){
-        view.snapshot=null;uiText(view.title, entry.title?.text||ui("Материал"));uiChildren(view.body, "replaceChildren", el('p',entry.loading?ui("Получаю материал…"):ui("Материал пока недоступен."),'sc-reader-gap'));
+        view.snapshot=null;view.titleText=uiText(view.title, entry.title?.text||ui("Материал"));uiChildren(view.body, "replaceChildren", el('p',entry.loading?ui("Получаю материал…"):ui("Материал пока недоступен."),'sc-reader-gap'));
       }
-      uiText(view.tab, view.title.textContent);uiAttribute(view.body, 'aria-label', ui("Чтение: {0}", [view.title.textContent]));
+      uiText(view.tab, view.titleText);uiAttribute(view.body, 'aria-label', ui("Чтение: {0}", [view.titleText]));
       view.language.disabled=!entry.snapshot;view.refresh.disabled=entry.loading;
       const mismatch=Boolean(entry.snapshot&&shelf.sceneRevision&&entry.sourceRevision!==shelf.sceneRevision);
       const states=[entry.loading?ui("Обновляю материал…"):null,entry.error,

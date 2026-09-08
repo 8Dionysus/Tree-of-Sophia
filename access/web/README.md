@@ -366,6 +366,8 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   existing choice among delivered language/form variants; interface language
   never requests or invents a translated source. Both language and theme persist
   in the local preferences and workspace copy.
+  A pinned item's missing-title placeholder updates with the interface language
+  in its heading, tab and reading label without reloading the material.
   Navigation titles and previews select the supplied variant for the interface
   language through `display-language.mjs`; the inspector uses its material
   selector, and each pinned item keeps its own choice. A language switch only

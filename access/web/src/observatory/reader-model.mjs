@@ -1,4 +1,4 @@
-import {t} from './ui-i18n.mjs';
+import {t,uiComputed} from './ui-i18n.mjs';
 import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
 export {readingForm};
@@ -10,7 +10,10 @@ export function formLabel(key){
   return ({ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")})[key]||key;
 }
 function readingTitle(raw,preferred='ru'){
-  return displayTitleForm(raw,preferred);
+  const form=displayTitleForm(raw,preferred);
+  // Only the missing-title placeholder follows UI language. Supplied wording
+  // and the item's selected content language remain unchanged.
+  return form?.unavailable?{...form,text:uiComputed(()=>displayTitleForm(raw,preferred).text)}:form;
 }
 export function readingLanguages(snapshot){
   if(snapshot.raw.human_form_selection)return [...new Set(['ru','en','es',...formLanguages(snapshot.raw)])];

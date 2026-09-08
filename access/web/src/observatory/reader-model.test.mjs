@@ -4,6 +4,7 @@ import {readingForm,readingLanguages,readingSnapshot,readingDocument,createReadi
 import {RequestError,KnowledgeClient} from './knowledge-client.mjs';
 import {compactFormLens,memberFormLens} from '../../fixtures/human-form-data.mjs';
 import {resolveClaimReading} from './human-forms.mjs';
+import {setUiLanguage} from './ui-i18n.mjs';
 
 const revision='a'.repeat(64),content='b'.repeat(64);
 const node=(id='opaque:one')=>({id,kind_id:'work',content_revision:content,source_refs:['ToS/test/source.md'],
@@ -113,7 +114,12 @@ test('a navigation-only pin retains one identity across language changes and reo
 test('an identifier fallback is a UI title gap, never a selected source form or authored statement',()=>{
   const raw=node();raw.display.title={default:'claim:tos claim opaque'};raw.display.provenance={title:'identifier-fallback'};
   const snapshot=readingSnapshot(answer(raw),'node'),doc=readingDocument(snapshot,'en');
-  assert.deepEqual(doc.title,{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  assert.deepEqual({...doc.title,text:String(doc.title.text)},{text:'Произведение · Нет читаемого названия',key:null,lang:null,fallback:false,unavailable:true});
+  try{
+    for(const [language,placeholder]of [['en','No readable title'],['es','No hay un título legible'],['ru','Нет читаемого названия']]){
+      setUiLanguage(language);assert.equal(String(doc.title.text),'Произведение · '+placeholder);
+    }
+  }finally{setUiLanguage('ru');}
   assert.equal(doc.humanForms,null);assert.equal(doc.blocks[0].form.text,raw.display.summary.ru);
   assert.deepEqual(snapshot.raw.display,raw.display);assert.equal(snapshot.raw.id,raw.id);
 });
