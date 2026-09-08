@@ -54,6 +54,7 @@ CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
 OWNER_PROFILE_CONFIG = 'tos_local_owner_profile_command_v1'
+OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
 MAX_COMMAND_BYTES = 1_048_576
@@ -78,6 +79,9 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
+    if config.get('schema_version') == OWNER_CLAIM_CONFIG:
+        from source_owner_claim_commands import configuration
+        return configuration(config, owner_config=path)
     if config.get('schema_version') == OWNER_PROFILE_CONFIG:
         from source_owner_profile_commands import configuration
         return configuration(config, owner_config=path)
@@ -1045,6 +1049,9 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
+    if config['schema_version'] == OWNER_CLAIM_CONFIG:
+        from source_owner_claim_commands import run_command
+        return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == OWNER_PROFILE_CONFIG:
         from source_owner_profile_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)

@@ -84,13 +84,13 @@ def value_is_delegated(config, value):
             and relative.get('anchor_ref') in config['allowed_object_refs'])
 
 
-def _scope(config, claims):
+def _scope(config, claims, *, profiles=None):
     """Current scope applies before preparation and even to an exact replay."""
     if OPERATION not in config['allowed_operations']:
         raise PermissionError('claim creation is not delegated')
     if not isinstance(claims, list) or not 1 <= len(claims) <= 32:
         raise ValueError('one to thirty-two initial claims are required')
-    profiles = SourceClaimProfiles(Path(config['source_root']))
+    profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
         if (not isinstance(claim, dict) or not isinstance(claim.get('claim_id'), str)

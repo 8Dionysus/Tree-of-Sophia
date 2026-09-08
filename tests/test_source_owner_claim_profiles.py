@@ -148,6 +148,115 @@ class OwnerLocalSourceClaimProfilesTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.fixture = OwnerLocalClaimFixture(Path(temporary.name))
 
+    def test_candidate_without_source_package_uses_real_selected_dependencies(self):
+        f, seen = self.fixture, []
+        stored = f.reader()
+        expected = f.load(stored)
+        expected_refs = stored.dependency_refs(f.claim['claim_id'])
+        expected_languages = stored.required_languages(f.claim['claim_id'])
+        expected_summaries = stored.native_summaries
+        target = f.private / CLAIM_REF
+        target.unlink()
+        target.parent.rmdir()
+        before = set(f.private.rglob('*'))
+        def read(path, limit):
+            seen.append(path)
+            return path.read_bytes()  # No virtual source file or inline endpoint.
+        reader = f.reader(source_reader=read)
+        actual = reader.prepare_candidate(f.claim, origin_id='origin:synthetic-claim',
+                                           relation_type_id=RELATION_TYPE_ID)
+        self.assertEqual(actual, expected)
+        self.assertEqual(reader.dependency_refs(actual['id']), expected_refs)
+        self.assertEqual(reader.required_languages(actual['id']), expected_languages)
+        self.assertEqual(reader.native_summaries, expected_summaries)
+        self.assertEqual({row['id'] for row in reader.records}, {row['id'] for row in expected_refs})
+        self.assertIsNone(reader._claim_input)
+        self.assertNotIn(target, seen)
+        self.assertIn(f.private / SOURCE_REF, seen)
+        self.assertIn(f.public / FORM_REF, seen)
+        self.assertEqual(set(f.private.rglob('*')), before)
+        snapshot = reader.snapshot()
+        f.write_claims({**f.claim, 'claim_id': 'tos.claim.synthetic.unrelated'})
+        self.assertEqual(reader.snapshot(), snapshot)
+
+    def test_candidate_payload_origin_relation_and_mode_are_frozen(self):
+        f, reader = self.fixture, self.fixture.reader()
+        candidate = copy.deepcopy(f.claim)
+        loaded = reader.prepare_candidate(candidate, origin_id='origin:synthetic-claim',
+                                           relation_type_id=RELATION_TYPE_ID)
+        snapshot = reader.snapshot()
+        candidate['qualifiers']['statement'] = 'Caller mutation is not a new source.'
+        loaded['payload']['qualifiers']['statement'] = 'Returned envelopes are detached.'
+        self.assertEqual(reader.snapshot(), snapshot)
+        self.assertEqual(reader.prepare_candidate(f.claim, origin_id='origin:synthetic-claim',
+            relation_type_id=RELATION_TYPE_ID)['payload'], f.claim)
+        different = f.reader()
+        different.prepare_candidate(candidate, origin_id='origin:synthetic-claim', relation_type_id=RELATION_TYPE_ID)
+        self.assertNotEqual(different.snapshot(), snapshot)
+        for value, origin, relation in ((candidate, 'origin:synthetic-claim', RELATION_TYPE_ID),
+                (f.claim, 'origin:another', RELATION_TYPE_ID), (f.claim, 'origin:synthetic-claim', None)):
+            with self.subTest(origin=origin, relation=relation), self.assertRaises(SourceProfileError):
+                reader.prepare_candidate(value, origin_id=origin, relation_type_id=relation)
+        with self.assertRaises(SourceProfileError):
+            f.load(reader)
+        stored = f.reader()
+        f.load(stored)
+        self.assertNotEqual(stored.snapshot(), snapshot)
+        with self.assertRaises(SourceProfileError):
+            stored.prepare_candidate(f.claim, origin_id='origin:synthetic-claim', relation_type_id=RELATION_TYPE_ID)
+
+    def test_candidate_failure_cannot_be_reused_as_candidate_or_stored_source(self):
+        f = self.fixture
+        reader = f.reader()
+        invalid = {**f.claim, 'object': f.source['record_id']}
+        with self.assertRaises(SourceProfileError):
+            reader.prepare_candidate(invalid, origin_id='origin:synthetic-claim')
+        with self.assertRaises(SourceProfileError):
+            reader.prepare_candidate(f.claim, origin_id='origin:synthetic-claim')
+        with self.assertRaises(SourceProfileError):
+            f.load(reader)
+        (f.private / CLAIM_REF).unlink()
+        stored = f.reader()
+        with self.assertRaises(SourceProfileError):
+            f.load(stored)
+        with self.assertRaises(SourceProfileError):
+            stored.prepare_candidate(f.claim, origin_id='origin:synthetic-claim')
+
+    def test_candidate_rejects_shape_visibility_and_budget_before_source_reads(self):
+        f, seen = self.fixture, []
+        def read(path, limit):
+            seen.append(path)
+            return path.read_bytes()
+        for candidate in ([], {**f.claim, 'visibility': 'public'}, {**f.claim, 'polarity': False},
+                {**f.claim, 'claim_id': None}, {**f.claim, 'confidence': float('nan')},
+                {**f.claim, 'qualifiers': {**f.claim['qualifiers'], 'statement': 'x' * 1_048_577}}):
+            reader = f.reader(source_reader=read)
+            seen.clear()
+            with self.subTest(candidate_type=type(candidate).__name__), self.assertRaises(SourceProfileError):
+                reader.prepare_candidate(candidate, origin_id='origin:synthetic-claim')
+            self.assertFalse(any(path.is_relative_to(f.private) for path in seen))
+
+    def test_candidate_keeps_exact_rights_and_current_dependency_checks(self):
+        f, seen = self.fixture, []
+        def read(path, limit):
+            seen.append(path)
+            return path.read_bytes()
+        (f.private / CLAIM_REF).unlink()
+        reader = f.reader(exact=True, source_reader=read)
+        reader.prepare_candidate(f.claim, origin_id='origin:synthetic-claim')
+        self.assertTrue(reader.native_summaries[0]['content_verified'])
+        self.assertIn(f.public / f.native.content_ref, seen)
+        self.assertNotIn(f.public / f.native.original_ref, seen)
+        f.native.rights['derivative_posture'] = 'permission_required'
+        f.sync_native()
+        with self.assertRaises(SourceProfileError):
+            reader.snapshot()
+        seen.clear()
+        denied = f.reader(exact=True, source_reader=read)
+        with self.assertRaises(SourceProfileError):
+            denied.prepare_candidate(f.claim, origin_id='origin:synthetic-claim')
+        self.assertNotIn(f.public / f.native.content_ref, seen)
+
     def test_private_claim_and_full_distinct_source_envelopes(self):
         f, reader = self.fixture, self.fixture.reader()
         original = (f.private / CLAIM_REF).read_bytes()

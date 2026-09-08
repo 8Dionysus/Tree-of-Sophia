@@ -68,6 +68,8 @@ class OwnerLocalSourceClaimProfiles:
     Native envelopes are supporting evidence, never independently authorized
     native assessment targets. All selection access is checked before source
     metadata is opened. A failed load cannot be reused with another selection.
+    ``prepare_candidate`` grounds caller-authored Claim data for a writer;
+    it never invents a stored source or changes the stored-only ``load`` route.
     """
 
     def __init__(self, context, source_access, *, source_records=(), native_bindings=(),
@@ -117,6 +119,7 @@ class OwnerLocalSourceClaimProfiles:
         self._private_readers, self._native = {}, {}
         self._source_inputs, self._claim_input = {}, None
         self._selection, self._claim, self._failed = None, None, False
+        self._mode, self._candidate_digest = None, None
         self._records, self._summaries, self._languages = {}, [], ()
         self._source_kinds = {}
         for row in sources:
@@ -232,6 +235,8 @@ class OwnerLocalSourceClaimProfiles:
             'source_selections': self._sources, 'native_selections': self._native_selections,
             'verify_content': self._verify_content, 'contracts': grammar,
             'sources': self._source_inputs, 'claim_stream': self._claim_input,
+            **({'candidate': {'mode': 'candidate', 'digest': self._candidate_digest}}
+               if self._mode == 'candidate' else {}),
             'native': natives, 'private_records': private,
             'public_native_identity': identity, 'public_native': public_native}))
 
@@ -284,6 +289,8 @@ class OwnerLocalSourceClaimProfiles:
             raise SourceProfileError('private Claim needs its exact selected private source path') from error
 
     def load(self, path, claim_id, *, origin_id, relation_type_id=None):
+        if self._mode == 'candidate':
+            raise SourceProfileError('a private Claim candidate cannot become a stored-source selection')
         if (not _text(claim_id) or not _text(origin_id)
                 or relation_type_id is not None and not _text(relation_type_id)):
             raise SourceProfileError('private Claim requires explicit identity, origin and optional relation type')
@@ -294,12 +301,48 @@ class OwnerLocalSourceClaimProfiles:
             self._loaded(claim_id)
             return copy.deepcopy(self._claim)
         self._claim_path(path)
+        self._mode = 'stored'
         self._selection = selection
         try:
             return self._load(path, claim_id, origin_id, relation_type_id)
         except (ValueError, OSError, RecursionError) as error:
             self._failed = True
             raise SourceProfileError('private Claim selection is unsupported, unresolved, unsafe or changed') from error
+
+    def prepare_candidate(self, claim, *, origin_id, relation_type_id=None):
+        """Ground one frozen candidate against independently selected sources.
+
+        There is no candidate source path, file read, publication or admission.
+        Source and native evidence retain exactly the same protected readers,
+        grants and freshness checks as the stored-source route.
+        """
+        if self._mode == 'stored':
+            raise SourceProfileError('a stored private Claim reader cannot become a candidate selection')
+        try:
+            raw = _canonical(claim)
+            if len(raw) > MAX_RECORD_BYTES:
+                raise SourceProfileError('private Claim candidate exceeds its record byte budget')
+            selected = _object(raw)
+        except (ValueError, TypeError, RecursionError) as error:
+            raise SourceProfileError('private Claim candidate must be one bounded strict JSON object') from error
+        claim_id = selected.get('claim_id')
+        if (not _text(claim_id) or not _text(origin_id)
+                or relation_type_id is not None and not _text(relation_type_id)):
+            raise SourceProfileError('private Claim candidate requires explicit identity and origin')
+        selection = (None, claim_id, origin_id, relation_type_id)
+        digest = 'sha256:' + _hash(raw)
+        if self._selection is not None:
+            if selection != self._selection or digest != self._candidate_digest:
+                raise SourceProfileError('one private Claim reader cannot change its frozen candidate')
+            self._loaded(claim_id)
+            return copy.deepcopy(self._claim)
+        self._mode, self._selection, self._candidate_digest = 'candidate', selection, digest
+        try:
+            self.snapshot()
+            return self._ground_selected(selected, claim_id, origin_id, relation_type_id)
+        except (ValueError, OSError, RecursionError) as error:
+            self._failed = True
+            raise SourceProfileError('private Claim candidate is unsupported, unresolved, unsafe or changed') from error
 
     def _load(self, path, claim_id, origin_id, relation_type_id):
         self.snapshot()
@@ -321,7 +364,12 @@ class OwnerLocalSourceClaimProfiles:
             seen.add(identity)
             if identity == claim_id:
                 selected = row
-        if selected is None or selected.get('visibility') != 'local_only':
+        if selected is None:
+            raise SourceProfileError('selected Claim is absent from its stored source')
+        return self._ground_selected(selected, claim_id, origin_id, relation_type_id)
+
+    def _ground_selected(self, selected, claim_id, origin_id, relation_type_id):
+        if selected.get('visibility') != 'local_only':
             raise SourceProfileError('selected Claim is absent or not local_only')
         self._claims._validate_shape(selected)
         predicate = selected['predicate']

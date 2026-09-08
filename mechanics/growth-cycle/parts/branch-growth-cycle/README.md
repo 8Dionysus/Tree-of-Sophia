@@ -635,7 +635,97 @@ The common 64-file/8-MiB package, 2-MiB file, 1-MiB source/request and
 directory entries, 2,048 selected metadata files and 64 MiB, with at most
 32 MiB per older metadata file. This is not an indexed or constant-cost writer,
 a cross-subject transaction, a hostile-same-account security boundary, or a
-private Claim/assessment implementation. No public projection is created.
+private Claim/assessment implementation by itself. The separate Claim writer
+below and v4 assessment keep their own delegation. No public projection is created.
+
+### Confidential source Claim growth
+
+`tos_local_owner_claim_command_v1` selects `source_owner_claim_commands.py`
+through the same `source_commands.py` CLI and `tos_local_source_command_v1`
+request envelope. It creates or corrects an explicitly selected private Claim
+package, not a public relation file. The source context must independently
+select the existing mode-0700 parent
+`<private_prefix>/claims/`; the target is one new named child ending with
+`source-claims.jsonl`. Its source, forms, requests, receipts and archives remain
+mode 0600 inside mode-0700 directories.
+
+The exact configuration fields are:
+
+- `schema_version`, local `uid`, `principal_id`, `maker_type`, `authority_ref`,
+  `expires_at`, `source_context_ref`, `source_path`, `provenance_event_id`;
+- `allowed_operations`: a subset of `claims.create`, `claim.revise`,
+  `form.create`, `form.revise`;
+- `allowed_claim_ids`, `allowed_subject_refs`, `allowed_object_refs`,
+  `allowed_predicates`, `allowed_evidence_refs`, `allowed_form_ids`;
+- `allowed_fields`: a subset of the common Claim correction fields
+  `qualifiers`, `evidence_refs`, `counterevidence_refs`, `alternative_claim_refs`,
+  `supporting_quotes`, `epistemic_status`, `confidence`;
+- `claim_selections`: exactly one independent selection for each delegated
+  Claim: `{claim_id, relation_type_id, origin_id, source_access, source_records,
+  native_bindings, verify_content}`. The source/native selectors are the same
+  typed selectors used by the private Claim reader and v4 assessment below;
+  no inline endpoint body or inferred type is accepted.
+
+Claim and form scopes contain at most 32 identities; subject, object and
+evidence scopes at most 128. The selected relation must have an understood
+`semantic-relation-v1` or `identity-relation-v1` source profile. Temporal and
+structured values, identity endpoint replacement and assertion-layer
+transitions are not aliases for this correction route. A new supported
+semantic predicate uses its existing registry/profile contract, not another
+private registry. Initial Claims are version 1, `local_only`, `unreviewed`,
+without assessments or supersession. A correction preserves identity,
+endpoints, predicate, maker, layer, visibility and all unpatched fields.
+
+Native grounding requires `verify_content: true` and independently delegated
+`exact_owner_local` access for every selected native source. A non-native
+source selector remains `metadata_only`. Each Claim's native closure checks
+rights before reading its exact representation; a denial is not repaired by
+the write grant. Quoted anchor identities also require an independent
+`allowed_evidence_refs` entry. Source/schema validation and exact byte reading
+do not authenticate the authored quotation or accept its interpretation.
+Alternatives in this bounded writer must name another Claim in the same
+explicit batch; arbitrary existing Claim refs are not silently resolved.
+
+| Operation | Input and result |
+| --- | --- |
+| `describe` | Bounded current Claim/form selectors, exact package revision, dependencies and allowed operations; an absent package has no source wording. |
+| `prepare-create` | `claims` (1–32) and `forms` (`{claim_id, form_id, field_id}`, 1–32 total); returns proposed refs, file bindings, source bindings and materializations without creating a source file. Each Claim requires its complete `claim.statement` source-copy form. |
+| `claims.create` | Prepared Claims/forms plus command ID, expected configuration/dependencies/inputs and null expected source/revision; one atomic no-replace package creation. |
+| `prepare-revise` | `claim_id`, allowed `fields`, source-copy `forms` (`{form_id, field_id}`), authored `reason`; proposes one successor and rebinds every current form of that Claim. |
+| `claim.revise` | The proposal plus command ID and exact expected configuration/source/package/dependencies/inputs; sibling Claim bytes and forms stay unchanged. |
+| `prepare` / `apply` | Explicit `claim_id`; prepare selects one form/field, apply carries bounded common form changes and the same exact expected inputs. Source-copy forms keep the entire qualified Claim as context; freeform/template proposals receive no assessment or admission. |
+| `inspect-version` | Explicit `claim_id` and exact previous `source`; returns unchanged predecessor bytes through committed Claim history, never through a caller-supplied archive path. |
+
+Use `owner_configuration`, `source`, `revision`, `expected_dependencies` and
+`source_bindings` from the corresponding preparation; the request fields are
+`expected_configuration`, `expected_source`, `expected_revision`,
+`expected_dependencies` and `expected_inputs`. Candidate grounding has no
+fictional file: `OwnerLocalSourceClaimProfiles.prepare_candidate` freezes its
+canonical body and uses the same actual source readers as stored-only `load`.
+
+Creation retains the common `tos_local_claim_create_receipt_v1` plus exact
+owner configuration and serialization provenance. Claim correction retains
+`tos_claim_revision_history_v1`; the existing typed Claim history reconstructs
+every stream successor through protected `tos_source_package_archive_v1`
+bytes. The shared source/private locks, archive transport and atomic directory
+exchange are reused. A command identity cannot be reused across creation,
+Claim corrections, sibling Claims or form-only changes. Current source,
+rights, configuration, grammar and complete package integrity are checked on
+retry; the original receipt remains historical and is not rewritten after
+unrelated corpus growth. All current forms keep their predecessors.
+
+Identity-only discovery includes public and selected private source Claim
+streams, native annotation identities, source profiles, forms and provenance;
+it excludes payload, catalog, archive and staging homes. The same bounded
+metadata scan and package/history ceilings apply as above. This is not an
+indexed writer or a same-UID sandbox. Interrupted unpublished staging is not
+adopted by a retry; committed history is not deleted by reader rollback.
+
+Every result declares `visibility: local_only`, `publication_authorized: false`
+and `grants_admission: false`. Public Claim/form readers retain their refusal
+gates. To use the result for source-visible assessment, independently select
+the stored Claim and its exact grounding through v4; creation is neither
+assessment nor permission to publish.
 
 #### Historical retries while the source corpus grows
 

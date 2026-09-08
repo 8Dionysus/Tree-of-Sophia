@@ -105,6 +105,59 @@ class OwnerLocalProfileCommandTests(unittest.TestCase):
     def files(self):
         return {path.name: path.read_bytes() for path in self.path.parent.iterdir()}
 
+    def test_private_claim_archive_callbacks_preserve_typed_shared_history(self):
+        """Archive transport is generic; the existing Claim owner checks lineage."""
+        import claim_revisions as claims
+        context = OwnerLocalSourceContext.load(self.context_path)
+        claim = {'claim_id': 'tos.claim.synthetic.archive', 'claim_version': 1,
+                 'qualifiers': {'statement': 'Synthetic archive mechanics, not Claim admission.'}}
+        config = {'source_path': self.prefix + 'claims/synthetic/source-claims.jsonl',
+                  'source_root': str(self.public), 'record_id': claim['claim_id']}
+        files = {'source-claims.jsonl': source._canonical(claim) + b'\r\n',
+                 'source-create-request.json': b'{"synthetic":true}\n'}
+        subject, revision = claims._subject(claim), private.revisions._revision(files)
+        reads = []
+        def read_files(root, configured, receipt):
+            self.assertEqual(root, self.public)
+            reads.append(receipt['previous_source'])
+            return private._read_archive_files(context, configured, receipt)
+        def typed(root, configured, receipt):
+            return claims._read_archive(root, configured, receipt, read_files=read_files)
+        def owner_reader(selected_context, configured, receipt):
+            self.assertIs(selected_context, context)
+            return typed(selected_context.public_root, configured, receipt)
+        with patch.object(private.revisions, '_read_archive_files', side_effect=AssertionError('public archive IO is forbidden')):
+            relative = private._archive(context, config, files, subject, revision, reader=owner_reader)
+            prior = {'archive_path': relative.as_posix(), 'previous_source': subject.ref, 'previous_revision': revision}
+            self.assertEqual(private._read_archive_files(context, config, prior)[0], files)
+            self.assertEqual(private._archive(context, config, files, subject, revision, reader=owner_reader), relative)
+            revised = claims._advance(claim, {'qualifiers': {'statement': 'Synthetic successor.'}})
+            request = {'operation': 'claim.revise', 'command_id': 'synthetic-callback-revision',
+                'expected_source': subject.ref, 'expected_revision': revision,
+                'expected_configuration': 'sha256:' + '1' * 64, 'expected_dependencies': 'sha256:' + '2' * 64,
+                'expected_inputs': {}, 'reason': 'Synthetic correction.',
+                'fields': {'qualifiers': {'statement': 'Synthetic successor.'}}, 'forms': []}
+            receipt = {**prior, 'command_id': request['command_id'],
+                'request_digest': source._digest(source._canonical(request)),
+                'principal_id': 'test:archive', 'authority_ref': 'test:archive-authority',
+                'owner_configuration': request['expected_configuration'], 'recorded_at': '2026-01-01T00:00:00Z',
+                'reason': request['reason'], 'source': claims._subject(revised).ref,
+                'dependencies': request['expected_dependencies'], 'source_bindings': {},
+                'changed_fields': ['qualifiers'], 'forms': [], 'grants_admission': False, 'request': request}
+            history = {'schema_version': 'tos_claim_revision_history_v1',
+                       'source_path': config['source_path'], 'receipts': [receipt]}
+            current = {**files, 'source-claims.jsonl': claims._replace(files['source-claims.jsonl'], revised),
+                       claims.HISTORY: encode(history)}
+            self.assertEqual(claims._history(current, config, archive_reader=typed), history)
+            self.assertEqual(claims.creation_source_files(current, config, archive_reader=typed), files)
+            altered = {**current, 'source-claims.jsonl': current['source-claims.jsonl'] + b'\n'}
+            with self.assertRaises(source.JournalCorruption):
+                claims._history(altered, config, archive_reader=typed)
+            bad_receipt = {**receipt, 'source': {**receipt['source'], 'digest': 'sha256:' + '0' * 64}}
+            with self.assertRaises(source.JournalCorruption):
+                typed(self.public, config, bad_receipt)
+        self.assertGreaterEqual(len(reads), 5)
+
     def test_create_private_occurrence_forms_provenance_and_retry_share_exact_grammar(self):
         prepared = self.prepare_create()
         public_before = (self.public / self.native.packet_ref).read_bytes()

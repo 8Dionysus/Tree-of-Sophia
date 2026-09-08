@@ -144,7 +144,8 @@ def _archive_ref(context, config, revision):
     return Path(context.private_prefix) / '.record-revisions' / (identifier + '-' + revision[7:])
 
 
-def _read_archive(context, config, receipt):
+def _read_archive_files(context, config, receipt):
+    """Verify protected archive bytes without interpreting the source subject."""
     relative = _archive_ref(context, config, receipt['previous_revision'])
     if receipt['archive_path'] != relative.as_posix():
         raise source.JournalCorruption('owner-local archive has a different logical owner')
@@ -171,6 +172,11 @@ def _read_archive(context, config, receipt):
     if (set(contents) != {row['blob'] for row in manifest['files'].values()}
             or revisions._revision(restored) != receipt['previous_revision']):
         raise source.JournalCorruption('owner-local archive contains missing or unbound bytes')
+    return restored, locations
+
+
+def _read_archive(context, config, receipt):
+    restored, locations = _read_archive_files(context, config, receipt)
     basename = Path(config['source_path']).name
     if basename not in restored:
         raise source.JournalCorruption('owner-local archive lacks its bound source record')
@@ -184,12 +190,13 @@ def _read_archive(context, config, receipt):
     return restored, locations
 
 
-def _archive(context, config, files, subject, revision):
+def _archive(context, config, files, subject, revision, *, reader=None):
+    reader = reader if reader is not None else _read_archive
     relative = _archive_ref(context, config, revision)
     receipt = {'archive_path': relative.as_posix(), 'previous_source': subject.ref, 'previous_revision': revision}
     target = context.path(relative.as_posix())
     if os.path.lexists(target):
-        if _read_archive(context, config, receipt)[0] != files:
+        if reader(context, config, receipt)[0] != files:
             raise source.JournalCorruption('existing owner-local archive differs from the previous package')
         return relative
     target.parent.mkdir(mode=0o700, exist_ok=True)
@@ -204,22 +211,23 @@ def _archive(context, config, files, subject, revision):
         source._publish_new_directory(staging, target)
     finally:
         revisions._discard_staging(staging, archived)
-    if _read_archive(context, config, receipt)[0] != files:
+    if reader(context, config, receipt)[0] != files:
         raise source.JournalCorruption('owner-local stored archive differs from its input bytes')
     return relative
 
 
-def _inventory(context, profiles, config, *, exclude=None, creating=False):
+def _inventory(context, profiles, config, *, exclude=None, creating=False, reserved_ids=None):
     """Current source identities only; no private catalog or source export.
 
     Native IDs remain reserved and fields inside prose are not interpreted as
     identity declarations. Archived/staged versions do not become competitors.
     """
     from source_text_unit_commands import MAX_INVENTORY_ENTRIES, MAX_INVENTORY_BYTES, MAX_INVENTORY_FILE_BYTES
-    basenames = set(profiles.source_basenames.values())
+    from source_record_profiles import SOURCE_CLAIM_BASENAME
+    basenames = {*profiles.source_basenames.values(), SOURCE_CLAIM_BASENAME}
     pending = [context.public_root / 'ToS/source-witnesses', context.private_root / context.private_prefix]
     visited, files, remaining, inputs = 0, 0, MAX_INVENTORY_BYTES, {}
-    reserved = {config['record_id'], *config['allowed_form_ids']}
+    reserved = ({config['record_id'], *config['allowed_form_ids']} if reserved_ids is None else set(reserved_ids))
     if creating:
         reserved.add(config['provenance_event_id'])
     while pending:
@@ -263,10 +271,10 @@ def _inventory(context, profiles, config, *, exclude=None, creating=False):
                     if not row.strip():
                         continue
                     value = source._json_object(row)
-                    ids = {value.get(key) for key in ('record_id', 'event_id') if isinstance(value.get(key), str)}
+                    ids = {value.get(key) for key in ('record_id', 'claim_id', 'event_id') if isinstance(value.get(key), str)}
                     for key, field in (('forms', 'form_id'), ('prior_forms', 'form_id'), ('occurrences', 'occurrence_id'),
                                        ('lexemes', 'lexeme_id'), ('senses', 'sense_id'), ('signs', 'sign_id'), ('concepts', 'concept_id'),
-                                       ('entities', 'entity_id')):
+                                       ('entities', 'entity_id'), ('claims', 'claim_id')):
                         for item in value.get(key, []):
                             if isinstance(item, dict) and isinstance(item.get(field), str):
                                 ids.add(item[field])

@@ -136,9 +136,10 @@ def _archive_config(config, identity):
     return {**config, 'record_id': identity}
 
 
-def _read_archive(root, config, receipt):
+def _read_archive(root, config, receipt, *, read_files=None):
+    read_files = read_files if read_files is not None else packages._read_archive_files
     identity = receipt['previous_source']['id']
-    files, locations = packages._read_archive_files(root, _archive_config(config, identity), receipt)
+    files, locations = read_files(root, _archive_config(config, identity), receipt)
     previous = _claims(files[SOURCE_CLAIM_BASENAME]).get(identity)
     if previous is None or _subject(previous).ref != receipt['previous_source']:
         raise source.JournalCorruption('archive does not preserve the exact previous Claim')
@@ -148,7 +149,8 @@ def _read_archive(root, config, receipt):
     return files, locations
 
 
-def _history(files, config):
+def _history(files, config, *, archive_reader=None):
+    archive_reader = archive_reader if archive_reader is not None else _read_archive
     history = source._json_object(files[HISTORY]) if HISTORY in files else {
         'schema_version': 'tos_claim_revision_history_v1', 'source_path': config['source_path'], 'receipts': []}
     source._keys(history, {'schema_version', 'source_path', 'receipts'})
@@ -176,7 +178,7 @@ def _history(files, config):
                 or receipt['source']['id'] != receipt['previous_source']['id']
                 or receipt['source']['version'] != receipt['previous_source']['version'] + 1):
             raise source.JournalCorruption('broken Claim correction receipt')
-        archived, _ = _read_archive(Path(config['source_root']), config, receipt)
+        archived, _ = archive_reader(Path(config['source_root']), config, receipt)
         before = archived[SOURCE_CLAIM_BASENAME]
         if expected is None and any(record.get('claim_version') != 1 for record in _claims(before).values()):
             raise source.JournalCorruption('Claim correction history is missing its initial stream')
@@ -190,10 +192,11 @@ def _history(files, config):
     return history
 
 
-def creation_source_files(files, config):
+def creation_source_files(files, config, *, archive_reader=None):
     """Return creation bytes only after verifying the complete correction chain."""
-    history = _history(files, config)
-    return (_read_archive(Path(config['source_root']), config, history['receipts'][0])[0]
+    archive_reader = archive_reader if archive_reader is not None else _read_archive
+    history = _history(files, config, archive_reader=archive_reader)
+    return (archive_reader(Path(config['source_root']), config, history['receipts'][0])[0]
             if history['receipts'] else files)
 
 
