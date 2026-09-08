@@ -896,7 +896,160 @@ class HistoricalCreationTests(unittest.TestCase):
             owner.write_text(json.dumps(config))
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
+    def test_native_semantic_identity_blocks_standalone_creation_and_stales_prepared_inputs(self):
+        """Hidden synthetic native subjects retain IDs without exporting text."""
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        from build_source_witness_catalog import collect_records, CatalogBuildError
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            for name in ('source-metadata-record', 'semantic-description-record', 'lexical-description-record',
+                         'semantic-annotation-packet-v2', 'provenance-event-v2'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.lexeme',
+                allowed_operations=['source.create'], record_id='tos.lexeme.sid-11111111111111111111111111111111',
+                source_path='ToS/source-witnesses/history/new-subject/lexeme.json',
+                provenance_event_id='tos.event.synthetic-native-collision-create')
+            owner.write_text(json.dumps(config))
+            source = request['record']
+            source.update(schema_version='tos_lexical_description_record_v1', record_type='lexeme',
+                record_id=config['record_id'], notes='Synthetic lexical identity, not an attested word.',
+                field_languages={'preferred_label': {'language': None, 'script': None},
+                                 'notes': {'language': 'en', 'script': 'Latn'}},
+                semantic_scope={'scope_note': 'Only this synthetic referent.', 'language': 'en', 'script': 'Latn',
+                    'identity_criterion': 'One test subject; shared labels do not merge it.'},
+                semantic_content={'lexical_account': 'Synthetic lexical grouping.',
+                    'grammatical_account': 'No real grammatical analysis.', 'language': 'en', 'script': 'Latn'})
+            request.pop('claims')
+            prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                       'record': source, 'forms': request['forms']}
+            prepared = commands.run_local_command(owner, prepare)
+            request.update(operation='source.create', expected_configuration=prepared['owner_configuration'],
+                           expected_dependencies=prepared['expected_dependencies'])
+            packet = json.loads((ROOT / 'ToS/research-packets/foundation-laboratory-2026-07/'
+                                 'semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json').read_bytes())
+            entity = copy.deepcopy(packet['entities'][-1])
+            entity.update(entity_kind='lexeme', entity_id=source['record_id'], admission_status='proposed')
+            packet['entities'].append(entity)
+            packet['content_posture'] = 'source_bound'  # Artificial fixture of the restricted-source shape.
+            packet['rights_and_visibility'].update(private_source_used=True, publication_authorized=False,
+                record_visibility='local_only', source_content_visibility='local_only')
+            packet_path = root / 'ToS/source-witnesses/history/semantic-annotation.synthetic.json'
+            packet_path.write_text(json.dumps(packet))
+            profiles = SourceRecordProfiles(root)
+            self.assertIn(source['record_id'], profiles.native_semantic_identities())
+            from source_record_profiles import NATIVE_SEMANTIC_PREFIXES
+            native_schema = json.loads((root / 'ToS/contracts/semantic-annotation-packet-v2.schema.json').read_bytes())
+            declared_spaces = {'tos.' + native_schema['$defs'][branch['$ref'].split('/')[-1]]['pattern'].split(r'\.')[1] + '.'
+                               for branch in native_schema['$defs']['entityId']['oneOf']}
+            self.assertEqual(set(NATIVE_SEMANTIC_PREFIXES), declared_spaces)
+            self.assertIn(packet_path.relative_to(root).as_posix(), profiles.native_identity_input_digests)
+            self.assertNotIn(packet_path.relative_to(root).as_posix(), profiles.input_digests)
+            profiles.native_identity_snapshot(read_bytes=commands._read)
+            extra_packet = packet_path.with_name('semantic-annotation.extra.json')
+            extra_packet.write_bytes(packet_path.read_bytes())
+            with self.assertRaises(SourceProfileError):
+                profiles.native_identity_snapshot(read_bytes=commands._read)
+            with patch('source_record_profiles.MAX_NATIVE_IDENTITY_BYTES', packet_path.stat().st_size * 2 - 1):
+                with self.assertRaises(SourceProfileError):
+                    SourceRecordProfiles(root).native_semantic_identities()
+            extra_packet.unlink()
+            from tos_corpus_index_common import project_text_packet
+            self.assertEqual(project_text_packet(packet, packet_path.relative_to(root).as_posix()), ([], []))
+            with self.assertRaises(SourceProfileError):
+                commands.run_local_command(owner, prepare)
+            with self.assertRaises(SourceProfileError):
+                commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).exists())
+            # Even an unrelated native arrival changes the prepare snapshot.
+            packet['entities'][-1]['entity_id'] = 'tos.lexeme.sid-22222222222222222222222222222222'
+            packet_path.write_text(json.dumps(packet))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            request['expected_dependencies'] = commands.run_local_command(owner, prepare)['expected_dependencies']
+            commands.run_local_command(owner, request)
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at')}
+            form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
+            form_owner = root / 'native-collision-form-owner.json'
+            form_owner.write_text(json.dumps(form_config))
+            form_prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare',
+                            **request['forms'][0]}
+            form_prepared = commands.run_local_command(form_owner, form_prepare)
+            form_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                'command_id': 'synthetic:native-collision-form-revision',
+                'expected_configuration': form_prepared['owner_configuration'],
+                'expected_source': form_prepared['source'], 'expected_revision': form_prepared['revision'],
+                'changes': [form_prepared['prepared_change']]}
+            revision_config = {**form_config, 'schema_version': commands.PROFILE_REVISION_CONFIG,
+                'record_id': config['record_id'], 'profile_type_id': config['profile_type_id'],
+                'allowed_operations': ['record.revise'], 'allowed_fields': ['notes']}
+            revision_owner = root / 'native-collision-revision-owner.json'
+            revision_owner.write_text(json.dumps(revision_config))
+            revision_prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'notes': 'Synthetic metadata correction, not another referent.'},
+                'forms': request['forms'], 'reason': 'Check native identity currentness.'}
+            revision_prepared = commands.run_local_command(revision_owner, revision_prepare)
+            revision_request = {**revision_prepare, 'operation': 'record.revise',
+                'command_id': 'synthetic:native-collision-record-revision',
+                'expected_configuration': revision_prepared['owner_configuration'],
+                'expected_source': revision_prepared['source'], 'expected_revision': revision_prepared['revision'],
+                'expected_dependencies': revision_prepared['expected_dependencies']}
+            from assessment_journal import _source_records
+            bindings = [{'path': config['source_path'], 'record_id': source['record_id'],
+                         'origin_id': 'synthetic:native-identity-boundary'}]
+            # A native packet arriving after standalone creation must also
+            # close existing-record readers, not only new creation.
+            packet['entities'][-1]['entity_id'] = source['record_id']
+            packet_path.write_text(json.dumps(packet))
+            with self.assertRaises(CatalogBuildError):
+                collect_records(root)
+            with self.assertRaises(SourceProfileError):
+                SourceRecordProfiles(root).load('lexeme', config['source_path'])
+            with self.assertRaises(SourceProfileError):
+                SourceRecordProfiles(root).validate('lexeme', source)
+            for selected_owner, command in ((owner, request), (form_owner, form_prepare),
+                    (form_owner, form_request), (revision_owner, revision_prepare),
+                    (revision_owner, revision_request)):
+                with self.subTest(operation=command['operation']), self.assertRaises(SourceProfileError):
+                    commands.run_local_command(selected_owner, command)
+            with self.assertRaises(SourceProfileError):
+                _source_records(root, bindings)
+            # No native content, label or body becomes a public catalog entry.
+            packet['entities'][-1]['entity_id'] = 'tos.lexeme.sid-22222222222222222222222222222222'
+            packet_path.write_text(json.dumps(packet))
+            self.assertNotIn(packet['entities'][-1]['entity_id'], {
+                row['record_id'] for rows in collect_records(root).values() for row in rows})
+            identity_snapshots = {}
+            resolved, fixity = _source_records(root, bindings, identity_snapshots=identity_snapshots)
+            self.assertEqual(len(identity_snapshots), 1)
+            self.assertNotIn(packet_path.relative_to(root).as_posix(), {item['path'] for item in fixity})
+            self.assertNotIn(packet_path.relative_to(root).as_posix(), json.dumps(identity_snapshots))
+            # Changing non-colliding native metadata invalidates prepared
+            # forms, corrections and assessment snapshots, without exporting it.
+            packet['entities'][-1]['entity_id'] = 'tos.lexeme.sid-33333333333333333333333333333333'
+            packet_path.write_text(json.dumps(packet))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(form_owner, form_request)
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(revision_owner, revision_request)
+            updated_snapshots = {}
+            self.assertEqual(_source_records(root, bindings, identity_snapshots=updated_snapshots), (resolved, fixity))
+            self.assertNotEqual(updated_snapshots, identity_snapshots)
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), source)
+            # Historical creation replay remains exact evidence, not a fresh
+            # creation attempt, provided current identity is still unambiguous.
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        lexical = {
+            'lexeme': {'lexical_account': 'Synthetic lexical grouping, not string identity.',
+                       'grammatical_account': 'A proposed nominal analysis.'},
+            'lexical-form': {'form_account': 'A supplied written representation, not an occurrence.'},
+            'sense': {'sense_account': 'A synthetic lexical reading, not a concept.',
+                      'interpretation_context': 'Only the artificial test context.',
+                      'semantic_range': 'Other readings remain open.'},
+        }
         linguistic = {
             'language': {'system_account': 'A synthetic language account, not a script.'},
             'linguistic-variety': {'system_account': 'A synthetic variety, not a period.',
@@ -977,14 +1130,15 @@ class HistoricalCreationTests(unittest.TestCase):
             **passages,
             **reception,
             **linguistic,
+            **lexical,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'reception-record', 'linguistic-description-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'reception-record', 'linguistic-description-record', 'lexical-description-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
-                config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.' + kind,
+                config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.' + ('lexical-sense' if kind == 'sense' else kind),
                     allowed_operations=['source.create'], record_id=f'tos.{kind}.synthetic-create',
                     source_path=f'ToS/source-witnesses/history/new-subject/{kind}.json',
                     provenance_event_id=f'tos.event.synthetic-{kind}-create')
@@ -998,6 +1152,7 @@ class HistoricalCreationTests(unittest.TestCase):
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
                     source.update(schema_version=('tos_scholarly_composite_record_v1' if kind == 'composite' else
+                                  'tos_lexical_description_record_v1' if kind in lexical else
                                   'tos_linguistic_description_record_v1' if kind in linguistic else
                                   'tos_reception_record_v1' if kind in reception else
                                   'tos_textual_passage_record_v1' if kind in passages else
@@ -1006,7 +1161,11 @@ class HistoricalCreationTests(unittest.TestCase):
                                   'tos_thought_practice_record_v1' if kind in practices else
                                   'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic:
+                if kind == 'lexical-form':
+                    source['form_identity'] = {'written_representation': 'e\u0301', 'language': 'x-test', 'script': 'Latn',
+                        'representation_kind': 'orthographic', 'notation_scope': 'Only this test notation.',
+                        'unicode_posture': 'preserved_as_supplied'}
+                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic or kind in lexical:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 if kind == 'composite':
@@ -1035,7 +1194,8 @@ class HistoricalCreationTests(unittest.TestCase):
                     proposal['fields']['semantic_content'] = {**source['semantic_content'],
                         wording: source['semantic_content'][wording] + ' Corrected wording of the same test referent.'}
                 for fields in ({'semantic_scope': {**source['semantic_scope'], 'identity_criterion': 'A different subject'}},
-                               {'record_id': 'tos.conception.another'}, {'notes': ''}, {'semantic_content': {}}):
+                               {'record_id': 'tos.conception.another'}, {'notes': ''}, {'semantic_content': {}},
+                               {'form_identity': {'written_representation': 'é'}}):
                     with self.assertRaises((PermissionError, ValueError)):
                         commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
                             'operation': 'prepare-revise', **proposal, 'fields': fields})
@@ -1053,7 +1213,7 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic:
+                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic or kind in lexical:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
                         for field in contents[kind]:
                             property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
@@ -1073,6 +1233,10 @@ class HistoricalCreationTests(unittest.TestCase):
                         context = select_human_forms(node, 'ru')['roles']['hover']['packet']['context']
                         self.assertTrue(any(c['binding']['pointer'] == '/semantic_content'
                             and c['value'] == proposal['fields']['semantic_content'] for c in context))
+                        if kind == 'lexical-form':
+                            self.assertEqual(node['attributes']['source_record']['form_identity'], source['form_identity'])
+                            self.assertTrue(any(c['binding']['pointer'] == '/form_identity'
+                                and c['value'] == source['form_identity'] for c in context))
                     previous = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
                         'operation': 'inspect-version', 'source': prepared['source']})
                     self.assertEqual(previous['record'], source)

@@ -913,6 +913,45 @@ class AssessmentPolicyTests(unittest.TestCase):
             config['subjects'][subject.id][field] = original
         self.assertFalse(list((path.parent / 'journal').iterdir()))
 
+    def test_lexical_assessment_snapshot_binds_native_inventory_without_disclosing_it(self):
+        """Native annotation is a synthetic restricted-shape fixture, not evidence."""
+        from assessment_journal import JournalConflict
+        from source_record_profiles import SourceRecordProfiles
+        path, config, request = self.local_command_fixture()
+        root = path.parent / 'source-root'
+        relative = 'ToS/source-witnesses/lexical-descriptions/german-wille/lexeme.json'
+        profiles = SourceRecordProfiles(ROOT)
+        record = profiles.load('lexeme', relative)
+        for ref in [relative, *profiles.input_digests,
+                    'ToS/contracts/semantic-annotation-packet-v2.schema.json']:
+            target = root / ref
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / ref).read_bytes())
+        config.update(schema_version='tos_local_assessment_owner_v2', source_root=str(root),
+            source_records=[{'path': relative, 'record_id': record['record_id'], 'origin_id': None}])
+        path.write_text(json.dumps(config))
+        describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+                    'subject_id': self.subject.id}
+        before = self.run_local(path, describe)
+        request['expected_snapshot'] = before['owner_snapshot']
+        native_ref = 'ToS/source-witnesses/lexical-descriptions/semantic-annotation.synthetic-private.json'
+        packet = json.loads((ROOT / 'ToS/research-packets/foundation-laboratory-2026-07/'
+                            'semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json').read_bytes())
+        packet['content_posture'] = 'source_bound'
+        packet['rights_and_visibility'].update(private_source_used=True, publication_authorized=False,
+            record_visibility='local_only', source_content_visibility='local_only')
+        (root / native_ref).write_text(json.dumps(packet))
+        with self.assertRaises(JournalConflict):
+            self.run_local(path, request)
+        after = self.run_local(path, describe)
+        self.assertNotEqual(before['owner_snapshot'], after['owner_snapshot'])
+        context = after['result']['command_context']
+        self.assertEqual(before['result']['command_context']['source_records'], context['source_records'])
+        self.assertNotIn(native_ref, json.dumps(after))
+        self.assertNotIn(native_ref, {item['path'] for item in context['source_contracts']})
+        self.assertEqual(after['result']['batch_count'], 0)
+        self.assertFalse(list((path.parent / 'journal').iterdir()))
+
     def test_new_assessment_source_kind_is_declared_in_data_not_python(self):
         """A synthetic Document subtype, not another real historical record."""
         from assessment_journal import _source_records

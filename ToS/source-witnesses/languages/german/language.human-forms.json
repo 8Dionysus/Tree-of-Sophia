@@ -1,0 +1,242 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.language.german",
+    "version": 1,
+    "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.lexical.german.name-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.language.german",
+        "version": 1,
+        "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.lexical.german.name-en",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.language.german",
+        "version": 1,
+        "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+      },
+      "role": "name",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-5": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/variant_labels/0/script"
+        },
+        "context-6": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-7": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.lexical.german.note-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.language.german",
+        "version": 1,
+        "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.language.german",
+            "version": 1,
+            "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

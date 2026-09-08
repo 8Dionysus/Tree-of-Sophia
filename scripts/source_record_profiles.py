@@ -20,6 +20,11 @@ CONTRACT_REF = 'ToS/contracts/semantic-entity-type-registry.schema.json'
 CORPUS_REF = 'ToS/contracts/corpus-record.schema.json'
 SOURCE_ROOT = Path('ToS/source-witnesses')
 MAX_RECORD_BYTES = 1_048_576
+MAX_NATIVE_IDENTITY_BYTES = 8_388_608
+# Identity spaces of the understood native v2 adapter, not a universal type
+# registry. A future native contract expanding these spaces needs an adapter
+# transition; unrelated Document/Language reads do not inspect private packets.
+NATIVE_SEMANTIC_PREFIXES = tuple('tos.' + kind + '.' for kind in ('occurrence', 'lexeme', 'sense', 'sign', 'concept'))
 SOURCE_CLAIM_BASENAME = 'source-claims.jsonl'
 CLAIM_REGISTRY_REF = 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
 CLAIM_CONTRACT_REF = 'ToS/contracts/semantic-relation-type-registry.schema.json'
@@ -58,14 +63,17 @@ def _nonfinite(_value):
     raise SourceProfileError('profile input contains a nonfinite JSON number')
 
 
-def _read_json(root: Path, ref: str, digests: dict | None = None) -> dict:
+def _read_json(root: Path, ref: str, digests: dict | None = None, *, byte_budget: list[int] | None = None) -> dict:
     path = root / ref
     if path.is_symlink() or not path.is_file() or path.resolve() != path.absolute():
         raise SourceProfileError(f'{ref}: profile input must be a regular non-symlink file')
+    limit = min(MAX_RECORD_BYTES, byte_budget[0]) if byte_budget is not None else MAX_RECORD_BYTES
     with path.open('rb') as stream:
-        raw = stream.read(MAX_RECORD_BYTES + 1)
-    if len(raw) > MAX_RECORD_BYTES:
-        raise SourceProfileError(f'{ref}: profile input exceeds 1 MiB')
+        raw = stream.read(limit + 1)
+    if len(raw) > limit:
+        raise SourceProfileError(f'{ref}: profile input exceeds its bounded read budget')
+    if byte_budget is not None:
+        byte_budget[0] -= len(raw)
     try:
         value = json.loads(raw, object_pairs_hook=_unique_object, parse_constant=_nonfinite)
     except (ValueError, UnicodeError) as error:
@@ -131,6 +139,8 @@ class SourceRecordProfiles:
         self.metadata_validators = {}
         self.schema_routes = {}
         self.schemas = {}
+        self._native_semantic_identities = None
+        self.native_identity_input_digests = {}
         seen = {key: set() for key in ('record_type', 'id_prefix', 'source_basename', 'catalog_filename')}
         for entry in self.registry.get('types', []):
             profile = entry.get('source_record_profile')
@@ -220,6 +230,75 @@ class SourceRecordProfiles:
         self.validate(kind, source)
         return source
 
+    def _native_semantic_paths(self) -> list[Path]:
+        paths = []
+        for path in (self.root / SOURCE_ROOT).rglob('semantic-annotation*.json'):
+            if any(part in {'payload', 'local-content', 'catalog'} for part in path.relative_to(self.root).parts):
+                continue
+            paths.append(path)
+            if len(paths) > 1024:
+                raise SourceProfileError('native semantic identity inventory exceeds 1024 metadata packets')
+        return sorted(paths)
+
+    def native_semantic_identities(self) -> dict[str, list[str]]:
+        """Reserve native subject IDs without projecting their private content.
+
+        This is the same metadata-home discovery as the native text reader;
+        payload/local-content are never opened. Repeated packet versions may
+        reference the same native identity. None authorizes a second current
+        standalone record. The bounded snapshot is local to this reader.
+        """
+        if self._native_semantic_identities is not None:
+            return self._native_semantic_identities
+        identities, byte_budget = {}, [MAX_NATIVE_IDENTITY_BYTES]
+        validator = None
+        for path in self._native_semantic_paths():
+            ref = path.relative_to(self.root).as_posix()
+            packet = _read_json(self.root, ref, self.native_identity_input_digests, byte_budget=byte_budget)
+            if packet.get('schema_version') != 'tos_semantic_annotation_packet_v2':
+                raise SourceProfileError(f'{ref}: native identity reservation requires an understood packet contract')
+            if validator is None:
+                schema = _read_json(self.root, 'ToS/contracts/semantic-annotation-packet-v2.schema.json', self.input_digests)
+                validator = Draft202012Validator(schema, format_checker=FormatChecker())
+            if not validator.is_valid(packet):
+                raise SourceProfileError(f'{ref}: native semantic identity packet violates its schema')
+            for entity in packet['entities']:
+                identities.setdefault(entity['entity_id'], []).append(ref)
+        self._native_semantic_identities = identities
+        return identities
+
+    def native_identity_snapshot(self, *, read_bytes=None, only_if_used=False) -> str | None:
+        """Opaque private closure; never merge native refs into public inputs.
+
+        A command can supply its protected file reader to recheck both packet
+        membership and exact bytes. This does not refresh a stale validation
+        cache or silently accept the new inventory midway through a command.
+        """
+        if only_if_used and self._native_semantic_identities is None:
+            return None
+        self.native_semantic_identities()
+        if read_bytes is not None:
+            refs = {path.relative_to(self.root).as_posix() for path in self._native_semantic_paths()}
+            if refs != self.native_identity_input_digests.keys():
+                raise SourceProfileError('native semantic identity inventory changed during resolution')
+            remaining = MAX_NATIVE_IDENTITY_BYTES
+            for ref, digest in sorted(self.native_identity_input_digests.items()):
+                raw = read_bytes(self.root / ref, min(MAX_RECORD_BYTES, remaining))
+                remaining -= len(raw)
+                if hashlib.sha256(raw).hexdigest() != digest:
+                    raise SourceProfileError('native semantic identity inventory changed during resolution')
+            if {path.relative_to(self.root).as_posix() for path in self._native_semantic_paths()} != refs:
+                raise SourceProfileError('native semantic identity inventory changed during resolution')
+        raw = json.dumps(self.native_identity_input_digests, sort_keys=True, separators=(',', ':')).encode()
+        return 'sha256:' + hashlib.sha256(raw).hexdigest()
+
+    def assert_identity_not_native(self, record_id: str) -> None:
+        if not record_id.startswith(NATIVE_SEMANTIC_PREFIXES):
+            return  # This identity cannot belong to the understood native v2 shape.
+        if record_id in self.native_semantic_identities():
+            # Do not disclose the hidden packet body, label or interpretation.
+            raise SourceProfileError('subject identity is already owned by a native semantic packet; explicit owner migration required')
+
     def validate(self, kind: str, source: dict) -> None:
         profile = self.profiles[kind]
         if source.get('visibility') not in {'public', 'public_metadata_only'}:
@@ -237,6 +316,7 @@ class SourceRecordProfiles:
                 raise SourceProfileError(f'{kind}: source record violates its exact profile schema or shared metadata contract')
         except Unresolvable as error:
             raise SourceProfileError(f'{kind}: source schema has an undeclared dependency') from error
+        self.assert_identity_not_native(source['record_id'])
 
     def catalog_entry(self, kind: str, source: dict, ref: str) -> dict:
         self.validate(kind, source)

@@ -249,7 +249,8 @@ def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) 
     profiles = profiles or SourceRecordProfiles(repo_root)
     basenames = {**{kind: kind + '.json' for kind in RECORD_FILES}, **profiles.source_basenames}
     records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in basenames}
-    seen_ids: dict[str, str] = {}
+    seen_ids: dict[str, str] = {identity: 'native semantic packet'
+                               for identity in profiles.native_semantic_identities()}
 
     for record_type, basename in basenames.items():
         for path in sorted(source_root.rglob(basename)):

@@ -199,6 +199,11 @@ receipt.
 adapter: whole `preferred_label` and `variant_labels/*/value` names, and whole
 `notes` hover text. Identity status and equivalence posture remain mandatory;
 a variant also retains all its source metadata, including unknown members.
+Semantic descriptions also retain their complete `semantic_scope` and
+`semantic_content`. Written lexical forms additionally bind `form_identity`,
+including the represented spelling, notation, language/script and Unicode
+posture. A Russian description cannot conceal that its subject is a German
+form or an unresolved transliteration; these are not the description language.
 Missing source language/script remain unknown. Other roles, templates and
 freeform wording are explicitly unavailable on this adapter, not automatically
 accepted. Declared creator identity is provenance, not authentication.

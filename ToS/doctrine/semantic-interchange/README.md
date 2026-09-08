@@ -1209,3 +1209,81 @@ results live in the [profile review](../../review-ledger/2026-09-08-linguistic-p
 The [text layer law](../CORPUS_FOUNDATION.md#text-bearing-layers) remains stronger
 for actual transcriptions and transformations. Reader rollback does not remove
 new subjects, source corrections or their histories.
+
+### Lexemes, written forms and contextual senses
+
+The [lexical description contract](../../contracts/lexical-description-record.schema.json)
+extends the existing semantic metadata reader, not the native text-evidence
+format. Its three referents remain distinct:
+
+| Referent | Source kind / ID | Required content |
+| --- | --- | --- |
+| lexical grouping | `lexeme` / `tos.lexeme.*` | lexical and grammatical accounts, scope and continuity criterion |
+| written representation | `lexical-form` / `tos.lexical-form.*` | exact declared `form_identity`, form account, scope and continuity criterion |
+| situated lexical reading | `sense` / `tos.sense.*` | reading, interpretive context, semantic range, scope and continuity criterion |
+
+`tos.entity.lexical-sense` retains its existing semantic identity and legacy
+`source-navigation` mapping. The new metadata kind is `sense`, preserving
+`tos.sense.*`; it does not introduce a parallel `tos.lexical-sense.*` identity.
+A written lexical form is neither a `tos.form.*` human display packet nor the
+legacy computed `lexical-form:sha256:*` grouping key. Existing native lexical
+records, exact occurrences and historical packets are not converted by adding
+these profiles.
+
+Native semantic-packet entities retain their IDs even when their content is
+not publicly projected. The common profile reader and catalog reject a
+standalone subject using an already occupied native ID, including existing
+record/form/assessment readers and exact creation retries. Initial creation,
+record correction, form configuration and assessment snapshots bind an opaque
+fingerprint of the exact native metadata inventory. Added, removed or changed
+packets invalidate pending commands; the protected command readers recheck
+inventory membership and bytes. Historical requests, receipts and predecessor
+bytes are not rewritten or compared to current dependency fingerprints on an
+exact replay; the current subject must still satisfy the identity guard.
+This check does not export hidden packet bodies or locators and does not
+promote their interpretations. Existing-record commands inspect that inventory
+only for the native v2 identity spaces (`occurrence`, `lexeme`, `sense`, `sign`,
+`concept`); unrelated selected Document/Language records do not acquire a
+private-corpus dependency. Catalog/creation still reserve the complete native
+inventory. A native contract expanding those identity spaces requires an
+explicit adapter transition. The local inventory is bounded to 1024 metadata
+packets of at most 1 MiB each and 8 MiB in total, refusing unsupported schemas or overflow rather
+than silently treating uninspected IDs as free. This is an explicit current
+operation budget, not a claim that corpus-wide identity indexing is finished.
+
+`form_identity` contains the supplied string, declared language and script,
+representation kind, notation scope and Unicode posture. It is immutable
+through the ordinary descriptive revision grant; no case folding, Unicode
+normalization or string-based ID is performed. A matching string may still
+belong to another referent or unresolved homograph. Description corrections
+advance the record and its source-bound forms without changing the subject,
+scope, frozen form identity or earlier history. An incompatible referent needs
+the explicit identity-transition route, not a revised spelling field.
+
+`lexical_form_of`, `lexical_sense_of` and `lexeme_in_language` are separate,
+grounded, nontransitive Claims with concrete endpoints. Each requires a
+relation basis, attestation scope and qualified statement. They may record
+scholarly reporting, linguistic analysis or semantic interpretation without
+conflating those layers. There is no global one-form/one-lexeme or
+one-lexeme/one-sense constraint: rival assignments and negations can coexist.
+Neither a label match nor two Claims with opposite polarity resolves them.
+The source-visible assessment route owns judgment and scoped admission.
+
+The ordinary `source.create`, `record.revise` and `claims.create` operations
+apply with their separate exact owner grants, version/dependency checks,
+idempotent receipts and rollback history. A profile is discovered from the
+entity registry; it does not grant writes. The common reader returns the
+unchanged record through both source navigation and source Claims, with
+one shared subject identity. Typed property filters expose the lexical,
+grammatical, reading, range and written-representation fields; source-owning
+human forms preserve the full semantic context and `form_identity`.
+Description language is not the lexical form's language. The scene and
+inspection use the same model without a type-specific UI screen.
+
+The [bounded JGB reading](../../review-ledger/2026-09-08-jgb-lexical-source-reading.md)
+provides the first real lexical subjects and linguistic-analysis Claims.
+They are provisional research records, not dictionary authority, admitted
+German analysis or a complete semantic range. Exact Occurrence, TextLayer,
+Anchor and TextUnit remain the native text-evidence owner's next route; a
+written representation is not evidence that a particular token has been
+addressed. Reader rollback retains these sources and their operation history.

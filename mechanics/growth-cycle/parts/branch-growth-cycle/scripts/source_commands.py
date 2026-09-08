@@ -156,18 +156,22 @@ def _configuration(path):
         raise PermissionError('historical creation requires its typed record in a new subject directory')
     if profile_creation or corpus_creation or profile_revision:
         profile = _configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]
-        if not corpus_creation:
-            profiles, _ = _configured_profile(config)
-            profiles.validate_path(profile['record_type'], config['source_path'])
         if (not isinstance(config['record_id'], str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', config['record_id'])
                 or not profile_revision and config['maker_type'] not in {'human', 'software', 'model'}
                 or relative.name != profile['source_basename'] or len(relative.parts) < 5
                 or 'catalog' in relative.parts):
             raise PermissionError('profile writing requires its delegated identity and typed source path')
+        if not corpus_creation:
+            profiles, _ = _configured_profile(config)
+            profiles.validate_path(profile['record_type'], config['source_path'])
         if (corpus_creation and config['record_type'] == 'work'
                 and relative.is_relative_to('ToS/source-witnesses/works/friedrich-nietzsche')):
             raise PermissionError('the Nietzsche Work source home requires its stronger authorship and chronology closure')
+    if not (creation or revision or profile_creation or corpus_creation):
+        inputs = _profile_form_inputs(root / relative, root)
+        if inputs is not None:
+            return config, _digest(_canonical({'configuration': config, **inputs})), root / relative
     return config, _digest(_canonical(config)), root / relative
 
 
@@ -276,6 +280,36 @@ def _native_form_source(source_path, root):
     return raw, source, {schema_ref: _digest(schema_raw)}
 
 
+def _profile_input_snapshot(profiles):
+    """Protected profile closure with an opaque, separately held native hash."""
+    native_snapshot = profiles.native_identity_snapshot(read_bytes=_read, only_if_used=True)
+    total = 0
+    for ref, digest in profiles.input_digests.items():
+        raw = _read(profiles.root / ref, MAX_COMMAND_BYTES)
+        total += len(raw)
+        if total > 8_388_608 or len(profiles.input_digests) > 128:
+            raise ValueError('source profile contracts exceed the bounded input snapshot')
+        if hashlib.sha256(raw).hexdigest() != digest:
+            raise JournalConflict('source profile contract changed during resolution')
+    return {'source_contracts': {ref: 'sha256:' + digest for ref, digest in profiles.input_digests.items()},
+            **({'native_semantic_identity_snapshot': native_snapshot} if native_snapshot is not None else {})}
+
+
+def _profile_form_inputs(source_path, root, source=None):
+    source = _json_object(_read(source_path, MAX_COMMAND_BYTES)) if source is None else source
+    if (source.get('schema_version') in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
+            and source_path.name != 'composite.json'):
+        return None  # Existing native metadata adapters retain their own contracts.
+    from source_record_profiles import SourceRecordProfiles
+    profiles = SourceRecordProfiles(root)
+    kind = source.get('record_type')
+    if kind not in profiles.profiles or source_path.name != profiles.profiles[kind]['source_basename']:
+        raise ValueError('source-command adapter does not understand this source family')
+    profiles.validate_path(kind, source_path.relative_to(root).as_posix())
+    profiles.validate(kind, source)
+    return _profile_input_snapshot(profiles)
+
+
 def _snapshot(source_path, root=None, claim_id=None):
     if claim_id is not None:
         source_raw, source, _ = _claim_form_source(source_path, root, claim_id)
@@ -294,13 +328,7 @@ def _snapshot(source_path, root=None, claim_id=None):
                              or source_path.name == 'composite.json'):
         if root is None:
             raise ValueError('source-command adapter does not understand this source family')
-        from source_record_profiles import SourceRecordProfiles
-        profiles = SourceRecordProfiles(root)
-        kind = source.get('record_type')
-        if kind not in profiles.profiles or source_path.name != profiles.profiles[kind]['source_basename']:
-            raise ValueError('source-command adapter does not understand this source family')
-        profiles.validate_path(kind, source_path.relative_to(root).as_posix())
-        profiles.validate(kind, source)
+        _profile_form_inputs(source_path, root, source)
     if (source.get('schema_version') == 'tos_historical_record_v1'
             and source.get('visibility') not in {'public', 'public_metadata_only'}):
         raise PermissionError('historical source visibility is outside the public-metadata adapter')
@@ -528,6 +556,7 @@ def _prepare_creation(config, request):
     source, claims, selections = request['record'], request.get('claims', []), request['forms']
     profiles = SourceRecordProfiles(root)
     subject = _initial_source_record(config, source, profiles)
+    profiles.assert_identity_not_native(source['record_id'])
     records = collect_records(root, profiles=profiles)
     claim_profile_inputs = {}
     existing_claims = collect_claims(root, input_digests=claim_profile_inputs)
@@ -621,6 +650,7 @@ def _prepare_creation(config, request):
         _digest(_read(root / 'ToS/contracts/provenance-event-v2.schema.json', MAX_SET_BYTES))} if new_event else {})
     dependencies = _digest(_canonical({'records': records, 'claims': existing_claims,
         'source_profiles': profiles.input_digests,
+        'native_semantic_identity_snapshot': profiles.native_identity_snapshot(read_bytes=_read),
         'source_claim_profiles': claim_profile_inputs,
         'provenance_contract': provenance_contract,
         'events': events, 'anchors': anchors, 'evidence': evidence, 'forms': form_inputs,

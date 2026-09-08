@@ -424,6 +424,14 @@ timeless semantic entity.
 The identity of a record may be stable while its interpretation is corrected.
 No model may silently lift an occurrence into a concept.
 
+The [lexical metadata profile](semantic-interchange/README.md#lexemes-written-forms-and-contextual-senses)
+gives lexical groupings, written representations and situated senses separate
+source descriptions and grounded membership Claims. Written-form identity
+retains the supplied spelling and notation scope without normalization; it is
+not a native source address or a human display-form identity. Description
+correction does not silently replace that referent. The existing native
+occurrence and exact-text contracts remain stronger for attestation.
+
 The semantic identities remain distinct:
 
 - `occurrence_id` identifies one addressable appearance in an exact witness;

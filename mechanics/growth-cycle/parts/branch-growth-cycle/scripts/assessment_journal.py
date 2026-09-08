@@ -371,12 +371,16 @@ def _keys(payload: Any, expected: set[str]) -> None:
         raise ValueError('command/configuration fields do not match the declared contract')
 
 
-def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Resolve bounded, explicit public metadata inputs, never crawl a corpus.
+def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
+                    identity_snapshots: dict | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Resolve bounded explicit public inputs, without selecting corpus neighbors.
 
     Record identity selects JSONL entries and current forms, not line numbers
     or labels. Unknown fields stay in the exact payload; only the declared
-    identity envelope is interpreted. This does not replace source validators.
+    identity envelope is interpreted. Declared metadata profiles additionally
+    reserve native semantic IDs through a bounded metadata-only inventory;
+    its opaque closure hash is separate from exposed public source fixity.
+    This does not replace source validators or read payload/local-content.
     """
     if not isinstance(bindings, list) or len(bindings) > MAX_ASSESSMENTS:
         raise ValueError('source bindings must be a bounded list')
@@ -548,6 +552,23 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None)
         if hashlib.sha256(raw).hexdigest() != digest:
             raise JournalConflict('source profile dependency changed during resolution')
         fixity.append({'path': ref, 'digest': 'sha256:' + digest})
+    if metadata_profiles is not None:
+        def protected_identity_read(path, limit):
+            nonlocal total
+            with os.fdopen(_owned_path(path), 'rb') as stream:
+                before = os.fstat(stream.fileno())
+                raw = stream.read(min(limit, 8 * MAX_RECORD_BYTES - total) + 1)
+                after = os.fstat(stream.fileno())
+            total += len(raw)
+            if total > 8 * MAX_RECORD_BYTES or len(raw) > limit:
+                raise ValueError('source and identity files exceed the shared 8 MiB read budget')
+            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise JournalConflict('native identity file changed during read')
+            return raw
+
+        snapshot = metadata_profiles.native_identity_snapshot(read_bytes=protected_identity_read, only_if_used=True)
+        if identity_snapshots is not None and snapshot is not None:
+            identity_snapshots['native_semantic_identity_snapshot'] = snapshot
     return resolved, fixity
 
 
@@ -632,11 +653,12 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
     snapshot = 'sha256:' + _digest(config)
-    sourced, form_sets = [], {}
+    sourced, form_sets, identity_snapshots = [], {}, {}
     if source_bound:
-        sourced, fixity = _source_records(Path(config['source_root']), config['source_records'], form_sets=form_sets)
+        sourced, fixity = _source_records(Path(config['source_root']), config['source_records'],
+                                         form_sets=form_sets, identity_snapshots=identity_snapshots)
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
-                                       'resolved_records': sourced})
+                                       'resolved_records': sourced, **identity_snapshots})
     if len(_canonical(request)) > MAX_RECORD_BYTES:
         raise ValueError('command exceeds the 1 MiB input budget')
     operation = request.get('operation') if isinstance(request, dict) else None

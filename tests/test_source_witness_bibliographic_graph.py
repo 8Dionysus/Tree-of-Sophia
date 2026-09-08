@@ -34,6 +34,126 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_lexical_profiles_preserve_form_lexeme_sense_and_competing_readings(self):
+        """Artificial lexical data; spelling is neither identity nor attestation."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        profiles = SourceRecordProfiles(REPO_ROOT)
+        contents = {
+            'lexeme': {'lexical_account': 'A synthetic lexical referent, not one spelling.',
+                       'grammatical_account': 'Synthetic nominal analysis; no accepted grammar.'},
+            'lexical-form': {'form_account': 'The supplied decomposed spelling, not an occurrence.'},
+            'sense': {'sense_account': 'A synthetic contextual reading, not a concept.',
+                      'interpretation_context': 'Only this synthetic interpretation.',
+                      'semantic_range': 'Other readings remain open, not disproved.'},
+        }
+        with self.historical_fixture() as (root, history, real, baseline, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'lexical-description-record',
+                         'semantic-relation-claim', 'linguistic-relation-claim', 'source-claim-record',
+                         'semantic-relation-type-registry'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            from source_commands import prepare_metadata_change, _apply, REVISION_FIELDS
+            from knowledge_assessment import Record
+            self.assertNotIn('form_identity', REVISION_FIELDS)
+            records = {}
+            for kind, content in contents.items():
+                source = {**copy.deepcopy(history[0][1]), 'schema_version': 'tos_lexical_description_record_v1',
+                    'record_type': kind, 'record_id': f'tos.{kind}.synthetic-lexical',
+                    'preferred_label': 'Одинаковое имя', 'notes': 'Синтетический предмет; не свидетельство употребления.',
+                    'field_languages': {key: {'language': 'ru', 'script': 'Cyrl'} for key in ('preferred_label', 'notes')},
+                    'semantic_scope': {'scope_note': 'One artificial research referent.',
+                        'identity_criterion': 'Corrected accounts retain this referent; matching strings do not merge it.',
+                        'language': 'en', 'script': 'Latn'},
+                    'semantic_content': {**content, 'language': 'en', 'script': 'Latn',
+                        'unknown_extension': {'future_reading': ['𒀀', False, None]}},
+                    'extensions': {'language_code': 'x-test', 'instructions': 'Inert source text'}}
+                if kind == 'lexical-form':
+                    source['form_identity'] = {'written_representation': 'e\u0301', 'language': 'x-test', 'script': 'Latn',
+                        'representation_kind': 'orthographic', 'notation_scope': 'Only the synthetic notation.',
+                        'unicode_posture': 'preserved_as_supplied'}
+                profiles.validate(kind, source)
+                self.assertEqual(profiles.profiles[kind]['id_prefix'], f'tos.{kind}.')
+                for field in (*content, 'language', 'script'):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                    with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, invalid)
+                for change in ({'record_id': 'tos.form.synthetic-lexical'}, {'record_id': 'tos.concept.synthetic'},
+                               {'notes': ' '}, {'lexeme_ref': 'tos.lexeme.synthetic'}, {'semantic_scope': {}}):
+                    with self.subTest(kind=kind, change=change), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, {**source, **change})
+                if kind == 'lexical-form':
+                    for field in source['form_identity']:
+                        invalid = copy.deepcopy(source); invalid['form_identity'].pop(field)
+                        with self.subTest(form_missing=field), self.assertRaises(SourceProfileError):
+                            profiles.validate(kind, invalid)
+                    self.assertEqual(source['form_identity']['written_representation'], 'e\u0301')
+                path = root / f'ToS/source-witnesses/lexical-descriptions/fixture-{kind}/{kind}.json'
+                path.parent.mkdir(parents=True); path.write_text(json.dumps(source))
+                changes = [prepare_metadata_change(source, None, 'test:lexical-profile',
+                    form_id=f'tos.form.lexical-{kind}-{role}', field_id=field) for role, field in
+                    (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+                formset = _apply(None, Record.from_payload(source['record_id'], 1, source), changes)
+                path.with_name(kind + '.human-forms.json').write_text(json.dumps(formset))
+                records[kind] = source
+            objects = {r['record_id']: r for r in records.values()}
+            reader, claims = SourceClaimProfiles(root), []
+            for index, (predicate, subject, target) in enumerate((
+                    ('lexical_form_of', records['lexical-form']['record_id'], records['lexeme']['record_id']),
+                    ('lexical_sense_of', records['sense']['record_id'], records['lexeme']['record_id']))):
+                claim = {**copy.deepcopy(baseline[0]), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': f'tos.claim.synthetic-lexical-{index}', 'subject_ref': subject,
+                    'predicate': predicate, 'object': target, 'qualifiers': {
+                        'statement': 'Этот разбор предложен в синтетическом контексте; конкурирующие не исключены.',
+                        'statement_language': 'ru', 'statement_script': 'Cyrl',
+                        'relation_basis': 'A declared synthetic analysis, not string equality.',
+                        'attestation_scope': 'Only this artificial research context.', 'negated': False}}
+                reader.validate(claim, objects)
+                relation = reader.relations[predicate]
+                self.assertFalse(relation['transitive'])
+                self.assertIsNone(relation['cardinality']['per_subject_max'])
+                for change in ({'object': records['sense']['record_id']}, {'claim_id': subject},
+                               {'evidence_refs': []}, {'review_status': 'accepted'}):
+                    with self.subTest(predicate=predicate, change=change), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, **change}, objects)
+                invalid = copy.deepcopy(claim); invalid['qualifiers'].pop('attestation_scope')
+                with self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+                claims.extend([claim, {**copy.deepcopy(claim), 'claim_id': claim['claim_id'] + '.counter',
+                    'qualifiers': {**claim['qualifiers'], 'negated': True}}])
+            path.with_name('source-claims.jsonl').write_text(''.join(json.dumps(c) + '\n' for c in claims))
+            projection = rebuild()
+            _, entities, relations = self.historical_knowledge(root, projection)
+            import tos_corpus_index_common as corpus_builder
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node, select_human_forms, execute_knowledge_lens
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            for kind, source in records.items():
+                carriers = [n for n in graph['nodes'] if n['entity_id'] == source['record_id']]
+                self.assertEqual({n['source_graph'] for n in carriers}, {'source-claims', 'source-navigation'})
+                for node in carriers:
+                    self.assertEqual(node['type_id'], 'tos.entity.' + ('lexical-sense' if kind == 'sense' else kind))
+                    self.assertEqual(node['attributes']['source_record'], source)
+                    packet = select_human_forms(node, 'ru')['roles']['hover']['packet']
+                    self.assertEqual(packet['display_text'], source['notes'])
+                    self.assertIsNone(packet['admission'])
+                    for field in ('semantic_content', 'form_identity'):
+                        if field in source:
+                            self.assertTrue(any(c['binding']['pointer'] == '/' + field and c['value'] == source[field]
+                                                for c in packet['context']))
+                for field, value in contents[kind].items():
+                    result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                        'lens_id': 'synthetic-lexical-property', 'node_query': {'filters': [{
+                            'property_id': 'tos.property.' + kind + '-' + field.replace('_', '-'),
+                            'op': 'eq', 'value': value}]}, 'relation_query': {'enabled': False}, 'detail': 'full'})
+                    self.assertEqual({n['entity_id'] for n in result['nodes']}, {source['record_id']})
+            for claim in claims:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                for center, other in ((claim['subject_ref'], claim['object']), (claim['object'], claim['subject_ref'])):
+                    focus = focus_knowledge_node(graph, center, depth=2)
+                    self.assertIn(other, {n['entity_id'] for n in focus['nodes']})
+
     def test_linguistic_profiles_keep_language_script_variety_and_notation_distinct(self):
         """Synthetic linguistic accounts are not claims about the copied artifact."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

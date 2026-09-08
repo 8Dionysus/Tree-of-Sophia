@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4303,
+    "tracked_surface_count": 4338,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 995,
+    "excluded_tracked_path_count": 1005,
     "human_scope": {
-      "bytes": 5186218,
-      "count": 902,
+      "bytes": 5206794,
+      "count": 904,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4105010,
-          "count": 614,
-          "lines": 68982
+          "bytes": 4125586,
+          "count": 616,
+          "lines": 69306
         }
       },
-      "lines": 88650
+      "lines": 88974
     },
     "surface_kind_counts": {
       "executable": 228,
-      "human": 902,
-      "structured": 3173
+      "human": 904,
+      "structured": 3206
     },
-    "tracked_path_count": 5298,
-    "tracked_surface_count": 4303,
+    "tracked_path_count": 5343,
+    "tracked_surface_count": 4338,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 614,
-        "structured": 3097
+        "human": 616,
+        "structured": 3130
       },
-      "tracked_surface_bytes": 228800418,
-      "tracked_surface_count": 3715
+      "tracked_surface_bytes": 229177392,
+      "tracked_surface_count": 3750
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 72,
         "structured": 6
       },
-      "tracked_surface_bytes": 822204,
+      "tracked_surface_bytes": 823001,
       "tracked_surface_count": 78
     },
     {
@@ -222,7 +222,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 1029945,
+      "tracked_surface_bytes": 1048905,
       "tracked_surface_count": 215
     },
     {
@@ -231,7 +231,7 @@
         "executable": 108,
         "human": 2
       },
-      "tracked_surface_bytes": 3743301,
+      "tracked_surface_bytes": 3748562,
       "tracked_surface_count": 110
     },
     {
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1590239,
+      "tracked_surface_bytes": 1600309,
       "tracked_surface_count": 62
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "6568d2c939a3ee537b96f7630b9e1e84663dc397f5be20419f66f2a99004bff0",
+  "tracked_surface_digest": "441cafa0494100ff8f7b20b722377f6aeebce9ecdfd6b7adce654f7ea8bf10fb",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "b311a5989f98a001a41ddc7a7544fb98ba836e085d74076360d437d0caa15c45",
+      "sha256": "8f6aaed1fcb2db529c2eb96b758e22ec4fdd00fff7ea1c2449f16f1e5e47fcb1",
       "surface_kind": "structured"
     },
     {
@@ -2031,6 +2031,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/lexical-description-record.schema.json",
+      "sha256": "ca3c77b07d90fcf4afc3bdb1deb6bafcbc16a6326d14fc588b5597e80f2ea266",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 10255,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2935,11 +2943,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9223042,
+      "bytes": 9364529,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "bdb6db24e3c6bd7adef10e0ef6ed0eb28c41c8fed87e209962210eef57c760f2",
+      "sha256": "7e94a00da6023ec837b5dbba4b412e5b5f9b0cd8d2fc5f8bee6040f4ee115633",
       "surface_kind": "structured"
     },
     {
@@ -3015,11 +3023,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59851072,
+      "bytes": 59943402,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "dd5bc75ed037ea5b5f180b8e805930921bda9546c51b6b4e208d5d66965fc694",
+      "sha256": "9b46794f81056408d3d28c3846789e4d07d6ab43c5b4b3d6fc6aab8b190a894e",
       "surface_kind": "structured"
     },
     {
@@ -3071,11 +3079,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 34958,
+      "bytes": 35511,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "f44794cd330a83ae3fafa56fa96274b9852471670e3996641b5ecd5a1a3470a1",
+      "sha256": "88f33b1537bf4a5dd96abec8e100b86b943c522a126e88de40b61e62d07edd9b",
       "surface_kind": "human"
     },
     {
@@ -3095,19 +3103,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 82852,
+      "bytes": 83496,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "32fe38401c67ec61da9058b27be4ca547b8dbcac3cd53f526a74c719d8b0c510",
+      "sha256": "e673dd6ba51c5974fb1c7f3d3173d94840c0ad74714603f127a8929c4e3f14f9",
       "surface_kind": "human"
     },
     {
-      "bytes": 24237,
+      "bytes": 24612,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/HUMAN_FORMS.md",
-      "sha256": "231e8ec1f758e8e2c262c9213dac61fbec63093b5e9fdf2881792fb12e2a03cc",
+      "sha256": "4c7ce920efadcb2c5b5e20f2e589af5780cbd84f3a65cda27d7f8e3a31bb0c29",
       "surface_kind": "human"
     },
     {
@@ -3215,11 +3223,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 83833,
+      "bytes": 89045,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "d049c0ddd72532b3ed4af47c23a09e398120802cfd4af6eff26850326e72b7d4",
+      "sha256": "991065dbaafb078e0950feb4c1ec942334a5f57f71bf29417223e269bcec5466",
       "surface_kind": "human"
     },
     {
@@ -3231,19 +3239,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 193261,
+      "bytes": 201739,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "0ee1a3eabb68993850699a85cd1ebd890d5a58b6aedaac88201c08730d7fa169",
+      "sha256": "7a5b89c37af516439452d7459974d1b6f334bcc5a28c529e8a5d31b1877898d4",
       "surface_kind": "structured"
     },
     {
-      "bytes": 276577,
+      "bytes": 281934,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "1aeee75888796767847c0d3cb955474d71ffdb62ae96ff39ebf6bd03b476e31c",
+      "sha256": "587064bee6057bf448870ac1b63f66b63fcf64831eb8fd4eaaaa234ef8818f81",
       "surface_kind": "structured"
     },
     {
@@ -17567,6 +17575,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3896,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+      "sha256": "1e34a46d652ac85aab8f605d5246cd69ddc81bb4c6ec2aac19f24abb1ddec2b4",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 9896,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-lexical-profile-review.md",
+      "sha256": "64460cd0a5fced3e552cba9c1f8c7d7a97f42e390cb921d6fe35a4bdae025e22",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 10687,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -19703,11 +19727,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8073,
+      "bytes": 8379,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "fc170c3c90e0c7f7121d5d7ad7049df6f35f23d12a03e5403ed9607023efa19b",
+      "sha256": "74147340406755b4af98faefb29e25da5d815d520ab4dfb63836e8b255a62b28",
       "surface_kind": "structured"
     },
     {
@@ -21943,6 +21967,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7716,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/german/language.human-forms.json",
+      "sha256": "0a3788e9166804cf6748a4c3f8c8a84f457a69982e59163f6e573543d798cd3b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2123,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/german/language.json",
+      "sha256": "6ae84bbb567ab5b6f1e825da505dafb66fc8a0dd7a92e26bd45ea63acc7fcfaa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/german/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1390,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/german/source-create-receipt.json",
+      "sha256": "ce56be3333e9d4d5b13285a5e756c8fb761eed6a2cab80fb1680ea4f96d01942",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2525,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/german/source-create-request.json",
+      "sha256": "6e774fbe78295c554d73b2f86bf8fbd0f18fb5b3521caa955d44ffa86f9f8fd1",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8151,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22100,6 +22164,166 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/languages/sumerian/source-create-request.json",
       "sha256": "a269831a9d75f7ff864aca57a72563333ad80d1a9005abeb3af7b07c13ef99ae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8818,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille-form/lexical-form.human-forms.json",
+      "sha256": "15372df4c2707bd104b8cde8428c224307bb1625725436bf40cdf13232a3c2ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2622,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille-form/lexical-form.json",
+      "sha256": "d83e8f81c17abf0f83bacde328454f24226a7d12632718f9572d8fc1ab37b3ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille-form/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1438,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille-form/source-create-receipt.json",
+      "sha256": "8bb3f34d13accadfb5ee78c0f2f405a09de30b6369f37ef05348e765f8ac3644",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2997,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille-form/source-create-request.json",
+      "sha256": "1eaf6dd8a0d4726942198aef7e7d0c851fbf4190693262b34c336ab30f8a5839",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7813,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille/lexeme.human-forms.json",
+      "sha256": "29eb1417cd58c80b9c7b2019f4ad4e265dca87dc69e51b24958db3c474e61860",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2771,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille/lexeme.json",
+      "sha256": "85c38f76ebd1e2d6fb73e5287e4dac2fe8906300e592f78853cffa00b492597a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1404,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille/source-create-receipt.json",
+      "sha256": "ebedcf0bc31d2e6bda1d3c21fd4159dd11055debce2d31e226085067b9afe6d5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3163,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-wille/source-create-request.json",
+      "sha256": "04f1cf73ede8061059ef5043cee254f0c413b55d22c0896af42174bf21461edd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8849,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-willen-form/lexical-form.human-forms.json",
+      "sha256": "e639077f9d90f5a0c81111d277538a9a4eed420480130b233b5268505f745f67",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2645,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-willen-form/lexical-form.json",
+      "sha256": "46f16639108e47a34ce668ff8169c4c920262236182a3be18eb39acfc67107ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-willen-form/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-willen-form/source-create-receipt.json",
+      "sha256": "77299952d24eb9197c1604fc95e2c2e2d96224deb029ad04e1e91b2b4063410a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3024,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/german-willen-form/source-create-request.json",
+      "sha256": "d1ca53ec1e49cc871adae65d4e87a0604f30e24786adbd9e660b22807cefe2a4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7837,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/willing-jgb19/sense.human-forms.json",
+      "sha256": "abd540b8368b624290b204ec617b7de3ca4a0cc0d4ea38984c680dffac78ec69",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/willing-jgb19/sense.json",
+      "sha256": "ec0a57e532f44f7a9706d463570a453e20b9376e32cb6f7ac6765ab1f62fbde0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/willing-jgb19/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1410,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/willing-jgb19/source-create-receipt.json",
+      "sha256": "8674d05c9c415bf6301bc952fe8cfe948c5fc7ef5a1ccd98e6596a35aa51851a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3209,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/willing-jgb19/source-create-request.json",
+      "sha256": "3630eb7e4fdbc4d6249383bb5530ba452c5b89fb90f5e2d7b5c4013f5dc5044c",
       "surface_kind": "structured"
     },
     {
@@ -23724,6 +23948,62 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/jgb-production-research/source-create-request.json",
       "sha256": "668aa290f3d0b5bef8088aa6070c46c7d0fec9580088e31544db1c2f04782b09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3723,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-claims.50b785665ae31ebcb58c9a7e27111c2aa8ba0eecf553f1a0703f3b7587eaff7f.human-forms.json",
+      "sha256": "68ee563f3ece07471ba83e96a852010e05f784f35caf547d6911827955a95f98",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3755,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-claims.5c4420b698c3855c4d2e4a810e62395e3cffa8f699f16cc34731695b927bb8f8.human-forms.json",
+      "sha256": "9c24e29a39696f4f792109f9e3b9eb9b9d0fb36398970f2aac735a793ddcef9a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3747,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-claims.b44ba649f1f6cc6012766d8a9f05997827eb61332f76792afe4568f594a23d83.human-forms.json",
+      "sha256": "0ff8da3344fc08f1d0afd397373f8d5b87e260d2021714c7fedb966e89d7e966",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3731,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-claims.f4f0ce7f108994def79f0a208757612e48f47667f4f0e116ba4ecd52b3b12fcd.human-forms.json",
+      "sha256": "747d7438427f82e080695f6d321cbd2ab9a1ef5c0ec7eb4b0cda44dd87f89377",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3885,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-create-receipt.json",
+      "sha256": "dd9669714902578bac684de4be861a7d8a3e1880959e736a8510574a09211665",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8261,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/lexical/source-create-request.json",
+      "sha256": "e09ca0f5515816f8d7567e63a08c9a0b4c65c1331d3c9f997489fa84db0a98d8",
       "surface_kind": "structured"
     },
     {
@@ -31295,11 +31575,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 187940,
+      "bytes": 188737,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "bdd83d2ac13afb2d9d9be1ee0c4bfa3978c25f2201e5fecdb7ceee333bb65260",
+      "sha256": "35672f92b90fc1849184eca9f6ccfd3099b8f5943f8d5aaa55c4dbdf973fe80d",
       "surface_kind": "structured"
     },
     {
@@ -32615,11 +32895,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 44185,
+      "bytes": 45651,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-      "sha256": "da5bcb79d96bc18275439c657b20e58532635e0d5fba859a1be2c86440e13983",
+      "sha256": "a982efcc86b666acd4f7857a736b9e2e3b3df3ec38e372668452897a905d76a2",
       "surface_kind": "executable"
     },
     {
@@ -32655,19 +32935,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 69761,
+      "bytes": 71537,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "8fb0fe6074f637d466d64566019fd5c099ac5a865ad0d050199bcc11475112c3",
+      "sha256": "62f402649bc4e3d95b07b84995693ddea67bd93ffcca0f51adf388c16cdfee7b",
       "surface_kind": "executable"
     },
     {
-      "bytes": 22236,
+      "bytes": 22254,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
-      "sha256": "be9d5811bbd0ab5525e3c59c84f8a65992da36c4764a124340d4631321525acd",
+      "sha256": "e9f89b6a6b1d1d0bb036907eb780c43ad22be1fc1276bdb424936fdd12b895af",
       "surface_kind": "executable"
     },
     {
@@ -32679,11 +32959,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 93310,
+      "bytes": 95946,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_knowledge_assessment.py",
-      "sha256": "f2c7f608e1f2086035857840759298a2ccce1b614f75467f4087f44546b008c0",
+      "sha256": "35b75ef66abcf33e27147c90a08bd5691f622c16d8114efd2a9645ed0d2b36c2",
       "surface_kind": "executable"
     },
     {
@@ -32695,11 +32975,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 106687,
+      "bytes": 119751,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_commands.py",
-      "sha256": "4f3365252fecf39ecb0558c33dea939d236ddc8aba2bb6eccc40518e77224e59",
+      "sha256": "e4b1ddb3e35a11c2e5a4fb98db8f7a27cd9daa67e2b7717754df22ee4dac28fd",
       "surface_kind": "executable"
     },
     {
@@ -33543,11 +33823,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 24700,
+      "bytes": 24819,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_source_witness_catalog.py",
-      "sha256": "ef05a3f5b6b0d19c4753c0c427f6c744998cc310e9e78b00d3f800b3b4e03820",
+      "sha256": "ffbd98dcb68f01591f0c20e7ca2697d99cc63cdd19346fced1fe760da7f208be",
       "surface_kind": "executable"
     },
     {
@@ -33887,11 +34167,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 27269,
+      "bytes": 32359,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_record_profiles.py",
-      "sha256": "dda19801a33072d3fc5ad40593d35aca2c13b8c6b3d164644c746d25ea000b2c",
+      "sha256": "face0f843353a29c55a8b28bf0f26f526fc3be967f506b057a6d50559b943d25",
       "surface_kind": "executable"
     },
     {
@@ -33903,11 +34183,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22028,
+      "bytes": 22080,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_witness_human_forms.py",
-      "sha256": "b49c682af7a2a039f9b4caf83bc43dc3e0cc895e4761c4f0b727d1590b2af0c2",
+      "sha256": "82dca417337cbb69fdcfbdfdf00c93590cb58847858918b5754ac4c8adfbf885",
       "surface_kind": "executable"
     },
     {
@@ -34519,11 +34799,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 277678,
+      "bytes": 287748,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "6e51991c1cdecf90bbe02cfa51c9fb09bfea2bf8472cc62ab9faff5d6f748f84",
+      "sha256": "fb99a31de7127e871d635d4458ce072d30c006c00c53e96aecfb4909d99979d0",
       "surface_kind": "executable"
     },
     {

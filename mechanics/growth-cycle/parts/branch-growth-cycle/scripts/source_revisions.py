@@ -94,7 +94,7 @@ def _validate_record(config, record):
     if config['schema_version'] == source.PROFILE_REVISION_CONFIG:
         profiles, profile = source._configured_profile(config)
         profiles.validate(profile['record_type'], record)
-        return profiles.input_digests
+        return source._profile_input_snapshot(profiles)
     if record.get('schema_version') != 'tos_historical_record_v1':
         raise PermissionError('legacy revision requires the historical source schema')
     from source_witness_bibliographic_graph_common import historical_schema_validator

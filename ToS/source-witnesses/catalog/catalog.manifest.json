@@ -15,6 +15,7 @@
     "ToS/contracts/historical-context-record.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/intellectual-formation-record.schema.json",
+    "ToS/contracts/lexical-description-record.schema.json",
     "ToS/contracts/linguistic-description-record.schema.json",
     "ToS/contracts/linguistic-relation-claim.schema.json",
     "ToS/contracts/reception-record.schema.json",
@@ -46,6 +47,7 @@
     "collection": "ToS/source-witnesses/catalog/collections.jsonl",
     "item": "ToS/source-witnesses/catalog/items.jsonl",
     "link": "ToS/source-witnesses/catalog/links.jsonl",
+    "lexical-form": "ToS/source-witnesses/catalog/lexical-forms.jsonl",
     "language": "ToS/source-witnesses/catalog/languages.jsonl",
     "linguistic-variety": "ToS/source-witnesses/catalog/linguistic-varieties.jsonl",
     "script": "ToS/source-witnesses/catalog/scripts.jsonl",
@@ -94,6 +96,8 @@
     "letter": "ToS/source-witnesses/catalog/letters.jsonl",
     "historical-event": "ToS/source-witnesses/catalog/historical-events.jsonl",
     "historical-process": "ToS/source-witnesses/catalog/historical-processes.jsonl",
+    "lexeme": "ToS/source-witnesses/catalog/lexemes.jsonl",
+    "sense": "ToS/source-witnesses/catalog/senses.jsonl",
     "artifact": "ToS/source-witnesses/catalog/artifacts.jsonl"
   },
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
@@ -107,7 +111,8 @@
     "collection": 3,
     "item": 21,
     "link": 5,
-    "language": 2,
+    "lexical-form": 2,
+    "language": 3,
     "linguistic-variety": 1,
     "script": 2,
     "transliteration-scheme": 1,
@@ -155,11 +160,13 @@
     "letter": 1,
     "historical-event": 1,
     "historical-process": 1,
+    "lexeme": 1,
+    "sense": 1,
     "artifact": 18,
-    "object_total": 287,
-    "claim": 349,
-    "total": 636
+    "object_total": 292,
+    "claim": 353,
+    "total": 645
   },
-  "catalog_sha256": "6c07ddeda2d7feb8a960060374d7f0041ae9e98db7195b0f4898d399bbefff47",
+  "catalog_sha256": "acc4947631fdba2fb2364f27f7a04bb14233425aad0ba0a4f5dee0972a4d0d0c",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }
