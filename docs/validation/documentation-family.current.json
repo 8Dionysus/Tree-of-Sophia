@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 549,
     "human_scope": {
-      "bytes": 4395273,
+      "bytes": 4395231,
       "count": 804,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -46,9 +46,9 @@
           "lines": 402
         },
         "agents-other": {
-          "bytes": 9153,
+          "bytes": 9111,
           "count": 3,
-          "lines": 159
+          "lines": 155
         },
         "docs": {
           "bytes": 457858,
@@ -116,7 +116,7 @@
           "lines": 60739
         }
       },
-      "lines": 76826
+      "lines": 76822
     },
     "surface_kind_counts": {
       "executable": 200,
@@ -149,7 +149,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 138000,
+      "tracked_surface_bytes": 137956,
       "tracked_surface_count": 6
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "1caf7ed38d4e36a0131908847567e153a7589ad107620e2b02106248f6a8b726",
+  "tracked_surface_digest": "699af1a424560c7341f8d0e1c52adb7e39ac3cacae5c4d2aec0aeb1d05829c13",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -287,11 +287,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7003,
+      "bytes": 6961,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/README.md",
-      "sha256": "e4dbf117344fdf874737357dd7c3fb8acedff904f84324f72dfaf4056c81ae53",
+      "sha256": "540e8df67cef90069a892a0ac8e2d367a19dc4f43dfe77c9278bcd5b3d517fcc",
       "surface_kind": "human"
     },
     {
@@ -319,11 +319,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86471,
+      "bytes": 86469,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "68ca6280b603ea26bcadc60da6e65e0331e7b1cbc3b1f5bf99579c44eff6298b",
+      "sha256": "98e5ae2c67f5b8d6e8b924ef6be1e4f55fc930f7a39778fb8a7de6f63682a991",
       "surface_kind": "structured"
     },
     {

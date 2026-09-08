@@ -87,13 +87,9 @@ or typed receipts owned by the relevant organ.
 
 ## Validation
 
-The focused command is the `agent_surface` lane in
-`docs/validation/validation_lanes.json`:
-
-```bash
-python scripts/build_agent_surface_currentness.py
-python scripts/validate_agent_surface.py --check --fetch-budget-bases
-```
+Use the `agent_surface` lane in
+[`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
+through the command routes in [root validation](../VALIDATION.md).
 
 The builder proves parity for the authored map and generated read model. The
 validator proves profile-binding shape, zero local projections, crosswalk
