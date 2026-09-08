@@ -127,3 +127,31 @@ decipherment route, or local graph route.
 Prepared atlas rows name ToS growth pressure. Historical source claims that
 matter must still be anchored later in real source witnesses, published works,
 editions, translations, or reviewed canon surfaces.
+
+
+## Preparing a source planting
+
+The read-only `scripts/prepare_philosophy_source_planting.py` resolves an exact
+current atlas row, branch manifest and source-backlog row before acquisition:
+
+```sh
+python scripts/prepare_philosophy_source_planting.py --atlas-row T2-39 --source-table-index 14 --source-row-index 2 --source-label SuttaCentral
+```
+
+It prints a `prepared-not-planted` anchor packet with exact labels and source
+digests. It neither downloads material nor writes planting records. Current
+Table I, II and III row names are supported; a syntactically valid row name
+must still exist in the actual atlas and belong to the selected branch.
+
+The [first-wave preparation](source-planting-preparation/first-wave-20260908.json)
+records thirteen intended routes and their scope limits. Alternative editions
+retain the original provider-specific backlog label; canonical antecedents
+remain distinct from the later commentaries they help study. In particular,
+MorphHB does not fulfill a Sefaria-version claim, and MN 9 does not supply a
+medieval commentary. These distinctions must survive in the final planting's
+fulfilled needs and remaining controls.
+
+A preparation is branch-fit review only. After actual source acquisition,
+create the source-owned witness and its discovery/provenance closure, then the
+branch planting and generated companions. Preserved file bytes do not imply
+textual, semantic or canon admission.

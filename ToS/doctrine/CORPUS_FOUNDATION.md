@@ -593,6 +593,15 @@ and visibility decision. Source payload, metadata, provenance, transcription,
 translation, annotation, and export therefore remain separately governable
 even when they share one lineage.
 
+Local-only Item and scholarly-composite File bytes share the same custody
+boundary: an exact ignored `payload/` beside tracked identity, fixity, rights
+and provenance metadata. A Composite File remains a separate representation,
+not a bibliographic Item or accepted source text. A recorded acquisition or
+materialization does not prove present bytes in another checkout. Verification
+must distinguish the retained declaration from current local availability;
+neither state grants publication authority. The exact paths and checks remain
+with [the source storage owner](../source-witnesses/LOCAL_STORAGE_BOUNDARY.md).
+
 The rights gate is evidence-seeking, not presumptively closed. Public-domain,
 open-license, permission-granted, and conditional noncommercial routes are
 positive outcomes when verified for the exact layer, object, jurisdiction, and

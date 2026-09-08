@@ -25,8 +25,15 @@
     "next_candidate_id": {"oneOf": [{"type": "string", "pattern": "^open-work-candidate\\."}, {"type": "null"}]},
     "candidates": {"type": "array", "items": {"$ref": "#/$defs/candidateEntry"}},
     "authority_boundary": {"const": "generated queue navigation over reviewed candidate records and terminal receipts; not identity, rights, semantic, or canon authority"},
+    "selection_mode": {"const": "readiness"},
+    "chronological_queue_sha256": {"$ref": "#/$defs/sha256"},
+    "readiness_plan_ref": {"type": ["object", "null"]},
+    "readiness_entries": {"type": "array", "items": {"type": "object", "required": ["target_id", "candidate_id", "readiness", "eligible", "ready_for_acquisition_review", "next_action"]}},
+    "next_target_id": {"type": ["string", "null"]},
+    "selection_boundary": {"type": "string"},
     "queue_sha256": {"$ref": "#/$defs/sha256"}
   },
+  "dependentRequired": {"selection_mode": ["chronological_queue_sha256", "readiness_plan_ref", "readiness_entries", "next_target_id", "selection_boundary"]},
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "sourceSnapshot": {

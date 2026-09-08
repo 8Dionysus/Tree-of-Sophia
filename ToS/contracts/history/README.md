@@ -27,4 +27,12 @@ not reconstructed from a remembered schema, and resolves prior recorded
 inputs without changing those events. This establishes byte availability,
 not the truth or authenticity of their original execution.
 
+The source-planting snapshot
+`3d37a53816e779c7bc65a15bf51b1520bb7c2ef389b1d4ea54473f487906df28.json`
+is the 6,068-byte `philosophy-source-planting.schema.json` at commit
+`29c26280992f1397dd3a6ff12cd42f384727a5bc`. Its exact earlier bytes preserve
+recorded inputs while the active schema admits the existing tier-2 and tier-3
+atlas table routes. The retained schema remains an input witness only; current
+planting records still validate against the active schema and atlas membership.
+
 Rationale: [TOS-D-0052](../../../docs/decisions/TOS-D-0052-historical-contract-input-bytes.md).

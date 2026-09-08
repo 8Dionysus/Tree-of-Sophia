@@ -476,11 +476,14 @@ The distributed 1892 *Genealogie* publisher/printer pass is recorded in
 
 ## Payload boundary
 
-Only an item's `payload/` content is ignored by Git. Everything required to
-identify, verify, understand, authorize, and reacquire that payload remains
-tracked:
+Only an item's or an exact scholarly-composite representation's `payload/`
+content is ignored by Git. Composite Files use the method/tradition/composition
+route described in [the local storage boundary](LOCAL_STORAGE_BOUNDARY.md),
+with `materialized`, `local_gitignored_payload`, and `git_tracked=false`.
+Everything required to identify, verify, understand, authorize, and reacquire
+that payload remains tracked:
 
-- item and file identity;
+- item or composite-representation identity and file identity;
 - original basename and media type;
 - size and cryptographic digest;
 - deterministic page, container-resource, or TEI-structure inventory without
@@ -493,6 +496,9 @@ tracked:
 
 Payload files are immutable after intake. Changed bytes create a new file
 record and, when materially distinct, a new item or item version.
+An acquisition declaration is not proof that ignored bytes exist in every
+checkout. The default validator supports payload-free clones; the strict local
+check requires the bytes, and every present File is checked for exact fixity.
 
 `resource-inventory.json` is a tracked mechanical companion generated from the
 exact payload digest. It enumerates PDF page geometry and image counts, bundled

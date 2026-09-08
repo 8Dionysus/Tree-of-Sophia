@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-registry-normalization.schema.json",
+  "title": "Reported research registry document, before source-owner assessment",
+  "type": "object",
+  "required": ["corpus_id", "document_id", "files", "sheets", "records", "report_parts", "pair_relation"],
+  "additionalProperties": false,
+  "properties": {
+    "corpus_id": {"$ref": "#/$defs/namespace"},
+    "document_id": {"$ref": "#/$defs/namespace"},
+    "pair_relation": {"const": "manifest_declared_research_companions"},
+    "files": {
+      "type": "object", "required": ["xlsx", "docx"], "additionalProperties": false,
+      "properties": {"xlsx": {"$ref": "#/$defs/original"}, "docx": {"$ref": "#/$defs/original"}}
+    },
+    "sheets": {"type": "array", "minItems": 1, "items": {
+      "type": "object", "required": ["name", "part", "kind", "header_cells", "record_count", "state", "merges", "columns", "hyperlinks"],
+      "properties": {"kind": {"enum": ["registry", "gaps"]}, "record_count": {"type": "integer", "minimum": 0}}
+    }},
+    "records": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+    "report_parts": {"type": "array", "items": {
+      "type": "object", "required": ["part", "blocks", "relationships"],
+      "properties": {"blocks": {"type": "array", "items": {
+        "type": "object", "required": ["kind", "xml_path", "text", "hyperlinks", "field_instructions", "occurrence_id", "record_mentions"],
+        "properties": {"kind": {"enum": ["paragraph", "table"]}, "text": {"type": "string"}, "xml_path": {"type": "string", "pattern": "^/"}, "record_mentions": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}}
+      }}}
+    }}
+  },
+  "$defs": {
+    "namespace": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]*$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "original": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_path", "sha256", "size_bytes", "original_path"],
+      "properties": {"source_path": {"type": "string"}, "sha256": {"$ref": "#/$defs/sha256"}, "size_bytes": {"type": "integer", "minimum": 1}, "original_path": {"type": "string", "pattern": "^originals/[a-f0-9]{64}\\.(xlsx|docx)$"}}
+    },
+    "record": {
+      "type": "object", "additionalProperties": false,
+      "required": ["record_id", "source_record_id", "corpus_id", "document_id", "kind", "occurrence_id", "source", "row_attributes", "content_sha256", "raw_fields", "reported_fields", "issues", "assessment_status"],
+      "properties": {
+        "record_id": {"type": "string", "pattern": "^tos-registry:"},
+        "source_record_id": {"type": ["string", "null"]},
+        "corpus_id": {"$ref": "#/$defs/namespace"}, "document_id": {"$ref": "#/$defs/namespace"},
+        "kind": {"enum": ["registry", "gaps"]},
+        "occurrence_id": {"type": "string", "pattern": "^tos-occurrence:[a-f0-9]{64}$"},
+        "content_sha256": {"$ref": "#/$defs/sha256"},
+        "assessment_status": {"const": "reported_unreviewed"},
+        "source": {"type": "object", "required": ["original_sha256", "part", "sheet", "row"], "properties": {"original_sha256": {"$ref": "#/$defs/sha256"}, "row": {"type": "integer", "minimum": 1}}},
+        "row_attributes": {"type": "object"},
+        "issues": {"type": "array"},
+        "raw_fields": {"type": "array", "items": {
+          "type": "object", "required": ["source_field", "cell", "value", "type", "xml_value", "style", "formula"],
+          "properties": {"source_field": {"type": "string", "minLength": 1}, "cell": {"type": "string", "pattern": "^[A-Z]+[1-9][0-9]*$"}}
+        }},
+        "reported_fields": {"type": "array", "items": {
+          "type": "object", "required": ["source_field", "target", "value_type", "value", "normalization_status", "unparsed_fragments", "issues"],
+          "properties": {"normalization_status": {"enum": ["empty", "normalized", "partial", "reported_unparsed"]}, "target": {"type": "string", "minLength": 1}, "unparsed_fragments": {"type": "array"}, "issues": {"type": "array"}}
+        }}
+      }
+    }
+  }
+}
