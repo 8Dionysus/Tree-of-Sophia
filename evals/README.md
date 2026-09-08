@@ -1,6 +1,6 @@
 # Local Eval Port
 
-This skeleton `evals/` port preserves ToS-born eval pressure such as source
+This `evals/` port preserves ToS-born eval pressure such as source
 witness cases, doctrine and relation checks, branch-growth questions, public
 entry cues, and downstream export fixtures.
 
@@ -18,5 +18,7 @@ packets, but they do not become bounded proof by location alone.
 
 ## Current Status
 
-Skeleton only. No active local intake packets, suites, reports, or draft bundles
-have been accepted here yet.
+Active local pressure: the reviewed
+[source-observation RU/EN case design](suites/source-observation-ru-en-v1.suite.md).
+Its note is not a runnable suite, completed calibration or competence grant.
+No central proof bundle or verdict is accepted here.
