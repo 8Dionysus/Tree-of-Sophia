@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/open-work-readiness-plan.schema.json",
+  "title": "Owner-authored acquisition readiness plan for open-work discovery",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reviewed_at",
+    "reviewer_ref",
+    "targets"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_open_work_readiness_plan_v1"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewer_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/target"
+      }
+    }
+  },
+  "$defs": {
+    "ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "corpus_id",
+        "document_id",
+        "record_id"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "corpus_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "evidence_posture",
+        "owner_refs",
+        "rationale"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ready",
+            "unknown",
+            "blocked"
+          ]
+        },
+        "evidence_posture": {
+          "enum": [
+            "owner-reviewed",
+            "imported-assertion",
+            "unreviewed"
+          ]
+        },
+        "owner_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intended_uses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "fileDimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "evidence_posture",
+        "owner_refs",
+        "rationale"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "present",
+            "absent",
+            "unknown",
+            "blocked"
+          ]
+        },
+        "evidence_posture": {
+          "enum": [
+            "owner-reviewed",
+            "imported-assertion",
+            "unreviewed"
+          ]
+        },
+        "owner_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_urls",
+        "destination_paths",
+        "intended_uses"
+      ],
+      "properties": {
+        "source_urls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://[^/]+"
+          }
+        },
+        "destination_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "intended_uses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "local-preservation",
+              "research-analysis",
+              "redistribution",
+              "publication",
+              "translation",
+              "text-extraction"
+            ]
+          }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "preferred_label",
+        "source_record_refs",
+        "target",
+        "readiness",
+        "acquisition"
+      ],
+      "properties": {
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^open-work-candidate\\."
+        },
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "preferred_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_record_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sourceRef"
+          }
+        },
+        "target": {
+          "type": "object",
+          "required": [
+            "target_kind",
+            "description",
+            "known_tos_refs"
+          ],
+          "properties": {
+            "target_kind": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "known_tos_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "readiness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "access",
+            "rights",
+            "file",
+            "branch"
+          ],
+          "properties": {
+            "version": {
+              "$ref": "#/$defs/dimension"
+            },
+            "access": {
+              "$ref": "#/$defs/dimension"
+            },
+            "rights": {
+              "$ref": "#/$defs/dimension"
+            },
+            "branch": {
+              "$ref": "#/$defs/dimension"
+            },
+            "file": {
+              "$ref": "#/$defs/fileDimension"
+            }
+          }
+        },
+        "acquisition": {
+          "$ref": "#/$defs/acquisition"
+        }
+      }
+    }
+  }
+}

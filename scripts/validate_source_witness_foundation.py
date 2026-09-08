@@ -5679,6 +5679,102 @@ def validate_payload_file(
     return issues
 
 
+def _composite_payload_path(
+    repo_root: Path, representation_path: Path, payload: object
+) -> Path | None:
+    """Resolve only one direct, nonsymlink File in the owned payload directory."""
+    if not isinstance(payload, dict):
+        return None
+    relative_path = payload.get("relative_path")
+    if not isinstance(relative_path, str) or re.fullmatch(
+        r"payload/(?!\.\.?$)[^/\\\x00]+", relative_path
+    ) is None:
+        return None
+    try:
+        owner_parts = representation_path.parent.relative_to(
+            repo_root / SOURCE_ROOT / "scholarly-composites"
+        ).parts
+        if len(owner_parts) != 5 or owner_parts[3] != "representations":
+            return None
+        payload_path = representation_path.parent / relative_path
+        expected_path = repo_root.resolve() / payload_path.relative_to(repo_root)
+        if payload_path.resolve() != expected_path:
+            return None
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return payload_path
+
+
+def validate_composite_payload_file(
+    repo_root: Path,
+    representation_path: Path,
+    representation: dict[str, Any],
+    *,
+    require_local_payloads: bool,
+) -> list[Issue]:
+    """Check local custody independently of the tracked acquisition declaration."""
+    issues: list[Issue] = []
+    location = _relative(representation_path, repo_root)
+    payload = representation.get("payload")
+    payload_path = _composite_payload_path(repo_root, representation_path, payload)
+    if payload_path is None:
+        return [(location, "scholarly-composite payload must be a direct local file under its representation payload/ without symlinks")]
+
+    has_git = (repo_root / ".git").exists()
+    metadata_paths = {
+        representation_path,
+        repo_root / SOURCE_ROOT / "discovery/provenance.jsonl",
+    }
+    for field in ("rights_ref", "discovery_ref"):
+        ref = representation.get(field)
+        if isinstance(ref, str):
+            metadata_paths.add(repo_root / ref)
+    if has_git:
+        for metadata_path in sorted(metadata_paths):
+            if _git_tracked(repo_root, metadata_path) is not True:
+                issues.append((_relative(metadata_path, repo_root), "scholarly-composite source metadata must be Git-tracked"))
+
+    declared_status = payload.get("materialization_status")
+    expected_posture = {
+        "not_materialized": "unmaterialized_payload",
+        "materialized": "local_gitignored_payload",
+    }.get(declared_status if isinstance(declared_status, str) else None)
+    if (
+        expected_posture is None
+        or payload.get("storage_posture") != expected_posture
+        or payload.get("git_tracked") is not False
+    ):
+        issues.append((location, "scholarly-composite payload must declare either not_materialized/unmaterialized_payload or materialized/local_gitignored_payload, with git_tracked=false"))
+
+    tracked = _git_tracked(repo_root, payload_path)
+    if tracked is True:
+        issues.append((location, "local scholarly-composite payload must not be Git-tracked"))
+    elif tracked is None and has_git:
+        issues.append((location, "could not determine scholarly-composite payload tracking posture"))
+    ignored = _git_ignored(repo_root, payload_path)
+    if ignored is False:
+        issues.append((location, "local scholarly-composite payload is not ignored by Git"))
+    elif ignored is None and has_git:
+        issues.append((location, "could not determine scholarly-composite payload ignore posture"))
+
+    if representation.get("file_id") != f"tos.file.sha256.{payload.get('sha256')}":
+        issues.append((location, "scholarly-composite representation file_id is not content-addressed"))
+    if not payload_path.is_file():
+        if payload_path.exists():
+            issues.append((location, "scholarly-composite payload path is not a regular file"))
+        if require_local_payloads:
+            issues.append((location, "scholarly-composite representation payload is missing"))
+        return issues
+
+    if declared_status != "materialized":
+        issues.append((location, "present scholarly-composite payload must declare materialized/local_gitignored_payload"))
+    if payload_path.stat().st_size != payload.get("byte_size"):
+        issues.append((location, "scholarly-composite representation byte_size differs from payload"))
+    if _sha256(payload_path) != payload.get("sha256"):
+        issues.append((location, "scholarly-composite representation sha256 differs from payload"))
+    return issues
+
+
 def _validate_source_refs(repo_root: Path, payload: dict[str, Any], location: str, issues: list[Issue]) -> None:
     refs: list[object] = []
     for field in ("source_refs", "source_record_refs", "receipt_refs"):
@@ -13163,52 +13259,19 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if composite is None or composite.get("composite_id") != composite_id:
             issues.append((representation_ref, "composite_ref does not resolve the represented composite_id"))
 
-        payload = representation.get("payload")
-        relative_payload = payload.get("relative_path") if isinstance(payload, dict) else None
-        payload_path = representation_path.parent / str(relative_payload)
-        if not isinstance(relative_payload, str) or not payload_path.is_file():
-            if (
-                not isinstance(payload, dict)
-                or payload.get("materialization_status") != "not_materialized"
-                or payload.get("storage_posture") != "unmaterialized_payload"
-                or payload.get("git_tracked") is not False
-            ):
-                issues.append(
-                    (
-                        representation_ref,
-                        "missing scholarly-composite payload must declare not_materialized, "
-                        "unmaterialized_payload, and git_tracked=false",
-                    )
-                )
-            if require_local_payloads:
-                issues.append((representation_ref, "scholarly-composite representation payload is missing"))
-        else:
-            if (
-                payload.get("materialization_status") != "materialized"
-                or payload.get("storage_posture") != "tracked_repository_payload"
-                or payload.get("git_tracked") is not True
-            ):
-                issues.append(
-                    (
-                        representation_ref,
-                        "present scholarly-composite payload must declare materialized, "
-                        "tracked_repository_payload, and git_tracked=true",
-                    )
-                )
-            tracked = _git_tracked(repo_root, payload_path)
-            if tracked is False:
-                issues.append((representation_ref, "local scholarly-composite payload must be tracked"))
-            elif tracked is None and (repo_root / ".git").exists():
-                issues.append((representation_ref, "could not determine scholarly-composite payload tracking posture"))
-            if _git_ignored(repo_root, payload_path) is True:
-                issues.append((representation_ref, "tracked scholarly-composite payload must not be gitignored"))
-            if payload_path.stat().st_size != payload.get("byte_size"):
-                issues.append((representation_ref, "scholarly-composite representation byte_size differs from payload"))
-            if _sha256(payload_path) != payload.get("sha256"):
-                issues.append((representation_ref, "scholarly-composite representation sha256 differs from payload"))
-            expected_file_id = f"tos.file.sha256.{payload.get('sha256')}"
-            if file_id != expected_file_id:
-                issues.append((representation_ref, "scholarly-composite representation file_id is not content-addressed"))
+        issues.extend(
+            validate_composite_payload_file(
+                repo_root,
+                representation_path,
+                representation,
+                require_local_payloads=require_local_payloads,
+            )
+        )
+        payload_path = _composite_payload_path(
+            repo_root, representation_path, representation.get("payload")
+        )
+        if payload_path is None:
+            continue
 
         rights_ref = representation.get("rights_ref")
         rights_path = repo_root / str(rights_ref)

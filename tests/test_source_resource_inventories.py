@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import copy
 import gzip
+import hashlib
 import json
 import struct
 import sys
 import tempfile
 import unittest
 import zipfile
+from jsonschema import Draft202012Validator
 from pathlib import Path
 
 
@@ -96,6 +99,113 @@ class SourceResourceInventoryTests(unittest.TestCase):
                     payload_source_root=repo_root / "ToS/source-witnesses",
                     event_date="2026-08-20",
                 )
+
+    def _new_profile_fixture(self, content: bytes, media_type: str, suffix: str) -> dict:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            item = repo / "ToS/source-witnesses/fixture-item"
+            payload = item / ("payload/source" + suffix)
+            payload.parent.mkdir(parents=True)
+            payload.write_bytes(content)
+            manifest = {"item_id": "tos.item.fixture", "payload_files": [{
+                "file_id": "tos.file.sha256." + hashlib.sha256(content).hexdigest(),
+                "relative_path": "payload/source" + suffix, "media_type": media_type,
+                "byte_size": len(content), "sha256": hashlib.sha256(content).hexdigest()}]}
+            manifest_path = item / "item.manifest.json"
+            manifest_path.write_text(json.dumps(manifest))
+            result = inventories.build_inventory(repo_root=repo, manifest_path=manifest_path,
+                payload_source_root=repo / "ToS/source-witnesses", event_date="2026-09-08")
+            self.assertEqual(content, payload.read_bytes())
+            self.assertEqual(hashlib.sha256(content).hexdigest(), result["files"][0]["file_sha256"])
+            schema = json.loads((REPO_ROOT / "ToS/contracts/source-resource-inventory.schema.json").read_text())
+            self.assertEqual([], list(Draft202012Validator(schema).iter_errors(result)))
+            self.assertFalse(result["source_text_included"])
+            self.assertEqual("mechanical_metadata_only", result["inventory_authority"])
+            return result
+
+    def test_osis_chapter_verse_order_identifiers_and_codepoints_are_preserved(self) -> None:
+        # Non-canonical combining-mark order is intentional; no NFC is allowed.
+        hebrew = "ש\u05c1\u05b8"
+        content = (f'<osis xmlns="{inventories.OSIS_NS}"><osisText><div type="book" osisID="Prov">'
+            f'<chapter osisID="Prov.1"><verse osisID="Prov.1.2"><w>{hebrew}</w></verse>'
+            '<verse osisID="Prov.1.1"><w>private</w><w>words</w></verse></chapter>'
+            '<chapter osisID="Prov.2"><verse osisID="Prov.2.1"><w>another</w></verse></chapter>'
+            '</div></osisText></osis>').encode()
+        result = self._new_profile_fixture(content, "application/xml", ".xml")
+        file = result["files"][0]
+        self.assertEqual("osis_structure_v1", file["profile"])
+        self.assertEqual({"resource_count": 5, "chapter_count": 2, "verse_count": 3, "word_count": 4}, file["summary"])
+        self.assertEqual(["Prov.1", "Prov.1.2", "Prov.1.1", "Prov.2", "Prov.2.1"], [r["locator"]["osis_id"] for r in file["resources"]])
+        self.assertEqual("osis-chapter-0001", file["resources"][2]["locator"]["parent_resource_id"])
+        fingerprint = file["resources"][1]["content_fingerprint"]
+        self.assertEqual("xml-character-data-preserved", fingerprint["normalization"])
+        self.assertEqual(hashlib.sha256(hebrew.encode()).hexdigest(), fingerprint["sha256"])
+        self.assertNotEqual(inventories._fingerprint(hebrew)["sha256"], fingerprint["sha256"])
+        serialized = json.dumps(result, ensure_ascii=False)
+        for text in (hebrew, "private", "words", "another"):
+            self.assertNotIn(text, serialized)
+        # The profile contract also rejects accidentally applying the TEI normalizer.
+        wrong = copy.deepcopy(result)
+        wrong["files"][0]["resources"][1]["content_fingerprint"]["normalization"] = "unicode-nfc-whitespace-collapse"
+        schema = json.loads((REPO_ROOT / "ToS/contracts/source-resource-inventory.schema.json").read_text())
+        self.assertTrue(list(Draft202012Validator(schema).iter_errors(wrong)))
+
+    def test_osis_rejects_wrong_namespace_duplicate_ids_and_milestones(self) -> None:
+        bodies = [
+            '<osis xmlns="urn:wrong"><osisText/></osis>',
+            f'<osis xmlns="{inventories.OSIS_NS}"><osisText><chapter osisID="Prov.1"><verse osisID="Prov.1.1"/><verse osisID="Prov.1.1"/></chapter></osisText></osis>',
+            f'<osis xmlns="{inventories.OSIS_NS}"><osisText><chapter osisID="Prov.1"><verse osisID="Prov.1.1" sID="Prov.1.1"/></chapter></osisText></osis>',
+            f'<osis xmlns="{inventories.OSIS_NS}"><osisText><chapter osisID="Prov.1"><verse osisID="Job.1.1"/></chapter></osisText></osis>',
+        ]
+        for content in bodies:
+            with self.subTest(content=content[:40]):
+                with self.assertRaises(inventories.InventoryBuildError):
+                    self._new_profile_fixture(content.encode(), "application/osis+xml", ".xml")
+
+    def test_generic_xml_does_not_acquire_an_osis_or_tei_identity(self) -> None:
+        for content in (b'<book><chapter><verse>private</verse></chapter></book>', b'<broken'):
+            with self.subTest(content=content):
+                with self.assertRaises(inventories.InventoryBuildError):
+                    self._new_profile_fixture(content, "application/xml", ".xml")
+
+    def test_json_top_level_order_nested_counts_and_fingerprints_hide_all_text(self) -> None:
+        key = "private-key-e\u0301"
+        text = "Source-e\u0301"
+        value = {key: text, "second-key": [{"nested-key": "more-source"}, "tail-source", 12, True, None]}
+        result = self._new_profile_fixture(json.dumps(value, ensure_ascii=False).encode(), "application/json", ".json")
+        file = result["files"][0]
+        self.assertEqual("json_members_v1", file["profile"])
+        self.assertEqual(3, file["summary"]["resource_count"])
+        self.assertEqual(2, file["summary"]["top_level_member_count"])
+        self.assertEqual({"object_count": 2, "array_count": 1, "string_count": 3, "number_count": 1,
+            "boolean_count": 1, "null_count": 1, "object_key_count": 3}, file["summary"]["json_value_counts"])
+        first = file["resources"][1]
+        self.assertEqual(1, first["locator"]["json_member_index"])
+        self.assertEqual("string", first["locator"]["json_value_type"])
+        self.assertEqual(hashlib.sha256(key.encode()).hexdigest(), first["label_fingerprint"]["sha256"])
+        self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), first["content_fingerprint"]["sha256"])
+        self.assertEqual("unicode-codepoints-preserved", first["content_fingerprint"]["normalization"])
+        self.assertEqual("array", file["resources"][2]["locator"]["json_value_type"])
+        serialized = json.dumps(result, ensure_ascii=False)
+        for source in (key, text, "second-key", "nested-key", "more-source", "tail-source"):
+            self.assertNotIn(source, serialized)
+
+    def test_json_arrays_and_empty_containers_have_honest_structure(self) -> None:
+        for source, count in ((b'[]', 0), (b'{}', 0), (b'["source", {}, false]', 3)):
+            result = self._new_profile_fixture(source, "application/json", ".json")["files"][0]
+            self.assertEqual(count, result["summary"]["top_level_member_count"])
+            self.assertEqual(count + 1, len(result["resources"]))
+            self.assertTrue(all("label_fingerprint" not in row for row in result["resources"]))
+
+    def test_json_duplicate_keys_at_any_depth_and_nonstandard_constants_fail_closed(self) -> None:
+        for source in (b'{"a":1,"a":2}', b'{"outer":{"a":1,"\\u0061":2}}'):
+            with self.subTest(source=source):
+                with self.assertRaisesRegex(inventories.InventoryBuildError, "duplicate JSON object key"):
+                    self._new_profile_fixture(source, "application/json", ".json")
+        for source in (b'{"x":NaN}', b'{"x":Infinity}', b'{"x":-Infinity}', b'{broken', b'"scalar"'):
+            with self.subTest(source=source):
+                with self.assertRaises(inventories.InventoryBuildError):
+                    self._new_profile_fixture(source, "application/json", ".json")
 
     @staticmethod
     def _djvu_page(width: int, height: int, dpi: int) -> bytes:

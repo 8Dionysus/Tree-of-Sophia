@@ -11,9 +11,28 @@ The operator-selected local corpus root is:
 /srv/AbyssOS/Tree-of-Sophia/ToS/source-witnesses/
 ```
 
-Only the bytes beneath an item's `payload/` directory are ignored by Git.
-Identity records, manifests, fixity, provenance, rights posture, forensic
-reports, anchors, reviews, and the generated navigation catalog remain tracked.
+Only the bytes beneath an item's `payload/` directory or an exact scholarly-
+composite representation's `payload/` directory are ignored by Git. The latter
+route is `scholarly-composites/<method>/<tradition>/<composition>/representations/<representation>/payload/<file>`.
+Identity records, representation records, manifests, fixity, provenance, rights
+posture, forensic reports, anchors, reviews, and the generated navigation
+catalog remain tracked. No metadata subtree is covered by the payload ignore.
+
+A materialized scholarly-composite File uses `local_gitignored_payload` and
+`git_tracked=false`, matching Item custody without inventing a bibliographic
+Item. Its record, rights and acquisition event keep the exact source URL,
+byte size and SHA-256. Existing `not_materialized` records remain historical
+declarations until an authorized acquisition or restoration records a new
+materialization event; their old discovery and terminal receipts are not
+rewritten.
+
+An ignored File may be absent from another checkout even when its source
+record declares prior materialization. The default foundation check permits
+that clone state; `--require-local-payloads` requires the exact bytes locally.
+When present, bytes must match their size, SHA-256 and File ID and must remain
+untracked and ignored. The record alone is not current availability evidence.
+Changed content needs a new File and provenance event; neither a URL refresh
+nor a new download may overwrite the retained witness with different bytes.
 
 `local_only` governs access to the source bytes; it does not erase their
 research role. A local item may remain the exact witness behind extraction,

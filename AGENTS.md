@@ -69,9 +69,9 @@ Root human orientation remains in [README](README.md); current direction in
   overwrite an earlier layer to make a later result appear clean.
 - Paths provide navigation; stable ToS IDs own corpus identity. Moves require
   explicit reference migration.
-- Only source-item `payload/` bytes may use the corpus ignore. Metadata,
-  fixity, provenance, rights, forensic evidence, and catalog membership remain
-  tracked.
+- Only source-item and exact scholarly-composite representation `payload/`
+  bytes may use the corpus ignore. Metadata, fixity, provenance, rights,
+  forensic evidence, and catalog membership remain tracked.
 - ToS-owned standalone projection access routes to `access/`; ecosystem stack
   orchestration and runtime authority route to their owning AoA layers.
 - Source-visible assessment by an authorized, competent human or agent owns

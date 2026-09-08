@@ -68,9 +68,24 @@
       "required": ["algorithm", "normalization", "sha256", "character_count"],
       "properties": {
         "algorithm": {"const": "sha256"},
-        "normalization": {"const": "unicode-nfc-whitespace-collapse"},
+        "normalization": {"enum": ["unicode-nfc-whitespace-collapse", "xml-character-data-preserved", "unicode-codepoints-preserved"]},
         "sha256": {"$ref": "#/$defs/sha256"},
         "character_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "jsonValueCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Counts include each object and array container. String counts are values; object keys are counted separately. No source keys or values are included.",
+      "required": ["object_count", "array_count", "string_count", "number_count", "boolean_count", "null_count", "object_key_count"],
+      "properties": {
+        "object_count": {"type": "integer", "minimum": 0},
+        "array_count": {"type": "integer", "minimum": 0},
+        "string_count": {"type": "integer", "minimum": 0},
+        "number_count": {"type": "integer", "minimum": 0},
+        "boolean_count": {"type": "integer", "minimum": 0},
+        "null_count": {"type": "integer", "minimum": 0},
+        "object_key_count": {"type": "integer", "minimum": 0}
       }
     },
     "locator": {
@@ -98,6 +113,11 @@
         "tei_facs_ref": {"type": "string", "minLength": 1},
         "tei_n": {"type": "string", "minLength": 1},
         "tei_type": {"type": "string", "minLength": 1},
+        "osis_id": {"type": "string", "pattern": "^[1-4]?[A-Za-z]+\\.[0-9]+(?:\\.[0-9]+[a-z]?)?$"},
+        "chapter_index": {"type": "integer", "minimum": 1},
+        "verse_index": {"type": "integer", "minimum": 1},
+        "json_member_index": {"type": "integer", "minimum": 1},
+        "json_value_type": {"enum": ["object", "array", "string", "number", "boolean", "null"]},
         "parent_resource_id": {"type": "string", "minLength": 1}
       },
       "minProperties": 1
@@ -120,7 +140,11 @@
             "tei_division",
             "ocr_page",
             "image_page",
-            "scan_data_page"
+            "scan_data_page",
+            "osis_chapter",
+            "osis_verse",
+            "json_container",
+            "json_member"
           ]
         },
         "locator": {"$ref": "#/$defs/locator"},
@@ -137,13 +161,18 @@
             "auxiliary_resource",
             "page_break",
             "division",
-            "contents"
+            "contents",
+            "chapter",
+            "verse",
+            "member"
           ]
         },
         "image_resource_count": {"type": "integer", "minimum": 0},
         "paragraph_count": {"type": "integer", "minimum": 0},
         "line_count": {"type": "integer", "minimum": 0},
         "word_count": {"type": "integer", "minimum": 0},
+        "verse_count": {"type": "integer", "minimum": 0},
+        "json_value_counts": {"$ref": "#/$defs/jsonValueCounts"},
         "label_fingerprint": {"$ref": "#/$defs/fingerprint"},
         "content_fingerprint": {"$ref": "#/$defs/fingerprint"}
       }
@@ -165,7 +194,11 @@
         "max_division_depth": {"type": "integer", "minimum": 0},
         "paragraph_count": {"type": "integer", "minimum": 0},
         "line_count": {"type": "integer", "minimum": 0},
-        "word_count": {"type": "integer", "minimum": 0}
+        "word_count": {"type": "integer", "minimum": 0},
+        "chapter_count": {"type": "integer", "minimum": 1},
+        "verse_count": {"type": "integer", "minimum": 1},
+        "top_level_member_count": {"type": "integer", "minimum": 0},
+        "json_value_counts": {"$ref": "#/$defs/jsonValueCounts"}
       }
     },
     "fileInventory": {
@@ -192,7 +225,9 @@
             "djvu_xml_pages_v1",
             "abbyy_xml_pages_v1",
             "jp2_zip_pages_v1",
-            "scandata_pages_v1"
+            "scandata_pages_v1",
+            "osis_structure_v1",
+            "json_members_v1"
           ]
         },
         "summary": {"$ref": "#/$defs/summary"},
@@ -201,7 +236,34 @@
           "minItems": 1,
           "items": {"$ref": "#/$defs/resource"}
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"profile": {"const": "osis_structure_v1"}}},
+          "then": {
+            "properties": {
+              "summary": {"required": ["chapter_count", "verse_count", "word_count"]},
+              "resources": {"items": {"properties": {
+                "resource_kind": {"enum": ["osis_chapter", "osis_verse"]},
+                "content_fingerprint": {"properties": {"normalization": {"const": "xml-character-data-preserved"}}}
+              }}}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"profile": {"const": "json_members_v1"}}},
+          "then": {
+            "properties": {
+              "summary": {"required": ["top_level_member_count", "json_value_counts"]},
+              "resources": {"items": {"properties": {
+                "resource_kind": {"enum": ["json_container", "json_member"]},
+                "label_fingerprint": {"properties": {"normalization": {"const": "unicode-codepoints-preserved"}}},
+                "content_fingerprint": {"properties": {"normalization": {"const": "unicode-codepoints-preserved"}}}
+              }}}
+            }
+          }
+        }
+      ]
     }
   }
 }

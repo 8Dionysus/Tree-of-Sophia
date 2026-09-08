@@ -78,8 +78,11 @@ evidence.
   the three owned files under `relations/` and agree with `work_ref`,
   `embodies_expression_refs`, and item-manifest `embodiment_ref`. Never infer
   textual equivalence from this bibliographic topology.
-- Keep only item `payload/` content gitignored. Track manifest, SHA-256,
-  provenance, rights, forensic report, and catalog entry.
+- Keep only item and exact scholarly-composite representation `payload/`
+  content gitignored. Track identity, representation or manifest, SHA-256,
+  provenance, rights, forensic report, and catalog entry. Local-only composite
+  bytes use the local storage boundary; their presence never authorizes Git
+  tracking, publication, or a source-text admission.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and
   translation are new versioned layers and must cite the input digest.
 - Use structural + quote + digest + visual-region anchors; offsets alone are

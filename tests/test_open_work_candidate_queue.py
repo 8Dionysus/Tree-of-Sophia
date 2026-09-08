@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import gzip
 import hashlib
 import json
 import subprocess
@@ -30,6 +31,7 @@ from open_work_candidate_queue_common import (  # noqa: E402
     _validate_target_binding,
     _validate_target_resolution,
     build_payload,
+    build_readiness_payload,
     candidate_digest,
     render_payload,
     target_digest,
@@ -216,6 +218,143 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
             ],
         )
         return root
+
+    def make_readiness_plan(self, repo: Path) -> tuple[Path, dict]:
+        schema_path = Path("ToS/contracts/open-work-readiness-plan.schema.json")
+        _write_json(repo / schema_path, json.loads((REPO_ROOT / schema_path).read_text()))
+        evidence_path = "ToS/source-witnesses/works/synthetic/version.json"
+        branch_path = "ToS/philosophy/eras/synthetic/branch.manifest.json"
+        source_path = "ToS/research-packets/synthetic/records.json"
+        for path in (evidence_path, branch_path, source_path):
+            _write_json(repo / path, {"source": path})
+        def ref(path):
+            return {"path": path, "sha256": hashlib.sha256((repo / path).read_bytes()).hexdigest()}
+        target = {
+            "target_id": "planting-target.new-corpus-record",
+            "preferred_label": "New work from independently named corpus",
+            "source_record_refs": [{**ref(source_path), "corpus_id": "third", "document_id": "A01", "record_id": "R001"}],
+            "target": {"target_kind": "work", "description": "Exact selected version", "known_tos_refs": []},
+            "readiness": {name: {
+                "status": "absent" if name == "file" else "ready",
+                "evidence_posture": "owner-reviewed", "owner_refs": [ref(branch_path if name == "branch" else evidence_path)],
+                "rationale": "Synthetic owner judgment scoped to the planned source.",
+            } for name in ("version", "access", "rights", "file", "branch")},
+            "acquisition": {"source_urls": ["https://example.org/exact-version.xml"],
+                "destination_paths": ["ToS/source-witnesses/works/synthetic/items/one/payload/source.xml"],
+                "intended_uses": ["local-preservation", "research-analysis"]},
+        }
+        target["readiness"]["rights"]["intended_uses"] = target["acquisition"]["intended_uses"]
+        plan = {"schema_version": "tos_open_work_readiness_plan_v1", "reviewed_at": "2026-09-08T12:00:00Z", "reviewer_ref": "codex:test", "targets": [target]}
+        path = Path("ToS/source-witnesses/discovery/readiness/synthetic.json")
+        _write_json(repo / path, plan)
+        return path, plan
+
+    def test_readiness_supports_new_corpus_targets_without_rewriting_history(self) -> None:
+        repo = self.make_repo()
+        before = build_payload(repo)
+        plan_path, plan = self.make_readiness_plan(repo)
+        payload = build_readiness_payload(repo, readiness_plan=plan_path)
+        self.assertEqual(plan["targets"][0]["target_id"], payload["next_target_id"])
+        self.assertIsNone(payload["next_candidate_id"])
+        self.assertEqual(before, build_payload(repo))
+        self.assertEqual(before["queue_sha256"], payload["chronological_queue_sha256"])
+        self.assertEqual(3, len(payload["readiness_entries"]))
+        self.assertEqual("absent", payload["readiness_entries"][0]["readiness"]["file"]["status"])
+        self.assertFalse((repo / plan["targets"][0]["acquisition"]["destination_paths"][0]).exists())
+
+    def test_readiness_binds_normalized_record_address_inside_compressed_document(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        source = plan["targets"][0]["source_record_refs"][0]
+        source["path"] = "ToS/research-packets/source-registries/snapshots/test/documents/third/A01.json.gz"
+        document = {"corpus_id": "third", "document_id": "A01", "records": [
+            {"corpus_id": "third", "document_id": "A01", "record_id": "stable:R001", "source_record_id": "R001"}]}
+        target = repo / source["path"]
+        target.parent.mkdir(parents=True)
+        target.write_bytes(gzip.compress(json.dumps(document).encode()))
+        source["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+        _write_json(repo / path, plan)
+        self.assertIsNotNone(build_readiness_payload(repo, readiness_plan=path)["next_target_id"])
+        source["record_id"] = "nonexistent-record-with-valid-file-digest"
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "record must resolve exactly once"):
+            build_readiness_payload(repo, readiness_plan=path)
+        source["record_id"] = "stable:R001"
+        source["corpus_id"] = "other-corpus"
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "corpus/document mismatch"):
+            build_readiness_payload(repo, readiness_plan=path)
+
+    def test_readiness_can_select_later_existing_candidate_without_changing_chronology(self) -> None:
+        repo = self.make_repo()
+        before = build_payload(repo)
+        path, plan = self.make_readiness_plan(repo)
+        later = next(entry for entry in before["candidates"] if entry["candidate_id"] == "open-work-candidate.later")
+        plan["targets"][0].update(candidate_id=later["candidate_id"], candidate_sha256=later["candidate_sha256"])
+        _write_json(repo / path, plan)
+        payload = build_readiness_payload(repo, readiness_plan=path)
+        self.assertEqual("open-work-candidate.later", payload["next_candidate_id"])
+        self.assertEqual("open-work-candidate.earliest", build_payload(repo)["next_candidate_id"])
+        plan["targets"][0]["candidate_sha256"] = "0" * 64
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "candidate digest mismatch"):
+            build_readiness_payload(repo, readiness_plan=path)
+
+    def test_historical_queue_order_review_does_not_become_acquisition_readiness(self) -> None:
+        repo = self.make_repo()
+        payload = build_readiness_payload(repo)
+        self.assertIsNone(payload["next_target_id"])
+        self.assertTrue(all(not entry["ready_for_acquisition_review"] for entry in payload["readiness_entries"]))
+        self.assertEqual({"unknown"}, {value["status"] for entry in payload["readiness_entries"] for value in entry["readiness"].values()})
+
+    def test_readiness_rejects_imported_assertions_as_positive_owner_evidence(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        plan["targets"][0]["readiness"]["rights"]["evidence_posture"] = "imported-assertion"
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "positive readiness needs owner-reviewed"):
+            build_readiness_payload(repo, readiness_plan=path)
+        plan["targets"][0]["readiness"]["rights"]["status"] = "unknown"
+        _write_json(repo / path, plan)
+        self.assertIsNone(build_readiness_payload(repo, readiness_plan=path)["next_target_id"])
+
+    def test_readiness_binds_exact_evidence_and_intended_use(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        plan["targets"][0]["readiness"]["rights"]["intended_uses"] = ["local-preservation"]
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "every intended use"):
+            build_readiness_payload(repo, readiness_plan=path)
+        path, plan = self.make_readiness_plan(repo)
+        _write_json(repo / "ToS/source-witnesses/works/synthetic/version.json", {"changed": True})
+        with self.assertRaisesRegex(QueueBuildError, "digest mismatch"):
+            build_readiness_payload(repo, readiness_plan=path)
+
+    def test_readiness_rejects_false_file_presence_and_path_escape(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        plan["targets"][0]["readiness"]["file"]["status"] = "present"
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "present file status"):
+            build_readiness_payload(repo, readiness_plan=path)
+        path, plan = self.make_readiness_plan(repo)
+        plan["targets"][0]["acquisition"]["destination_paths"] = ["ToS/source-witnesses/../../escape/payload/a"]
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "unsafe repository-relative"):
+            build_readiness_payload(repo, readiness_plan=path)
+
+    def test_readiness_unknown_candidate_and_duplicate_targets_fail_closed(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        plan["targets"][0]["candidate_id"] = "open-work-candidate.not-in-ledger"
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "unknown historical candidate_id"):
+            build_readiness_payload(repo, readiness_plan=path)
+        path, plan = self.make_readiness_plan(repo)
+        plan["targets"].append(copy.deepcopy(plan["targets"][0]))
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "duplicate readiness target_id"):
+            build_readiness_payload(repo, readiness_plan=path)
 
     def test_selects_earliest_ready_candidate_and_reports_every_input_surface(self) -> None:
         repo = self.make_repo()
