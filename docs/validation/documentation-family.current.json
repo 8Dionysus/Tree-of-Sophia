@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 549,
     "human_scope": {
-      "bytes": 4394574,
+      "bytes": 4395273,
       "count": 804,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -96,9 +96,9 @@
           "lines": 3037
         },
         "scripts": {
-          "bytes": 9878,
+          "bytes": 10577,
           "count": 2,
-          "lines": 189
+          "lines": 199
         },
         "stats": {
           "bytes": 4561,
@@ -116,7 +116,7 @@
           "lines": 60739
         }
       },
-      "lines": 76816
+      "lines": 76826
     },
     "surface_kind_counts": {
       "executable": 200,
@@ -149,7 +149,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 138000,
+      "tracked_surface_bytes": 138038,
       "tracked_surface_count": 6
     },
     {
@@ -177,7 +177,7 @@
         "human": 7,
         "structured": 16
       },
-      "tracked_surface_bytes": 475928,
+      "tracked_surface_bytes": 476661,
       "tracked_surface_count": 39
     },
     {
@@ -231,7 +231,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3663552,
+      "tracked_surface_bytes": 3664890,
       "tracked_surface_count": 108
     },
     {
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1379093,
+      "tracked_surface_bytes": 1381950,
       "tracked_surface_count": 62
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "40afdbe9ff0449a7bf349df03012c70a58f2d99196abef6f26b5f7e6a858737f",
+  "tracked_surface_digest": "6a458394e1bcbad4a132c785cb21508215a3d06aa27e44aacdd48b9fd0fff8c0",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -319,11 +319,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86471,
+      "bytes": 86509,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "fde75f1a2ba094252b43d0ffbf1a1368dee35a1c0cc78dfeb8e770e1c596f332",
+      "sha256": "981b8c74b75bae79584c86e9b287147860c2ee2fd2a58b728ffbdbfdfa21a5c7",
       "surface_kind": "structured"
     },
     {
@@ -22935,11 +22935,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 66997,
+      "bytes": 67603,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "872d01dec7eb9c457b90fb6a73cca6cce81ded92ffe690f6c06a58bbb9ac9ca0",
+      "sha256": "630d30bced7a8d81e765884f19f464fbf34758df9710607e3a2449f5b44d49e0",
       "surface_kind": "executable"
     },
     {
@@ -22951,11 +22951,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2832,
+      "bytes": 2959,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_http_security.py",
-      "sha256": "8137d755be5d9bd5b227cebdc6ae3dc7685580005cb3cbd30acc831d1b8e7549",
+      "sha256": "4f91e48c4335a2dd077dff51cd47746769a3a4215b11a100a8c33e7a74e51782",
       "surface_kind": "executable"
     },
     {
@@ -25287,11 +25287,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3475,
+      "bytes": 4174,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/VALIDATION.md",
-      "sha256": "5c758dd7606f736074c85b2bae6fbdae4102adc74c2000f594648bb908ce101d",
+      "sha256": "7ed6cfa30ea69597d50972df3c343c298b4b9f2ec5bd475604644df2212ea3fa",
       "surface_kind": "human"
     },
     {
@@ -25855,11 +25855,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 9223,
+      "bytes": 9862,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/release_check.py",
-      "sha256": "4b81e090cd064601269a03974eed110ba223e402722c7a41176022d96328edb8",
+      "sha256": "840d463b793e9815f61032881a9d2a878aa43dd8a6819df77ef6ed22b4235b76",
       "surface_kind": "executable"
     },
     {
@@ -26583,11 +26583,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 11216,
+      "bytes": 14073,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validation_lanes.py",
-      "sha256": "40f6be657c3a8f1e75b640246555d82281f0531bf535a63beeb28de08ffa777c",
+      "sha256": "da0f7974b264454dd2235a3aa9c5b2937f76c318d0b0d320449b5b0cd5ece50a",
       "surface_kind": "executable"
     },
     {

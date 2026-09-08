@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
-from test_access_contract import write_fixture  # noqa: E402
+from test_access_contract import TEST_SERVER_POLL_INTERVAL, write_fixture  # noqa: E402
 from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.http_server import make_server  # noqa: E402
 
@@ -21,7 +21,11 @@ def access_server():
         root = Path(raw)
         write_fixture(root)
         server = make_server(ToSAccessCore.discover(tos_root=root), port=0)
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread = threading.Thread(
+            target=server.serve_forever,
+            kwargs={"poll_interval": TEST_SERVER_POLL_INTERVAL},
+            daemon=True,
+        )
         thread.start()
         try:
             yield server

@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 40750840,
-  "allowed_tracked_bytes": 46401370,
+  "allowed_bytes": 8005203,
+  "allowed_tracked_bytes": 47971129,
   "approved_by": "repository-owner",
   "base_ref": "33e499bccf84b2b7991d854c6f810a613a9d1d13",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "33e499bccf84b2b7991d854c6f810a613a9d1d13",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/f97255f20d6f147a82ed684ef5e7fdc59308697e2a334b7c85e09588be4cc95c.json",
-    "family_digest": "f97255f20d6f147a82ed684ef5e7fdc59308697e2a334b7c85e09588be4cc95c",
-    "file_count": 4929,
-    "seal": "f5dbd240eda97868ba514e20edcc489c074852bb19aca829f080c2420ed7b52f",
-    "source_epoch": "sha256:4b4bdf603760c852b92c3382924d735a656734cec4fe50a269cc0acd0b3e5328",
-    "source_snapshot": "sha256:7f474dab51e378ec72bbe02c4cd17648a3f3c5dc4793c318e54359abcbaede3a"
+    "excluded_path": "kag/receipts/index_family_budget/6acbe12f5e6161017ef8eeefe5e2eca100b1afce5f1883c11dd680072dfa1a34.json",
+    "family_digest": "6acbe12f5e6161017ef8eeefe5e2eca100b1afce5f1883c11dd680072dfa1a34",
+    "file_count": 5141,
+    "seal": "95176e21534561a275cd5da38249ecdd5d4a3aef2d6f43374408da84d44cecab",
+    "source_epoch": "sha256:bd6256aacbc63d4d4baad4a46d963b1018023d37108ccdcf9ff0185a4bbb651f",
+    "source_snapshot": "sha256:6044fc7912881618fa49f11d3a7f7283702eb233575ea99107eeccbcc9335047"
   },
-  "changed_generated_bytes": 40750840,
-  "changed_generated_files": 436,
+  "changed_generated_bytes": 8005203,
+  "changed_generated_files": 68,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "f97255f20d6f147a82ed684ef5e7fdc59308697e2a334b7c85e09588be4cc95c",
-  "head_source_snapshot": "sha256:7f474dab51e378ec72bbe02c4cd17648a3f3c5dc4793c318e54359abcbaede3a",
+  "head_family_digest": "6acbe12f5e6161017ef8eeefe5e2eca100b1afce5f1883c11dd680072dfa1a34",
+  "head_source_snapshot": "sha256:6044fc7912881618fa49f11d3a7f7283702eb233575ea99107eeccbcc9335047",
   "producer_identity": {
     "action": {
       "bytes": 5200,
@@ -1362,10 +1362,10 @@
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
     "source_digest": "4882f50ab3a09b04b02715510f2e5dbec13fa60a5032f98e9e043dc9e79f812e"
   },
-  "reason": "Refresh the portable Tree-of-Sophia KAG family after migrating stale repository-local skill projections to the selected owner profile and preserving the authored migration crosswalk; generated records remain source-linked projections.",
+  "reason": "Refresh the Tree-of-Sophia owner family for the reviewed feedback-validation lane changes on the current candidate.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta_and_tracked_size",
-  "tracked_bytes": 46401370,
+  "tracked_bytes": 47971129,
   "tracked_bytes_max": 11534336
 }
