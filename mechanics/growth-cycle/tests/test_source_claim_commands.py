@@ -7,6 +7,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -14,6 +15,118 @@ import test_source_commands as fixtures
 import source_commands as commands
 
 ROOT = fixtures.ROOT
+
+
+def reference_native_units(native):
+    """Four distinct synthetic native units, never four copies of one binding."""
+    anchors = [copy.deepcopy(native.packet['anchors'][0])]
+    units = []
+    template = native.packet['anchors'][1]
+    for index, (start, end) in enumerate(((3, 4), (4, 5), (5, 8), (9, 10)), start=1):
+        anchor = copy.deepcopy(template)
+        anchor.update(anchor_ref=f'tos.anchor.synthetic.reference-member-{index}', ordinal=index + 1,
+            exact_sha256=hashlib.sha256(native.text[start:end].encode('utf-8')).hexdigest())
+        anchor['selector'].update(start=start, end=end)
+        anchors.append(anchor)
+        unit = copy.deepcopy(native.packet['units'][0])
+        unit.update(unit_id='tos.text-unit.sid-' + f'{index + 32:032x}',
+                    ordered_anchor_refs=[anchor['anchor_ref']])
+        units.append(unit)
+    gap = copy.deepcopy(native.packet['anchors'][-1])
+    gap.update(ordinal=6, exact_sha256=hashlib.sha256(native.text[8:9].encode('utf-8')).hexdigest())
+    gap['selector'].update(start=8, end=9)
+    native.packet.update(anchors=[*anchors, gap], units=units)
+    native.packet['segmentations'][0]['ordered_unit_refs'] = [unit['unit_id'] for unit in units]
+    native.binding.update(unit_id=units[0]['unit_id'], ordered_anchor_refs=units[0]['ordered_anchor_refs'])
+    native.refresh()
+
+
+def motif_proposal_value(members):
+    return {'kind': 'motif-proposal', 'members': list(members),
+        'source_wording': {'text': 'Синтетическая гипотеза; не установленный мотив.',
+                          'language': 'ru', 'script': 'Cyrl', 'wording_kind': 'research_paraphrase'},
+        'proposed_signification': 'Only a synthetic possible common function.',
+        'grouping_basis': 'The four artificial native units remain distinct.',
+        'source_scope': 'Only these explicitly selected test uses.',
+        'contrast': 'Unrelated or differently interpreted uses remain possible.',
+        'limitations': 'No historical, linguistic, Sign or semantic admission.',
+        'extensions': {'members': ['tos.occurrence.inert.not-selected'], 'flag': False, 'unknown': None}}
+
+
+class ReferenceValueAuthorizationTests(unittest.TestCase):
+    """Writer permissions are independent of the source reader's typed shape."""
+
+    def scope_fixture(self):
+        predicate = 'occurrence_motif_proposal'
+        members = ['tos.occurrence.synthetic.a', 'tos.occurrence.synthetic.b',
+                   'tos.occurrence.synthetic.c']
+        value = {'kind': 'motif-proposal', 'members': members,
+                 'source_wording': {'text': 'Synthetic qualified proposal.', 'language': 'en', 'script': 'Latn'}}
+        claim = {'claim_id': 'tos.claim.synthetic.reference-scope', 'predicate': predicate,
+            'subject_ref': members[0], 'object': value,
+            'maker': {'agent_ref': 'model:synthetic', 'maker_type': 'model'},
+            'provenance_event_ref': 'tos.event.synthetic.reference-scope',
+            'evidence_refs': ['ToS/source-witnesses/synthetic-evidence.json']}
+        config = {'schema_version': 'tos_local_claim_create_owner_v4',
+            'source_root': str(ROOT), 'allowed_operations': ['claims.create'],
+            'allowed_claim_ids': [claim['claim_id']], 'allowed_subject_refs': [members[0]],
+            'allowed_object_refs': list(members), 'allowed_object_values': [copy.deepcopy(value)],
+            'allowed_predicates': [predicate], 'principal_id': 'model:synthetic', 'maker_type': 'model',
+            'provenance_event_id': claim['provenance_event_ref'], 'allowed_evidence_refs': claim['evidence_refs']}
+        profiles = SimpleNamespace(profiles={predicate: {'reader': 'structured-reference-value-v1'}},
+            reference_members=lambda selected: tuple(selected['object']['members']), is_temporal=lambda _: False)
+        return config, claim, profiles
+
+    def test_reference_value_old_create_delegates_cannot_reinterpret_values_as_members(self):
+        from source_claim_commands import _scope
+        config, claim, profiles = self.scope_fixture()
+        for version in (1, 2, 3):
+            selected = {**config, 'schema_version': f'tos_local_claim_create_owner_v{version}'}
+            if version == 1:
+                selected.pop('allowed_object_values')
+            with self.subTest(version=version), self.assertRaises(PermissionError):
+                _scope(selected, [claim], profiles=profiles)
+
+    def test_reference_value_create_requires_every_member_role_and_exact_value(self):
+        from source_claim_commands import _scope
+        config, claim, profiles = self.scope_fixture()
+        _scope(config, [claim], profiles=profiles)
+        for missing in (claim['subject_ref'], claim['object']['members'][2]):
+            selected = {**config, 'allowed_object_refs': [ref for ref in config['allowed_object_refs'] if ref != missing],
+                        'allowed_subject_refs': list(config['allowed_object_refs'])}
+            with self.subTest(missing=missing), self.assertRaises(PermissionError):
+                _scope(selected, [claim], profiles=profiles)
+        with self.assertRaises(PermissionError):
+            _scope({**config, 'allowed_object_values': []}, [claim], profiles=profiles)
+        changed = {**claim, 'object': {**claim['object'], 'members': claim['object']['members'][:2]}}
+        with self.assertRaises(PermissionError):
+            _scope(config, [changed], profiles=profiles)
+
+    def test_reference_value_revision_checks_mode_members_and_exact_object_even_for_wording(self):
+        import claim_revisions
+        config, claim, profiles = self.scope_fixture()
+        config.update(schema_version='tos_local_claim_revision_owner_v4', allowed_operations=['claim.revise'],
+            allowed_fields=['qualifiers', 'object'], allowed_form_ids=['tos.form.synthetic.reference-scope'])
+        request = {'fields': {'qualifiers': {'statement': 'Synthetic corrected wording.'}},
+            'forms': [{'form_id': config['allowed_form_ids'][0], 'field_id': 'claim.statement'}],
+            'reason': 'Correct the qualified proposal, not its focal identity.'}
+        with patch.object(claim_revisions, 'SourceClaimProfiles', return_value=profiles):
+            claim_revisions._scope(config, request, claim)
+            for version in (1, 2, 3):
+                selected = {**config, 'schema_version': f'tos_local_claim_revision_owner_v{version}'}
+                with self.subTest(version=version), self.assertRaises(PermissionError):
+                    claim_revisions._scope(selected, request, claim)
+            for missing in (claim['subject_ref'], claim['object']['members'][2]):
+                selected = {**config, 'allowed_object_refs': [ref for ref in config['allowed_object_refs'] if ref != missing]}
+                with self.subTest(missing=missing), self.assertRaises(PermissionError):
+                    claim_revisions._scope(selected, request, claim)
+            with self.assertRaises(PermissionError):
+                claim_revisions._scope({**config, 'allowed_object_values': []}, request, claim)
+            changed = {**claim['object'], 'members': claim['object']['members'][:2]}
+            correction = {**request, 'fields': {'object': changed}}
+            with self.assertRaises(PermissionError):
+                claim_revisions._scope(config, correction, claim)
+            claim_revisions._scope({**config, 'allowed_object_values': [changed]}, correction, claim)
 
 
 class SourceClaimCreationTests(unittest.TestCase):
@@ -1536,6 +1649,142 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             receipt_path.write_text(json.dumps(receipt))
             with self.assertRaises(commands.JournalCorruption):
                 commands.run_local_command(owner, request)
+
+
+class ReferenceValueCommandTests(unittest.TestCase):
+    """Public v4 commands over four real synthetic native/source closures."""
+
+    creation = SourceClaimCreationTests.creation
+
+    @contextmanager
+    def reference_creation(self):
+        from test_occurrence_growth import NativeTextBindingFixture, copy_contracts, occurrence
+        with self.creation() as (root, owner, creator, claim, request, *_):
+            native = NativeTextBindingFixture(root)
+            reference_native_units(native)
+            native.make_public()
+            copy_contracts(root)
+            members, paths = [], []
+            for index, unit in enumerate(native.packet['units'], start=1):
+                binding = {**copy.deepcopy(native.binding), 'unit_id': unit['unit_id'],
+                           'ordered_anchor_refs': unit['ordered_anchor_refs']}
+                record = occurrence(binding)
+                record['record_id'] = f'tos.occurrence.synthetic.reference-member-{index}'
+                record['preferred_label'] = f'Synthetic member {index}'
+                ref = f'ToS/source-witnesses/lexical-descriptions/reference-member-{index}/occurrence.json'
+                native.write_json(ref, record)
+                members.append(record['record_id'])
+                paths.append(root / ref)
+            claim.update(schema_version='tos_source_occurrence_motif_claim_v1', subject_ref=members[0],
+                predicate='occurrence_motif_proposal', assertion_layer='semantic_interpretation',
+                object=motif_proposal_value(members[:3]), evidence_refs=[native.policy_ref],
+                qualifiers={'statement': 'A synthetic proposal over the complete declared set, not a Sign.',
+                            'statement_language': 'en', 'statement_script': 'Latn'})
+            creator.update(schema_version=commands.CLAIM_REFERENCE_CONFIG, allowed_subject_refs=[members[0]],
+                allowed_object_refs=members, allowed_object_values=[copy.deepcopy(claim['object'])],
+                allowed_predicates=[claim['predicate']], allowed_evidence_refs=claim['evidence_refs'])
+            owner.write_text(json.dumps(creator))
+            request['claims'] = [claim]
+            yield root, owner, creator, claim, request, native, members, paths
+
+    def create(self, owner, request):
+        prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare-create', 'claims': request['claims']})
+        request.update(expected_configuration=prepared['owner_configuration'],
+            expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+        return commands.run_local_command(owner, request), prepared
+
+    def test_reference_public_create_requires_third_source_and_member_scope_on_replay(self):
+        from build_source_witness_catalog import CatalogBuildError
+        with self.reference_creation() as (root, owner, config, claim, request, native, members, paths):
+            prepared = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            for version in (1, 2, 3):
+                denied = {**config, 'schema_version': f'tos_local_claim_create_owner_v{version}'}
+                if version == 1:
+                    denied.pop('allowed_object_values')
+                owner.write_text(json.dumps(denied))
+                with self.subTest(version=version), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, prepared)
+            owner.write_text(json.dumps(config))
+            third_bytes = paths[2].read_bytes()
+            paths[2].unlink()
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, prepared)
+            paths[2].write_bytes(third_bytes)
+            bad_native = json.loads(third_bytes)
+            bad_native['native_text_binding']['unit_version'] = 2
+            paths[2].write_text(json.dumps(bad_native))
+            with self.assertRaises((ValueError, CatalogBuildError)):
+                commands.run_local_command(owner, prepared)
+            paths[2].write_bytes(third_bytes)
+            result, preview = self.create(owner, request)
+            self.assertEqual(set(preview['source_bindings']['objects']), set(members[:3]))
+            self.assertEqual(preview['source_bindings']['values'][claim['claim_id']]['value'], claim['object'])
+            self.assertFalse(result['grants_admission'])
+            path = root / config['source_path']
+            original = path.read_bytes()
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            for missing in (members[0], members[2]):
+                owner.write_text(json.dumps({**config,
+                    'allowed_object_refs': [member for member in members if member != missing]}))
+                with self.subTest(missing=missing), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, request)
+                self.assertEqual(path.read_bytes(), original)
+            owner.write_text(json.dumps(config))
+            paths[2].unlink()
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, request)
+            paths[2].write_bytes(third_bytes)
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertFalse((root / native.original_ref).exists())
+
+    def test_reference_public_revision_adds_removes_members_without_retargeting_focal(self):
+        with self.reference_creation() as (root, owner, creator, claim, creation, _, members, _):
+            self.create(owner, creation)
+            removed, added = motif_proposal_value(members[:2]), motif_proposal_value([*members[:2], members[3]])
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version=commands.CLAIM_REFERENCE_REVISION_CONFIG, claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['object', 'qualifiers'],
+                allowed_object_values=[removed, added], allowed_object_refs=members,
+                allowed_evidence_refs=claim['evidence_refs'], allowed_form_ids=['tos.form.synthetic.reference-statement'])
+            owner.write_text(json.dumps(config))
+            requests = []
+            for version, value in enumerate((removed, added), start=2):
+                change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                    'fields': {'object': value}, 'reason': 'Correct the finite synthetic member set.',
+                    'forms': [{'form_id': config['allowed_form_ids'][0], 'field_id': 'claim.statement'}]}
+                preview = commands.run_local_command(owner, change)
+                self.assertEqual(set(preview['source_bindings']['objects']), set(value['members']))
+                request = {**change, 'operation': 'claim.revise', 'command_id': f'synthetic:reference-revise-{version}',
+                    'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                    'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                    'expected_inputs': preview['source_bindings']}
+                revised = commands.run_local_command(owner, request)
+                self.assertEqual(revised['source']['id'], claim['claim_id'])
+                self.assertEqual(revised['source']['version'], version)
+                self.assertEqual(revised['materializations'][0]['context'][0]['value']['object'], value)
+                requests.append(request)
+            original = (root / creator['source_path']).read_bytes()
+            for request in requests:
+                self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            # Even retrying the older AB correction checks today's ABD roles.
+            owner.write_text(json.dumps({**config, 'allowed_object_refs': members[:3]}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, requests[0])
+            for version in (1, 2, 3):
+                denied = {**config, 'schema_version': f'tos_local_claim_revision_owner_v{version}',
+                          'allowed_fields': ['qualifiers']}
+                if version == 1:
+                    denied.pop('allowed_object_values')
+                    denied.pop('allowed_object_refs')
+                owner.write_text(json.dumps(denied))
+                wording = {**change, 'fields': {'qualifiers': {'statement': 'Synthetic corrected wording.'}}}
+                with self.subTest(version=version), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, wording)
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {**change, 'fields': {'subject_ref': members[1]}})
+            self.assertEqual((root / creator['source_path']).read_bytes(), original)
 
 
 if __name__ == '__main__':

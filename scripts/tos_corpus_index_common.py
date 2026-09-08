@@ -567,7 +567,13 @@ def project_text_packet(packet: dict[str, Any], source_ref: str) -> tuple[list[d
     for entity in packet.get('entities', []):
         labels = entity.get('display_labels', [])
         record = {**entity, 'variant_labels': labels}
-        identifier = add(entity['entity_id'], entity['entity_kind'].replace('_', '-'), record,
+        # Native stand-off entities are not authored description profiles.
+        # Only the adapter kind changes; source kind, identity and body remain
+        # exact, including lexical_sense's native spelling and admission state.
+        kind = entity['entity_kind'].replace('_', '-')
+        if entity['entity_kind'] in {'occurrence', 'lexeme', 'lexical_sense'}:
+            kind = 'annotation-' + kind
+        identifier = add(entity['entity_id'], kind, record,
                          labels[0]['value'] if labels else None)
         edge(annotation, 'annotation_member', identifier)
         for anchor in entity['identity_basis']['anchor_refs']:

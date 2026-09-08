@@ -28,7 +28,8 @@ def _layer_transition(value):
 
 
 def configuration(config):
-    values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
+    values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG,
+        source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG}
     layer_allowed = config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG
     allowed_fields = {'assertion_layer'} if layer_allowed else FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
@@ -37,7 +38,7 @@ def configuration(config):
         | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set())
         | ({'allowed_layer_transitions'} if layer_allowed else set()))
     if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
-            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG}
+            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -200,7 +201,7 @@ def creation_source_files(files, config, *, archive_reader=None):
             if history['receipts'] else files)
 
 
-def _scope(config, request, record):
+def _scope(config, request, record, *, profiles=None):
     if OPERATION not in config['allowed_operations']:
         raise PermissionError('Claim correction is not delegated')
     fields = request['fields']
@@ -214,11 +215,21 @@ def _scope(config, request, record):
             raise PermissionError('Claim layer transition is not explicitly delegated')
         # Current authority is checked before replay; predecessor matching belongs
         # to _advance, using the archived predecessor for a retained request.
+    from source_claim_commands import value_is_delegated, _value_scope
+    profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
+    if profiles.profiles[record['predicate']]['reader'] == 'structured-reference-value-v1':
+        # Wording-only changes and retries must not bypass this new reader's
+        # permission boundary. Both present and proposed member roles remain
+        # separately in scope; only the proposed exact value is writable.
+        _value_scope(config, record, profiles)
+        proposed = {**record, 'object': fields.get('object', record['object'])}
+        _value_scope(config, proposed, profiles)
+        if not value_is_delegated(config, proposed['object']):
+            raise PermissionError('Claim reference value correction is not explicitly delegated')
     if 'object' in fields:
-        from source_claim_commands import value_is_delegated, _value_scope
         if not value_is_delegated(config, fields['object']):
             raise PermissionError('Claim value correction is not explicitly delegated')
-        _value_scope(config, {**record, 'object': fields['object']}, SourceClaimProfiles(Path(config['source_root'])))
+        _value_scope(config, {**record, 'object': fields['object']}, profiles)
     for name in ('evidence_refs', 'counterevidence_refs'):
         if name in fields and (not isinstance(fields[name], list)
                 or any(not isinstance(ref, str) or ref not in config['allowed_evidence_refs'] for ref in fields[name])):
@@ -336,12 +347,27 @@ def run_command(owner, config, configuration_digest, path, request):
         if current_digest != configuration_digest or current_path != path:
             raise source.JournalConflict('Claim correction delegation changed before transaction')
         files, record, history = inspect()
+        _scope(config, request, record)
         for receipt in history['receipts']:
             if receipt['command_id'] == request['command_id']:
                 if receipt['request_digest'] != digest or receipt['source']['id'] != config['claim_id']:
                     raise source.JournalConflict('Claim correction command identity was reused')
+                from source_claim_commands import reference_replay_snapshot
+                replay_records = [record]
+                if SourceClaimProfiles(root).profiles[record['predicate']]['reader'] == 'structured-reference-value-v1':
+                    archived, _ = _read_archive(root, config, receipt)
+                    previous = _claims(archived[path.name])[config['claim_id']]
+                    retained = _advance(previous, request['fields'], request.get('layer_transition'))
+                    if retained != record:
+                        replay_records.append(retained)
+                snapshot = reference_replay_snapshot(config, replay_records)
+                response = result(files, record, receipt, True)
+                if snapshot is not None and (source._configuration(owner)[1:] != (configuration_digest, path)
+                        or packages._package(path.parent) != files
+                        or reference_replay_snapshot(config, replay_records) != snapshot):
+                    raise source.JournalConflict('reference Claim correction retry scope or source closure changed')
                 source._sync_directory(path.parent.parent)
-                return result(files, record, receipt, True)
+                return response
         if (request['expected_configuration'] != configuration_digest or request['expected_source'] != _subject(record).ref
                 or request['expected_revision'] != packages._revision(files)):
             raise source.JournalConflict('Claim correction source or package snapshot is stale')

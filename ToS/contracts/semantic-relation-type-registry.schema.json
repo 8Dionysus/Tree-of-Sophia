@@ -38,7 +38,18 @@
       "required": ["profile_version", "reader", "assertion_layers", "schemas"],
       "properties": {
         "profile_version": {"type": "integer", "minimum": 1},
-        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "structured-value-v1"]},
+        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "structured-value-v1", "structured-reference-value-v1"]},
+        "object_reference_set": {
+          "type": "object", "additionalProperties": false,
+          "description": "Explicit interpretation of the single fixed /object/members slot. No other field is scanned for references. Every member is a mandatory Claim dependency, not an independently accepted membership assertion.",
+          "required": ["member_type_ids", "min_items", "max_items", "subject_is_member"],
+          "properties": {
+            "member_type_ids": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/typeId"}},
+            "min_items": {"type": "integer", "minimum": 1, "maximum": 8},
+            "max_items": {"type": "integer", "minimum": 1, "maximum": 8},
+            "subject_is_member": {"type": "boolean"}
+          }
+        },
         "value_kind": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "description": "Exact source-claims mapping of one concrete literal subtype; neither an identity nor executable reference extraction."},
         "assertion_layers": {"type": "array", "minItems": 1, "uniqueItems": true,
           "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment"]}},
@@ -52,8 +63,10 @@
                 "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
             }}}
       },
-      "allOf": [{"if": {"properties": {"reader": {"const": "structured-value-v1"}}},
-        "then": {"required": ["value_kind"]}, "else": {"not": {"required": ["value_kind"]}}}]
+      "allOf": [{"if": {"properties": {"reader": {"enum": ["structured-value-v1", "structured-reference-value-v1"]}}},
+        "then": {"required": ["value_kind"]}, "else": {"not": {"required": ["value_kind"]}}},
+        {"if": {"properties": {"reader": {"const": "structured-reference-value-v1"}}},
+        "then": {"required": ["object_reference_set"]}, "else": {"not": {"required": ["object_reference_set"]}}}]
     },
     "nonEmptyString": {"type": "string", "minLength": 1},
     "typeId": {

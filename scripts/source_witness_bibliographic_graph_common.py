@@ -908,6 +908,16 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
             raise BibliographicGraphBuildError(
                 f"{claim_ref}: normalized identity trace differs from normalized edges"
             )
+        member_ids = trace.get('value_member_node_ids', [])
+        member_targets = {edges[id]['to_id'] for id in trace['edge_ids']
+                          if edges[id]['edge_kind'] == 'has_value_member'}
+        if set(member_ids) != member_targets or any(nodes[id]['node_kind'] != 'identity' for id in member_ids):
+            raise BibliographicGraphBuildError(f'{claim_ref}: value member trace differs from member edges')
+        if member_ids:
+            value = nodes[trace['claim_node_id']]['properties']['object']
+            if (not isinstance(value, dict) or not isinstance(value.get('members'), list)
+                    or {_node_id('identity', identity) for identity in value['members']} != set(member_ids)):
+                raise BibliographicGraphBuildError(f'{claim_ref}: member trace omits or invents a source member')
     if trace_claims != set(claim_nodes):
         raise BibliographicGraphBuildError(
             "claim traces must cover every projected claim node exactly once"
@@ -1117,6 +1127,14 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
         )
         edge_specs.extend(("reviewed_by", node_id) for node_id in sorted(review_node_ids))
 
+        value_member_node_ids = []
+        if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
+            for member_ref in claim_profiles.reference_members(claim):
+                member_node = _identity_node(objects[member_ref])
+                _add_node(nodes, member_node)
+                value_member_node_ids.append(member_node['node_id'])
+                edge_specs.append(('has_value_member', member_node['node_id']))
+
         normalized_identity_node_ids: list[str] = []
         identity_edges = _provision_identity_edges(
             claim,
@@ -1190,6 +1208,7 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
                 "normalized_identity_node_ids": sorted(
                     normalized_identity_node_ids
                 ),
+                **({'value_member_node_ids': sorted(value_member_node_ids)} if value_member_node_ids else {}),
                 "review_status": claim["review_status"],
                 "visibility": claim["visibility"],
                 "alternative_claim_refs": sorted(

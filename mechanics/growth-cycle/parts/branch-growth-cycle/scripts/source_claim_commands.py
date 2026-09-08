@@ -21,12 +21,14 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
 
 
 def configuration(config):
-    values_allowed = config['schema_version'] in {source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG}
+    values_allowed = config['schema_version'] in {
+        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG}
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
         'source_path', 'authority_ref', 'expires_at', 'provenance_event_id', 'allowed_operations',
         'allowed_claim_ids', 'allowed_subject_refs', 'allowed_object_refs', 'allowed_predicates',
         'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set()))
-    if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG} or type(config['uid']) is not int
+    if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG,
+            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -73,11 +75,15 @@ def validate_value_scope(config):
 def value_is_delegated(config, value):
     """Exact data allowlist, not executable matching expressions or entity scope."""
     if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
-                                       source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
+                                       source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
+                                       source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
+                                       source.OWNER_CLAIM_REFERENCE_CONFIG}
             or not isinstance(value, dict)
             or source._canonical(value) not in {source._canonical(v) for v in config['allowed_object_values']}):
         return False
-    if config['schema_version'] in {source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}:
+    if config['schema_version'] in {source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
+                                   source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
+                                   source.OWNER_CLAIM_REFERENCE_CONFIG}:
         return True  # Exact bytes only; _value_scope checks declared identity dependencies.
     relative = value.get('relative')
     return (relative is None or isinstance(relative, dict)
@@ -117,7 +123,15 @@ def _scope(config, claims, *, profiles=None):
 
 def _value_scope(config, claim, profiles):
     """Check declared value scope before new writes and exact replays alike."""
-    if (profiles.profiles[claim['predicate']]['reader'] == 'structured-value-v1'
+    reader = profiles.profiles[claim['predicate']]['reader']
+    if reader == 'structured-reference-value-v1':
+        if config['schema_version'] not in {source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
+                                            source.OWNER_CLAIM_REFERENCE_CONFIG}:
+            raise PermissionError('reference value creation or correction requires separate v4 or private v2 delegation')
+        if any(identity not in config['allowed_object_refs'] for identity in profiles.reference_members(claim)):
+            # Focal subject scope cannot grant the same identity's member role.
+            raise PermissionError('declared reference value members are not separately delegated')
+    if (reader == 'structured-value-v1'
             and config['schema_version'] in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG}):
         raise PermissionError('structured value creation or correction requires separate v3 delegation')
     value = claim['object']
@@ -132,6 +146,21 @@ def _value_scope(config, claim, profiles):
 def _prepare(config, claims):
     _scope(config, claims)
     return _ground_claims(config, claims, initial=True)
+
+
+def reference_replay_snapshot(config, records):
+    """Current closure for reference-value retries, not historical admission.
+
+    A retained receipt cannot substitute for present source/member validation.
+    Older reader modes keep their existing replay contract unchanged.
+    """
+    profiles = SourceClaimProfiles(Path(config['source_root']))
+    selected = [record for record in records
+                if profiles.profiles[record['predicate']]['reader'] == 'structured-reference-value-v1']
+    if not selected:
+        return None
+    return source._digest(source._canonical([
+        _ground_claims(config, [record], initial=False)[1] for record in selected]))
 
 
 def _ground_claims(config, claims, *, initial):
@@ -320,7 +349,13 @@ def run_command(owner_config, config, configuration_digest, path, request):
         if current_digest != configuration_digest or current_path != path:
             raise source.JournalConflict('claim creation delegation changed before transaction')
         if target.exists() or target.is_symlink():
-            return result(_replay(target, config, request), True)
+            receipt = _replay(target, config, request)
+            snapshot = reference_replay_snapshot(config, request['claims'])
+            response = result(receipt, True)
+            if snapshot is not None and (source._configuration(owner_config)[1:] != (configuration_digest, path)
+                    or reference_replay_snapshot(config, request['claims']) != snapshot):
+                raise source.JournalConflict('reference Claim replay scope or source closure changed')
+            return response
         if request['expected_configuration'] != configuration_digest or request['expected_revision'] is not None:
             raise source.JournalConflict('claim creation requires exact delegation and an absent package')
         started_at, started_ns = datetime.now(timezone.utc).isoformat(), time.perf_counter_ns()

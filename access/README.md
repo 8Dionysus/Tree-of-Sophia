@@ -456,7 +456,15 @@ also contain the sibling navigation/evidence modules and query operations;
 Node's TypeScript stripping executes those same adapters. The check follows up
 to four exploration pages, binds a source-owned contested relation to its
 evidence and path, and verifies exclusion of that relation. It also measures
-inspection and bounded exploration/continuation. Use `--report /absolute/scratch/query.jsonl`
+inspection and bounded exploration/continuation, and exercises the actual
+`readMaterial` full-packet adapter for one node and both known/restored relation
+identities at the same snapshot. Optional `--material-id` selects an exact public
+knowledge node with human forms; `--language` selects the content language
+(default `ru`). Its report retains each role's selection, exact form reference,
+context-slot names and SHA-256 of the complete received packet, not its wording.
+Those packet hashes use the consumer's UTF-8 JSON serialization for this
+observation; they are not ToS canonical record digests or semantic acceptance.
+Use `--report /absolute/scratch/query.jsonl`
 to retain the timings and exact client/HTML hashes outside the checkout. This checks the named
 producer-consumer seam, not browser rendering, production or deployment. Neither
 command belongs in the fast test lane or modifies the UI checkout.

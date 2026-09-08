@@ -34,6 +34,8 @@ CLAIM_CONTRACT_REF = 'ToS/contracts/semantic-relation-type-registry.schema.json'
 CLAIM_BASE_REF = 'ToS/contracts/source-claim-record.schema.json'
 TEMPORAL_VALUE_REF = 'ToS/contracts/historical-claim.schema.json'
 STRUCTURED_VALUE_REF = 'ToS/contracts/source-structured-value.schema.json'
+REFERENCE_VALUE_READER = 'structured-reference-value-v1'
+STRUCTURED_VALUE_READERS = {'structured-value-v1', REFERENCE_VALUE_READER}
 CLAIM_SHARED_REFS = ('ToS/contracts/claim-packet.schema.json',
                      'ToS/contracts/knowledge-assessment.schema.json', CLAIM_BASE_REF)
 MAX_CLAIM_FILE_BYTES = 16_777_216
@@ -459,7 +461,7 @@ class SourceClaimProfiles:
                                 else 'tos.entity.temporal-assertion')
                     if expected not in ancestry:
                         raise SourceProfileError('historical temporal profile requires historical domain and temporal value range')
-                elif profile['reader'] == 'structured-value-v1':
+                elif profile['reader'] in STRUCTURED_VALUE_READERS:
                     if endpoint == 'domain_type_ids':
                         if not ancestry.intersection({'tos.entity.identity', 'tos.entity.semantic-object'}):
                             raise SourceProfileError('structured value subject requires a specific identity or semantic family')
@@ -477,6 +479,15 @@ class SourceClaimProfiles:
                         raise SourceProfileError('semantic relation endpoint must be a specific semantic or identity family')
             if profile['reader'] == 'semantic-relation-v1' and not semantic_endpoint:
                 raise SourceProfileError('semantic relation profile requires a semantic endpoint')
+            if profile['reader'] == REFERENCE_VALUE_READER:
+                members = profile['object_reference_set']
+                if members['min_items'] > members['max_items']:
+                    raise SourceProfileError('reference value member bounds are reversed')
+                for type_id in members['member_type_ids']:
+                    if (type_id in {'tos.entity.thing', 'tos.entity.identity', 'tos.entity.semantic-object',
+                                    'tos.entity.unmapped', 'tos.entity.unresolved-endpoint'}
+                            or not self.ancestry(type_id).intersection({'tos.entity.identity', 'tos.entity.semantic-object'})):
+                        raise SourceProfileError('reference value members require specific identity or semantic families')
             self.profiles[predicate], self.relations[predicate] = profile, entry
             for route in profile['schemas']:
                 key = predicate, route['schema_version']
@@ -491,11 +502,28 @@ class SourceClaimProfiles:
         return self.profiles[claim['predicate']]['reader'] == 'historical-temporal-v1'
 
     def is_value(self, claim):
-        return self.profiles[claim['predicate']]['reader'] in {'historical-temporal-v1', 'structured-value-v1'}
+        return self.profiles[claim['predicate']]['reader'] in {'historical-temporal-v1', *STRUCTURED_VALUE_READERS}
+
+    def reference_members(self, claim):
+        """Only the declared fixed slot is interpreted; arbitrary JSON stays inert."""
+        profile = self.profiles[claim['predicate']]
+        if profile['reader'] != REFERENCE_VALUE_READER:
+            return ()
+        constraint = profile['object_reference_set']
+        members = claim.get('object', {}).get('members') if isinstance(claim.get('object'), dict) else None
+        if (not isinstance(members, list) or not constraint['min_items'] <= len(members) <= constraint['max_items']
+                or any(not isinstance(identity, str) or not re.fullmatch(
+                    r'tos\.[a-z][a-z0-9-]*\.[a-z0-9]+(?:[.-][a-z0-9]+)*', identity) for identity in members)
+                or len(set(members)) != len(members)
+                or claim.get('claim_id') in members
+                or constraint['subject_is_member'] and claim.get('subject_ref') not in members):
+            raise SourceProfileError('reference value members violate the exact typed-set contract')
+        return tuple(members)
 
     def identity_refs(self, claim):
         """Identity dependencies of a validated Claim; values never become IDs."""
         refs = {claim['subject_ref']}
+        refs.update(self.reference_members(claim))
         if self.is_temporal(claim):
             if claim['object']['kind'] == 'relative-order':
                 refs.add(claim['object']['relative']['anchor_ref'])
@@ -524,7 +552,7 @@ class SourceClaimProfiles:
             raise SourceProfileError('source claim identity, endpoints or layer violates its profile')
         if key not in self.validators:
             shared_refs = (*CLAIM_SHARED_REFS, *([TEMPORAL_VALUE_REF] if self.is_temporal(claim) else []))
-            if self.profiles[predicate]['reader'] == 'structured-value-v1':
+            if self.profiles[predicate]['reader'] in STRUCTURED_VALUE_READERS:
                 shared_refs = (*shared_refs, CORPUS_REF, STRUCTURED_VALUE_REF)
             self.validators[key], registry = _schema_route(self.root, self.schema_routes[key], self.input_digests,
                                                            self.schemas, shared_refs)
@@ -534,7 +562,7 @@ class SourceClaimProfiles:
                 self.temporal_validators[key] = Draft202012Validator(
                     {'$ref': self.schemas[TEMPORAL_VALUE_REF]['$id'] + '#/$defs/historicalDate'},
                     registry=registry, format_checker=FormatChecker())
-            if self.profiles[predicate]['reader'] == 'structured-value-v1':
+            if self.profiles[predicate]['reader'] in STRUCTURED_VALUE_READERS:
                 self.value_validators[key] = Draft202012Validator(self.schemas[STRUCTURED_VALUE_REF],
                     registry=registry, format_checker=FormatChecker())
         try:
@@ -547,9 +575,13 @@ class SourceClaimProfiles:
                 raise SourceProfileError('source claim violates the shared structured value contract or declared kind')
         except Unresolvable as error:
             raise SourceProfileError('source claim schema has an undeclared dependency') from error
+        members = self.reference_members(claim)
         if objects is not None:
             relation = self.relations[predicate]
             endpoints = [('subject_ref', claim['subject_ref'], relation['domain_type_ids'])]
+            if members:
+                endpoints.extend(('value member', identity,
+                    self.profiles[predicate]['object_reference_set']['member_type_ids']) for identity in members)
             if self.is_temporal(claim):
                 if claim['object']['kind'] == 'relative-order':
                     endpoints.append(('relative anchor', claim['object']['relative']['anchor_ref'],

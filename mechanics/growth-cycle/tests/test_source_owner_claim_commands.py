@@ -429,5 +429,196 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
         self.assertTrue(replayed['replayed'])
 
 
+class PrivateReferenceClaimCommandTests(unittest.TestCase):
+    """V2 finite selector grants over distinct, entirely synthetic native uses."""
+
+    write_owner = PrivateClaimCommandTests.write_owner
+    run_command = PrivateClaimCommandTests.run_command
+    prepare_create = PrivateClaimCommandTests.prepare_create
+    create = PrivateClaimCommandTests.create
+    files = PrivateClaimCommandTests.files
+
+    def setUp(self):
+        from test_source_claim_commands import reference_native_units, motif_proposal_value
+        from tests.test_source_owner_record_profiles import SOURCE_REF, PREFIX, occurrence
+        PrivateClaimCommandTests.setUp(self)
+        reference_native_units(self.local.native)
+        self.local.sync_native()
+        self.members, self.member_paths, selections = [], [], []
+        for index, unit in enumerate(self.local.native.packet['units']):
+            binding = {**copy.deepcopy(self.local.binding), 'unit_id': unit['unit_id'],
+                       'ordered_anchor_refs': unit['ordered_anchor_refs']}
+            record = occurrence(binding)
+            if index == 0:
+                ref, record['record_id'] = SOURCE_REF, self.local.source['record_id']
+                self.local.source = record
+            else:
+                ref = PREFIX + f'semantic/reference-member-{index}/occurrence.json'
+                record['record_id'] = f'tos.occurrence.synthetic.private-reference-{index}'
+            record['preferred_label'] = f'Synthetic distinct member {index}'
+            self.member_paths.append(self.local.write_private(ref, self.local.encode(record)))
+            self.members.append(record['record_id'])
+            selections.append({'path': ref, 'record_id': record['record_id'], 'profile_type_id': 'tos.entity.occurrence',
+                'origin_id': 'origin:synthetic-native', 'source_access': self.local.access(True), 'source_binding': binding})
+        self.values = [motif_proposal_value(self.members[:3]), motif_proposal_value(self.members[:2]),
+                       motif_proposal_value([*self.members[:2], self.members[3]])]
+        self.claim.update(schema_version='tos_source_occurrence_motif_claim_v1',
+            predicate='occurrence_motif_proposal', assertion_layer='semantic_interpretation', object=self.values[0],
+            evidence_refs=[SOURCE_REF], qualifiers={'statement': 'Synthetic qualified grouping, not a Sign.',
+                'statement_language': 'en', 'statement_script': 'Latn'})
+        self.config.update(schema_version=private.REFERENCE_CONFIG, allowed_object_refs=list(self.members),
+            allowed_object_values=copy.deepcopy(self.values), allowed_predicates=[self.claim['predicate']],
+            allowed_evidence_refs=self.claim['evidence_refs'], allowed_fields=['object', 'qualifiers', 'epistemic_status'])
+        self.config['claim_selections'][0].update(relation_type_id='tos.relation.occurrence-motif-proposal',
+                                                 source_records=selections)
+        self.write_owner()
+
+    def correction(self, value, command_id, *, apply=True):
+        proposal = {'claim_id': self.claim['claim_id'], 'fields': {'object': value},
+            'forms': [{key: item for key, item in self.forms[0].items() if key != 'claim_id'}],
+            'reason': 'Correct this finite synthetic set without accepting a motif.'}
+        preview = self.run_command({'operation': 'prepare-revise', **proposal})
+        request = {'operation': 'claim.revise', 'command_id': command_id, **proposal,
+            'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+            'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+            'expected_inputs': preview['source_bindings']}
+        return (self.run_command(request) if apply else preview), request
+
+    def test_private_reference_create_binds_third_native_member_and_keeps_complete_context(self):
+        prepared = self.prepare_create()
+        bindings = prepared['source_bindings'][0]
+        required = {ref['id'] for ref in bindings['required_sources']}
+        self.assertTrue(set(self.members[:3]) <= required)
+        self.assertNotIn(self.members[3], required)
+        self.assertEqual(len(bindings['native_sources']), 3)
+        self.assertEqual({row['unit_id'] for row in bindings['native_sources']},
+                         {unit['unit_id'] for unit in self.local.native.packet['units'][:3]})
+        self.assertTrue(all(row['content_verified'] for row in bindings['native_sources']))
+        created = self.run_command(self.creation)
+        before = self.files()
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+        self.assertEqual(before, self.files())
+        packet = created['materializations'][0]
+        self.assertEqual(packet['context'][0]['value'], self.claim)
+        self.assertFalse(packet['standalone_reading'])
+        self.assertFalse(created['grants_admission'])
+        self.assertFalse(created['publication_authorized'])
+        self.assertFalse((self.local.public / self.local.native.original_ref).exists())
+        profiles = private.SourceClaimProfiles(self.local.public)
+        readers = private._readers(self.config, self.local.context, records=[self.claim], profiles=profiles)
+        reader = readers[self.claim['claim_id']]
+        reader.prepare_candidate(self.claim, origin_id=self.config['claim_selections'][0]['origin_id'],
+                                 relation_type_id='tos.relation.occurrence-motif-proposal')
+        self.assertIn('ru', reader.required_languages(self.claim['claim_id']))
+
+    def test_private_reference_member_grants_and_old_config_refuse_before_source_reads(self):
+        from source_owner_context import OwnerLocalSourceContext
+        from source_record_profiles import SourceProfileError
+        original_config = copy.deepcopy(self.config)
+        cases = []
+        for missing in (self.members[0], self.members[2]):
+            cases.append({**copy.deepcopy(original_config),
+                'allowed_object_refs': [member for member in self.members if member != missing]})
+        old = {**copy.deepcopy(original_config), 'schema_version': private.CONFIG, 'allowed_fields': ['qualifiers']}
+        old.pop('allowed_object_values')
+        cases.extend((old, {**copy.deepcopy(original_config), 'allowed_object_values': []}))
+        for index, config in enumerate(cases):
+            self.config = config
+            self.write_owner()
+            observed = []
+            original_read = OwnerLocalSourceContext.read_bytes
+            def read(context, path, *args, **kwargs):
+                observed.append(path)
+                return original_read(context, path, *args, **kwargs)
+            with self.subTest(index=index), patch.object(OwnerLocalSourceContext, 'read_bytes', read):
+                with self.assertRaises((PermissionError, SourceProfileError)):
+                    self.prepare_create()
+            self.assertEqual([path for path in observed if path.is_relative_to(self.local.private)], [])
+            self.assertNotIn(self.local.public / self.local.native.content_ref, observed)
+            self.assertFalse(self.path.parent.exists())
+
+    def test_private_reference_missing_source_or_native_binding_fails_closed(self):
+        from source_record_profiles import SourceProfileError
+        selection = copy.deepcopy(self.config['claim_selections'][0])
+        self.config['claim_selections'][0]['source_records'].pop(2)
+        self.write_owner()
+        with self.assertRaises(SourceProfileError):
+            self.prepare_create()
+        self.config['claim_selections'][0] = copy.deepcopy(selection)
+        # The metadata grant alone cannot stand in for its exact native binding.
+        third = self.config['claim_selections'][0]['source_records'][2]
+        third['source_binding'] = None
+        third['source_access'] = self.local.access()
+        self.write_owner()
+        with self.assertRaises(SourceProfileError):
+            self.prepare_create()
+        self.assertFalse(self.path.parent.exists())
+        self.config['claim_selections'][0] = selection
+        self.write_owner()
+        self.create()
+        before, original = self.files(), self.member_paths[2].read_bytes()
+        self.member_paths[2].unlink()
+        with self.assertRaises((SourceProfileError, FileNotFoundError)):
+            self.run_command(self.creation)
+        self.member_paths[2].write_bytes(original)
+        self.member_paths[2].chmod(0o600)
+        self.assertEqual(before, self.files())
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+
+    def test_private_reference_allowlist_is_preflighted_but_unrelated_source_is_not_grounded(self):
+        from tests.test_source_owner_record_profiles import PREFIX
+        from source_owner_context import OwnerLocalSourceContext
+        from source_record_profiles import SourceProfileError
+        unused = {'path': PREFIX + 'semantic/unselected/lexeme.json', 'record_id': 'tos.lexeme.synthetic.unselected',
+            'profile_type_id': 'tos.entity.lexeme', 'origin_id': 'origin:synthetic-unselected',
+            'source_access': self.local.access(), 'source_binding': None}
+        self.config['claim_selections'][0]['source_records'].append(unused)
+        self.write_owner()
+        observed, original = [], OwnerLocalSourceContext.read_bytes
+        def read(context, path, *args, **kwargs):
+            observed.append(path)
+            return original(context, path, *args, **kwargs)
+        with patch.object(OwnerLocalSourceContext, 'read_bytes', read):
+            prepared = self.prepare_create()
+        self.assertNotIn(self.local.private / unused['path'], observed)
+        self.assertNotIn(unused['record_id'], {row['id'] for row in prepared['source_bindings'][0]['required_sources']})
+        self.assertFalse((self.local.private / unused['path']).exists())
+        # Unused does not mean unvalidated: an invalid grant still blocks the
+        # command before filtering or opening any private source representation.
+        unused['source_access']['access_allowed'] = False
+        self.write_owner()
+        observed.clear()
+        with patch.object(OwnerLocalSourceContext, 'read_bytes', read), self.assertRaises(SourceProfileError):
+            self.prepare_create()
+        self.assertEqual([path for path in observed if path.is_relative_to(self.local.private)], [])
+        self.assertNotIn(self.local.public / self.local.native.content_ref, observed)
+
+    def test_private_reference_revision_add_remove_preserves_identity_and_replay_scope(self):
+        created = self.create()
+        removed, removal = self.correction(self.values[1], 'synthetic:remove-member')
+        added, addition = self.correction(self.values[2], 'synthetic:add-member')
+        self.assertEqual(removed['source']['version'], 2)
+        self.assertEqual(added['source']['version'], 3)
+        self.assertEqual(added['source']['id'], self.claim['claim_id'])
+        for result, members in ((removed, self.values[1]['members']), (added, self.values[2]['members'])):
+            bound = result['source_bindings'][0]
+            source_members = {row['id'] for row in bound['required_sources'] if row['id'].startswith('tos.occurrence.')}
+            self.assertEqual(source_members, set(members))
+            self.assertEqual(len(bound['native_sources']), len(members))
+            self.assertEqual(result['materializations'][0]['context'][0]['value']['object']['members'], members)
+        before = self.files()
+        for request, receipt in ((self.creation, created['receipt']), (removal, removed['receipt']), (addition, added['receipt'])):
+            replay = self.run_command(request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], receipt)
+            self.assertEqual(before, self.files())
+        self.config['allowed_object_refs'] = self.members[:3]
+        self.write_owner()
+        for request in (removal, addition, self.creation):
+            with self.subTest(operation=request['operation']), self.assertRaises(PermissionError):
+                self.run_command(request)
+        self.assertEqual(before, self.files())
+
+
 if __name__ == '__main__':
     unittest.main()

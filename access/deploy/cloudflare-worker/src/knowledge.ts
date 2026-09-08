@@ -21,11 +21,12 @@ type SceneVertex = {id: string; node_ids: string[]};
 type SceneArc = {relation_id: string; from_id: string; to_id: string};
 
 // Optional view over the exact packet, not a new asserted relationship.
-// Unknown incident edges keep a Claim explicit; grounds fold into inspectable
-// path details only when they do not carry a retained or focused neighborhood.
+// Unknown incident edges keep a Claim explicit; grounds and typed value members
+// fold into inspectable path details, retaining focused or shared neighborhoods.
 function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVertex[], arcs: SceneArc[],
                            byNode: Map<string, string>, focusNodeId: string | null) {
   const byRelation = new Map(relations.map(r => [String(r.id), r]));
+  const detailTypes = new Set(['tos.relation.claim-supported-by', 'tos.relation.claim-value-member']);
   const outgoing = new Map<string, Item[]>(), incident = new Map<string, SceneArc[]>();
   for (const relation of relations) {
     const id = String(relation.from_id);
@@ -55,6 +56,17 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
     if (legs.some(leg => leg.length !== 1) || legs[0]![0]!.to_id !== subject || legs[1]![0]!.to_id !== object) {
       reasons.set(id, 'incomplete-or-ambiguous-path'); continue;
     }
+    const members = claim.value_member_node_ids;
+    const memberEdges = (outgoing.get(id) ?? []).filter(r => r.relation_type_id === 'tos.relation.claim-value-member');
+    if (Object.hasOwn(claim, 'value_member_node_ids') || memberEdges.length) {
+      const targets = new Set(memberEdges.map(r => String(r.to_id)));
+      if (!Array.isArray(members) || !members.length || members.some(member => typeof member !== 'string')
+          || new Set(members).size !== members.length
+          || members.some(member => !byNode.has(member) || !targets.has(member))
+          || memberEdges.length !== members.length || targets.size !== members.length) {
+        reasons.set(id, 'incomplete-value-member-context'); continue;
+      }
+    }
     candidates.set(id, {node, claim, legs: [String(legs[0]![0]!.id), String(legs[1]![0]!.id)]});
   }
   const focusVertex = focusNodeId === null ? undefined : byNode.get(focusNodeId);
@@ -71,7 +83,7 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
       for (const arc of incident.get(vertex.id) ?? []) {
         if (legs.has(arc.relation_id)) continue;
         const relation = byRelation.get(arc.relation_id)!;
-        if (!idSet.has(String(relation.from_id)) || relation.relation_type_id !== 'tos.relation.claim-supported-by'
+        if (!idSet.has(String(relation.from_id)) || !detailTypes.has(String(relation.relation_type_id))
             || arc.to_id === vertex.id) { reason = 'nonfoldable-incident-relation'; break; }
         if (arc.to_id === focusVertex) { reason = 'focus-detail'; break; }
       }
@@ -83,7 +95,7 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
     folded.add(vertex.id);
     for (const id of ids) {
       const {node, claim, legs} = candidates.get(id)!;
-      const details = (outgoing.get(id) ?? []).filter(r => r.relation_type_id === 'tos.relation.claim-supported-by')
+      const details = (outgoing.get(id) ?? []).filter(r => detailTypes.has(String(r.relation_type_id)))
         .map(r => String(r.id)).sort(compareIds);
       for (const relationId of [...legs, ...details]) removed.add(relationId);
       for (const relationId of details) detailVertices.add(byNode.get(String(byRelation.get(relationId)!.to_id))!);

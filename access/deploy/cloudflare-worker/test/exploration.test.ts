@@ -49,6 +49,102 @@ function membership(pages: Awaited<ReturnType<typeof collect>>) {
   };
 }
 
+function valueMemberGraph() {
+  // Synthetic three-occurrence proposal, not historical evidence or accepted
+  // membership. The focal occurrence is one member of the whole qualified set.
+  const g = graph(6), members = ['0', '4', '5'];
+  for (const id of members) g.nodes[Number(id)].type_id = 'tos.entity.occurrence';
+  Object.assign(g.nodes[1], {type_id: 'tos.entity.claim', content_revision: 'b'.repeat(64),
+    semantics: {claim: {subject_node_id: '0', object_node_id: '2', value_member_node_ids: members,
+      relation_type_id: 'tos.relation.occurrence-motif-proposal', predicate_mapping_status: 'mapped',
+      review_status: 'unreviewed'}},
+    attributes: {source_claim: {object: {kind: 'motif-proposal', members: [...members]}}},
+    display: {title: {default: 'Unassessed motif proposal'},
+      summary: {default: 'A qualified proposal over occurrences 0, 4 and 5; not accepted membership.'},
+      provenance: {source_summary_available: true}}});
+  g.relations = [
+    ['subject', '0', 'tos.relation.has-subject'],
+    ['object', '2', 'tos.relation.has-object'],
+    ['grounds', '3', 'tos.relation.claim-supported-by'],
+    ...members.map((id, i) => ['member-' + i, id, 'tos.relation.claim-value-member']),
+  ].map(([id, to_id, relation_type_id]) => ({...g.relations[0], id, from_id: '1', to_id, relation_type_id}));
+  return g;
+}
+
+test('compact value-member context requires the full set and preserves focused or shared details', () => {
+  const original = valueMemberGraph();
+  const cases: {name: string; graph: ReturnType<typeof valueMemberGraph>; focus: string | null; reason: string | null}[] = [
+    {name: 'complete', graph: original, focus: null, reason: null},
+    {name: 'object focus', graph: original, focus: '2', reason: null},
+    {name: 'claim focus', graph: original, focus: '1', reason: 'focus-claim'},
+    ...['0', '3', '4', '5'].map(focus => ({name: 'detail focus ' + focus, graph: original, focus, reason: 'focus-detail'})),
+  ];
+  for (const name of ['missing third edge', 'missing third node', 'duplicate third target', 'extra member edge', 'incoming member edge']) {
+    const g = structuredClone(original);
+    if (name.startsWith('missing')) g.relations = g.relations.filter((r: Item) => r.id !== 'member-2');
+    if (name === 'missing third node') g.nodes = g.nodes.filter((n: Item) => n.id !== '5');
+    if (name === 'duplicate third target') g.relations.find((r: Item) => r.id === 'member-2').to_id = '4';
+    if (name === 'extra member edge') g.relations.push({...g.relations.find((r: Item) => r.id === 'member-1'), id: 'member-extra'});
+    if (name === 'incoming member edge') Object.assign(g.relations.find((r: Item) => r.id === 'member-2'), {from_id: '5', to_id: '1'});
+    // Text and raw values keep all members even when the scene packet does not.
+    assert.deepEqual(g.nodes[1].attributes.source_claim.object.members, ['0', '4', '5']);
+    assert.equal(g.nodes[1].display.summary.default, original.nodes[1].display.summary.default);
+    cases.push({name, graph: g, focus: null, reason: 'incomplete-value-member-context'});
+  }
+  for (const members of [null, '0,4,5', [], ['0', '4', '4'], ['0', '4', 5]]) {
+    const g = structuredClone(original);
+    g.nodes[1].semantics.claim.value_member_node_ids = members;
+    cases.push({name: 'malformed member declaration ' + JSON.stringify(members), graph: g, focus: null,
+      reason: 'incomplete-value-member-context'});
+  }
+  const undeclared = structuredClone(original);
+  delete undeclared.nodes[1].semantics.claim.value_member_node_ids;
+  cases.push({name: 'member edges without declaration', graph: undeclared, focus: null, reason: 'incomplete-value-member-context'});
+  for (const members of [[], null]) {
+    const empty = structuredClone(original);
+    empty.nodes[1].semantics.claim.value_member_node_ids = members;
+    empty.relations = empty.relations.filter((r: Item) => r.relation_type_id !== 'tos.relation.claim-value-member');
+    cases.push({name: 'empty declaration without member edges ' + JSON.stringify(members), graph: empty, focus: null,
+      reason: 'incomplete-value-member-context'});
+  }
+  const shared = structuredClone(original);
+  shared.relations.push({...shared.relations[0], id: 'member-neighborhood', from_id: '4', to_id: '5',
+    relation_type_id: 'tos.relation.related'});
+  cases.push({name: 'shared member neighborhood', graph: shared, focus: null, reason: null});
+  const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['graph']['nodes'],c['graph']['relations'],c['focus']) for c in p]))", cases);
+  for (const [index, c] of cases.entries()) {
+    const before = structuredClone(c.graph);
+    const scene = knowledgeScene(c.graph.nodes, c.graph.relations, c.focus), compact = scene.compact;
+    assert.deepEqual(scene, expected[index], c.name + ': Python parity');
+    assert.deepEqual(c.graph, before, c.name + ': input records remain unchanged');
+    assert.equal(scene.vertices.flatMap(v => v.node_ids).length, c.graph.nodes.length, c.name + ': raw vertices');
+    assert.equal(scene.arcs.length, c.graph.relations.length, c.name + ': raw arcs');
+    assert.equal(compact.rule, 'explicit-claim-paths-v1');
+    assert.equal(compact.authority, 'presentation-only-no-new-assertion');
+    if (c.reason) {
+      assert.deepEqual(compact.claim_paths, [], c.name);
+      assert.deepEqual(compact.retained_claims, [{node_id: '1', reason: c.reason}], c.name);
+      assert.equal(compact.vertex_ids.length, c.graph.nodes.length, c.name);
+      assert.equal(compact.relation_ids.length, c.graph.relations.length, c.name);
+    } else {
+      assert.equal(compact.claim_paths.length, 1, c.name);
+      const path = compact.claim_paths[0]!;
+      assert.deepEqual(path.node_ids, ['0', '1', '2'], c.name + ': one qualified set, not pairwise assertions');
+      assert.deepEqual(path.detail_relation_ids, ['grounds', 'member-0', 'member-1', 'member-2']);
+      assert.deepEqual((path.reading as Item).relation_context_ids, ['subject', 'object', 'grounds', 'member-0', 'member-1', 'member-2']);
+      assert.equal((path.reading as Item).standalone, false);
+      assert.ok(compact.vertex_ids.includes('tos-scene:carrier:0'), 'the focal member remains a path endpoint');
+      if (c.name === 'shared member neighborhood') {
+        assert.deepEqual(compact.relation_ids, ['member-neighborhood']);
+        for (const id of ['4', '5']) assert.ok(compact.vertex_ids.includes('tos-scene:carrier:' + id));
+      } else {
+        assert.deepEqual(compact.relation_ids, []);
+        assert.deepEqual(compact.folded_vertex_ids, ['1', '3', '4', '5'].map(id => 'tos-scene:carrier:' + id));
+      }
+    }
+  }
+});
+
 test('overview identity steps are resumable, zero distance, filtered and promote shorter queued paths', async () => {
   for (const shorter of [false, true]) {
     const mf = new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response()}}',d1Databases:['DB']}));
@@ -114,6 +210,55 @@ test('D1 continuation delivers the same qualified Claim scene as Python without 
         }
       }
       assert.equal(count,size===1?0:1);
+    }
+  } finally {await mf.dispose();}
+});
+
+test('D1 motif value-member pages preserve the complete context and fail closed on a missing third edge', async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
+    script: 'export default {fetch(){return new Response()}}', d1Databases: ['Complete', 'Missing']}));
+  try {
+    for (const missing of [false, true]) {
+      const db = await mf.getD1Database(missing ? 'Missing' : 'Complete'), g = valueMemberGraph();
+      if (missing) {
+        g.relations = g.relations.filter((r: Item) => r.id !== 'member-2');
+        // Keep the third occurrence in the returned raw packet via a different
+        // neighborhood. Neither its presence nor source wording supplies the
+        // missing typed member edge.
+        g.relations.push({...g.relations[0], id: 'other-neighborhood', from_id: '0', to_id: '5',
+          relation_type_id: 'tos.relation.related'});
+      }
+      await init(db, g);
+      for (const focus of ['2', '0', '5']) for (const size of [1, 8]) {
+        const pages = await collect(db, {focus_node_id: focus, max_depth: 3, page_nodes: size, page_relations: size});
+        const expected = python("from tos_access.knowledge import knowledge_scene;p=json.load(sys.stdin);print(json.dumps([knowledge_scene(c['nodes'],c['relations'],c['focus']['node_id']) for c in p]))", pages);
+        let folded = 0;
+        for (const [index, page] of pages.entries()) {
+          assert.deepEqual(page.scene, expected[index]);
+          const scene = page.scene as ReturnType<typeof knowledgeScene>;
+          folded += scene.compact.claim_paths.length;
+          for (const path of scene.compact.claim_paths) {
+            assert.deepEqual(path.detail_relation_ids, ['grounds', 'member-0', 'member-1', 'member-2']);
+            assert.equal((path.reading as Item).standalone, false);
+          }
+          if (size === 8) {
+            assert.equal((page.nodes as Item[]).length, 6, 'all raw member nodes remain available');
+            const claim = (page.nodes as {id: string; semantics: {claim: {value_member_node_ids: string[]}};
+              display: {summary: {default: string}}}[]).find(n => n.id === '1')!;
+            assert.deepEqual(claim.semantics.claim.value_member_node_ids, ['0', '4', '5']);
+            assert.equal(claim.display.summary.default, g.nodes[1].display.summary.default);
+            // Exploration is a compact carrier; full raw attributes stay in
+            // the indexed inspection record, not duplicated into every page.
+            const stored = JSON.parse((await db.prepare('SELECT json FROM knowledge_nodes WHERE id=?').bind('1').first<string>('json'))!);
+            assert.deepEqual(stored.attributes.source_claim.object.members, ['0', '4', '5']);
+            if (missing) assert.deepEqual(scene.compact.retained_claims,
+              [{node_id: '1', reason: 'incomplete-value-member-context'}]);
+            else if (focus !== '2') assert.deepEqual(scene.compact.retained_claims,
+              [{node_id: '1', reason: 'focus-detail'}]);
+          }
+        }
+        assert.equal(folded, !missing && focus === '2' && size === 8 ? 1 : 0);
+      }
     }
   } finally {await mf.dispose();}
 });

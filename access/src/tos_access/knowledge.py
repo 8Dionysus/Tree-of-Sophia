@@ -974,7 +974,7 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
         return node_kind
     if source_profile and source_profile.get('reader') == 'historical-temporal-v1':
         return 'temporal-assertion'
-    if source_profile and source_profile.get('reader') == 'structured-value-v1':
+    if source_profile and source_profile.get('reader') in {'structured-value-v1', 'structured-reference-value-v1'}:
         return source_profile['value_kind']
     value = properties.get("value")
     if claim_predicate == "provision_activity" or (
@@ -1583,6 +1583,86 @@ def _normalize_relation(
     return normalized
 
 
+def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
+                                       entity_entries, relation_entries, relation_mappings):
+    """Check the declared fixed-slot ABI without IO or inferred references.
+
+    Access consumes exported JSON, not the source validator's rebuild. A
+    missing derived carrier cannot weaken the retained source Claim. Ordinary
+    structured values and their opaque extensions keep their existing reader.
+    """
+    by_native = {row.get('node_id'): row for row in raw_nodes if isinstance(row.get('node_id'), str)}
+    traces, members_from, members_for = defaultdict(list), defaultdict(list), defaultdict(list)
+    for trace in _objects(bibliographic.get('claim_traces')):
+        if isinstance(trace.get('claim_node_id'), str):
+            traces[trace['claim_node_id']].append(trace)
+    for edge in _objects(bibliographic.get('edges')):
+        if edge.get('edge_kind') != 'has_value_member':
+            continue
+        if isinstance(edge.get('from_id'), str):
+            members_from[edge['from_id']].append(edge)
+        if isinstance(edge.get('claim_ref'), str):
+            members_for[edge['claim_ref']].append(edge)
+
+    def profile(predicate):
+        if not isinstance(predicate, str):
+            return {}
+        relation = relation_entries.get(relation_mappings.get(('source-claims', predicate, 'claim-predicate')), {})
+        return relation.get('source_claim_profile') or {}
+
+    for raw in raw_nodes:
+        properties = raw.get('properties') if isinstance(raw.get('properties'), dict) else {}
+        source = properties.get('source_claim') if isinstance(properties.get('source_claim'), dict) else {}
+        selected = traces.get(_string(raw.get('node_id')), [])
+        predicates = [source.get('predicate'), properties.get('predicate'), *[row.get('predicate') for row in selected]]
+        profiles = [profile(predicate) for predicate in predicates]
+        if not any(row.get('reader') == 'structured-reference-value-v1' for row in profiles):
+            continue
+        error = 'incomplete or inconsistent reference-value Claim carriers'
+        if (raw.get('node_kind') != 'claim' or len(selected) != 1
+                or not isinstance(source.get('claim_id'), str)
+                or any(predicate != source.get('predicate') for predicate in predicates)
+                or profiles[0].get('reader') != 'structured-reference-value-v1'):
+            raise ValueError(error)
+        trace, source_id, rules = selected[0], source['claim_id'], profiles[0]['object_reference_set']
+        value = source.get('object')
+        members = value.get('members') if isinstance(value, dict) else None
+        if (not isinstance(members, list) or not rules['min_items'] <= len(members) <= rules['max_items']
+                or any(not isinstance(member, str) or not member for member in members)
+                or len(set(members)) != len(members) or source_id in members
+                or rules['subject_is_member'] and source.get('subject_ref') not in members):
+            raise ValueError(error)
+        expected = {'identity:' + member for member in members}
+        declared = trace.get('value_member_node_ids')
+        literal = by_native.get(_string(trace.get('object_node_id')), {})
+        literal_properties = literal.get('properties') if isinstance(literal.get('properties'), dict) else {}
+        if (trace.get('claim_ref') != source_id or properties.get('claim_ref') != source_id
+                or trace.get('subject_node_id') != 'identity:' + str(source.get('subject_ref'))
+                or not isinstance(declared, list) or any(not isinstance(member, str) for member in declared)
+                or len(declared) != len(expected) or set(declared) != expected
+                or literal.get('node_kind') != 'literal'
+                or _validation_digest(properties.get('object')) != _validation_digest(value)
+                or _validation_digest(literal_properties.get('value')) != _validation_digest(value)):
+            raise ValueError(error)
+        edges = members_from.get(raw['node_id'], [])
+        if (len(edges) != len(expected) or len(members_for.get(source_id, [])) != len(expected)
+                or any(edge.get('claim_ref') != source_id or edge.get('to_id') not in expected
+                       or not isinstance(edge.get('edge_id'), str) for edge in edges)
+                or {edge['to_id'] for edge in edges} != expected
+                or len({edge['edge_id'] for edge in edges}) != len(expected)
+                or not isinstance(trace.get('edge_ids'), list)
+                or any(edge['edge_id'] not in trace['edge_ids'] for edge in edges)):
+            raise ValueError(error)
+        for member in members:
+            native_id = 'identity:' + member
+            carrier = by_native.get(native_id, {})
+            attributes = carrier.get('properties') if isinstance(carrier.get('properties'), dict) else {}
+            normalized = nodes_by_id.get('source-claims:' + native_id, {})
+            if (carrier.get('node_kind') != 'identity' or attributes.get('identity_ref') != member
+                    or not _type_is_a(normalized.get('type_id'), rules['member_type_ids'], entity_entries)):
+                raise ValueError(error)
+
+
 def build_knowledge_graph(
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
@@ -1720,6 +1800,8 @@ def build_knowledge_graph(
             repository_items.append((collection, order, material, native, identity))
 
     nodes_by_id = {node["id"]: node for node in nodes}
+    _validate_reference_claim_carriers(bibliographic, bibliographic_nodes, nodes_by_id,
+                                       entity_entries, relation_entries, relation_mappings)
     relation_sources: list[tuple[str, dict[str, Any], str | None]] = []
     relation_sources.extend(("philosophy", item, None) for item in _objects(philosophy.get("edges")))
     pack_paths = {
@@ -2113,6 +2195,8 @@ def build_knowledge_graph(
                 f"source-claims:{identifier}"
                 for identifier in _strings(trace.get("evidence_node_ids"))
             ],
+            **({'value_member_node_ids': [f'source-claims:{identifier}'
+                for identifier in trace['value_member_node_ids']]} if trace.get('value_member_node_ids') else {}),
             "review_status": trace.get("review_status"),
             "epistemic_status": trace.get("epistemic_status"),
         }, dict(trace))
@@ -3151,6 +3235,17 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
         if any(len(leg) != 1 for leg in legs) or legs[0][0]['to_id'] != subject or legs[1][0]['to_id'] != object_id:
             reasons[identifier] = 'incomplete-or-ambiguous-path'
             continue
+        member_ids = claim.get('value_member_node_ids')
+        member_edges = [r for r in outgoing[identifier]
+                        if r.get('relation_type_id') == 'tos.relation.claim-value-member']
+        if 'value_member_node_ids' in claim or member_edges:
+            if (not isinstance(member_ids, list) or not member_ids
+                    or any(not isinstance(id, str) or id not in by_node for id in member_ids)
+                    or len(set(member_ids)) != len(member_ids)
+                    or len(member_edges) != len(member_ids)
+                    or {r['to_id'] for r in member_edges} != set(member_ids)):
+                reasons[identifier] = 'incomplete-value-member-context'
+                continue
         candidates[identifier] = {'node': node, 'claim': claim, 'legs': [legs[0][0]['id'], legs[1][0]['id']]}
     focus_vertex = by_node.get(focus_node_id)
     folded, removed, paths, detail_vertices = set(), set(), [], set()
@@ -3172,7 +3267,7 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
                     continue
                 relation = by_relation[arc['relation_id']]
                 if (relation['from_id'] not in identifier_set
-                        or relation.get('relation_type_id') != 'tos.relation.claim-supported-by'
+                        or relation.get('relation_type_id') not in {'tos.relation.claim-supported-by', 'tos.relation.claim-value-member'}
                         or arc['to_id'] == vertex['id']):
                     reason = 'nonfoldable-incident-relation'
                     break
@@ -3188,7 +3283,7 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
             candidate = candidates[identifier]
             node, claim, legs = candidate['node'], candidate['claim'], candidate['legs']
             details = sorted(r['id'] for r in outgoing[identifier]
-                             if r.get('relation_type_id') == 'tos.relation.claim-supported-by')
+                             if r.get('relation_type_id') in {'tos.relation.claim-supported-by', 'tos.relation.claim-value-member'})
             removed.update([*legs, *details])
             detail_vertices.update(by_node[by_relation[id]['to_id']] for id in details)
             wording = None

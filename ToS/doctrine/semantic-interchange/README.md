@@ -85,6 +85,14 @@ does not read private text; metadata-only packets omit lexical hashes and
 declare content availability. A private lexical workbench is not automatically
 a public or accepted annotation layer.
 
+Native v2 `occurrence`, `lexeme` and `lexical_sense` entities use the distinct
+`annotation-occurrence`, `annotation-lexeme` and `annotation-lexical-sense`
+adapter kinds and corresponding `tos.entity.*` types. They retain every native
+ID, `entity_kind`, source field, anchor and Claim/evidence route; they do not
+become authored description profiles or acquire missing semantic prose.
+Their parent is `semantic-object`, not a profile-bearing Occurrence, Lexeme
+or LexicalSense. Authored profiles and their required accounts stay unchanged.
+
 Missing reviews, unresolved source endpoints and synthesized descriptions remain
 visible gaps. Broad legacy relation families retain native predicates; mapping
 coverage does not prove their philosophical endpoint semantics. Tightening such
@@ -833,6 +841,59 @@ V1 identity/descriptive and v2 temporal permissions are not widened. Source,
 catalog, graph and assessment input readers preserve the exact value and
 source bindings; receipt validity does not accept its historical content.
 Rolling back a derived reader does not erase the new sources or corrections.
+
+## Qualified motif proposals and explicit member dependencies
+
+`occurrence_motif_proposal` relates one focal Occurrence to a qualified
+`motif-proposal` value. The **Claim ID** is the stable candidate identity;
+the value is neither a Sign nor a Collection or a second persistent subject.
+Equal values in different Claims do not merge the candidates. Every declared
+member is an exact Occurrence with its own native TextUnit binding. The focal
+must be a member; it is an entry to the whole proposal, not a privileged first
+pair that substitutes for the remaining occurrences.
+
+The new `structured-reference-value-v1` reader makes one fixed slot,
+`/object/members`, explicit through the profile's `object_reference_set`.
+The registry declares specific member types, finite bounds and whether the
+subject belongs to the set. All members must resolve through their real source
+profiles and become mandatory Claim dependencies. Other fields, nested
+`members`, apparent IDs and extensions are inert. The older
+`structured-value-v1` remains entirely non-reference-bearing; merely adding
+a member-looking field to old data does not activate this interpretation.
+
+The motif value supplies proposed signification, grouping basis, source scope,
+contrast and limitations. Its `source_wording.wording_kind` is explicitly
+`research_paraphrase`, not a quotation of the witness. Exact witness quotations
+retain their separate anchor-bearing `supporting_quotes`. The full statement
+and source-copy form carry the entire qualified Claim as mandatory context.
+The hypothesis may be disputed or uncertain without losing its addressability.
+
+The source graph emits a separate Claim-to-member structural return for every
+member, retaining the governing Claim and digest. `tos.relation.claim-value-member`
+does not independently accept membership, recurrence, equality or a Sign.
+Each member can be focused and followed back to the same complete hypothesis.
+Compact Claim reading requires every declared member node and edge; missing
+one keeps the Claim unfolded with an explicit incomplete-context reason.
+The compact focal-to-value line is only an entrance to this full context.
+
+Creation and member-set correction require separately versioned grants:
+public v4 and confidential-source v2. Every member, including the focal in its
+member role, needs explicit object-reference scope as well as an exact allowed
+object value. Subject permission alone is insufficient. Changing the set is
+an object correction, never an unchecked qualifier edit. The focal and Claim
+identity remain immutable; removing the focal requires an explicit successor
+or reformulated proposal, not silent reassignment of the existing Claim.
+Source-visible assessment must read the entire set, its exact native grounds
+and the proposed interpretation together. A receipt or schema check grants no
+semantic admission or promotion authority.
+
+The initial motif profile allows two to eight members within the existing
+bounded native reader. That is a disclosed first execution limit, not a
+philosophical maximum or completion of large-corpus motif discovery. Larger
+sets need an explicit bounded continuation/storage contract; truncation must
+not masquerade as a complete hypothesis. Sign promotion, real competence and
+the historical or philosophical merit of a motif remain separate work.
+The rationale is [TOS-D-0056](../../../docs/decisions/TOS-D-0056-claim-scoped-reference-values.md).
 
 ## Independent genre, content form, medium and file format
 

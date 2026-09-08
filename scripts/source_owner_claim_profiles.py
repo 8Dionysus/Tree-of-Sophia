@@ -373,7 +373,8 @@ class OwnerLocalSourceClaimProfiles:
             raise SourceProfileError('selected Claim is absent or not local_only')
         self._claims._validate_shape(selected)
         predicate = selected['predicate']
-        if (self._claims.profiles[predicate]['reader'] not in {'semantic-relation-v1', 'identity-relation-v1'}
+        if (self._claims.profiles[predicate]['reader'] not in {
+                'semantic-relation-v1', 'identity-relation-v1', 'structured-reference-value-v1'}
                 or relation_type_id is not None
                 and self._claims.relations[predicate]['relation_type_id'] != relation_type_id):
             raise SourceProfileError('selected Claim has an unsupported or unexpected relation profile')
@@ -454,6 +455,8 @@ class OwnerLocalSourceClaimProfiles:
             if _text(value):
                 languages.add(value)
         add(selected.get('qualifiers', {}).get('statement_language'))
+        if self._claims.profiles[predicate]['reader'] == 'structured-reference-value-v1':
+            add(selected['object']['source_wording']['language'])
         for source in objects.values():
             fields = source.get('field_languages')
             for value in fields.values() if isinstance(fields, dict) else ():

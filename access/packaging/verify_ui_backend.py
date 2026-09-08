@@ -60,11 +60,36 @@ const paths=await loadPaths(start,end,first.source_revision,{client,queries});
 if(!paths.found||!paths.paths.some(path=>path.edge_ids.includes(subject.id)))throw Error('missing bound direct path');
 const excluded=await loadPaths(start,end,first.source_revision,{client,queries,excluded:[subject]});
 if(excluded.paths.some(path=>path.edge_ids.includes(subject.id)))throw Error('excluded edge returned');
+// Exercise the actual material adapter too: a successful inspect does not
+// establish full human-form delivery or language-aware relation restoration.
+const materialId=process.argv[3]||first.focus.node_id,language=process.argv[4];
+const material=await client.readMaterial('node',materialId,undefined,first.source_revision,undefined,{language});
+if(material.match.id!==materialId||material.packet.nodes.length!==1||material.packet.relations.length!==0)
+ throw Error('material identity or isolated-read boundary drift');
+const knownRelation=await client.readMaterial('relation',relation.id,undefined,first.source_revision,
+ relation.content_revision,{language,relation});
+const restoredRelation=await client.readMaterial('relation',relation.id,undefined,first.source_revision,
+ relation.content_revision,{language});
+if(JSON.stringify(knownRelation.packet)!==JSON.stringify(restoredRelation.packet))
+ throw Error('known and restored relation material differ at the same exact revision');
+const selection=material.match.human_form_selection;
+if(process.argv[3]&&(!selection||selection.requested_language!==language))
+ throw Error('explicit material has no language-bound human-form selection');
+const {createHash}=await import('node:crypto');
+const packetDigest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const roles=selection?Object.fromEntries(Object.entries(selection.roles).map(([role,value])=>[role,
+ {state:value.state,reason:value.reason,form:value.form,language:value.packet?.language??null,
+ context_slots:value.packet?.context?.map(item=>item.slot)??[],
+ packet_sha256:value.packet?packetDigest(value.packet):null}])):null;
 console.log(JSON.stringify({consumer:'observatory KnowledgeClient',source_revision:first.source_revision,
  focus:[first.nodes.length,first.relations.length],pair:[pair.nodes.length,pair.relations.length],
  next:[next.nodes.length,next.relations.length],search:[search.nodes.length,search.relations.length],
  exploration_pages:pages,evidence:evidence.availability,path_count:paths.path_count,
- excluded_path_count:excluded.path_count}));
+ excluded_path_count:excluded.path_count,
+ material:{id:material.match.id,content_revision:material.match.content_revision,requested_language:language,
+ selection_state:selection?.state??'not-delivered',roles},
+ relation_material:{id:restoredRelation.match.id,nodes:restoredRelation.packet.nodes.length,
+ relations:restoredRelation.packet.relations.length,restoration_equal:true}}));
 '''
 
 
@@ -73,6 +98,8 @@ def main():
     parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[2])
     parser.add_argument('--web-root',type=Path,required=True)
     parser.add_argument('--client-module',type=Path,required=True)
+    parser.add_argument('--material-id',help='exact public knowledge node ID with human forms for the material canary')
+    parser.add_argument('--language',default='ru',help='content-language request for the actual UI material reader')
     parser.add_argument('--report',type=Path,help='new JSONL report outside the source repository')
     args=parser.parse_args()
     if args.report:
@@ -117,7 +144,9 @@ def main():
             assert response.status==200
             assert 'script-src' in response.headers['Content-Security-Policy']
             assert response.read(), 'empty frontend HTML'
-        result=subprocess.run(['node','--experimental-strip-types','--input-type=module','-e',CLIENT_CHECK,args.client_module.resolve().as_uri(),base],timeout=240,capture_output=True,text=True)
+        result=subprocess.run(['node','--experimental-strip-types','--input-type=module','-e',CLIENT_CHECK,
+                               args.client_module.resolve().as_uri(),base,args.material_id or '',args.language],
+                              timeout=240,capture_output=True,text=True)
         if result.returncode:
             raise RuntimeError(f'UI consumer check failed:\n{result.stderr}')
         emit(json.loads(result.stdout))

@@ -34,6 +34,205 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_motif_proposal_is_one_claim_over_every_typed_occurrence(self):
+        """Artificial members test the grammar, not a historical motif or Sign."""
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        reader = SourceClaimProfiles(REPO_ROOT)
+        members = [f'tos.occurrence.synthetic-motif-{number}' for number in range(3)]
+        objects = {identity: {'record_type': 'occurrence'} for identity in members}
+        claim = json.loads((REPO_ROOT / 'ToS/source-witnesses/relations/goethe-leitkultur-translatability/source-claims.jsonl').read_text().splitlines()[0])
+        claim.update(schema_version='tos_source_occurrence_motif_claim_v1',
+            claim_id='tos.claim.synthetic-motif', subject_ref=members[0],
+            predicate='occurrence_motif_proposal', assertion_layer='semantic_interpretation',
+            object={'kind': 'motif-proposal', 'members': members,
+                'source_wording': {'text': 'Условная гипотеза о мотиве, а не цитата.',
+                    'language': 'ru', 'script': 'Cyrl', 'wording_kind': 'research_paraphrase'},
+                'proposed_signification': 'Only an artificial comparison hypothesis.',
+                'grouping_basis': 'Compare these three uses without asserting identity.',
+                'source_scope': 'Only these synthetic units, not the entire work.',
+                'contrast': 'An alternative interpretation remains possible.',
+                'limitations': 'No real source reading or semantic admission.',
+                'extensions': {'members': ['tos.occurrence.inert-extension'],
+                    'relative': {'anchor_ref': 'tos.occurrence.inert-anchor'}}})
+        original = copy.deepcopy(claim)
+        reader.validate(claim, objects)
+        self.assertEqual(claim, original)
+        self.assertTrue(reader.is_value(claim))
+        self.assertFalse(reader.is_temporal(claim))
+        self.assertEqual(reader.reference_members(claim), tuple(members))
+        self.assertEqual(reader.identity_refs(claim), set(members))
+        for invalid_members in (members[:1], members[:2] + [members[0]], members[1:],
+                members + [f'tos.occurrence.extra-{n}' for n in range(6)],
+                [members[0], False], [members[0], 'not-an-identity']):
+            invalid = copy.deepcopy(claim); invalid['object']['members'] = invalid_members
+            with self.subTest(members=invalid_members), self.assertRaises(SourceProfileError):
+                reader.validate(invalid, objects)
+        for broken_objects in ({key: row for key, row in objects.items() if key != members[2]},
+                {**objects, members[2]: {'record_type': 'work'}},
+                {**objects, members[2]: {'record_type': 'lexical-form'}}):
+            with self.subTest(objects=broken_objects), self.assertRaises(SourceProfileError):
+                reader.validate(claim, broken_objects)
+        for field in ('members', 'proposed_signification', 'grouping_basis', 'source_scope', 'contrast', 'limitations'):
+            invalid = copy.deepcopy(claim); invalid['object'].pop(field)
+            with self.subTest(missing=field), self.assertRaises(SourceProfileError):
+                reader.validate(invalid, objects)
+        invalid = copy.deepcopy(claim); invalid['object']['source_wording']['wording_kind'] = 'witness_quote'
+        with self.assertRaises(SourceProfileError):
+            reader.validate(invalid, objects)
+        # Identical value bytes do not coalesce the candidate identity.
+        other = {**copy.deepcopy(claim), 'claim_id': 'tos.claim.another-synthetic-motif'}
+        reader.validate(other, objects)
+        self.assertNotEqual(claim['claim_id'], other['claim_id'])
+
+    def test_motif_graph_and_compact_reading_require_all_three_native_members(self):
+        from tests.test_native_text_binding import NativeTextBindingFixture, digest
+        from tests.test_source_owner_record_profiles import occurrence
+        from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles
+        with self.historical_fixture() as (root, history, real, baseline, rebuild):
+            native = NativeTextBindingFixture(root)
+            for name in ('source-metadata-record', 'semantic-description-record', 'occurrence-description-record',
+                         'source-claim-record', 'source-structured-value', 'source-occurrence-motif-claim',
+                         'semantic-relation-type-registry'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                native.write_bytes(ref, (REPO_ROOT / ref).read_bytes())
+            original_anchor, original_unit = copy.deepcopy(native.packet['anchors'][1]), copy.deepcopy(native.packet['units'][0])
+            anchors, units = [], []
+            # Three exact, disjoint synthetic spans, not three IDs for one use.
+            for number, (start, end) in enumerate(((3, 4), (4, 6), (6, 8))):
+                anchor = copy.deepcopy(original_anchor)
+                anchor.update(anchor_ref=f'tos.anchor.synthetic.motif-{number}', ordinal=number + 2,
+                              exact_sha256=digest(native.text[start:end].encode('utf-8')))
+                anchor['selector'].update(start=start, end=end)
+                unit = copy.deepcopy(original_unit)
+                unit.update(unit_id='tos.text-unit.sid-' + str(number + 1) * 32,
+                            ordered_anchor_refs=[anchor['anchor_ref']])
+                anchors.append(anchor); units.append(unit)
+            gap = copy.deepcopy(native.packet['anchors'][-1]); gap['ordinal'] = 5
+            native.packet['anchors'] = [native.packet['anchors'][0], *anchors, gap]
+            native.packet['units'] = units
+            native.packet['segmentations'][0]['ordered_unit_refs'] = [unit['unit_id'] for unit in units]
+            native.make_public()
+            records, reader = {}, SourceRecordProfiles(root)
+            for number, unit in enumerate(units):
+                binding = {**copy.deepcopy(native.binding), 'unit_id': unit['unit_id'],
+                           'ordered_anchor_refs': unit['ordered_anchor_refs']}
+                record = occurrence(binding)
+                record.update(record_id=f'tos.occurrence.synthetic-motif-{number}', visibility='public_metadata_only',
+                              preferred_label=f'Synthetic occurrence {number}')
+                reader.validate('occurrence', record)
+                native.write_json(f'ToS/source-witnesses/semantic-descriptions/motif-{number}/occurrence.json', record)
+                records[record['record_id']] = record
+            members = list(records)
+            claim = {**copy.deepcopy(baseline[0]), 'schema_version': 'tos_source_occurrence_motif_claim_v1',
+                'claim_id': 'tos.claim.synthetic-motif-graph', 'subject_ref': members[0],
+                'predicate': 'occurrence_motif_proposal', 'assertion_layer': 'semantic_interpretation',
+                'qualifiers': {'statement': 'Условное сопоставление трёх употреблений с оговорками.',
+                               'statement_language': 'ru', 'statement_script': 'Cyrl'},
+                'object': {'kind': 'motif-proposal', 'members': members,
+                    'source_wording': {'text': 'Synthetic three-member hypothesis, not a witness quotation.',
+                        'language': 'en', 'script': 'Latn', 'wording_kind': 'research_paraphrase'},
+                    'proposed_signification': 'Only a test proposal.', 'grouping_basis': 'Compare three distinct spans.',
+                    'source_scope': 'This synthetic packet only.', 'contrast': 'No alternative has been assessed.',
+                    'limitations': 'No actual motif, recurrence, accepted tokenization or Sign is claimed.'}}
+            SourceClaimProfiles(root).validate(claim, records)
+            path = 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            native.write_bytes(path, (json.dumps(claim, ensure_ascii=False) + '\n').encode('utf-8'))
+            projection = rebuild()
+            trace = next(row for row in projection['claim_traces'] if row['claim_ref'] == claim['claim_id'])
+            self.assertEqual(set(trace['value_member_node_ids']), {'identity:' + id for id in members})
+            member_edges = [edge for edge in projection['edges']
+                            if edge['claim_ref'] == claim['claim_id'] and edge['edge_kind'] == 'has_value_member']
+            self.assertEqual({edge['to_id'] for edge in member_edges}, set(trace['value_member_node_ids']))
+            graph, _, _ = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import focus_knowledge_node, knowledge_scene, execute_knowledge_lens
+            # The standalone access path normalizes a supplied projection without
+            # reading the original repository. Removing derived member carriers
+            # must not downgrade a declared reference Claim to an ordinary pair.
+            for mutation in ('absent', 'null', 'empty', 'trace-removed', 'third-edge',
+                             'third-node', 'third-type', 'trace-truncated', 'trace-duplicate',
+                             'source-members', 'claim-value', 'literal-value', 'member-origin'):
+                changed = json.loads(json.dumps(projection))  # Match independent JSON carriers on disk.
+                changed_trace = next(row for row in changed['claim_traces'] if row['claim_ref'] == claim['claim_id'])
+                raw_claim = next(row for row in changed['nodes'] if row['node_id'] == trace['claim_node_id'])
+                raw_value = next(row for row in changed['nodes'] if row['node_id'] == trace['object_node_id'])
+                third_id = 'identity:' + members[2]
+                if mutation in {'absent', 'null', 'empty'}:
+                    if mutation == 'absent':
+                        changed_trace.pop('value_member_node_ids')
+                    else:
+                        changed_trace['value_member_node_ids'] = None if mutation == 'null' else []
+                    changed['edges'] = [row for row in changed['edges'] if row['edge_kind'] != 'has_value_member']
+                    changed_trace['edge_ids'] = [row['edge_id'] for row in changed['edges']]
+                elif mutation == 'trace-removed':
+                    changed['claim_traces'] = []
+                elif mutation == 'third-edge':
+                    changed['edges'] = [row for row in changed['edges']
+                        if not (row['edge_kind'] == 'has_value_member' and row['to_id'] == third_id)]
+                elif mutation == 'third-node':
+                    changed['nodes'] = [row for row in changed['nodes'] if row['node_id'] != third_id]
+                elif mutation == 'third-type':
+                    next(row for row in changed['nodes'] if row['node_id'] == third_id)['properties']['identity_kind'] = 'work'
+                elif mutation == 'trace-truncated':
+                    changed_trace['value_member_node_ids'].remove(third_id)
+                elif mutation == 'trace-duplicate':
+                    changed_trace['value_member_node_ids'].append(third_id)
+                elif mutation == 'source-members':
+                    raw_claim['properties']['source_claim']['object']['members'].pop()
+                elif mutation == 'claim-value':
+                    raw_claim['properties']['object']['members'].pop()
+                elif mutation == 'literal-value':
+                    raw_value['properties']['value']['members'].pop()
+                elif mutation == 'member-origin':
+                    next(row for row in changed['edges'] if row['edge_kind'] == 'has_value_member')['claim_ref'] = 'tos.claim.wrong-origin'
+                with self.subTest(carrier=mutation), self.assertRaises(ValueError):
+                    self.historical_knowledge(root, changed)
+            claim_node = next(node for node in graph['nodes'] if node['entity_id'] == claim['claim_id'])
+            value = next(node for node in graph['nodes'] if node['type_id'] == 'tos.entity.motif-proposal')
+            self.assertEqual(value['attributes']['value'], claim['object'])
+            self.assertEqual(claim_node['attributes']['source_claim'], claim)
+            self.assertEqual(set(claim_node['semantics']['claim']['value_member_node_ids']),
+                             {'source-claims:identity:' + id for id in members})
+            for identity in members:
+                result = focus_knowledge_node(graph, identity, depth=2)
+                self.assertTrue(set(members) | {claim['claim_id']} <= {node['entity_id'] for node in result['nodes']})
+            relation_types = {'tos.relation.has-subject', 'tos.relation.has-object', 'tos.relation.claim-value-member'}
+            relations = [relation for relation in graph['relations']
+                         if relation['from_id'] == claim_node['id'] and relation['relation_type_id'] in relation_types]
+            ids = {claim_node['id'], *(r['to_id'] for r in relations)}
+            nodes = [node for node in graph['nodes'] if node['id'] in ids]
+            scene = knowledge_scene(nodes, relations)
+            compact = scene['compact']['claim_paths'][0]
+            self.assertEqual(set(compact['reading']['relation_context_ids']), {row['id'] for row in relations})
+            self.assertEqual(len(compact['detail_relation_ids']), 3)
+            self.assertFalse(compact['reading']['standalone'])
+            third_edge = next(row for row in relations if row['relation_type_id'] == 'tos.relation.claim-value-member'
+                              and row['to_id'].endswith(members[2]))
+            incomplete = knowledge_scene(nodes, [row for row in relations if row is not third_edge])
+            self.assertEqual(incomplete['compact']['claim_paths'], [])
+            self.assertIn({'node_id': claim_node['id'], 'reason': 'incomplete-value-member-context'},
+                          incomplete['compact']['retained_claims'])
+            for declaration in (None, [], [claim_node['id']] * 3, 'not-a-member-set'):
+                changed_nodes = copy.deepcopy(nodes)
+                changed_claim = next(row for row in changed_nodes if row['id'] == claim_node['id'])
+                if declaration is None:
+                    changed_claim['semantics']['claim'].pop('value_member_node_ids')
+                else:
+                    changed_claim['semantics']['claim']['value_member_node_ids'] = declaration
+                with self.subTest(declaration=declaration):
+                    rejected = knowledge_scene(changed_nodes, relations)
+                    self.assertEqual(rejected['compact']['claim_paths'], [])
+                    self.assertIn({'node_id': claim_node['id'], 'reason': 'incomplete-value-member-context'},
+                                  rejected['compact']['retained_claims'])
+            null_nodes = copy.deepcopy(nodes)
+            next(row for row in null_nodes if row['id'] == claim_node['id'])['semantics']['claim']['value_member_node_ids'] = None
+            no_member_edges = [row for row in relations if row['relation_type_id'] != 'tos.relation.claim-value-member']
+            self.assertEqual(knowledge_scene(null_nodes, no_member_edges)['compact']['claim_paths'], [])
+            result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                'lens_id': 'synthetic-motif-property', 'node_query': {'filters': [
+                    {'property_id': 'tos.property.motif-grouping-basis', 'op': 'eq',
+                     'value': claim['object']['grouping_basis']}]}, 'relation_query': {'enabled': False}, 'detail': 'full'})
+            self.assertEqual([node['id'] for node in result['nodes']], [value['id']])
+
     def test_lexical_translatability_keeps_judgment_transfer_search_and_wording_independent(self):
         """Artificial rendering reports test source grammar, not any word's translatability."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

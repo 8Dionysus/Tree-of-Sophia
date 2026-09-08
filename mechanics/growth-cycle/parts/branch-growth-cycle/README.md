@@ -699,6 +699,28 @@ private registry. Initial Claims are version 1, `local_only`, `unreviewed`,
 without assessments or supersession. A correction preserves identity,
 endpoints, predicate, maker, layer, visibility and all unpatched fields.
 
+`tos_local_owner_claim_command_v2` adds required `allowed_object_values`
+(at most 32 distinct exact JSON objects) and may include `object` in
+`allowed_fields`. It additionally understands `structured-reference-value-v1`;
+v1 does not acquire this reader through a registry change. Each declared
+member must independently occur in `allowed_object_refs`, including the focal
+subject when it also plays a member role. The subject and predicate remain
+immutable; adding or removing members replaces the qualified value, not a
+Group or Sign identity. The exact next value must be allowed independently.
+
+For this new reader only, a Claim's independently supplied `source_records`
+and `native_bindings` may cover the finite union of present and proposed
+closures. Every selector is permission-preflighted before private IO. Each
+candidate or current Claim then receives only its exact declared identity and
+evidence closure; unused allowed sources are not read or invented as evidence.
+The full allowlist remains in the configuration digest. Assessment v4 still
+requires its own exact stored-Claim selection, not this growth allowlist.
+Retries of retained revisions revalidate both the current Claim and the
+historical result of the request, so later removal of a member cannot hide
+revoked access to that member. Original receipts and source history remain
+unchanged. Temporal and ordinary structured-value writers are not added to
+this private v2 contract.
+
 Native grounding requires `verify_content: true` and independently delegated
 `exact_owner_local` access for every selected native source. A non-native
 source selector remains `metadata_only`. Each Claim's native closure checks
@@ -1483,6 +1505,17 @@ An anchor needs object permission even when it is also the Claim subject.
 A v2 configuration cannot acquire this wider reader through a registry update;
 current value/profile permissions are checked on exact replays too.
 
+`tos_local_claim_create_owner_v4` retains the v3 fields and additionally
+delegates the explicit `structured-reference-value-v1` reader. Its fixed
+`object.members` slot has the concrete types and bounds declared by the
+source relation profile. Every member needs separate `allowed_object_refs`
+permission, even when it is also the focal subject; the entire qualified
+object must be in `allowed_object_values`. Unknown nested references in this
+or older readers remain inert. V1/v2/v3 grants cannot gain member-bearing
+semantics through a registry edit. Preparation, commit and exact retry bind
+the current complete source/native closure of every member. A retained
+receipt is not a substitute for currently available or permitted evidence.
+
 The request uses `schema_version: tos_local_source_command_v1`:
 
 - `describe` returns the actual delegated operations, exact scope, source
@@ -1576,7 +1609,7 @@ quality. Declared Claim corrections use the separate operation below.
 `scripts/claim_revisions.py` implements `claim.revise` through the same explicit
 source command entrypoint. The selected Claim keeps its ID, predicate,
 identity endpoints, original maker/provenance and initial review flag. Ordinary
-v1/v2/v3 corrections also preserve its assertion layer; only the separate exact
+v1/v2/v3/v4 corrections also preserve its assertion layer; only the separate exact
 layer-classification route below can correct that field.
 Its `claim_version` advances once. The correction issuer and reason belong to
 the new history receipt; the original maker is origin attribution, not a claim
@@ -1615,6 +1648,18 @@ source-copy forms. Its old and new values must satisfy that same profile;
 changing value kind is not a correction route. The exact allowlist and current
 revocation checks apply to preparation, commit and replay. V2 remains temporal;
 descriptive v1 correction still cannot replace any object value.
+
+`tos_local_claim_revision_owner_v4` retains the v3 fields and additionally
+supports qualified reference values. The current and proposed members must
+all have the independent object-role permission, and the exact proposed
+value must be allowed, including for wording-only correction. The focal
+subject stays fixed and remains a member under the motif profile; removing
+it requires a separately formulated successor Claim. Membership correction
+retains the same qualified proposal's identity, exact predecessor bytes and
+source-copy form history; it does not accept a motif or mint a Sign.
+Current complete source/native grounding is checked again on retry, including
+the historical result when a subsequent correction has removed one of that
+request's members. Older grant versions do not gain this reader mode.
 
 `tos_local_claim_layer_revision_owner_v1` is a separate grant, not an expansion
 of v1/v2/v3. It has the v1 configuration fields plus mandatory

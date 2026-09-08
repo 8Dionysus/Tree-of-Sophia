@@ -26,6 +26,7 @@ from native_text_binding import NativeTextBindingError, NativeTextBindingResolve
 from source_record_profiles import SourceProfileError, SourceRecordProfiles
 from source_witness_human_forms import claim_forms_path
 from test_native_text_assessment import NativeAssessmentFixture, ORIGIN
+from test_native_text_binding import digest
 from test_occurrence_growth import copy_contracts, occurrence
 
 
@@ -160,6 +161,116 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
             "locator": "Synthetic exact source dependency; these records share one origin."}
             for ref in fixture.required])
         return request
+
+    def motif_fixture(self, *, form=False):
+        """Three distinct native spans; all grants and proposed judgments are synthetic."""
+        f = self.claim_fixture(form=form)
+        native = f.native
+        template_anchor, template_unit = copy.deepcopy(native.packet['anchors'][1]), copy.deepcopy(native.packet['units'][0])
+        anchors, units = [], []
+        for number, (start, end) in enumerate(((3, 4), (4, 6), (6, 8))):
+            anchor = copy.deepcopy(template_anchor)
+            anchor.update(anchor_ref=f'tos.anchor.synthetic.motif-assessment-{number}', ordinal=number + 2,
+                          exact_sha256=digest(native.text[start:end].encode('utf-8')))
+            anchor['selector'].update(start=start, end=end)
+            unit = copy.deepcopy(template_unit)
+            unit.update(unit_id=template_unit['unit_id'] if number == 0 else 'tos.text-unit.sid-' + str(number) * 32,
+                        ordered_anchor_refs=[anchor['anchor_ref']])
+            anchors.append(anchor); units.append(unit)
+        gap = copy.deepcopy(native.packet['anchors'][-1]); gap['ordinal'] = 5
+        native.packet['anchors'] = [native.packet['anchors'][0], *anchors, gap]
+        native.packet['units'] = units
+        native.packet['segmentations'][0]['ordered_unit_refs'] = [unit['unit_id'] for unit in units]
+        native.refresh()
+        f.config['source_records'] = [row for row in f.config['source_records'] if row['record_id'] != f.lexical.id]
+        f.config['native_text_units'] = []
+        required, f.members, f.member_paths = {}, [], []
+        for number, unit in enumerate(units):
+            binding = {**copy.deepcopy(native.binding), 'unit_id': unit['unit_id'],
+                       'ordered_anchor_refs': unit['ordered_anchor_refs']}
+            record = occurrence(binding)
+            record['record_id'] = f.occurrence_subject.id if number == 0 else f'tos.occurrence.synthetic.motif-assessment-{number}'
+            path = f.occurrence_path if number == 0 else f'ToS/source-witnesses/lexical-descriptions/motif-assessment-{number}/occurrence.json'
+            native.write_json(path, record)
+            if number:
+                f.config['source_records'].append({'path': path, 'record_id': record['record_id'], 'origin_id': ORIGIN})
+            source = Record.from_payload(record['record_id'], 1, record)
+            f.members.append(source); f.member_paths.append(path)
+            required[source.id] = source.ref
+            f.config['native_text_units'].append({'binding': binding, 'origin_id': ORIGIN, 'read_scope': 'exact_public'})
+            adapted = NativeTextBindingResolver(f.root).assessment_records(binding, origin_id=ORIGIN, verify_content=True)
+            for row in adapted['records']:
+                dependency = Record.from_payload(**row)
+                required[dependency.id] = dependency.ref
+                if dependency.id == unit['unit_id']:
+                    f.config['subjects'][dependency.id] = {'record': dependency.ref, 'assertion_layer': 'textual_observation',
+                        'risk': 'low', 'languages': ['und'], 'maker_id': unit.get('maker', {}).get('agent_ref', 'software:synthetic-test-fixture'),
+                        'requested_use': 'research', 'access_allowed': True}
+        f.occurrence_subject = f.members[0]
+        claim = copy.deepcopy(f.claim.payload)
+        claim.update(schema_version='tos_source_occurrence_motif_claim_v1', predicate='occurrence_motif_proposal',
+            assertion_layer='semantic_interpretation', object={'kind': 'motif-proposal',
+                'members': [row.id for row in f.members],
+                'source_wording': {'text': 'Synthetic complete motif hypothesis, not a witness quote.',
+                    'language': 'en', 'script': 'Latn', 'wording_kind': 'research_paraphrase'},
+                'proposed_signification': 'A test hypothesis only.', 'grouping_basis': 'Three distinct synthetic spans.',
+                'source_scope': 'Only this synthetic packet.', 'contrast': 'No real interpretation is asserted.',
+                'limitations': 'Artificial competence and assessment test, no Sign promotion.'})
+        native.write_bytes(f.claim_path, (json.dumps(claim) + '\n').encode())
+        f.claim = Record.from_payload(claim['claim_id'], 1, claim)
+        if form:
+            body = copy.deepcopy(f.subject.payload)
+            body['subject'] = f.claim.ref
+            body['bindings']['context']['record'] = f.claim.ref
+            path = claim_forms_path(Path(f.claim_path), f.claim.id).as_posix()
+            native.write_json(path, {'schema_version': 'tos_human_form_set_v1',
+                'subject': f.claim.ref, 'forms': [body], 'prior_forms': []})
+            f.subject = Record.from_payload(body['form_id'], 1, body)
+            required[f.claim.id] = f.claim.ref
+        else:
+            f.subject = f.claim
+        f.required = [required[key] for key in sorted(required)]
+        f.config['subjects'][f.identifier]['record'] = f.subject.ref
+        if not form:
+            f.config['subjects'][f.identifier]['assertion_layer'] = 'semantic_interpretation'
+        for index, competence in enumerate(f.config['competencies']):
+            competence['payload']['assertion_layers'].append('semantic_interpretation')
+            f.config['authorities'][index]['payload'].update(
+                assertion_layers=competence['payload']['assertion_layers'],
+                competence_refs=[Record.from_payload(**competence).ref])
+        f.save()
+        return f
+
+    def test_motif_claim_and_form_assessment_require_every_member_and_native_ground(self):
+        for form in (False, True):
+            with self.subTest(form=form):
+                f = self.motif_fixture(form=form)
+                context = f.describe()['result']['command_context']
+                self.assertEqual(context['required_sources'], f.required)
+                self.assertEqual(context['source_read'], {'required': True, 'ready': True})
+                self.assertEqual(len(f.required), 8 if form else 7)
+                request = self.claim_request(f)
+                for missing in f.required:
+                    incomplete = copy.deepcopy(request)
+                    incomplete['assessments'][0]['evidence'] = [row for row in incomplete['assessments'][0]['evidence']
+                                                               if row['record'] != missing]
+                    with self.subTest(missing=missing['id']), self.assertRaises(AssessmentRejected) as error:
+                        f.run(incomplete)
+                    self.assertIn('evidence.required-source-omitted', error.exception.invalid_assessments[0]['reasons'])
+                    self.assertEqual(f.head_paths(), [])
+                first = f.run(request)['result']
+                self.assertTrue(first['current_admission']['can_use'])
+                history = self.journal_bytes(f)
+                self.assertTrue(f.run(request)['result']['replayed'])
+                self.assertEqual(self.journal_bytes(f), history)
+                # A later participant, not just the focal, invalidates current admission.
+                changed = copy.deepcopy(f.members[2].payload)
+                changed.update(record_version=2, notes='Changed third-member interpretation, still synthetic.')
+                f.native.write_json(f.member_paths[2], changed)
+                current = f.describe()['result']
+                self.assertFalse(current['current_admission']['can_use'])
+                self.assertEqual(current['revision'], first['revision'])
+                self.assertEqual(self.journal_bytes(f), history)
 
     @staticmethod
     def journal_bytes(fixture):

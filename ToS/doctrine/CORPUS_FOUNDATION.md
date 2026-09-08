@@ -465,6 +465,13 @@ Before sign promotion, the stable candidate identity is an `annotation_id` or
 `claim_id`, never a prematurely minted `sign_id`. Labels remain mutable and do
 not determine any of these identities.
 
+The [qualified motif proposal](semantic-interchange/README.md#qualified-motif-proposals-and-explicit-member-dependencies)
+uses one Claim ID over a complete declared set of exact Occurrences. Its
+focal occurrence is an entry to the hypothesis, not its only source; the
+interpretation, every member and native grounds must be read together.
+Member-return edges are structural context, not separate accepted membership
+assertions. Revising that set does not mint a Sign or bypass assessment.
+
 The additive `tos_semantic_annotation_packet_v2` contract materializes this
 law as stand-off records. Its opaque stable IDs are issued independently of
 labels and readings; exact anchors bind source-near observations; every

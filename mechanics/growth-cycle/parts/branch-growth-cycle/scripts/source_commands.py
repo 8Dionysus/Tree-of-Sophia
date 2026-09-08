@@ -50,11 +50,14 @@ CLAIM_VALUE_CONFIG = 'tos_local_claim_create_owner_v2'
 CLAIM_VALUE_REVISION_CONFIG = 'tos_local_claim_revision_owner_v2'
 CLAIM_STRUCTURED_CONFIG = 'tos_local_claim_create_owner_v3'
 CLAIM_STRUCTURED_REVISION_CONFIG = 'tos_local_claim_revision_owner_v3'
+CLAIM_REFERENCE_CONFIG = 'tos_local_claim_create_owner_v4'
+CLAIM_REFERENCE_REVISION_CONFIG = 'tos_local_claim_revision_owner_v4'
 CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
 OWNER_PROFILE_CONFIG = 'tos_local_owner_profile_command_v1'
 OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
+OWNER_CLAIM_REFERENCE_CONFIG = 'tos_local_owner_claim_command_v2'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
 MAX_COMMAND_BYTES = 1_048_576
@@ -79,7 +82,7 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
-    if config.get('schema_version') == OWNER_CLAIM_CONFIG:
+    if config.get('schema_version') in {OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
         from source_owner_claim_commands import configuration
         return configuration(config, owner_config=path)
     if config.get('schema_version') == OWNER_PROFILE_CONFIG:
@@ -88,10 +91,10 @@ def _configuration(path):
     if config.get('schema_version') == TEXT_UNIT_CONFIG:
         from source_text_unit_commands import configuration
         return configuration(config, owner_config=path)
-    if config.get('schema_version') in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG}:
+    if config.get('schema_version') in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG, CLAIM_REFERENCE_CONFIG}:
         from source_claim_commands import configuration
         return configuration(config)
-    if config.get('schema_version') in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
+    if config.get('schema_version') in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_REFERENCE_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
         from claim_revisions import configuration
         return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
@@ -1049,7 +1052,7 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
-    if config['schema_version'] == OWNER_CLAIM_CONFIG:
+    if config['schema_version'] in {OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
         from source_owner_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == OWNER_PROFILE_CONFIG:
@@ -1058,10 +1061,10 @@ def run_local_command(owner_config: Path, request: dict):
     if config['schema_version'] == TEXT_UNIT_CONFIG:
         from source_text_unit_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG}:
+    if config['schema_version'] in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG, CLAIM_REFERENCE_CONFIG}:
         from source_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
+    if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_REFERENCE_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
         from claim_revisions import run_command
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:

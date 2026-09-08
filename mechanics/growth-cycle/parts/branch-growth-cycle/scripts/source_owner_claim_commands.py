@@ -23,7 +23,9 @@ from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles, SO
 from source_witness_human_forms import _materialize_forms, claim_field_catalog
 
 
-CONFIG = 'tos_local_owner_claim_command_v1'
+CONFIG = source.OWNER_CLAIM_CONFIG
+REFERENCE_CONFIG = source.OWNER_CLAIM_REFERENCE_CONFIG
+REFERENCE_READER = 'structured-reference-value-v1'
 OPERATIONS = ('claims.create', 'claim.revise', 'form.create', 'form.revise')
 SELECTION_KEYS = {'claim_id', 'relation_type_id', 'origin_id', 'source_access',
                   'source_records', 'native_bindings', 'verify_content'}
@@ -42,30 +44,57 @@ BASE_FILES = {SOURCE_CLAIM_BASENAME, transport.CONFIG_FILE, 'source-create-reque
               'source-create-environment.json', 'source-create-provenance.jsonl'}
 
 
-def _readers(config, context):
+def _config_keys(config):
+    return CONFIG_KEYS | ({'allowed_object_values'} if config.get('schema_version') == REFERENCE_CONFIG else set())
+
+
+def _supported_readers(config):
+    return {'semantic-relation-v1', 'identity-relation-v1'} | (
+        {REFERENCE_READER} if config.get('schema_version') == REFERENCE_CONFIG else set())
+
+
+def _readers(config, context, *, records=(), profiles=None):
     # Construct all bounded selectors before grounding any candidate. Their
     # constructors preflight every read grant without opening private content.
     result = {}
+    selected = {record['claim_id']: record for record in records}
     for row in config['claim_selections']:
+        sources, natives = row['source_records'], row['native_bindings']
+        record = selected.get(row['claim_id'])
+        if (config['schema_version'] == REFERENCE_CONFIG and record is not None
+                and profiles.profiles[record['predicate']]['reader'] == REFERENCE_READER):
+            # The independently preflighted v2 allowlist can cover both the
+            # present and proposed member sets. Each frozen reader still gets
+            # only its exact declared closure, never an inferred evidence item.
+            evidence = {*record['evidence_refs'], *record.get('counterevidence_refs', ())}
+            refs = profiles.identity_refs(record) | evidence
+            sources = [item for item in sources if item['record_id'] in refs or item['path'] in evidence]
+            anchors = {item['anchor_ref'] for item in record.get('supporting_quotes', ())}
+            natives = [item for item in natives if evidence.intersection({
+                item['binding']['packet_ref'], item['binding']['packet_id'], item['binding']['unit_id'],
+                item['binding']['text_layer']['record_ref'], item['binding']['text_layer']['layer_id'],
+                *item['binding']['ordered_anchor_refs']})
+                or anchors.intersection(item['binding']['ordered_anchor_refs'])]
         result[row['claim_id']] = OwnerLocalSourceClaimProfiles(context, row['source_access'],
-            source_records=row['source_records'], native_bindings=row['native_bindings'],
+            source_records=sources, native_bindings=natives,
             verify_content=row['verify_content'], source_reader=source._read)
     return result
 
 
 def configuration(config, *, owner_config):
-    source._keys(config, CONFIG_KEYS)
+    source._keys(config, _config_keys(config))
     raw = context_read(Path(owner_config), source.MAX_COMMAND_BYTES, confidential_file=True)
     if source._json_object(raw) != config:
         raise source.JournalConflict('private Claim delegation changed during selection')
-    if (config['schema_version'] != CONFIG or type(config['uid']) is not int or config['uid'] != os.getuid()
+    if (config['schema_version'] not in {CONFIG, REFERENCE_CONFIG} or type(config['uid']) is not int or config['uid'] != os.getuid()
             or config['maker_type'] not in {'human', 'software', 'model'}
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))):
         raise PermissionError('private Claim delegation is invalid or expired')
+    allowed_fields = revisions.FIELDS | ({'object'} if config['schema_version'] == REFERENCE_CONFIG else set())
     for key, maximum, allowed in (
-            ('allowed_operations', 4, OPERATIONS), ('allowed_fields', len(revisions.FIELDS), revisions.FIELDS),
+            ('allowed_operations', 4, OPERATIONS), ('allowed_fields', len(allowed_fields), allowed_fields),
             ('allowed_claim_ids', 32, None), ('allowed_subject_refs', 128, None),
             ('allowed_object_refs', 128, None), ('allowed_predicates', 32, None),
             ('allowed_evidence_refs', 128, None), ('allowed_form_ids', 32, None)):
@@ -74,6 +103,8 @@ def configuration(config, *, owner_config):
                 or any(not isinstance(value, str) or not value.strip() for value in values)
                 or len(set(values)) != len(values) or allowed is not None and set(values) - set(allowed)):
             raise PermissionError('private Claim scope must be bounded, explicit and understood')
+    if config['schema_version'] == REFERENCE_CONFIG:
+        claims.validate_value_scope(config)
     for key, prefix in (('allowed_claim_ids', 'tos.claim.'), ('allowed_form_ids', 'tos.form.')):
         if any(not re.fullmatch(re.escape(prefix) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', value) for value in config[key]):
             raise ValueError('private Claim and form identities must be explicit ToS identities')
@@ -111,6 +142,9 @@ def configuration(config, *, owner_config):
     profiles = SourceClaimProfiles(context.public_root)
     if set(config['allowed_predicates']) - profiles.profiles.keys():
         raise PermissionError('private Claim delegation contains an undeclared predicate')
+    if any(profiles.profiles[predicate]['reader'] not in _supported_readers(config)
+           for predicate in config['allowed_predicates']):
+        raise PermissionError('private Claim reader mode is outside this delegation version')
     # Readers enforce the exact understood source Claim profile, not a generic
     # Thing -> Thing predicate or a caller-supplied endpoint type.
     digest = source._digest(source._canonical({'configuration_bytes': source._digest(raw),
@@ -157,11 +191,11 @@ def _ground(config, context, records, *, exclude=None, initial=False):
         profiles._validate_shape(record)
         selected = selections.get(record['claim_id'])
         predicate = record['predicate']
-        if (selected is None or profiles.profiles[predicate]['reader'] not in {'semantic-relation-v1', 'identity-relation-v1'}
+        if (selected is None or profiles.profiles[predicate]['reader'] not in _supported_readers(config)
                 or selected['relation_type_id'] != profiles.relations[predicate]['relation_type_id']):
             raise PermissionError('private Claim does not match its independently delegated relation profile')
     _scope(config, records, profiles, initial=initial)
-    readers = _readers(config, context)
+    readers = _readers(config, context, records=records, profiles=profiles)
     bindings, snapshots = [], {}
     for record in records:
         identity = record['claim_id']
@@ -300,10 +334,10 @@ def _creation_integrity(config, context, path, files, records, forms, archives):
         retained = source._json_object(files[transport.CONFIG_FILE])
         source._keys(receipt, CREATION_RECEIPT_KEYS)
         source._keys(request, CREATION_KEYS)
-        source._keys(retained, CONFIG_KEYS)
+        source._keys(retained, _config_keys(retained))
         source._instant(receipt['recorded_at'])
         if (receipt['schema_version'] != 'tos_local_claim_create_receipt_v1' or receipt['grants_admission'] is not False
-                or retained['schema_version'] != CONFIG or retained['source_path'] != config['source_path']
+                or retained['schema_version'] not in {CONFIG, REFERENCE_CONFIG} or retained['source_path'] != config['source_path']
                 or 'claims.create' not in retained['allowed_operations']
                 or request['schema_version'] != 'tos_local_source_command_v1' or request['operation'] != 'claims.create'
                 or not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256
@@ -370,6 +404,7 @@ def _result(config, digest, path, context, *, state=None, identity=None, receipt
         'command_operations': ['describe', 'prepare-create', 'claims.create', 'prepare-revise', 'claim.revise', 'prepare', 'apply', 'inspect-version'],
         'allowed_claim_ids': config['allowed_claim_ids'], 'allowed_form_ids': config['allowed_form_ids'],
         'allowed_subject_refs': config['allowed_subject_refs'], 'allowed_object_refs': config['allowed_object_refs'],
+        **({'allowed_object_values': config['allowed_object_values']} if 'allowed_object_values' in config else {}),
         'allowed_predicates': config['allowed_predicates'], 'allowed_evidence_refs': config['allowed_evidence_refs'],
         'allowed_fields': config['allowed_fields'], 'visibility': 'local_only', 'publication_authorized': False,
         'grants_admission': False, 'receipt': receipt, 'replayed': replayed,
@@ -427,7 +462,7 @@ def _creation_replay(config, context, path, request, digest):
 def _proposal(config, context, path, state, request):
     identity = request['claim_id']
     record = state['records'][identity]
-    revisions._scope(config, request, record)
+    revisions._scope(config, request, record, profiles=SourceClaimProfiles(context.public_root))
     if len(state['history']['receipts']) >= packages.MAX_REVISIONS:
         raise ValueError('private Claim revision history capacity reached')
     revised = revisions._advance(record, request['fields'])
@@ -575,7 +610,7 @@ def _update(owner, config, digest, context, path, request):
         raise source.JournalConflict('delegated Claim is absent')
     record, payload, files = state['records'][identity], state['forms'][identity], state['files']
     if operation == 'claim.revise':
-        revisions._scope(config, request, record)
+        revisions._scope(config, request, record, profiles=SourceClaimProfiles(context.public_root))
     else:
         transport._form_changes(request, config)
     receipts = [(row, 'claim.revise', row['source']['id']) for row in state['history']['receipts']]
@@ -596,9 +631,21 @@ def _update(owner, config, digest, context, path, request):
                 or receipt['previous_revision'] != request['expected_revision']
                 or receipt['results'] != [source._form_ref(change['form']) for change in request['changes']]):
             raise source.JournalCorruption('private Claim form retry differs from its exact request')
+        proposed = None
+        if (operation == 'claim.revise'
+                and SourceClaimProfiles(context.public_root).profiles[record['predicate']]['reader'] == REFERENCE_READER):
+            # A later correction may have removed one member of this retained
+            # request. Ground its exact historical result as well as today's
+            # Claim; an old receipt cannot authorize a now-unavailable member.
+            archived, _ = _archive_reader(context)(context.public_root, config, receipt)
+            previous = revisions._claims(archived[path.name])[identity]
+            replayed = revisions._advance(previous, request['fields'])
+            records = [replayed if key == identity else value for key, value in state['records'].items()]
+            dependencies, _ = _ground(config, context, records, exclude=path.parent)
+            proposed = (records, dependencies)
         response = _result(config, digest, path, context, state=state, identity=identity, receipt=receipt, replayed=True)
         _current(owner, digest, config, context, path, list(state['records'].values()), state['dependencies'],
-                 exclude=path.parent, files=files)
+                 exclude=path.parent, files=files, proposed=proposed)
         return response
     if (request['expected_configuration'] != digest or request['expected_source'] != revisions._subject(record).ref
             or request['expected_revision'] != packages._revision(files)):

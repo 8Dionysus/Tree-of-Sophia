@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import copy
+import hashlib
 import random
 import tempfile
 import sys
@@ -1318,14 +1319,36 @@ class KnowledgeContractTests(unittest.TestCase):
         from tos_corpus_index_common import project_text_packet
         ref = "ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json"
         packet = json.loads((self.repo_root / ref).read_text())
+        original = copy.deepcopy(packet)
         nodes, edges = project_text_packet(packet, ref)
         work = packet['source_scope']['work_ref']
         nodes.append({'node_id': work, 'node_kind': 'work', 'label': 'Public synthetic work', 'source_ref': ref})
         corpus = {'source_navigation': {'nodes': nodes, 'edges': edges}}
         graph = build_knowledge_graph(corpus, {}, {}, self.entity_type_registry, self.relation_type_registry)
         types = {n['type_id'] for n in graph['nodes']}
-        self.assertTrue({'tos.entity.work', 'tos.entity.text-layer', 'tos.entity.anchor', 'tos.entity.occurrence',
+        self.assertTrue({'tos.entity.work', 'tos.entity.text-layer', 'tos.entity.anchor', 'tos.entity.annotation-occurrence',
                          'tos.entity.sign', 'tos.entity.annotation-claim', 'tos.entity.annotation-evidence'}.issubset(types))
+        self.assertNotIn('tos.entity.occurrence', types)
+        namespace = hashlib.sha256(f"{ref}:{packet['annotation_id']}:{packet['annotation_version']}".encode()).hexdigest()[:20]
+        by_entity = {node['entity_id']: node for node in graph['nodes']}
+        for entity in packet['entities']:
+            node = by_entity[entity['entity_id']]
+            self.assertEqual(node['id'], f"source-navigation:{entity['entity_id']}@{namespace}")
+            self.assertEqual({key: node['attributes'][key] for key in entity}, entity)
+            if entity['entity_kind'] == 'occurrence':
+                self.assertEqual(node['type_mapping']['source_kind_id'], 'annotation-occurrence')
+                self.assertNotIn('source_record', node['attributes'])
+        projected = {node['node_id']: node for node in nodes}
+        navigation = [node for node in graph['nodes'] if node['source_graph'] == 'source-navigation']
+        self.assertEqual({node['native_id'] for node in navigation}, set(projected))
+        for node in navigation:
+            self.assertEqual(node['source_record']['payload'], projected[node['native_id']])
+        by_relation = {relation['native_id']: relation for relation in graph['relations']}
+        for edge in edges:
+            relation = by_relation[edge['edge_id']]
+            self.assertEqual(relation['from_id'], 'source-navigation:' + edge['from_id'])
+            self.assertEqual(relation['to_id'], 'source-navigation:' + edge['to_id'])
+            self.assertEqual(relation['source_refs'], edge['source_refs'])
         claims = [n for n in graph['nodes'] if n['type_id'] == 'tos.entity.annotation-claim']
         self.assertEqual(len(claims), len(packet['claims']))
         self.assertTrue(any(n['attributes']['competing_claim_refs'] for n in claims))
@@ -1334,6 +1357,81 @@ class KnowledgeContractTests(unittest.TestCase):
         result = focus_knowledge_node(graph, work, depth=5, node_limit=1000, relation_limit=2000, profile='all')
         self.assertTrue(any(n['type_id'] == 'tos.entity.annotation-evidence' for n in result['nodes']))
         Draft202012Validator(self.schemas['knowledge-graph.v1.schema.json'], registry=self.registry).validate(graph)
+        self.assertEqual(packet, original)
+
+    def test_native_annotation_lexeme_and_sense_keep_their_declared_payloads(self):
+        sys.path.insert(0, str(self.repo_root / 'scripts'))
+        from tos_corpus_index_common import project_text_packet
+        ref = 'ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json'
+        packet = json.loads((self.repo_root / ref).read_text())
+        # Native synthetic entities use only their existing stand-off contract.
+        # They are not completed with invented authored-description fields.
+        native = []
+        for kind, prefix, adapter in (
+                ('lexeme', 'lexeme', 'annotation-lexeme'),
+                ('lexical_sense', 'sense', 'annotation-lexical-sense')):
+            entity = copy.deepcopy(packet['entities'][0])
+            identifier = hashlib.sha256(f'synthetic-native-adapter:{kind}'.encode()).hexdigest()[:32]
+            entity.update(entity_kind=kind, entity_id=f'tos.{prefix}.sid-{identifier}',
+                          admission_status='proposed')
+            packet['entities'].append(entity)
+            native.append((entity, adapter))
+        original = copy.deepcopy(packet)
+        nodes, edges = project_text_packet(packet, ref)
+        work = packet['source_scope']['work_ref']
+        nodes.append({'node_id': work, 'node_kind': 'work', 'label': 'Public synthetic work', 'source_ref': ref})
+        graph = build_knowledge_graph({'source_navigation': {'nodes': nodes, 'edges': edges}}, {}, {},
+                                     self.entity_type_registry, self.relation_type_registry)
+        by_entity = {node['entity_id']: node for node in graph['nodes']}
+        namespace = hashlib.sha256(f"{ref}:{packet['annotation_id']}:{packet['annotation_version']}".encode()).hexdigest()[:20]
+        for entity, adapter in native:
+            node = by_entity[entity['entity_id']]
+            self.assertEqual(node['id'], f"source-navigation:{entity['entity_id']}@{namespace}")
+            self.assertEqual(node['type_id'], 'tos.entity.' + adapter)
+            self.assertEqual(node['kind_id'], adapter)
+            self.assertEqual({key: node['attributes'][key] for key in entity}, entity)
+            self.assertNotIn('source_record', node['attributes'])
+            self.assertEqual(node['epistemic']['review_posture'], 'proposed')
+            self.assertIsNone(node['epistemic']['canon_status'])
+            self.assertEqual(set(node['semantics']['type_ancestors']),
+                             {'tos.entity.' + adapter, 'tos.entity.semantic-object', 'tos.entity.thing'})
+            anchors = {relation['to_id'] for relation in graph['relations']
+                       if relation['from_id'] == node['id'] and relation['relation_type_id'] == 'tos.relation.has-anchor'}
+            self.assertEqual(anchors, {by_entity[anchor]['id'] for anchor in entity['identity_basis']['anchor_refs']})
+        self.assertEqual(packet, original)
+
+    def test_native_annotation_types_leave_authored_profiles_and_requirements_strict(self):
+        entries = {entry['type_id']: entry for entry in self.entity_type_registry['types']}
+        mappings = {(mapping['source_graph'], mapping['source_kind_id']): entry['type_id']
+                    for entry in entries.values() for mapping in entry['source_mappings']}
+        for kind, profile_type, native_type, properties in (
+                ('occurrence', 'occurrence', 'annotation-occurrence', ('occurrence-account', 'occurrence-context')),
+                ('lexeme', 'lexeme', 'annotation-lexeme', ('lexeme-lexical-account', 'lexeme-grammatical-account')),
+                ('sense', 'lexical-sense', 'annotation-lexical-sense',
+                 ('sense-sense-account', 'sense-interpretation-context', 'sense-semantic-range'))):
+            with self.subTest(kind=kind):
+                authored_id, native_id = 'tos.entity.' + profile_type, 'tos.entity.' + native_type
+                self.assertEqual(entries[native_id]['parent_type_ids'], ['tos.entity.semantic-object'])
+                self.assertNotIn('source_record_profile', entries[native_id])
+                self.assertEqual(mappings['source-navigation', native_type], native_id)
+                for graph_name in ('source-navigation', 'source-claims'):
+                    self.assertEqual(mappings[graph_name, kind], authored_id)
+                profile = entries[authored_id]['source_record_profile']
+                self.assertEqual(profile['reader'], 'semantic-metadata-v1')
+                self.assertEqual(profile['record_type'], kind)
+                self.assertEqual(profile['id_prefix'], f'tos.{kind}.')
+                if kind == 'occurrence':
+                    self.assertEqual(profile['native_binding_adapter'], 'source-text-unit-v1')
+                # A native adapter must never make an incomplete authored
+                # description acceptable merely by sharing its ID namespace.
+                malformed = {'source_navigation': {'nodes': [{
+                    'node_id': f'tos.{kind}.synthetic-missing-description', 'node_kind': kind,
+                    'label': 'Incomplete synthetic description', 'source_ref': 'synthetic:required-fields',
+                    'properties': {'source_record': {}}}], 'edges': []}}
+                with self.assertRaises(ValueError) as error:
+                    build_knowledge_graph(malformed, {}, {}, self.entity_type_registry, self.relation_type_registry)
+                for name in (*properties, 'semantic-scope-note', 'semantic-identity-criterion'):
+                    self.assertIn('lacks required property tos.property.' + name, str(error.exception))
 
     @classmethod
     def setUpClass(cls) -> None:
