@@ -896,11 +896,31 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn("command target repo_root path_digest does not match canonical owner root", messages)
         self.assertIn("command target repo_root path_digest does not match action input repo-root", messages)
 
-    def test_current_receipt_requires_portable_command_targets(self) -> None:
+    def test_current_receipt_requires_family_command_targets(self) -> None:
+        family_mode = (
+            "segmented"
+            if self._current_receipt_case()[0].get("schema_version")
+            == validator.KAG_SEGMENTED_FAMILY_SCHEMA
+            else "portable"
+        )
         for field, value, expected in (
-            ("family_mode", "tiered", "budget receipt producer command target family_mode must be 'portable'"),
-            ("artifact_root", {"path": "unrelated"}, "budget receipt producer command target artifact_root must be null for portable family"),
-            ("externalized", True, "budget receipt producer command target externalized must be false for portable family"),
+            (
+                "family_mode",
+                "tiered",
+                f"budget receipt producer command target family_mode must be {family_mode!r}",
+            ),
+            (
+                "artifact_root",
+                {"path": "unrelated"},
+                "budget receipt producer command target artifact_root must be null "
+                f"for {family_mode} family",
+            ),
+            (
+                "externalized",
+                True,
+                "budget receipt producer command target externalized must be false "
+                f"for {family_mode} family",
+            ),
         ):
             with self.subTest(field=field):
                 family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
