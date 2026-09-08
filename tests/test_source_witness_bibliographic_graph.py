@@ -207,6 +207,106 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                     focused = focus_knowledge_node(graph, center, depth=2)
                     self.assertIn(other, {n['entity_id'] for n in focused['nodes']})
 
+    def test_independent_classifications_preserve_scope_and_do_not_retype_objects(self):
+        """Synthetic genre/medium claims are mechanics, not literary judgments."""
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            for name in ('semantic-relation-type-registry', 'source-claim-record', 'source-structured-value', 'source-classification-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            reader = SourceClaimProfiles(root)
+            additions = []
+            for index, (predicate, kind, term) in enumerate((
+                    ('classified_genre', 'genre-classification', 'dialogue'),
+                    ('classified_genre', 'genre-classification', 'dialogue'),
+                    ('classified_communication_medium', 'communication-medium-classification', 'spoken'),
+                    ('classified_content_form', 'content-form-classification', 'aphorism'))):
+                value = {'kind': kind, 'term': term, 'term_language': 'en', 'term_script': 'Latn',
+                    'classification_basis': 'Synthetic source-specific criterion, not a real attribution.',
+                    'scope_note': 'Only the synthetic characterization; no whole-life or universal claim.',
+                    'source_wording': {'text': 'Условная классификация — только тест.', 'language': 'ru', 'script': 'Cyrl'},
+                    'extensions': {'date': '1886', 'unknown': [False, None], 'instruction': 'Inert source text.'}}
+                claim = {**copy.deepcopy(claims[0]), 'schema_version': 'tos_source_classification_claim_v1',
+                    'claim_id': f'tos.claim.classification-fixture-{index}', 'subject_ref': real[2]['record_id'],
+                    'predicate': predicate, 'object': value, 'qualifiers': {
+                        'statement': 'A synthetic attribution, uncertain and limited to its named scope.',
+                        'statement_language': 'en', 'statement_script': 'Latn', 'negated': index == 1}}
+                objects = {real[2]['record_id']: real[2]}
+                original = copy.deepcopy(claim)
+                reader.validate(claim, objects)
+                self.assertEqual(claim, original)
+                self.assertEqual(reader.identity_refs(claim), {claim['subject_ref']})
+                self.assertTrue(reader.is_value(claim))
+                self.assertFalse(reader.is_temporal(claim))
+                for field in ('term', 'term_language', 'term_script', 'classification_basis', 'scope_note', 'source_wording'):
+                    bad = {key: val for key, val in value.items() if key != field}
+                    with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, 'object': bad}, objects)
+                for bad in ({**value, 'kind': 'textual-survival'}, {**value, 'term': ' '},
+                            {**value, 'term_language': 'en\n'}, 'tos.genre.synthetic'):
+                    with self.subTest(kind=kind, value=bad), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, 'object': bad}, objects)
+                other_kind = 'communication-medium-classification' if index < 2 else 'genre-classification'
+                with self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, 'object': {**value, 'kind': other_kind}}, objects)
+                for wrong in ('agent', 'place', 'file', 'genre', 'medium'):
+                    with self.subTest(wrong_subject=wrong), self.assertRaises(SourceProfileError):
+                        reader.validate(claim, {claim['subject_ref']: {'record_type': wrong}})
+                additions.append(claim)
+            claim_path = root / 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            claim_path.write_text(''.join(json.dumps(c, ensure_ascii=False) + '\n' for c in additions))
+            graph, entities, relations = self.historical_knowledge(root, rebuild())
+            from tos_access.knowledge import execute_knowledge_lens, focus_knowledge_node, knowledge_catalog
+            values = [n for n in graph['nodes'] if n['type_id'] in {
+                'tos.entity.genre-classification', 'tos.entity.communication-medium-classification',
+                'tos.entity.content-form-classification'}]
+            self.assertEqual(len(values), 4)
+            self.assertEqual(len({n['entity_id'] for n in values}), 4)
+            self.assertTrue(all(n['type_id'] == 'tos.entity.work' for n in graph['nodes']
+                                if n['entity_id'] == real[2]['record_id']))
+            for node in values:
+                self.assertNotIn('time', node['semantics'])
+                self.assertIn(node['attributes']['value'], [c['object'] for c in additions])
+                self.assertTrue(node['semantics']['assertion_contexts'])
+                focused = focus_knowledge_node(graph, node['entity_id'], depth=2)
+                self.assertIn(real[2]['record_id'], {n['entity_id'] for n in focused['nodes']})
+                focus_vertex = next(v for v in focused['scene']['vertices']
+                                    if v['id'] == focused['scene']['focus_vertex_id'])
+                self.assertEqual(focus_vertex['node_ids'], [node['id']])
+                self.assertIsNone(focus_vertex['entity_id'])  # Addressable value, not a new persistent subject.
+            self.assertTrue(any(context['fields']['qualifiers']['value']['negated'] is True
+                for node in values for context in node['semantics']['assertion_contexts']
+                if context['binding_role'] == 'referenced-claim'))
+            spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'classification-test',
+                'node_query': {'filters': [{'property_id': 'tos.property.classification-term', 'op': 'eq', 'value': 'dialogue'}]},
+                'relation_query': {'enabled': False}, 'detail': 'compact', 'explain': True}
+            selected = execute_knowledge_lens(graph, spec)
+            self.assertEqual(len(selected['nodes']), 2)
+            self.assertEqual({n['type_id'] for n in selected['nodes']}, {'tos.entity.genre-classification'})
+            spec['node_query']['filters'].extend([
+                {'property_id': 'tos.property.classification-term-language', 'op': 'eq', 'value': 'en'},
+                {'property_id': 'tos.property.classification-term-script', 'op': 'eq', 'value': 'Latn'}])
+            self.assertEqual(len(execute_knowledge_lens(graph, spec)['nodes']), 2)
+            spec['node_query']['filters'][1]['value'] = 'ru'  # Wording is Russian, classification term is not.
+            self.assertEqual(execute_knowledge_lens(graph, spec)['nodes'], [])
+            catalog = knowledge_catalog(graph, {}, {}, entities, relations)
+            descriptors = catalog['semantic_registries']['relation_types']['entries']
+            self.assertEqual(len([d for d in descriptors if d['relation_type_id'] in {
+                'tos.relation.classified-genre', 'tos.relation.classified-communication-medium'}]), 2)
+            for identifier in ('tos.entity.genre', 'tos.entity.medium'):
+                entry = next(t for t in entities['types'] if t['type_id'] == identifier)
+                self.assertEqual(entry['object_role'], 'navigation')
+            carrier = {**copy.deepcopy(additions[0]), 'predicate': 'classified_carrier_medium',
+                'subject_ref': 'tos.artifact.synthetic-carrier', 'object': {
+                    **copy.deepcopy(additions[0]['object']), 'kind': 'carrier-medium-classification', 'term': 'codex'}}
+            for kind in ('artifact', 'item'):
+                reader.validate(carrier, {carrier['subject_ref']: {'record_type': kind}})
+            for kind in ('work', 'expression', 'agent', 'file', 'genre'):
+                with self.subTest(carrier_subject=kind), self.assertRaises(SourceProfileError):
+                    reader.validate(carrier, {carrier['subject_ref']: {'record_type': kind}})
+            with self.assertRaises(SourceProfileError):
+                reader.validate({**carrier, 'object': {**carrier['object'], 'kind': 'genre-classification'}})
+
     def test_textual_survival_is_a_typed_claim_value_not_a_lost_work_identity(self):
         """Synthetic mechanics only: no assertion about a real work's survival."""
         from source_record_profiles import SourceClaimProfiles, SourceProfileError

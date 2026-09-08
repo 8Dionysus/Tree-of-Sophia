@@ -30,6 +30,26 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_declared_file_media_type_is_a_file_property_not_work_classification(self):
+        corpus, philosophy = self.fixture()
+        corpus['source_navigation'] = {'nodes': [
+            {'node_id': 'tos.file.sha256.' + '1' * 64, 'node_kind': 'file', 'label': 'Synthetic file',
+             'properties': {'media_type': 'text/plain', 'byte_size': 12}},
+            {'node_id': 'tos.file.sha256.' + '2' * 64, 'node_kind': 'file', 'label': 'Undeclared format',
+             'properties': {}},
+            {'node_id': 'tos.work.synthetic', 'node_kind': 'work', 'label': 'Synthetic work',
+             'properties': {'media_type': 'text/plain'}}], 'edges': []}
+        graph = build_knowledge_graph(corpus, philosophy, entity_type_registry=self.entity_type_registry,
+                                      relation_type_registry=self.relation_type_registry)
+        spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'file-media-type-test',
+            'node_query': {'filters': [{'property_id': 'tos.property.file-media-type', 'op': 'eq', 'value': 'text/plain'}]},
+            'relation_query': {'enabled': False}, 'detail': 'full', 'explain': True}
+        result = execute_knowledge_lens(graph, spec)
+        self.assertEqual(len(result['nodes']), 1)
+        self.assertEqual(result['nodes'][0]['type_id'], 'tos.entity.file')
+        self.assertEqual(result['nodes'][0]['attributes']['media_type'], 'text/plain')
+        self.assertIsNone(result['nodes'][0]['epistemic']['canon_status'])
+
     def test_source_claim_projection_never_infers_canon_authority(self):
         corpus, philosophy = self.fixture()
         source = {'nodes': [

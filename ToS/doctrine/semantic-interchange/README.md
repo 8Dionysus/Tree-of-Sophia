@@ -834,6 +834,66 @@ catalog, graph and assessment input readers preserve the exact value and
 source bindings; receipt validity does not accept its historical content.
 Rolling back a derived reader does not erase the new sources or corrections.
 
+## Independent genre, content form, medium and file format
+
+Entity registry 21 and relation registry 20 add four Claim-scoped
+classification values through the existing `structured-value-v1` reader.
+The [classification schema](../../contracts/source-classification-claim.schema.json)
+requires the term and its language/script, source wording, classification
+basis and scope. No vocabulary of all genres or media is declared complete.
+The abstract ClassificationValue shares property law, not subject identity.
+
+| Predicate | Subject → value | What remains distinct |
+| --- | --- | --- |
+| `classified_genre` | IntellectualObject → GenreClassification | literary or scholarly genre is not a new subject subtype |
+| `classified_content_form` | IntellectualObject → ContentFormClassification | letter, article, lecture, aphorism or commentary as a described form, not file encoding |
+| `classified_communication_medium` | IntellectualObject → CommunicationMediumClassification | written, spoken, performed or audiovisual expression in the stated context, not its physical substrate |
+| `classified_carrier_medium` | Artifact / Item → CarrierMediumClassification | papyrus, codex, clay tablet or printed book as a carrier category, not the abstract Work or permission to use it |
+
+Genre and form can share a term such as “dialogue” without collapsing their
+different questions. A claim that a Work takes letter form does not create a
+Letter identity or transform the Work's type. Conversely, an existing Letter
+record can receive an explicit form classification without becoming a second
+document. Carrier category does not replace independently measured material
+composition. Intellectual membership remains the separately grounded relation
+to a school, tradition or movement, not a genre or medium tag.
+
+The pre-canon atlas navigation types `tos.entity.genre` and `tos.entity.medium`
+retain their identities and mappings. No atlas entry is promoted by creating
+a classification Claim. Two Claims with the same value retain distinct values,
+evidence and assertion contexts; negation, competing classifications and
+uncertainty remain visible. The predicates have no transitivity or global
+cardinality limit. Each fixes exactly one value kind and specific subject
+families; a value from a neighboring facet is rejected.
+
+The catalog exposes `tos.property.classification-term`,
+`tos.property.classification-term-language`,
+`tos.property.classification-term-script`,
+`tos.property.classification-basis` and `tos.property.classification-scope` on
+these values, inherited from ClassificationValue. A term's language/script
+does not determine the classified subject's language, the source wording's
+language or the UI language. Combine their ordinary
+property filters with the named predicate and focus through the Claim to find
+the classified subject. Inspect the Claim for attribution and evidence; a
+term match alone is not an accepted classification. Source wording supplies
+the honest source-language display, with fallback rather than invented
+translations; full statement forms retain the qualified assertion.
+
+Technical format uses the existing File record instead:
+`tos.property.file-media-type` reads the exact source-item manifest's declared
+`payload_files[].media_type`, already carried by source navigation as
+`attributes.media_type`. The filter is applicable only to File. Missing MIME
+metadata stays unknown, and a Work with a similarly named field does not
+match it. This property does not inspect payload bytes, validate their actual
+encoding, open restricted content or turn PDF/HTML into literary genres.
+
+Creation and correction use the existing separately delegated v3 Claim value
+commands, exact dependency/version checks and retained history. A compatible
+facet is registry/schema data, not a new Python dispatch branch or UI screen.
+Rolling back a reader never removes the source Claims or assessment history.
+The bounded actual inputs and source-reading limits are recorded in
+[`2026-09-07-classification-source-reading.md`](../../review-ledger/2026-09-07-classification-source-reading.md).
+
 ## Textual fragments and quoting passages
 
 The independently mapped scholarly-composite route below retains the modern
