@@ -78,6 +78,9 @@
   `mechanics/growth-cycle/`; не запись через read-only `access`.
 - **Forms** — исходные языковые поля и их оценки у ToS; общий контракт формы,
   контекста и выбора языка с совместимым читателем у `access`.
+  [Source-owned навигация Claim](../review-ledger/2026-09-08-claim-navigation-review.md)
+  теперь использует точные имена, предикат и статусы записи; это не готовая
+  человеческая формулировка. Полная legacy Forms-миграция остаётся отдельной работой.
 - **Processing** — `access/src/tos_access/normalization_cache.py`, обработка
   исходных слоёв у Corpus, текущая материализация и чтение Cloudflare/D1.
 - **Consumer** — API/MCP/agent consumer и `access/web/src/observatory/`, с

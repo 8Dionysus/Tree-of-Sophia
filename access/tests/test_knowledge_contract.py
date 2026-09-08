@@ -31,6 +31,176 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def _claim_navigation_fixture(self):
+        sys.path.insert(0, str(self.repo_root / 'scripts'))
+        from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
+        payload = json.loads((self.repo_root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
+        trace = next(value for value in payload['claim_traces'] if value['predicate'] == 'translated_by')
+        edges = [edge for edge in payload['edges'] if edge.get('claim_ref') == trace['claim_ref']]
+        identities = {trace['claim_node_id'], *(edge[key] for edge in edges for key in ('from_id', 'to_id'))}
+        source = {'nodes': [node for node in payload['nodes'] if node['node_id'] in identities],
+                  'edges': edges, 'claim_traces': [trace]}
+        nodes = {node['node_id']: node for node in source['nodes']}
+        raw = nodes[trace['claim_node_id']]
+        subject, target = nodes[trace['subject_node_id']], nodes[trace['object_node_id']]
+        def refresh(registry=None):
+            raw['properties']['navigation_descriptor'] = build_claim_navigation_descriptor(
+                raw['properties']['source_claim'], subject, target,
+                registry or self.relation_type_registry, self.entity_type_registry)
+        refresh()
+        return source, raw, subject, target, refresh
+
+    def _navigation_graph(self, source, registry=None):
+        return build_knowledge_graph(*self.fixture(), source, self.entity_type_registry,
+                                     registry or self.relation_type_registry)
+
+    def test_claim_navigation_preserves_context_without_claiming_source_wording(self):
+        from tos_access.knowledge import _lens_carrier, knowledge_scene
+        source, raw, subject, target, _ = self._claim_navigation_fixture()
+        original = copy.deepcopy(source)
+        graph = self._navigation_graph(source)
+        claim = next(node for node in graph['nodes'] if node['native_id'] == raw['node_id'])
+        descriptor = raw['properties']['navigation_descriptor']
+        self.assertEqual(descriptor['state'], 'ready')
+        self.assertEqual({key: claim['display']['title'][key] for key in descriptor['title']}, descriptor['title'])
+        self.assertIsNone(claim['display']['title']['original'])
+        for language in ('ru', 'en'):
+            self.assertIn(subject['properties']['preferred_label'], claim['display']['title'][language])
+            self.assertIn(target['properties']['preferred_label'], claim['display']['title'][language])
+            for detail in ('full', 'compact'):
+                packet = _lens_carrier(claim, detail, language=language)
+                provenance = packet['display']['provenance']
+                self.assertEqual(provenance['title'], 'navigation-template')
+                self.assertFalse(provenance['source_title_available'])
+                self.assertEqual(provenance['navigation_descriptor']['claim'], descriptor['claim'])
+                self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+                self.assertEqual(packet['display_selection']['fields']['title']['actual_language'], language)
+        self.assertEqual(claim['attributes']['source_claim'], raw['properties']['source_claim'])
+        self.assertFalse(claim['display']['provenance']['source_summary_available'])
+        self.assertFalse(claim['attributes'].get('human_forms'))
+        Draft202012Validator(self.schemas['knowledge-graph.v1.schema.json']).validate(graph)
+        scene = knowledge_scene(graph['nodes'], graph['relations'], 'source-claims:' + subject['node_id'])
+        self.assertIn({'node_id': claim['id'], 'reason': 'nonfoldable-incident-relation'}, scene['compact']['retained_claims'])
+        # A bounded content view omits separate provenance/maker routes, while
+        # the full graph above retains them. Its eligible fold is still not prose.
+        content_edges = [edge for edge in graph['relations'] if edge['from_id'] != claim['id']
+                         or edge['relation_type_id'] in {'tos.relation.has-subject', 'tos.relation.has-object',
+                                                        'tos.relation.claim-supported-by'}]
+        scene = knowledge_scene([_lens_carrier(node, 'compact', language='ru') for node in graph['nodes']],
+                                content_edges, 'source-claims:' + subject['node_id'])
+        paths = [path for path in scene['compact']['claim_paths'] if path['claim_node_id'] == claim['id']]
+        self.assertTrue(paths)
+        self.assertTrue(all(not path['reading']['standalone'] and path['reading']['wording_state'] == 'missing'
+                            and path['reading']['wording_pointer'] is None for path in paths))
+        self.assertEqual(source, original)
+
+    def test_claim_navigation_rejects_tampered_source_dependencies_and_closed_fields(self):
+        source, raw, _, _, _ = self._claim_navigation_fixture()
+        node_id = raw['node_id']
+        target_id = raw['properties']['navigation_descriptor']['object']['node_id']
+        for field in ('title', 'claim', 'template', 'predicate', 'subject', 'object', 'statuses', 'standalone', 'reason', 'state'):
+            broken = copy.deepcopy(source)
+            descriptor = next(node for node in broken['nodes'] if node['node_id'] == node_id)['properties']['navigation_descriptor']
+            descriptor[field] = 'tampered' if field == 'reason' else None
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'claim navigation'):
+                self._navigation_graph(broken)
+        for action in ('source-status', 'source-qualifier', 'carrier-status', 'carrier-predicate', 'carrier-qualifier',
+                       'carrier-object', 'endpoint-label', 'endpoint-kind', 'missing-endpoint', 'duplicate-endpoint', 'extra-field'):
+            broken = copy.deepcopy(source)
+            claim = next(node for node in broken['nodes'] if node['node_id'] == node_id)
+            target = next(node for node in broken['nodes'] if node['node_id'] == target_id)
+            if action == 'source-status': claim['properties']['source_claim']['epistemic_status'] = 'disputed'
+            elif action == 'source-qualifier': claim['properties']['source_claim']['qualifiers'] = {'polarity': 'negative', 'unknown': [None, False]}
+            elif action == 'carrier-status': claim['properties']['review_status'] = 'accepted'
+            elif action == 'carrier-predicate': claim['properties']['predicate'] = 'authored_by'
+            elif action == 'carrier-qualifier': claim['properties']['qualifiers'] = {'polarity': 'negative'}
+            elif action == 'carrier-object': claim['properties']['object'] = claim['properties']['subject_ref']
+            elif action == 'endpoint-label': target['properties']['preferred_label'] = 'Substituted name'
+            elif action == 'endpoint-kind': target['properties']['identity_kind'] = 'place'
+            elif action == 'missing-endpoint': broken['nodes'].remove(target)
+            elif action == 'duplicate-endpoint': broken['nodes'].append(copy.deepcopy(target))
+            else: claim['properties']['navigation_descriptor']['is_authorized'] = True
+            with self.subTest(action=action), self.assertRaisesRegex(ValueError, 'claim navigation'):
+                self._navigation_graph(broken)
+        stale_registry = copy.deepcopy(self.relation_type_registry)
+        stale_registry['claim_navigation_template']['template_version'] += 1
+        with self.assertRaisesRegex(ValueError, 'claim navigation'):
+            self._navigation_graph(source, stale_registry)
+
+    def test_claim_navigation_refusals_old_carriers_and_warm_cache_are_honest(self):
+        from tos_access.knowledge import _validation_digest
+        from tos_access.normalization_cache import NormalizationCache
+        source, raw, _, target, refresh = self._claim_navigation_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'navigation.sqlite'
+            with NormalizationCache(path, 'navigation-test-v1'):
+                first = self._navigation_graph(source)
+            with NormalizationCache(path, 'navigation-test-v1') as repeat:
+                self.assertEqual(self._navigation_graph(source), first)
+            self.assertEqual(repeat.misses, 0)
+            source_record = target['properties']['source_record']
+            source_record['preferred_label'] += ' (changed source-name fixture)'
+            source_record['record_version'] += 1
+            target['properties']['preferred_label'] = source_record['preferred_label']
+            target['source_sha256'] = _validation_digest(source_record)
+            refresh()
+            with NormalizationCache(path, 'navigation-test-v1') as changed:
+                actual = self._navigation_graph(source)
+            self.assertEqual(actual, self._navigation_graph(source))
+            self.assertGreater(changed.hits, 0)
+            self.assertGreater(changed.misses, 0)
+            self.assertNotEqual(actual['source_revision'], first['source_revision'])
+            old_claim = next(node for node in first['nodes'] if node['native_id'] == raw['node_id'])
+            new_claim = next(node for node in actual['nodes'] if node['native_id'] == raw['node_id'])
+            self.assertNotEqual(old_claim['content_revision'], new_claim['content_revision'])
+            old_edges = {edge['id']: edge for edge in first['relations'] if edge['from_id'] == old_claim['id']}
+            new_edges = {edge['id']: edge for edge in actual['relations'] if edge['from_id'] == new_claim['id']}
+            self.assertNotEqual(old_edges, new_edges)
+        registry = copy.deepcopy(self.relation_type_registry)
+        registry['claim_navigation_template']['max_output_bytes'] = 128
+        refresh(registry)
+        self.assertEqual(raw['properties']['navigation_descriptor']['reason'], 'over-budget')
+        refused = self._navigation_graph(source, registry)
+        claim = next(node for node in refused['nodes'] if node['native_id'] == raw['node_id'])
+        self.assertEqual(claim['display']['provenance']['title'], 'identifier-fallback')
+        self.assertFalse(claim['display']['provenance']['source_title_available'])
+        raw['properties'].pop('navigation_descriptor')
+        legacy = self._navigation_graph(source)
+        claim = next(node for node in legacy['nodes'] if node['native_id'] == raw['node_id'])
+        self.assertEqual(claim['display']['provenance']['title'], 'identifier-fallback')
+
+    def test_claim_navigation_template_rejects_incomplete_syntax_and_silent_repurpose(self):
+        for change in ('omit-slot', 'duplicate-slot', 'expression', 'default-only', 'ambiguous-language', 'unknown-status', 'extra-field'):
+            registry = copy.deepcopy(self.relation_type_registry)
+            template = registry['claim_navigation_template']
+            if change == 'omit-slot': template['renderings']['ru'].pop()
+            elif change == 'duplicate-slot': template['renderings']['ru'].append({'slot': 'subject-label'})
+            elif change == 'expression': template['renderings']['ru'][1] = {'expression': 'source.run()'}
+            elif change == 'default-only': template['renderings']['default'] = template['renderings'].pop('ru')
+            elif change == 'ambiguous-language': template['renderings']['RU'] = template['renderings']['ru']
+            elif change == 'unknown-status': template['status_labels']['review_status']['auto-approved'] = template['marker']
+            else: template['execute'] = 'source instruction'
+            with self.subTest(change=change):
+                self.assertFalse(validate_semantic_registries(self.entity_type_registry, registry)['valid'])
+        for key in ('types', 'relations'):
+            entities, relations = copy.deepcopy(self.entity_type_registry), copy.deepcopy(self.relation_type_registry)
+            registry = entities if key == 'types' else relations
+            entry = next(entry for entry in registry[key] if entry['source_mappings'])
+            entry['source_mappings'].append(copy.deepcopy(entry['source_mappings'][0]))
+            with self.subTest(duplicate_mapping=key):
+                self.assertFalse(validate_semantic_registries(entities, relations)['valid'])
+        changed = copy.deepcopy(self.relation_type_registry)
+        changed['registry_version'] += 1
+        changed['claim_navigation_template']['marker']['ru'] += ' ·'
+        self.assertFalse(validate_semantic_registries(self.entity_type_registry, changed,
+            previous_relation_registry=self.relation_type_registry)['valid'])
+        changed['claim_navigation_template']['template_version'] += 1
+        self.assertTrue(validate_semantic_registries(self.entity_type_registry, changed,
+            previous_relation_registry=self.relation_type_registry)['valid'])
+        changed['claim_navigation_template']['template_id'] += '.repurposed'
+        self.assertFalse(validate_semantic_registries(self.entity_type_registry, changed,
+            previous_relation_registry=self.relation_type_registry)['valid'])
+
     def test_declared_file_media_type_is_a_file_property_not_work_classification(self):
         corpus, philosophy = self.fixture()
         corpus['source_navigation'] = {'nodes': [

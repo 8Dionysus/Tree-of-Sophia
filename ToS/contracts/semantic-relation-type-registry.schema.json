@@ -25,6 +25,7 @@
       "items": {"$ref": "#/$defs/nonEmptyString"}
     },
     "fallback_relation_type_id": {"$ref": "#/$defs/relationTypeId"},
+    "claim_navigation_template": {"$ref": "#/$defs/claimNavigationTemplate"},
     "relations": {
       "type": "array",
       "minItems": 1,
@@ -32,6 +33,66 @@
     }
   },
   "$defs": {
+    "navigationLanguageMap": {
+      "type": "object", "minProperties": 1, "maxProperties": 16,
+      "propertyNames": {"maxLength": 64},
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "claimNavigationTemplate": {
+      "type": "object", "additionalProperties": false,
+      "description": "Owner-reviewed finite navigation syntax, not a HumanForm, standalone assertion, source title, assessment or use grant. Every rendering names all six fixed slots exactly once; no JSONPath, expressions, code or source-text instructions execute.",
+      "required": ["template_id", "template_version", "reader", "purpose", "owner_ref", "default_language", "max_output_bytes", "marker", "status_labels", "renderings"],
+      "properties": {
+        "template_id": {"type": "string", "pattern": "^tos\\.navigation-template\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"},
+        "template_version": {"type": "integer", "minimum": 1},
+        "reader": {"const": "claim-navigation-v1"},
+        "purpose": {"const": "claim-navigation-only"},
+        "owner_ref": {"const": "ToS/doctrine/HUMAN_FORMS.md"},
+        "default_language": {"type": "string", "minLength": 2, "maxLength": 64},
+        "max_output_bytes": {"type": "integer", "minimum": 128, "maximum": 16384},
+        "marker": {"$ref": "#/$defs/navigationLanguageMap"},
+        "status_labels": {
+          "type": "object", "additionalProperties": false, "required": ["epistemic_status", "review_status"],
+          "properties": {
+            "epistemic_status": {
+              "type": "object", "additionalProperties": false,
+              "required": ["observed", "inferred", "reported", "interpreted", "uncertain", "disputed"],
+              "properties": {
+                "observed": {"$ref": "#/$defs/navigationLanguageMap"}, "inferred": {"$ref": "#/$defs/navigationLanguageMap"},
+                "reported": {"$ref": "#/$defs/navigationLanguageMap"}, "interpreted": {"$ref": "#/$defs/navigationLanguageMap"},
+                "uncertain": {"$ref": "#/$defs/navigationLanguageMap"}, "disputed": {"$ref": "#/$defs/navigationLanguageMap"}
+              }
+            },
+            "review_status": {
+              "type": "object", "additionalProperties": false,
+              "required": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"],
+              "properties": {
+                "unreviewed": {"$ref": "#/$defs/navigationLanguageMap"}, "accepted": {"$ref": "#/$defs/navigationLanguageMap"},
+                "accepted_with_limits": {"$ref": "#/$defs/navigationLanguageMap"}, "rejected": {"$ref": "#/$defs/navigationLanguageMap"},
+                "ambiguous": {"$ref": "#/$defs/navigationLanguageMap"}, "deferred": {"$ref": "#/$defs/navigationLanguageMap"},
+                "superseded": {"$ref": "#/$defs/navigationLanguageMap"}
+              }
+            }
+          }
+        },
+        "renderings": {
+          "type": "object", "minProperties": 1, "maxProperties": 16, "additionalProperties": false,
+          "propertyNames": {"maxLength": 64},
+          "patternProperties": {
+            "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {
+              "type": "array", "minItems": 6, "maxItems": 32,
+              "items": {"oneOf": [
+                {"type": "object", "additionalProperties": false, "required": ["literal"], "properties": {"literal": {"type": "string", "minLength": 1, "maxLength": 256}}},
+                {"type": "object", "additionalProperties": false, "required": ["slot"], "properties": {"slot": {"enum": ["claim-marker", "subject-label", "predicate-label", "object-label", "declared-epistemic-status", "declared-review-status"]}}}
+              ]}
+            }
+          }
+        }
+      }
+    },
     "sourceClaimProfile": {
       "type": "object", "additionalProperties": false,
       "description": "Read contract for source-claims.jsonl. Predicate and concrete endpoint meaning come from this relation entry; no write or assessment authority is granted.",

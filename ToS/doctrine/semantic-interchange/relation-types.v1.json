@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 26,
+  "registry_version": 27,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -15,6 +15,39 @@
     "scripts/philosophy_graph_projection_common.py"
   ],
   "fallback_relation_type_id": "tos.relation.unmapped",
+  "claim_navigation_template": {
+    "template_id": "tos.navigation-template.claim-reference",
+    "template_version": 1,
+    "reader": "claim-navigation-v1",
+    "purpose": "claim-navigation-only",
+    "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
+    "default_language": "ru",
+    "max_output_bytes": 8192,
+    "marker": {"ru": "Запись утверждения", "en": "Claim record"},
+    "status_labels": {
+      "epistemic_status": {
+        "observed": {"ru": "обозначено как наблюдение", "en": "declared observation"},
+        "inferred": {"ru": "обозначено как вывод", "en": "declared inference"},
+        "reported": {"ru": "сообщено источником", "en": "source-reported"},
+        "interpreted": {"ru": "обозначено как интерпретация", "en": "declared interpretation"},
+        "uncertain": {"ru": "неопределённо", "en": "uncertain"},
+        "disputed": {"ru": "оспаривается", "en": "disputed"}
+      },
+      "review_status": {
+        "unreviewed": {"ru": "исходная запись не оценена", "en": "source record unreviewed"},
+        "accepted": {"ru": "в исходной записи принято", "en": "accepted in source record"},
+        "accepted_with_limits": {"ru": "в исходной записи принято с ограничениями", "en": "accepted with limits in source record"},
+        "rejected": {"ru": "в исходной записи отклонено", "en": "rejected in source record"},
+        "ambiguous": {"ru": "в исходной записи неоднозначно", "en": "ambiguous in source record"},
+        "deferred": {"ru": "в исходной записи отложено", "en": "deferred in source record"},
+        "superseded": {"ru": "исходная запись замещена", "en": "source record superseded"}
+      }
+    },
+    "renderings": {
+      "ru": [{"slot": "claim-marker"}, {"literal": " · связь: "}, {"slot": "predicate-label"}, {"literal": " ["}, {"slot": "declared-epistemic-status"}, {"literal": "; "}, {"slot": "declared-review-status"}, {"literal": "] · субъект: "}, {"slot": "subject-label"}, {"literal": " · объект: "}, {"slot": "object-label"}],
+      "en": [{"slot": "claim-marker"}, {"literal": " · relation: "}, {"slot": "predicate-label"}, {"literal": " ["}, {"slot": "declared-epistemic-status"}, {"literal": "; "}, {"slot": "declared-review-status"}, {"literal": "] · subject: "}, {"slot": "subject-label"}, {"literal": " · object: "}, {"slot": "object-label"}]
+    }
+  },
   "relations": [
 {"relation_type_id":"tos.relation.claim-value-member","parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"references a proposal member","ru":"ссылается на участника гипотезы","en":"references a proposal member"},"inverse_labels":{"default":"is referenced by a proposal","ru":"указан в гипотезе","en":"is referenced by a proposal"},"definition":"A structural return from a Claim to one member explicitly declared by its structured-reference-value profile. The complete set and Claim source govern meaning and admission; this edge alone is not accepted membership, equivalence, evidence or a Sign.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.claim"],"range_type_ids":["tos.entity.identity","tos.entity.semantic-object"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"structural","evidence_required":false,"review_requirement":"none","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"has_value_member","scope":"edge"}],"supersedes_relation_type_id":null},
 {"relation_type_id":"tos.relation.occurrence-motif-proposal","source_claim_profile":{"profile_version":1,"reader":"structured-reference-value-v1","value_kind":"motif-proposal","object_reference_set":{"member_type_ids":["tos.entity.occurrence"],"min_items":2,"max_items":8,"subject_is_member":true},"assertion_layers":["semantic_interpretation","scholarly_report"],"schemas":[{"schema_version":"tos_source_occurrence_motif_claim_v1","schema_ref":"ToS/contracts/source-occurrence-motif-claim.schema.json","schema_dependencies":["ToS/contracts/source-structured-value.schema.json","ToS/contracts/corpus-record.schema.json"]}]},"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"labels":{"default":"has a qualified motif proposal","ru":"имеет гипотезу о мотиве с оговорками","en":"has a qualified motif proposal"},"inverse_labels":{"default":"proposes a motif around","ru":"предлагает мотив вокруг","en":"proposes a motif around"},"definition":"The focal exact Occurrence is the entry to one qualified Claim over all declared member occurrences. The focal is included in the set; no first pair stands for the whole hypothesis, and no member edge independently accepts membership or a Sign.","lifecycle":"stable","owner_ref":"ToS/doctrine/semantic-interchange/README.md","domain_type_ids":["tos.entity.occurrence"],"range_type_ids":["tos.entity.motif-proposal"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","source_mappings":[{"source_graph":"source-claims","source_predicate_id":"occurrence_motif_proposal","scope":"claim-predicate"}],"supersedes_relation_type_id":null},

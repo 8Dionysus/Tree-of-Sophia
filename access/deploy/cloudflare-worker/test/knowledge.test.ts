@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 
-import { executeKnowledgeLens, focusKnowledgeNode, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
+import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
@@ -44,6 +44,76 @@ function claimFormNode(): KnowledgeGraph['nodes'][number] {
     "n['properties'].update(human_forms=materialize_claim_forms(c,s,access_allowed=True),human_forms_source_ref='test-only:source-copy')",
     "print(json.dumps(_normalize_node(n,'source-claims')))"
   ].join(';')], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
+}
+
+function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeGraph; fullScene: unknown;
+  claims: string[]; cases: {spec: unknown; expected: unknown}[]} {
+  // Build disposable navigation carriers from three real legacy Claims and
+  // their exact public identity records. No source/form files are changed;
+  // this transport fixture does not assert graph-wide source closure.
+  return JSON.parse(execFileSync('python3', ['-c', `
+import copy, json, pathlib, sys
+sys.path[:0] = ['access/src', 'scripts']
+from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
+from tos_access.knowledge import (_entity_registry_indexes, _relation_registry_indexes,
+    _validate_claim_navigation_carriers, _normalize_node, _normalize_relation,
+    _source_claim_kind, _finalize_knowledge_node, _stable_digest, execute_knowledge_lens, knowledge_scene)
+root = pathlib.Path('.')
+raw = json.loads((root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
+entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
+relations = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
+claim_ids = {
+    'tos.claim.expression.also-sprach-zarathustra.ru-nani-1899-nine-fragments.translated-by-s-p-nani',
+    'tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments',
+    'tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments',
+}
+traces = [trace for trace in raw['claim_traces'] if trace['claim_ref'] in claim_ids]
+assert len(traces) == len(claim_ids)
+selected_ids = {trace[key] for trace in traces for key in ('claim_node_id', 'subject_node_id', 'object_node_id')}
+incident_edges = [edge for edge in raw['edges'] if edge['claim_ref'] in claim_ids]
+full_ids = selected_ids | {edge[key] for edge in incident_edges for key in ('from_id', 'to_id')}
+selected = [copy.deepcopy(node) for node in raw['nodes'] if node['node_id'] in full_ids]
+by_native = {node['node_id']: node for node in selected}
+entity_entries, entity_mappings, entity_fallback = _entity_registry_indexes(entities)
+relation_entries, relation_mappings, relation_fallback = _relation_registry_indexes(relations)
+for trace in traces:
+    carrier = by_native[trace['claim_node_id']]
+    carrier['properties']['navigation_descriptor'] = build_claim_navigation_descriptor(
+        carrier['properties']['source_claim'], by_native[trace['subject_node_id']],
+        by_native[trace['object_node_id']], relations, entities)
+_validate_claim_navigation_carriers(selected, relations, entity_entries, entity_mappings)
+nodes = [_normalize_node(node, 'source-claims', source_kind_id=_source_claim_kind(node),
+    entity_type_entries=entity_entries, entity_type_mappings=entity_mappings,
+    fallback_type_id=entity_fallback) for node in selected]
+by_id = {node['id']: node for node in nodes}
+for trace in traces:
+    identifier = 'source-claims:' + trace['claim_node_id']
+    node = by_id[identifier]
+    claim = {**node['semantics']['claim'],
+        'subject_node_id': 'source-claims:' + trace['subject_node_id'],
+        'object_node_id': 'source-claims:' + trace['object_node_id'],
+        'relation_type_id': relation_mappings[('source-claims', trace['predicate'], 'claim-predicate')],
+        'predicate_mapping_status': 'mapped'}
+    by_id[identifier] = _finalize_knowledge_node(node, (claim, trace), [])
+full_edges = [_normalize_relation({**edge, 'predicate_id': edge['edge_kind'],
+    'source_ref': edge['source_claim_file_ref'], 'graph_layers': ['bibliographic-claim']}, 'source-claims', by_id,
+    relation_type_entries=relation_entries, relation_type_mappings=relation_mappings,
+    fallback_relation_type_id=relation_fallback) for edge in incident_edges]
+full_graph = {'schema': 'tos_knowledge_graph_v1', 'source_revision': _stable_digest([selected, relations, entities]),
+    'nodes': list(by_id.values()), 'relations': full_edges,
+    'counts': {'nodes': len(by_id), 'relations': len(full_edges)},
+    'authority_boundary': {'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
+graph = {**full_graph, 'nodes': [node for node in by_id.values() if node['native_id'] in selected_ids],
+    'relations': [edge for edge in full_edges if edge['predicate_id'] in {'has_subject', 'has_object'}]}
+graph['counts'] = {'nodes': len(graph['nodes']), 'relations': len(graph['relations'])}
+specs = [{'schema_version': 'tos_lens_spec_v1', 'lens_id': 'claim-navigation-transport',
+    'sources': ['source-claims'], 'language': language, 'detail': detail}
+    for language in ('ru', 'en') for detail in ('compact', 'full')]
+print(json.dumps({'graph': graph, 'fullGraph': full_graph,
+    'fullScene': knowledge_scene(full_graph['nodes'], full_graph['relations']),
+    'claims': sorted('source-claims:claim:' + identity for identity in claim_ids),
+    'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}))
+`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 4 * 1024 * 1024}));
 }
 
 const graph: KnowledgeGraph = {
@@ -518,6 +588,87 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   assert.deepEqual(results, python);
   assert.equal(results[0]!.roles.statement!.state, 'ready');
   for (const result of results.slice(1)) assert.equal(result.state, 'invalid');
+});
+
+test('Claim navigation survives RU/EN compact/full D1 reads without becoming assertion wording', async () => {
+  const fixture = claimNavigationFixture(), source = structuredClone(fixture.graph);
+  const fullScene = knowledgeScene(fixture.fullGraph.nodes, fixture.fullGraph.relations, null);
+  assert.deepEqual(fullScene, fixture.fullScene, 'full real incident context agrees with Python');
+  const fullCompact = fullScene.compact;
+  assert.deepEqual(fullCompact.claim_paths, []);
+  assert.deepEqual(fullCompact.retained_claims.map(claim => claim.node_id).sort(), fixture.claims);
+  assert.deepEqual(fullCompact.retained_claims, fixture.claims.map(node_id => ({
+    node_id, reason: 'nonfoldable-incident-relation'})));
+  const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
+    script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
+  try {
+    const db = await mf.getD1Database('DB');
+    await db.batch([
+      db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
+      db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: source.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: source.source_revision, authority_boundary: source.authority_boundary})),
+      ...source.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...source.relations.map(r => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)').bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    for (const {spec, expected} of fixture.cases) {
+      const {language, detail} = spec as {language: 'ru' | 'en'; detail: 'compact' | 'full'};
+      const pure = await executeKnowledgeLens(source, spec);
+      const result = await executeKnowledgeLensD1(db, spec);
+      assert.deepEqual(pure, expected, language + '/' + detail + ': Python/Worker parity');
+      assert.deepEqual(result, pure, language + '/' + detail + ': D1 transport');
+      assert.deepEqual(await executeKnowledgeLensD1(db, spec), result, 'repeated reads preserve the same snapshot');
+      for (const id of fixture.claims) {
+        const original = source.nodes.find(n => n.id === id)!;
+        const node = result.nodes.find(n => n.id === id)!;
+        assert.deepEqual(node.display, original.display);
+        assert.equal(node.display.provenance.title, 'navigation-template');
+        assert.equal(node.display.provenance.source_title_available, false);
+        assert.equal(node.display.provenance.source_summary_available, false);
+        const navigation = node.display.provenance.navigation_descriptor as Record<string, unknown>;
+        assert.equal(navigation.state, 'ready', 'navigation is usable, not semantic reading');
+        assert.equal(navigation.purpose, 'claim-navigation-only');
+        assert.equal(navigation.standalone, false);
+        assert.deepEqual(navigation, original.display.provenance.navigation_descriptor);
+        const selection = (node as unknown as {display_selection: {content_revision: string;
+          fields: Record<string, {text: string; content_available: boolean; actual_language: string}>;
+          essential_context_pointers: string[]}}).display_selection;
+        assert.equal(selection.content_revision, original.content_revision);
+        assert.equal(selection.fields.title!.text, original.display.title[language]);
+        assert.equal(selection.fields.title!.actual_language, language);
+        assert.equal(selection.fields.title!.content_available, false);
+        assert.equal(selection.fields.summary!.content_available, false);
+        assert.ok(selection.essential_context_pointers.length > 0);
+        assert.deepEqual(node.semantics, original.semantics, 'the whole assertion context remains intact');
+        assert.deepEqual(node.epistemic, original.epistemic);
+        assert.equal(Object.hasOwn(node, 'human_form_selection'), false, 'no HumanForm is manufactured');
+        if (detail === 'compact') {
+          assert.deepEqual(node.attributes, {});
+          assert.equal(Object.hasOwn(node, 'source_record'), false);
+        } else {
+          assert.deepEqual(node.attributes.source_claim, original.attributes.source_claim);
+          assert.deepEqual(node.attributes.navigation_descriptor, original.attributes.navigation_descriptor);
+          assert.deepEqual(node.source_record, original.source_record);
+        }
+      }
+      const compact = (result.scene as {compact: {claim_paths: {claim_node_id: string; reading: {
+        wording_pointer: string | null; wording_state: string; standalone: boolean}}[]}}).compact;
+      assert.deepEqual(compact.claim_paths.map(path => path.claim_node_id).sort(), fixture.claims);
+      for (const path of compact.claim_paths) {
+        assert.equal(path.reading.wording_state, 'missing');
+        assert.equal(path.reading.wording_pointer, null);
+        assert.equal(path.reading.standalone, false);
+      }
+    }
+    assert.deepEqual(fixture.graph, source, 'transport does not rewrite source carriers');
+  } finally {
+    await mf.dispose();
+  }
 });
 
 test('display selection keeps fallback, original language and ambiguity observable', () => {

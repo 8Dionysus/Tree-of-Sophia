@@ -26,6 +26,9 @@ from source_witness_bibliographic_graph_common import (  # noqa: E402
     _projection_fingerprint,
     _validate_cross_references,
     build_payload,
+    build_claim_navigation_descriptor,
+    canonical_digest,
+    load_claim_navigation_registry,
     load_verified_projection,
     query_projection,
     render_payload,
@@ -34,6 +37,259 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    @contextmanager
+    def claim_navigation_fixture(self):
+        """Only synthetic Claim associations; names retain their source bytes."""
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            projection = rebuild()
+            nodes = {node['node_id']: node for node in projection['nodes']}
+            claim = claims[0]
+            subject = nodes['identity:' + claim['subject_ref']]
+            target = nodes['identity:' + claim['object']]
+            relations = load_claim_navigation_registry(root)
+            entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
+            yield root, claim, subject, target, relations, entities, projection
+
+    def test_claim_navigation_legacy_build_is_bound_and_does_not_change_source(self):
+        with self.claim_navigation_fixture() as (root, claim, subject, target, relations, entities, projection):
+            descriptor = build_claim_navigation_descriptor(claim, subject, target, relations, entities)
+            carrier = next(node for node in projection['nodes'] if node['node_id'] == 'claim:' + claim['claim_id'])
+            self.assertEqual(carrier['properties']['source_claim'], claim)
+            self.assertEqual(carrier['properties']['navigation_descriptor'], descriptor)
+            self.assertEqual(descriptor['state'], 'ready')
+            self.assertIsNone(descriptor['reason'])
+            self.assertFalse(descriptor['standalone'])
+            self.assertEqual(descriptor['purpose'], 'claim-navigation-only')
+            self.assertNotIn('human_forms', descriptor)
+            for field, node in (('subject', subject), ('object', target)):
+                self.assertEqual(descriptor[field]['label'], node['properties']['source_record']['preferred_label'])
+                self.assertEqual(descriptor[field]['sha256'], canonical_digest(node['properties']['source_record']))
+                self.assertEqual(descriptor[field]['label_pointer'], '/preferred_label')
+            self.assertEqual(descriptor['claim']['sha256'], canonical_digest(claim))
+            self.assertEqual(descriptor['template']['sha256'], canonical_digest(relations['claim_navigation_template']))
+            self.assertEqual(descriptor['title']['default'], descriptor['title']['ru'])
+            self.assertTrue(descriptor['title']['ru'].startswith('Запись утверждения'))
+            self.assertIn('исходная запись не оценена', descriptor['title']['ru'])
+            for ref in ('ToS/doctrine/semantic-interchange/relation-types.v1.json',
+                        'ToS/contracts/semantic-relation-type-registry.schema.json'):
+                self.assertEqual(projection['input_digests'][ref], hashlib.sha256((root / ref).read_bytes()).hexdigest())
+            unrelated = copy.deepcopy(relations)
+            unrelated['registry_version'] += 1
+            unrelated['relations'][-1]['definition'] += ' Synthetic unrelated edit.'
+            self.assertEqual(descriptor, build_claim_navigation_descriptor(claim, subject, target, unrelated, entities))
+            changed = copy.deepcopy(claim)
+            changed['qualifiers']['x-unknown'] = True
+            newer = build_claim_navigation_descriptor(changed, subject, target, relations, entities)
+            self.assertNotEqual(newer['claim']['sha256'], descriptor['claim']['sha256'])
+            self.assertEqual(newer['title'], descriptor['title'])
+            del relations['claim_navigation_template']
+            self.assertIsNone(build_claim_navigation_descriptor(claim, subject, target, relations, entities))
+            (root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').write_text(json.dumps(relations))
+            without = build_payload(root)
+            self.assertTrue(all('navigation_descriptor' not in node['properties'] for node in without['nodes']))
+
+    def test_claim_navigation_failure_reasons_and_priority_are_closed(self):
+        with self.claim_navigation_fixture() as (_root, claim, subject, target, relations, entities, _projection):
+            def outcome(c=claim, s=subject, o=target, r=relations, e=entities):
+                result = build_claim_navigation_descriptor(c, s, o, r, e)
+                if result['state'] == 'unavailable':
+                    self.assertEqual(set(result), {'schema_version', 'purpose', 'standalone', 'state',
+                                                   'reason', 'template', 'claim'})
+                return result['reason']
+
+            for predicate in ('unknown-predicate', None, False, []):
+                self.assertEqual(outcome(c={**claim, 'predicate': predicate}), 'predicate-not-understood')
+            ambiguous = copy.deepcopy(relations)
+            relation = next(entry for entry in ambiguous['relations'] if entry['relation_type_id'] == 'tos.relation.historical-participant')
+            relation['source_mappings'].append(copy.deepcopy(relation['source_mappings'][0]))
+            self.assertEqual(outcome(r=ambiguous), 'predicate-not-understood')
+            for field, value in (('abstract', True), ('assertion_mode', 'structural')):
+                altered = copy.deepcopy(relations)
+                entry = next(entry for entry in altered['relations'] if entry['relation_type_id'] == relation['relation_type_id'])
+                entry[field] = value
+                self.assertEqual(outcome(r=altered), 'predicate-not-understood')
+            self.assertEqual(outcome(c={**claim, 'object': {'literal': 'test'}}), 'object-not-identity')
+            self.assertEqual(outcome(o={**target, 'node_kind': 'literal'}), 'object-not-identity')
+            wrong_type = copy.deepcopy(target)
+            wrong_type['properties']['identity_kind'] = 'work'
+            self.assertEqual(outcome(o=wrong_type), 'endpoint-type-not-understood')
+            no_type = copy.deepcopy(target)
+            del no_type['properties']['identity_kind']
+            self.assertEqual(outcome(o=no_type), 'endpoint-type-not-understood')
+            self.assertEqual(outcome(o={**target, 'node_id': 'identity:wrong'}), 'source-name-unavailable')
+            # Every earlier failure retains priority when later inputs also fail.
+            self.assertEqual(outcome(c={**claim, 'predicate': None, 'object': {}, 'review_status': None},
+                                     o={**target, 'node_kind': 'literal'}), 'predicate-not-understood')
+            self.assertEqual(outcome(c={**claim, 'object': {}, 'review_status': None}), 'object-not-identity')
+            self.assertEqual(outcome(c={**claim, 'review_status': None}, o=wrong_type), 'endpoint-type-not-understood')
+            self.assertEqual(outcome(c={**claim, 'review_status': None},
+                                     o={**target, 'source_sha256': '0' * 64}), 'source-name-unavailable')
+            for field in ('epistemic_status', 'review_status'):
+                for value in (None, False, 3, [], {}, 'unknown'):
+                    self.assertEqual(outcome(c={**claim, field: value}), 'source-status-unavailable')
+                missing = dict(claim)
+                del missing[field]
+                self.assertEqual(outcome(c=missing), 'source-status-unavailable')
+            for epistemic in relations['claim_navigation_template']['status_labels']['epistemic_status']:
+                for review in relations['claim_navigation_template']['status_labels']['review_status']:
+                    changed = {**claim, 'epistemic_status': epistemic, 'review_status': review}
+                    self.assertIsNone(outcome(c=changed))
+
+    def test_claim_navigation_names_are_complete_source_bound_pointers(self):
+        with self.claim_navigation_fixture() as (_root, claim, subject, target, relations, entities, _projection):
+            def render(node):
+                return build_claim_navigation_descriptor(claim, subject, node, relations, entities)
+
+            for value in ('', '   ', target['properties']['identity_ref'], target['source_ref'], None, {}):
+                node = copy.deepcopy(target)
+                node['properties']['source_record']['preferred_label'] = value
+                node['properties']['preferred_label'] = value
+                node['source_sha256'] = canonical_digest(node['properties']['source_record'])
+                self.assertEqual(render(node)['reason'], 'source-name-unavailable')
+            for mutation in ('truncated', 'version', 'digest', 'source-record', 'source-ref', 'identity'):
+                node = copy.deepcopy(target)
+                if mutation == 'truncated':
+                    node['properties']['preferred_label'] = node['properties']['preferred_label'][:3]
+                elif mutation == 'version':
+                    node['properties']['source_record']['record_version'] = True
+                    node['source_sha256'] = canonical_digest(node['properties']['source_record'])
+                elif mutation == 'digest':
+                    node['properties']['source_record']['notes'] = 'Changed full source bytes.'
+                elif mutation == 'source-record':
+                    del node['properties']['source_record']
+                elif mutation == 'source-ref':
+                    node['source_ref'] = ''
+                else:
+                    node['properties']['source_record']['record_id'] = 'wrong'
+                    node['source_sha256'] = canonical_digest(node['properties']['source_record'])
+                self.assertEqual(render(node)['reason'], 'source-name-unavailable')
+            for field, value in (('schema_version', []), ('schema_version', ''),
+                                 ('notes', float('nan')), ('notes', '\ud800')):
+                node = copy.deepcopy(target)
+                node['properties']['source_record'][field] = value
+                self.assertEqual(render(node)['reason'], 'source-name-unavailable')
+            node = copy.deepcopy(target)
+            label = '  Полное имя ${not_code} {subject-label} <script>\nнесокращённое  '
+            node['properties']['source_record']['preferred_label'] = label
+            node['properties']['source_record']['notes'] = 'Narrative is not a navigation name.'
+            node['properties']['preferred_label'] = label
+            node['properties']['label_source_pointer'] = '/preferred_label'
+            node['source_sha256'] = canonical_digest(node['properties']['source_record'])
+            descriptor = render(node)
+            self.assertEqual(descriptor['object']['label'], label)
+            self.assertIn(label, descriptor['title']['ru'])
+            for pointer in ('preferred_label', '/missing', '/a~1b/~0key/00', '/a~2b', '/notes'):
+                node['properties']['label_source_pointer'] = pointer
+                self.assertEqual(render(node)['reason'], 'source-name-unavailable')
+            node['properties']['preferred_label'] = node['properties']['source_record']['notes']
+            self.assertEqual(render(node)['reason'], 'source-name-unavailable')
+
+    def test_claim_navigation_predicate_wording_and_utf8_budget_are_exact(self):
+        with self.claim_navigation_fixture() as (_root, claim, subject, target, relations, entities, _projection):
+            relation = next(entry for entry in relations['relations'] if entry['relation_type_id'] == 'tos.relation.historical-participant')
+            mapping = relation['source_mappings'][0]
+            mapping['labels'] = {'ru': 'точная роль', 'en': 'exact role', 'default': 'exact role'}
+            descriptor = build_claim_navigation_descriptor(claim, subject, target, relations, entities)
+            self.assertIn('точная роль', descriptor['title']['ru'])
+            self.assertEqual(descriptor['predicate']['sha256'], canonical_digest(relation))
+            self.assertEqual(descriptor['predicate']['mapping_sha256'], canonical_digest(mapping))
+            mapping['labels']['ru'] = None
+            self.assertEqual(build_claim_navigation_descriptor(claim, subject, target, relations, entities)['reason'],
+                             'predicate-label-unavailable')
+            del mapping['labels']
+            relation['source_mappings'].append({**mapping, 'source_predicate_id': 'another-role'})
+            self.assertEqual(build_claim_navigation_descriptor(claim, subject, target, relations, entities)['reason'],
+                             'predicate-label-unavailable')
+            relation['source_mappings'].pop()
+            descriptor = build_claim_navigation_descriptor(claim, subject, target, relations, entities)
+            size = len(json.dumps(descriptor['title'], ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8'))
+            relations['claim_navigation_template']['max_output_bytes'] = size
+            self.assertEqual(build_claim_navigation_descriptor(claim, subject, target, relations, entities)['state'], 'ready')
+            relations['claim_navigation_template']['max_output_bytes'] = size - 1
+            unavailable = build_claim_navigation_descriptor(claim, subject, target, relations, entities)
+            self.assertEqual(unavailable['reason'], 'over-budget')
+            self.assertNotIn('title', unavailable)
+
+    def test_claim_navigation_native_names_and_type_closure_are_not_inferred_from_ids(self):
+        with self.claim_navigation_fixture() as (_root, claim, subject, target, relations, entities, _projection):
+            relation = next(entry for entry in relations['relations'] if entry['relation_type_id'] == 'tos.relation.historical-participant')
+            for schema, kind, field, pointer in (
+                    ('tos_artifact_source_witness_v1', 'artifact', 'artifact_id', '/custody/inventory_numbers/0'),
+                    ('tos_artifact_source_witness_v2', 'artifact', 'artifact_id', '/custody/inventory_numbers/0'),
+                    ('tos_scholarly_composite_witness_v1', 'composite', 'composite_id', '/preferred_label')):
+                # Identity spelling is intentionally opaque to this pure helper.
+                identity = 'synthetic:opaque-endpoint'
+                source = {'schema_version': schema, field: identity, 'record_version': 1,
+                          'custody': {'inventory_numbers': ['Synthetic inventory 1']},
+                          'preferred_label': 'Synthetic composite name'}
+                label = source['custody']['inventory_numbers'][0] if kind == 'artifact' else source['preferred_label']
+                node = {'node_id': 'identity:' + identity, 'node_kind': 'identity',
+                        'source_ref': 'ToS/source-witnesses/synthetic/metadata.json',
+                        'source_sha256': canonical_digest(source),
+                        'properties': {'identity_ref': identity, 'identity_kind': kind, 'source_record': source,
+                                       'preferred_label': label, 'label_source_pointer': pointer}}
+                relation['range_type_ids'] = ['tos.entity.' + kind]
+                adapted_claim = {**claim, 'object': identity}
+                result = build_claim_navigation_descriptor(adapted_claim, subject, node, relations, entities)
+                self.assertEqual(result['state'], 'ready', (schema, result))
+                self.assertEqual(result['object']['label_pointer'], pointer)
+                self.assertEqual(result['object']['sha256'], canonical_digest(source))
+                if kind == 'artifact':
+                    del node['properties']['label_source_pointer']
+                    self.assertEqual(build_claim_navigation_descriptor(adapted_claim, subject, node, relations, entities)['reason'],
+                                     'source-name-unavailable')
+            relation['range_type_ids'] = ['tos.entity.agent']
+            for mutation in ('duplicate-mapping', 'unknown-parent', 'cycle', 'abstract', 'unknown-range'):
+                changed = copy.deepcopy(entities)
+                entry = next(entry for entry in changed['types'] if entry['type_id'] == 'tos.entity.agent')
+                changed_relations = copy.deepcopy(relations)
+                if mutation == 'duplicate-mapping':
+                    mapping = next(mapping for mapping in entry['source_mappings'] if mapping['source_graph'] == 'source-claims')
+                    entry['source_mappings'].append(copy.deepcopy(mapping))
+                elif mutation == 'unknown-parent':
+                    entry['parent_type_ids'] = ['tos.entity.unknown']
+                elif mutation == 'cycle':
+                    entry['parent_type_ids'] = [entry['type_id']]
+                elif mutation == 'abstract':
+                    entry['abstract'] = True
+                else:
+                    next(entry for entry in changed_relations['relations'] if entry['relation_type_id'] == relation['relation_type_id'])['range_type_ids'].append('tos.entity.unknown')
+                with self.subTest(mutation=mutation):
+                    self.assertEqual(build_claim_navigation_descriptor(claim, subject, target, changed_relations, changed)['reason'],
+                                     'endpoint-type-not-understood')
+
+    def test_claim_navigation_registry_and_template_are_validated_for_legacy_only(self):
+        with self.claim_navigation_fixture() as (root, _claim, _subject, _target, relations, _entities, _projection):
+            path = root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            for mutation in ('unknown-field', 'unknown-reader', 'duplicate-slot', 'marker-later',
+                             'language-map-gap', 'language-alias', 'blank-marker', 'default-language', 'bad-budget'):
+                changed = copy.deepcopy(relations)
+                template = changed['claim_navigation_template']
+                if mutation == 'unknown-field':
+                    template['execute'] = 'never'
+                elif mutation == 'unknown-reader':
+                    template['reader'] = 'unknown'
+                elif mutation == 'duplicate-slot':
+                    template['renderings']['ru'][-1] = {'slot': 'subject-label'}
+                elif mutation == 'marker-later':
+                    template['renderings']['ru'].insert(0, {'literal': 'before marker'})
+                elif mutation == 'language-map-gap':
+                    del template['status_labels']['review_status']['accepted']['en']
+                elif mutation == 'language-alias':
+                    template['renderings']['RU'] = template['renderings']['ru']
+                elif mutation == 'blank-marker':
+                    template['marker']['ru'] = '   '
+                elif mutation == 'default-language':
+                    template['default_language'] = 'de'
+                else:
+                    template['max_output_bytes'] = 1
+                path.write_text(json.dumps(changed))
+                with self.subTest(mutation=mutation), self.assertRaises(BibliographicGraphBuildError):
+                    build_payload(root)
+            path.write_text(json.dumps(relations)[:-1] + ', "registry_version": 1}')
+            with self.assertRaises(BibliographicGraphBuildError):
+                load_claim_navigation_registry(root)
+
     def test_motif_proposal_is_one_claim_over_every_typed_occurrence(self):
         """Artificial members test the grammar, not a historical motif or Sign."""
         from source_record_profiles import SourceClaimProfiles, SourceProfileError
@@ -1916,6 +2172,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
             for ref in ('ToS/contracts/corpus-record.schema.json', 'ToS/contracts/claim-packet.schema.json',
                         'ToS/contracts/semantic-entity-type-registry.schema.json',
+                        'ToS/contracts/semantic-relation-type-registry.schema.json',
                         'ToS/contracts/source-witness-bibliographic-graph.schema.json',
                         'ToS/contracts/source-witness-catalog.schema.json',
                         'ToS/contracts/historical-record.schema.json', 'ToS/contracts/historical-claim.schema.json',

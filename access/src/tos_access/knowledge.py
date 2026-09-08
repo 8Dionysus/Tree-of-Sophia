@@ -160,6 +160,63 @@ def _acyclic_hierarchy(
     return violations
 
 
+def _claim_navigation_template_violations(registry: dict[str, Any]) -> list[str]:
+    if 'claim_navigation_template' not in registry:
+        return []
+    template = registry['claim_navigation_template']
+    fields = {'template_id', 'template_version', 'reader', 'purpose', 'owner_ref',
+              'default_language', 'max_output_bytes', 'marker', 'status_labels', 'renderings'}
+    invalid = ['claim navigation template violates its finite source contract']
+    if (not isinstance(template, dict) or set(template) != fields
+            or not isinstance(template['template_id'], str)
+            or not re.fullmatch(r'tos\.navigation-template\.[a-z0-9]+(?:[.-][a-z0-9]+)*', template['template_id'])
+            or type(template['template_version']) is not int or template['template_version'] < 1
+            or template['reader'] != 'claim-navigation-v1'
+            or template['purpose'] != 'claim-navigation-only'
+            or template['owner_ref'] != 'ToS/doctrine/HUMAN_FORMS.md'
+            or type(template['max_output_bytes']) is not int or not 128 <= template['max_output_bytes'] <= 16384):
+        return invalid
+    renderings, statuses = template['renderings'], template['status_labels']
+    status_keys = {'epistemic_status': {'observed', 'inferred', 'reported', 'interpreted', 'uncertain', 'disputed'},
+                   'review_status': {'unreviewed', 'accepted', 'accepted_with_limits', 'rejected',
+                                     'ambiguous', 'deferred', 'superseded'}}
+    if (not isinstance(renderings, dict) or not 1 <= len(renderings) <= 16
+            or not isinstance(statuses, dict) or set(statuses) != set(status_keys)
+            or any(not isinstance(statuses[key], dict) or set(statuses[key]) != values
+                   for key, values in status_keys.items())):
+        return invalid
+    languages = set(renderings)
+    if (any(not isinstance(language, str) or len(language) > 64 or not _LANGUAGE_KEY.fullmatch(language)
+            or language.casefold() in {'default', 'original', 'auto'} for language in languages)
+            or len({language.casefold() for language in languages}) != len(languages)
+            or not isinstance(template['default_language'], str) or template['default_language'] not in languages):
+        return invalid
+    labels = [template['marker'], *(value for values in statuses.values() for value in values.values())]
+    if any(not isinstance(value, dict) or set(value) != languages
+           or any(not isinstance(label, str) or not label.strip() or len(label) > 256
+                  for label in value.values()) for value in labels):
+        return invalid
+    slots = {'claim-marker', 'subject-label', 'predicate-label', 'object-label',
+             'declared-epistemic-status', 'declared-review-status'}
+    for parts in renderings.values():
+        if not isinstance(parts, list) or not 6 <= len(parts) <= 32 or parts[0] != {'slot': 'claim-marker'}:
+            return invalid
+        for part in parts:
+            if not isinstance(part, dict) or set(part) not in ({'slot'}, {'literal'}):
+                return invalid
+            if 'slot' in part and (not isinstance(part['slot'], str) or part['slot'] not in slots):
+                return invalid
+            if 'literal' in part and (not isinstance(part['literal'], str) or not 1 <= len(part['literal']) <= 256):
+                return invalid
+        if Counter(part['slot'] for part in parts if 'slot' in part) != Counter(slots):
+            return invalid
+    try:
+        _validation_digest(template)
+    except (ValueError, UnicodeError):
+        return invalid
+    return []
+
+
 def validate_semantic_registries(
     entity_registry: Any,
     relation_registry: Any,
@@ -224,6 +281,20 @@ def validate_semantic_registries(
                         violations.append(f"source profile {entry[id_key]} removed or repurposed a historical schema route")
         if previous != current and current.get('registry_version', 0) <= previous.get('registry_version', 0):
             violations.append('changed registry must increase registry_version')
+    violations.extend(_claim_navigation_template_violations(relation_registry or {}))
+    if isinstance(previous_relation_registry, dict) and 'claim_navigation_template' in previous_relation_registry:
+        old_template = previous_relation_registry['claim_navigation_template']
+        template = (relation_registry or {}).get('claim_navigation_template')
+        if not isinstance(template, dict):
+            violations.append('registry removed historical claim navigation template')
+        elif isinstance(old_template, dict):
+            if template != old_template and (type(template.get('template_version')) is not int
+                    or type(old_template.get('template_version')) is not int
+                    or template['template_version'] <= old_template['template_version']):
+                violations.append('changed claim navigation template must increase template_version')
+            for field in ('template_id', 'reader', 'purpose', 'owner_ref'):
+                if template.get(field) != old_template.get(field):
+                    violations.append(f'claim navigation template repurposes {field}; explicit migration required')
     properties_seen: set[str] = set()
     for definition in (entity_registry or {}).get('property_definitions', []):
         identifier = definition.get('property_id')
@@ -267,8 +338,8 @@ def validate_semantic_registries(
                 violations.append(f"entity mapping on {identifier} is incomplete")
                 continue
             prior = entity_mappings.get(key)
-            if prior and prior != identifier:
-                violations.append(f"entity source mapping {key!r} is owned by both {prior} and {identifier}")
+            if prior:
+                violations.append(f"duplicate entity source mapping {key!r} on {prior} and {identifier}")
             entity_mappings[key] = identifier
 
     relation_mappings: dict[tuple[str, str, str], str] = {}
@@ -305,8 +376,8 @@ def validate_semantic_registries(
                 violations.append(f"relation mapping on {identifier} is incomplete")
                 continue
             prior = relation_mappings.get(key)
-            if prior and prior != identifier:
-                violations.append(f"relation source mapping {key!r} is owned by both {prior} and {identifier}")
+            if prior:
+                violations.append(f"duplicate relation source mapping {key!r} on {prior} and {identifier}")
             relation_mappings[key] = identifier
 
     return {
@@ -917,6 +988,19 @@ def _node_display(
         or _display_text({key: value for key, value in title.items() if key != 'default'})
     ))
     provenance.setdefault("source_summary_available", bool(authored_summary))
+    navigation = properties.get('navigation_descriptor')
+    if kind_id == 'claim' and isinstance(navigation, dict):
+        # build_knowledge_graph verifies the complete carrier against the raw
+        # Claim, endpoints and current source syntax before normalization/cache.
+        # This remains navigation even when a source-copy HumanForm also exists.
+        provenance['navigation_descriptor'] = {
+            key: copy.deepcopy(navigation[key])
+            for key in ('schema_version', 'purpose', 'standalone', 'state', 'reason', 'template', 'claim')
+        }
+        if navigation['state'] == 'ready':
+            title = _localized_from(navigation['title'], navigation['title']['default'])
+            provenance['title'] = 'navigation-template'
+            provenance['source_title_available'] = False
     return {
         "title": title,
         "kind_label": kind_label,
@@ -1663,6 +1747,149 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
                 raise ValueError(error)
 
 
+def _claim_navigation_endpoint(node: dict[str, Any], identity_ref: Any) -> dict[str, Any] | None:
+    properties = node.get('properties') or {}
+    source = properties.get('source_record')
+    if not isinstance(source, dict):
+        return None
+    schema = source.get('schema_version')
+    if not isinstance(schema, str) or not schema:
+        return None
+    artifact = schema in {'tos_artifact_source_witness_v1', 'tos_artifact_source_witness_v2'}
+    identity_field = ('artifact_id' if artifact else 'composite_id'
+                      if schema == 'tos_scholarly_composite_witness_v1' else 'record_id')
+    pointer = '/custody/inventory_numbers/0' if artifact else '/preferred_label'
+    version, source_ref = source.get('record_version'), node.get('source_ref')
+    if (not isinstance(identity_ref, str) or not identity_ref
+            or node.get('node_kind') != 'identity' or node.get('node_id') != 'identity:' + identity_ref
+            or properties.get('identity_ref') != identity_ref or source.get(identity_field) != identity_ref
+            or type(version) is not int or version < 1
+            or not isinstance(source_ref, str) or not source_ref.strip()
+            or properties.get('label_source_pointer', '/preferred_label') != pointer):
+        return None
+    value: Any = source
+    for part in pointer[1:].split('/'):
+        if isinstance(value, dict) and part in value:
+            value = value[part]
+        elif isinstance(value, list) and part == '0' and value:
+            value = value[0]
+        else:
+            return None
+    if (not isinstance(value, str) or not value.strip() or value in {identity_ref, source_ref}
+            or properties.get('preferred_label') != value):
+        return None
+    try:
+        digest = _validation_digest(source)
+    except (ValueError, UnicodeError):
+        return None
+    if node.get('source_sha256') != digest:
+        return None
+    return {'identity_ref': identity_ref, 'node_id': node['node_id'], 'source_ref': source_ref,
+            'record_version': version, 'sha256': digest, 'label_pointer': pointer, 'label': value}
+
+
+def _expected_claim_navigation(
+    claim, subject_node, object_node, registry, entity_entries, entity_mappings,
+):
+    """Independently check finite source syntax; no source I/O or model call.
+
+    The exporter owns creation. This consumer compares all fields, including
+    refusals, so a truthy carrier flag cannot grant display authority.
+    """
+    template = registry['claim_navigation_template']
+    descriptor = {'schema_version': 'tos_claim_navigation_descriptor_v1',
+        'purpose': 'claim-navigation-only', 'standalone': False, 'state': 'unavailable', 'reason': None,
+        'template': {'id': template['template_id'], 'version': template['template_version'],
+                     'sha256': _validation_digest(template)},
+        'claim': {'id': claim['claim_id'], 'version': claim['claim_version'], 'sha256': _validation_digest(claim)}}
+    def unavailable(reason):
+        return {**descriptor, 'reason': reason}
+    predicate = claim.get('predicate')
+    candidates = [(entry, mapping) for entry in registry['relations'] for mapping in entry['source_mappings']
+                  if mapping.get('source_graph') == 'source-claims' and mapping.get('scope') == 'claim-predicate'
+                  and mapping.get('source_predicate_id') == predicate]
+    if (len(candidates) != 1 or candidates[0][0].get('abstract') is not False
+            or candidates[0][0].get('assertion_mode') != 'reified-claim'):
+        return unavailable('predicate-not-understood')
+    entry, mapping = candidates[0]
+    if not isinstance(claim.get('object'), str) or object_node.get('node_kind') != 'identity':
+        return unavailable('object-not-identity')
+    for node, allowed in ((subject_node, entry['domain_type_ids']), (object_node, entry['range_type_ids'])):
+        kind = (node.get('properties') or {}).get('identity_kind')
+        type_id = entity_mappings.get(('source-claims', kind)) if isinstance(kind, str) else None
+        if (not type_id or entity_entries[type_id].get('abstract') is not False
+                or not _type_is_a(type_id, allowed, entity_entries)):
+            return unavailable('endpoint-type-not-understood')
+    subject = _claim_navigation_endpoint(subject_node, claim.get('subject_ref'))
+    target = _claim_navigation_endpoint(object_node, claim['object'])
+    if subject is None or target is None:
+        return unavailable('source-name-unavailable')
+    statuses = {}
+    for field in ('epistemic_status', 'review_status'):
+        value = claim.get(field)
+        if not isinstance(value, str) or value not in template['status_labels'][field]:
+            return unavailable('source-status-unavailable')
+        statuses[field] = {'present': True, 'value': value}
+    labels = mapping.get('labels')
+    if 'labels' not in mapping and sum(candidate.get('source_graph') == 'source-claims'
+            and candidate.get('scope') == 'claim-predicate' for candidate in entry['source_mappings']) == 1:
+        labels = entry.get('labels')
+    if not isinstance(labels, dict) or any(not isinstance(labels.get(language), str) or not labels[language].strip()
+                                         for language in template['renderings']):
+        return unavailable('predicate-label-unavailable')
+    title = {}
+    for language, parts in template['renderings'].items():
+        slots = {'claim-marker': template['marker'][language], 'predicate-label': labels[language],
+            'subject-label': subject['label'], 'object-label': target['label'],
+            'declared-epistemic-status': template['status_labels']['epistemic_status'][claim['epistemic_status']][language],
+            'declared-review-status': template['status_labels']['review_status'][claim['review_status']][language]}
+        title[language] = ''.join(part['literal'] if 'literal' in part else slots[part['slot']] for part in parts)
+    title['default'] = title[template['default_language']]
+    try:
+        size = len(json.dumps(title, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('utf-8'))
+    except UnicodeError:
+        return unavailable('predicate-label-unavailable')
+    if size > template['max_output_bytes']:
+        return unavailable('over-budget')
+    return {**descriptor, 'state': 'ready', 'reason': None, 'title': title, 'statuses': statuses,
+        'subject': subject, 'object': target, 'predicate': {'id': predicate,
+        'relation_type_id': entry['relation_type_id'], 'sha256': _validation_digest(entry),
+        'mapping_sha256': _validation_digest(mapping)}}
+
+
+def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_entries, entity_mappings):
+    by_identity = defaultdict(list)
+    for node in bibliographic_nodes:
+        properties = node.get('properties') or {}
+        if node.get('node_kind') == 'identity' and isinstance(properties.get('identity_ref'), str):
+            by_identity[properties['identity_ref']].append(node)
+    def endpoint(identity):
+        matches = by_identity.get(identity, []) if isinstance(identity, str) else []
+        return matches[0] if len(matches) == 1 else {}
+    for node in bibliographic_nodes:
+        properties = node.get('properties') or {}
+        if 'navigation_descriptor' not in properties:
+            # Older derived readers retain their explicit missing-title state.
+            # Canonical source-backed export validation separately detects loss.
+            continue
+        claim = properties.get('source_claim')
+        if (node.get('node_kind') != 'claim' or not isinstance(claim, dict)
+                or not isinstance(claim.get('claim_id'), str) or not claim['claim_id']
+                or type(claim.get('claim_version')) is not int or claim['claim_version'] < 1
+                or node.get('node_id') != 'claim:' + claim['claim_id']
+                or properties.get('claim_ref') != claim['claim_id']
+                or node.get('source_sha256') != _validation_digest(claim)
+                or any(_validation_digest(properties.get(field)) != _validation_digest(claim.get(field))
+                       for field in ('claim_version', 'predicate', 'subject_ref', 'object',
+                                     'epistemic_status', 'review_status', 'qualifiers'))
+                or not isinstance(registry.get('claim_navigation_template'), dict)):
+            raise ValueError('claim navigation carrier has no exact source/template binding')
+        expected = _expected_claim_navigation(claim, endpoint(claim.get('subject_ref')), endpoint(claim.get('object')),
+                                              registry, entity_entries, entity_mappings)
+        if _validation_digest(properties['navigation_descriptor']) != _validation_digest(expected):
+            raise ValueError(f"claim navigation carrier differs from source-bound syntax: {claim['claim_id']}")
+
+
 def build_knowledge_graph(
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
@@ -1742,6 +1969,7 @@ def build_knowledge_graph(
         for item in bibliographic_nodes
         if _string(item.get("node_id"))
     }
+    _validate_claim_navigation_carriers(bibliographic_nodes, relation_registry, entity_entries, entity_mappings)
     for item in bibliographic_nodes:
         native = _string(item.get("node_id")) or "unnamed"
         predicate = claim_predicates_by_object.get(native)

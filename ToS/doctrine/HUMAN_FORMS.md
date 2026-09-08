@@ -339,6 +339,60 @@ The three real letter-705 Claim statements have source-copy forms. Their
 wording remains Russian with unspecified script, their assertions remain
 unreviewed, and their materializations grant no semantic admission.
 
+### Source-owned Claim navigation
+
+The relation registry may declare one versioned `claim_navigation_template`
+with the `claim-navigation-v1` reader. Its finite literal/slot syntax produces
+a **navigation descriptor**, not a HumanForm, source title, summary, translation,
+standalone assertion, assessment or use grant. This distinction also applies
+to legacy Claim streams without an adjacent form adapter. Their original
+records, missing statements and unreviewed material remain unchanged.
+
+The six mandatory slots name the Claim-record marker, exact predicate label,
+declared epistemic and initial review statuses, subject label and object label.
+Every rendering contains each slot exactly once and starts with the record
+marker. Languages are explicit and case-insensitively unambiguous; default
+selects an existing rendering, never an invented translation or source language.
+The initial template supplies Russian and English navigation syntax, while
+endpoint names remain whole, exact source strings. Status wording describes
+what the source record declares, not the outcome of a later assessment.
+
+Only a unique concrete reified predicate mapping with understood domain/range
+and identity endpoints is eligible. An exact mapping label takes precedence;
+a relation-family label is usable only when that entry has one Claim-predicate
+mapping. Endpoint names bind `/preferred_label`, or the native artifact adapter's
+explicit `/custody/inventory_numbers/0`. An arbitrary carrier pointer, ID-derived
+name, path fallback, shortened name or guessed personal-name expansion is not
+eligible. An unavailable descriptor records one explicit reason: predicate,
+object kind, endpoint type, source name, source status or predicate language
+not understood/available, or output over budget. No partial title is substituted.
+
+The descriptor binds the exact template/version, full source Claim/version,
+used predicate entry and mapping, and both endpoint records/versions/names by
+canonical JSON digests. It does not depend on unrelated registry entries.
+The Claim's entire qualifications, alternatives, evidence and unknown fields
+remain source context. The field catalogue does not assert that the named
+relation is true; it must never stand in for omitted negation, time, conditions,
+attribution or dispute in a statement. To read those, inspect the exact Claim
+and its available source-copy forms. Compact reading therefore stays missing
+when navigation is the only wording.
+
+The source exporter creates this separate carrier property. Access independently
+checks its finite rendering and all bindings against supplied raw records and
+the current registry before normalization or cache reuse. Display provenance
+marks `navigation-template` and `source_title_available: false`; compact packets
+retain the descriptor's exact Claim/template references. An older carrier without
+the property retains its missing-title state; canonical source-backed export
+validation still detects a stale or stripped projection. Source-name edits
+invalidate dependent Claim and relation display tasks without text extraction.
+
+Changing syntax or vocabulary requires a higher template version. The existing
+previous/current registry validator checks that transition and rejects silent
+repurposing of template identity, reader, purpose or owner. Removing or changing
+that contract incompatibly requires an explicit migration, not a UI heuristic.
+See [TOS-D-0057](../../docs/decisions/TOS-D-0057-source-owned-claim-navigation.md)
+for this boundary's rationale. Full legacy HumanForm migration remains separate.
+
 ### Command behavior
 
 The source owner may delegate `form.create` and `form.revise` for explicitly
