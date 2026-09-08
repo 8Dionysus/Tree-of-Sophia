@@ -78,6 +78,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
   const panGain=.55,panResponse=22;
   let windowPosition={x:0,y:0,manual:false},obstacles=[],panelBounds=null;
   const cardSections=new Map();
+  let navigationHistory=null;
   const history=[],pointers=new Map(),clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const eye={x:0,y:0,tx:0,ty:0};
   let cameraCos=1,cameraSin=0,cameraPitchCos=1,cameraPitchSin=0,skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0;
@@ -151,6 +152,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     announce('Отношение: '+q('.sc-node-title').textContent);q('#so-about-tab').focus();
   }
   const scenePort={
+    setHistory(controller){navigationHistory=controller;history.length=0;},
     get packet(){return scenePacket;},
     get selection(){return {nodeId:nodes[selected]?.id||null,relationId:selectedRelation};},
     node:id=>nodes.find(n=>n.id===id)?.raw,
@@ -181,7 +183,7 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     announce,
   };
 
-  function resize(){const oldWidth=w;w=root.clientWidth;h=root.clientHeight;dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);base=w<=540?w/720:Math.min(w/1190,1.06);dust.forEach(s=>{const midZ=s.minZ+s.range*.5;const spread=(FOCAL-midZ)/FOCAL;s.x=s.sx*w*.5/base*spread;s.y=s.sy*h*.5/base*spread});measureLabels();placePanel(oldWidth!==w);if(selected>=0&&!panel.hidden)focus(selected,false);layoutDirty=true;kick();}
+  function resize(){const oldWidth=w,oldHeight=h;w=root.clientWidth;h=root.clientHeight;dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);base=w<=540?w/720:Math.min(w/1190,1.06);dust.forEach(s=>{const midZ=s.minZ+s.range*.5;const spread=(FOCAL-midZ)/FOCAL;s.x=s.sx*w*.5/base*spread;s.y=s.sy*h*.5/base*spread});measureLabels();placePanel(oldWidth!==w);if((oldWidth!==w||oldHeight!==h)&&selected>=0&&!panel.hidden)focus(selected,false);layoutDirty=true;kick();}
   function project(x,y,z,background=false){
     const c=background?skyCos:cameraCos,s=background?skySin:cameraSin,cp=background?skyPitchCos:cameraPitchCos,sp=background?skyPitchSin:cameraPitchSin;
     const rx=x*c-z*s,rz=x*s+z*c,ry=y*cp-rz*sp,zz=y*sp+rz*cp;
@@ -209,13 +211,14 @@ export function mountScene(root, {client,onChange=()=>{}, initialFocus,initialLe
     layoutDirty=true;kick();
   }
   function updateContext(){
-    q('.sc-back').hidden=history.length===0;
+    if(!navigationHistory)q('.sc-back').hidden=history.length===0;
     q('.sc-context-sub').textContent=selectedRelation?'Выбрана связь':selected>=0?'Фокус: '+nodes[selected].name:scenePacket?nodes.length+' звёзд · '+edges.length+' связей':'Загружаем область…';
-    root.dataset.history=String(history.length);layoutDirty=true;onChange(scenePort);
+    if(!navigationHistory)root.dataset.history=String(history.length);layoutDirty=true;onChange(scenePort);
   }
   function captureView(){return {graph:captureGraph(),selected,panelOpen:!panel.hidden||overlayReturnPanel,lens,targets:nodes.map(n=>n.target.slice()),yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:{...tpan},windowPosition:{...windowPosition},cardTab};}
-  function remember(){if(suppressHistory)return;const state=captureView();if(!sameSceneView(state,history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}
+  function remember(){if(suppressHistory)return;if(navigationHistory){navigationHistory.beforeChange();return;}const state=captureView();if(!sameSceneView(state,history.at(-1))){history.push(state);if(history.length>24)history.shift()}updateContext();}
   function back(){
+    if(navigationHistory){navigationHistory.back();return;}
     const state=history.pop();if(!state)return;
     restoreView(state);
   }

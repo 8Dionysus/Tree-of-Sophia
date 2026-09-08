@@ -1,0 +1,18 @@
+#sophia-gestures .sc-context-route{align-items:flex-start;flex-direction:column;gap:2px}
+#sophia-gestures .sc-travel-controls{display:flex;align-items:center;gap:12px;pointer-events:auto}
+#sophia-gestures .sc-travel-button,#sophia-gestures .sc-back{border:0;background:transparent;padding:6px 0;color:#dbc496;font-size:11px;white-space:nowrap}
+#sophia-gestures .sc-travel-button:hover{color:#fff0ce}
+#sophia-gestures .sc-travel-controls button:disabled{opacity:.35}
+#sophia-gestures .sc-history-open[data-unsaved=true]::after{content:' · !';color:#f0bb8a}
+#sophia-gestures .sc-history{display:flex;flex-direction:column;gap:10px;padding:16px 20px;right:28px;top:230px;width:380px;max-height:calc(100% - 330px)}
+#sophia-gestures .sc-history-list{overflow:auto;overscroll-behavior:contain;min-height:60px;list-style:none;padding:2px;margin:0;flex:1}
+#sophia-gestures .sc-history-list li+li{border-top:1px solid #263142}
+#sophia-gestures .sc-history-list button{display:flex;flex-direction:column;gap:4px;width:100%;border:0;border-left:2px solid transparent;border-radius:2px;text-align:left;padding:10px;background:transparent;color:#c0ccda}
+#sophia-gestures .sc-history-list button:hover{background:#162131}
+#sophia-gestures .sc-history-list button[aria-current=step]{border-left-color:#d8bc84;background:#1b2533;color:#f2ddae}
+#sophia-gestures .sc-history-list time{font-size:10px;color:#99a8ba}
+#sophia-gestures .sc-history-status,#sophia-gestures .sc-history-note{margin:0;font-size:11px;color:#99a8ba}
+#sophia-gestures .sc-history-status:empty{display:none}
+#sophia-gestures .sc-history-clear,#sophia-gestures .sc-history-save,#sophia-gestures .sc-history-retry{align-self:flex-start;background:transparent;border:0;color:#d8bc84;padding:4px 0;font-size:11px}
+@container(min-width:651px){#sophia-gestures .sc-history[data-panel-id][data-dock]{top:var(--sc-tool-top,230px);height:var(--sc-panel-height,420px);max-height:calc(100% - var(--sc-tool-top,230px) - 98px)}}
+@container(max-width:650px){#sophia-gestures .sc-history-list{min-height:70px}#sophia-gestures .sc-history{gap:6px}#sophia-gestures .sc-history-note{font-size:10px}}

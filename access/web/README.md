@@ -42,14 +42,15 @@ CSP is required.
 - `src/entry.ts` selects the default Observatory. Existing `mode`/`view` links and
   `workspace=classic` still load `src/main.ts`, with its full research commands.
   The old shell is a compatibility route, not the template for new panels.
-- `src/observatory/scene.js` owns camera, selection, navigation history, sky and
+- `src/observatory/scene.js` owns camera, selection, sky and
   layout. `gpu-canvas.js` batches the accepted painter through Three 0.185.1;
   Canvas remains the fallback if GPU creation fails.
 - `scene-history.mjs` compares the bounded pose and geometry while retaining the
   page-owned response packet by reference. Camera and selection history never
   serializes source text. A newly delivered packet stays a distinct boundary,
   including its packet-local query metadata, even with an equal fingerprint.
-  Navigation history remains capped at 24 entries.
+  The standalone scene fallback keeps at most 24 live views; the mounted
+  Observatory delegates its journey to the persistent history adapter below.
 - `knowledge-client.mjs` validates LensResult authority, revision, unique opaque
   IDs, closed relation endpoints, and a 40-node/80-relation display budget.
   A large corpus never directly determines per-frame scene size.
@@ -311,6 +312,20 @@ The next UI slice builds on the live lens constructor at `6440248cf`:
   remembered locally and restored on a matching URL or home; an explicit different
   deep link takes precedence. Named places support update, removal and immediate
   undo. Storage failures remain visible and do not replace a damaged place list.
+- `travel-model.mjs` and `travel-panel.mjs` add **Назад / Вперёд / История**,
+  including Alt+Left/Right outside text fields and direct jumps to named steps.
+  The list and cursor survive reload in local browser storage, scoped to the
+  mounted pathname. A new action after going back discards the forward branch.
+  Selection, query/lens, card section and camera are steps; opening tools is not.
+  Wheel bursts become one step after settling. Persistence retains at most 100
+  steps and 1.2 million JSON characters (older entries are trimmed first).
+  Only bounded place requests, identities and poses are stored, never source
+  packets or exploration cursors. Every jump reloads current owner data before
+  moving the cursor. Failure, cancellation and late replies preserve the current
+  view. Changed revisions and unavailable selections are reported. Storage
+  failures keep navigation usable in this page; malformed or competing-tab
+  records are not overwritten. The history panel offers retry and explicit
+  clearing, which retains the current view. Clearing browser data clears history.
 - `interface-model.mjs` restricts composition to the registered local adapters.
   Search, lenses, research, navigation, lens constructor, evidence and sources can
   be pinned and reordered; all remain available in the tool list. Preferences

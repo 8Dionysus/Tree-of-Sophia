@@ -6,7 +6,7 @@ export function createPanelHost(root,scene,{onUserAction=()=>{}}={}){
   const panels=new Map(),tools=new Map(),trail=[];let preferences=structuredClone(DEFAULT_INTERFACE),storage=null,storageError='',returning=false;
   try{storage=localStorage;preferences=readInterface(storage);}catch(error){storageError=error.message;}
   const key=()=>JSON.stringify([scene.port.packet?.source_revision,scene.port.packet?.fingerprint,scene.port.selection]);
-  const title=id=>id==='inspector'?'К карточке':({evidence:'К основаниям',workspace:'К источникам',navigation:'К маршруту',builder:'К линзе',studio:'К рабочему месту',reader:'К чтению'})[id]||'Назад';
+  const title=id=>id==='inspector'?'К карточке':({evidence:'К основаниям',workspace:'К источникам',navigation:'К маршруту',builder:'К линзе',studio:'К рабочему месту',reader:'К чтению',history:'К истории'})[id]||'Назад';
   function current(){for(const [id,entry]of panels)if(!entry.element.hidden)return id;return null;}
   function save(){try{storage?.setItem(INTERFACE_KEY,JSON.stringify(preferences));storageError=storage?'':'Настройки действуют до закрытия страницы: хранилище недоступно.';}catch{storageError='Браузер не сохранил настройки. Они действуют до закрытия страницы.';}}
   function preferredDock(){

@@ -73,7 +73,7 @@ const data=createObservatoryData({fetcher:async(url,options={})=>{
   if(connection==='restricted')return {ok:false,status:403};
   return {ok:true,json:async()=>structuredClone(body)};
 }});
-const {root}=mountObservatory({data,initialRoute:new URLSearchParams(location.search).has('lens')?location.search:'?focus=fixture%3Anode%3A0'});root.dataset.fixture='true';
+const {root}=mountObservatory({data,initialRoute:location.search||'?focus=fixture%3Anode%3A0'});root.dataset.fixture='true';
 new ResizeObserver(entries=>document.documentElement.style.setProperty('--fixture-bar-height',entries[0].target.getBoundingClientRect().height+'px')).observe(document.querySelector('.fixture-controls'));
 document.querySelector('#fixture-contract').addEventListener('change',()=>{generation++;});
 document.querySelector('#fixture-revision').addEventListener('click',()=>{generation++;document.querySelector('#fixture-metrics').textContent='Новый снимок: '+generation;});

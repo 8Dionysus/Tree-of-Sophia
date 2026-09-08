@@ -9,6 +9,7 @@ import './reading.css';
 import './reader.css';
 import {createReaderPanel} from './reader-panel.mjs';
 import {createStudio} from './studio.mjs';
+import {createTravelPanel} from './travel-panel.mjs';
 import {createSceneFeedback} from './scene-feedback.mjs';
 import {mountScene} from './scene.js';
 import {createTools} from './workspace.mjs';
@@ -28,7 +29,7 @@ export function mountObservatory({host=document.getElementById('app'),data=creat
 if(!host)throw new Error('Observatory mount point is missing.');
 host.innerHTML=shell;
 const root=host.firstElementChild;
-let scene,tools,evidence,navigation,builder,studio,reader,registry,syncing=false,lastContext='';
+let scene,tools,evidence,navigation,builder,studio,reader,travel,registry,syncing=false,lastContext='';
 const {client}=data;
 function selected(){
   if(tools?.auxiliarySelection)return tools.auxiliarySelection;
@@ -57,6 +58,7 @@ function sync(){
   builder?.selectionChanged();
   studio?.selectionChanged();
   reader?.selectionChanged();
+  travel?.observe();
 }
 const commit=action=>{syncing=true;try{return action();}finally{syncing=false;sync();}};
 scene=mountScene(root,{client,autoStart:false,initialFocus:new URLSearchParams(initialRoute).get('focus')||DEFAULT_FOCUS,initialLens:new URLSearchParams(initialRoute).get('lens'),onChange:()=>{tools?.clearAuxiliarySelection();sync();}});
@@ -75,6 +77,7 @@ for(const [id,title,icon,event]of [['builder','Конструктор линз',
 }
 reader=createReaderPanel(root,scene,panels,{data,onUserAction:userAction});
 studio=createStudio(root,scene,panels,{data,initialRoute,onUserAction:userAction});
+travel=createTravelPanel(root,scene,panels,{client,onUserAction:userAction});
 createSceneFeedback(root,scene);
 const handlers={
   ...tools.handlers,
@@ -130,6 +133,7 @@ window.addEventListener('pagehide',()=>webmcp.stop());
 window.addEventListener('pageshow',event=>{if(event.persisted)void webmcp.start();});
 // A saved local pose takes precedence only for its matching route (or home).
 void studio.start().then(restored=>{
+  travel.start({restored:restored&&Boolean(travel.resume(initialRoute))});
   if(restored)return;const restoreId=new URLSearchParams(initialRoute).get('selection');if(!restoreId)return;
   const restore=()=>{if(!scene.port.packet)return;observer.disconnect();commit(()=>{if(scene.port.node(restoreId))scene.port.selectNode(restoreId);else if(scene.port.relation(restoreId))scene.port.selectRelation(restoreId);});};
   const observer=new MutationObserver(restore);observer.observe(root,{attributes:true,attributeFilter:['data-graph-revision']});restore();
