@@ -77,21 +77,21 @@ EXPECTED_LEGACY_PROJECTIONS = {
     "aoa-tdd-slice",
 }
 EXPECTED_PROFILE_SOURCES = (
-    ("shared-home", "aoa-skills", "self", frozenset({
+    ("shared-home", "aoa-skills", "self", None, frozenset({
         "aoa-decision", "aoa-eval", "aoa-knowledge-stewardship",
         "aoa-checkpoint-closeout-bridge", "aoa-memo-writeback",
         "aoa-session-harvest", "aoa-session-recovery",
     })),
-    ("owner-port", "aoa-evals", "aoa-evals", frozenset({"aoa-evals-skills"})),
-    ("owner-port", "aoa-memo", "aoa-memo", frozenset({"aoa-memo"})),
-    ("owner-port", "aoa-stats", "aoa-stats", frozenset({"aoa-stats"})),
-    ("owner-port", "aoa-kag", "aoa-kag", frozenset({"aoa-kag"})),
-    ("owner-port", "aoa-agents", "aoa-agents", frozenset({
+    ("owner-port", "aoa-evals", "aoa-evals", None, frozenset({"aoa-evals-skills"})),
+    ("owner-port", "aoa-memo", "aoa-memo", None, frozenset({"aoa-memo"})),
+    ("owner-port", "aoa-stats", "aoa-stats", None, frozenset({"aoa-stats"})),
+    ("owner-port", "aoa-kag", "aoa-kag", None, frozenset({"aoa-kag"})),
+    ("owner-port", "aoa-agents", "aoa-agents", None, frozenset({
         "aoa-agents-skills", "aoa-session-progression-lift", "aoa-summon",
     })),
-    ("owner-port", "abyss-machine", "abyss-machine", frozenset({"os-abyss-artifact-trust-loop"})),
-    ("owner-port", "abyss-stack", "abyss-stack", frozenset({"abyss-self-diagnostic-spine"})),
-    ("owner-link", ".aoa", ".aoa", frozenset({
+    ("owner-port", "abyss-machine", "abyss-machine", None, frozenset({"os-abyss-artifact-trust-loop"})),
+    ("owner-port", "abyss-stack", "abyss-stack", None, frozenset({"abyss-self-diagnostic-spine"})),
+    ("owner-link", ".aoa", ".aoa", "install-user-skill", frozenset({
         "aoa-session-memory-global-route", "aoa-session-memory-evidence-route",
     })),
 )
@@ -2565,18 +2565,23 @@ def profile_binding_issues(
     sources = binding.get("sources")
     if not isinstance(sources, list) or not sources:
         return issues + [(location, "sources must be a non-empty list")], set()
-    actual_source_keys: list[tuple[str, str, str, frozenset[str]]] = []
+    actual_source_keys: list[tuple[str, str, str, str | None, frozenset[str]]] = []
     selected: list[str] = []
     for index, source in enumerate(sources):
         source_location = f"{location}.sources[{index}]"
         if not isinstance(source, Mapping):
             issues.append((source_location, "source must be an object"))
             continue
-        kind, repo, root, skills = (
-            source.get("kind"), source.get("repo"), source.get("root"), source.get("skills")
+        kind, repo, root, owner_operation, skills = (
+            source.get("kind"), source.get("repo"), source.get("root"),
+            source.get("owner_operation"), source.get("skills")
         )
         if kind not in {"shared-home", "owner-port", "owner-link"}:
             issues.append((source_location, "kind must be shared-home, owner-port, or owner-link"))
+        if kind == "owner-link" and owner_operation != "install-user-skill":
+            issues.append((source_location, "owner-link owner_operation must be install-user-skill"))
+        if kind in {"shared-home", "owner-port"} and owner_operation is not None:
+            issues.append((source_location, "shared-home and owner-port sources must not declare owner_operation"))
         if not isinstance(repo, str) or not repo:
             issues.append((source_location, "repo must be a non-empty string"))
         if not isinstance(root, str) or not root or root.startswith("/") or ".." in Path(root).parts:
@@ -2607,11 +2612,11 @@ def profile_binding_issues(
             source_names.append(name)
             selected.append(name)
         if isinstance(kind, str) and isinstance(repo, str) and isinstance(root, str):
-            actual_source_keys.append((kind, repo, root, frozenset(source_names)))
+            actual_source_keys.append((kind, repo, root, owner_operation, frozenset(source_names)))
 
     expected_source_keys = [
-        (kind, repo, root, skills)
-        for kind, repo, root, skills in EXPECTED_PROFILE_SOURCES
+        (kind, repo, root, owner_operation, skills)
+        for kind, repo, root, owner_operation, skills in EXPECTED_PROFILE_SOURCES
     ]
     if actual_source_keys != expected_source_keys:
         issues.append((location, "sources do not match the accepted os-user-default selection"))

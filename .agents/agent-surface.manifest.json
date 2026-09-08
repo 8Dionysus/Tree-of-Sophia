@@ -499,7 +499,7 @@
     "install_root": "$HOME/.codex/skills",
     "install_mode": "managed-copy",
     "source_manifest": "aoa-skills:config/os_skill_profiles.json",
-    "source_ref": "aoa-skills@6eaeca11820adbbbe54f79a75c0ca5a54e0c4a15",
+    "source_ref": "aoa-skills@616ce49eed8a605782fb2f295060ae916e04c7a6",
     "resolver": "aoa-skills:scripts/bundles/install_os_skill_profile.py",
     "sources": [
       {
@@ -578,6 +578,7 @@
         "kind": "owner-link",
         "repo": ".aoa",
         "root": ".aoa",
+        "owner_operation": "install-user-skill",
         "skills": [
           {
             "name": "aoa-session-memory-global-route",
@@ -884,7 +885,9 @@
     ],
     "claim_limits": [
       "Crosswalk rows preserve migration identity and destination semantics; they are not current packages.",
-      "Deferred modes and routed workflow/guard objects are not selected profile bundles unless the profile source says so."
+      "Deferred modes and routed workflow/guard objects are not selected profile bundles unless the profile source says so.",
+      "evidence_state and reason are historical owner-catalog annotations, not new Tree-of-Sophia migration evaluations or results.",
+      "A same-name row does not establish ABI or behavioral compatibility; the historical aoa-summon v3 and current owner v4 remain distinct."
     ]
   }
 }
