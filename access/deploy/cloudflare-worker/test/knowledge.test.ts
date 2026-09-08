@@ -103,11 +103,21 @@ record.update(claim_id='tos.claim.synthetic-exact-version-transport', claim_vers
 record['qualifiers'] = {'statement': 'Keine gesicherte Zuschreibung; synthetischer Transporttest.',
     'statement_language': 'de', 'statement_script': 'Latn', 'polarity': 'negative',
     'unknown_extension': {'false': False, 'zero': 0, 'null': None, 'empty': []}}
-reference = {'id': record['claim_id'], 'version': 1, 'digest': 'sha256:' + _exact_record_digest(record)}
 derived_versions = []
-for available in (True, False):
+version_cases = [('claim', record)]
+for language in ('de', None):
+    metadata = {'record_id': 'tos.agent.synthetic-version-transport-' + str(language).lower(),
+        'record_type': 'agent', 'record_version': 4, 'preferred_label': 'Synthetic historical description',
+        'notes': 'Keine gesicherte Gleichsetzung; synthetischer Metadatentest.',
+        'field_languages': {'notes': {'language': language, 'script': 'Latn'}},
+        'unknown_extension': {'polarity': 'negative', 'false': False, 'zero': 0, 'null': None, 'empty': []}}
+    version_cases.append(('metadata', metadata))
+for record_kind, record, available in [(kind, value, state) for kind, value in version_cases for state in (True, False)]:
+    reference = {'id': record['claim_id'] if record_kind == 'claim' else record['record_id'],
+        'version': record['claim_version'] if record_kind == 'claim' else record['record_version'],
+        'digest': 'sha256:' + _exact_record_digest(record)}
     ref = reference if available else {**reference, 'version': 2, 'digest': 'sha256:' + '0' * 64}
-    view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': ref, 'record_kind': 'claim',
+    view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': ref, 'record_kind': record_kind,
         'status': 'available' if available else 'missing', 'reason': 'synthetic-transport-only',
         'version_status': 'historical' if available else None, 'record': record if available else None,
         'provenance': {'fixture': 'not-an-archive-verification'} if available else {},
@@ -615,7 +625,7 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   for (const result of results.slice(1)) assert.equal(result.state, 'invalid');
 });
 
-test('Claim navigation and exact record versions survive RU/EN compact/full D1 reads without new authority', async () => {
+test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/full D1 reads without new authority', async () => {
   const fixture = claimNavigationFixture(), source = structuredClone(fixture.graph);
   const fullScene = knowledgeScene(fixture.fullGraph.nodes, fixture.fullGraph.relations, null);
   assert.deepEqual(fullScene, fixture.fullScene, 'full real incident context agrees with Python');
@@ -688,7 +698,7 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
         assert.deepEqual(node.display, original.display);
         assert.deepEqual(node.epistemic, {authority_layer: 'derived-export', canon_status: null,
           review_posture: 'not-recorded', confidence: null});
-        const version = node.semantics.record_version as {status: string; record_ref: {id: string};
+        const version = node.semantics.record_version as {status: string; record_kind: string; record_ref: {id: string};
           grants_current_use: boolean; performs_assessment: boolean};
         assert.notEqual(node.entity_id, version.record_ref.id, 'version is not the current Claim identity');
         assert.equal(version.grants_current_use, false);
@@ -700,7 +710,15 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
           assert.equal(node.display.provenance.source_summary_available, false);
         } else {
           assert.deepEqual(node.semantics.assertion_contexts, original.semantics.assertion_contexts);
-          assert.equal(node.display.summary.de, 'Keine gesicherte Zuschreibung; synthetischer Transporttest.');
+          const declaredLanguage = original.display.provenance.summary_source_language;
+          const selection = node.display_selection as {fields: {summary: {actual_language: string | null; content_available: boolean}}};
+          assert.equal(selection.fields.summary.actual_language, declaredLanguage);
+          assert.equal(selection.fields.summary.content_available, true);
+          assert.equal(node.display.summary.original, version.record_kind === 'claim'
+            ? 'Keine gesicherte Zuschreibung; synthetischer Transporttest.'
+            : 'Keine gesicherte Gleichsetzung; synthetischer Metadatentest.');
+          if (declaredLanguage === null) assert.equal(node.display.summary.de, undefined);
+          else assert.equal(node.display.summary.de, node.display.summary.original);
           assert.equal(node.display.provenance.summary, 'exact-record-quotation');
         }
         assert.deepEqual(node.attributes, detail === 'full' ? original.attributes : {});

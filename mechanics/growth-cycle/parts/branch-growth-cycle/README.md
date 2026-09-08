@@ -116,6 +116,45 @@ performs no writes, assessment, admission, publication or source-schema migratio
 Historical HumanForms, native annotation versions and other record families
 are not supplied by this bounded Claim reader.
 
+### Read-only exact metadata versions
+
+`metadata_version_reader.MetadataVersionReader(root)` offers `resolve(exact_ref)`,
+`exact_refs(record_id)`, `supports(record_type, source_ref=...)` and
+`verify_current()`. It uses the same exact-ref/status envelope, with no command
+configuration or current-use authority. Supported routes are native Corpus
+Agent, Place, Organization and Work, plus the registry's declared metadata
+profiles and schema routes. Pass the locator to `supports` when a catalog also
+contains a different native representation, such as scholarly Composites.
+
+`exact_refs` returns a continuous retained baseline through current, never
+inventing versions before that baseline. Available results include `current_ref`,
+`refs` and provenance. A gap returns null `current_ref`/provenance and empty
+`refs`, with the explicit unavailable status. The source-navigation builder
+emits `record_history` and separate `has_record_version` edges to closed
+RecordVersion carriers; neither version nor description becomes the subject ID.
+
+The reader verifies catalog/schema/current-record binding, every retained
+metadata transition, manifest bindings and the selected record blobs. It does
+**not** open current or archived HumanForms, unknown companions or private native
+inventory. Accordingly provenance says `verification_scope=selected-record-chain`
+and `all_package_bytes_verified=false`. Unread companion bytes may be missing
+without making the selected record unavailable; selected bytes may not. Historical
+records preserve all fields, including unknown language/context qualifications.
+Current schema validation is not retroactive semantic admission of old records.
+
+Work is bounded to 8 MiB/8,192 rows per catalog, 128 selected contracts, 128
+corrections, existing package-manifest bounds and 64 MiB cumulative read work per
+instance, including profile shape-reader rechecks. Reuse within one build and
+verify before export; exceeding a bound refuses the record/history without
+partial output. Native Expression/Edition/Item/File/Link and native
+Artifact/Composite representations are not supported by this reader yet.
+
+Access quotes only each available record's own notes (Claim: its own statement),
+preserving its explicit language even when a requested translation is missing.
+Missing language is null, never inferred from prose. Compact metadata versions
+retain the entire exact record context with the quotation. No historical freeform
+HumanForm, current assessment, grant, meaning change or publication is inferred.
+
 `scripts/assessment_journal.py` implements immutable source-owned assessment
 batches and an atomic per-subject head pointer under an explicitly configured
 owner directory. `ToS/contracts/knowledge-assessment-batch.schema.json` owns

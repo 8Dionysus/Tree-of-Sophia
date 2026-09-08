@@ -601,6 +601,16 @@ def _display_selection(item: dict[str, Any], language: str = 'auto') -> dict[str
     selected = {}
     for field in fields:
         selection = select_display_form(display.get(field), language, original_language=original_language if field == 'title' else None)
+        provenance = display.get('provenance') or {}
+        quotation_language = provenance.get('summary_source_language')
+        if (field == 'summary' and selection['selected_key'] in {'default', 'original'}
+                and (semantics.get('record_version') or {}).get('status') == 'available'
+                and provenance.get('summary') == 'exact-record-quotation'
+                and isinstance(quotation_language, str) and quotation_language not in {'default', 'original', 'auto'}
+                and _LANGUAGE_KEY.fullmatch(quotation_language)):
+            # Compatibility form roles do not erase the exact record's own
+            # language declaration. This is not inferred from matching prose.
+            selection['actual_language'] = quotation_language
         missing_content = ((field == 'title' and display.get('provenance', {}).get('source_title_available') is False)
                            or (field == 'summary' and display.get('provenance', {}).get('source_summary_available') is False)
                            or (field == 'explanation' and display.get('provenance', {}).get('source_explanation_available') is False))
@@ -1360,9 +1370,10 @@ def _record_version_view(item: dict[str, Any]) -> dict[str, Any]:
     required = {'schema_version', 'record_ref', 'record_kind', 'status', 'reason',
                 'version_status', 'record', 'provenance', 'grants_current_use', 'performs_assessment'}
     if (not isinstance(view, dict) or set(view) != required
-            or view['schema_version'] != 'tos_record_version_view_v1' or view['record_kind'] != 'claim'
+            or view['schema_version'] != 'tos_record_version_view_v1' or view['record_kind'] not in ('claim', 'metadata')
             or not _exact_form_ref(view['record_ref'])
-            or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', view['record_ref']['id'])
+            or not re.fullmatch(r'tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*', view['record_ref']['id'])
+            or view['record_ref']['id'].startswith('tos.claim.') != (view['record_kind'] == 'claim')
             or view['grants_current_use'] is not False or view['performs_assessment'] is not False
             or not isinstance(view['reason'], str) or not 1 <= len(view['reason']) <= 256
             or not isinstance(view['provenance'], dict)):
@@ -1371,11 +1382,12 @@ def _record_version_view(item: dict[str, Any]) -> dict[str, Any]:
         raise ValueError('record version view identity does not bind its exact reference')
     if view['status'] == 'available':
         record = view['record']
+        identity_field, version_field = ('claim_id', 'claim_version') if view['record_kind'] == 'claim' else ('record_id', 'record_version')
         if (not isinstance(record, dict) or not view['provenance']
                 or view['version_status'] not in ('current', 'historical')
-                or record.get('claim_id') != view['record_ref']['id']
-                or type(record.get('claim_version')) is not int
-                or record['claim_version'] != view['record_ref']['version']
+                or record.get(identity_field) != view['record_ref']['id']
+                or type(record.get(version_field)) is not int
+                or record[version_field] != view['record_ref']['version']
                 or 'sha256:' + _exact_record_digest(record) != view['record_ref']['digest']):
             raise ValueError('record version view content differs from its exact reference')
     elif (view['status'] not in ('missing', 'stale', 'corrupt', 'access-restricted', 'over-budget')
@@ -1385,7 +1397,7 @@ def _record_version_view(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _apply_record_version_view(normalized: dict[str, Any], view: dict[str, Any]) -> None:
-    """Keep exact historical context in compact packets; never alias a Claim."""
+    """Keep exact historical context in compact packets; never alias a subject."""
     normalized['semantics'] = {'type_ancestors': normalized['semantics']['type_ancestors']}
     normalized['semantics']['record_version'] = {
         key: copy.deepcopy(view[key]) for key in (
@@ -1408,6 +1420,32 @@ def _apply_record_version_view(normalized: dict[str, Any], view: dict[str, Any])
     if view['status'] != 'available':
         return
     record = view['record']
+    if view['record_kind'] == 'metadata':
+        # A metadata description can contain qualifications in arbitrary fields.
+        # Preserve the entire exact context with its quotation, including unknown
+        # language declarations, rather than interpreting it as a present Claim.
+        normalized['semantics']['assertion_contexts'] = [{
+            'schema_version': 'tos_assertion_context_v1', 'binding_role': 'carrier',
+            'source_record_digest': _stable_digest(record), 'source_refs': normalized['source_refs'],
+            'fields': {'record': {'value': copy.deepcopy(record),
+                'source_pointer': '/properties/record_version_view/record'}},
+            'conflicts': [], 'interpretation': 'source-declared-not-semantic-assessment'}]
+        wording = record.get('notes')
+        languages = record.get('field_languages')
+        declaration = languages.get('notes') if isinstance(languages, dict) else None
+        language = declaration.get('language') if isinstance(declaration, dict) else None
+        if isinstance(wording, str) and wording.strip():
+            summary = {'default': wording, 'original': wording}
+            language = (language if isinstance(language, str) and language not in {'default', 'original', 'auto'}
+                        and _LANGUAGE_KEY.fullmatch(language) else None)
+            if language is not None:
+                summary[language] = wording
+            display['summary'] = _localized_from(summary, wording)
+            display['summary_state'] = 'source-derived'
+            display['provenance'].update(summary='exact-record-quotation', source_summary_available=True,
+                summary_source_language=language,
+                summary_source_pointer='/attributes/record_version_view/record/notes')
+        return
     # These are the historical declaration and all its preserved qualifiers,
     # not the current Claim's contexts, HumanForms or assessment materialization.
     context = _assertion_context({'properties': {'source_claim': record}, 'source_refs': normalized['source_refs']})
@@ -1422,12 +1460,51 @@ def _apply_record_version_view(normalized: dict[str, Any], view: dict[str, Any])
     if isinstance(wording, str) and wording.strip():
         language = qualifiers.get('statement_language')
         summary = {'default': wording, 'original': wording}
-        if isinstance(language, str) and _form_key(language):
+        language = (language if isinstance(language, str) and language not in {'default', 'original', 'auto'}
+                    and _LANGUAGE_KEY.fullmatch(language) else None)
+        if language is not None:
             summary[language] = wording
         display['summary'] = _localized_from(summary, wording)
         display['summary_state'] = 'source-derived'
         display['provenance'].update(summary='exact-record-quotation', source_summary_available=True,
+                                     summary_source_language=language,
                                      summary_source_pointer='/attributes/record_version_view/record/qualifiers/statement')
+
+
+def _metadata_history_refs(node: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """Validate a transported history listing against its current source record.
+
+    Exact source/archive verification stays with the source owner. These checks
+    prevent a different subject, arbitrary predecessor or loose version from
+    being attached merely because both endpoint types are structurally valid.
+    """
+    attributes = node.get('attributes') or {}
+    history, record = attributes.get('record_history'), attributes.get('source_record')
+    fields = {'schema_version', 'status', 'reason', 'record_id', 'current_ref', 'refs',
+              'provenance', 'grants_current_use', 'performs_assessment', 'writes_to_source'}
+    if (not isinstance(history, dict) or set(history) != fields
+            or history['schema_version'] != 'tos_metadata_record_history_v1' or history['status'] != 'available'
+            or not isinstance(history['reason'], str) or not 1 <= len(history['reason']) <= 256
+            or any(history[key] is not False for key in ('grants_current_use', 'performs_assessment', 'writes_to_source'))
+            or not isinstance(history['provenance'], dict) or not history['provenance']
+            or not isinstance(record, dict) or record.get('record_id') != node.get('entity_id')
+            or type(record.get('record_version')) is not int
+            or history['record_id'] != record['record_id'] or not _exact_form_ref(history['current_ref'])
+            or not isinstance(history['refs'], list) or not 1 <= len(history['refs']) <= 129):
+        return None
+    current = {'id': record['record_id'], 'version': record['record_version'],
+               'digest': 'sha256:' + _exact_record_digest(record)}
+    if _exact_record_digest(current) != _exact_record_digest(history['current_ref']):
+        return None
+    previous_version = None
+    for reference in history['refs']:
+        if (not _exact_form_ref(reference) or reference['id'] != current['id']
+                or previous_version is not None and reference['version'] != previous_version + 1):
+            return None
+        previous_version = reference['version']
+    if _exact_record_digest(history['refs'][-1]) != _exact_record_digest(current):
+        return None
+    return history['refs']
 
 
 def _normalize_node(
@@ -2875,6 +2952,14 @@ def validate_knowledge_semantics(
             if (not _exact_form_ref(candidate) or not _exact_form_ref(reference)
                     or _exact_record_digest(candidate) != _exact_record_digest(reference)):
                 violations.append(f'promotion basis relation {relation_id} differs from the exact Sign candidate')
+        if relation_type_id == 'tos.relation.has-record-version' and left and right:
+            references = _metadata_history_refs(left)
+            version = (right.get('semantics') or {}).get('record_version')
+            reference = version.get('record_ref') if isinstance(version, dict) else None
+            if (references is None or not isinstance(version, dict) or version.get('record_kind') != 'metadata'
+                    or not _exact_form_ref(reference)
+                    or not any(_exact_record_digest(reference) == _exact_record_digest(candidate) for candidate in references)):
+                violations.append(f'record history relation {relation_id} is not bound to the exact source history')
         if relation_type_id == "tos.relation.same-as":
             if left and right and not (
                 _type_is_a(str(left.get('type_id')), [str(right.get('type_id'))], entity_entries)

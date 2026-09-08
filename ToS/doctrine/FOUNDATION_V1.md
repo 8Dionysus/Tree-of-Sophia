@@ -100,7 +100,7 @@
 
 | ID / источник | Различие и правило | Контракт → операция | Человеческая форма | Проверка завершения / состояние |
 | --- | --- | --- | --- | --- |
-| F01 · M19, G2 | предмет, имя, внешний ID, запись, версия, утверждение, проекция различны | Registry/Corpus → resolve, inspect, revise | узнаваемый предмет и история описаний | нет Claim/object ID collision; отдельная коррекция описаний historical/declared-profile и native Agent/Place/Organization/Work сохраняет ID и архив; точный публичный reader пока только для Claim, не всех metadata-семейств; **есть часть** |
+| F01 · M19, G2 | предмет, имя, внешний ID, запись, версия, утверждение, проекция различны | Registry/Corpus → resolve, inspect, revise | узнаваемый предмет и история описаний | нет Claim/object ID collision; коррекция historical/declared-profile и native Agent/Place/Organization/Work сохраняет ID и архив; точные Claim и поддержанные metadata-версии доступны отдельно через граф, не все native-семейства и исторические формы; **есть часть** |
 | F02 · M19, G2 | часть/целое, членство, корпус, коллекция, порядок и последовательность не взаимозаменяемы | Registry → compose, members, ordered parts | объяснимое включение и порядок | циклы запрещены лишь в объявленных иерархиях; **есть часть** |
 | F03 · M19, G2 | тип, роль, классификация и свойство | Registry/Growth → extend, classify, assign role, filter | определение и подходящий фильтр | конкретные domain/range, cardinality scope, единицы, операции реально проверяются; **есть часть** |
 | F04 · M15/M19, G2 | тождество, сходство, отношение и преемство | Registry/Growth → compare, propose merge/split, resolve old ID | основания объединения и прежние чтения | ложное тождество отвергается, split не теряет ссылки/историю; **есть часть** |
@@ -232,10 +232,16 @@ Sign имеет отдельный source-профиль с неизменяем
 private/annotation adapters ещё требуют доведения. Переход Sign → точная
 версия Claim теперь имеет отдельный RecordVersion view: полный архивный
 record и provenance либо явный gap без подстановки текущего Claim; compact
-сохраняет точную ссылку и весь assertion context. Исторические свободные формы
-и версии других семейств ещё не подключены. [Review выдачи](../review-ledger/2026-09-08-sign-promotion-review.md)
+сохраняет точную ссылку и весь assertion context. Отдельный публичный metadata
+reader теперь подключает историю native Agent/Place/Organization/Work и
+объявленных metadata-профилей, проверяя выбранные record bytes и полную цепь
+переходов без чтения companions или текущего допуска. Компактная версия
+сохраняет весь record context и собственный объявленный язык; не все native
+семейства и исторические свободные формы ещё подключены. [Review выдачи](../review-ledger/2026-09-08-sign-promotion-review.md)
 и [review точной версии](../review-ledger/2026-09-08-exact-claim-version-review.md)
-сохраняют пределы проверок; полнота Sign и языкового профиля не заявлена.
+сохраняют пределы проверок; [metadata history review](../review-ledger/2026-09-08-exact-metadata-version-review.md)
+отделяет выбранные record bytes от companions и текущего допуска.
+Полнота Sign и языкового профиля не заявлена.
 
 На 2026-09-06 отдельный маршрут source-visible linguistic reviewer не запущен:
 запрос `aoa-models` для `source-visible-linguistic-review` и указанного в его

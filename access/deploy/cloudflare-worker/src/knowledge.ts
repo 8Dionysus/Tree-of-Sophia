@@ -379,6 +379,14 @@ function displaySelection(item: KnowledgeNode | KnowledgeRelation, language: str
   const fields = Object.fromEntries(fieldNames.map(field => {
     const selection = selectDisplayForm(display[field], language, field === 'title' ? originalLanguage : null);
     const provenance = record(display.provenance);
+    const quotationLanguage = provenance.summary_source_language;
+    if (field === 'summary' && ['default', 'original'].includes(String(selection.selected_key))
+        && record(semantics.record_version).status === 'available' && provenance.summary === 'exact-record-quotation'
+        && typeof quotationLanguage === 'string' && !['default', 'original', 'auto'].includes(quotationLanguage)
+        && LANGUAGE_KEY.test(quotationLanguage)) {
+      // Preserve the exact record's declaration, never infer language from prose.
+      selection.actual_language = quotationLanguage;
+    }
     const missing = (field === 'title' && provenance.source_title_available === false)
       || (field === 'summary' && provenance.source_summary_available === false)
       || (field === 'explanation' && provenance.source_explanation_available === false);

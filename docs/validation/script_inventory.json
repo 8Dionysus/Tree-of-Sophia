@@ -346,6 +346,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/record-version-view.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/entity-types.v1.json"],
+      "reads": ["bounded public native Agent/Place/Organization/Work or declared-profile catalog, exact current metadata and selected retained record blobs", "local profile/schema contracts, complete continuous retained record transitions and manifest bindings; invocation snapshot rechecked before return/publication"],
+      "writes": [],
+      "side_effects": "pure exact metadata/history reader, no command config, private inventory, unselected companion bytes, current forms, model, assessment, grant or source writes; manifest bindings do not certify unread package bytes; explicit gaps never substitute current records",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_metadata_version_reader.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

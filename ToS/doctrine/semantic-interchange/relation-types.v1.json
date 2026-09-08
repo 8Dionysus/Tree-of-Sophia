@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 28,
+  "registry_version": 29,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -1694,6 +1694,27 @@
       "evidence_required": false,
       "review_requirement": "none",
       "source_mappings": [{"source_graph": "semantic-interchange", "source_predicate_id": "projects", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.has-record-version",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "has exact record version", "ru": "имеет точную версию записи", "en": "has exact record version"},
+      "inverse_labels": {"default": "is an exact record version of", "ru": "является точной версией записи о", "en": "is an exact record version of"},
+      "definition": "Technical source-history navigation from a subject carrying a source-owned metadata record to one exact current or retained version of that same record. The target exact ref must occur in the verified source history bound to the current record. This general applicability is structural, not a substitute for a domain-specific historical relation, conception transformation or current-use grant.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/record-version-view.schema.json",
+      "domain_type_ids": ["tos.entity.thing"],
+      "range_type_ids": ["tos.entity.record-version"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": null, "per_object_min": null, "per_object_max": 1},
+      "assertion_mode": "structural",
+      "evidence_required": true,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "source-navigation", "source_predicate_id": "has_record_version", "scope": "edge"}],
       "supersedes_relation_type_id": null
     },
     {

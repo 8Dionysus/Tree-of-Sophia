@@ -89,6 +89,17 @@ evidence, provenance, review, and supersession structure. Cross-layer
 `projects` and `grounded-in` routes are admitted only from shared declared ToS
 IDs or exact authored source references; `same-as` is never synthesized.
 
+An exact historical description or Claim has its own `record-version` carrier,
+not the current subject's ID. For supported public metadata families,
+`has_record_version` links the subject to references from its verified retained
+`record_history`; Sign's `promotion_basis_version` instead binds its exact birth
+Claim. Inspect or focus those ordinary graph IDs through the same read-only
+operations. Available versions quote their own source wording and language;
+compact results retain the complete historical qualifications. Unavailable
+versions expose a gap, never current wording or a new assessment/admission.
+The [source reader contract](../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#read-only-exact-metadata-versions)
+states supported families and record-only (not whole-package) verification.
+
 The read-only operations are available through all backend adapters:
 
 - `GET /api/knowledge/contracts` returns the operation map, exact JSON

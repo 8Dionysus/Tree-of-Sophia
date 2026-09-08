@@ -77,6 +77,7 @@ class KnowledgeContractTests(unittest.TestCase):
             self.assertFalse(packet['semantics']['record_version']['grants_current_use'])
             self.assertEqual(packet['display']['summary']['de'], view['record']['qualifiers']['statement'])
             self.assertEqual(packet['display']['provenance']['summary'], 'exact-record-quotation')
+            self.assertEqual(packet['display_selection']['fields']['summary']['actual_language'], 'de')
             self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
             self.assertNotIn('human_form_selection', packet)
             self.assertEqual(packet['attributes'] if detail == 'compact' else {}, {})
@@ -182,6 +183,139 @@ class KnowledgeContractTests(unittest.TestCase):
             else: subject['properties']['source_record']['promotion_basis'] = 'not-an-exact-basis'
             with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'promotion basis relation'):
                 build(subject, target, relation)
+
+    def _metadata_version_fixture(self):
+        from tos_access.knowledge import _exact_record_digest
+        record = {'record_id': 'tos.agent.synthetic-version', 'record_type': 'agent', 'record_version': 4,
+            'preferred_label': 'Synthetic archived name',
+            'notes': 'Keine gesicherte Gleichsetzung; nur eine synthetische Beschreibung.',
+            'field_languages': {'notes': {'language': 'de', 'script': 'Latn',
+                'qualifications': {'not_accepted': False, 'limit': 0, 'unknown': None, 'alternatives': []}}},
+            'source_refs': ['test:synthetic-original'], 'external_identifiers': [],
+            'unknown_extension': {'polarity': 'negative', 'scope': 'fixture only', 'variants': [None, False, 0]}}
+        reference = {'id': record['record_id'], 'version': record['record_version'],
+                     'digest': 'sha256:' + _exact_record_digest(record)}
+        view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': reference, 'record_kind': 'metadata',
+            'status': 'available', 'reason': 'exact-retained-version', 'version_status': 'historical',
+            'record': record, 'provenance': {'fixture': 'synthetic-record-only-bindings'},
+            'grants_current_use': False, 'performs_assessment': False}
+        return {'node_id': 'record-version:' + _exact_record_digest(reference), 'node_kind': 'record-version',
+                'source_ref': 'test:synthetic-version-metadata', 'properties': {'record_version_view': view}}, view
+
+    def test_metadata_version_quotes_its_own_record_with_complete_context_not_current_forms(self):
+        from tos_access.knowledge import _lens_carrier
+        node, view = self._metadata_version_fixture()
+        before = copy.deepcopy(node)
+        graph = build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                     self.entity_type_registry, self.relation_type_registry)
+        version = next(item for item in graph['nodes'] if item['kind_id'] == 'record-version')
+        for detail in ('full', 'compact'):
+            packet = _lens_carrier(version, detail, language='ru')
+            self.assertEqual(packet['semantics']['record_version']['record_kind'], 'metadata')
+            self.assertNotEqual(packet['entity_id'], view['record_ref']['id'])
+            self.assertNotIn('claim', packet['semantics'])
+            self.assertNotIn('time', packet['semantics'])
+            context = packet['semantics']['assertion_contexts'][0]['fields']['record']
+            self.assertEqual(context['value'], view['record'])
+            self.assertEqual(context['source_pointer'], '/properties/record_version_view/record')
+            self.assertEqual(packet['display']['summary']['de'], view['record']['notes'])
+            self.assertEqual(packet['display_selection']['fields']['summary']['actual_language'], 'de')
+            self.assertTrue(packet['display_selection']['essential_context_pointers'])
+            self.assertEqual(packet['epistemic'], {'authority_layer': 'derived-export',
+                'canon_status': None, 'review_posture': 'not-recorded', 'confidence': None})
+            self.assertNotIn('human_form_selection', packet)
+            if detail == 'full':
+                self.assertEqual(packet['attributes']['record_version_view']['record'], view['record'])
+            else:
+                self.assertEqual(packet['attributes'], {})
+        result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+            'lens_id': 'metadata-version', 'detail': 'compact', 'language': 'ru'})
+        Draft202012Validator(self.schemas['lens-result.v1.schema.json'], registry=self.registry).validate(result)
+        self.assertEqual(node, before)
+
+    def test_exact_version_language_comes_only_from_its_own_declaration(self):
+        from tos_access.knowledge import _lens_carrier, _exact_record_digest
+        for factory in (self._metadata_version_fixture, self._record_version_fixture):
+            for declared in ('de', 'x-source-test', None, 'default', 'original', 'not a tag'):
+                node, view = factory()
+                record = view['record']
+                if view['record_kind'] == 'metadata':
+                    record['field_languages']['notes']['language'] = declared
+                else:
+                    record['qualifiers']['statement_language'] = declared
+                view['record_ref']['digest'] = 'sha256:' + _exact_record_digest(record)
+                node['node_id'] = 'record-version:' + _exact_record_digest(view['record_ref'])
+                graph = build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                             self.entity_type_registry, self.relation_type_registry)
+                version = next(item for item in graph['nodes'] if item['kind_id'] == 'record-version')
+                for requested in ('ru', 'de', 'original', 'auto'):
+                    with self.subTest(kind=view['record_kind'], declared=declared, requested=requested):
+                        packet = _lens_carrier(version, 'compact', language=requested)
+                        selected = packet['display_selection']['fields']['summary']
+                        self.assertEqual(selected['actual_language'], declared if declared in ('de', 'x-source-test') else None)
+                        self.assertTrue(selected['content_available'])
+
+    def test_metadata_version_refuses_cross_kind_identity_digest_and_unavailable_data(self):
+        from tos_access.knowledge import _exact_record_digest
+        for case in ('kind', 'claim-id', 'record-id', 'record-version', 'bool-version', 'content', 'context-loss', 'grant'):
+            node, view = self._metadata_version_fixture()
+            if case == 'kind': view['record_kind'] = 'claim'
+            elif case == 'claim-id':
+                view['record_ref']['id'] = 'tos.claim.synthetic-version'
+                node['node_id'] = 'record-version:' + _exact_record_digest(view['record_ref'])
+            elif case == 'record-id': view['record']['record_id'] = 'tos.agent.other'
+            elif case == 'record-version': view['record']['record_version'] += 1
+            elif case == 'bool-version': view['record']['record_version'] = True
+            elif case == 'content': view['record']['notes'] = 'Current substituted description.'
+            elif case == 'context-loss': del view['record']['unknown_extension']
+            else: node['properties']['allowed_operations'] = ['record.revise']
+            with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'record version view'):
+                build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                      self.entity_type_registry, self.relation_type_registry)
+        for state in ('missing', 'stale', 'corrupt', 'access-restricted', 'over-budget'):
+            node, view = self._metadata_version_fixture()
+            view.update(status=state, reason='synthetic-gap', record=None, version_status=None, provenance={})
+            graph = build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                         self.entity_type_registry, self.relation_type_registry)
+            version = next(item for item in graph['nodes'] if item['kind_id'] == 'record-version')
+            self.assertNotIn('assertion_contexts', version['semantics'])
+            self.assertEqual(version['display']['summary_state'], 'missing')
+            view['record'] = {'notes': 'Leaked source wording'}
+            with self.subTest(state=state), self.assertRaisesRegex(ValueError, 'unavailable record version'):
+                build_knowledge_graph({'source_navigation': {'nodes': [node], 'edges': []}}, {}, {},
+                                      self.entity_type_registry, self.relation_type_registry)
+
+    def test_metadata_history_edges_require_the_exact_retained_listing_and_current_binding(self):
+        from tos_access.knowledge import _exact_record_digest
+        version, view = self._metadata_version_fixture()
+        record = {**copy.deepcopy(view['record']), 'record_version': 5, 'notes': 'Later synthetic description.'}
+        current = {'id': record['record_id'], 'version': 5, 'digest': 'sha256:' + _exact_record_digest(record)}
+        history = {'schema_version': 'tos_metadata_record_history_v1', 'status': 'available', 'reason': 'synthetic-history',
+            'record_id': record['record_id'], 'current_ref': current, 'refs': [copy.deepcopy(view['record_ref']), current],
+            'provenance': {'fixture': 'synthetic-not-source-verification'},
+            'grants_current_use': False, 'performs_assessment': False, 'writes_to_source': False}
+        subject = {'node_id': record['record_id'], 'node_kind': 'agent', 'source_ref': 'test:synthetic-current',
+                   'properties': {'source_record': record, 'record_history': history}}
+        edge = {'edge_id': 'test:synthetic-history-edge', 'from_id': subject['node_id'], 'to_id': version['node_id'],
+                'predicate_id': 'has_record_version', 'source_refs': ['test:synthetic-history']}
+        def build(candidate):
+            return build_knowledge_graph({'source_navigation': {'nodes': [candidate, version], 'edges': [edge]}},
+                                        {}, {}, self.entity_type_registry, self.relation_type_registry)
+        graph = build(subject)
+        self.assertTrue(validate_knowledge_semantics(graph, self.entity_type_registry, self.relation_type_registry)['valid'])
+        for case in ('missing', 'foreign-id', 'current-digest', 'absent-predecessor', 'nonconsecutive', 'bool-version', 'grant', 'unknown-authority'):
+            candidate = copy.deepcopy(subject)
+            listing = candidate['properties']['record_history']
+            if case == 'missing': candidate['properties'].pop('record_history')
+            elif case == 'foreign-id': listing['record_id'] = 'tos.agent.other'
+            elif case == 'current-digest': listing['current_ref']['digest'] = 'sha256:' + '0' * 64
+            elif case == 'absent-predecessor': listing['refs'] = [listing['current_ref']]
+            elif case == 'nonconsecutive': listing['refs'][0]['version'] = 2
+            elif case == 'bool-version': listing['refs'][0]['version'] = True
+            elif case == 'grant': listing['grants_current_use'] = True
+            else: listing['authority'] = 'accepted'
+            with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'record history relation'):
+                build(candidate)
 
     def _claim_navigation_fixture(self):
         sys.path.insert(0, str(self.repo_root / 'scripts'))

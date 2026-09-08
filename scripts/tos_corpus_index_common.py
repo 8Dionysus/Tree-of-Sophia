@@ -628,6 +628,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
     edges: dict[str, dict[str, Any]] = {}
     rights: list[dict[str, Any]] = []
     version_reader = None
+    metadata_reader = None
 
     def add_node(
         node_id: str,
@@ -690,6 +691,25 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
             return
         edges[edge_id] = candidate
 
+    def add_version_node(reference: dict[str, Any], resolved: dict[str, Any], record_kind: str) -> tuple[str, str]:
+        available = resolved['status'] == 'available'
+        view = {'schema_version': 'tos_record_version_view_v1',
+            'record_ref': dict(reference), 'record_kind': record_kind,
+            'status': resolved['status'], 'reason': resolved['reason'],
+            'version_status': resolved['version_status'], 'record': resolved['record'],
+            'provenance': resolved['provenance'] if available else {},
+            'grants_current_use': False, 'performs_assessment': False}
+        version_id = 'record-version:' + hashlib.sha256(canonical_json(reference).encode('utf-8')).hexdigest()
+        version_ref = 'ToS/contracts/record-version-view.schema.json#/properties/record_ref'
+        if available:
+            locator = resolved['provenance']['source']
+            version_ref = locator['archive_blob_ref'] or locator['source_ref']
+            if record_kind == 'claim':
+                version_ref += '#L' + str(locator['line'])
+        add_node(version_id, 'record-version', 'Exact record version', version_ref,
+                 'not_applicable', {'record_version_view': view})
+        return version_id, version_ref
+
     branch_by_path: dict[str, dict[str, Any]] = {}
     for manifest_path in sorted((TOS_ROOT / "philosophy" / "eras").rglob("branch.manifest.json")):
         try:
@@ -734,6 +754,8 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
     catalog_root = TOS_ROOT / "source-witnesses" / "catalog"
     catalog_manifest_path = catalog_root / "catalog.manifest.json"
     if catalog_manifest_path.is_file():
+        from metadata_version_reader import MetadataVersionReader
+        metadata_reader = MetadataVersionReader(REPO_ROOT)
         catalog_manifest = load_json(catalog_manifest_path)
         artifact_validators = {}
         profiles = SourceRecordProfiles(REPO_ROOT)
@@ -807,6 +829,10 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
                             )
                         }
                     )
+                history = None
+                if metadata_reader.supports(record_type, source_ref=source_ref):
+                    history = metadata_reader.exact_refs(record_id)
+                    properties['record_history'] = {'schema_version': 'tos_metadata_record_history_v1', **history}
                 add_node(
                     record_id,
                     str(record_type),
@@ -815,6 +841,16 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
                     str(entry.get("identity_status") or "unknown"),
                     properties,
                 )
+                if history is not None:
+                    for reference in history['refs']:
+                        resolved = metadata_reader.resolve(reference)
+                        version_id, version_ref = add_version_node(reference, resolved, 'metadata')
+                        add_edge('source-navigation:record-history:' + version_id, record_id,
+                                 'has_record_version', version_id, 'exact_historical_record_reference',
+                                 [source_ref, version_ref])
+                    if history['status'] != 'available':
+                        diagnostics.append({'level': 'warning', 'path': source_ref,
+                            'message': 'exact metadata history unavailable: ' + history['status'] + '/' + history['reason']})
                 if record_type == 'sign':
                     # The immutable issuance reference points to a version,
                     # never to a convenient current Claim with the same ID.
@@ -826,21 +862,8 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
                     reference = source_record['promotion_basis']['candidate']
                     resolved = version_reader.resolve(reference)
                     available = resolved['status'] == 'available'
-                    view = {'schema_version': 'tos_record_version_view_v1',
-                        'record_ref': dict(reference), 'record_kind': 'claim',
-                        'status': resolved['status'], 'reason': resolved['reason'],
-                        'version_status': resolved['version_status'], 'record': resolved['record'],
-                        'provenance': resolved['provenance'] if available else {},
-                        'grants_current_use': False, 'performs_assessment': False}
-                    version_id = 'record-version:' + hashlib.sha256(
-                        canonical_json(reference).encode('utf-8')).hexdigest()
+                    version_id, version_ref = add_version_node(reference, resolved, 'claim')
                     basis_ref = source_ref + '#/promotion_basis/candidate'
-                    version_ref = 'ToS/contracts/record-version-view.schema.json#/properties/record_ref'
-                    if available:
-                        locator = resolved['provenance']['source']
-                        version_ref = (locator['archive_blob_ref'] or locator['source_ref']) + '#L' + str(locator['line'])
-                    add_node(version_id, 'record-version', 'Exact record version', version_ref,
-                             'not_applicable', {'record_version_view': view})
                     add_edge('source-navigation:promotion-basis:' + record_id, record_id,
                              'promotion_basis_version', version_id, 'exact_historical_record_reference',
                              [basis_ref, version_ref])
@@ -1020,6 +1043,8 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
         projected_nodes = assessed_forms.materialize(projected_nodes)
     if version_reader is not None:
         version_reader.verify_current()
+    if metadata_reader is not None:
+        metadata_reader.verify_current()
     return {
         "schema_version": "tos_source_navigation_v1",
         "authority_boundary": (

@@ -91,6 +91,9 @@ The new native adapter does not correct every native family or perform general
 multi-object transactions. Public exact-version delivery remains Claim-only;
 the metadata command's `inspect-version` result must not be copied wholesale
 into a historical consumer because it also contains current command context.
+The subsequent [exact metadata history change](2026-09-08-exact-metadata-version-review.md)
+adds a separate read-only route for the supported families; it does not widen
+the command grant or retroactively change this review's verification scope.
 
 The registry gate enforces declared mechanical evolution, not philosophical
 equivalence of arbitrary changed definitions, domain/range or properties. A
