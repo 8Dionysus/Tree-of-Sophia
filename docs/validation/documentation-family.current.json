@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4411,
+    "tracked_surface_count": 4423,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1012,
+    "excluded_tracked_path_count": 1015,
     "human_scope": {
-      "bytes": 5364718,
-      "count": 918,
+      "bytes": 5380749,
+      "count": 920,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4230709,
-          "count": 629,
-          "lines": 70935
+          "bytes": 4246740,
+          "count": 631,
+          "lines": 71207
         }
       },
-      "lines": 91387
+      "lines": 91659
     },
     "surface_kind_counts": {
       "executable": 250,
-      "human": 918,
-      "structured": 3243
+      "human": 920,
+      "structured": 3253
     },
-    "tracked_path_count": 5423,
-    "tracked_surface_count": 4411,
+    "tracked_path_count": 5438,
+    "tracked_surface_count": 4423,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 629,
-        "structured": 3167
+        "human": 631,
+        "structured": 3177
       },
-      "tracked_surface_bytes": 229627555,
-      "tracked_surface_count": 3800
+      "tracked_surface_bytes": 229753928,
+      "tracked_surface_count": 3812
     },
     {
       "family_id": "access",
@@ -222,7 +222,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 1492518,
+      "tracked_surface_bytes": 1500902,
       "tracked_surface_count": 227
     },
     {
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1770458,
+      "tracked_surface_bytes": 1789178,
       "tracked_surface_count": 67
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "a7bcb3b2b412282437ea3de92d0796d5017a39868e8cd5e7aa02429421ba2f5d",
+  "tracked_surface_digest": "c8ae8e58e015e4acf92d53b4243081bf36b0d29d86f8621c04032b03dfc83730",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -2615,6 +2615,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4264,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/source-lexical-translatability-claim.schema.json",
+      "sha256": "c0d114e43779c17277d8132745390164010ecb718c0ee590acd3ef15dab076e8",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2618,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2983,11 +2991,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9505336,
+      "bytes": 9556161,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "c6e66138edb680ad7de0dab86e1b330c3e4689fa292f2a4ec901cd56c3bafc41",
+      "sha256": "60cd01d43bac845acac1462888e8f672820b5fec71c8ca179ba043f81c6c730d",
       "surface_kind": "structured"
     },
     {
@@ -3063,11 +3071,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 60018833,
+      "bytes": 60036135,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "d5f92de17355b34fa9894e2b6021b31d1360dceb7892d0e1e224049bd3e36433",
+      "sha256": "57e32d45df2dfc4fe5fde9d042537942d993d05972d0bba8b542f1639c38833d",
       "surface_kind": "structured"
     },
     {
@@ -3143,11 +3151,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 88061,
+      "bytes": 88326,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "4bd5507ae3a9c89c48efc4253cba3a2ef91e58423bff44a5e5b0981d71954f7a",
+      "sha256": "2536dde9cfb3cbc01844015dcd89afa3efbc234daa146a30f07f3f45f2ecc078",
       "surface_kind": "human"
     },
     {
@@ -3263,11 +3271,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 97047,
+      "bytes": 100099,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "ffebebfe720497c93fe74eafeeb3577493b6332f102f4dc9537da1f61a66eb3b",
+      "sha256": "bff6e2d93e4e1834bf513cd818716a5e2e0e7d7a63c6aac40aecc275e5a76d7a",
       "surface_kind": "human"
     },
     {
@@ -3279,19 +3287,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 208946,
+      "bytes": 216862,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "9aebccc34f0f0d637f8d0e2c4474bcd7219ff92f9fd396f1d5f98ebd2d8fdac1",
+      "sha256": "3b7afd2c1d8f1c37ad106e666fa539e1e077b8590bd4ddeaced5b570f15c8a1e",
       "surface_kind": "structured"
     },
     {
-      "bytes": 299463,
+      "bytes": 301355,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "f7ef71e82a683de9664a9fbfafd250e4205780bd95068ac586f8bdcd176b07f4",
+      "sha256": "04461f6d623f4e519a79cdb6458ea2ebe5721a0ef94f8ea15a0ef0176aa9c299",
       "surface_kind": "structured"
     },
     {
@@ -17631,6 +17639,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3760,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-goethe-translatability-source-reading.md",
+      "sha256": "50227ca7998c64eaa17ee620e32db91bec49787ab1cf1fa1b29d446ef0922496",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 3896,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -17748,6 +17764,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-08-real-private-occurrence-and-replay-review.md",
       "sha256": "27dafac2dbb8d29308f0bd9d2736505ec064273b6a9f371cfbee9a2d58da3331",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 8954,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-translatability-profile-review.md",
+      "sha256": "d5c92ba2858aa4a2acd7c7662d8be88bf65f7f4ea374cd469f8948139576fb7d",
       "surface_kind": "human"
     },
     {
@@ -19871,11 +19895,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8437,
+      "bytes": 8507,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "ef372b4c74eec4a5528ed06164bc95d0f294569704638f77f00c29d747602db1",
+      "sha256": "f9dc8881eb9bc59e31a8eaba592bba6fd68a81a50cba2533c2ac2d456a2d91e5",
       "surface_kind": "structured"
     },
     {
@@ -22431,6 +22455,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5104,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e581c085b6c4d6ea882268c1321a27b/lexeme.human-forms.json",
+      "sha256": "b541f697e4ad4f500bcccb624b5494e4a8f17424d74c72f04f3fbb58f95e2dcb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2514,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e581c085b6c4d6ea882268c1321a27b/lexeme.json",
+      "sha256": "b1fc2a27e1f72bc386ab0f33f5784177b6927a608c21f91c8e434b774aa3a92e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e581c085b6c4d6ea882268c1321a27b/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1550,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e581c085b6c4d6ea882268c1321a27b/source-create-receipt.json",
+      "sha256": "8f0e6fba2a90b7bdd7166d86e66f36bfa1a9e589bdf40727374dc542180f68d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2927,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/sid-2e581c085b6c4d6ea882268c1321a27b/source-create-request.json",
+      "sha256": "2cb2e53e946ecb91bdebc8f1ca0e551de0d6a9af3845db1a5bc7a618c983f4c8",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5089,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23532,6 +23596,38 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/gilgamesh-reception/source-create-request.json",
       "sha256": "82474793a20e40a50324becc3b2a20fe4f047f578857de4b458b73f25a5415bd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3915,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/goethe-leitkultur-translatability/source-claims.7e647457777d66b1693e925d2233aede06a81fd7141843cb676908beb9c29ae5.human-forms.json",
+      "sha256": "ac57b831246fec27915b0a0ddb960f59bc477e6896783d7c2d8c3f30adb43afb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/goethe-leitkultur-translatability/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4377,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/goethe-leitkultur-translatability/source-create-receipt.json",
+      "sha256": "8beed6d0c0858673383e06e6e999bd416ac07be1d6296033acda2ddd5ece93d2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7198,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/goethe-leitkultur-translatability/source-create-request.json",
+      "sha256": "1da2661ebb2f6064cb3e4584649a9826a6fabfe7598663bb07e8558a547f6daa",
       "surface_kind": "structured"
     },
     {
@@ -33447,11 +33543,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 112171,
+      "bytes": 120555,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
-      "sha256": "5596adc37fd6396138534a487289a1d2e4894ae73d700fc2877ba68814633d99",
+      "sha256": "a87ea258f1b0ee45e54ccce5b4a21955423c0ed856c7ce5478e51aa1a0f3c2f1",
       "surface_kind": "executable"
     },
     {
@@ -35383,11 +35479,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 300886,
+      "bytes": 319606,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "62611b8bfdd31446830034bb93174206a4f2a5b379734318cbb1552cd68f8fd5",
+      "sha256": "692734fa8de96dcf17402257cc020fbc72507074da79386e344221f3d104fbe1",
       "surface_kind": "executable"
     },
     {

@@ -894,6 +894,52 @@ Rolling back a reader never removes the source Claims or assessment history.
 The bounded actual inputs and source-reading limits are recorded in
 [`2026-09-07-classification-source-reading.md`](../../review-ledger/2026-09-07-classification-source-reading.md).
 
+## Scoped lexical translatability
+
+Entity registry 26 and relation registry 25 add `lexical_translatability`
+through the existing structured-value reader, not a new execution branch.
+Its subject is a Lexeme, a situated LexicalSense or an Occurrence with its
+existing exact native TextUnit binding. The Claim-scoped value has no lexical
+subject ID and does not merge with an equal value in another Claim. A correction
+of this report preserves the subject and retains prior Claim versions.
+
+The [source contract](../../contracts/source-lexical-translatability-claim.schema.json)
+separates these questions:
+
+| Field | Meaning and limit |
+| --- | --- |
+| `source_language`, `target_language`, `source_scope`, `target_scope` | Languages and situated task; not interface language or a universal assertion about either language. |
+| `aspects_in_scope`, `aspect_transfer` | Reported full, partial, no or undetermined transfer of the specified aspects only. |
+| `rendering_judgment` | Adequate, inadequate or undetermined for the declared task; not assessment admission or confidence. |
+| `renderings_considered` | Explicit wording alternatives, each with its own language/script; neither identity references nor proof of a search. |
+| `preserved_aspects`, `limitations` | Attributed account of what survives and what is lost, unexamined or unknown. |
+| `search_report` | Null when no report is supplied; otherwise the reported outcome, sought criterion, coverage and optional method account. |
+
+`none_found` is only a reported search outcome for its declared criterion and
+coverage. It does not imply linguistic impossibility and may coexist with
+partial renderings considered while searching for a fuller one. Conversely,
+a task can judge partial transfer adequate. The schema therefore does not
+equate these axes or infer the enclosing Claim's polarity from their values.
+Missing search information, a supplied report with an undetermined outcome,
+and a report of no matching result remain distinct. Describing a search does
+not execute one or fabricate an execution receipt.
+
+Source wording, the qualified statement and each candidate rendering retain
+their separate language/script declarations, including explicit unknowns.
+All scoped scalar fields are discoverable through
+`tos.property.translatability-*`; the complete alternative wording packets
+remain inspectable in the value. Unknown extension members are retained data,
+not inferred references, temporal keys, query instructions or authority.
+
+This predicate is distinct from `lexical_translation_correspondence`, which
+compares two separately identified Senses. It also creates no translation
+activity, translated Work or automatically accepted equivalent. The general
+v3 exact-value delegation owns creation and correction; ordinary form commands
+copy the complete qualified statement with the entire Claim as mandatory
+context. Rendering and mechanics validation do not establish substantive
+quality or grant admission. Source-visible competent assessment retains that
+separate responsibility.
+
 ## Textual fragments and quoting passages
 
 The independently mapped scholarly-composite route below retains the modern

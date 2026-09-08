@@ -28,6 +28,7 @@
     "ToS/contracts/social-body-record.schema.json",
     "ToS/contracts/social-relation-claim.schema.json",
     "ToS/contracts/source-classification-claim.schema.json",
+    "ToS/contracts/source-lexical-translatability-claim.schema.json",
     "ToS/contracts/source-relation-claim.schema.json",
     "ToS/contracts/source-temporal-claim.schema.json",
     "ToS/contracts/source-textual-survival-claim.schema.json",
@@ -161,13 +162,13 @@
     "letter": 1,
     "historical-event": 1,
     "historical-process": 1,
-    "lexeme": 4,
+    "lexeme": 5,
     "sense": 3,
     "artifact": 18,
-    "object_total": 297,
-    "claim": 357,
-    "total": 654
+    "object_total": 298,
+    "claim": 358,
+    "total": 656
   },
-  "catalog_sha256": "4fba6b294952828f0c6abdb0103586e41da8f90fed7d7b12e9f8eebe7e33d529",
+  "catalog_sha256": "8a94d264bbfc80cf589571324292d9d4197a9e05ed986113ce241a7ffeb52aad",
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"
 }

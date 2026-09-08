@@ -34,6 +34,227 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_lexical_translatability_keeps_judgment_transfer_search_and_wording_independent(self):
+        """Artificial rendering reports test source grammar, not any word's translatability."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        with self.historical_fixture() as (root, history, real, baseline, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'lexical-description-record',
+                         'source-claim-record', 'source-structured-value', 'source-lexical-translatability-claim',
+                         'semantic-relation-type-registry', 'native-text-unit-binding'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            record_reader, records = SourceRecordProfiles(root), {}
+            for kind, content in (
+                    ('lexeme', {'lexical_account': 'An artificial lexical referent.',
+                                'grammatical_account': 'No real grammatical attribution.'}),
+                    ('sense', {'sense_account': 'An artificial situated reading.',
+                               'interpretation_context': 'This synthetic rendering task only.',
+                               'semantic_range': 'No actual lexical range is asserted.'})):
+                record = {**copy.deepcopy(history[0][1]), 'schema_version': 'tos_lexical_description_record_v1',
+                    'record_type': kind, 'record_id': f'tos.{kind}.synthetic-translatability',
+                    'preferred_label': 'Условный предмет перевода', 'notes': 'Только синтетический тест.',
+                    'field_languages': {field: {'language': 'ru', 'script': 'Cyrl'}
+                        for field in ('preferred_label', 'notes')},
+                    'semantic_scope': {'scope_note': 'One synthetic lexical referent.',
+                        'identity_criterion': 'This referent is not a rendering judgment or a value.',
+                        'language': 'en', 'script': 'Latn'},
+                    'semantic_content': {**content, 'language': 'en', 'script': 'Latn'}}
+                record_reader.validate(kind, record)
+                path = root / f'ToS/source-witnesses/lexical-descriptions/translatability-{kind}/{kind}.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(record, ensure_ascii=False), encoding='utf-8')
+                records[kind] = record
+            # Declaring Occurrence as a domain does not supply its native evidence binding.
+            self.assertEqual(record_reader.profiles['occurrence']['native_binding_adapter'], 'source-text-unit-v1')
+            with self.assertRaises(SourceProfileError):
+                record_reader.validate_native_binding('occurrence', {})
+            objects = {record['record_id']: record for record in records.values()}
+            extensions = {'date': '1886', 'relative': {'anchor_ref': 'tos.sense.not-a-dependency'},
+                          'unknown': [False, 0, None], 'instruction': 'Inert synthetic source wording.'}
+            value = {'kind': 'lexical-translatability',
+                'source_wording': {'text': 'Rapport fictif, sans jugement sur une langue.',
+                                   'language': 'fr', 'script': 'Latn'},
+                'source_language': 'de', 'target_language': 'en',
+                'source_scope': 'source_scope: one artificial use, not every use of a word.',
+                'target_scope': 'target_scope: one artificial receiving task.',
+                'aspects_in_scope': 'aspects_in_scope: only two synthetic comparison aspects.',
+                'rendering_judgment': 'inadequate_in_scope', 'aspect_transfer': 'partial_for_stated_aspects',
+                'renderings_considered': [
+                    {'text': 'Synthetic candidate', 'language': 'en', 'script': 'Latn'},
+                    {'text': 'Условный вариант', 'language': 'ru', 'script': 'Cyrl'},
+                    {'text': 'Unattributed synthetic wording', 'language': None, 'script': None,
+                     'extensions': copy.deepcopy(extensions)}],
+                'preserved_aspects': 'preserved_aspects: one artificial aspect is retained.',
+                'limitations': 'limitations: the other aspect and alternative tasks remain open.',
+                'search_report': None, 'extensions': copy.deepcopy(extensions)}
+            claim = {**copy.deepcopy(baseline[0]), 'schema_version': 'tos_source_lexical_translatability_claim_v1',
+                'claim_id': 'tos.claim.synthetic-translatability-unreported',
+                'subject_ref': records['lexeme']['record_id'], 'predicate': 'lexical_translatability',
+                'object': value, 'polarity': 'positive',
+                'confidence': {'value': 0, 'meaning': 'maker_declared_uncertainty_not_truth_probability'},
+                'qualifiers': {'statement': 'Только условное сообщение; не универсальный языковой вердикт.',
+                    'statement_language': 'ru', 'statement_script': 'Cyrl', 'unknown': copy.deepcopy(extensions)},
+                'extensions': copy.deepcopy(extensions)}
+            reader = SourceClaimProfiles(root)
+            relation = reader.relations['lexical_translatability']
+            self.assertEqual(reader.profiles['lexical_translatability']['reader'], 'structured-value-v1')
+            self.assertEqual(set(relation['domain_type_ids']),
+                             {'tos.entity.lexeme', 'tos.entity.lexical-sense', 'tos.entity.occurrence'})
+            self.assertEqual(relation['range_type_ids'], ['tos.entity.lexical-translatability'])
+            self.assertFalse(relation['transitive'])
+            self.assertIn('tos.entity.literal', reader.ancestry('tos.entity.lexical-translatability'))
+            self.assertNotIn('tos.entity.identity', reader.ancestry('tos.entity.lexical-translatability'))
+            reader.validate(claim, objects)
+            for field in (field for field in value if field != 'extensions'):
+                invalid = copy.deepcopy(claim); invalid['object'].pop(field)
+                with self.subTest(missing=field), self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+            for field in ('source_scope', 'target_scope', 'aspects_in_scope', 'preserved_aspects', 'limitations'):
+                invalid = copy.deepcopy(claim); invalid['object'][field] = ' '
+                with self.subTest(blank=field), self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+            for field in ('statement', 'statement_language', 'statement_script'):
+                invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                with self.subTest(missing_qualifier=field), self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+            for field in ('text', 'language', 'script'):
+                invalid = copy.deepcopy(claim); invalid['object']['renderings_considered'][0].pop(field)
+                with self.subTest(missing_candidate_field=field), self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+            for field, replacement in (
+                    ('kind', 'textual-survival'), ('source_language', 'not a tag'),
+                    ('target_language', 'en\n'), ('rendering_judgment', 'untranslatable'),
+                    ('aspect_transfer', 'equivalent'), ('renderings_considered', ['Unqualified candidate']),
+                    ('renderings_considered', [{'text': ' ', 'language': 'en', 'script': 'Latn'}]),
+                    ('renderings_considered', [{'text': 'Synthetic', 'language': 'not a tag', 'script': 'Latn'}]),
+                    ('renderings_considered', [{'text': 'Synthetic', 'language': 'en', 'script': 'Latin'}])):
+                invalid = copy.deepcopy(claim); invalid['object'][field] = replacement
+                with self.subTest(field=field, replacement=replacement), self.assertRaises(SourceProfileError):
+                    reader.validate(invalid, objects)
+            for change in ({'object': 'tos.sense.synthetic-translatability'}, {'assertion_layer': 'source_observation'},
+                           {'review_status': 'accepted'}, {'evidence_refs': []}):
+                with self.subTest(change=change), self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, **change}, objects)
+            for wrong_kind in ('work', 'agent', 'lexical-form', 'language', 'crosscutting-concept'):
+                with self.subTest(subject_kind=wrong_kind), self.assertRaises(SourceProfileError):
+                    reader.validate(claim, {claim['subject_ref']: {'record_type': wrong_kind}})
+            search = {'outcome': 'none_found', 'sought_criterion': 'criterion: both artificial aspects, not just one.',
+                'coverage_note': 'coverage: only the synthetic reported comparison; no actual search run.',
+                'method_note': None, 'extensions': copy.deepcopy(extensions)}
+            for field in ('outcome', 'sought_criterion', 'coverage_note', 'method_note'):
+                invalid = {**copy.deepcopy(value), 'search_report': {key: val for key, val in search.items() if key != field}}
+                with self.subTest(missing_search=field), self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, 'object': invalid}, objects)
+            for field in ('sought_criterion', 'coverage_note', 'method_note'):
+                invalid = {**copy.deepcopy(value), 'search_report': {**search, field: ' '}}
+                with self.subTest(blank_search=field), self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, 'object': invalid}, objects)
+            for outcome in ('not_searched', 'untranslatable'):
+                with self.subTest(search_outcome=outcome), self.assertRaises(SourceProfileError):
+                    reader.validate({**claim, 'object': {**value, 'search_report': {**search, 'outcome': outcome}}}, objects)
+            # Equal values remain two Claims; polarity is not derived from an inner judgment.
+            claims = [claim, {**copy.deepcopy(claim), 'claim_id': 'tos.claim.synthetic-translatability-denial',
+                             'polarity': 'negative', 'epistemic_status': 'disputed'}]
+            claims.append({**copy.deepcopy(claim), 'claim_id': 'tos.claim.synthetic-translatability-none-found',
+                'assertion_layer': 'translation_judgment', 'object': {**copy.deepcopy(value),
+                    'source_language': None, 'target_language': 'und', 'rendering_judgment': 'adequate_in_scope',
+                    'search_report': copy.deepcopy(search)}})
+            claims.append({**copy.deepcopy(claim), 'claim_id': 'tos.claim.synthetic-translatability-undetermined',
+                'polarity': 'unknown', 'object': {**copy.deepcopy(value), 'rendering_judgment': 'undetermined',
+                    'aspect_transfer': 'undetermined', 'renderings_considered': [],
+                    'search_report': {**copy.deepcopy(search), 'outcome': 'undetermined',
+                        'method_note': 'method: an attributed synthetic comparison, not executed here.'}}})
+            claims.append({**copy.deepcopy(claim), 'claim_id': 'tos.claim.synthetic-translatability-candidates-found',
+                'subject_ref': records['sense']['record_id'], 'assertion_layer': 'linguistic_analysis',
+                'object': {**copy.deepcopy(value), 'rendering_judgment': 'adequate_in_scope',
+                    'aspect_transfer': 'full_for_stated_aspects',
+                    'search_report': {**copy.deepcopy(search), 'outcome': 'candidates_found'}}})
+            for transfer in ('full_for_stated_aspects', 'partial_for_stated_aspects', 'none_for_stated_aspects', 'undetermined'):
+                reader.validate({**claim, 'object': {**value, 'aspect_transfer': transfer}}, objects)
+            for language in (None, 'und'):
+                reader.validate({**claim, 'object': {**value, 'source_language': language, 'target_language': language,
+                    'renderings_considered': [{'text': 'Synthetic wording', 'language': language, 'script': None}]}}, objects)
+            for item in claims:
+                original = copy.deepcopy(item)
+                reader.validate(item, objects)
+                self.assertEqual(item, original)
+                self.assertEqual(reader.identity_refs(item), {item['subject_ref']})
+                self.assertTrue(reader.is_value(item))
+                self.assertFalse(reader.is_temporal(item))
+            path = root / 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            path.write_text(''.join(json.dumps(item, ensure_ascii=False) + '\n' for item in claims), encoding='utf-8')
+            projection = rebuild()
+            graph, _, _ = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import execute_knowledge_lens, focus_knowledge_node, inspect_knowledge_node
+            values = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.lexical-translatability']
+            self.assertEqual(len(values), len(claims))
+            self.assertEqual(len({node['entity_id'] for node in values}), len(claims))
+            self.assertEqual(len([node for node in values if node['attributes']['value'] == value]), 2)
+            self.assertFalse(projection['relation_model']['direct_subject_object_edges'])
+            claims_by_id = {item['claim_id']: item for item in claims}
+            values_by_claim = {}
+            for node in values:
+                contexts = [context for context in node['semantics']['assertion_contexts']
+                            if context['binding_role'] == 'referenced-claim']
+                self.assertEqual(len(contexts), 1)
+                fields = contexts[0]['fields']
+                item = claims_by_id[fields['claim_id']['value']]
+                values_by_claim[item['claim_id']] = node
+                self.assertEqual(node['attributes']['value'], item['object'])
+                self.assertNotIn('time', node['semantics'])
+                self.assertEqual(node['display']['title']['fr'], item['object']['source_wording']['text'])
+                for field in ('object', 'polarity', 'epistemic_status', 'review_status', 'qualifiers', 'confidence'):
+                    self.assertEqual(fields[field]['value'], item[field])
+                inspected = inspect_knowledge_node(graph, node['entity_id'])
+                self.assertEqual(inspected['matches'], [node])
+                focused = focus_knowledge_node(graph, node['entity_id'], depth=2)
+                self.assertIn(item['subject_ref'], {entry['entity_id'] for entry in focused['nodes']})
+                focused_value = next(entry for entry in focused['nodes'] if entry['id'] == node['id'])
+                self.assertEqual(focused_value['attributes']['value'], item['object'])
+                self.assertEqual(focused_value['semantics']['assertion_contexts'], node['semantics']['assertion_contexts'])
+                claim_node = next(entry for entry in focused['nodes'] if entry['entity_id'] == item['claim_id'])
+                self.assertEqual(claim_node['attributes']['source_claim'], item)
+                inspected_claim = inspect_knowledge_node(graph, item['claim_id'])['matches'][0]
+                self.assertEqual(inspected_claim['attributes']['source_claim'], item)
+                self.assertEqual(inspected_claim['semantics']['assertion_contexts'],
+                                 claim_node['semantics']['assertion_contexts'])
+                vertex = next(entry for entry in focused['scene']['vertices']
+                              if entry['id'] == focused['scene']['focus_vertex_id'])
+                self.assertIsNone(vertex['entity_id'])
+            property_paths = {field.replace('_', '-'): (field,) for field in (
+                'source_language', 'target_language', 'source_scope', 'target_scope', 'aspects_in_scope',
+                'rendering_judgment', 'aspect_transfer', 'preserved_aspects', 'limitations')}
+            property_paths.update({f'search-{name}': ('search_report', field) for name, field in (
+                ('outcome', 'outcome'), ('criterion', 'sought_criterion'),
+                ('coverage', 'coverage_note'), ('method', 'method_note'))})
+            def property_value(item, keys):
+                result = item['object']
+                for key in keys:
+                    result = result.get(key) if isinstance(result, dict) else None
+                return result
+            for suffix, keys in property_paths.items():
+                expected_value = next(property_value(item, keys) for item in claims if property_value(item, keys) is not None)
+                spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': 'synthetic-translatability-property',
+                    'node_query': {'filters': [{'property_id': 'tos.property.translatability-' + suffix,
+                                               'op': 'eq', 'value': expected_value}]},
+                    'relation_query': {'enabled': False}, 'detail': 'full'}
+                with self.subTest(property=suffix):
+                    result = execute_knowledge_lens(graph, spec)
+                    self.assertEqual({node['entity_id'] for node in result['nodes']},
+                        {values_by_claim[item['claim_id']]['entity_id'] for item in claims
+                         if property_value(item, keys) == expected_value})
+                    absent = copy.deepcopy(spec)
+                    absent['node_query']['filters'][0]['value'] = 'absent synthetic translatability value'
+                    self.assertEqual(execute_knowledge_lens(graph, absent)['nodes'], [])
+            for outcome in ('none_found', 'undetermined', 'candidates_found'):
+                result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                    'lens_id': 'synthetic-reported-search-outcome', 'node_query': {'filters': [{
+                        'property_id': 'tos.property.translatability-search-outcome', 'op': 'eq', 'value': outcome}]},
+                    'relation_query': {'enabled': False}, 'detail': 'full'})
+                self.assertEqual({node['entity_id'] for node in result['nodes']},
+                    {values_by_claim[item['claim_id']]['entity_id'] for item in claims
+                     if property_value(item, ('search_report', 'outcome')) == outcome})
+
     def test_lexical_comparison_claims_keep_history_and_translation_source_bound(self):
         """Synthetic comparisons test grammar and reading, never etymological truth."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

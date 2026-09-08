@@ -17,6 +17,95 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_translatability_value_grows_and_revises_without_translating_or_reidentifying(self):
+        """Synthetic scoped judgment: commands do not perform or accept translation."""
+        with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):
+            for name in ('source-structured-value', 'source-lexical-translatability-claim',
+                         'source-metadata-record', 'semantic-description-record', 'lexical-description-record'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            subject = 'tos.lexeme.synthetic-translatability'
+            source = {'schema_version': 'tos_lexical_description_record_v1', 'record_type': 'lexeme',
+                'record_id': subject, 'record_version': 1, 'preferred_label': 'Synthetic lexical subject',
+                'notes': 'A test referent, not a real word or assessed lexical analysis.',
+                'field_languages': {field: {'language': 'en', 'script': 'Latn'} for field in ('preferred_label', 'notes')},
+                'semantic_scope': {'scope_note': 'Only the synthetic translation task.',
+                    'identity_criterion': 'A judgment correction does not change this referent.',
+                    'language': 'en', 'script': 'Latn'},
+                'semantic_content': {'lexical_account': 'Artificial lexical grouping.',
+                    'grammatical_account': 'No actual grammar is asserted.', 'language': 'en', 'script': 'Latn'},
+                'identity_status': 'provisional', 'source_refs': claim['evidence_refs'],
+                'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only'}
+            subject_path = root / 'ToS/source-witnesses/lexical-descriptions/command-translatability/lexeme.json'
+            subject_path.parent.mkdir(parents=True)
+            subject_path.write_text(json.dumps(source), encoding='utf-8')
+            subject_bytes = subject_path.read_bytes()
+            value = {'kind': 'lexical-translatability', 'source_language': 'de', 'target_language': 'en',
+                'source_scope': 'Artificial source usage.', 'target_scope': 'Artificial receiving task.',
+                'aspects_in_scope': 'Only the named synthetic semantic and pragmatic aspects.',
+                'rendering_judgment': 'inadequate_in_scope', 'aspect_transfer': 'partial_for_stated_aspects',
+                'renderings_considered': [{'text': 'test rendering', 'language': 'en', 'script': 'Latn'}],
+                'preserved_aspects': 'An artificial semantic aspect.', 'limitations': 'Pragmatic loss is asserted only in this test.',
+                'search_report': None,
+                'source_wording': {'text': 'Условная ограниченная оценка переводимости.', 'language': 'ru', 'script': 'Cyrl'},
+                'extensions': {'date': '1886', 'relative': {'anchor_ref': 'tos.lexeme.not-a-dependency'}, 'values': [False, 0, None]}}
+            claim.update(schema_version='tos_source_lexical_translatability_claim_v1', subject_ref=subject,
+                predicate='lexical_translatability', object=value, assertion_layer='translation_judgment',
+                qualifiers={'statement': 'В синтетической задаче предложенная передача недостаточна; это не невозможность перевода.',
+                    'statement_language': 'ru', 'statement_script': 'Cyrl'})
+            creator.update(schema_version='tos_local_claim_create_owner_v3', allowed_subject_refs=[subject],
+                allowed_predicates=['lexical_translatability'], allowed_object_refs=[], allowed_object_values=[value])
+            owner.write_text(json.dumps(creator))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            prepared = commands.run_local_command(owner, proposal)
+            self.assertEqual(set(prepared['source_bindings']['objects']), {subject})
+            self.assertEqual(prepared['source_bindings']['values'][claim['claim_id']]['value'], value)
+            request = {**proposal, 'operation': 'claims.create', 'command_id': 'synthetic:translatability-create',
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings']}
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            path = root / creator['source_path']
+            original = path.read_bytes()
+            revised = {**copy.deepcopy(value), 'rendering_judgment': 'undetermined',
+                'search_report': {'outcome': 'none_found', 'sought_criterion': 'A fully adequate synthetic rendering.',
+                    'coverage_note': 'Only the synthetic list, not the entire target language.', 'method_note': None}}
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version='tos_local_claim_revision_owner_v3', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['object', 'qualifiers'], allowed_object_values=[revised],
+                allowed_object_refs=[], allowed_evidence_refs=creator['allowed_evidence_refs'],
+                allowed_form_ids=['tos.form.synthetic-translatability'])
+            owner.write_text(json.dumps(config))
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'object': revised, 'qualifiers': {'statement': 'Оценка в синтетической задаче не установлена; отсутствие полного варианта в тестовом списке не исключает другие переводы.'}},
+                'forms': [{'form_id': 'tos.form.synthetic-translatability', 'field_id': 'claim.statement'}],
+                'reason': 'Correct the synthetic judgment and retain the reported search limit.'}
+            prepared = commands.run_local_command(owner, change)
+            correction = {**change, 'operation': 'claim.revise', 'command_id': 'synthetic:translatability-correct',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                'expected_inputs': prepared['source_bindings']}
+            corrected = commands.run_local_command(owner, correction)
+            self.assertEqual(corrected['source']['version'], 2)
+            self.assertEqual({f['state'] for f in corrected['materializations']}, {'ready'})
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': prepared['source']})
+            self.assertEqual(prior['record'], claim)
+            self.assertEqual((root / prior['files'][path.name]['archive_path']).read_bytes(), original)
+            self.assertTrue(commands.run_local_command(owner, correction)['replayed'])
+            self.assertEqual(subject_path.read_bytes(), subject_bytes)
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            literal = next(n for n in graph['nodes'] if n['type_id'] == 'tos.entity.lexical-translatability')
+            self.assertEqual(literal['attributes']['value'], revised)
+            self.assertNotIn(literal['entity_id'], {subject, claim['claim_id']})
+            self.assertNotIn('time', literal['semantics'])
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            self.assertEqual(node['attributes']['source_claim']['claim_version'], 2)
+            packet = next(f for f in node['attributes']['human_forms'] if f['state'] == 'ready')
+            self.assertFalse(packet['standalone_reading'])
+            self.assertEqual(packet['context'][0]['value'], node['attributes']['source_claim'])
+
     def test_lexical_comparisons_create_copy_and_correct_through_shared_commands(self):
         """Synthetic lexical history changes no endpoint identity or real language fact."""
         cases = {
