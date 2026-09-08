@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4762,
+    "tracked_surface_count": 4945,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1664,
+    "excluded_tracked_path_count": 1690,
     "human_scope": {
-      "bytes": 5789520,
-      "count": 986,
+      "bytes": 5861183,
+      "count": 1014,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4593288,
-          "count": 694,
-          "lines": 74947
+          "bytes": 4664951,
+          "count": 722,
+          "lines": 75724
         }
       },
-      "lines": 96248
+      "lines": 97025
     },
     "surface_kind_counts": {
-      "executable": 272,
-      "human": 986,
-      "structured": 3504
+      "executable": 278,
+      "human": 1014,
+      "structured": 3653
     },
-    "tracked_path_count": 6426,
-    "tracked_surface_count": 4762,
+    "tracked_path_count": 6635,
+    "tracked_surface_count": 4945,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -163,12 +163,12 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "executable": 12,
-        "human": 694,
-        "structured": 3427
+        "executable": 16,
+        "human": 722,
+        "structured": 3576
       },
-      "tracked_surface_bytes": 262282333,
-      "tracked_surface_count": 4133
+      "tracked_surface_bytes": 266688729,
+      "tracked_surface_count": 4314
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 76,
         "structured": 6
       },
-      "tracked_surface_bytes": 887280,
+      "tracked_surface_bytes": 888467,
       "tracked_surface_count": 82
     },
     {
@@ -228,21 +228,21 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 123,
+        "executable": 124,
         "human": 2
       },
-      "tracked_surface_bytes": 4039164,
-      "tracked_surface_count": 125
+      "tracked_surface_bytes": 4053174,
+      "tracked_surface_count": 126
     },
     {
       "family_id": "tests",
       "surface_kind_counts": {
-        "executable": 66,
+        "executable": 67,
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1936322,
-      "tracked_surface_count": 69
+      "tracked_surface_bytes": 1942515,
+      "tracked_surface_count": 70
     },
     {
       "family_id": "manifests",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "7085e5262e5f0c56698a8fbb3658d18c727d9fba7d9a99835c8a706c883c0d84",
+  "tracked_surface_digest": "b04d3ba161cebb26c338a6f60e61477e8f426e1227c76c554dcb87a149a30ced",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "8e2f1841841eb0940dd7feb3501c5704bd360479836ead921f784b652a576d71",
+      "sha256": "10307ac63c942f10dbb34522bc1b12ffe168d22a0332e7171b31b6bf3b2c723a",
       "surface_kind": "structured"
     },
     {
@@ -3039,11 +3039,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 11327463,
+      "bytes": 12105255,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "a0d758c9b6ac65a59044525d15a644fd3aea2ad164dec06d943514f5f538a44e",
+      "sha256": "c1beea14964ab65dcd840b920169a5859f912ec93ba26e71be23067365b497c3",
       "surface_kind": "structured"
     },
     {
@@ -3119,11 +3119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 61049583,
+      "bytes": 61441404,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "5facac45b562468735ea68cfe95f11b77bf29c7717e51752d81f20960e043d02",
+      "sha256": "4e4e57920bd593caf1193e171a7c6ae4f4c770b931a218af953182d664db83a3",
       "surface_kind": "structured"
     },
     {
@@ -3559,19 +3559,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1399,
+      "bytes": 1684,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/README.md",
-      "sha256": "c38c1817852a60b25e4a93fa62c26625ef47132eff061e3f5d86dcf1c81941ee",
+      "sha256": "aca17176b211e38bffc039bef59fe5d7c32c14e0acdd72745dca7870871d9f8f",
       "surface_kind": "human"
     },
     {
-      "bytes": 823,
+      "bytes": 2758,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/branch.manifest.json",
-      "sha256": "8a3bd3f045e98a6081d1f646165eb3c487af0ad337c72709cbf1daf82b5189a5",
+      "sha256": "56e159f28c066e951701d6a9c761238b7abb0f64b26129abab251a471bef3078",
       "surface_kind": "structured"
     },
     {
@@ -3591,11 +3591,211 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 295,
+      "bytes": 934,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/README.md",
+      "sha256": "8bdfd99f7dcc9cc007ac9ee8607962f2051267898073227818f7e042cba69213",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2216,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/branch.manifest.json",
-      "sha256": "dd0b8e4a640fd2d30b230285199a8936aff9efb1793571fc1f99be73e0a4ac2f",
+      "sha256": "153439f56c4c79e82ecf751436df479125474c71b879cd94669f05f9b69ce3c8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2345,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-apology/README.md",
+      "sha256": "a704fd63cf8aa4d962f5119457fafc4837271c93b8c2220dc576fab1463bb2cf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2697,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-apology/source-planting.json",
+      "sha256": "65ffdcd5ada7d20d57ce12da5b9b6ca11d636298db2a8a94224238985d66d079",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cratylus/README.md",
+      "sha256": "d9d6c337dd7b4b87eec9c1724b678ef9db0b8fc196132d3a65138338cdeafdcf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2703,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cratylus/source-planting.json",
+      "sha256": "ac0f2af258e92df579eef8fb204693b67d89c7f3a70572b5e67aa575bb5d8668",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-crito/README.md",
+      "sha256": "c88b4e223f186385c4038b980219ae74cc821bf1b56da0bf1753b418ca9f91af",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-crito/source-planting.json",
+      "sha256": "2a0fcdcb543324955d819eed5d4924990c975ed7657dc428850c7c9e3d8d15df",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2367,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthyphro/README.md",
+      "sha256": "1470bbc845fd2db2f5f22a7ca2bc25ab4f5bb8518a24f5fb16b5c549f3fa1875",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthyphro/source-planting.json",
+      "sha256": "c5e5c17fa880325de4d20301b8107b2ffe8a7f6acffdb1f06b3d936174f079c1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2378,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-parmenides/README.md",
+      "sha256": "c95a9c5f6eb7f87c3c5c0c3f50056876c54b34862d5245b3594f6368ea127161",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2715,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-parmenides/source-planting.json",
+      "sha256": "56359d8321ad53658e77f3f5a5b8d1fffe0c5fa128cf6932ff05d921f0004770",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2334,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedo/README.md",
+      "sha256": "25753ba9aa2f7824f91e3fe7d116b13561c82ec022f314c5191540e480a7c5c4",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2691,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedo/source-planting.json",
+      "sha256": "cd52c409f516ba82cb771ba03aa239c857800a8d95817daa29202e57ec2ac9bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedrus/README.md",
+      "sha256": "8ac20d8c6c15177b9dbd4a44287b285f2ae22c08b1a180571131a8a71650732a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2703,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedrus/source-planting.json",
+      "sha256": "8ed70d9bd80fb78ecbba082eaa92a50b66244d7d6641a58358dd386dd73afb71",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-philebus/README.md",
+      "sha256": "41a8ef29614f63dec427af3db79b8568b560b5b8a0452e76bf9d43a1cc569a79",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2703,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-philebus/source-planting.json",
+      "sha256": "c12dadba6f401245f8a4768105d1f55896b57383397cb2dff7c1c0f3db5b917b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2345,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-sophist/README.md",
+      "sha256": "cfa13410cca2d21dd2e116ce8fdf33193b1c5556a189d76a0d4e168cab0700b2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2697,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-sophist/source-planting.json",
+      "sha256": "db54e9c9a06c1347f705c2dde36a71cb955a23ac0e4b43984042d278bbf0667d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2367,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-statesman/README.md",
+      "sha256": "59d36cb9385fada83e2ff676952439e308aaefe3453dcd09a7e516861561a43f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-statesman/source-planting.json",
+      "sha256": "e52f95416d7ee7630489919677bbe6e4ad3b12a4067c109c0cfe174340e370bb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2367,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-symposium/README.md",
+      "sha256": "c6f6e07b6affa74163845e5507764326bca89c496f25cbc8ad55a63d442f73bf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-symposium/source-planting.json",
+      "sha256": "0b0b6520ad6109d59fd109083f15636447edd14edcfd70a4fe7db921b865f985",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2378,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theaetetus/README.md",
+      "sha256": "38aa87e78522ab580ea79bc322a48bb3cdcc6235c6543b6c589700eda9492c5e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2715,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theaetetus/source-planting.json",
+      "sha256": "580bfb15f90f1f6634541a503318e36a48272a8444bef36dcb349bb1b395e346",
       "surface_kind": "structured"
     },
     {
@@ -17247,11 +17447,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4255,
+      "bytes": 18081,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/source-registries/COVERAGE.md",
+      "sha256": "01e735caff9d838af28116f4e5edc29ad34f4c3849df7aa1d8b897dd78e6bd7d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5618,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/source-registries/README.md",
-      "sha256": "f32036534851a88be86f865db88fa8b76346226b966566c4718cd494d775997b",
+      "sha256": "3243ad068cff57af6b4db1bdcae8898945c6aaa4f283e37dea3bf86094972372",
       "surface_kind": "human"
     },
     {
@@ -18327,11 +18535,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 84619,
+      "bytes": 84917,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "5c7dce4f084ba1981c633a6ebb2f455b7cdcdc93cd5baa01d676ce438ee5ad34",
+      "sha256": "55d13508b0d9fab727fde2699bdb857dce1dfb693df4d754778f177ee3939181",
       "surface_kind": "human"
     },
     {
@@ -20355,7 +20563,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "3ef226f855fe5c7c35add8ccf5cb40e36fed5b7158e97f6be3d677b98bcfa229",
+      "sha256": "ab182e44275232fb4be078dcffbd9ae39d61d250218679c0fbc245cac29f3a86",
       "surface_kind": "structured"
     },
     {
@@ -20695,11 +20903,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 105015,
+      "bytes": 110451,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
-      "sha256": "9dfa8307095a71fa3d2962b80bd749eb56a1079ec8f917c5b7faaac4a46d3622",
+      "sha256": "e34d4d47a2ff16d01355d1ddead0d949c7b26959cae2aef6ad8946632935b3f2",
       "surface_kind": "structured"
     },
     {
@@ -21535,12 +21743,36 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 450,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/README.md",
+      "sha256": "ad1eccb5adf184ae8de276ba64fc989d502baa0b0ea5d057f07b2e252ebb4c5a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4774,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/RESULTS.md",
+      "sha256": "1dfc2349185cadb459d95909485737066b625e11cc7f836f4393f6d3e4eeba1f",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 4350,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
       "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 23055,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/batch-result.json",
+      "sha256": "5db80834c387c86d07d561f5eb981f8c30fa51cac81cec69282812f4f7b4c1d3",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2356,
@@ -21783,6 +22015,30 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3844,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/close_local_boundaries.py",
+      "sha256": "cbbf7e9e5e0c6c122d25f14d504eaf99fb943281a3a2b9069fcd3f0d7be16b6e",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 43595,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/engine-history/acquire_registry_sources.273e45e1c6da9f27403921bd3b8b7b2070aeff0147725ac95b341f01c76d5041.py",
+      "sha256": "273e45e1c6da9f27403921bd3b8b7b2070aeff0147725ac95b341f01c76d5041",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 5012,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/plant_second_wave.py",
+      "sha256": "19e80b87b0178dca42bbe1b90a5257d9f8879a5a4ed1d1c3b7bd2781a2f1352a",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 12434,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -21791,11 +22047,147 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 7608,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/execution/report_second_wave.py",
+      "sha256": "19b27657d3b9808948b227eb1dc31eef3ad06677e0eda23feec56c7aba5af9a7",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 115226,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/live-custody-check.json",
+      "sha256": "08d32c7066317614e8ac29dcf790e719c00a42fc637a2f4fe4fd1fafa2ac371c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 73923,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
       "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 668,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/preparation-checkpoint-receipt.json",
+      "sha256": "0b1e33748bafccb27f37780601a9fb0b834031488a243a7eff44401775ab282d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 233504,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/queue.post-acquisition.v1.json",
+      "sha256": "5231b9616d96e0465f25d47d168dc4b771fe511861e2e23ff71a1c2e2d040522",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 90542,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/readiness.post-acquisition.v1.json",
+      "sha256": "f92b199025349eb32522cf5241426fd68cb751e33f32650059a0c7114a4b41c9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 56375,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/005f58836b6cd0921f09261ab23202e2a6d1badf74ab8535f3da95691d252f5b.json",
+      "sha256": "005f58836b6cd0921f09261ab23202e2a6d1badf74ab8535f3da95691d252f5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 51716,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/5038f9d437a30e8dd29a3e03556d85ddf1b13f2d8568d04bdd40b472fa51bf2d.json",
+      "sha256": "5038f9d437a30e8dd29a3e03556d85ddf1b13f2d8568d04bdd40b472fa51bf2d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 58722,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/55130e0b402bb5b901c20c4e719fc4c37c1e4c85d1f5dc8cb1feba68f0278975.json",
+      "sha256": "55130e0b402bb5b901c20c4e719fc4c37c1e4c85d1f5dc8cb1feba68f0278975",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 61059,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/5dc4e9ac8514b623061563f9fb1182d7fa39f3a4cff37d089acfab58120df903.json",
+      "sha256": "5dc4e9ac8514b623061563f9fb1182d7fa39f3a4cff37d089acfab58120df903",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 49404,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/86591542ea0d93916ae5b58bac4261eed91acada01b83b5185e23d8243aa5807.json",
+      "sha256": "86591542ea0d93916ae5b58bac4261eed91acada01b83b5185e23d8243aa5807",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 59888,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/8ece26e9ce2342080e7283899831c2a219594f09810a57ae34fca577433e2522.json",
+      "sha256": "8ece26e9ce2342080e7283899831c2a219594f09810a57ae34fca577433e2522",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 52872,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/bc5ee4b51e12ae0762d7d2e63afbffa1fc53f012b558e519d537c25f7cd6a0fb.json",
+      "sha256": "bc5ee4b51e12ae0762d7d2e63afbffa1fc53f012b558e519d537c25f7cd6a0fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 50565,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/ccce93572c38ab0ae69bfd08280f185c30dff734b505675a106ef374280ab229.json",
+      "sha256": "ccce93572c38ab0ae69bfd08280f185c30dff734b505675a106ef374280ab229",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 55214,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/d32190ec47af07048b9a7c71b48e16eda0ca0b765b2082b2e852d3cc31e5811c.json",
+      "sha256": "d32190ec47af07048b9a7c71b48e16eda0ca0b765b2082b2e852d3cc31e5811c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 54038,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/d9b9b73dc0ce09c1e26ffaaa78c383208f8ac23bdbe29c6394e1028ff89d3a3b.json",
+      "sha256": "d9b9b73dc0ce09c1e26ffaaa78c383208f8ac23bdbe29c6394e1028ff89d3a3b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 57546,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/e95979849bb59770e2a9b53bd575f3b3649d695cbadc007fa8d696f8907c16d1.json",
+      "sha256": "e95979849bb59770e2a9b53bd575f3b3649d695cbadc007fa8d696f8907c16d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 48233,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/topology-before/fcbb454bcf3c67807623b1c0881a3119402a5b309435123673eb90175e87e06d.json",
+      "sha256": "fcbb454bcf3c67807623b1c0881a3119402a5b309435123673eb90175e87e06d",
       "surface_kind": "structured"
     },
     {
@@ -22527,11 +22919,35 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 95569,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-apology.2026-09-08.v1.json",
+      "sha256": "909ab9ed9bbdd88a20ea8af8f4a9d55b510928268790300a8822af410997bce4",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 17695,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-be-a-scribe.2026-09-08.v1.json",
       "sha256": "6b97e982bd695d35c9cb39d65037ee0777123fc917279615bb41b03fab953fb5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95663,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-cratylus.2026-09-08.v1.json",
+      "sha256": "68505fe1b4be808798b398f6dab004ed97633859b6cbcfbf93aac99ecd4c46d2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95380,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-crito.2026-09-08.v1.json",
+      "sha256": "5afe14c2f56a3997dd83b2404426556a2be3f5e0c5739c6ffbf5bd87c1aa94b5",
       "surface_kind": "structured"
     },
     {
@@ -22548,6 +22964,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-ecclesiastes.2026-09-08.v1.json",
       "sha256": "8ed58af3f86d8a426ab1dcc406afeb2636167fc1bdb807d04a293fcb2598a4f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95756,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-euthyphro.2026-09-08.v1.json",
+      "sha256": "ce90a657033c51669cbc96a9355fd96772b1f43345e9d8a8bd58b4a7151e868e",
       "surface_kind": "structured"
     },
     {
@@ -22583,6 +23007,38 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 95851,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-parmenides.2026-09-08.v1.json",
+      "sha256": "cc0c31af1039badd59afc6d2f4273188b45f0b16a26bd7fbaed01babb1f64dc7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-phaedo.2026-09-08.v1.json",
+      "sha256": "4cf9ca6511c87aa9ddc51695f99f22e5ae8f934ba10125743c39849b1e4cc4de",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95663,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-phaedrus.2026-09-08.v1.json",
+      "sha256": "d6e24f0be459b437a80e65f36518c40b59b9c740af3e7d492e20291b8fd683dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95663,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-philebus.2026-09-08.v1.json",
+      "sha256": "6a82e18ab956a0a8f4dd398d27b858f791e25451ea937babc896b656bb038f9a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 14805,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22607,11 +23063,43 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 95569,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-sophist.2026-09-08.v1.json",
+      "sha256": "3763802ed45c49b7b21f7f826c11e572fead14eb0b297a3e4e04228d6bdf821d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95755,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-statesman.2026-09-08.v1.json",
+      "sha256": "fec25f7c710c5ffaee784fd84b56aa814a73f00a51aa0d7c60a4dcb650b58875",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 277471,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-sutta-nipata.2026-09-08.v1.json",
       "sha256": "2fd4e9fc8dad89a81aa297fee9173bd0e37694b9af0baacb2b4872352e8c3a2f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95757,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-symposium.2026-09-08.v1.json",
+      "sha256": "6faa9dbf5538da0cffd4654ba6ac05e659a125fcafecfb75dcc93e9e3f04d753",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95851,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-theaetetus.2026-09-08.v1.json",
+      "sha256": "4b36bbb8e84564c2a3e346f62da360ef918531f260bca4b45a25ddeb875f8b65",
       "surface_kind": "structured"
     },
     {
@@ -28415,11 +28903,35 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6330,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-apology.server-import.json",
+      "sha256": "54bcc294a35271282ca8915542e2798c997bcd0111d4d4b4f4932f26ede5f9f3",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6138,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-be-a-scribe.server-import.json",
       "sha256": "cfef846898cf8c1c7cd69ceef2e2792b352801c0a3b0f07eeaeddcf6e8c1085e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6335,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-cratylus.server-import.json",
+      "sha256": "24c87ea30c62dc06563648c497b3839ada3def79c30840b6bae453408e1992c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-crito.server-import.json",
+      "sha256": "fcade58f38dbb9e2ddc07b58489481866338eac5d3af49ce60b504aa80663969",
       "surface_kind": "structured"
     },
     {
@@ -28436,6 +28948,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-ecclesiastes.server-import.json",
       "sha256": "18cd342dfa69fdeead1afbd3912bb74092c0c9bb2069170023b2e7620cf02502",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6339,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-euthyphro.server-import.json",
+      "sha256": "1607c9531b809ebb9cedf44400ce8005374ae8620e78ac54048b751ab1c1f21f",
       "surface_kind": "structured"
     },
     {
@@ -28471,6 +28991,38 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6345,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-parmenides.server-import.json",
+      "sha256": "6385beadfbf1914cbdaac40aee57692cb833dbc9b189d8b45014ccd04a4295f1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-phaedo.server-import.json",
+      "sha256": "6b656c1a349068769fb7e3754cafbdf8a0d04eb2ce15ac6556c22145c6f07718",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6335,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-phaedrus.server-import.json",
+      "sha256": "8d4706f4a14c221267d75e3c2cb996667f5eb332f530aba0094832aa8b01e075",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6335,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-philebus.server-import.json",
+      "sha256": "d501302ba4ba233ca1b840d4fd883c431c34d4a3290f9ad05f44bc1f37cf4497",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6056,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -28495,11 +29047,43 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6330,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-sophist.server-import.json",
+      "sha256": "10d7ccbee76e331dae9a6558597a4e53189933f6ae3f280491c24a1b77a84bab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-statesman.server-import.json",
+      "sha256": "d171d918d816ca2767fdb70a33d8744609ff0cdb938f2c8457cef950af74d302",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 28187,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-sutta-nipata.server-import.json",
       "sha256": "89c74374d4295e538b73416a0905fe7ffc05dc2e88667a08b659b2d47195438b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6340,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-symposium.server-import.json",
+      "sha256": "0549c6e18d134f8f30fde9e0ccda765cf9d86e588235eb82104e34878287114e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6345,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-theaetetus.server-import.json",
+      "sha256": "1d1f91b36c0f1158817b25382d4cc6224aa66ac2baa1627a698f9f47af7c2767",
       "surface_kind": "structured"
     },
     {
@@ -33215,6 +33799,870 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2563,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "f2f1e9fe81c6138e8241c905cc2779f9e7010b44e040bf1aacd3c4bbb1170a5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 521,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "eec24e3a3caeb02f866526e2037b417375210ad66ed679c27caa3b99b7d286ed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1433,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "9a93c7411f982e7782ea023d74841234a732c035f298ec368419b6b9e5d106bc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2529,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "e1f1bf14ad6384647ede6d89dd43b79d98f3e54c0d35eda37bf8f24a082518d7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2606,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "d2584187322d6043725807657b96e18e559fc2a082203f5191be6588ef49f6a0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 19463,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "200959383710b080afe30ed33bedb45d5ded2b9b77b59c59a8337a6fde3d0b75",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "5ade715aee3a9a6ca003878407b7641f7c53fe302c8f65e8b7bf041f5bc02c03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2469,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "07bf22b82b38f3d6f610777ccae3d25d2a3842551f2217f682ba9f38f4cd2f87",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2400,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/apology/work.json",
+      "sha256": "2f61525293f88eb5e3feda764ea18a6d7144d9e06aa69c81c257137b90e49cb9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "de4810077de8f240cd42a2328673e9252aa947641fbcee36e601e7feb4e5d87f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 524,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "95394cbb73bddeccb2b359d06a3a7fe2122a6e45d925e1cd9df1ab49a5824fa2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1434,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "259e0eba9c6d141bfb1bb6b659cc9383cf792e50c3cfb0886390b8b50290874a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "373fe0468c670457fc06e1443e9b0ec8b3487e20be0322592f32e03bfadc8dbe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "2f820ff7ecd3054f6720300121d01f4559e692a76e9e22623483e7e0f9c8a906",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40248,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "49fff131e6d87573807df7faa888f152ca092ee69c0710100ab778b48071d66c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "1c796f64ccf1d5ff6774945feec0a76e2e8494416e2a7b6f96b76e1c32d40abc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2474,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "f2c15e0cbd4639593efed8ce62a1dc7be937959ef924392b76c31ffdd719341b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/cratylus/work.json",
+      "sha256": "9584c493532abe0af4968d706cbd6823d6668ce2b32b12ac5949e33b176e4655",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2553,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "f12e523ac608479eb0d21baebc88826a182a1cf813fecef90a989a8f965265cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 518,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "fbdd0fa64bab3311e8a77d5692adf9572c121eb99c4a6748ead35535fcc4a3ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1430,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "e6e437387fa89b182e8ede34f29ee11ea2ed47917148ff38918351f4a3b0ddaf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2523,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "e4a164f0e2288db1ba4fa8e9429606cfe119c5f8f83cf711e465b063646c3223",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2591,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "9e6694fda0e93ac6187ca3d713c054a6c988d0ae4f2731c50668df9e2a9f362d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10273,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "606c66aab41798e50810cf0787e91f88d32e6e00dcfe24879b9d493de1dbedd5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14401,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "868585ba61522db9a6c1a611806ad6a2da551dbf0338f0fcfadf0dcdaadd942e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2459,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "11134aaa5f7c0afb2ea802d1a81cf70fc104c1d523bb1e9c56861572e66b2d80",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2394,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/crito/work.json",
+      "sha256": "4d021b609559db9d8a0a0575325c2fb84a7662d4b00b6a80860c513b776db622",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2573,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "96cd0a5c2469de3121cf53adff1eaa5f6cf36a3df14661a6f37f758f5d4cf820",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 521,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "b682d4207ec9f4598ca42e3c40025bd1ee6101dafc3cf82a5162e0f05808975e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1434,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "4d64a9d3702da9705a696325d3bd83587d2d7cceedcf64aa2b127dcd9444166a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "c16cc41a8d6178bffc4dee3f39a09af76cc2fb4d9d105536b6cf5f1fa7fb8fed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2619,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "1b64c125c864d2678c4a7516a4f7adb6694c44df29867283ea54e7a5bb4d154c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 12244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "d300eac9a17b6112cbed639abde0b7a6195d67fe6050eb330aa8b301d54e76d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "394106b9ceb4cf2eb38f17fc337123a831da76d879b2a0697da38372bc997a33",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "f293c5ff36377adec421889e0bad70f6fe21bac66429ab83f35f405875ab3182",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2406,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/euthyphro/work.json",
+      "sha256": "2a00a0ab33e4a14ea639f5d94e561910f781adf61a38f19fb37e345779422754",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2578,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "944bce5f20bd04fd50333a2ad888b275c9696b8e6bdc55f579871eff89b5373f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 526,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "b63af898ea52434453c6618b3bd46817a33e15427fc83859a203c5d31c4c148e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1436,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "bf31d19e76119c5daebb91d3ca0c8cd885f5cb017f3675736a5c2e5cbf37f14c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2538,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "3befa1dce5c3c83c238a924f704a392b0619e6a8df3d766151deb0016888a843",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2627,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "ba7795e43be01445e1bb522fd4686e7859b4ff7159b75db73ec30c0f27c67967",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 29085,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "e3bf98ad55565f487bf51657776c6169c054b856d1cc9279d1b17b7d3daa5e52",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14451,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "0dd35e6baaecde7a871fd487ba33c8872f3878917e038dde3a5d2c36c16dbb4f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2484,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "cfac21d5c682e49a6917864ac6ce002e72af8c59893331a2f3168c181e02f18c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2409,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/parmenides/work.json",
+      "sha256": "f31bc1a55b441d8672db8af5d983a5f2f3e26ea87b21bd5ef1ca9c1acb3fd1b7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2558,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "84bab8d16bda453b722d42535479e0c166041fdef33761a357b4d1584c97c783",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 522,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "bfd6441bf81739aa2282ac65a23c1f29042e2ab4b1acaf35db454c5f6238dddf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1432,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "d650e2aad570c7f2fe15637d76b8ee1f4641624bad542387507db52bd099482d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2526,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "1aa2b3ec75e43c6db9bea38c1132a2d4f51f699901ba8faa4d15c251747572ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2599,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "6b6af79df590ad495ed5236799224c6ac8825c742b75fa43be03c6e1aa2efae0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 42826,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "6fdb2a7df255b0a4d83f2d7ed4f916bb54d1b20e990fb1c19a707e87ef2a52cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14411,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "12b80724e64ac392010037ce2c6aa90f4b25bcf1ce7778088006eb7b2183f9d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2464,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "ba721d428c1ca6ed7aec9062fa88cac7893fa5b1678b178bd27da0e3d77e41af",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2397,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedo/work.json",
+      "sha256": "b64396ffa20bee6ea383acc3ebbd507726f9e6f725c98c509e2b2537fc04d8b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "f436c9b261e52e4b92a3803aa54e2b1834a1dda3415e5f7af2ef6282d8d26b07",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 524,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "ad6c7eda2fa5b9fd18c03e6f09bfbf7db591daf472c4e245a943cb2172afe472",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1434,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "48778a663712c83c03edeb0c2514788e0189dc998307ab69ff0b03adec2fa401",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "9d166282bd39006237c0dda2c9d44feeeef41461fee6127ea979d3f91dc9d2f3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "f0a3c6b56aa5169915e045477131b15d1c7d385ee375af038c0dcb157c7e29cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 37232,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "09cd41d574b8f9886d9b9c5b2d8b975b48a650bb75c0e531dfb284dc65a977fd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "4b633bb2dcbbee441bba4507ff9dd27a0dd4bd01a9669dff3e2dab9d6da5b613",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2474,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "33010bdc90ed240ba980811ddd90ca01c811cc725a6bae4f62edd67a4cf10cb4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/phaedrus/work.json",
+      "sha256": "66f96338142f13992c43059b257fe99eb45a5589526330598d269587512fede6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "82bd7bdecf8f9325a088099de0212e7794a94dce6b161da524496ad18667b799",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 522,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "0b0682f5c7ca076d2ebc76ef340aef30ee7850a309cad054e586d64dac2e781e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1434,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "30260cabfccacfbb7c2288c44a1689b8905d8f188450a1b10d19a2c0c3f9746f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2532,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "3aa483f5274e469d7f332b679ba0c2bfbf9ad1e2f3a6da3f1b3a95d4fd1abbdd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "11731e85e9430aef3da2855c7193206982f2bd8c2a7b2a9f1231e87df9bd5651",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 39535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "26647d460dd1caace4862c45f02eea59511496e093dbec392adf6ac9ae32934d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "5e89e2665e117ca061d8b87461a7156bf3ecb7a98ef28ec3103cb5ba85b89f26",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2474,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "3f0d089a4d5aeb665cc4d61665a1de7b0e91b5921f41e4fa441ee63a0aeaa618",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2403,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/philebus/work.json",
+      "sha256": "c174ea25f6ba04e597a97775ea0636b47d437b7f7332d0b0069ad22d466c27eb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2563,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "c638b3612269eaf254c20a811e7547d31d811151bc80b48625e792ca3bc2081c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 523,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "8f46515df8f2ce86d8ab78682a024eabdfbcbf6bbefa82db04242e60c400c122",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1433,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "b0c2b36904be3c811e29006e41d9da191c6bf9d49f3d041da2b8fe7fbf0ca4ac",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2529,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "254f4fbe7806b43a8aabcf3d6fff23849a8b592af15207f91b6740f2be6bb912",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2606,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "69afdae7e515bc2440d0a66ec1423c0ceede6717eeeccce03931ff44b702837f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 36961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "fe19931abc90a447af169a223abe49b071fb34236b22dff9b03301bff5db5cf5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14421,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "bb8baa49661237052a75e23bf47dfa3bc77f50b48a9a38dc38695a5f1c556510",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2469,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "238ea7b2d97691f837c5466a68051d1cc02e56982d27a1390147de25b690fc69",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2400,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/sophist/work.json",
+      "sha256": "880b3a2919eb3adbfe500e1cbaa6e4115c7b9ba44ddbd246ab6a169521f518e9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2573,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "bdae992ddb304d9c6fa337e63363dda65d78dfcabaa29d90032ee4c55eff3981",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 525,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "01199278c39eeb80d70aafc6ababd42211faf0b0779b6c225f259eb7e35ac5c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "19303d32f0bb1906bfe2e9665a2cc39c4881984e218493e597de15f18a0f6d75",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "fd37a08b871c31a9723b51341f8a81d60d4043fc8621aec115d4442c362dbd3c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2620,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "32f3eaf15153ec3f3f873f6b7933af0238ca27217963b56feb916a21c9bf7dc1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 38549,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "190c76cb3413cb4a834bb94d516f4cfc75d831e727ce423c7499be921651002d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "ecb4ab72be45daa4241beb86bf42b5f9c2c4f5afefb8800d2a54408418b63422",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "5bebe89d2e580efe1f57b8f005e391ce2a98e75b514f915acc465aff9f757535",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2406,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/statesman/work.json",
+      "sha256": "6a1e93eb2fe00709c0be91971f18d2b73b8e0b80ac6535e0417ab8b05f945d57",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2573,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "b345e18c56487a3e3eba83fc707d686d0047e6c5a419ae20ed352ad6c5727dcf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 525,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "6f50e50a88808841f5e71b71c9846725b4590e852abe2a7c22fd6dad115750c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "d57e818371be9d20f4c7c603cfed893319d53070ebbbe880f30b74cfad7317cd",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2535,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "f0a3b054f25df678d3cb3407b398877af4fc7ece3c5fe4ed1fcacd6312d0fcd3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2620,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "6fc1199e62194ad9c60715e8ea540b7d43426260b4e75f380026fb171d691998",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 36310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "7428432aeb4601ffa0b8d92cce8a70e84d9c7017d5f49490c36a73073ff4186c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14441,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "c70b633ff5d0e8f9e6d47dd2993159ec85856df634bae8b1c0276bc4a71b2549",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "c084320f14c97a96f4ccdfa358c60259f2da2f56a2d174fec98dd8f32662ebbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2406,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/symposium/work.json",
+      "sha256": "2af73a332491ababd25d90feed674082eb8577ab47f814816a172db48cea30d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2578,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+      "sha256": "d54854fcf7e9a131d7a04bfb1f4e28ce2e6e69e5320801ac59e7369bd53a4bea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "3e72b198814350cb418675861121066b5d0654714dcecb2f66342afcd24ca0a6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1436,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "f07b6d350a97deba1efaff79ab30ec7564907a2a182507fb988ea0a275553d22",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2538,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "8c5e46b72fefb73b617febcd1b915deae51bc016066f1e538a9fc0f01589507c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2627,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "108136ccacd5c240637bd36cf267e33d4c6534141bd7d894d8c789e1c8eb1940",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 47482,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "c535743d64990cc7bc840d54c75f672496cb20116f024066439219ebd66e8a41",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 14451,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "a3dc1f4ee5892afb33428cefda6e09ba939b60e2b6e825d7465ecfe15c857848",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2484,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/expression.json",
+      "sha256": "2feda7be4babe4f63dbb68f06da79141482673cc83159cdfcf30d073f2103361",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2409,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plato/theaetetus/work.json",
+      "sha256": "360df610cfd27342a1ab55fe188a604de01ed427a669eec0681ce159b56c873e",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5117,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -34671,11 +36119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 215222,
+      "bytes": 216409,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "8845f39e59740c374c0addfa617384158ba79afca004941b43a1e6f80131247e",
+      "sha256": "652dc84b70fab2acf9cdd5c08881b5ddbdf5d1d5a9c72393d7fb95cce5de3626",
       "surface_kind": "structured"
     },
     {
@@ -37023,6 +38471,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 14010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/build_source_registry_coverage.py",
+      "sha256": "c49119930d9e936c938ea1f4255cb3cc7a595b487a75748af10227b4470ce41b",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 7262,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -37983,11 +39439,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 86896,
+      "bytes": 87774,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "66c62c7e362b9850e1477cf704b60372550bf170e100df88a1740ccb54feb72f",
+      "sha256": "02c578340e72d0bc832e360cc406bb391224846433710c44c99a4faa54e2078d",
       "surface_kind": "structured"
     },
     {
@@ -38164,6 +39620,14 @@
       "family_id": "tests",
       "path": "tests/test_source_owner_record_profiles.py",
       "sha256": "98101965070d38ec411fe29d961dc99d2c53c50ebd8cf1abd27cf0a986da2ffb",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 5315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tests",
+      "path": "tests/test_source_registry_coverage.py",
+      "sha256": "9fe551385be75dc433dc98c4a1cd3715819e45a85a8a2ac697131167718315f6",
       "surface_kind": "executable"
     },
     {

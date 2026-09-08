@@ -1,0 +1,1711 @@
+{
+  "schema_version": "tos_open_work_readiness_plan_v1",
+  "reviewed_at": "2026-09-08T22:57:12.054918+00:00",
+  "reviewer_ref": "model:codex/session/01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "targets": [
+    {
+      "target_id": "registry-second-planting.01.euthyphro",
+      "preferred_label": "Euthyphro",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-cdd7023609076a8583c034ee"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Euthyphro; exact CTS edition urn:cts:greekLit:tlg0059.tlg001.perseus-grc1, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/euthyphro/work.json",
+          "expression": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.euthyphro",
+          "expression": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+          "edition": "tos.edition.plato.euthyphro.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.euthyphro.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg001.perseus-grc1",
+          "header_prefix_sha256": "ec895270ecc41ca44edb998684851a399053026ac1ff9bc5eb80d188c7bb19ff"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 88140,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-euthyphro.2026-09-08.v1.json",
+              "sha256": "ce90a657033c51669cbc96a9355fd96772b1f43345e9d8a8bd58b4a7151e868e"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "394106b9ceb4cf2eb38f17fc337123a831da76d879b2a0697da38372bc997a33"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg001.perseus-grc1.xml",
+              "sha256": "855af2e1a7fdc511546e34301084b80a52b189ab29ce7bb25e21a17d12265fa8"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthyphro/source-planting.json",
+              "sha256": "c5e5c17fa880325de4d20301b8107b2ffe8a7f6acffdb1f06b3d936174f079c1"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthyphro/README.md",
+              "sha256": "1470bbc845fd2db2f5f22a7ca2bc25ab4f5bb8518a24f5fb16b5c549f3fa1875"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg001.perseus-grc1.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthyphro/source-planting.json",
+            "sha256": "c5e5c17fa880325de4d20301b8107b2ffe8a7f6acffdb1f06b3d936174f079c1"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/euthyphro/work.json",
+            "sha256": "2a00a0ab33e4a14ea639f5d94e561910f781adf61a38f19fb37e345779422754"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.02.apology",
+      "preferred_label": "Apology",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-214cb93746b5a9ed21170731"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Apology; exact CTS edition urn:cts:greekLit:tlg0059.tlg002.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/apology/work.json",
+          "expression": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.apology",
+          "expression": "tos.expression.plato.apology.grc-perseus-burnet",
+          "edition": "tos.edition.plato.apology.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg002.perseus-grc2",
+          "header_prefix_sha256": "b07c5f0e91cf19f5191af12ae6a816c3a23bf7fad589706906c2eb1afc55b06b"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 119991,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-apology.2026-09-08.v1.json",
+              "sha256": "909ab9ed9bbdd88a20ea8af8f4a9d55b510928268790300a8822af410997bce4"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "5ade715aee3a9a6ca003878407b7641f7c53fe302c8f65e8b7bf041f5bc02c03"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg002.perseus-grc2.xml",
+              "sha256": "6077e9014cf806d7d70e22133946125dc222e9ff8c6207ca6c324993ee95a8a9"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-apology/source-planting.json",
+              "sha256": "65ffdcd5ada7d20d57ce12da5b9b6ca11d636298db2a8a94224238985d66d079"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-apology/README.md",
+              "sha256": "a704fd63cf8aa4d962f5119457fafc4837271c93b8c2220dc576fab1463bb2cf"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg002.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-apology/source-planting.json",
+            "sha256": "65ffdcd5ada7d20d57ce12da5b9b6ca11d636298db2a8a94224238985d66d079"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/apology/work.json",
+            "sha256": "2f61525293f88eb5e3feda764ea18a6d7144d9e06aa69c81c257137b90e49cb9"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.03.crito",
+      "preferred_label": "Crito",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-7641128ede45a998eb3c6887"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Crito; exact CTS edition urn:cts:greekLit:tlg0059.tlg003.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/crito/work.json",
+          "expression": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.crito",
+          "expression": "tos.expression.plato.crito.grc-perseus-burnet",
+          "edition": "tos.edition.plato.crito.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.crito.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg003.perseus-grc2",
+          "header_prefix_sha256": "1b6454071b43b3f4d39a1f017b9590fa9f982baebdc8fb2ca1ece0feb8d74b2e"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 66147,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-crito.2026-09-08.v1.json",
+              "sha256": "5afe14c2f56a3997dd83b2404426556a2be3f5e0c5739c6ffbf5bd87c1aa94b5"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "868585ba61522db9a6c1a611806ad6a2da551dbf0338f0fcfadf0dcdaadd942e"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg003.perseus-grc2.xml",
+              "sha256": "c75911f867c2ffcc9ebfffeaacdbcc0c558256dd135e0209ac17c06cd7fc97f9"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-crito/source-planting.json",
+              "sha256": "2a0fcdcb543324955d819eed5d4924990c975ed7657dc428850c7c9e3d8d15df"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-crito/README.md",
+              "sha256": "c88b4e223f186385c4038b980219ae74cc821bf1b56da0bf1753b418ca9f91af"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg003.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-crito/source-planting.json",
+            "sha256": "2a0fcdcb543324955d819eed5d4924990c975ed7657dc428850c7c9e3d8d15df"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/crito/work.json",
+            "sha256": "4d021b609559db9d8a0a0575325c2fb84a7662d4b00b6a80860c513b776db622"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.04.phaedo",
+      "preferred_label": "Phaedo",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-4f1ca690b9754c42c7794fd7"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Phaedo; exact CTS edition urn:cts:greekLit:tlg0059.tlg004.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/phaedo/work.json",
+          "expression": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.phaedo",
+          "expression": "tos.expression.plato.phaedo.grc-perseus-burnet",
+          "edition": "tos.edition.plato.phaedo.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.phaedo.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg004.perseus-grc2",
+          "header_prefix_sha256": "66f4d3f0cd3bb2fdf5fd79af0da2fccb9a50af4f099092850a94049a385f839f"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 466243,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-phaedo.2026-09-08.v1.json",
+              "sha256": "4cf9ca6511c87aa9ddc51695f99f22e5ae8f934ba10125743c39849b1e4cc4de"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "12b80724e64ac392010037ce2c6aa90f4b25bcf1ce7778088006eb7b2183f9d8"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg004.perseus-grc2.xml",
+              "sha256": "baf65d8cb72f857e80ea4e2326a6808c1cf3cbc8df7b4340f14e79d142227d98"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedo/source-planting.json",
+              "sha256": "cd52c409f516ba82cb771ba03aa239c857800a8d95817daa29202e57ec2ac9bf"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedo/README.md",
+              "sha256": "25753ba9aa2f7824f91e3fe7d116b13561c82ec022f314c5191540e480a7c5c4"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg004.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedo/source-planting.json",
+            "sha256": "cd52c409f516ba82cb771ba03aa239c857800a8d95817daa29202e57ec2ac9bf"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/phaedo/work.json",
+            "sha256": "b64396ffa20bee6ea383acc3ebbd507726f9e6f725c98c509e2b2537fc04d8b3"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.05.cratylus",
+      "preferred_label": "Cratylus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-8283c72ea8b013ca0842fef5"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Cratylus; exact CTS edition urn:cts:greekLit:tlg0059.tlg005.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/cratylus/work.json",
+          "expression": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.cratylus",
+          "expression": "tos.expression.plato.cratylus.grc-perseus-burnet",
+          "edition": "tos.edition.plato.cratylus.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.cratylus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg005.perseus-grc2",
+          "header_prefix_sha256": "9bd04d21614e734b4315059c527eccab6183bbc9ec638eb7fb692ed8740672cd"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 293072,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-cratylus.2026-09-08.v1.json",
+              "sha256": "68505fe1b4be808798b398f6dab004ed97633859b6cbcfbf93aac99ecd4c46d2"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "1c796f64ccf1d5ff6774945feec0a76e2e8494416e2a7b6f96b76e1c32d40abc"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg005.perseus-grc2.xml",
+              "sha256": "21f5714a6d7f6d9e79831d684838922a3993bf5d94577186153505f170d17746"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cratylus/source-planting.json",
+              "sha256": "ac0f2af258e92df579eef8fb204693b67d89c7f3a70572b5e67aa575bb5d8668"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cratylus/README.md",
+              "sha256": "d9d6c337dd7b4b87eec9c1724b678ef9db0b8fc196132d3a65138338cdeafdcf"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg005.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cratylus/source-planting.json",
+            "sha256": "ac0f2af258e92df579eef8fb204693b67d89c7f3a70572b5e67aa575bb5d8668"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/cratylus/work.json",
+            "sha256": "9584c493532abe0af4968d706cbd6823d6668ce2b32b12ac5949e33b176e4655"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.06.theaetetus",
+      "preferred_label": "Theaetetus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-a875c3f84e59dafa424cb6e8"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Theaetetus; exact CTS edition urn:cts:greekLit:tlg0059.tlg006.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/theaetetus/work.json",
+          "expression": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.theaetetus",
+          "expression": "tos.expression.plato.theaetetus.grc-perseus-burnet",
+          "edition": "tos.edition.plato.theaetetus.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.theaetetus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg006.perseus-grc2",
+          "header_prefix_sha256": "f0632ee4eeafce70c490a1a43ece2bb07e8b5e3904c79497c9f669ea7a594098"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 383021,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-theaetetus.2026-09-08.v1.json",
+              "sha256": "4b36bbb8e84564c2a3e346f62da360ef918531f260bca4b45a25ddeb875f8b65"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "a3dc1f4ee5892afb33428cefda6e09ba939b60e2b6e825d7465ecfe15c857848"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg006.perseus-grc2.xml",
+              "sha256": "a1b54593888b01d2ea81eb6752e0d170feec1c60ba6bf63ea025d76095722e23"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theaetetus/source-planting.json",
+              "sha256": "580bfb15f90f1f6634541a503318e36a48272a8444bef36dcb349bb1b395e346"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theaetetus/README.md",
+              "sha256": "38aa87e78522ab580ea79bc322a48bb3cdcc6235c6543b6c589700eda9492c5e"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg006.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theaetetus/source-planting.json",
+            "sha256": "580bfb15f90f1f6634541a503318e36a48272a8444bef36dcb349bb1b395e346"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/theaetetus/work.json",
+            "sha256": "360df610cfd27342a1ab55fe188a604de01ed427a669eec0681ce159b56c873e"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.07.sophist",
+      "preferred_label": "Sophist",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-8e2881d9620e4e673599589f"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Sophist; exact CTS edition urn:cts:greekLit:tlg0059.tlg007.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/sophist/work.json",
+          "expression": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.sophist",
+          "expression": "tos.expression.plato.sophist.grc-perseus-burnet",
+          "edition": "tos.edition.plato.sophist.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.sophist.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg007.perseus-grc2",
+          "header_prefix_sha256": "2c1277ebdd0e985ef0a441f0289e771fe6d06b8781606f683e47260e2147d5c1"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 287273,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-sophist.2026-09-08.v1.json",
+              "sha256": "3763802ed45c49b7b21f7f826c11e572fead14eb0b297a3e4e04228d6bdf821d"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "bb8baa49661237052a75e23bf47dfa3bc77f50b48a9a38dc38695a5f1c556510"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg007.perseus-grc2.xml",
+              "sha256": "64eb0b7c9135ebe5cdb8e4129352d1418243af7d053b7daebde8e67f7e958f0f"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-sophist/source-planting.json",
+              "sha256": "db54e9c9a06c1347f705c2dde36a71cb955a23ac0e4b43984042d278bbf0667d"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-sophist/README.md",
+              "sha256": "cfa13410cca2d21dd2e116ce8fdf33193b1c5556a189d76a0d4e168cab0700b2"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg007.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-sophist/source-planting.json",
+            "sha256": "db54e9c9a06c1347f705c2dde36a71cb955a23ac0e4b43984042d278bbf0667d"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/sophist/work.json",
+            "sha256": "880b3a2919eb3adbfe500e1cbaa6e4115c7b9ba44ddbd246ab6a169521f518e9"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.08.statesman",
+      "preferred_label": "Statesman",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-134f3b8425efc1d8dd5ad5e8"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Statesman; exact CTS edition urn:cts:greekLit:tlg0059.tlg008.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/statesman/work.json",
+          "expression": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.statesman",
+          "expression": "tos.expression.plato.statesman.grc-perseus-burnet",
+          "edition": "tos.edition.plato.statesman.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.statesman.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg008.perseus-grc2",
+          "header_prefix_sha256": "d50e47f06d0d4569f070466954d87ba2221d56a56dc8be489df5c939c05cac91"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 297969,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-statesman.2026-09-08.v1.json",
+              "sha256": "fec25f7c710c5ffaee784fd84b56aa814a73f00a51aa0d7c60a4dcb650b58875"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "ecb4ab72be45daa4241beb86bf42b5f9c2c4f5afefb8800d2a54408418b63422"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg008.perseus-grc2.xml",
+              "sha256": "6e76ac237899ebeca2cc16f6ee63b2026ef0d66957547c3926eae2b6352e0ff2"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-statesman/source-planting.json",
+              "sha256": "e52f95416d7ee7630489919677bbe6e4ad3b12a4067c109c0cfe174340e370bb"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-statesman/README.md",
+              "sha256": "59d36cb9385fada83e2ff676952439e308aaefe3453dcd09a7e516861561a43f"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg008.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-statesman/source-planting.json",
+            "sha256": "e52f95416d7ee7630489919677bbe6e4ad3b12a4067c109c0cfe174340e370bb"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/statesman/work.json",
+            "sha256": "6a1e93eb2fe00709c0be91971f18d2b73b8e0b80ac6535e0417ab8b05f945d57"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.09.parmenides",
+      "preferred_label": "Parmenides",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-df350726da5e8696f1a41b68"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Parmenides; exact CTS edition urn:cts:greekLit:tlg0059.tlg009.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/parmenides/work.json",
+          "expression": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.parmenides",
+          "expression": "tos.expression.plato.parmenides.grc-perseus-burnet",
+          "edition": "tos.edition.plato.parmenides.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.parmenides.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg009.perseus-grc2",
+          "header_prefix_sha256": "c9211c050fe1cbd195c39dc96487c5b533203ad7c08a92c37594f2e56ddd8aae"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 202628,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-parmenides.2026-09-08.v1.json",
+              "sha256": "cc0c31af1039badd59afc6d2f4273188b45f0b16a26bd7fbaed01babb1f64dc7"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "0dd35e6baaecde7a871fd487ba33c8872f3878917e038dde3a5d2c36c16dbb4f"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg009.perseus-grc2.xml",
+              "sha256": "f3c53e5aa78b96ee4f82cb972e1bcc800dcee723c998705c51f5c565a34c4ec9"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-parmenides/source-planting.json",
+              "sha256": "56359d8321ad53658e77f3f5a5b8d1fffe0c5fa128cf6932ff05d921f0004770"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-parmenides/README.md",
+              "sha256": "c95a9c5f6eb7f87c3c5c0c3f50056876c54b34862d5245b3594f6368ea127161"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg009.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-parmenides/source-planting.json",
+            "sha256": "56359d8321ad53658e77f3f5a5b8d1fffe0c5fa128cf6932ff05d921f0004770"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/parmenides/work.json",
+            "sha256": "f31bc1a55b441d8672db8af5d983a5f2f3e26ea87b21bd5ef1ca9c1acb3fd1b7"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.10.philebus",
+      "preferred_label": "Philebus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-ba4265ee063df13e52eed832"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Philebus; exact CTS edition urn:cts:greekLit:tlg0059.tlg010.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/philebus/work.json",
+          "expression": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.philebus",
+          "expression": "tos.expression.plato.philebus.grc-perseus-burnet",
+          "edition": "tos.edition.plato.philebus.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.philebus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg010.perseus-grc2",
+          "header_prefix_sha256": "0ebed4dcd30016f076bf9be044f144046dff5aac48e97285ce8047a06bf2d693"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 323474,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-philebus.2026-09-08.v1.json",
+              "sha256": "6a82e18ab956a0a8f4dd398d27b858f791e25451ea937babc896b656bb038f9a"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "5e89e2665e117ca061d8b87461a7156bf3ecb7a98ef28ec3103cb5ba85b89f26"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg010.perseus-grc2.xml",
+              "sha256": "d082ba8a0f49ff234df056851d6a042123289ad3a6fe3eb845db82713f8efcc5"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-philebus/source-planting.json",
+              "sha256": "c12dadba6f401245f8a4768105d1f55896b57383397cb2dff7c1c0f3db5b917b"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-philebus/README.md",
+              "sha256": "41a8ef29614f63dec427af3db79b8568b560b5b8a0452e76bf9d43a1cc569a79"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg010.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-philebus/source-planting.json",
+            "sha256": "c12dadba6f401245f8a4768105d1f55896b57383397cb2dff7c1c0f3db5b917b"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/philebus/work.json",
+            "sha256": "c174ea25f6ba04e597a97775ea0636b47d437b7f7332d0b0069ad22d466c27eb"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.11.symposium",
+      "preferred_label": "Symposium",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-170045bf8c5dc0dde7364968"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Symposium; exact CTS edition urn:cts:greekLit:tlg0059.tlg011.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/symposium/work.json",
+          "expression": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.symposium",
+          "expression": "tos.expression.plato.symposium.grc-perseus-burnet",
+          "edition": "tos.edition.plato.symposium.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.symposium.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg011.perseus-grc2",
+          "header_prefix_sha256": "04d48bdb100340c6adffab970d207867ee833834d8bafca233fbc6a38d33d0c5"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 245936,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-symposium.2026-09-08.v1.json",
+              "sha256": "6faa9dbf5538da0cffd4654ba6ac05e659a125fcafecfb75dcc93e9e3f04d753"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "c70b633ff5d0e8f9e6d47dd2993159ec85856df634bae8b1c0276bc4a71b2549"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg011.perseus-grc2.xml",
+              "sha256": "f4437b96a3271a63dc04410cae3ec149851cb0f650bef0d47b24273a4c49ce5b"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-symposium/source-planting.json",
+              "sha256": "0b0b6520ad6109d59fd109083f15636447edd14edcfd70a4fe7db921b865f985"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-symposium/README.md",
+              "sha256": "c6f6e07b6affa74163845e5507764326bca89c496f25cbc8ad55a63d442f73bf"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg011.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-symposium/source-planting.json",
+            "sha256": "0b0b6520ad6109d59fd109083f15636447edd14edcfd70a4fe7db921b865f985"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/symposium/work.json",
+            "sha256": "2af73a332491ababd25d90feed674082eb8577ab47f814816a172db48cea30d4"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    },
+    {
+      "target_id": "registry-second-planting.12.phaedrus",
+      "preferred_label": "Phaedrus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A25.json.gz",
+          "sha256": "743995ec724982dd8a5f863fc9910ce33bef644549a5ceb5f904f3dde13d2e09",
+          "corpus_id": "table-i",
+          "document_id": "A25",
+          "record_id": "tos-registry:table-i/A25/registry/source-004ccd298fb2ef0f0cd24a5d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Phaedrus; exact CTS edition urn:cts:greekLit:tlg0059.tlg012.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1910 2 Internet Archive",
+        "known_tos_refs": [
+          "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy"
+        ],
+        "create_record_refs": {
+          "work": "ToS/source-witnesses/works/plato/phaedrus/work.json",
+          "expression": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/expression.json",
+          "edition": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "planned_ids": {
+          "work": "tos.work.plato.phaedrus",
+          "expression": "tos.expression.plato.phaedrus.grc-perseus-burnet",
+          "edition": "tos.edition.plato.phaedrus.grc-perseus-burnet.perseus-341e309c821d",
+          "item": "tos.item.plato.phaedrus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-work",
+          "cts_urn": "urn:cts:greekLit:tlg0059.tlg012.perseus-grc2",
+          "header_prefix_sha256": "ed5457d4a7292f4a1126555a1d6df3e1922712e66e0627a61b588bb54802653a"
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 256028,
+        "scope_limits": [
+          "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+          "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+          "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+          "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+              "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "f5c86bb65bae961ae08a11d90cbba7bf813c565ed316fadc585de6fffe0dc5de"
+            }
+          ],
+          "rationale": "Exact CTS edition, Git pin, supplied header and enumerated file set reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/runs/registry-phaedrus.2026-09-08.v1.json",
+              "sha256": "d6e24f0be459b437a80e65f36518c40b59b9c740af3e7d492e20291b8fd683dd"
+            }
+          ],
+          "rationale": "Dated pinned GET completed; discovery retains the actual outcome."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+              "sha256": "4b633bb2dcbbee441bba4507ff9dd27a0dd4bd01a9669dff3e2dab9d6da5b613"
+            }
+          ],
+          "rationale": "Exact provider license and supplied layers assessed for local preservation and analysis.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "present",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg012.perseus-grc2.xml",
+              "sha256": "15eb5b0c09bc32f39c1aca7e60e6d80a98c12c6b9a59f68e28b2f3061a476756"
+            }
+          ],
+          "rationale": "Original file opened and parsed; exact blob, byte size, header, CTS and local SHA-256 verified."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedrus/source-planting.json",
+              "sha256": "8ed70d9bd80fb78ecbba082eaa92a50b66244d7d6641a58358dd386dd73afb71"
+            },
+            {
+              "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedrus/README.md",
+              "sha256": "8ac20d8c6c15177b9dbd4a44287b285f2ae22c08b1a180571131a8a71650732a"
+            }
+          ],
+          "rationale": "Actual A25 branch route reaches the exact source records and locally retained file."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg012.perseus-grc2.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      },
+      "execution": {
+        "status": "completed",
+        "evidence_posture": "owner-reviewed",
+        "owner_refs": [
+          {
+            "path": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedrus/source-planting.json",
+            "sha256": "8ed70d9bd80fb78ecbba082eaa92a50b66244d7d6641a58358dd386dd73afb71"
+          },
+          {
+            "path": "ToS/source-witnesses/works/plato/phaedrus/work.json",
+            "sha256": "66f96338142f13992c43059b257fe99eb45a5589526330598d269587512fede6"
+          }
+        ],
+        "rationale": "Exact version acquisition and branch-to-file route completed; no textual/semantic/canon acceptance."
+      }
+    }
+  ]
+}

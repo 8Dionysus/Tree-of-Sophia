@@ -1,0 +1,1744 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-sophist.2026-09-08.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.plato.sophist",
+      "tos.expression.plato.sophist.grc-perseus-burnet",
+      "tos.edition.plato.sophist.grc-perseus-burnet.perseus-341e309c821d",
+      "tos.item.plato.sophist.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml"
+    ],
+    "description": "Perseus Ancient Greek TEI/EpiDoc transcription of Sophist; exact CTS edition urn:cts:greekLit:tlg0059.tlg007.perseus-grc2, Git commit 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1905 1 Internet Archive",
+    "required_properties": [
+      "The supplied Greek edition is a source-language text, not a manuscript facsimile or ToS critical reconstruction.",
+      "A complete pinned file does not establish completeness of the critical apparatus or all recensions.",
+      "Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.",
+      "Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "grc"
+    ],
+    "formats": [
+      "application/tei+xml"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-sophist-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "queried_at": "2026-09-08T22:45:11.265093+00:00",
+      "elapsed_seconds": 0.41567590400154586,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "perseus-README.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "queried_at": "2026-09-08T22:45:11.681252+00:00",
+      "elapsed_seconds": 0.313423570998566,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "perseus-license.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-license.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:14.355473+00:00",
+      "elapsed_seconds": 0.262621889996808,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg001-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "715736d5653bf168a7003124c6ad01920ea2b833b2ce0c0fa5f2cd3437fda8dc",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg001-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:14.821863+00:00",
+      "elapsed_seconds": 0.2687265999993542,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg002-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "34f912178d36a6beaf581bf562cd745d8d8f00271deef4ac2d433676e7d7a654",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg002-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:15.449654+00:00",
+      "elapsed_seconds": 0.4085134039996774,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg003-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "57d8a4820124c748a05f40130d96714b3c935387aa6457213d0665b68656c20a",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg003-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:16.217679+00:00",
+      "elapsed_seconds": 0.2599161069992988,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg004-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "05b2bc8cbaee24a41719d704e9b49fc512898b36e891f40d639cbbecdadc2e5e",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg004-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:16.782714+00:00",
+      "elapsed_seconds": 0.2674935259965423,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-7",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg005-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "40ed161b2a20fe6d91d1705f3260a226b8be03e03cd8db8c1deb41db7360fd1a",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg005-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-8",
+      "sequence": 8,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+      "queried_at": "2026-09-08T22:45:14.618684+00:00",
+      "elapsed_seconds": 0.20256271699690842,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-8",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg001.perseus-grc1-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg001/tlg0059.tlg001.perseus-grc1.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ec895270ecc41ca44edb998684851a399053026ac1ff9bc5eb80d188c7bb19ff",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg001.perseus-grc1-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-9",
+      "sequence": 9,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:15.091122+00:00",
+      "elapsed_seconds": 0.35799865200169734,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-9",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg002.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "b07c5f0e91cf19f5191af12ae6a816c3a23bf7fad589706906c2eb1afc55b06b",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg002.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-10",
+      "sequence": 10,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:15.858669+00:00",
+      "elapsed_seconds": 0.3585446880024392,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-10",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg003.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg003/tlg0059.tlg003.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "1b6454071b43b3f4d39a1f017b9590fa9f982baebdc8fb2ca1ece0feb8d74b2e",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg003.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-11",
+      "sequence": 11,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:16.478075+00:00",
+      "elapsed_seconds": 0.3041382250012248,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-11",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg004.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "66f4d3f0cd3bb2fdf5fd79af0da2fccb9a50af4f099092850a94049a385f839f",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg004.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-12",
+      "sequence": 12,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:17.050670+00:00",
+      "elapsed_seconds": 0.3013856300021871,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-12",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg005.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg005/tlg0059.tlg005.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "9bd04d21614e734b4315059c527eccab6183bbc9ec638eb7fb692ed8740672cd",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg005.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-13",
+      "sequence": 13,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:17.626159+00:00",
+      "elapsed_seconds": 0.33579017000010936,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-13",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg006.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/tlg0059.tlg006.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "f0632ee4eeafce70c490a1a43ece2bb07e8b5e3904c79497c9f669ea7a594098",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg006.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-14",
+      "sequence": 14,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:18.238444+00:00",
+      "elapsed_seconds": 0.28525865300252917,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-14",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg007.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2c1277ebdd0e985ef0a441f0289e771fe6d06b8781606f683e47260e2147d5c1",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg007.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-15",
+      "sequence": 15,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:18.777138+00:00",
+      "elapsed_seconds": 0.3024125180018018,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-15",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg008.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/tlg0059.tlg008.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "d50e47f06d0d4569f070466954d87ba2221d56a56dc8be489df5c939c05cac91",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg008.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-16",
+      "sequence": 16,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:19.335374+00:00",
+      "elapsed_seconds": 0.26686178800082416,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-16",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg009.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/tlg0059.tlg009.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "c9211c050fe1cbd195c39dc96487c5b533203ad7c08a92c37594f2e56ddd8aae",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg009.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-17",
+      "sequence": 17,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:19.871491+00:00",
+      "elapsed_seconds": 0.2688796340007684,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-17",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg010.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/tlg0059.tlg010.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "0ebed4dcd30016f076bf9be044f144046dff5aac48e97285ce8047a06bf2d693",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg010.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-18",
+      "sequence": 18,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:20.407638+00:00",
+      "elapsed_seconds": 0.2592768970025645,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-18",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg011.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "04d48bdb100340c6adffab970d207867ee833834d8bafca233fbc6a38d33d0c5",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg011.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-19",
+      "sequence": 19,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:45:21.028704+00:00",
+      "elapsed_seconds": 0.41656828000122914,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-19",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg0059.tlg012.perseus-grc2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/tlg0059.tlg012.perseus-grc2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ed5457d4a7292f4a1126555a1d6df3e1922712e66e0627a61b588bb54802653a",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg0059.tlg012.perseus-grc2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-20",
+      "sequence": 20,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:17.352456+00:00",
+      "elapsed_seconds": 0.2733309610011929,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-20",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg006-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg006/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "c98724f98000d0a077132d5cd25beecb4b6f77fae668711bef5785212bea9417",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg006-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-21",
+      "sequence": 21,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:17.962339+00:00",
+      "elapsed_seconds": 0.2757467480005289,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-21",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg007-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "876f54b1cb41bf68defa886efe5dd7d18538550ba67538362f498153dc9a313b",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg007-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-22",
+      "sequence": 22,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:18.524000+00:00",
+      "elapsed_seconds": 0.2527550480008358,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-22",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg008-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg008/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "95e6ef3ce34a9cab3794dca7d6cfcf3c43843725457871f209037512ec7d2a54",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg008-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-23",
+      "sequence": 23,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:19.079820+00:00",
+      "elapsed_seconds": 0.25524493899865774,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-23",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg009-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg009/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2117431a986cba543d02d128b55bdb1d4ec3dc68a927d721e703ebfeb4306d95",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg009-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-24",
+      "sequence": 24,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:19.602579+00:00",
+      "elapsed_seconds": 0.2685885030005011,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-24",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg010-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg010/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ce33ece316886e506b6c65a47243673ecfc88acbe4a3a1125938274265d490bc",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg010-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-25",
+      "sequence": 25,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:20.140708+00:00",
+      "elapsed_seconds": 0.26658887400117237,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-25",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg011-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "b3cc22f9fea052de306a86f1d094561bd2013abc77dad272fd6e4d52723ce2fa",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg011-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-26",
+      "sequence": 26,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+      "queried_at": "2026-09-08T22:45:20.667231+00:00",
+      "elapsed_seconds": 0.36097230299856164,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-26",
+          "rank": 1,
+          "title_as_displayed": "perseus-tlg012-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg012/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "15eebb1cd3b9f4f5481be0d7cf98fbbe2e663072a027bb7204e4cf801638c0f3",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tlg012-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-metadata-27",
+      "sequence": 27,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+      "queried_at": "2026-09-08T22:45:11.995209+00:00",
+      "elapsed_seconds": 2.359593090997805,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-metadata-27",
+          "rank": 1,
+          "title_as_displayed": "perseus-tree.json",
+          "result_url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+          "originating_record_url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "b8628281145b74ac6d707b0de5a2712226f4d75d19eee6997fd97f80a025eb33",
+            "reason": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/evidence/perseus-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-sophist-file-28",
+      "sequence": 28,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "PerseusDL/canonical-greekLit",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+      "interface_type": "bulk",
+      "interface_version": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+      "queried_at": "2026-09-08T22:51:38.648659+00:00",
+      "elapsed_seconds": 0.39634883499820717,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-sophist-file-28",
+          "rank": 1,
+          "title_as_displayed": "tlg0059.tlg007.perseus-grc2.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg007/tlg0059.tlg007.perseus-grc2.xml",
+          "originating_record_url": "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "341e309c821d5eca8c976bebca77c28b10bad58f"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "ed3c84bc37387808fa834d6d0c542340ad7adbf7"
+            }
+          ],
+          "available_formats": [
+            "application/tei+xml"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://api.github.com/repos/PerseusDL/canonical-greekLit/git/trees/341e309c821d5eca8c976bebca77c28b10bad58f?recursive=1",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T22:51:39.045005+00:00",
+            "byte_size": 287273,
+            "sha256": "64eb0b7c9135ebe5cdb8e4129352d1418243af7d053b7daebde8e67f7e958f0f",
+            "event_ref": "tos.event.acquisition.registry-20260908.sophist"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-sophist-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.41567590400154586,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.313423570998566,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.262621889996808,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2687265999993542,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.4085134039996774,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2599161069992988,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2674935259965423,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-8",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.20256271699690842,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-9",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.35799865200169734,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-10",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3585446880024392,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-11",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3041382250012248,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-12",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3013856300021871,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-13",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.33579017000010936,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-14",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28525865300252917,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-15",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3024125180018018,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-16",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.26686178800082416,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-17",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2688796340007684,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-18",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2592768970025645,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-19",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.41656828000122914,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-20",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2733309610011929,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-21",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2757467480005289,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-22",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2527550480008358,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-23",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.25524493899865774,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-24",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2685885030005011,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-25",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.26658887400117237,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-26",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.36097230299856164,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-metadata-27",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 2.359593090997805,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-sophist-file-28",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.39634883499820717,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-sophist-file-28"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-08T22:45:11.265093+00:00",
+  "ended_at": "2026-09-08T22:51:39.045005+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260908.sophist",
+    "tos.event.acquisition.registry-20260908.sophist"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

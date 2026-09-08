@@ -72,3 +72,28 @@ import with `--input-root`. The old manifest remains embedded in the earlier
 snapshot; `delta.json` names added/removed/changed/relocated rows, changed fields,
 changed original files and exact changed DOCX block locators. Changes to the
 processor or adapter also change snapshot identity and remain explicitly bound.
+
+## What is already planted
+
+[COVERAGE.md](COVERAGE.md) projects the exact selected versions and per-dossier
+remaining leads. `coverage.current.json.gz` retains every registry/gap row ID,
+reviewed target, candidate owner reference and branch link. It derives from the
+existing reconciliation, reviewed preparation manifests, acquisition provenance
+and actual planting records; it is not a new identity or acceptance registry.
+A selected book never exhausts a corpus-level lead, and no reviewed link is
+not evidence that the work is absent under another owner identity.
+
+```sh
+python3 -B scripts/build_source_registry_coverage.py
+python3 -B scripts/build_source_registry_coverage.py --check
+python3 -B scripts/build_source_registry_coverage.py --remaining --document A25
+python3 -B scripts/build_source_registry_coverage.py --verify-local
+```
+
+The committed projection records historical completed acquisition evidence,
+without asserting current local file existence. `--verify-local` hashes the
+selected files in this checkout and prints a live observation without rewriting
+the portable view. A checkout missing ignored payloads can still retain honest
+source identity and acquisition provenance; copy or acquire exact files before
+claiming local readability there. Remaining leads require version/identity
+review, not blind redownload based on an absent match.

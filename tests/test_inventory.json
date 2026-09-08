@@ -63,6 +63,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_registry_coverage.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/research-packets/source-registries/README.md",
+      "protects": "selected version coverage cannot exhaust a broad lead; possible matches cannot promote; acquired owner identity and file-output bindings must match; portable intake evidence remains distinct from current local custody",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_registry_coverage.py",
+      "failure_route": "Fix owner-target identity, acquisition evidence or coverage classification before changing expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_processing.py",
       "home": "access",
       "home_scope": "product-local",

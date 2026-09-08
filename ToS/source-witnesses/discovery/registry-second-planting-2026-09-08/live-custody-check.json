@@ -1,0 +1,1886 @@
+{
+  "observed_at": "2026-09-08T23:01:29.353979+00:00",
+  "custody_scope": "live file hashes in this checkout",
+  "targets": [
+    {
+      "work_id": "tos.work.egyptian-literature.be-a-scribe",
+      "edition_id": "tos.edition.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2",
+      "item_id": "tos.item.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+      "title": "Be a Scribe!",
+      "work_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-be-a-scribe/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.be-a-scribe",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/payload/oraec3091.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.egyptian-literature.immortality-of-writers",
+      "edition_id": "tos.edition.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2",
+      "item_id": "tos.item.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+      "title": "Immortality of Writers",
+      "work_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-immortality-of-writers/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.immortality-of-writers",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/payload/oraec1016.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.hebrew-bible.ecclesiastes",
+      "edition_id": "tos.edition.hebrew-bible.ecclesiastes.hbo-wlc-oshb.oshb-3d15126fb1ef",
+      "item_id": "tos.item.hebrew-bible.ecclesiastes.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "title": "Ecclesiastes (Qohelet)",
+      "work_ref": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-ecclesiastes/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.ecclesiastes",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/payload/Eccl.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.hebrew-bible.job",
+      "edition_id": "tos.edition.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef",
+      "item_id": "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "title": "Job",
+      "work_ref": "ToS/source-witnesses/works/hebrew-bible/job/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-job/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.job",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/payload/Job.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.hebrew-bible.proverbs",
+      "edition_id": "tos.edition.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef",
+      "item_id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "title": "Proverbs",
+      "work_ref": "ToS/source-witnesses/works/hebrew-bible/proverbs/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-proverbs/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.proverbs",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/payload/Prov.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.dhammapada",
+      "edition_id": "tos.edition.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Dhammapada",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-dhammapada/source-planting.json"
+      ],
+      "file_count": 26,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.dhammapada",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp1-20_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp100-115_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp116-128_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp129-145_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp146-156_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp157-166_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp167-178_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp179-196_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp197-208_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp209-220_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp21-32_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp221-234_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp235-255_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp256-272_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp273-289_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp290-305_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp306-319_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp320-333_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp33-43_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp334-359_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp360-382_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp383-423_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp44-59_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp60-75_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp76-89_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dhp90-99_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.itivuttaka",
+      "edition_id": "tos.edition.pali-canon.itivuttaka.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.itivuttaka.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Itivuttaka",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/itivuttaka/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-itivuttaka/source-planting.json"
+      ],
+      "file_count": 112,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.itivuttaka",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti90_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti91_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti92_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti93_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti94_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti95_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti96_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti97_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti98_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti99_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti100_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti101_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti102_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti103_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti104_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti105_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti106_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti107_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti108_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti109_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti110_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti111_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti112_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti11_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti12_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti13_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti14_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti15_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti16_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti17_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti18_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti19_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti20_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti21_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti22_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti23_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti24_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti25_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti26_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti27_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti28_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti29_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti30_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti31_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti32_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti33_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti34_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti35_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti36_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti37_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti38_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti39_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti40_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti41_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti42_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti43_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti44_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti45_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti46_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti47_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti48_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti49_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti50_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti51_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti52_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti53_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti54_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti55_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti56_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti57_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti58_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti59_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti60_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti61_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti62_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti63_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti64_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti65_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti66_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti67_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti68_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti69_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti70_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti71_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti72_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti73_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti74_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti75_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti76_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti77_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti78_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti79_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti80_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti81_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti82_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti83_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti84_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti85_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti86_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti87_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti88_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/iti89_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.khuddakapatha",
+      "edition_id": "tos.edition.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Khuddakapāṭha",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/khuddakapatha/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-khuddakapatha/source-planting.json"
+      ],
+      "file_count": 9,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.khuddakapatha",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/kp9_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.samannaphala-sutta",
+      "edition_id": "tos.edition.pali-canon.samannaphala-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.samannaphala-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Sāmaññaphala Sutta (DN 2)",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-samannaphala-sutta/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.samannaphala-sutta",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/dn2_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.sammaditthi-sutta",
+      "edition_id": "tos.edition.pali-canon.sammaditthi-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.sammaditthi-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Sammādiṭṭhi Sutta (MN 9)",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/plantings/registry-sammaditthi-sutta/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.sammaditthi-sutta",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/mn9_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.sutta-nipata",
+      "edition_id": "tos.edition.pali-canon.sutta-nipata.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.sutta-nipata.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Suttanipāta",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/sutta-nipata/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-sutta-nipata/source-planting.json"
+      ],
+      "file_count": 73,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.sutta-nipata",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.11_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.12_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp1.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.11_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.12_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.13_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.14_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp2.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.11_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.12_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp3.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.11_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.12_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.13_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.14_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.15_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.16_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp4.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.11_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.12_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.13_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.14_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.15_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.16_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.17_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.18_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.19_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/snp5.9_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.udana",
+      "edition_id": "tos.edition.pali-canon.udana.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.udana.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Udāna",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/udana/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-udana/source-planting.json"
+      ],
+      "file_count": 80,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.udana",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud1.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud2.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud3.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud4.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud5.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud6.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud7.9_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.10_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.1_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.2_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.3_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.4_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.5_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.6_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.7_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.8_root-pli-ms.json",
+            "state": "verified"
+          },
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/ud8.9_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.pali-canon.upali-sutta",
+      "edition_id": "tos.edition.pali-canon.upali-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2",
+      "item_id": "tos.item.pali-canon.upali-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "title": "Upāli Sutta (MN 56)",
+      "work_ref": "ToS/source-witnesses/works/pali-canon/upali-sutta/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-upali-sutta/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.upali-sutta",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/payload/mn56_root-pli-ms.json",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:8861fecf8:20260908T211104Z"
+    },
+    {
+      "work_id": "tos.work.plato.apology",
+      "edition_id": "tos.edition.plato.apology.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Apology",
+      "work_ref": "ToS/source-witnesses/works/plato/apology/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-apology/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.apology",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg002.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.cratylus",
+      "edition_id": "tos.edition.plato.cratylus.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.cratylus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Cratylus",
+      "work_ref": "ToS/source-witnesses/works/plato/cratylus/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cratylus/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.cratylus",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg005.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.crito",
+      "edition_id": "tos.edition.plato.crito.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.crito.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Crito",
+      "work_ref": "ToS/source-witnesses/works/plato/crito/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-crito/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.crito",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg003.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.euthyphro",
+      "edition_id": "tos.edition.plato.euthyphro.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.euthyphro.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Euthyphro",
+      "work_ref": "ToS/source-witnesses/works/plato/euthyphro/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthyphro/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.euthyphro",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg001.perseus-grc1.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.parmenides",
+      "edition_id": "tos.edition.plato.parmenides.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.parmenides.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Parmenides",
+      "work_ref": "ToS/source-witnesses/works/plato/parmenides/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-parmenides/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.parmenides",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg009.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.phaedo",
+      "edition_id": "tos.edition.plato.phaedo.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.phaedo.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Phaedo",
+      "work_ref": "ToS/source-witnesses/works/plato/phaedo/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedo/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.phaedo",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/phaedo/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg004.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.phaedrus",
+      "edition_id": "tos.edition.plato.phaedrus.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.phaedrus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Phaedrus",
+      "work_ref": "ToS/source-witnesses/works/plato/phaedrus/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-phaedrus/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.phaedrus",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/phaedrus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg012.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.philebus",
+      "edition_id": "tos.edition.plato.philebus.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.philebus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Philebus",
+      "work_ref": "ToS/source-witnesses/works/plato/philebus/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-philebus/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.philebus",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/philebus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg010.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.sophist",
+      "edition_id": "tos.edition.plato.sophist.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.sophist.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Sophist",
+      "work_ref": "ToS/source-witnesses/works/plato/sophist/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-sophist/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.sophist",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg007.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.statesman",
+      "edition_id": "tos.edition.plato.statesman.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.statesman.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Statesman",
+      "work_ref": "ToS/source-witnesses/works/plato/statesman/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-statesman/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.statesman",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/statesman/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg008.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.symposium",
+      "edition_id": "tos.edition.plato.symposium.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.symposium.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Symposium",
+      "work_ref": "ToS/source-witnesses/works/plato/symposium/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-symposium/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.symposium",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg011.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    },
+    {
+      "work_id": "tos.work.plato.theaetetus",
+      "edition_id": "tos.edition.plato.theaetetus.grc-perseus-burnet.perseus-341e309c821d",
+      "item_id": "tos.item.plato.theaetetus.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "title": "Theaetetus",
+      "work_ref": "ToS/source-witnesses/works/plato/theaetetus/work.json",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "branch_planting_refs": [
+        "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theaetetus/source-planting.json"
+      ],
+      "file_count": 1,
+      "intake_evidence": "completed_acquisition_recorded",
+      "status": "selected_version_planted",
+      "all_versions_or_corpus_complete": false,
+      "acquisition_event_ref": "tos.event.acquisition.registry-20260908.theaetetus",
+      "local_now": {
+        "scope": "this checkout only",
+        "state": "verified",
+        "files": [
+          {
+            "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg006.perseus-grc2.xml",
+            "state": "verified"
+          }
+        ]
+      },
+      "preparation_ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "review_ref": "agent-review:e2077017e:20260908T225030Z"
+    }
+  ]
+}

@@ -1,5 +1,10 @@
 # Source Witness Corpus
 
+[Registry planting coverage](../research-packets/source-registries/COVERAGE.md)
+separates exact selected versions and recorded acquisitions from possible
+correspondences and remaining leads. Its live check verifies current local
+File hashes without treating one planted work as a complete corpus.
+
 `ToS/source-witnesses/` is the physical and authored evidence root for works,
 expressions, editions, collections, acquired items, source-near text, and
 aligned witness packets.
