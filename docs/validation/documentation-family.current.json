@@ -149,7 +149,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 137673,
+      "tracked_surface_bytes": 138000,
       "tracked_surface_count": 6
     },
     {
@@ -231,7 +231,7 @@
         "executable": 106,
         "human": 2
       },
-      "tracked_surface_bytes": 3662982,
+      "tracked_surface_bytes": 3663552,
       "tracked_surface_count": 108
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f534c287774ae512e37b14eb64891991e653847b26a77c7f8bf963736b1ca7c7",
+  "tracked_surface_digest": "03414e070ba995ef4883fc075676e9483e7a7f3ae6180bc300734b01ce90a373",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -307,15 +307,15 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "33b4fb060a2c32832f0245a802f39dbf68dfb7c0b3dcad03d234a55ba2f042e5",
+      "sha256": "9cab4cdebc1bb78028d52a915582a951fe4a6b24af4716e2ad71b209d2771696",
       "surface_kind": "structured"
     },
     {
-      "bytes": 33809,
+      "bytes": 34136,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.manifest.json",
-      "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
+      "sha256": "53d4059c376f3effda42f7bbde29bce7a249bba26c934a741bb221306417e7a8",
       "surface_kind": "structured"
     },
     {
@@ -25903,11 +25903,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 128808,
+      "bytes": 129378,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_agent_surface.py",
-      "sha256": "513285acb32594d22f1852311a9df24f8c5da1647cfa22e204713202de495a22",
+      "sha256": "e56cfa132d079fb3786f3131e6df040b3e6f240ddaf6f89319a1814204eff0c3",
       "surface_kind": "executable"
     },
     {

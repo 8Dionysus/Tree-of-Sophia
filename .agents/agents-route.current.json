@@ -822,13 +822,13 @@
       "whitespace_tokens": 1033
     },
     {
-      "bytes": 33809,
+      "bytes": 34136,
       "exists": true,
-      "lines": 890,
+      "lines": 893,
       "path": ".agents/agent-surface.manifest.json",
       "role": "skill, owner-port, carrier, and task-probe map",
-      "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
-      "whitespace_tokens": 2469
+      "sha256": "53d4059c376f3effda42f7bbde29bce7a249bba26c934a741bb221306417e7a8",
+      "whitespace_tokens": 2505
     },
     {
       "bytes": 8240,
@@ -836,7 +836,7 @@
       "lines": 256,
       "path": ".agents/agent-surface.current.json",
       "role": "generated skill/port currentness read model",
-      "sha256": "33b4fb060a2c32832f0245a802f39dbf68dfb7c0b3dcad03d234a55ba2f042e5",
+      "sha256": "9cab4cdebc1bb78028d52a915582a951fe4a6b24af4716e2ad71b209d2771696",
       "whitespace_tokens": 392
     },
     {
@@ -2185,7 +2185,7 @@
       ]
     },
     {
-      "additional_context_tokens": 4961,
+      "additional_context_tokens": 4997,
       "completion_evidence": [
         {
           "bytes": 1660,
@@ -2197,13 +2197,13 @@
           "whitespace_tokens": 221
         },
         {
-          "bytes": 33809,
+          "bytes": 34136,
           "exists": true,
-          "lines": 890,
+          "lines": 893,
           "path": ".agents/agent-surface.manifest.json",
           "role": "completion",
-          "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
-          "whitespace_tokens": 2469
+          "sha256": "53d4059c376f3effda42f7bbde29bce7a249bba26c934a741bb221306417e7a8",
+          "whitespace_tokens": 2505
         },
         {
           "bytes": 8240,
@@ -2211,17 +2211,17 @@
           "lines": 256,
           "path": ".agents/agent-surface.current.json",
           "role": "completion",
-          "sha256": "33b4fb060a2c32832f0245a802f39dbf68dfb7c0b3dcad03d234a55ba2f042e5",
+          "sha256": "9cab4cdebc1bb78028d52a915582a951fe4a6b24af4716e2ad71b209d2771696",
           "whitespace_tokens": 392
         },
         {
-          "bytes": 128808,
+          "bytes": 129378,
           "exists": true,
-          "lines": 2942,
+          "lines": 2947,
           "path": "scripts/validate_agent_surface.py",
           "role": "completion",
-          "sha256": "513285acb32594d22f1852311a9df24f8c5da1647cfa22e204713202de495a22",
-          "whitespace_tokens": 10085
+          "sha256": "e56cfa132d079fb3786f3131e6df040b3e6f240ddaf6f89319a1814204eff0c3",
+          "whitespace_tokens": 10135
         }
       ],
       "id": "agent_profile",
@@ -2241,13 +2241,13 @@
           "whitespace_tokens": 1033
         },
         {
-          "bytes": 33809,
+          "bytes": 34136,
           "exists": true,
-          "lines": 890,
+          "lines": 893,
           "path": ".agents/agent-surface.manifest.json",
           "role": "on_demand",
-          "sha256": "eac3203c75ec19180b2f35b1b08520fc12f799959d92e7dd804f7d2c647394f1",
-          "whitespace_tokens": 2469
+          "sha256": "53d4059c376f3effda42f7bbde29bce7a249bba26c934a741bb221306417e7a8",
+          "whitespace_tokens": 2505
         },
         {
           "bytes": 22513,
@@ -2285,13 +2285,13 @@
           "whitespace_tokens": 1492
         },
         {
-          "bytes": 128808,
+          "bytes": 129378,
           "exists": true,
-          "lines": 2942,
+          "lines": 2947,
           "path": "scripts/validate_agent_surface.py",
           "role": "validation",
-          "sha256": "513285acb32594d22f1852311a9df24f8c5da1647cfa22e204713202de495a22",
-          "whitespace_tokens": 10085
+          "sha256": "e56cfa132d079fb3786f3131e6df040b3e6f240ddaf6f89319a1814204eff0c3",
+          "whitespace_tokens": 10135
         },
         {
           "bytes": 23014,
