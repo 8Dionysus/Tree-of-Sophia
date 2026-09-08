@@ -2553,15 +2553,12 @@ def profile_binding_issues(
         "install_root": "$HOME/.codex/skills",
         "install_mode": "managed-copy",
         "source_manifest": "aoa-skills:config/os_skill_profiles.json",
+        "source_ref": "aoa-skills@616ce49eed8a605782fb2f295060ae916e04c7a6",
         "resolver": "aoa-skills:scripts/bundles/install_os_skill_profile.py",
     }
     for key, expected in expected_scalars.items():
         if binding.get(key) != expected:
             issues.append((location, f"{key} must be {expected!r}"))
-    source_ref = binding.get("source_ref")
-    if not isinstance(source_ref, str) or not re.fullmatch(r"aoa-skills@[0-9a-f]{40}", source_ref):
-        issues.append((location, "source_ref must bind an immutable aoa-skills commit"))
-
     sources = binding.get("sources")
     if not isinstance(sources, list) or not sources:
         return issues + [(location, "sources must be a non-empty list")], set()

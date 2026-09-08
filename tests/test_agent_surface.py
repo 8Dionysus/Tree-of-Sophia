@@ -259,6 +259,12 @@ class AgentSurfaceTests(unittest.TestCase):
             entry["legacy_name"] for entry in manifest["legacy_projection_migration"]["entries"]
         ])
 
+    def test_profile_binding_rejects_an_unaccepted_immutable_revision(self) -> None:
+        manifest = builder.load_manifest(ROOT)
+        manifest["profile_binding"]["source_ref"] = "aoa-skills@" + "0" * 40
+        issues, _ = validator.profile_binding_issues(manifest)
+        self.assertTrue(any("source_ref must be" in message for _, message in issues))
+
     def test_ignored_package_artifacts_are_not_currentness_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
