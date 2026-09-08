@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4375,
+    "tracked_surface_count": 4376,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1005,
     "human_scope": {
-      "bytes": 5338898,
-      "count": 915,
+      "bytes": 5346013,
+      "count": 916,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4204889,
-          "count": 626,
-          "lines": 70524
+          "bytes": 4212004,
+          "count": 627,
+          "lines": 70640
         }
       },
-      "lines": 90976
+      "lines": 91092
     },
     "surface_kind_counts": {
       "executable": 250,
-      "human": 915,
+      "human": 916,
       "structured": 3210
     },
-    "tracked_path_count": 5380,
-    "tracked_surface_count": 4375,
+    "tracked_path_count": 5381,
+    "tracked_surface_count": 4376,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 626,
+        "human": 627,
         "structured": 3134
       },
-      "tracked_surface_bytes": 229276359,
-      "tracked_surface_count": 3764
+      "tracked_surface_bytes": 229283745,
+      "tracked_surface_count": 3765
     },
     {
       "family_id": "access",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "2de8f6df0a216f1a84d9fbd8feee08dd2cdc2c0587b07e233c41a34bc0fd4627",
+  "tracked_surface_digest": "f1a143d35f880249cd2478eb0cb569ee758874fec75f46901a6a3844c4e82c7c",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -3055,11 +3055,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59947115,
+      "bytes": 59947386,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "46fb2d0bd186f7830e27aceafa4624348673d02168b88aacb67a5fdcc2127dd4",
+      "sha256": "23f8d3a250379001172de8ab92c184f10be3bb0d03372cdb93e38a358db656be",
       "surface_kind": "structured"
     },
     {
@@ -3135,11 +3135,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 86794,
+      "bytes": 87190,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "d3cb4497531becb0f60809dc52402b4a33a26cf450a928d9a9812a806b8c4215",
+      "sha256": "a74567c19b26cce197c6c9efe28eab298fe3b0e4248124f33d848133871bf624",
       "surface_kind": "human"
     },
     {
@@ -17708,6 +17708,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-08-owner-local-profile-review.md",
       "sha256": "3d519df0b562a1c0ac029b7bb476f5c66a09752979b39608ab5a10912ec16833",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6719,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-real-private-claim-growth-review.md",
+      "sha256": "7b959a06b54f0e65c112aa4908b27447b0541dab6fde9e578e43389c2c2b4f0d",
       "surface_kind": "human"
     },
     {
