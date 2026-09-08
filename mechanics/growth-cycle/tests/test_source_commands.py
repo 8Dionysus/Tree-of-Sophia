@@ -897,6 +897,15 @@ class HistoricalCreationTests(unittest.TestCase):
             self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
 
     def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        linguistic = {
+            'language': {'system_account': 'A synthetic language account, not a script.'},
+            'linguistic-variety': {'system_account': 'A synthetic variety, not a period.',
+                'distinguishing_basis': 'Source-scoped linguistic criteria, not a universal classification.'},
+            'script': {'script_account': 'A synthetic writing tradition, not a language.',
+                'sign_inventory_scope': 'A limited repertoire, not fixed readings for all times.'},
+            'transliteration-scheme': {'mapping_convention': 'Synthetic notation, not an executed mapping.',
+                'coverage_and_loss': 'Uncertainty remains; no losslessness claim.'},
+        }
         reception = {
             'reception-process': {'engagement_basis': 'Documented response, not inferred agreement.'},
             'historical-canonization': {'engagement_basis': 'Historical selection practices.',
@@ -967,10 +976,11 @@ class HistoricalCreationTests(unittest.TestCase):
             **formations,
             **passages,
             **reception,
+            **linguistic,
         }
         for kind in ('crosscutting-concept', 'conception', *contents):
             with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
-                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'reception-record', 'provenance-event-v2'):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'reception-record', 'linguistic-description-record', 'provenance-event-v2'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (root / ref).write_bytes((ROOT / ref).read_bytes())
                 config.pop('allowed_claim_ids')
@@ -988,6 +998,7 @@ class HistoricalCreationTests(unittest.TestCase):
                         'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
                 if kind in contents:
                     source.update(schema_version=('tos_scholarly_composite_record_v1' if kind == 'composite' else
+                                  'tos_linguistic_description_record_v1' if kind in linguistic else
                                   'tos_reception_record_v1' if kind in reception else
                                   'tos_textual_passage_record_v1' if kind in passages else
                                   'tos_intellectual_formation_record_v1' if kind in formations else
@@ -995,7 +1006,7 @@ class HistoricalCreationTests(unittest.TestCase):
                                   'tos_thought_practice_record_v1' if kind in practices else
                                   'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
                                   semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
-                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception:
+                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic:
                     source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
                 request.pop('claims')
                 if kind == 'composite':
@@ -1042,7 +1053,7 @@ class HistoricalCreationTests(unittest.TestCase):
                 self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
                 if kind in contents:
                     self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
-                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception:
+                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic:
                         from tos_access.knowledge import execute_knowledge_lens, select_human_forms
                         for field in contents[kind]:
                             property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'

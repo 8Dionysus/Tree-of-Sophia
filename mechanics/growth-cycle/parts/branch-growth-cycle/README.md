@@ -915,7 +915,9 @@ quality. Declared Claim corrections use the separate operation below.
 
 `scripts/claim_revisions.py` implements `claim.revise` through the same explicit
 source command entrypoint. The selected Claim keeps its ID, predicate,
-identity endpoints, assertion layer, original maker/provenance and initial review flag.
+identity endpoints, original maker/provenance and initial review flag. Ordinary
+v1/v2/v3 corrections also preserve its assertion layer; only the separate exact
+layer-classification route below can correct that field.
 Its `claim_version` advances once. The correction issuer and reason belong to
 the new history receipt; the original maker is origin attribution, not a claim
 that the original actor authored every later correction. Assessment, identity
@@ -953,6 +955,37 @@ source-copy forms. Its old and new values must satisfy that same profile;
 changing value kind is not a correction route. The exact allowlist and current
 revocation checks apply to preparation, commit and replay. V2 remains temporal;
 descriptive v1 correction still cannot replace any object value.
+
+`tos_local_claim_layer_revision_owner_v1` is a separate grant, not an expansion
+of v1/v2/v3. It has the v1 configuration fields plus mandatory
+`allowed_layer_transitions`: at most 32 distinct exact `{"from": "…", "to": "…"}`
+pairs. Wildcards, empty layer names, repeated pairs and `from = to` are refused;
+an empty list revokes transitions. `allowed_fields` can contain only
+`assertion_layer`. Both `prepare-revise` and `claim.revise` require an explicit
+`layer_transition` matching one delegated pair, the actual predecessor layer
+and the proposed field value. The corrected Claim must still satisfy its
+existing schema and predicate profile. A grant cannot admit a forbidden layer.
+
+This route corrects the classification of the **same already recorded
+assertion**, not its proposition, attribution or act of judgment. For example,
+an assertion whose statement and basis already identify an analyst's inference
+can have an erroneous `scholarly_report` label corrected to `linguistic_analysis`.
+Changing “S reports P” into the operator's own “P” changes the assertion and
+requires a new Claim and an explicit successor relation; this writer does not
+implement that successor route. In the bounded layer transition, no qualifier,
+evidence, endpoint, schema, maker, visibility or admission field may change at
+the same time. The authored reason and exact request remain in the receipt.
+
+The separate grant keeps existing editing authority from silently gaining
+layer authority. Current revocation is checked before a retry; the historical
+`from` is checked against its retained predecessor, not the now-corrected head.
+Shared history is reconstructed from retained requests without borrowing a
+current grant for a different Claim. The old full Claim and forms remain
+inspectable, while every current selected-Claim form is explicitly rebound.
+Previous source-bound assessments are not rewritten or transferred: their
+exact source version is historical, and an assessment configuration retaining
+the previous layer fails its existing source/scope check. Reassessment and
+scoped admission remain separate owner operations.
 
 Requests use `tos_local_source_command_v1` and the record-correction grammar:
 

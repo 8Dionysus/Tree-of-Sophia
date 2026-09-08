@@ -397,6 +397,15 @@ The rationale and rejected alternatives are in
 
 ## Sign ladder
 
+Languages, linguistic varieties, scripts and transliteration conventions may
+themselves become source-described research subjects through the
+[linguistic profile](semantic-interchange/README.md#languages-varieties-scripts-and-transliteration-schemes).
+The source's language, an inscription's attributed language/script, the
+notation convention, an exact text layer, a sign reading and the language of
+its description remain distinct. Describing a scheme does not perform a
+transliteration or translation. Artifact period and provider language labels
+do not automatically establish a dialect, sign inventory or accepted reading.
+
 ToS treats a sign as a layered family of addressable records rather than one
 timeless semantic entity.
 

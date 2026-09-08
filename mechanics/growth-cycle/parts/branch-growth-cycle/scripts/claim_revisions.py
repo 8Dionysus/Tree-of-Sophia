@@ -19,14 +19,25 @@ FIELDS = {'qualifiers', 'evidence_refs', 'counterevidence_refs', 'alternative_cl
 MODULE_REF = 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py'
 
 
+def _layer_transition(value):
+    source._keys(value, {'from', 'to'})
+    if (any(not isinstance(value[k], str) or not re.fullmatch(r'[a-z][a-z0-9_]{0,63}', value[k])
+            for k in ('from', 'to')) or value['from'] == value['to']):
+        raise ValueError('layer correction requires distinct exact layer names, not wildcards')
+    return value['from'], value['to']
+
+
 def configuration(config):
     values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
-    allowed_fields = FIELDS | ({'object'} if values_allowed else set())
+    layer_allowed = config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG
+    allowed_fields = {'assertion_layer'} if layer_allowed else FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
         'authority_ref', 'expires_at', 'claim_id', 'allowed_operations', 'allowed_fields',
         'allowed_evidence_refs', 'allowed_form_ids'}
-        | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set()))
-    if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG}
+        | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set())
+        | ({'allowed_layer_transitions'} if layer_allowed else set()))
+    if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
+            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -45,6 +56,13 @@ def configuration(config):
     if values_allowed:
         from source_claim_commands import validate_value_scope
         validate_value_scope(config)
+    if layer_allowed:
+        transitions = config['allowed_layer_transitions']
+        if not isinstance(transitions, list) or len(transitions) > 32:
+            raise ValueError('layer correction scope must be a bounded exact transition list')
+        pairs = [_layer_transition(value) for value in transitions]
+        if len(set(pairs)) != len(pairs):
+            raise ValueError('layer correction scope repeats a transition')
     if any(not re.fullmatch(r'tos\.form\.[a-z0-9][a-z0-9._-]*', v) for v in config['allowed_form_ids']):
         raise ValueError('invalid delegated Claim form identity')
     root, relative = Path(config['source_root']), Path(config['source_path'])
@@ -76,9 +94,14 @@ def _subject(record):
     return source.Record.from_payload(record['claim_id'], record['claim_version'], record)
 
 
-def _advance(record, fields):
-    if not isinstance(fields, dict) or not fields or set(fields) - (FIELDS | {'object'}):
+def _advance(record, fields, layer_transition=None):
+    allowed = {'assertion_layer'} if layer_transition is not None else FIELDS | {'object'}
+    if not isinstance(fields, dict) or not fields or set(fields) - allowed:
         raise PermissionError('Claim correction cannot change identity, endpoints, layer, maker or admission')
+    if layer_transition is not None:
+        previous, following = _layer_transition(layer_transition)
+        if previous != record.get('assertion_layer') or fields['assertion_layer'] != following:
+            raise PermissionError('layer correction must match the exact predecessor and proposed layer')
     if 'object' in fields and (not isinstance(record.get('object'), dict) or not isinstance(fields['object'], dict)):
         raise PermissionError('Claim correction cannot change an identity endpoint into a value or conversely')
     changes = dict(fields)
@@ -119,7 +142,8 @@ def _read_archive(root, config, receipt):
     previous = _claims(files[SOURCE_CLAIM_BASENAME]).get(identity)
     if previous is None or _subject(previous).ref != receipt['previous_source']:
         raise source.JournalCorruption('archive does not preserve the exact previous Claim')
-    if 'request' in receipt and _subject(_advance(previous, receipt['request']['fields'])).ref != receipt['source']:
+    if 'request' in receipt and _subject(_advance(previous, receipt['request']['fields'],
+            receipt['request'].get('layer_transition'))).ref != receipt['source']:
         raise source.JournalCorruption('retained correction does not produce the recorded Claim successor')
     return files, locations
 
@@ -159,7 +183,7 @@ def _history(files, config):
         if expected is not None and before != expected:
             raise source.JournalCorruption('shared stream changed outside its retained correction sequence')
         previous = _claims(before)[receipt['previous_source']['id']]
-        expected = _replace(before, _advance(previous, request['fields']))
+        expected = _replace(before, _advance(previous, request['fields'], request.get('layer_transition')))
         commands.add(receipt['command_id'])
     if expected is not None and files[SOURCE_CLAIM_BASENAME] != expected:
         raise source.JournalCorruption('current Claim stream is not its retained revision head')
@@ -179,6 +203,14 @@ def _scope(config, request, record):
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):
         raise PermissionError('Claim correction fields exceed the delegated scope')
+    if config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG:
+        _layer_transition(request['layer_transition'])
+        if (set(fields) != {'assertion_layer'}
+                or request['layer_transition'] not in config['allowed_layer_transitions']
+                or fields['assertion_layer'] != request['layer_transition']['to']):
+            raise PermissionError('Claim layer transition is not explicitly delegated')
+        # Current authority is checked before replay; predecessor matching belongs
+        # to _advance, using the archived predecessor for a retained request.
     if 'object' in fields:
         from source_claim_commands import value_is_delegated, _value_scope
         if not value_is_delegated(config, fields['object']):
@@ -203,7 +235,7 @@ def _scope(config, request, record):
 
 def _proposal(config, path, files, record, request):
     _scope(config, request, record)
-    revised = _advance(record, request['fields'])
+    revised = _advance(record, request['fields'], request.get('layer_transition'))
     from source_claim_commands import _ground_claims
     _, grounding, bindings = _ground_claims(config, [revised], initial=False)
     dependencies = source._digest(source._canonical({'grounding': grounding,
@@ -238,6 +270,8 @@ def run_command(owner, config, configuration_digest, path, request):
     fields = {'schema_version', 'operation'}
     if operation in {OPERATION, 'prepare-revise'}:
         fields |= {'fields', 'forms', 'reason'}
+        if config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG:
+            fields |= {'layer_transition'}
     if operation == OPERATION:
         fields |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies', 'expected_inputs'}
     elif operation == 'inspect-version':
@@ -269,6 +303,8 @@ def run_command(owner, config, configuration_digest, path, request):
             'allowed_fields': config['allowed_fields'], 'allowed_form_ids': config['allowed_form_ids'],
             **({key: config[key] for key in ('allowed_object_values', 'allowed_object_refs')}
                if 'allowed_object_values' in config else {}),
+            **({'allowed_layer_transitions': config['allowed_layer_transitions']}
+               if 'allowed_layer_transitions' in config else {}),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False,
             'materializations': source.materialize_claim_forms(record, payload, access_allowed=True) if payload else []}
 

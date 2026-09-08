@@ -1147,3 +1147,65 @@ together before publishing historical records. Optional catalog files are
 selected by the current manifest, so a leftover file from an earlier snapshot
 does not restore a removed family. A reader rollback does not erase source
 records, historical judgments, or their separate assessment history.
+
+## Languages, varieties, scripts and transliteration schemes
+
+The declared `linguistic-description-record` profile keeps four concrete
+research subjects: `Language`, `LinguisticVariety`, `Script` and
+`TransliterationScheme`. Each requires substantive content, declared scope and
+referent-continuity criteria, source references and explicit description
+languages. Names and external codes do not constitute the referent. A broad
+writing tradition must say that it is not one fixed sign inventory.
+
+`LinguisticSystem` groups languages and varieties for endpoint typing only.
+It does not decide a universal language/dialect boundary. The grounded,
+nontransitive `dialect_of` and `historical_language_stage_of` Claims preserve
+their different criteria and scope; a museum's period field implies neither.
+The old atlas `language_script` navigation category is unchanged and is not
+silently split or promoted into these source subjects.
+
+`inscription_language` connects an Artifact or Item to a LinguisticSystem;
+`inscription_script` connects the carrier to a Script. Each Claim names the
+particular inscription and limits in mandatory `attestation_scope`, alongside
+its statement, source language, grounds, evidence and review posture. The link
+does not assert that every inscription on the object has only that language
+or script. Missing, competing and negated attributions remain distinct. There
+is no general Work-to-language shortcut or language-to-script inference.
+
+`transliteration_source_script` and `transliteration_notation_script` distinguish
+the source writing from the notation basis of a named convention. The latter
+may include additional numerals and metacharacters; it is not an all-character
+Unicode Script assertion. Describing a convention neither executes it nor
+creates a text layer, pronunciation, linguistic segmentation, translation or
+alignment. Those retain the existing versioned text and annotation contracts.
+
+All four kinds use `semantic-metadata-v1` and the common
+[source.create / record.revise / form commands](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-profile-subject-creation).
+Relations use separately delegated `claims.create` and correction, the common
+semantic Claim reader, exact expected versions and idempotent receipts. Shared
+access catalog, type/property filters, focus in either direction, inspection
+and source-copy human forms require no kind-specific backend or UI branch.
+Content properties and inherited scope/continuity properties are discoverable
+by semantic property IDs. `semantic_content.language/script` describe that
+account's wording, not the language or script of the object being researched.
+
+The [bounded source reading](../../review-ledger/2026-09-08-linguistic-source-reading.md)
+grounds six provisional subjects and seven unreviewed Claims across Akkadian,
+Sumerian, Old Babylonian, cuneiform, Latin and ORACC ATF, linked to the existing
+Penn CBS 07771 and Louvre AO 5473 artifacts. The inspected Penn page supports
+language only; the Louvre page supports both language and script, with French
+source values even on its English URL. The ATF account explicitly retains its
+indexed-text/direct-access limitation. These are research accounts, not
+ancient-language competence, accepted sign readings or completed translation.
+The ATF notation Claim's initial report-layer label was corrected through a
+separate exact layer transition to `linguistic_analysis`, preserving version 1
+and the unchanged proposition; no source reading was retroactively promoted.
+
+The focused linguistic contract test in `test_source_witness_bibliographic_graph`
+covers mandatory content/scope, wrong endpoint types, language/script swaps,
+no embedded admission, equal labels with distinct identities, unknown-field
+retention, exact form context and inverse focus. Source and reader measurement
+results live in the [profile review](../../review-ledger/2026-09-08-linguistic-profile-review.md).
+The [text layer law](../CORPUS_FOUNDATION.md#text-bearing-layers) remains stronger
+for actual transcriptions and transformations. Reader rollback does not remove
+new subjects, source corrections or their histories.

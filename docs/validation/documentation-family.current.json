@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4257,
+    "tracked_surface_count": 4303,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 970,
+    "excluded_tracked_path_count": 995,
     "human_scope": {
-      "bytes": 5168709,
-      "count": 900,
+      "bytes": 5186218,
+      "count": 902,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -76,9 +76,9 @@
           "lines": 49
         },
         "mechanics": {
-          "bytes": 215394,
+          "bytes": 217656,
           "count": 155,
-          "lines": 4870
+          "lines": 4903
         },
         "memo": {
           "bytes": 4538,
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 4089763,
-          "count": 612,
-          "lines": 68751
+          "bytes": 4105010,
+          "count": 614,
+          "lines": 68982
         }
       },
-      "lines": 88386
+      "lines": 88650
     },
     "surface_kind_counts": {
       "executable": 228,
-      "human": 900,
-      "structured": 3129
+      "human": 902,
+      "structured": 3173
     },
-    "tracked_path_count": 5227,
-    "tracked_surface_count": 4257,
+    "tracked_path_count": 5298,
+    "tracked_surface_count": 4303,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 612,
-        "structured": 3053
+        "human": 614,
+        "structured": 3097
       },
-      "tracked_surface_bytes": 228620655,
-      "tracked_surface_count": 3669
+      "tracked_surface_bytes": 228800418,
+      "tracked_surface_count": 3715
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 72,
         "structured": 6
       },
-      "tracked_surface_bytes": 822129,
+      "tracked_surface_bytes": 822204,
       "tracked_surface_count": 78
     },
     {
@@ -222,7 +222,7 @@
         "human": 155,
         "structured": 33
       },
-      "tracked_surface_bytes": 1015107,
+      "tracked_surface_bytes": 1029945,
       "tracked_surface_count": 215
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "51043284ed763f0ed2b9dba8297b0cb627d5ff3c4a518b512a9ce8882b4d8c41",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "76cf088dd665d7601879f70f45608d863139b63de6c14b75576306272fae382b",
+  "tracked_surface_digest": "6568d2c939a3ee537b96f7630b9e1e84663dc397f5be20419f66f2a99004bff0",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "f4f09e36eb2f6a82c890d9e20491d89fc4efb2375ea4d963eae854ffdfa4ea5f",
+      "sha256": "b311a5989f98a001a41ddc7a7544fb98ba836e085d74076360d437d0caa15c45",
       "surface_kind": "structured"
     },
     {
@@ -2087,6 +2087,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5763,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/linguistic-description-record.schema.json",
+      "sha256": "51b1c06947622c42f7f7b43a3092e1a5fcd6c50790d90322f98a428b81016ffd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1031,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/linguistic-relation-claim.schema.json",
+      "sha256": "1add9fc5130493473e3d97347b224281337ede74d5baba5a303940e74c1ce5ba",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 18822,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2919,11 +2935,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9223030,
+      "bytes": 9223042,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "f072e5ea4cc7f42c601400a026d04ac222f78c6411505efeb099c21ebe0de9ce",
+      "sha256": "bdb6db24e3c6bd7adef10e0ef6ed0eb28c41c8fed87e209962210eef57c760f2",
       "surface_kind": "structured"
     },
     {
@@ -2999,11 +3015,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 59844285,
+      "bytes": 59851072,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "63a39e596045ad207fe98d7ae776cc9edd92b939966237cab3c9bf2905d53b52",
+      "sha256": "dd5bc75ed037ea5b5f180b8e805930921bda9546c51b6b4e208d5d66965fc694",
       "surface_kind": "structured"
     },
     {
@@ -3199,11 +3215,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 83602,
+      "bytes": 83833,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "e4350abdf12b8d8a2042152d43a9c55296217d576f5e9f6e52c5f144f611df2e",
+      "sha256": "d049c0ddd72532b3ed4af47c23a09e398120802cfd4af6eff26850326e72b7d4",
       "surface_kind": "human"
     },
     {
@@ -17551,6 +17567,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 10687,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-linguistic-profile-review.md",
+      "sha256": "6e482c4c3c68059559688e7d882d3d3b310c88c4a464069bfb4184e4d8b1dbeb",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+      "sha256": "baf20a5de2a69535baad82ca3ea75124a91f8bf221351ccd46d30028e3a6b0c4",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 1285,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -17612,6 +17644,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/.record-revisions/c63bcbcb1f49ccdda4a95b7c909ecbe30fe8a2969f28cca208d5818b825ba8d4-b3c03655508ab06046cee5429eeaf63a9f0cb5ed9127ee932afad627a8b13c75/manifest.json",
       "sha256": "3ae472b67f45cf48178da40100fbf25b44d48e721060d64441344187ceabbe20",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6032,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16/manifest.json",
+      "sha256": "5982bfb9d4b16022cbbeb6c1208fd9bec483f847be8666d8e9b5ff94b3ddec69",
       "surface_kind": "structured"
     },
     {
@@ -19667,7 +19707,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "f3e4df40e6c6f2fd77c414a3e3ff38956133068b691d6ab4519410a6276f42fb",
+      "sha256": "fc170c3c90e0c7f7121d5d7ad7049df6f35f23d12a03e5403ed9607023efa19b",
       "surface_kind": "structured"
     },
     {
@@ -21823,6 +21863,246 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7781,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/akkadian/language.human-forms.json",
+      "sha256": "16cce3cb2e92fdb69336fbb8c48d2e4a2adbacdae6334c1565ee8b22b80afb46",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2161,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/akkadian/language.json",
+      "sha256": "70d17ce4f87959ae864bacae6c13a4f89922e9d80d049ce48a4cd3239cb11798",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/akkadian/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/akkadian/source-create-receipt.json",
+      "sha256": "32f0bb04eb0601a609e9b71e449225ff1a914063211fafe4ed17119383b835ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2583,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/akkadian/source-create-request.json",
+      "sha256": "116b0b111f8848d753a12092ddd37789df6c5e76d23aaffaa561e401e96e1131",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8263,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/cuneiform-writing-tradition/script.human-forms.json",
+      "sha256": "1f33b84309f6e64d2bbbafaeab9790eb175ee53713c4678fb08635fa98961aac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2648,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/cuneiform-writing-tradition/script.json",
+      "sha256": "4461a9a3a3da75be8b7829a026e1c4850a020252150a67e829b02ddd60354ea1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/cuneiform-writing-tradition/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1448,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/cuneiform-writing-tradition/source-create-receipt.json",
+      "sha256": "cff23db3f8f10d144a2d1a68669c567564b5faab736640bc7fc5f14a9cc60e67",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3130,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/cuneiform-writing-tradition/source-create-request.json",
+      "sha256": "908013a1661b9213c2ef7fe8af142566de14656f23b3351daf7dd1d0ddfe1e7f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8151,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/latin-writing-tradition/script.human-forms.json",
+      "sha256": "45f51d0ea2f8d91764e091d8125236d33c2c6ba40713238a41398ae066e2e71f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2435,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/latin-writing-tradition/script.json",
+      "sha256": "73218d4c6097e0019553885ae7ba4c9b841044182b6ebd8c7bb83c249ea06d23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/latin-writing-tradition/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1436,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/latin-writing-tradition/source-create-receipt.json",
+      "sha256": "db9272f73b6c716dc168680e07121aaf34ab79e6c6e6765c5cf33d6ff7036bfb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2911,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/latin-writing-tradition/source-create-request.json",
+      "sha256": "7a993b9df30dc14e60da2c97349793a673dba4c5b900d5581bf80c4293289547",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8199,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/old-babylonian/linguistic-variety.human-forms.json",
+      "sha256": "3747ee8491fa43e308089ccfe75973672468bab5ab327105ae9f98e1e2b92f05",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2675,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/old-babylonian/linguistic-variety.json",
+      "sha256": "2e0ba0201b2e9d6946740ec7b90083ba9a9a2eb1be8389b39a423c5ee668340b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/old-babylonian/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1457,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/old-babylonian/source-create-receipt.json",
+      "sha256": "7e3298cdf2d6d20311a73937886aee27ada6bc820b9e119fdcc455f0bb98f1b8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3115,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/old-babylonian/source-create-request.json",
+      "sha256": "1e37a04f572b51195d16047b0301c63702ed3c8114f82ae449f3515986d6e028",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/oracc-atf/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1458,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/oracc-atf/source-create-receipt.json",
+      "sha256": "82a820874f580b22b50d2679aab0c6543a469c839a5026bbb52f4f629c32b7c9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3158,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/oracc-atf/source-create-request.json",
+      "sha256": "bb94e4fa9948b8c079a93bbb752c324c22e50752dd7b6c54df50adb2ee4cc685",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8159,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/oracc-atf/transliteration-scheme.human-forms.json",
+      "sha256": "4cab3a2c3fe82fd3f89feeca72d67560868bd6d6ce8a179b76953a68302ba184",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2743,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/oracc-atf/transliteration-scheme.json",
+      "sha256": "4f9d65f375375c7dc1d9191127f5508712734558d57dd3d78f6d3f3b11cf0f3f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7781,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/sumerian/language.human-forms.json",
+      "sha256": "8eb6cea570bb3635361598303d7886d134bb572a6f566132412ea10d9de765fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2287,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/sumerian/language.json",
+      "sha256": "67dd6d7d03a234c7babc55b03467baf70c3f5d8d2e58d8ef99bc534de6a9c233",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/sumerian/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/sumerian/source-create-receipt.json",
+      "sha256": "fb193cdcb6ce71902e16619e837d7f8dc94171b6a99a1855d607a570e40e784e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/languages/sumerian/source-create-request.json",
+      "sha256": "a269831a9d75f7ff864aca57a72563333ad80d1a9005abeb3af7b07c13ef99ae",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1381,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -23444,6 +23724,94 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/jgb-production-research/source-create-request.json",
       "sha256": "668aa290f3d0b5bef8088aa6070c46c7d0fec9580088e31544db1c2f04782b09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6613,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/claim-revision-history.json",
+      "sha256": "b4cd6ed341a962dea45a8f951edfa96412f9e415aba45016c029b6ff80490788",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3774,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.024cbb3f27d326e7be74ac643a65f1750719cea74fd445ae1ee59ada626840bf.human-forms.json",
+      "sha256": "9466a96428a64c1929efb9c5aa6bd8da1530666124872389c063c6f6b5a0be6b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3782,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.6e8881bef18bbdbf609a37bd50a7e7130b4305220c3276bf4a0f5daf5a565a9c.human-forms.json",
+      "sha256": "f0aca5c8c34b0274507bf8fd07e97bd6a4b7af552c230b7bcb821caa0a7b221d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3774,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.900053b209ca86e075f329998c681dab40080302d047f832d2d703f045dd2bd5.human-forms.json",
+      "sha256": "8a42ad5d4d286e2a29c1f513faa3fea6332a98a8c78758d34744c6b15d0d087a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3766,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.b5fbd42a38469624a843e67afce57302734ba84d0a175a305e808f28621fabe6.human-forms.json",
+      "sha256": "5330b51194a4bce6603f504587735dcfcce03b29cbb29b6d33b337fc5ae1154c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5111,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7.human-forms.json",
+      "sha256": "2ea69922f37099d1f3e279c2fc51b8a239ccada5609981149de7ec37161a41a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3790,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.f45c7d8c1e40565736756c7a4341eb350fa374c2018badc2c718d0e3ca96deae.human-forms.json",
+      "sha256": "dd54fb0621f1bfc5e36570eaf3dd913c76ba20b80b125ba7251ac194bb37f3cf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3814,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-claims.fd64d8b5daccef593736f82be10a5017ac3fb117ee4d2d8a3e5f59e31138b094.human-forms.json",
+      "sha256": "bea7d78e65f330d4e4304cd5f4635a95ec1440a69d744dd41ea6cc3a103a2e2b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5569,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-create-receipt.json",
+      "sha256": "8299eb0b56f2d5ce459c5e960327b88efbfa0dba16865228fd74995a1b82deab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 13704,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/linguistic/source-create-request.json",
+      "sha256": "c465b3f0e5d1c51cad96b134925792738bf5d3e2e6e5d25c7ea6b285e2030e8d",
       "surface_kind": "structured"
     },
     {
@@ -30927,11 +31295,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 187865,
+      "bytes": 187940,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "f90bd81a3e0320836e59966797388d197aecef54fff039a5301ba2ee1e22372b",
+      "sha256": "bdd83d2ac13afb2d9d9be1ee0c4bfa3978c25f2201e5fecdb7ceee333bb65260",
       "surface_kind": "structured"
     },
     {
@@ -32215,11 +32583,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 63679,
+      "bytes": 65941,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "2334872bdbb653e0606d9042eb9197d526ceb484dccabf2361cd7e9b27f65730",
+      "sha256": "1191b6d201e86903eed23484d023ac16ec691c613f84f90797583f507540dee6",
       "surface_kind": "human"
     },
     {
@@ -32255,11 +32623,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 21916,
+      "bytes": 24354,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
-      "sha256": "c0c6e7b0de135afb7b9ed0d84f71586c7db673e869155ece84fb929f6dd8be83",
+      "sha256": "9910032ae2b2d6f3b8354f656d9d116c1c300b6b21b1b27bdd646dd06b34bb0c",
       "surface_kind": "executable"
     },
     {
@@ -32287,11 +32655,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 69631,
+      "bytes": 69761,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "9ecb4183abba8845a5c7031dd37ad8d857d3ca1b80976beeeae1789846c2ee05",
+      "sha256": "8fb0fe6074f637d466d64566019fd5c099ac5a865ad0d050199bcc11475112c3",
       "surface_kind": "executable"
     },
     {
@@ -32319,11 +32687,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 90669,
+      "bytes": 100677,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
-      "sha256": "171975ea2475b8364f8df3f6cc823a7ac5e5e9541c00ee055521ce0a69ce4d95",
+      "sha256": "e457909c7497aba67b37eb970fc47d59ae8dad769d5330ae56a4ac64b8b63451",
       "surface_kind": "executable"
     },
     {

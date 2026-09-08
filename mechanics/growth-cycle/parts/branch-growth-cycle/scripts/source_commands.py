@@ -50,6 +50,7 @@ CLAIM_VALUE_CONFIG = 'tos_local_claim_create_owner_v2'
 CLAIM_VALUE_REVISION_CONFIG = 'tos_local_claim_revision_owner_v2'
 CLAIM_STRUCTURED_CONFIG = 'tos_local_claim_create_owner_v3'
 CLAIM_STRUCTURED_REVISION_CONFIG = 'tos_local_claim_revision_owner_v3'
+CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
@@ -78,7 +79,7 @@ def _configuration(path):
     if config.get('schema_version') in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG}:
         from source_claim_commands import configuration
         return configuration(config)
-    if config.get('schema_version') in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG}:
+    if config.get('schema_version') in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
         from claim_revisions import configuration
         return configuration(config)
     creation = config.get('schema_version') in CREATION_CONFIGS
@@ -958,7 +959,7 @@ def run_local_command(owner_config: Path, request: dict):
     if config['schema_version'] in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG}:
         from source_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG}:
+    if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
         from claim_revisions import run_command
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, PROFILE_CONFIG, CORPUS_CONFIG}:

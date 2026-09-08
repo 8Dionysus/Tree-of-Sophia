@@ -17,6 +17,125 @@ ROOT = fixtures.ROOT
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_layer_correction_requires_exact_separate_authority_and_preserves_history(self):
+        """Correct a synthetic layer label, never replace the proposition or admit it."""
+        with self.creation() as (root, owner, creator, claim, creation, *_):
+            claim['qualifiers'].update(statement='Условная тестовая атрибуция, не исторический факт.',
+                statement_language='ru', statement_script='Cyrl', unknown={'values': [False, None, 'Ω']})
+            sibling = {**copy.deepcopy(claim), 'claim_id': claim['claim_id'] + '-sibling'}
+            creator['allowed_claim_ids'].append(sibling['claim_id'])
+            owner.write_text(json.dumps(creator))
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim, sibling]})
+            creation.update(claims=[claim, sibling], expected_configuration=prepared['owner_configuration'],
+                expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+            created = commands.run_local_command(owner, creation)
+            path = root / creator['source_path']
+            original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
+            transition = {'from': claim['assertion_layer'], 'to': 'bibliographic_assertion'}
+            self.assertNotEqual(transition['from'], transition['to'])
+            config = {key: creator[key] for key in
+                ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version='tos_local_claim_layer_revision_owner_v1', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['assertion_layer'],
+                allowed_layer_transitions=[transition], allowed_evidence_refs=creator['allowed_evidence_refs'],
+                allowed_form_ids=['tos.form.test.layer-corrected'])
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'assertion_layer': transition['to']}, 'layer_transition': transition,
+                'forms': [{'form_id': 'tos.form.test.layer-corrected', 'field_id': 'claim.statement'}],
+                'reason': 'Correct the synthetic classification only; no new proposition or judgment.'}
+            owner.write_text(json.dumps(config))
+            description = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'describe'})
+            self.assertEqual(description['allowed_layer_transitions'], [transition])
+            for invalid in ([transition, transition], [{'from': '*', 'to': transition['to']}],
+                    [{'from': transition['from'], 'to': transition['from']}],
+                    [{'from': transition['from'], 'to': ''}], [dict(transition, grants_admission=True)]):
+                owner.write_text(json.dumps({**config, 'allowed_layer_transitions': invalid}))
+                with self.subTest(invalid=invalid), self.assertRaises((ValueError, PermissionError)):
+                    commands.run_local_command(owner, proposal)
+            for version in range(1, 4):
+                old = {k: v for k, v in config.items() if k != 'allowed_layer_transitions'}
+                old.update(schema_version=f'tos_local_claim_revision_owner_v{version}', allowed_fields=['qualifiers'])
+                if version > 1:
+                    old.update(allowed_object_values=[], allowed_object_refs=[])
+                owner.write_text(json.dumps(old))
+                for invalid in (proposal, {k: v for k, v in proposal.items() if k != 'layer_transition'},
+                        {**proposal, 'fields': {'qualifiers': {'statement': 'Not a layer correction.'}}}):
+                    with self.subTest(version=version), self.assertRaises((ValueError, PermissionError)):
+                        commands.run_local_command(owner, invalid)
+                owner.write_text(json.dumps({**old, 'allowed_fields': ['assertion_layer']}))
+                with self.assertRaises((ValueError, PermissionError)):
+                    commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            owner.write_text(json.dumps(config))
+            for invalid in ({k: v for k, v in proposal.items() if k != 'layer_transition'},
+                    {**proposal, 'layer_transition': {'from': transition['to'], 'to': transition['from']}},
+                    {**proposal, 'layer_transition': None},
+                    {**proposal, 'fields': {'assertion_layer': transition['from']}},
+                    {**proposal, 'fields': {**proposal['fields'], 'qualifiers': {'statement': 'Changed proposition.'}}},
+                    {**proposal, 'fields': {'review_status': 'accepted'}}, {**proposal, 'forms': []}):
+                with self.subTest(invalid=invalid), self.assertRaises((ValueError, PermissionError)):
+                    commands.run_local_command(owner, invalid)
+            # Delegation cannot weaken the predicate's allowed layer profile.
+            forbidden = {'from': transition['from'], 'to': 'linguistic_analysis'}
+            owner.write_text(json.dumps({**config, 'allowed_layer_transitions': [forbidden]}))
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, {**proposal, 'fields': {'assertion_layer': forbidden['to']},
+                    'layer_transition': forbidden})
+            wrong_from = {'from': 'linguistic_analysis', 'to': transition['to']}
+            owner.write_text(json.dumps({**config, 'allowed_layer_transitions': [wrong_from]}))
+            with self.assertRaises((ValueError, PermissionError)):
+                commands.run_local_command(owner, {**proposal, 'layer_transition': wrong_from})
+            self.assertEqual(original, {p.name: p.read_bytes() for p in path.parent.iterdir()})
+            owner.write_text(json.dumps(config))
+            prepared = commands.run_local_command(owner, proposal)
+            request = {**proposal, 'operation': 'claim.revise', 'command_id': 'synthetic:layer-correction',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                'expected_inputs': prepared['source_bindings']}
+            corrected = commands.run_local_command(owner, request)
+            expected = {**claim, 'claim_version': 2, 'assertion_layer': transition['to']}
+            self.assertEqual(json.loads(path.read_bytes().splitlines()[0]), expected)
+            self.assertEqual(path.read_bytes().splitlines(keepends=True)[1], original[path.name].splitlines(keepends=True)[1])
+            self.assertFalse(corrected['grants_admission'])
+            self.assertEqual(corrected['materializations'][0]['context'][0]['value'], expected)
+            self.assertIsNone(corrected['materializations'][0]['admission'])
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': prepared['source']})
+            self.assertEqual(prior['record'], claim)
+            for name, binding in prior['files'].items():
+                self.assertEqual((root / binding['archive_path']).read_bytes(), original[name])
+            # Replay uses its predecessor, not the current to-layer; revocation still applies.
+            self.assertEqual(commands.run_local_command(owner, request)['receipt'], corrected['receipt'])
+            owner.write_text(json.dumps({**config, 'allowed_layer_transitions': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            # Ordinary sibling and selected-Claim revisions must read prior layer history
+            # without borrowing that historical transition's old grant.
+            ordinary = {k: v for k, v in config.items() if k != 'allowed_layer_transitions'}
+            ordinary.update(schema_version='tos_local_claim_revision_owner_v1', allowed_fields=['qualifiers'])
+            for selected in (sibling, claim):
+                form = 'tos.form.test.layer-sibling' if selected is sibling else config['allowed_form_ids'][0]
+                owner.write_text(json.dumps({**ordinary, 'claim_id': selected['claim_id'], 'allowed_form_ids': [form]}))
+                next_proposal = {k: v for k, v in proposal.items() if k != 'layer_transition'}
+                next_proposal.update(fields={'qualifiers': {'statement': 'Уточнение условного теста.'}},
+                    forms=[{'form_id': form, 'field_id': 'claim.statement'}])
+                preview = commands.run_local_command(owner, next_proposal)
+                commands.run_local_command(owner, {**next_proposal, 'operation': 'claim.revise',
+                    'command_id': f'synthetic:after-layer:{selected["claim_id"]}',
+                    'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                    'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                    'expected_inputs': preview['source_bindings']})
+            owner.write_text(json.dumps(config))
+            replay = commands.run_local_command(owner, request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], corrected['receipt'])
+            self.assertEqual(replay['source']['version'], 3)
+            final_bytes = path.read_bytes()
+            owner.write_text(json.dumps(creator))
+            self.assertEqual(commands.run_local_command(owner, creation)['receipt'], created['receipt'])
+            self.assertEqual(path.read_bytes(), final_bytes)
+
     def test_v3_relative_self_anchor_requires_separate_object_scope(self):
         """Subject permission cannot silently authorize its use as a value anchor."""
         with self.creation() as (root, owner, creator, claim, *_):

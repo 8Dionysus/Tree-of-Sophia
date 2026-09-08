@@ -34,6 +34,136 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_linguistic_profiles_keep_language_script_variety_and_notation_distinct(self):
+        """Synthetic linguistic accounts are not claims about the copied artifact."""
+        from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError
+        profiles = SourceRecordProfiles(REPO_ROOT)
+        contents = {
+            'language': {'system_account': 'A synthetic linguistic system, not a script.'},
+            'linguistic-variety': {'system_account': 'A synthetic variety, not an artifact period.',
+                'distinguishing_basis': 'A disputed local criterion, not a universal language/dialect test.'},
+            'script': {'script_account': 'A synthetic writing tradition, not a language.',
+                'sign_inventory_scope': 'An explicitly limited repertoire, not timeless sign readings.'},
+            'transliteration-scheme': {'mapping_convention': 'A synthetic notation convention, not translation.',
+                'coverage_and_loss': 'Unknown readings remain unknown; no reversibility is asserted.'},
+        }
+        with self.historical_fixture() as (root, history, real, baseline, rebuild):
+            for name in ('source-metadata-record', 'semantic-description-record', 'linguistic-description-record',
+                         'semantic-relation-claim', 'linguistic-relation-claim', 'source-claim-record',
+                         'semantic-relation-type-registry', 'artifact-source-witness'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            artifact_ref = 'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json'
+            artifact_path = root / artifact_ref
+            artifact_path.parent.mkdir(parents=True)
+            artifact_path.write_bytes((REPO_ROOT / artifact_ref).read_bytes())
+            artifact = json.loads(artifact_path.read_bytes())
+            for ref in artifact['philosophy_planting_refs']:
+                path = root / ref; path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((REPO_ROOT / ref).read_bytes())
+            from source_commands import prepare_metadata_change, _apply
+            from knowledge_assessment import Record
+            records = {}
+            for kind, content in contents.items():
+                source = {**copy.deepcopy(history[0][1]), 'schema_version': 'tos_linguistic_description_record_v1',
+                    'record_type': kind, 'record_id': f'tos.{kind}.synthetic-linguistic',
+                    'preferred_label': 'Одинаковая метка', 'notes': 'Синтетическое описание; совпадение имени не доказывает тождества.',
+                    'field_languages': {key: {'language': 'ru', 'script': 'Cyrl'} for key in ('preferred_label', 'notes')},
+                    'semantic_scope': {'scope_note': 'Only this artificial research referent.',
+                        'identity_criterion': 'Correcting its description preserves its ID; changing its referent does not.',
+                        'language': 'en', 'script': 'Latn'},
+                    'semantic_content': {**content, 'language': 'en', 'script': 'Latn',
+                        'unknown_extension': {'instruction': 'Inert text', 'values': [False, None, '𒀀']}},
+                    'extensions': {'uninterpreted_code': 'x-synthetic'}}
+                profiles.validate(kind, source)
+                for field in (*content, 'language', 'script'):
+                    invalid = copy.deepcopy(source); invalid['semantic_content'].pop(field)
+                    with self.subTest(kind=kind, missing=field), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, invalid)
+                for field in content:
+                    invalid = copy.deepcopy(source); invalid['semantic_content'][field] = ' '
+                    with self.subTest(kind=kind, empty=field), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, invalid)
+                for change in ({'record_id': 'tos.language-script.synthetic'}, {'notes': ' '},
+                               {'language_ref': 'tos.language.synthetic-linguistic'}, {'semantic_scope': {}}):
+                    with self.subTest(kind=kind, change=change), self.assertRaises(SourceProfileError):
+                        profiles.validate(kind, {**source, **change})
+                path = root / f'ToS/source-witnesses/languages/fixture/{kind}.json'
+                path.parent.mkdir(parents=True, exist_ok=True); path.write_text(json.dumps(source))
+                changes = [prepare_metadata_change(source, None, 'test:linguistic-profile',
+                    form_id=f'tos.form.linguistic-{kind}-{role}', field_id=field) for role, field in
+                    (('name', 'metadata.preferred-name'), ('hover', 'metadata.source-note'))]
+                formset = _apply(None, Record.from_payload(source['record_id'], 1, source), changes)
+                path.with_name(kind + '.human-forms.json').write_text(json.dumps(formset))
+                records[kind] = source
+            objects = {r['record_id']: r for r in records.values()}
+            objects[artifact['artifact_id']] = {'record_type': 'artifact'}
+            claims, reader = [], SourceClaimProfiles(root)
+            for index, (predicate, subject, target) in enumerate((
+                    ('inscription_language', artifact['artifact_id'], records['language']['record_id']),
+                    ('inscription_script', artifact['artifact_id'], records['script']['record_id']),
+                    ('dialect_of', records['linguistic-variety']['record_id'], records['language']['record_id']),
+                    ('historical_language_stage_of', records['linguistic-variety']['record_id'], records['language']['record_id']),
+                    ('transliteration_source_script', records['transliteration-scheme']['record_id'], records['script']['record_id']),
+                    ('transliteration_notation_script', records['transliteration-scheme']['record_id'], records['script']['record_id']))):
+                claim = {**copy.deepcopy(baseline[0]), 'schema_version': 'tos_semantic_relation_claim_v1',
+                    'claim_id': f'tos.claim.synthetic-linguistic-{index}', 'subject_ref': subject,
+                    'predicate': predicate, 'object': target, 'qualifiers': {
+                        'statement': 'Условная атрибуция только для теста; не установленный факт.',
+                        'statement_language': 'ru', 'statement_script': 'Cyrl',
+                        'relation_basis': 'Synthetic evidence only, not the copied artifact metadata.',
+                        'attestation_scope': 'Only this synthetic relation; not the whole object or every period.',
+                        'negated': index == 1,
+                        'source_wording': {'text': 'synthetic attribution', 'language': 'en', 'script': 'Latn'}}}
+                reader.validate(claim, objects)
+                self.assertFalse(reader.relations[predicate]['transitive'])
+                self.assertIsNone(reader.relations[predicate]['cardinality']['per_subject_max'])
+                for field in ('attestation_scope', 'relation_basis', 'statement_language'):
+                    invalid = copy.deepcopy(claim); invalid['qualifiers'].pop(field)
+                    with self.subTest(predicate=predicate, missing=field), self.assertRaises(SourceProfileError):
+                        reader.validate(invalid, objects)
+                for change in ({'subject_ref': real[2]['record_id']}, {'object': real[0]['record_id']},
+                               {'review_status': 'accepted'}, {'evidence_refs': []}, {'claim_id': subject}):
+                    with self.subTest(predicate=predicate, change=change), self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, **change}, {**objects, **{r['record_id']: r for r in real}})
+                swapped = records['script' if predicate == 'inscription_language' else 'language']['record_id']
+                if predicate in {'inscription_language', 'inscription_script'}:
+                    with self.assertRaises(SourceProfileError):
+                        reader.validate({**claim, 'object': swapped}, objects)
+                claims.append(claim)
+            path.with_name('source-claims.jsonl').write_text(''.join(json.dumps(c) + '\n' for c in claims))
+            projection = rebuild()
+            _, entities, relations = self.historical_knowledge(root, projection)
+            import tos_corpus_index_common as corpus_builder
+            from tos_access.knowledge import build_knowledge_graph, focus_knowledge_node, select_human_forms, execute_knowledge_lens
+            with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                navigation = corpus_builder.build_source_navigation([])
+            graph = build_knowledge_graph({'source_navigation': navigation}, {}, projection, entities, relations)
+            for kind, source in records.items():
+                carriers = [n for n in graph['nodes'] if n['entity_id'] == source['record_id']]
+                self.assertEqual({n['source_graph'] for n in carriers}, {'source-claims', 'source-navigation'})
+                for node in carriers:
+                    self.assertEqual(node['attributes']['source_record'], source)
+                    self.assertEqual(node['type_id'], 'tos.entity.' + kind)
+                    self.assertNotIn('tos.entity.language-script', node['semantics']['type_ancestors'])
+                    packet = select_human_forms(node, 'ru')['roles']['hover']['packet']
+                    self.assertEqual(packet['display_text'], source['notes'])
+                    self.assertTrue(any(c['binding']['pointer'] == '/semantic_content' and c['value'] == source['semantic_content']
+                                        for c in packet['context']))
+                    self.assertIsNone(packet['admission'])
+                for field, value in contents[kind].items():
+                    result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                        'lens_id': 'synthetic-linguistic-property', 'node_query': {'filters': [{
+                            'property_id': 'tos.property.' + kind + '-' + field.replace('_', '-'),
+                            'op': 'eq', 'value': value}]}, 'relation_query': {'enabled': False}, 'detail': 'full'})
+                    self.assertEqual({n['entity_id'] for n in result['nodes']}, {source['record_id']})
+            for claim in claims:
+                node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+                self.assertEqual(node['attributes']['source_claim'], claim)
+                for center, other in ((claim['subject_ref'], claim['object']), (claim['object'], claim['subject_ref'])):
+                    focused = focus_knowledge_node(graph, center, depth=2)
+                    self.assertIn(other, {n['entity_id'] for n in focused['nodes']})
+
     def test_reception_profiles_keep_historical_recognition_and_knowledge_admission_distinct(self):
         """Synthetic reception contracts; no claim that any history occurred."""
         from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError

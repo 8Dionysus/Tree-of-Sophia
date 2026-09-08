@@ -267,7 +267,7 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "ToS/contracts/source-claim-record.schema.json", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json"],
-      "reads": ["exact protected correction grant, one selected declared Claim in a bounded shared stream, adjacent forms and complete shared correction history", "byte-bound predecessor archives, source endpoint/evidence bindings and shared profile/schema/implementation dependencies"],
+      "reads": ["exact protected correction grant, one selected declared Claim in a bounded shared stream, adjacent forms and complete shared correction history; layer correction requires its separate exact transition grant and request", "byte-bound predecessor archives, source endpoint/evidence bindings and shared profile/schema/implementation dependencies"],
       "writes": ["exact prior flat-package archive and manifest through source_revisions helpers", "one atomic stream, selected source-copy forms and shared claim-revision-history.json package; stable source writer lock and invocation-local staging"],
       "side_effects": "local-account scoped correction with fsync and Linux directory exchange; preserves other rows, companions, origin maker/provenance and old versions; no assessment, admission, identity change, model call, access-policy change or publication; abandoned staging is not deleted on retry",
       "validation_lane": "mechanics_local",
