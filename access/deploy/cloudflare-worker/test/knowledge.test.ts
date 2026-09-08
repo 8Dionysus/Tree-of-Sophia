@@ -47,7 +47,7 @@ function claimFormNode(): KnowledgeGraph['nodes'][number] {
 }
 
 function claimNavigationFixture(): {graph: KnowledgeGraph; fullGraph: KnowledgeGraph; fullScene: unknown;
-  claims: string[]; cases: {spec: unknown; expected: unknown}[]} {
+  claims: string[]; versions: string[]; cases: {spec: unknown; expected: unknown}[]} {
   // Build disposable navigation carriers from three real legacy Claims and
   // their exact public identity records. No source/form files are changed;
   // this transport fixture does not assert graph-wide source closure.
@@ -57,7 +57,8 @@ sys.path[:0] = ['access/src', 'scripts']
 from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
 from tos_access.knowledge import (_entity_registry_indexes, _relation_registry_indexes,
     _validate_claim_navigation_carriers, _normalize_node, _normalize_relation,
-    _source_claim_kind, _finalize_knowledge_node, _stable_digest, execute_knowledge_lens, knowledge_scene)
+    _source_claim_kind, _finalize_knowledge_node, _stable_digest, _exact_record_digest,
+    execute_knowledge_lens, knowledge_scene)
 root = pathlib.Path('.')
 raw = json.loads((root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
 entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
@@ -95,23 +96,47 @@ for trace in traces:
         'relation_type_id': relation_mappings[('source-claims', trace['predicate'], 'claim-predicate')],
         'predicate_mapping_status': 'mapped'}
     by_id[identifier] = _finalize_knowledge_node(node, (claim, trace), [])
+# Synthetic exact-version transport controls, not a real historical judgment
+# or archive verification. The source-owner end-to-end tests cover that chain.
+record = copy.deepcopy(by_native[traces[0]['claim_node_id']]['properties']['source_claim'])
+record.update(claim_id='tos.claim.synthetic-exact-version-transport', claim_version=1)
+record['qualifiers'] = {'statement': 'Keine gesicherte Zuschreibung; synthetischer Transporttest.',
+    'statement_language': 'de', 'statement_script': 'Latn', 'polarity': 'negative',
+    'unknown_extension': {'false': False, 'zero': 0, 'null': None, 'empty': []}}
+reference = {'id': record['claim_id'], 'version': 1, 'digest': 'sha256:' + _exact_record_digest(record)}
+derived_versions = []
+for available in (True, False):
+    ref = reference if available else {**reference, 'version': 2, 'digest': 'sha256:' + '0' * 64}
+    view = {'schema_version': 'tos_record_version_view_v1', 'record_ref': ref, 'record_kind': 'claim',
+        'status': 'available' if available else 'missing', 'reason': 'synthetic-transport-only',
+        'version_status': 'historical' if available else None, 'record': record if available else None,
+        'provenance': {'fixture': 'not-an-archive-verification'} if available else {},
+        'grants_current_use': False, 'performs_assessment': False}
+    carrier = {'node_id': 'record-version:' + _exact_record_digest(ref), 'node_kind': 'record-version',
+        'source_ref': 'test:synthetic-exact-version-transport', 'properties': {'record_version_view': view}}
+    node = _normalize_node(carrier, 'source-navigation', entity_type_entries=entity_entries,
+        entity_type_mappings=entity_mappings, fallback_type_id=entity_fallback)
+    derived_versions.append(node)
+    by_id[node['id']] = node
 full_edges = [_normalize_relation({**edge, 'predicate_id': edge['edge_kind'],
     'source_ref': edge['source_claim_file_ref'], 'graph_layers': ['bibliographic-claim']}, 'source-claims', by_id,
     relation_type_entries=relation_entries, relation_type_mappings=relation_mappings,
     fallback_relation_type_id=relation_fallback) for edge in incident_edges]
-full_graph = {'schema': 'tos_knowledge_graph_v1', 'source_revision': _stable_digest([selected, relations, entities]),
+full_graph = {'schema': 'tos_knowledge_graph_v1', 'source_revision': _stable_digest([selected, relations, entities, derived_versions]),
     'nodes': list(by_id.values()), 'relations': full_edges,
     'counts': {'nodes': len(by_id), 'relations': len(full_edges)},
     'authority_boundary': {'is_source': False, 'is_canon': False, 'writes_to_tree': False}}
-graph = {**full_graph, 'nodes': [node for node in by_id.values() if node['native_id'] in selected_ids],
+graph = {**full_graph, 'nodes': [node for node in by_id.values()
+    if node['native_id'] in selected_ids or node['type_id'] == 'tos.entity.record-version'],
     'relations': [edge for edge in full_edges if edge['predicate_id'] in {'has_subject', 'has_object'}]}
 graph['counts'] = {'nodes': len(graph['nodes']), 'relations': len(graph['relations'])}
 specs = [{'schema_version': 'tos_lens_spec_v1', 'lens_id': 'claim-navigation-transport',
-    'sources': ['source-claims'], 'language': language, 'detail': detail}
+    'sources': ['source-claims', 'source-navigation'], 'language': language, 'detail': detail}
     for language in ('ru', 'en') for detail in ('compact', 'full')]
 print(json.dumps({'graph': graph, 'fullGraph': full_graph,
     'fullScene': knowledge_scene(full_graph['nodes'], full_graph['relations']),
     'claims': sorted('source-claims:claim:' + identity for identity in claim_ids),
+    'versions': sorted(node['id'] for node in derived_versions),
     'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}))
 `], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 4 * 1024 * 1024}));
 }
@@ -590,7 +615,7 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   for (const result of results.slice(1)) assert.equal(result.state, 'invalid');
 });
 
-test('Claim navigation survives RU/EN compact/full D1 reads without becoming assertion wording', async () => {
+test('Claim navigation and exact record versions survive RU/EN compact/full D1 reads without new authority', async () => {
   const fixture = claimNavigationFixture(), source = structuredClone(fixture.graph);
   const fullScene = knowledgeScene(fixture.fullGraph.nodes, fixture.fullGraph.relations, null);
   assert.deepEqual(fullScene, fixture.fullScene, 'full real incident context agrees with Python');
@@ -655,6 +680,32 @@ test('Claim navigation survives RU/EN compact/full D1 reads without becoming ass
           assert.deepEqual(node.attributes.navigation_descriptor, original.attributes.navigation_descriptor);
           assert.deepEqual(node.source_record, original.source_record);
         }
+      }
+      for (const id of fixture.versions) {
+        const original = source.nodes.find(n => n.id === id)!;
+        const node = result.nodes.find(n => n.id === id)!;
+        assert.deepEqual(node.semantics, original.semantics, 'exact pointer and whole historical context survive');
+        assert.deepEqual(node.display, original.display);
+        assert.deepEqual(node.epistemic, {authority_layer: 'derived-export', canon_status: null,
+          review_posture: 'not-recorded', confidence: null});
+        const version = node.semantics.record_version as {status: string; record_ref: {id: string};
+          grants_current_use: boolean; performs_assessment: boolean};
+        assert.notEqual(node.entity_id, version.record_ref.id, 'version is not the current Claim identity');
+        assert.equal(version.grants_current_use, false);
+        assert.equal(version.performs_assessment, false);
+        assert.equal(Object.hasOwn(node, 'human_form_selection'), false);
+        if (version.status === 'missing') {
+          assert.equal(Object.hasOwn(node.semantics, 'assertion_contexts'), false);
+          assert.equal(node.display.summary_state, 'missing');
+          assert.equal(node.display.provenance.source_summary_available, false);
+        } else {
+          assert.deepEqual(node.semantics.assertion_contexts, original.semantics.assertion_contexts);
+          assert.equal(node.display.summary.de, 'Keine gesicherte Zuschreibung; synthetischer Transporttest.');
+          assert.equal(node.display.provenance.summary, 'exact-record-quotation');
+        }
+        assert.deepEqual(node.attributes, detail === 'full' ? original.attributes : {});
+        if (detail === 'full') assert.deepEqual(node.source_record, original.source_record);
+        else assert.equal(Object.hasOwn(node, 'source_record'), false);
       }
       const compact = (result.scene as {compact: {claim_paths: {claim_node_id: string; reading: {
         wording_pointer: string | null; wording_state: string; standalone: boolean}}[]}}).compact;

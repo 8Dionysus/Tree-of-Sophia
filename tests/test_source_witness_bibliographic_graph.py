@@ -2291,6 +2291,185 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             materialized = materialize_metadata_forms(source, stripped, access_allowed=True)
             self.assertTrue(all(p['state'] == 'invalid' and p['display_text'] is None for p in materialized))
 
+    @contextmanager
+    def historical_sign_basis_fixture(self):
+        """Non-issued Signs cite v1 before a real byte-bound v1 -> v2 archive.
+
+        Pure archive helpers construct synthetic receipts; no owner command,
+        assessment, grant, or current-use materialization is executed.
+        """
+        import claim_revisions as revisions
+        import source_revisions as packages
+        import source_commands as commands
+        import tos_corpus_index_common as corpus_builder
+        from source_record_profiles import SourceClaimProfiles
+        from jsonschema import Draft202012Validator
+        from referencing import Registry, Resource
+        with self.synthetic_sign_fixture() as (root, sign, sign_path, rebuild):
+            for name in ('source-claim-record', 'historical-context-claim', 'record-version-view'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((REPO_ROOT / ref).read_bytes())
+            rebuild()
+            baseline = root / 'ToS/source-witnesses/history/fixture/historical-claims.jsonl'
+            original = json.loads(baseline.read_text().splitlines()[0])
+            original.update(schema_version='tos_historical_context_claim_v1',
+                claim_id='tos.claim.synthetic-sign-exact-version',
+                qualifiers={**original['qualifiers'],
+                    'statement': 'Условная исходная гипотеза, НЕ принятое значение.\r\nΩ',
+                    'statement_language': 'ru', 'statement_script': 'Cyrl',
+                    'relation_basis': 'Synthetic test only; not historical evidence.',
+                    'context_scope': 'This one proposed association only.',
+                    'time_scope_note': 'No historical time is asserted.',
+                    'unknown': {'false': False, 'zero': 0, 'null': None, 'empty': '', 'list': []}})
+            SourceClaimProfiles(root).validate(original)
+            sibling = {**copy.deepcopy(original), 'claim_id': 'tos.claim.synthetic-sign-basis-neighbor'}
+            sibling['qualifiers']['statement'] = 'NEIGHBOR STREAM PROSE IS NOT THE SIGN BASIS'
+            relative = 'ToS/source-witnesses/relations/synthetic-sign-basis/source-claims.jsonl'
+            claim_path = root / relative
+            claim_path.parent.mkdir(parents=True)
+            claim_path.write_bytes(commands._canonical(original) + b'\r\n\n' + commands._canonical(sibling) + b'\n')
+            reference = revisions._subject(original).ref
+            sign['promotion_basis']['candidate'] = reference
+            sign_path.write_text(json.dumps(sign, ensure_ascii=False))
+            second_sign = {**copy.deepcopy(sign), 'record_id': 'tos.sign.synthetic-reader-second'}
+            second_sign_path = sign_path.parent.with_name('synthetic-reader-second') / 'sign.json'
+            second_sign_path.parent.mkdir()
+            second_sign_path.write_text(json.dumps(second_sign, ensure_ascii=False))
+            sign_bytes = {path: path.read_bytes() for path in (sign_path, second_sign_path)}
+            files = packages._package(claim_path.parent)
+            revision = packages._revision(files)
+            request = {'operation': 'claim.revise', 'command_id': 'test:sign-basis-correction',
+                'fields': {'qualifiers': {**original['qualifiers'],
+                    'statement': 'CURRENT VERSION TWO MUST NOT REPLACE THE SIGN BASIS',
+                    'statement_language': 'en', 'statement_script': 'Latn'}},
+                'forms': [], 'reason': 'Synthetic correction only.', 'expected_source': reference,
+                'expected_revision': revision, 'expected_configuration': 'sha256:' + '0' * 64,
+                'expected_dependencies': 'sha256:' + '1' * 64, 'expected_inputs': {}}
+            current = revisions._advance(original, request['fields'])
+            SourceClaimProfiles(root).validate(current)
+            archive = packages._archive(root, {'source_root': str(root), 'source_path': relative,
+                'record_id': original['claim_id']}, files, revisions._subject(original), revision,
+                reader=revisions._read_archive)
+            receipt = {'command_id': request['command_id'], 'request_digest': commands._digest(commands._canonical(request)),
+                'principal_id': 'test:synthetic', 'authority_ref': 'test:not-production-authority',
+                'owner_configuration': request['expected_configuration'], 'recorded_at': '2026-01-01T00:00:00Z',
+                'reason': request['reason'], 'previous_source': reference, 'source': revisions._subject(current).ref,
+                'previous_revision': revision, 'archive_path': archive.as_posix(),
+                'dependencies': request['expected_dependencies'], 'source_bindings': request['expected_inputs'],
+                'changed_fields': sorted(request['fields']), 'forms': [], 'grants_admission': False, 'request': request}
+            claim_path.write_bytes(revisions._replace(files[claim_path.name], current))
+            claim_path.with_name(revisions.HISTORY).write_bytes(packages._encode({
+                'schema_version': 'tos_claim_revision_history_v1', 'source_path': relative, 'receipts': [receipt]}))
+            projection = rebuild()
+            _, entities, relations = self.historical_knowledge(root, projection)
+            from tos_access.knowledge import build_knowledge_graph
+            assessment = json.loads((root / 'ToS/contracts/knowledge-assessment.schema.json').read_bytes())
+            validator = Draft202012Validator(json.loads((root / 'ToS/contracts/record-version-view.schema.json').read_bytes()),
+                registry=Registry().with_resource(assessment['$id'], Resource.from_contents(assessment)))
+            envelope_validator = validator.evolve(schema={'$ref': '#/$defs/navigationNode'})
+
+            def build(*, include_current=True):
+                with patch.object(corpus_builder, 'REPO_ROOT', root), patch.object(corpus_builder, 'TOS_ROOT', root / 'ToS'):
+                    navigation = corpus_builder.build_source_navigation([])
+                for node in navigation['nodes']:
+                    if node['node_kind'] == 'record-version':
+                        validator.validate(node['properties']['record_version_view'])
+                        envelope_validator.validate(node)
+                return navigation, build_knowledge_graph({'source_navigation': navigation}, {},
+                    projection if include_current else {}, entities, relations)
+
+            yield root, sign, original, current, claim_path, receipt, build
+            self.assertEqual(sign_bytes, {path: path.read_bytes() for path in sign_bytes})
+
+    def test_sign_basis_reads_exact_archived_claim_without_aliasing_current_identity(self):
+        with self.historical_sign_basis_fixture() as (root, sign, original, current, _path, _receipt, build):
+            from tos_access.knowledge import execute_knowledge_lens
+            navigation, graph = build()
+            versions = [node for node in graph['nodes'] if node['type_id'] == 'tos.entity.record-version']
+            self.assertEqual(len(versions), 1, 'two synthetic Signs share one exact-version address')
+            version = versions[0]
+            view = version['attributes']['record_version_view']
+            self.assertEqual(view['record_ref'], sign['promotion_basis']['candidate'])
+            self.assertEqual((view['status'], view['version_status'], view['record']), ('available', 'historical', original))
+            self.assertEqual(view['provenance']['catalog']['current_record_ref']['version'], 2)
+            archived = root / view['provenance']['source']['archive_blob_ref']
+            self.assertEqual('sha256:' + hashlib.sha256(archived.read_bytes()).hexdigest(),
+                             view['provenance']['source']['stream_sha256'])
+            self.assertIn('NEIGHBOR STREAM PROSE', archived.read_text())
+            self.assertNotIn('NEIGHBOR STREAM PROSE', json.dumps(view))
+            self.assertNotIn(current['qualifiers']['statement'], json.dumps(view))
+            self.assertNotEqual(version['entity_id'], original['claim_id'])
+            self.assertNotIn('tos.entity.claim', version['semantics']['type_ancestors'])
+            latest = next(node for node in graph['nodes'] if node['entity_id'] == original['claim_id'])
+            self.assertEqual(latest['attributes']['source_claim'], current)
+            self.assertFalse(any(edge['relation_type_id'] == 'tos.relation.projects'
+                and version['id'] in (edge['from_id'], edge['to_id']) for edge in graph['relations']))
+            basis_edges = [edge for edge in graph['relations']
+                           if edge['relation_type_id'] == 'tos.relation.promotion-basis-version']
+            self.assertEqual(len(basis_edges), 2)
+            self.assertEqual({edge['to_id'] for edge in basis_edges}, {version['id']})
+            native = next(node for node in navigation['nodes'] if node['node_kind'] == 'record-version')
+            self.assertEqual(set(native['properties']), {'record_version_view'})
+            for detail in ('full', 'compact'):
+                with self.subTest(detail=detail):
+                    packet = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                        'lens_id': 'synthetic-sign-exact-basis', 'seed': {'focus_node_id': sign['record_id']},
+                        'node_query': {'enabled': False}, 'traversal': {'depth': 1, 'profile': 'overview'},
+                        'detail': detail})
+                    selected = next(node for node in packet['nodes'] if node['id'] == version['id'])
+                    metadata = selected['semantics']['record_version']
+                    self.assertEqual(metadata['record_ref'], sign['promotion_basis']['candidate'])
+                    self.assertFalse(metadata['grants_current_use'])
+                    self.assertFalse(metadata['performs_assessment'])
+                    context = selected['semantics']['assertion_contexts'][0]
+                    self.assertEqual(context['fields']['qualifiers']['value'], original['qualifiers'])
+                    self.assertEqual(context['fields']['epistemic_status']['value'], 'uncertain')
+                    self.assertEqual(context['fields']['review_status']['value'], 'unreviewed')
+                    self.assertEqual(context['fields']['qualifiers']['source_pointer'],
+                                     '/properties/record_version_view/record/qualifiers')
+                    self.assertEqual(selected['display']['summary']['ru'], original['qualifiers']['statement'])
+                    self.assertNotIn('human_form_selection', selected)
+                    self.assertNotIn(current['qualifiers']['statement'], json.dumps(selected))
+                    self.assertEqual(selected['attributes'], version['attributes'] if detail == 'full' else {})
+
+    def test_sign_basis_unavailable_version_keeps_exact_ref_and_never_uses_latest(self):
+        with self.historical_sign_basis_fixture() as (root, sign, _original, current, path, receipt, build):
+            archive = root / receipt['archive_path']
+            manifest = json.loads((archive / 'manifest.json').read_bytes())
+            blob = archive / manifest['files'][path.name]['blob']
+            original_blob, original_stream = blob.read_bytes(), path.read_bytes()
+            for failure, status in (('missing-archive', 'missing'), ('corrupt-archive', 'corrupt'),
+                                    ('private-current', 'access-restricted'), ('invalid-current-version', 'corrupt')):
+                with self.subTest(failure=failure):
+                    blob.write_bytes(original_blob)
+                    path.write_bytes(original_stream)
+                    if failure == 'missing-archive':
+                        blob.unlink()
+                    elif failure == 'corrupt-archive':
+                        blob.write_bytes(b'corrupt retained source')
+                    else:
+                        import claim_revisions as revisions
+                        changed = {**current, **({'visibility': 'restricted'} if failure == 'private-current'
+                                                else {'claim_version': True})}
+                        path.write_bytes(revisions._replace(original_stream, changed))
+                    # Do not use a stale current projection to test source-owner refusal.
+                    navigation, graph = build(include_current=False)
+                    version = next(node for node in graph['nodes'] if node['type_id'] == 'tos.entity.record-version')
+                    view = version['attributes']['record_version_view']
+                    self.assertEqual(view['record_ref'], sign['promotion_basis']['candidate'])
+                    self.assertEqual(view['status'], status, view)
+                    self.assertIsNone(view['record'])
+                    self.assertIsNone(view['version_status'])
+                    self.assertEqual(view['provenance'], {})
+                    self.assertFalse(view['grants_current_use'])
+                    self.assertFalse(view['performs_assessment'])
+                    self.assertEqual(version['display']['summary_state'], 'missing')
+                    self.assertNotIn('assertion_contexts', version['semantics'])
+                    self.assertNotIn(current['qualifiers']['statement'], json.dumps(navigation))
+                    self.assertNotIn('NEIGHBOR STREAM PROSE', json.dumps(navigation))
+                    self.assertEqual(sum(edge['relation_type_id'] == 'tos.relation.promotion-basis-version'
+                                         for edge in graph['relations']), 2)
+
     def test_native_v2_sign_adapter_preserves_original_identity_and_body(self):
         from tos_corpus_index_common import project_text_packet
         from source_record_profiles import SourceRecordProfiles, SourceProfileError

@@ -229,9 +229,13 @@ Sign имеет отдельный source-профиль с неизменяем
 риск, точного кандидата и все native-основания. Generic create не обходит
 переход; формы несут ограничения, а историческое основание не является
 текущим допуском. Тесты остаются синтетическими: реальная компетентная выдача,
-private/annotation adapters и графовый переход к точной исторической версии
-кандидата ещё требуют доведения. [Review](../review-ledger/2026-09-08-sign-promotion-review.md)
-сохраняет пределы проверок; полнота Sign и языкового профиля не заявлена.
+private/annotation adapters ещё требуют доведения. Переход Sign → точная
+версия Claim теперь имеет отдельный RecordVersion view: полный архивный
+record и provenance либо явный gap без подстановки текущего Claim; compact
+сохраняет точную ссылку и весь assertion context. Исторические свободные формы
+и версии других семейств ещё не подключены. [Review выдачи](../review-ledger/2026-09-08-sign-promotion-review.md)
+и [review точной версии](../review-ledger/2026-09-08-exact-claim-version-review.md)
+сохраняют пределы проверок; полнота Sign и языкового профиля не заявлена.
 
 На 2026-09-06 отдельный маршрут source-visible linguistic reviewer не запущен:
 запрос `aoa-models` для `source-visible-linguistic-review` и указанного в его

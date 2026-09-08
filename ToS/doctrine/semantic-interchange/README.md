@@ -926,9 +926,44 @@ issuance context. Current use still needs its own fresh judgment.
 The first command supports qualified motif Claims, not arbitrary annotations
 or private Sign issuance. Its synthetic source/command tests are not a real
 competence or historical-sign result. The exact historical candidate remains
-in the source record; cross-carrier traversal to that historical version is
-not yet emitted as a graph edge. This limitation must not be hidden by a direct
-fact edge or by silently attaching the current, possibly revised candidate.
+in the source record and is traversable through the version view below, not a
+direct fact edge or the current, possibly revised candidate.
+
+### Exact record-version views
+
+`tos.entity.record-version` is a derived evidence view, distinct from the Claim,
+its subject and the source record's persistent identity. Its native ID is
+`record-version:` plus SHA-256 of the canonical exact `{id, version, digest}`
+reference (UTF-8 JSON, sorted keys, no spacing, Unicode retained, finite values).
+Two Signs with the same exact basis share that version view, not a new Claim.
+The structural `promotion_basis_version` relation runs from Sign to this view;
+reverse traversal means “Sign issued from this exact record version”, not
+endorsement, inferred semantic relationship or current permission to use.
+
+The [version-view contract](../../contracts/record-version-view.schema.json)
+retains the exact pointer with `available`, `missing`, `stale`, `corrupt`,
+`access-restricted` or `over-budget` status. The source builder uses the bounded
+[public Claim reader](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#read-only-exact-claim-versions)
+to bind current catalog metadata, original stream bytes and the complete
+retained correction chain. An available result holds the whole selected record,
+including unknown fields, and distinguishes `current` from `historical`.
+An unavailable result withholds record bytes and provenance rather than
+substituting the latest version, dropping the reference or opening private data.
+
+The access reader validates the transported reference, content digest and
+separate identity without reading source archives or authority configuration.
+It accepts only the contract's closed `navigationNode` envelope: extra generic
+wording, review or authority fields are rejected, not silently discarded or
+interpreted. Original extensions belong inside the digest-bound source record.
+The structural relation must match the exact candidate retained by its Sign;
+two correctly typed endpoints alone cannot authorize a different version.
+Full inspection retains the record and byte/archive provenance. Compact packets
+retain the exact reference, availability and complete assertion context;
+source-authored statement wording is quoted in its own language. Navigation
+titles are explicitly not authored names. No current Claim HumanForm is reused
+for an older version; archived free-form wording and other record families
+remain separate extensions. Neither fixity nor readable historical assessments
+constitutes source truth, current admission, a new assessment or canon.
 
 ## Independent genre, content form, medium and file format
 

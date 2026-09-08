@@ -205,6 +205,23 @@
         "type_ancestors": {"type": "array", "items": {"type": "string"}},
         "annotation": {"type": "object"},
         "claim": {"type": "object"},
+        "record_version": {
+          "type": "object", "additionalProperties": false,
+          "required": ["schema_version", "record_ref", "record_kind", "status", "reason", "version_status", "record_pointer", "grants_current_use", "performs_assessment"],
+          "properties": {
+            "schema_version": {"const": "tos_record_version_view_v1"},
+            "record_ref": {"$ref": "#/$defs/exactFormRef"},
+            "record_kind": {"const": "claim"},
+            "status": {"enum": ["available", "missing", "stale", "corrupt", "access-restricted", "over-budget"]},
+            "reason": {"type": "string", "minLength": 1, "maxLength": 256},
+            "version_status": {"enum": [null, "current", "historical"]},
+            "record_pointer": {"const": "/attributes/record_version_view/record"},
+            "grants_current_use": {"const": false}, "performs_assessment": {"const": false}
+          },
+          "allOf": [{"if": {"properties": {"status": {"const": "available"}}},
+            "then": {"properties": {"version_status": {"enum": ["current", "historical"]}}},
+            "else": {"properties": {"version_status": {"type": "null"}}}}]
+        },
         "time": {"type": "object"},
         "space": {"type": "object"},
         "responsibility": {"type": "object"}

@@ -318,6 +318,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/record-version-view.schema.json", "ToS/contracts/source-claim-record.schema.json"],
+      "reads": ["bounded public Claim catalog, current flat metadata package and complete shared retained correction chain", "exact original stream, manifest/blob/package fixity, source visibility and catalog identity/version/digest/line; invocation-local snapshots rechecked before return/publication"],
+      "writes": [],
+      "side_effects": "pure public exact-version reader; no command config, journal, models, private payloads, assessment, admission or source writes; explicit unavailable statuses never substitute the latest record",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_claim_version_reader.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

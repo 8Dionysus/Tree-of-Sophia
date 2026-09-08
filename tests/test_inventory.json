@@ -99,7 +99,7 @@
       "family": "backend_knowledge_lens_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/contracts/knowledge-api.v1.json",
-      "protects": "normalized display-complete knowledge graph, safe declarative LensSpec execution, source-bound fingerprints, adapter operation mapping, schema parity, temporal comparison without invented calendar, numbering, exactness or nested-context precedence, and per-type property applicability without sharing instance verdicts or retaining mutable registry state",
+      "protects": "normalized display-complete knowledge graph, safe declarative LensSpec execution, source-bound fingerprints, adapter operation mapping, schema parity, temporal comparison without invented calendar, numbering, exactness or nested-context precedence, per-type property applicability without sharing instance verdicts or retaining mutable registry state, and exact RecordVersion identity/content binding with complete historical assertion context, explicit gaps and no current Claim or admission alias",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",
@@ -1080,6 +1080,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
       "failure_route": "Fix the source Claim adapter or declared profile contract without widening write authority or discarding source history.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_claim_version_reader.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "read-only exact public Claim versions through current catalog and complete shared correction chain, original bytes and unknown fields, interleaved revisions, corruption and private/symlink refusals, bounded work, invocation-local batching and final source-drift verification; no latest-version fallback, grants, source writes or semantic authority; synthetic fixtures are not real historical claims",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_claim_version_reader.py",
+      "failure_route": "Fix the exact-version reader or owner archive/Claim contracts without substituting the current record, dropping history or widening visibility.",
       "disposition": "keep"
     },
     {

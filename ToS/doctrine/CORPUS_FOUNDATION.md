@@ -87,6 +87,14 @@ incompatible kind requires an explicit identity transition, never an edited
 prefix. Claims and their evaluations are not hidden in metadata convenience
 fields such as `sender_ref`, `language` or a mutable document year.
 
+An exact `{id, version, digest}` record reference is distinct from that record's
+persistent identity and from the described subject. A derived
+[record-version view](semantic-interchange/README.md#exact-record-version-views)
+may expose verified retained public Claim bytes, or an explicit availability
+gap with the same reference. A later description is never substituted for the
+selected version. Byte integrity and historical assessment context do not
+grant current use or establish the truth of the recorded assertion.
+
 The [fragment/quotation profiles](semantic-interchange/README.md#textual-fragments-and-quoting-passages)
 identify a textual portion separately from a particular passage transmitting
 it. Neither is a physical fragment, an editorial designation, the act of

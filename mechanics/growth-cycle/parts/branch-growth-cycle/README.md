@@ -80,8 +80,41 @@ generic public `source.create` and generic private profile creation refuse it.
 Ordinary descriptive revision cannot edit `promotion_basis`. This first
 transition does not support arbitrary annotation candidates, private Sign
 issuance, identity merges/splits or canon transitions. The exact historical
-candidate is inspectable in source data; a dedicated cross-carrier graph edge
-to its historical version remains separate work, not an implied accepted fact.
+candidate is inspectable through the read-only version route below, not an
+implied accepted fact.
+
+### Read-only exact Claim versions
+
+`claim_version_reader.resolve_claim_version(root, exact_ref)` accepts an
+absolute public repository root and exact `{id, version, digest}` Claim ref.
+It requires no command delegation, assessment journal or model invocation.
+For a build with several references, reuse one `ClaimVersionReader(root)` and
+call `verify_current()` immediately before publishing the derived result.
+This invocation-local snapshot batches the catalog and shared package reads;
+it is not a persistent cache or concurrent-reader object. Detected drift raises
+at final verification rather than refreshing a partially assembled snapshot.
+
+The reader resolves only public declared `source-claims.jsonl` metadata. It
+checks current catalog identity, version, canonical digest, visibility and line,
+then verifies the complete retained shared correction history with the existing
+archive/blob and predecessor/successor verifiers. Available replies carry exact
+original record fields and catalog, stream-byte, archive, history and transition
+provenance. Unknown source fields survive without a claim to understand them.
+The [derived version contract](../../../../ToS/contracts/record-version-view.schema.json)
+separates this evidence from Claim identity and current assessment/admission.
+
+`missing`, `stale`, `corrupt`, `access-restricted` and `over-budget` replies
+retain the requested exact reference but no record/provenance. There is no
+latest-version fallback. Private/native payload routes, symlinks, non-flat
+packages and mixed public/private Claim streams fail closed. The bounded reader
+permits 8 MiB/8,192 catalog rows, 1 MiB Claim streams, 64-file/8 MiB source
+packages, 128 retained corrections and 64 MiB cumulative preflight reads.
+Limits may refuse a valid larger source; refusal is not truncation or corruption.
+Only public current ownership/visibility can expose retained predecessors;
+old public bytes do not bypass a current restriction. This read operation
+performs no writes, assessment, admission, publication or source-schema migration.
+Historical HumanForms, native annotation versions and other record families
+are not supplied by this bounded Claim reader.
 
 `scripts/assessment_journal.py` implements immutable source-owned assessment
 batches and an atomic per-subject head pointer under an explicitly configured

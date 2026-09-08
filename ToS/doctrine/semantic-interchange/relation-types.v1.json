@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 27,
+  "registry_version": 28,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -1694,6 +1694,27 @@
       "evidence_required": false,
       "review_requirement": "none",
       "source_mappings": [{"source_graph": "semantic-interchange", "source_predicate_id": "projects", "scope": "edge"}],
+      "supersedes_relation_type_id": null
+    },
+    {
+      "relation_type_id": "tos.relation.promotion-basis-version",
+      "parent_relation_type_ids": ["tos.relation.structural"],
+      "abstract": false,
+      "labels": {"default": "records promotion basis version", "ru": "сохраняет версию основания выдачи", "en": "records promotion basis version"},
+      "inverse_labels": {"default": "is the recorded promotion basis of", "ru": "является записанным основанием выдачи", "en": "is the recorded promotion basis of"},
+      "definition": "Structural return from an authored Sign to the exact candidate record version named in its immutable promotion basis. It does not retarget to the latest Claim, create an interpretation, grant current use or erase history after withdrawal.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/sign-description-record.schema.json",
+      "domain_type_ids": ["tos.entity.sign"],
+      "range_type_ids": ["tos.entity.record-version"],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {"per_subject_min": null, "per_subject_max": 1, "per_object_min": null, "per_object_max": null},
+      "assertion_mode": "structural",
+      "evidence_required": true,
+      "review_requirement": "none",
+      "source_mappings": [{"source_graph": "source-navigation", "source_predicate_id": "promotion_basis_version", "scope": "edge"}],
       "supersedes_relation_type_id": null
     },
     {

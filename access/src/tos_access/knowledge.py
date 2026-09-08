@@ -1327,6 +1327,109 @@ def _node_semantics(
     return semantics
 
 
+def _exact_record_digest(value: Any) -> str:
+    """Source-owner canonical JSON digest; unlike a private cache fingerprint,
+    this binding participates in exact record/version identity and cannot change
+    encoding without an explicit source contract migration.
+    """
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+
+
+def _record_version_view(item: dict[str, Any]) -> dict[str, Any]:
+    """Verify a transported exact version, not its history or use admission.
+
+    History/visibility validation is performed by the source owner before
+    export. This consumer checks identity and content binding without opening
+    an archive, owner configuration or current source file.
+    """
+    required_envelope = {'node_id', 'node_kind', 'source_ref', 'properties'}
+    properties = item.get('properties')
+    if (not required_envelope <= set(item)
+            or set(item) - required_envelope - {'label', 'identity_status'}
+            or item['node_kind'] != 'record-version'
+            or not isinstance(item['source_ref'], str) or not item['source_ref'].strip()
+            or item.get('label', 'Exact record version') != 'Exact record version'
+            or item.get('identity_status', 'not_applicable') != 'not_applicable'
+            or not isinstance(properties, dict) or set(properties) != {'record_version_view'}):
+        # Generic normalization intentionally preserves source envelopes. This
+        # derived view has a closed envelope so a stale convenience field cannot
+        # leak prose or impersonate current authority outside the verified body.
+        raise ValueError('record version view has an invalid carrier envelope')
+    view = properties.get('record_version_view')
+    required = {'schema_version', 'record_ref', 'record_kind', 'status', 'reason',
+                'version_status', 'record', 'provenance', 'grants_current_use', 'performs_assessment'}
+    if (not isinstance(view, dict) or set(view) != required
+            or view['schema_version'] != 'tos_record_version_view_v1' or view['record_kind'] != 'claim'
+            or not _exact_form_ref(view['record_ref'])
+            or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', view['record_ref']['id'])
+            or view['grants_current_use'] is not False or view['performs_assessment'] is not False
+            or not isinstance(view['reason'], str) or not 1 <= len(view['reason']) <= 256
+            or not isinstance(view['provenance'], dict)):
+        raise ValueError('record version view has an invalid contract or identity binding')
+    if item.get('node_id') != 'record-version:' + _exact_record_digest(view['record_ref']):
+        raise ValueError('record version view identity does not bind its exact reference')
+    if view['status'] == 'available':
+        record = view['record']
+        if (not isinstance(record, dict) or not view['provenance']
+                or view['version_status'] not in ('current', 'historical')
+                or record.get('claim_id') != view['record_ref']['id']
+                or type(record.get('claim_version')) is not int
+                or record['claim_version'] != view['record_ref']['version']
+                or 'sha256:' + _exact_record_digest(record) != view['record_ref']['digest']):
+            raise ValueError('record version view content differs from its exact reference')
+    elif (view['status'] not in ('missing', 'stale', 'corrupt', 'access-restricted', 'over-budget')
+            or view['record'] is not None or view['version_status'] is not None or view['provenance']):
+        raise ValueError('unavailable record version view must withhold its record and provenance')
+    return view
+
+
+def _apply_record_version_view(normalized: dict[str, Any], view: dict[str, Any]) -> None:
+    """Keep exact historical context in compact packets; never alias a Claim."""
+    normalized['semantics'] = {'type_ancestors': normalized['semantics']['type_ancestors']}
+    normalized['semantics']['record_version'] = {
+        key: copy.deepcopy(view[key]) for key in (
+            'schema_version', 'record_ref', 'record_kind', 'status', 'reason',
+            'version_status', 'grants_current_use', 'performs_assessment')}
+    normalized['semantics']['record_version']['record_pointer'] = '/attributes/record_version_view/record'
+    version = view['record_ref']['version']
+    display = normalized['display']
+    display['title'] = _localized_from({'default': f'Exact record version {version}',
+                                       'ru': f'Точная версия записи {version}',
+                                       'en': f'Exact record version {version}'}, f'Exact record version {version}')
+    display['provenance'].update(title='record-version-navigation', source_title_available=False)
+    display['provenance']['record_version'] = copy.deepcopy(normalized['semantics']['record_version'])
+    display['summary'] = _localized_from({'default': 'The exact source wording is not available in this packet.',
+        'en': 'The exact source wording is not available in this packet.',
+        'ru': 'Точная исходная формулировка недоступна в этом пакете.'},
+        'The exact source wording is not available in this packet.')
+    display['summary_state'] = 'missing'
+    display['provenance'].update(summary='missing', source_summary_available=False)
+    if view['status'] != 'available':
+        return
+    record = view['record']
+    # These are the historical declaration and all its preserved qualifiers,
+    # not the current Claim's contexts, HumanForms or assessment materialization.
+    context = _assertion_context({'properties': {'source_claim': record}, 'source_refs': normalized['source_refs']})
+    if context is not None:
+        context['source_record_digest'] = _stable_digest(record)
+        for field in context['fields'].values():
+            field['source_pointer'] = field['source_pointer'].replace(
+                '/properties/source_claim/', '/properties/record_version_view/record/', 1)
+        normalized['semantics']['assertion_contexts'] = [context]
+    qualifiers = record.get('qualifiers')
+    wording = qualifiers.get('statement') if isinstance(qualifiers, dict) else None
+    if isinstance(wording, str) and wording.strip():
+        language = qualifiers.get('statement_language')
+        summary = {'default': wording, 'original': wording}
+        if isinstance(language, str) and _form_key(language):
+            summary[language] = wording
+        display['summary'] = _localized_from(summary, wording)
+        display['summary_state'] = 'source-derived'
+        display['provenance'].update(summary='exact-record-quotation', source_summary_available=True,
+                                     summary_source_pointer='/attributes/record_version_view/record/qualifiers/statement')
+
+
 def _normalize_node(
     item: dict[str, Any],
     source_graph: str,
@@ -1366,6 +1469,11 @@ def _normalize_node(
             # only its display, not hierarchy, identity or authored labels.
             type_entry = {**type_entry, "labels": mapping["labels"]}
             break
+    version_view = None
+    if source_graph == 'source-navigation' and semantic_kind == 'record-version':
+        if type_id != 'tos.entity.record-version':
+            raise ValueError('record version view has no exact declared type mapping')
+        version_view = _record_version_view(item)
     refs = _source_refs(item)
     attributes = dict(properties)
     for key, value in item.items():
@@ -1398,6 +1506,8 @@ def _normalize_node(
         "source_record": _source_record(item, attributes),
     }
     normalized["semantics"]["type_ancestors"] = sorted(ancestors)
+    if version_view is not None:
+        _apply_record_version_view(normalized, version_view)
     _stamp_content_revision(normalized)
     return normalized
 
@@ -2756,6 +2866,15 @@ def validate_knowledge_semantics(
         if relation_type_id == "tos.relation.projects" and left and right:
             if left.get("entity_id") != right.get("entity_id"):
                 violations.append(f"projection relation {relation_id} connects different entity_id values")
+        if relation_type_id == 'tos.relation.promotion-basis-version' and left and right:
+            sign = (left.get('attributes') or {}).get('source_record')
+            basis = sign.get('promotion_basis') if isinstance(sign, dict) else None
+            candidate = basis.get('candidate') if isinstance(basis, dict) else None
+            version = (right.get('semantics') or {}).get('record_version')
+            reference = version.get('record_ref') if isinstance(version, dict) else None
+            if (not _exact_form_ref(candidate) or not _exact_form_ref(reference)
+                    or _exact_record_digest(candidate) != _exact_record_digest(reference)):
+                violations.append(f'promotion basis relation {relation_id} differs from the exact Sign candidate')
         if relation_type_id == "tos.relation.same-as":
             if left and right and not (
                 _type_is_a(str(left.get('type_id')), [str(right.get('type_id'))], entity_entries)

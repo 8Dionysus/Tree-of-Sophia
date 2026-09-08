@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/record-version-view.schema.json",
+  "title": "Read-only exact source Claim version view",
+  "description": "A derived address for the exact historical or current record cited by a source. The initial reader handles declared public source Claims. It neither rewrites a Claim nor assigns its identity to the version view, and unavailable bytes never fall back to another version.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_ref", "record_kind", "status", "reason", "version_status", "record", "provenance", "grants_current_use", "performs_assessment"],
+  "properties": {
+    "schema_version": {"const": "tos_record_version_view_v1"},
+    "record_ref": {
+      "allOf": [
+        {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"},
+        {"properties": {"id": {"pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"}}}
+      ]
+    },
+    "record_kind": {"const": "claim"},
+    "status": {"enum": ["available", "missing", "stale", "corrupt", "access-restricted", "over-budget"]},
+    "reason": {"type": "string", "minLength": 1, "maxLength": 256},
+    "version_status": {"enum": [null, "current", "historical"]},
+    "record": {"type": ["object", "null"], "description": "The complete selected source Claim only. Its canonical digest, claim_id and claim_version must equal record_ref; raw stream byte fixity is separate provenance. No current source substitution or neighboring stream records."},
+    "provenance": {"type": "object", "description": "Bounded source-reader evidence: exact public catalog binding, selected package/archive and raw byte fixity. This is not authority configuration, a use grant, or the complete source stream."},
+    "grants_current_use": {"const": false},
+    "performs_assessment": {"const": false}
+  },
+  "$defs": {
+    "navigationNode": {
+      "description": "Closed source-navigation carrier: all original fields belong inside the exact-digest-bound record, never in generic display, authority or Claim convenience fields.",
+      "type": "object", "additionalProperties": false,
+      "required": ["node_id", "node_kind", "source_ref", "properties"],
+      "properties": {
+        "node_id": {"type": "string", "pattern": "^record-version:[a-f0-9]{64}$(?![\\s\\S])"},
+        "node_kind": {"const": "record-version"},
+        "label": {"const": "Exact record version"},
+        "identity_status": {"const": "not_applicable"},
+        "source_ref": {"type": "string", "pattern": "\\S"},
+        "properties": {"type": "object", "additionalProperties": false,
+          "required": ["record_version_view"], "properties": {"record_version_view": {"$ref": "#"}}}
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "available"}}},
+      "then": {"properties": {"record": {"type": "object"}, "version_status": {"enum": ["current", "historical"]}, "provenance": {"minProperties": 1}}},
+      "else": {"properties": {"record": {"type": "null"}, "version_status": {"type": "null"}, "provenance": {"maxProperties": 0}}}}
+  ]
+}
