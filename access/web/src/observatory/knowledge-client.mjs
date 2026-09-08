@@ -1,4 +1,5 @@
 import {t} from './ui-i18n.mjs';
+import {contentLanguage,validateHumanForms} from './human-forms.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
@@ -145,6 +146,33 @@ export class KnowledgeClient {
     if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
     if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError(t("Неполные концы связи."));}
     return {packet,match};
+  }
+  async readMaterial(kind,id,signal,expected,contentRevision,{language='ru',relation=null}={}) {
+    if(!['node','relation'].includes(kind)||typeof id!=='string'||!id||!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
+    let spec,revision=expected;
+    if(kind==='relation'){
+      // Restore stores only identities. Inspect discovers the endpoints, then
+      // one real full LensResult supplies every displayed field at that version.
+      if(!relation||relation.id!==id||!expected){
+        const identity=await this.inspect(kind,id,signal,expected,contentRevision);
+        relation=identity.match;revision=identity.packet.source_revision;
+      }
+      spec=relationSpec(relation);
+    }else{
+      spec=focusSpec(id,{depth:0});spec.traversal.profile='all';spec.limits={nodes:1,relations:0,groups:1};
+    }
+    spec={...spec,lens_id:'sophia-observatory-material',language,detail:'full',explain:false};
+    const packet=await this.compile(spec,signal,revision);
+    const match=packet[kind==='node'?'nodes':'relations'].find(item=>item.id===id);
+    if(!match)throw new ContractError(t('Не найден точный идентификатор карточки.'));
+    if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
+    const allowed=new Set(kind==='node'?[id]:[match.from_id,match.to_id]);
+    if(packet.nodes.length!==allowed.size||packet.nodes.some(node=>!allowed.has(node.id))
+      ||packet.relations.length!==(kind==='node'?0:1))throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
+    for(const item of [...packet.nodes,...packet.relations])validateHumanForms(item,language);
+    // This UI envelope is not an invented inspect packet. Keep the original
+    // LensResult and its schema intact for validation, revision and provenance.
+    return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
   }
   capabilities(signal){return this.request('/explore/capabilities',{signal});}
 }

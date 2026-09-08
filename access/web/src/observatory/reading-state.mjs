@@ -6,7 +6,7 @@ export function createReadingMemory(body,{limit=48,onCapture=()=>{}}={}){
   function capture(){
     if(!key||restoring||body.getAttribute('aria-busy')==='true'||!body.isConnected||!body.getClientRects().length)return;
     const details=[...body.querySelectorAll('details')].map((el,i)=>[identity(el,i),el.open]);
-    const rect=body.getBoundingClientRect(),anchors=[...body.querySelectorAll('h4,article,p')];
+    const rect=body.getBoundingClientRect(),anchors=[...body.querySelectorAll('h4,article,p,[data-reading-anchor]')];
     const anchor=anchors.find(el=>el.getBoundingClientRect().bottom>rect.top+4);
     views.delete(key);views.set(key,{top:body.scrollTop,details,anchor:anchor?{key:anchor.dataset.readingAnchor||null,text:anchor.textContent.slice(0,180),offset:anchor.getBoundingClientRect().top-rect.top}:null});
     if(views.size>limit)views.delete(views.keys().next().value);
@@ -17,7 +17,7 @@ export function createReadingMemory(body,{limit=48,onCapture=()=>{}}={}){
     restoring=true;const details=new Map(state.details);
     [...body.querySelectorAll('details')].forEach((el,i)=>{if(details.has(identity(el,i)))el.open=details.get(identity(el,i));});
     body.scrollTop=state.top;
-    if(state.anchor){const anchor=[...body.querySelectorAll('h4,article,p')].find(el=>state.anchor.key?el.dataset.readingAnchor===state.anchor.key:el.textContent.slice(0,180)===state.anchor.text);if(anchor)body.scrollTop+=anchor.getBoundingClientRect().top-body.getBoundingClientRect().top-state.anchor.offset;}
+    if(state.anchor){const anchor=[...body.querySelectorAll('h4,article,p,[data-reading-anchor]')].find(el=>state.anchor.key?el.dataset.readingAnchor===state.anchor.key:el.textContent.slice(0,180)===state.anchor.text);if(anchor)body.scrollTop+=anchor.getBoundingClientRect().top-body.getBoundingClientRect().top-state.anchor.offset;}
     restoring=false;
   }
   body.addEventListener('scroll',capture,{passive:true});

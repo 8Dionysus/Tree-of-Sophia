@@ -849,8 +849,8 @@ export const UI_CATALOG={
     "es": "Tipo de relación"
   },
   "Название": {
-    "en": "Title",
-    "es": "Título"
+    "en": "Name",
+    "es": "Nombre"
   },
   "Название · русский": {
     "en": "Title · Russian",
@@ -3283,5 +3283,161 @@ export const UI_CATALOG={
   "Трёхмерное звёздное пространство. Щипок меняет масштаб. Перетаскивание вращает или сдвигает по настройкам управления; Shift меняет действие.": {
     "en": "Three-dimensional starry space. Pinch to zoom. Drag to rotate or pan according to your control settings; Shift switches the action.",
     "es": "Espacio estrellado tridimensional. Usa el gesto de pinza para cambiar el zoom. Arrastra para girar o desplazar según los ajustes; Mayús cambia la acción."
+  },
+  "Пакет формы неполон или не соответствует версии материала.": {
+    "en": "The form packet is incomplete or belongs to another material revision.",
+    "es": "El paquete de la forma está incompleto o corresponde a otra revisión del material."
+  },
+  "Неверный запрос материала.": {
+    "en": "Invalid material request.",
+    "es": "Solicitud de material no válida."
+  },
+  "Ответ вышел за границы выбранного материала.": {
+    "en": "The response exceeds the selected material.",
+    "es": "La respuesta excede los límites del material seleccionado."
+  },
+  "Подпись": {
+    "en": "Caption",
+    "es": "Leyenda"
+  },
+  "Краткий контекст": {
+    "en": "Brief context",
+    "es": "Contexto breve"
+  },
+  "Формулировка": {
+    "en": "Statement",
+    "es": "Enunciado"
+  },
+  "Точные сведения": {
+    "en": "Exact details",
+    "es": "Datos exactos"
+  },
+  "Доступна": {
+    "en": "Available",
+    "es": "Disponible"
+  },
+  "Форма не предоставлена": {
+    "en": "No form provided",
+    "es": "No se proporcionó una forma"
+  },
+  "Форма недоступна": {
+    "en": "Form unavailable",
+    "es": "Forma no disponible"
+  },
+  "Есть несколько форм": {
+    "en": "Multiple forms available",
+    "es": "Hay varias formas"
+  },
+  "Форма превышает предел доставки": {
+    "en": "Form exceeds the delivery limit",
+    "es": "La forma supera el límite de entrega"
+  },
+  "Пакет формы некорректен": {
+    "en": "Invalid form packet",
+    "es": "Paquete de forma no válido"
+  },
+  "Форма устарела": {
+    "en": "Form is outdated",
+    "es": "La forma está desactualizada"
+  },
+  "Доступ ограничен": {
+    "en": "Access restricted",
+    "es": "Acceso restringido"
+  },
+  "Требуется оценка": {
+    "en": "Assessment required",
+    "es": "Se requiere una evaluación"
+  },
+  "Точное совпадение языка": {
+    "en": "Exact language match",
+    "es": "Coincidencia exacta de idioma"
+  },
+  "Показан менее конкретный вариант языка": {
+    "en": "A less specific language variant is shown",
+    "es": "Se muestra una variante de idioma menos específica"
+  },
+  "Автоматический выбор источника": {
+    "en": "Automatic selection from source forms",
+    "es": "Selección automática entre las formas de la fuente"
+  },
+  "Выбранный язык отсутствует; показан доступный": {
+    "en": "Requested language unavailable; an available language is shown",
+    "es": "El idioma solicitado no está disponible; se muestra uno disponible"
+  },
+  "Исходная форма, как указано источником": {
+    "en": "Original form as declared by the source",
+    "es": "Forma original según lo declarado por la fuente"
+  },
+  "Готовая форма не предоставлена": {
+    "en": "No ready form provided",
+    "es": "No se proporcionó una forma lista"
+  },
+  "Однозначная форма не выбрана": {
+    "en": "No unambiguous form selected",
+    "es": "No se seleccionó una forma inequívoca"
+  },
+  "Исходная форма не указана": {
+    "en": "Original form not declared",
+    "es": "No se declaró una forma original"
+  },
+  "Полный пакет не поместился в ответ": {
+    "en": "The complete packet did not fit in the response",
+    "es": "El paquete completo no cupo en la respuesta"
+  },
+  "Этот ответ не содержит выбранных форм.": {
+    "en": "This response does not deliver selected forms.",
+    "es": "Esta respuesta no entrega formas seleccionadas."
+  },
+  "Формы переданы источником. Доступность не означает семантического принятия.": {
+    "en": "Forms are delivered from the source. Availability does not imply semantic acceptance.",
+    "es": "Las formas proceden de la fuente. Su disponibilidad no implica aceptación semántica."
+  },
+  "Язык формы: {0}": {
+    "en": "Form language: {0}",
+    "es": "Idioma de la forma: {0}"
+  },
+  "Полная копия поля источника; истинность формулировки не оценивалась.": {
+    "en": "Complete copy of a source field; the truth of the statement was not assessed.",
+    "es": "Copia completa de un campo de la fuente; no se evaluó la veracidad del enunciado."
+  },
+  "Обязательный контекст": {
+    "en": "Required context",
+    "es": "Contexto obligatorio"
+  },
+  "Языковое происхождение": {
+    "en": "Linguistic provenance",
+    "es": "Procedencia lingüística"
+  },
+  "Происхождение и точная версия формы": {
+    "en": "Provenance and exact form version",
+    "es": "Procedencia y versión exacta de la forma"
+  },
+  "Оценка относится к указанному снимку; разрешение публикации не предоставляется.": {
+    "en": "The assessment belongs to the stated snapshot; it does not grant publication permission.",
+    "es": "La evaluación corresponde a la instantánea indicada; no concede permiso de publicación."
+  },
+  "{0} · {1}": {
+    "en": "{0} · {1}",
+    "es": "{0} · {1}"
+  },
+  "Контекст чтения утверждения": {
+    "en": "Context for reading the claim",
+    "es": "Contexto para leer la afirmación"
+  },
+  "Формы и обязательный контекст — в карточке.": {
+    "en": "Forms and required context are in the card.",
+    "es": "Las formas y el contexto obligatorio están en la ficha."
+  },
+  "Форму не удалось проверить. Откройте карточку.": {
+    "en": "The form could not be validated. Open the card.",
+    "es": "No se pudo validar la forma. Abre la ficha."
+  },
+  "Язык материала": {
+    "en": "Material language",
+    "es": "Idioma del material"
+  },
+  "Обновляю формы…": {
+    "en": "Refreshing forms…",
+    "es": "Actualizando las formas…"
   }
 };

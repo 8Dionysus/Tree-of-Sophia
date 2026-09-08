@@ -41,7 +41,7 @@ test('a relation keeps its exact statement and both participants without synthes
 });
 
 test('two identical labels remain two exact objects and a third pin does not evict either',async()=>{
-  const shelf=createReadingShelf({client:{inspect:async(kind,id)=>answer(node(id))}});
+  const shelf=createReadingShelf({client:{readMaterial:async(kind,id)=>answer(node(id))}});
   shelf.pin(target(node('one')));shelf.pin(target(node('two')));
   assert.equal(shelf.pin(target(node('one'))).existing,true);
   assert.throws(()=>shelf.pin(target(node('three'))),/два материала/);
@@ -51,7 +51,7 @@ test('two identical labels remain two exact objects and a third pin does not evi
 
 test('removing and repinning the same identity cannot admit a late response',async()=>{
   const first=deferred(),second=deferred();let calls=0;
-  const shelf=createReadingShelf({client:{inspect:()=>++calls===1?first.promise:second.promise}});
+  const shelf=createReadingShelf({client:{readMaterial:()=>++calls===1?first.promise:second.promise}});
   const {key}=shelf.pin(target());shelf.remove(key);shelf.pin(target());
   second.resolve(answer(node('opaque:one'),'c'.repeat(64)));await tick();
   first.resolve(answer());await tick();
@@ -61,7 +61,7 @@ test('removing and repinning the same identity cannot admit a late response',asy
 
 test('a snapshot change is explicit, network failure preserves the reading, revoked availability clears it',async()=>{
   let error=null;
-  const shelf=createReadingShelf({client:{inspect:async()=>{if(error)throw error;return answer();}}});
+  const shelf=createReadingShelf({client:{readMaterial:async()=>{if(error)throw error;return answer();}}});
   const {key}=shelf.pin(target());await tick();
   shelf.observeRevision('c'.repeat(64));assert.notEqual(shelf.sceneRevision,shelf.entries[0].sourceRevision);
   error=new RequestError(0,'Нет связи');await shelf.refresh(key);
@@ -72,7 +72,7 @@ test('a snapshot change is explicit, network failure preserves the reading, revo
 
 test('restored pairs fetch current material without carrying stored text or revision pins; late old requests stay excluded',async()=>{
   const late=deferred(),calls=[];let first=true;
-  const shelf=createReadingShelf({client:{inspect:(kind,id,signal,source,revision)=>{calls.push({kind,id,source,revision});if(first){first=false;return late.promise;}return Promise.resolve(answer(node(id)));}}});
+  const shelf=createReadingShelf({client:{readMaterial:(kind,id,signal,source,revision)=>{calls.push({kind,id,source,revision});if(first){first=false;return late.promise;}return Promise.resolve(answer(node(id)));}}});
   shelf.pin(target(node('old')));
   const references=['one','two'].map(id=>({kind:'node',id,sourceRevision:revision,contentRevision:content}));
   shelf.restore(references);await tick();

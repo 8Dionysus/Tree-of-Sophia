@@ -27,13 +27,21 @@ function graph(){
     nodes,relations,focus:{node_id:nodes[0].id},counts:{nodes:nodes.length,relations:relations.length,matched_nodes:nodes.length,eligible_relations:relations.length,truncated_nodes:0,truncated_relations:0},
     inclusion:{authority:'query-execution-not-semantic-proof',nodes:Object.fromEntries(nodes.map(node=>[node.id,{kind:'query'}]))}};
 }
-const data=createObservatoryData({fetcher:async(url)=>{
+const data=createObservatoryData({fetcher:async(url,options={})=>{
   const connection=document.querySelector('#fixture-connection').value;
   if(connection==='slow')await new Promise(resolve=>setTimeout(resolve,2000));
   if(connection==='offline')throw new TypeError('Fixture offline');
   if(connection==='restricted')return {ok:false,status:403};
   const packet=graph();let body;
-  if(url.includes('/lenses/compile'))body=packet;
+  if(url.includes('/lenses/compile')){
+    const spec=JSON.parse(options.body||'{}');body=packet;
+    if(spec.lens_id==='sophia-observatory-material'){
+      const ids=spec.node_query?.filters?.[0]?.value||[spec.seed?.focus_node_id];
+      const nodes=packet.nodes.filter(node=>ids.includes(node.id)),relationId=spec.relation_query?.filters?.[0]?.value;
+      const relations=packet.relations.filter(relation=>relation.id===relationId);
+      body={...packet,nodes,relations,focus:nodes.length?{node_id:nodes[0].id}:null};
+    }
+  }
   else if(url.includes('/explore/capabilities'))body={available:false};
   else if(url.includes('/nodes/')){
     const id=decodeURIComponent(url.split('/nodes/')[1].split('?')[0]),raw=packet.nodes.find(node=>node.id===id);

@@ -444,3 +444,63 @@ the mobile reading header were checked after contrast/layout corrections. The
 built preview loaded ten real ToS objects with the new assets and no sampled
 console warnings/errors. Physical touch hardware, broad performance profiling,
 CI, deployment and integration with the future backend remain separate checks.
+
+### Complete human form delivery
+
+`KnowledgeClient.readMaterial` reads an isolated, validated, full `LensResult`
+with a content-language preference and zero traversal depth. The visible graph
+does not consume this separate result. Restoring a relation may first use the
+existing inspect route to discover its endpoints; a single full lens response
+then owns the displayed record and endpoints at the checked revision. There is
+no new backend endpoint or invented inspect response schema.
+
+`human-forms.mjs` checks the delivered selection, exact form references, material
+revision, language declaration, mandatory context and authority flags. It does
+not select among candidates, materialize source forms or perform assessment.
+The canonical ToS human-form materialization and access selection contracts
+remain the owners; this isolated UI branch does not copy their implementation.
+
+Inspector and pinned reading share `human-forms-view.mjs`. All seven roles are
+available: name, caption, hover, statement, grounds, history and technical.
+Ready wording and every mandatory context value are one complete scrolling
+unit. Unknown context fields, bindings, false, zero, null and empty values remain
+intact. Provenance, form identity and source-snapshot assessment details stay
+separate from semantic acceptance. Role-specific diagnostics do not attribute
+another role's stale or restricted candidate to the selected role. Ambiguity,
+missing delivery, unavailable forms and delivery limits remain explicit.
+
+Small graph hints refer to the full card instead of truncating a human form.
+Legacy display fields retain their existing navigation role. Content-language
+choices query the backend; fallback reports the actual delivered language.
+Interface localization does not translate source wording or mandatory context.
+
+Reading stores references and positions only. The position key includes the
+source and material revisions, requested language and exact selected form
+identities, states and actual languages. Earlier four-part position keys remain
+readable. Reload fetches current packets; invalid or revoked material clears
+the displayed copy. Late language responses cannot replace a newer choice.
+Network failure can retain an explicitly marked earlier in-page copy.
+
+Compact Claim reading resolves the declared pointer to the entire packet and
+requires its semantic, epistemic and relation context. Existing inspectors can
+show that context when a matching path is delivered. Visual `scene.claim_paths`
+collapsing, explicit candidate selection and an over-budget recovery endpoint
+are outside this UI slice. The painter, camera, gestures, motion and panel
+placement retain their existing owners.
+
+`fixtures/human-forms.html` provides synthetic full, ambiguous, stale,
+over-budget, damaged-context, delayed and restricted deliveries. Its optional
+preservation probe reports reading references and positions without exporting
+source text. These examples are test data, not ToS knowledge or assessment.
+
+This slice passed 149 frontend tests, TypeScript and the Vite build. The access
+lane passed 109 tests in its full run; its remaining schema test passed after
+an unnecessary schema copy was removed. Source-profile validation passed.
+Browser checks covered all seven roles, role-specific states, damaged-context
+rejection, late-response cancellation, a 390 px viewport and two-material
+reload with separate languages and scroll positions. The built UI also read
+a real Duden Claim with its complete qualifications and context, an explicit
+Spanish-to-Russian fallback and unavailable undeclared original forms. Vite
+reports the application chunk above its 900 kB warning threshold (905.15 kB).
+This is local delivery evidence; CI, merge, deployment, backend assessment,
+physical touch and performance acceptance remain separate.

@@ -1,6 +1,8 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiNode,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {createReadingShelf,readingDocument,readingLanguages,readingKey,formLabel} from './reader-model.mjs';
+import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,formLabel} from './reader-model.mjs';
+import {renderHumanForms} from './human-forms-view.mjs';
+import './human-forms.css';
 import {READING_KEY,readReading,emptyReading,validateReading} from './reading-resume.mjs';
 import {refreshIcons} from './icons';
 
@@ -33,7 +35,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   const current=()=>{
     const selection=scene.port.selection,kind=selection.relationId?'relation':'node';
     const raw=kind==='relation'?scene.port.relation(selection.relationId):scene.port.node(selection.nodeId);
-    return raw?{raw,kind,sourceRevision:scene.port.packet?.source_revision}:null;
+    return raw?{raw,kind,sourceRevision:scene.port.packet?.source_revision,preferred:root.dataset.materialLanguage||'ru'}:null;
   };
   const entryFor=key=>shelf.entries.find(entry=>entry.key===key);
   function capture(){for(const view of views.values())view.reading.capture();}
@@ -122,9 +124,9 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       switchTo(next.key);views.get(next.key).tab.focus();
     });
     const remembered=restoredViews.get(key);restoredViews.delete(key);
-    const view={article,head,title,kind,language,refresh,state,body,back,open,evidence,sources,tab,reading:createReadingMemory(body,{limit:8,onCapture:scheduleSave}),preferred:remembered?.preferred||'ru',snapshot:null};
+    const view={article,head,title,kind,language,refresh,state,body,back,open,evidence,sources,tab,reading:createReadingMemory(body,{limit:8,onCapture:scheduleSave}),preferred:remembered?.preferred||entry.preferred||'ru',snapshot:null};
     if(remembered)view.reading.importPositions(remembered.positions);
-    language.addEventListener('change',()=>{onUserAction();view.reading.capture();view.preferred=language.value;view.snapshot=null;render();});
+    language.addEventListener('change',()=>{onUserAction();view.reading.capture();view.preferred=language.value;void shelf.language(key,view.preferred);});
     uiChildren(columns, "append", article);uiChildren(tabs, "append", tab);return view;
   }
   function appendForm(parent,form,blockId){
@@ -142,7 +144,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   }
   function renderDocument(view,entry){
     const snapshot=entry.snapshot,doc=readingDocument(snapshot,view.preferred);
-    view.reading.capture();view.reading.enter(JSON.stringify([entry.key,snapshot.sourceRevision,snapshot.raw.content_revision,view.preferred]));
+    view.reading.capture();view.reading.enter(readingPositionKey(entry.key,snapshot,snapshot.raw.human_form_selection?.requested_language||view.preferred));
     uiChildren(view.body, "replaceChildren");view.body.scrollTop=0;uiText(view.title, doc.title?.text||ui("Материал"));
     view.title.dir='auto';if(doc.title?.lang)view.title.lang=doc.title.lang;else view.title.removeAttribute('lang');
     uiText(view.kind, entry.kind==='relation'?ui("Связь"):doc.kind?.text||ui("Предмет"));
@@ -154,6 +156,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
       if(originLabels[block.state])uiChildren(section, "append", el('p',originLabels[block.state],'sc-reader-origin'));
       uiChildren(view.body, "append", section);
     }
+    if(doc.humanForms)uiChildren(view.body,'append',renderHumanForms(snapshot.raw));
     if(doc.participants.length){
       const section=el('section','','sc-reader-section');uiChildren(section, "append", el('h5',ui("Участники связи")));
       for(const participant of doc.participants){

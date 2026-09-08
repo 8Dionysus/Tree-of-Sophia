@@ -2,10 +2,22 @@ import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
 import {RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
+import {formIdentity,formLanguages,validateHumanForms,resolveClaimReading} from './human-forms.mjs';
+import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
+import {formLabel} from './reader-model.mjs';
 
 export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,initialLens}={}) {
-  const q=s=>root.querySelector(s),slots=new RequestSlots(),cache=new Map();
+  const q=s=>root.querySelector(s),slots=new RequestSlots();
   let searchTimer=0,retryAction=null,searchOffset=0;
+  let cardLanguage='ru';
+  const forms=document.createElement('div');forms.className='sc-card-forms';q('.sc-description').after(forms);
+  const language=document.createElement('select'),languageLabel=document.createElement('label');
+  uiText(languageLabel,ui('Язык материала'));uiAttribute(language,'aria-label',ui('Язык материала'));languageLabel.append(language);forms.before(languageLabel);
+  language.addEventListener('change',()=>{
+    cardLanguage=language.value;root.dataset.materialLanguage=cardLanguage;
+    const selected=port.selection,kind=selected.relationId?'relation':'node',raw=kind==='relation'?port.relation(selected.relationId):port.node(selected.nodeId);
+    if(raw)void showCard(kind,raw);
+  });
   const cardReading=createReadingMemory(q('#so-about')),relationsReading=createReadingMemory(q('#so-relations'));
   const text=(tag,className,value)=>{const el=document.createElement(tag);el.className=className;uiText(el, value);return el;};
   function button(label,action,className='sc-neighbor'){
@@ -21,7 +33,6 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   function cancelPending(){clearTimeout(searchTimer);slots.cancelAll();notice('');}
   function willSelect(){slots.cancel('scene');cancelInspector();notice('');if(port.packet)root.dataset.dataState='ready';}
   function notifyFailure(error,retry){notice(error.message||ui("Связь с данными прервалась."),retry);port.announce(error.message);}
-  function saveCache(key,value){cache.delete(key);cache.set(key,value);if(cache.size>48)cache.delete(cache.keys().next().value);}
   async function loadFocus(id,{expected=null,initial=false,depth=1,selectFocus=true}={}){
     const spec=focusSpec(id,{depth});notice(ui("Получаю окрестность…"));root.dataset.dataState='loading';
     try{
@@ -111,11 +122,15 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   }
   function endpointName(id){return localized(port.node(id)?.display?.title,id);}
   function renderCard(kind,raw,endpoints=[]){
-    const readingKey=JSON.stringify([port.packet?.source_revision,kind,raw.id,raw.content_revision]);cardReading.capture();relationsReading.capture();cardReading.enter(readingKey);relationsReading.enter(readingKey);
+    const selection=validateHumanForms(raw),identity=formIdentity(raw);
+    const readingKey=JSON.stringify([port.packet?.source_revision,kind,raw.id,raw.content_revision,cardLanguage,identity]);cardReading.capture();relationsReading.capture();cardReading.enter(readingKey);relationsReading.enter(readingKey);
     uiText(q('.sc-node-title'), localized(kind==='node'?raw.display.title:raw.display.label,raw.id));
     uiText(q('.sc-node-original'), kind==='node'?(raw.display.title.original||raw.display.title.en||''):localized(raw.display.statement));
     uiText(q('.sc-kind'), kind==='node'?localized(raw.display.kind_label,raw.kind_id).toUpperCase():ui("ОТНОШЕНИЕ"));
     uiText(q('.sc-description'), localized(kind==='node'?raw.display.summary:raw.display.explanation,ui("Описание пока не зафиксировано.")));
+    q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw));
+    const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
+    language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;option.textContent=formLabel(value);return option;}));language.value=cardLanguage;
     uiAttribute(q('.sc-inspector'), 'aria-label', kind==='node'?ui("Выбранный узел"):ui("Выбранное отношение"));
     root.dataset.inspectorKind=kind;root.dataset.inspectorId=raw.id;
     const relationships=kind==='node'?port.neighbors(raw.id):[raw];
@@ -141,14 +156,19 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   }
   async function showCard(kind,raw){
     cancelInspector();const revision=port.packet?.source_revision;if(!revision)return;
-    renderCard(kind,raw);root.dataset.inspectorState='loading';
-    const key=[revision,kind,raw.id,raw.content_revision].join('|');
-    if(cache.has(key)){const saved=cache.get(key);renderCard(kind,saved.match,saved.packet.endpoints);root.dataset.inspectorState='ready';return;}
+    root.dataset.inspectorState='loading';
+    uiText(q('.sc-node-title'),localized(kind==='node'?raw.display.title:raw.display.label,raw.id));
+    uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
-      const found=await slots.run('inspect',signal=>client.inspect(kind,raw.id,signal,revision,raw.content_revision));if(!found.current)return;
-      saveCache(key,found.value);renderCard(kind,found.value.match,found.value.packet.endpoints);root.dataset.inspectorState='ready';
+      renderCard(kind,raw);
+      const loading=text('p','sc-form-status',ui('Обновляю формы…'));forms.prepend(loading);
+      const found=await slots.run('inspect',signal=>client.readMaterial(kind,raw.id,signal,revision,raw.content_revision,{language:cardLanguage,relation:kind==='relation'?raw:null}));if(!found.current)return;
+      renderCard(kind,found.value.match,found.value.endpoints);root.dataset.inspectorState='ready';
+      const claim=port.packet?.scene?.claim_paths?.find(path=>path.claim_node_id===raw.id);
+      if(claim)forms.append(renderClaimContext(resolveClaimReading(port.packet,claim.reading)));
     }catch(error){
       root.dataset.inspectorState='error';
+      forms.replaceChildren(text('p','sc-form-status',error.message));q('.sc-description').hidden=true;
       uiChildren(q('.sc-provenance'), "prepend", text('p','sc-inspection-error',error.message));
       if(error instanceof RevisionError)notifyFailure(error,()=>loadFocus(port.packet.focus?.node_id||raw.id,{selectFocus:false}));
       else uiChildren(q('.sc-provenance'), "prepend", button(ui("Загрузить карточку ещё раз"),()=>showCard(kind,raw)));
@@ -160,7 +180,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   });
   q('.sc-read-selected').addEventListener('click',()=>{
     const selection=port.selection,kind=selection.relationId?'relation':'node',raw=kind==='relation'?port.relation(selection.relationId):port.node(selection.nodeId);
-    if(raw)root.dispatchEvent(new CustomEvent('sophia-read',{detail:{raw,kind}}));
+    if(raw)root.dispatchEvent(new CustomEvent('sophia-read',{detail:{raw,kind,preferred:cardLanguage}}));
   });
   async function loadLensLink(){
     root.dataset.dataState='loading';notice(ui("Открываю линзу…"));

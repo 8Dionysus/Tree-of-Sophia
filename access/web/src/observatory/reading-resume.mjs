@@ -1,10 +1,11 @@
 import {t} from './ui-i18n.mjs';
 import {readingKey} from './reader-model.mjs';
+import {contentLanguage,validFormIdentity} from './human-forms.mjs';
 
 export const READING_KEY='tos-observatory-reading-v1';
 export const emptyReading=()=>({v:1,activeKey:null,entries:[]});
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
-const language=value=>typeof value==='string'&&value.length<=64&&/^(default|original|[a-z]{2,8}(?:-[a-z0-9]{1,8})*)$/i.test(value);
+const language=value=>value==='default'||contentLanguage(value);
 const bounded=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
 const bad=()=>{throw new Error(t("Сохранённое чтение повреждено. Исходная запись оставлена в браузере."));};
 export function validateReading(value){
@@ -14,14 +15,14 @@ export function validateReading(value){
       ||!hash(entry.sourceRevision)||!hash(entry.contentRevision)||!language(entry.preferred)||!Array.isArray(entry.positions)||entry.positions.length>8)bad();
     const key=readingKey(entry.kind,entry.id);
     const positions=entry.positions.map(([positionKey,position])=>{
-      if(typeof positionKey!=='string'||positionKey.length>6000)bad();
+      if(typeof positionKey!=='string'||positionKey.length>32768)bad();
       let parts;try{parts=JSON.parse(positionKey);}catch{bad();}
-      if(!Array.isArray(parts)||parts.length!==4||parts[0]!==key||parts[1]!==entry.sourceRevision||parts[2]!==entry.contentRevision||!language(parts[3])
+      if(!Array.isArray(parts)||![4,5].includes(parts.length)||(parts.length===5&&!validFormIdentity(parts[4],parts[3]))||parts[0]!==key||parts[1]!==entry.sourceRevision||parts[2]!==entry.contentRevision||!language(parts[3])
         ||!bounded(position?.top,0,10000000)||!Array.isArray(position.details)||position.details.length>2)bad();
       const details=position.details.map(([id,open])=>{if(!['sources','identity'].includes(id)||typeof open!=='boolean')bad();return [id,open];});
       if(new Set(details.map(d=>d[0])).size!==details.length)bad();
       const anchor=position.anchor;
-      if(anchor!==null&&(!anchor||typeof anchor.key!=='string'||! /^(description|statement):\d{1,6}$/.test(anchor.key)||!bounded(anchor.offset,-10000000,10000000)))bad();
+      if(anchor!==null&&(!anchor||typeof anchor.key!=='string'||! /^(?:(description|statement):\d{1,6}|form:(name|caption|hover|statement|grounds|history|technical):(?:heading|wording|language|metadata|(?:context|binding):\d{1,3}))$/.test(anchor.key)||!bounded(anchor.offset,-10000000,10000000)))bad();
       return [positionKey,{top:position.top,details,anchor:anchor?{key:anchor.key,offset:anchor.offset}:null}];
     });
     if(new Set(positions.map(p=>p[0])).size!==positions.length)bad();
