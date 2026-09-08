@@ -23,8 +23,10 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   uiAttribute(opener, 'aria-label', ui("Чтение и сопоставление"));uiAttribute(opener, 'aria-expanded', 'false');
   uiHTML(opener, '<i data-lucide="book-open" aria-hidden="true"></i><span>Чтение</span>');
   uiChildren(root.querySelector('.sc-header-actions'), "append", opener);
-  const resume=button('',()=>show(),'sc-reader-resume');resume.hidden=true;
-  uiChildren(root.querySelector('.sc-context'), "append", resume);
+  const resume=button('',()=>show(),'sc-control sc-reader-resume');resume.hidden=true;
+  uiHTML(resume, '<i data-lucide="book-open" aria-hidden="true"></i><span></span><b class="sc-reader-resume-count" aria-hidden="true"></b>');
+  // Keep the restored-reading action in the header, outside movable windows.
+  uiChildren(root.querySelector('.sc-header-actions'), "prepend", resume);
   const panel=el('section','','sc-panel sc-reader');panel.hidden=true;uiAttribute(panel, 'aria-label', ui("Чтение и сопоставление"));
   uiHTML(panel, '<div class="sc-panel-top"><span class="sc-eyebrow">ЧТЕНИЕ</span><button type="button" class="sc-icon sc-reader-close" aria-label="Закрыть чтение"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-reader-heading"><h3 tabindex="-1">Удержать мысль</h3></div><div class="sc-reader-toolbar"></div><div class="sc-reader-tabs" role="tablist" aria-label="Закреплённые материалы"></div><div class="sc-reader-columns"></div><p class="sc-reader-notice" role="status"></p>');
   uiChildren(root, "append", panel);
@@ -224,7 +226,10 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     const selection=current(),already=selection&&entries.some(entry=>entry.key===readingKey(selection.kind,selection.raw.id));
     add.disabled=!selection||(!already&&entries.length>=2);uiText(add, already?ui("Читать выбранное"):ui("Добавить выбранное"));
     panel.querySelector('.sc-reader-toolbar').hidden=Boolean(already)||entries.length===2;
-    resume.hidden=!entries.length;uiText(resume, ui("К чтению · {0}", [entries.length]));
+    resume.hidden=!entries.length;
+    const resumeLabel=ui("К чтению · {0}", [entries.length]);
+    uiAttribute(resume, 'aria-label', resumeLabel);uiText(resume.querySelector('span'), resumeLabel);
+    uiText(resume.querySelector('.sc-reader-resume-count'), String(entries.length));
     panel.dataset.count=String(entries.length);uiText(status, storageError||notice||ui("Пара материалов, формы и позиции чтения сохраняются в этом браузере."));status.dataset.important=String(Boolean(storageError));
     layout();restore();scheduleSave();
   }

@@ -26,6 +26,12 @@ comparison, changed snapshots, delayed/offline/restricted reads, and the
 40-node/80-relation scene budget. Its short frame sample is a local diagnostic,
 not a sustained performance guarantee. Fixtures are not production build entries.
 
+For the reading-return regression, pin two distinct fixture items, reload, and
+open an inspector. Choose **Проверить возврат к чтению**: five hit-test points
+must reach the return button, then one activation must reopen both exact pins
+and move focus into reading. Run with the inspector on the left and at a narrow
+viewport. This catches covered controls that a programmatic click alone misses.
+
 `/static/fixtures/lens.html` also exercises search, capability-bound conditions,
 context and returns to paired reading at either 6 or 40 nodes. Its optional
 ten-minute probe keeps bounded frame/event histograms and at most 121 samples.

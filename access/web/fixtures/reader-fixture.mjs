@@ -3,6 +3,7 @@
 import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
 import {focusSpec} from '../src/observatory/knowledge-client.mjs';
+import {checkReadingResume} from './reading-resume-check.mjs';
 
 let generation=1,mode='long';
 const revision=()=>generation.toString(16).padStart(64,'0');
@@ -66,6 +67,11 @@ async function load(){
 }
 document.querySelector('#fixture-reload').addEventListener('click',()=>{mode=document.querySelector('#fixture-case').value;generation++;void load();});
 document.querySelector('#fixture-revision').addEventListener('click',()=>{generation++;void load();});
+document.querySelector('#fixture-resume-check').addEventListener('click',()=>{
+  const output=document.querySelector('#fixture-metrics');
+  try{output.textContent=JSON.stringify(checkReadingResume(root));}
+  catch(error){output.textContent='FAIL: '+error.message;}
+});
 document.querySelector('#fixture-measure').addEventListener('click',()=>{
   const output=document.querySelector('#fixture-metrics'),times=[],start=performance.now();let previous=start;
   output.textContent='Измеряю…';

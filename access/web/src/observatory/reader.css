@@ -40,7 +40,12 @@
 #sophia-gestures .sc-reader-tabs{display:flex;gap:15px;margin:0 0 5px;min-width:0}
 #sophia-gestures .sc-reader-tabs button{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:2px solid transparent;padding-bottom:7px!important;color:#97abc3}
 #sophia-gestures .sc-reader-tabs button[aria-selected=true]{border-bottom-color:#c4aa79;color:#e4cea5}
-#sophia-gestures .sc-reader-resume{display:block;width:max-content;margin:10px 0 0;padding:3px 0;background:none;border:0;color:#c8b28c;font:11px/1.7 system-ui,sans-serif;pointer-events:auto}
+#sophia-gestures .sc-reader-resume{width:max-content;margin:0;white-space:nowrap;color:#c8b28c;font:11px/1.7 system-ui,sans-serif;pointer-events:auto}
+#sophia-gestures .sc-reader-resume-count{display:none;font-weight:400}
+@container(max-width:1050px){
+  #sophia-gestures .sc-reader-resume{gap:3px;min-width:38px;padding-inline:4px}
+  #sophia-gestures .sc-reader-resume-count{display:inline}
+}
 #sophia-gestures .sc-reader-resume[hidden]{display:none}
 #sophia-gestures .sc-read-selected{border:0;background:none;color:var(--sc-accent);font:11px/1.6 system-ui,sans-serif;padding:7px 0;text-align:left}
 @container(min-width:651px){
