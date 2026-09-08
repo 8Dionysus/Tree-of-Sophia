@@ -2,9 +2,19 @@ import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
 import {RequestSlots,RevisionError,ContractError,localized,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
-import {formIdentity,formLanguages,validateHumanForms,resolveClaimReading} from './human-forms.mjs';
+import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 import {renderHumanForms,renderClaimContext} from './human-forms-view.mjs';
 import {formLabel} from './reader-model.mjs';
+
+export async function readInspectorMaterial({client,scene,kind,raw,language,signal}){
+  const path=kind==='node'?claimPathFor(scene,raw.id):null;
+  if(path){
+    if(path.reading?.content_revision!==raw.content_revision)throw new RevisionError();
+    const found=await client.readClaimMaterial(scene,path,signal,{language});
+    return {...found,claimReading:resolveClaimReading(found.packet,found.path.reading)};
+  }
+  return client.readMaterial(kind,raw.id,signal,scene.source_revision,raw.content_revision,{language,relation:kind==='relation'?raw:null});
+}
 
 export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,initialLens}={}) {
   const q=s=>root.querySelector(s),slots=new RequestSlots();
@@ -155,17 +165,19 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiChildren(q('.sc-provenance'), "append", button(ui("Основания и прочтения"),()=>root.dispatchEvent(new CustomEvent('sophia-evidence',{detail:{raw,kind}}))), button(ui("Открыть источники"),()=>root.dispatchEvent(new CustomEvent('sophia-sources',{detail:{raw,kind}}))), button(kind==='node'?ui("Проложить маршрут"):ui("Другой путь"),()=>root.dispatchEvent(new CustomEvent('sophia-navigate',{detail:{raw,kind,tab:'paths'}}))));cardReading.restore();relationsReading.restore();port.cardChanged();
   }
   async function showCard(kind,raw){
-    cancelInspector();const revision=port.packet?.source_revision;if(!revision)return;
+    cancelInspector();const scene=port.packet,language=cardLanguage;if(!scene?.source_revision)return;
     root.dataset.inspectorState='loading';
     uiText(q('.sc-node-title'),localized(kind==='node'?raw.display.title:raw.display.label,raw.id));
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
       renderCard(kind,raw);
-      const loading=text('p','sc-form-status',ui('Обновляю формы…'));forms.prepend(loading);
-      const found=await slots.run('inspect',signal=>client.readMaterial(kind,raw.id,signal,revision,raw.content_revision,{language:cardLanguage,relation:kind==='relation'?raw:null}));if(!found.current)return;
-      renderCard(kind,found.value.match,found.value.endpoints);root.dataset.inspectorState='ready';
-      const claim=port.packet?.scene?.claim_paths?.find(path=>path.claim_node_id===raw.id);
-      if(claim)forms.append(renderClaimContext(resolveClaimReading(port.packet,claim.reading)));
+      forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;
+      const found=await slots.run('inspect',signal=>readInspectorMaterial({client,scene,kind,raw,language,signal}));
+      if(!found.current||port.packet!==scene||cardLanguage!==language
+        ||(kind==='relation'?port.selection.relationId:port.selection.nodeId)!==raw.id)return;
+      renderCard(kind,found.value.match,found.value.endpoints);
+      if(found.value.claimReading)forms.append(renderClaimContext(found.value.claimReading));
+      root.dataset.inspectorState='ready';
     }catch(error){
       root.dataset.inspectorState='error';
       forms.replaceChildren(text('p','sc-form-status',error.message));q('.sc-description').hidden=true;

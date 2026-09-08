@@ -480,18 +480,35 @@ identities, states and actual languages. Earlier four-part position keys remain
 readable. Reload fetches current packets; invalid or revoked material clears
 the displayed copy. Late language responses cannot replace a newer choice.
 Network failure can retain an explicitly marked earlier in-page copy.
+Only the shared, bounded reading-anchor grammar leaves page memory. A local
+diagnostic anchor such as a candidate without a role exports as `anchor: null`,
+retaining its numeric position and allowed details state. The importer still
+rejects unknown anchors; one diagnostic cannot invalidate the saved pair.
 
-Compact Claim reading resolves the declared pointer to the entire packet and
-requires its semantic, epistemic and relation context. Existing inspectors can
-show that context when a matching path is delivered. Visual `scene.claim_paths`
-collapsing, explicit candidate selection and an over-budget recovery endpoint
-are outside this UI slice. The painter, camera, gestures, motion and panel
-placement retain their existing owners.
+The inspector follows `scene.compact.claim_paths`. A selected Claim uses
+`KnowledgeClient.readClaimMaterial` to fetch the exact path nodes, both legs,
+declared evidence relations and their endpoints as one full LensResult at the
+captured revision and requested language. Exact selectors with zero traversal
+need no focus seed; a focus can suppress a path when it also supplies grounds.
+Every returned identity and content revision is checked. The new response owns
+the wording pointer, entire form packet, semantic, epistemic and relation
+context; it is never combined with wording from the older displayed scene.
+The current request must still own the same scene, selection and language
+before the card becomes ready. Loading, damaged or denied delivery clears the
+earlier wording. Ordinary node reads remain isolated to one node.
+
+This supports the existing two-leg Claim path with `claim-supported-by` details.
+New path-detail relation kinds require an explicit compatible owner contract;
+they fail closed here. Visual path collapsing, explicit candidate selection and
+an over-budget recovery endpoint are outside this UI slice. The painter, camera,
+gestures, motion and panel placement retain their existing owners.
 
 `fixtures/human-forms.html` provides synthetic full, ambiguous, stale,
 over-budget, damaged-context, delayed and restricted deliveries. Its optional
 preservation probe reports reading references and positions without exporting
 source text. These examples are test data, not ToS knowledge or assessment.
+The `?forms=compact` and `?forms=diagnostic` variants exercise the real inspector
+call path and pair restoration with a role-less diagnostic respectively.
 
 This slice passed 149 frontend tests, TypeScript and the Vite build. The access
 lane passed 109 tests in its full run; its remaining schema test passed after
@@ -504,3 +521,16 @@ Spanish-to-Russian fallback and unavailable undeclared original forms. Vite
 reports the application chunk above its 900 kB warning threshold (905.15 kB).
 This is local delivery evidence; CI, merge, deployment, backend assessment,
 physical touch and performance acceptance remain separate.
+
+The subsequent compact-reading and persistence repair passed 163 frontend tests,
+TypeScript and Vite. Its browser fixtures verified distinct RU/EN packets,
+late-response suppression, unavailable original, missing context, access denial,
+and a saved diagnostic position restored for both materials after reload.
+The real canonical HTTP canary exercised the actual inspector consumer with
+four Duden Claim nodes and three context relations. EN and ES requests preserved
+the backend's RU fallback; undeclared original had no wording. The ordinary
+HTTP client canary also passed focus, search, exploration, evidence, paths and
+known/restored relation equality. The application chunk warning remains
+(908.78 kB, 255.86 kB gzip). Full access and release lanes were not repeated for
+this UI-only repair; the affected frontend and real HTTP consumer checks provide
+its bounded validation evidence.

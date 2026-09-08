@@ -1,3 +1,4 @@
+import {persistentReadingAnchorKey} from './reading-anchor.mjs';
 // Reading positions belong to a particular object, source revision and section.
 // Text and source payloads are never copied into durable browser storage here.
 export function createReadingMemory(body,{limit=48,onCapture=()=>{}}={}){
@@ -24,7 +25,7 @@ export function createReadingMemory(body,{limit=48,onCapture=()=>{}}={}){
   return {capture,restore,enter(next){if(next!==key){capture();key=next;}},get key(){return key;},
     // Only explicit local anchors and details IDs can leave page memory.
     exportPositions(){return [...views].map(([id,state])=>[id,{top:state.top,details:state.details.filter(([name])=>['sources','identity'].includes(name)),
-      anchor:state.anchor?.key?{key:state.anchor.key,offset:state.anchor.offset}:null}]);},
+      anchor:persistentReadingAnchorKey(state.anchor?.key)?{key:state.anchor.key,offset:state.anchor.offset}:null}]);},
     importPositions(positions){views.clear();for(const [id,state]of positions.slice(-limit))views.set(id,structuredClone(state));},
   };
 }

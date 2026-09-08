@@ -1,6 +1,7 @@
 import {t} from './ui-i18n.mjs';
 import {readingKey} from './reader-model.mjs';
 import {contentLanguage,validFormIdentity} from './human-forms.mjs';
+import {persistentReadingAnchorKey} from './reading-anchor.mjs';
 
 export const READING_KEY='tos-observatory-reading-v1';
 export const emptyReading=()=>({v:1,activeKey:null,entries:[]});
@@ -22,7 +23,7 @@ export function validateReading(value){
       const details=position.details.map(([id,open])=>{if(!['sources','identity'].includes(id)||typeof open!=='boolean')bad();return [id,open];});
       if(new Set(details.map(d=>d[0])).size!==details.length)bad();
       const anchor=position.anchor;
-      if(anchor!==null&&(!anchor||typeof anchor.key!=='string'||! /^(?:(description|statement):\d{1,6}|form:(name|caption|hover|statement|grounds|history|technical):(?:heading|wording|language|metadata|(?:context|binding):\d{1,3}))$/.test(anchor.key)||!bounded(anchor.offset,-10000000,10000000)))bad();
+      if(anchor!==null&&(!anchor||!persistentReadingAnchorKey(anchor.key)||!bounded(anchor.offset,-10000000,10000000)))bad();
       return [positionKey,{top:position.top,details,anchor:anchor?{key:anchor.key,offset:anchor.offset}:null}];
     });
     if(new Set(positions.map(p=>p[0])).size!==positions.length)bad();

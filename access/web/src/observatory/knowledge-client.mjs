@@ -1,5 +1,5 @@
 import {t} from './ui-i18n.mjs';
-import {contentLanguage,validateHumanForms} from './human-forms.mjs';
+import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
 // The browser consumes the access contract; it never authors ToS relationships.
 export const DEFAULT_FOCUS = 'tos.work.friedrich-nietzsche.also-sprach-zarathustra';
 export const BUDGET = Object.freeze({nodes:40,relations:80});
@@ -173,6 +173,34 @@ export class KnowledgeClient {
     // This UI envelope is not an invented inspect packet. Keep the original
     // LensResult and its schema intact for validation, revision and provenance.
     return {packet,match,endpoints:kind==='relation'?packet.nodes:[]};
+  }
+  async readClaimMaterial(scene,path,signal,{language='ru'}={}){
+    if(!contentLanguage(language))throw new ContractError(t('Неверный запрос материала.'));
+    validateArea(scene);const closure=claimPathClosure(scene,path);
+    if(closure.nodeIds.length>BUDGET.nodes||closure.relationIds.length>BUDGET.relations)
+      throw new ContractError(t('Область превышает бюджет отображения.'));
+    // Exact selectors supply the closure. A focus can suppress a valid compact
+    // path when that node is the Claim or is also referenced as its grounds.
+    const spec={...focusSpec(path.node_ids[0],{depth:0}),seed:{},lens_id:'sophia-observatory-claim-material',language,detail:'full',explain:false,
+      node_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.nodeIds}]},
+      relation_query:{enabled:true,filters:[{field:'id',op:'in',value:closure.relationIds}]},
+      traversal:{depth:0,direction:'either',profile:'all'},
+      limits:{nodes:closure.nodeIds.length,relations:closure.relationIds.length,groups:closure.nodeIds.length}};
+    const packet=await this.compile(spec,signal,scene.source_revision);
+    const exact=(items,ids)=>items.length===ids.length&&items.every(item=>ids.includes(item.id));
+    if(!exact(packet.nodes,closure.nodeIds)||!exact(packet.relations,closure.relationIds))
+      throw new ContractError(t('Ответ вышел за границы выбранного материала.'));
+    for(const kind of ['nodes','relations'])for(const item of packet[kind]){
+      if(item.content_revision!==scene[kind].find(old=>old.id===item.id)?.content_revision)throw new RevisionError();
+      validateHumanForms(item,language);
+    }
+    const selected=claimPathFor(packet,path.claim_node_id);if(!selected)throw new FormContractError();
+    const returned=claimPathClosure(packet,selected);
+    if(selected.id!==path.id||selected.relation_type_id!==path.relation_type_id
+      ||JSON.stringify(selected.node_ids)!==JSON.stringify(path.node_ids)
+      ||JSON.stringify(selected.relation_ids)!==JSON.stringify(path.relation_ids)
+      ||!exact(returned.relationIds.map(id=>({id})),closure.relationIds))throw new FormContractError();
+    return {packet,match:returned.node,endpoints:[],path:selected};
   }
   capabilities(signal){return this.request('/explore/capabilities',{signal});}
 }

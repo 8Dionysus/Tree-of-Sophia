@@ -23,3 +23,40 @@ export function formNode(id='fixture:forms',language='ru'){
 }
 export const formLens=(nodes=[formNode()],relations=[])=>({schema:'tos_lens_result_v1',source_revision:revision,
   authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},nodes,relations,focus:{node_id:nodes[0].id}});
+
+// Mirrors the current scene.compact envelope using visibly synthetic records.
+export function compactFormLens(language='ru'){
+  const claim=formNode('fixture:claim',language==='original'?'ru':language);
+  claim.type_id='tos.entity.claim';claim.display.title.ru='Проверочный Claim-путь';
+  claim.semantics={claim:{subject_node_id:'fixture:subject',object_node_id:'fixture:object',
+    relation_type_id:'tos.relation.fixture',predicate_mapping_status:'mapped'},assertion_contexts:[{qualifiers:{unknown:false}}]};
+  for(const [role,selected]of Object.entries(claim.human_form_selection.roles)){
+    selected.form.id+='.'+selected.packet.language;
+    selected.packet.display_text='Fixture '+selected.packet.language.toUpperCase()+' '+role+'. '+selected.packet.display_text;
+  }
+  claim.human_form_selection.requested_language=language;
+  if(language==='original')for(const role of roles)claim.human_form_selection.roles[role]={state:'unavailable',reason:'original-role-not-declared',form:null,packet:null};
+  claim.display_selection={fields:{title:{content_available:true,value:'Проверочный Claim-путь',language:null}}};
+  const endpoints=['subject','object','evidence'].map(kind=>{
+    const node=formNode('fixture:'+kind);delete node.human_form_selection;
+    node.entity_id='tos.fixture.'+kind;node.kind_id='fixture';node.display.title.ru='Проверочный '+kind;return node;
+  });
+  const nodes=[endpoints[0],claim,endpoints[1],endpoints[2]],relations=['subject','object','evidence'].map((kind,index)=>({
+    id:'fixture:claim-'+kind,from_id:claim.id,to_id:'fixture:'+kind,content_revision:content,source_refs:['UI fixture; not a ToS source'],
+    relation_type_id:['tos.relation.has-subject','tos.relation.has-object','tos.relation.claim-supported-by'][index],
+    display:{label:{ru:'Проверочная связь '+kind}},qualifiers:{unknown:false}}));
+  const vertex=id=>'tos-scene:entity:'+nodes.find(node=>node.id===id).entity_id;
+  const path={id:'tos-scene:claim-path:'+claim.id,claim_node_id:claim.id,from_id:vertex('fixture:subject'),to_id:vertex('fixture:object'),
+    relation_type_id:'tos.relation.fixture',node_ids:['fixture:subject',claim.id,'fixture:object'],
+    relation_ids:relations.slice(0,2).map(r=>r.id),detail_relation_ids:[relations[2].id],
+    reading:{mode:'claim-with-mandatory-context',node_id:claim.id,content_revision:content,
+      wording_pointer:language==='original'?'/display_selection/fields/title':'/human_form_selection/roles/caption/packet',
+      wording_state:'available',context_pointers:['/semantics','/epistemic'],relation_context_ids:relations.map(r=>r.id),standalone:false}};
+  return {...formLens(nodes,relations),scene:{schema_version:'tos_knowledge_scene_v1',
+    vertices:nodes.map(n=>({id:vertex(n.id),entity_id:n.entity_id,node_ids:[n.id],representative_node_id:n.id})),
+    arcs:relations.map(r=>({relation_id:r.id,from_id:vertex(r.from_id),to_id:vertex(r.to_id)})),
+    collapsed_relation_ids:[],focus_vertex_id:vertex('fixture:subject'),scope:'returned-packet-only',identity_rule:'declared-tos-entity-id',
+    authority:'presentation-mapping-not-semantic-admission',compact:{rule:'explicit-claim-paths-v1',authority:'presentation-only-no-new-assertion',
+      vertex_ids:[vertex('fixture:subject'),vertex('fixture:object')],relation_ids:[],claim_paths:[path],
+      folded_vertex_ids:[vertex(claim.id),vertex('fixture:evidence')],retained_claims:[]}}};
+}

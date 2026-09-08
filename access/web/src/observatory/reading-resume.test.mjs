@@ -32,3 +32,15 @@ test('durable reading positions strip page-local text fallback while retaining e
   body.querySelectorAll=selector=>selector==='details'?[]:[{dataset:{readingAnchor:'description:2'},textContent:'Private source sentence',getBoundingClientRect:()=>({top:-5,bottom:20})}];
   memory.capture();expect(memory.exportPositions()[0][1].anchor).toEqual({key:'description:2',offset:-5});expect(JSON.stringify(memory.exportPositions())).not.toContain('Private');
 });
+test('captured diagnostic anchors cannot break paired export, strict validation and resume',()=>{
+  const diagnostic={dataset:{readingAnchor:'unassigned-form'},textContent:'Private diagnostic source text',getBoundingClientRect:()=>({top:-12,bottom:80})};
+  const body={isConnected:true,scrollTop:200,getAttribute:()=>null,getClientRects:()=>[{}],getBoundingClientRect:()=>({top:0}),addEventListener:()=>{},
+    querySelectorAll:selector=>selector==='details'?[]:[diagnostic]};
+  const memory=createReadingMemory(body),first=entry();memory.enter(first.positions[0][0]);memory.capture();
+  first.positions=memory.exportPositions();const value={v:1,activeKey:readingKey('relation','opaque:two'),entries:[first,entry('opaque:two','relation')]};
+  const saved=JSON.stringify(validateReading(value)),loaded=readReading({getItem:()=>saved});
+  expect(loaded.entries[0].positions[0][1]).toEqual({top:200,details:[],anchor:null});expect(loaded.entries[1]).toEqual(value.entries[1]);
+  expect(loaded.activeKey).toBe(value.activeKey);expect(saved).not.toContain('Private');
+  const resumed=createReadingMemory(body);resumed.enter(first.positions[0][0]);resumed.importPositions(loaded.entries[0].positions);body.scrollTop=0;resumed.restore();expect(body.scrollTop).toBe(200);
+  loaded.entries[0].positions[0][1].anchor={key:'unassigned-form',offset:-12};expect(()=>validateReading(loaded)).toThrow();
+});
