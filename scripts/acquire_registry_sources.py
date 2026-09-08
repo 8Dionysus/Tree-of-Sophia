@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = "ToS/source-witnesses"
 TOPOLOGY = f"{SOURCE}/relations/provenance.jsonl"
 TOPOLOGY_EVENT = "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31"
-ALLOWED_REPOSITORIES = {"openscriptures/morphhb", "oraec/corpus_raw_data", "suttacentral/bilara-data"}
+ALLOWED_REPOSITORIES = {"openscriptures/morphhb", "oraec/corpus_raw_data", "suttacentral/bilara-data", "PerseusDL/canonical-greekLit"}
 NO_ACQUISITION = {"downloaded": False, "acquired_at": None, "byte_size": None, "sha256": None, "event_ref": None}
 
 
@@ -238,7 +238,29 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
     report = {"target_slug": target["slug"], "file_count": len(bodies), "byte_size": sum(len(body) for _, body in bodies),
               "source_bytes_changed": False, "textual_acceptance": False, "files": []}
     coverage = target["coverage"]
-    if coverage["kind"] == "osis-book":
+    if coverage["kind"] == "perseus-tei-work":
+        if len(bodies) != 1:
+            raise ValueError("Perseus work requires exactly one prepared TEI file")
+        entry, body = bodies[0]
+        marker = b"</teiHeader>"
+        if marker not in body or sha256(body.split(marker, 1)[0] + marker) != coverage["header_prefix_sha256"]:
+            raise ValueError("Perseus header differs from the reviewed metadata prefix")
+        ns = "{http://www.tei-c.org/ns/1.0}"
+        xml = ET.fromstring(body)
+        text_body = xml.find(ns + "text/" + ns + "body")
+        if xml.tag != ns + "TEI" or text_body is None:
+            raise ValueError("Perseus file lacks the expected TEI body")
+        editions = [node for node in text_body.iter(ns + "div") if node.get("type") == "edition"]
+        if len(editions) != 1 or editions[0].get("n") != coverage["cts_urn"] or editions[0].get("{http://www.w3.org/XML/1998/namespace}lang") != "grc":
+            raise ValueError("Perseus edition identity or source language differs")
+        sections = [node.get("n") for node in editions[0].iter(ns + "div") if node.get("subtype") == "section"]
+        text = "".join(editions[0].itertext())
+        greek = sum("\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff" for char in text)
+        if not sections or len(sections) != len(set(sections)) or greek < 1000:
+            raise ValueError("Perseus section identity or nonempty Greek text check failed")
+        report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"], "section_count": len(sections), "first_section": sections[0], "last_section": sections[-1], "greek_character_count": greek})
+        report["coverage_limit"] = "Complete pinned supplied file; no independent critical-edition or missing-passage judgment."
+    elif coverage["kind"] == "osis-book":
         namespace = "{http://www.bibletechnologies.net/2003/OSIS/namespace}"
         entry, body = bodies[0]
         xml = ET.fromstring(body)
@@ -493,7 +515,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
             "queried_at": transfer_row["started_at"], "elapsed_seconds": transfer_row["elapsed_seconds"], "result_order_preserved": True,
             "results": [{"result_id": result_id, "rank": 1, "title_as_displayed": Path(transfer_row["destination_ref"]).name, "result_url": transfer_row["url"], "originating_record_url": f"https://github.com/{target['repository']}/tree/{target['pin']}",
                 "identifiers": [{"scheme": "Git commit", "value": target["pin"]}, {"scheme": "Git blob SHA-1", "value": transfer_row["expected_git_blob_sha1"]}],
-                "available_formats": ["XML/OSIS" if target["provider"] == "morphhb" else "JSON"], "declared_rights": {"statement": "Provider license evidence is assessed separately in the exact Item rights record.", "scope": "digital-object", "evidence_url": matching[-1]["url"], "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
+                "available_formats": sorted({entry["media_type"] for entry in target["files"]}), "declared_rights": {"statement": "Provider license evidence is assessed separately in the exact Item rights record.", "scope": "digital-object", "evidence_url": matching[-1]["url"], "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
                 "availability": "open-download", "machine_interface": "bulk-data", "decision": "select", "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
                 "acquisition": {"downloaded": True, "acquired_at": transfer_row["ended_at"], "byte_size": transfer_row["byte_size"], "sha256": transfer_row["sha256"], "event_ref": acquisition["event_id"]},
                 "snapshot": {"state": "not-needed", "format": None, "sha256": None, "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."}}]})

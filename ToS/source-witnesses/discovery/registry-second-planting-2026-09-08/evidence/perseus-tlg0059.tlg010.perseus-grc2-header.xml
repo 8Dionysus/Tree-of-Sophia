@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+        
+        <fileDesc>
+            
+            <titleStmt>
+               <title xml:lang="grc">Φίληβος</title>
+                <author>Plato</author>
+               <editor>John Burnet</editor>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Lisa Cerrato</name>
+                    <name>William Merrill</name>
+                    <name>Elli Mylonas</name>
+                    <name>David Smith</name>
+                </respStmt>
+                <funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+            </titleStmt>
+            
+            
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+               <date type="release">1996</date>
+            </publicationStmt> 
+            <notesStmt>
+             <note anchored="true">Text was scanned at St. Olaf Spring, 1992.</note>
+              <note>Perseus 2.0</note>
+         </notesStmt>
+            <sourceDesc>
+               <biblStruct>
+                  <monogr>
+                     <author>Plato</author>
+                     <title xml:lang="lat">Platonis Opera</title>
+                     <editor>John Burnet</editor>                       
+                     <imprint>
+                        <pubPlace>Oxford</pubPlace>
+                        <publisher>Clarendon Press</publisher>
+                        <date>1910</date>
+                     </imprint>
+                     <biblScope unit="volume">2</biblScope>
+                  </monogr> 
+                  <ref target="https://archive.org/details/operarecognovitb02platuoft/page/n16/mode/1up">Internet Archive</ref>
+               </biblStruct>
+            </sourceDesc>
+            
+            
+        </fileDesc>
+        
+        <encodingDesc>
+           <refsDecl n="CTS">
+              <cRefPattern n="section" matchPattern="(\w+)"
+                 replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">           
+                 <p>This pointer pattern extracts section</p>
+              </cRefPattern>
+           </refsDecl>
+            
+            <!--<refsDecl doctype="TEI.2">
+                <state unit="text"/>
+                <state unit="section"/>
+            </refsDecl>
+            <refsDecl doctype="TEI.2">
+                <state unit="text"/>
+                <state unit="page"/>
+            </refsDecl>-->
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+      
+        <profileDesc>
+            <langUsage>
+                <language ident="grc">Greek</language>
+                <language ident="eng">English</language>
+            </langUsage>
+           <particDesc>
+              <person><persName>Σωκράτης</persName></person>
+              <person><persName>Πρώταρχος</persName></person>
+              <person><persName>Φίληβος</persName></person>
+           </particDesc>
+        </profileDesc>
+        
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+           <change when="2017-04-18" who="Lisa Cerrato">EpiDoc and CTS conversion; speaker to said tags, quotes and language conversion</change>	
+           <change when="2014-05-01" who="Bridget Almas">Converted speaker to said and section milestones to divs.</change>
+           <change when="1992-07-01" who="DAS">Tagged in conformance with Prose.e dtd.</change>     
+        </revisionDesc>
+        
+    </teiHeader>

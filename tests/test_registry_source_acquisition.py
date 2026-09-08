@@ -17,6 +17,25 @@ import acquire_registry_sources as acquisition
 
 
 class RegistrySourceAcquisitionTests(unittest.TestCase):
+    def test_perseus_checks_reviewed_header_cts_language_and_section_identity(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        body = prefix + ('<text><body><div type="edition" n="urn:cts:greekLit:test.grc1" xml:lang="grc">'
+                         '<div subtype="section" n="1a">' + '\u03b1\u0313' * 1100 + '</div>'
+                         '</div></body></text></TEI>').encode()
+        target = {"slug": "fixture", "coverage": {"kind": "perseus-tei-work",
+                  "cts_urn": "urn:cts:greekLit:test.grc1", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertEqual(report["files"][0]["first_section"], "1a")
+        self.assertEqual(report["files"][0]["greek_character_count"], 1100)
+        self.assertFalse(report["source_bytes_changed"])
+        for altered in (body.replace(b"fileDesc", b"sourceDesc"),
+                        body.replace(b"test.grc1", b"other.grc1"),
+                        body.replace(b'xml:lang="grc"', b'xml:lang="eng"'),
+                        body.replace(b'</div></body>', b'<div subtype="section" n="1a">duplicate</div></div></body>'),
+                        body.replace(('\u03b1\u0313' * 1100).encode(), b"only English")):
+            with self.subTest(altered=altered[:150]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, altered)])
+
     def test_topology_refresh_keeps_one_jsonl_record_and_retains_exact_preimage(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -301,9 +301,9 @@ def rights_record(target: dict, assessed_at: str) -> dict:
         "access_request_ref": None, "record_version": 1, "supersedes_rights_ref": None}
 
 
-def prepare_package(target: dict, assessed_at: str) -> dict:
+def prepare_package(target: dict, assessed_at: str, *, evidence_refs: list[str] | None = None, rights_assessment: dict | None = None) -> dict:
     ids, paths, title = target["ids"], target["paths"], target["title"]
-    refs = source_refs(target)
+    refs = source_refs(target) if evidence_refs is None else evidence_refs
     claim_ids = {"work_expression": f"tos.claim.topology.registry-20260908.{target['slug']}.work-expression",
                  "expression_edition": f"tos.claim.topology.registry-20260908.{target['slug']}.expression-edition",
                  "edition_item": f"tos.claim.topology.registry-20260908.{target['slug']}.edition-item"}
@@ -365,7 +365,7 @@ def prepare_package(target: dict, assessed_at: str) -> dict:
         "forensic_report_ref": f"{item_root}/forensic-report.md", "resource_inventory_ref": f"{item_root}/resource-inventory.json",
         "source_record_refs": refs, "visibility": "local_only", "manifest_version": 1, "supersedes_manifest_ref": None}
     return {"target_slug": target["slug"], "status": "prepared-not-acquired", "records": records,
-            "rights": rights_record(target, assessed_at), "claims": claims, "manifest_fields": manifest_fields,
+            "rights": rights_record(target, assessed_at) if rights_assessment is None else rights_assessment, "claims": claims, "manifest_fields": manifest_fields,
             "fields_completed_only_after_acquisition": ["payload_files", "File SHA-256", "acquisition time", "forensic structure observations", "resource inventory", "provenance events"]}
 
 
