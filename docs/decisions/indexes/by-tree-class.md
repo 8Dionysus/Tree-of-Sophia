@@ -159,6 +159,7 @@
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
 - [TOS-D-0041 - TOS-D-0041 Prompt-light agent routes and on-demand validation](../TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md) (`docs/decisions/TOS-D-0041-prompt-light-agent-routes-and-on-demand-validation.md`)
 - [TOS-D-0042 - TOS-D-0042 Repository-driven Cloudflare edge](../TOS-D-0042-repository-driven-cloudflare-edge.md) (`docs/decisions/TOS-D-0042-repository-driven-cloudflare-edge.md`)
+- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
 
 ## graph projection
 
@@ -268,6 +269,7 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
+- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
 
 ## public edge
 
@@ -372,6 +374,10 @@
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
+
+## source return
+
+- [TOS-D-0060 - Tree consumer pin for the bounded segmented KAG family](../TOS-D-0060-segmented-kag-consumer-pin.md) (`docs/decisions/TOS-D-0060-segmented-kag-consumer-pin.md`)
 
 ## source-home manifest
 

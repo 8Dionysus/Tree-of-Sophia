@@ -1,0 +1,31 @@
+{
+  "schema_version": "tos-kag-provider-pin-v1",
+  "consumer_repo": "Tree-of-Sophia",
+  "provider_repo": "aoa-kag",
+  "provider_revision": "d9b00bc456ea95dd8447311331ee83ba51afa023",
+  "provider_action": ".github/actions/repo-local-kag-index/action.yml",
+  "family_schema": "aoa-repo-local-kag-segmented-family-v1",
+  "schema_ref": "aoa-kag:schemas/repo-local-kag-segmented-family.schema.json",
+  "consumer_adapter": "scripts/validate_local_kag_provider.py",
+  "migration": {
+    "mode": "explicit-provider-pin-dual-read",
+    "rollback": "retain-last-good-manifest-and-select-by-digest",
+    "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0040-bounded-segmented-kag-family.md"
+  },
+  "source_refs": [
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "ToS/derived-exports/kag_export.min.json",
+      "source_class": "tos_source",
+      "role": "provider-input",
+      "authority": "source_owned_export"
+    },
+    {
+      "repo": "Tree-of-Sophia",
+      "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+      "source_class": "tos_source",
+      "role": "consumer-route",
+      "authority": "authored_source"
+    }
+  ]
+}

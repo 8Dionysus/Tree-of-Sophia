@@ -174,3 +174,172 @@ def test_removed_freeze_only_option_cannot_bypass_currentness() -> None:
     with pytest.raises(SystemExit) as error:
         load_validator().main(["--freeze-only"])
     assert error.value.code == 2
+
+
+def write_segmented_family(tmp_path: Path) -> Path:
+    validator = load_validator()
+    for relative in (
+        "ToS/derived-exports/kag_export.min.json",
+        "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("source\n", encoding="utf-8")
+
+    index_identity = {
+        "local_id": "index:repo-local:source-surfaces",
+        "content_digest": "a" * 64,
+    }
+    source_index = {
+        "schema_version": "aoa-repo-local-kag-index-v2",
+        "repo": {"name": "Tree-of-Sophia"},
+        "index_identity": index_identity,
+        "records": [
+            {
+                "identity": {
+                    "repo": "Tree-of-Sophia",
+                    "path": "ToS/derived-exports/kag_export.min.json",
+                }
+            }
+        ],
+    }
+    index_path = tmp_path / "kag/indexes/source_surface_index.json"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(json.dumps(source_index, sort_keys=True) + "\n", encoding="utf-8")
+
+    row = {
+        "_kind": "source",
+        "_key": "source:tos:export",
+        "identity": {
+            "repo": "Tree-of-Sophia",
+            "path": "ToS/derived-exports/kag_export.min.json",
+        },
+    }
+    segment_bytes = (json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    segment_relative = Path("kag/indexes/segments/source/aa.jsonl")
+    segment_path = tmp_path / segment_relative
+    segment_path.parent.mkdir(parents=True, exist_ok=True)
+    segment_path.write_bytes(segment_bytes)
+    pin = {
+        "schema_version": "tos-kag-provider-pin-v1",
+        "consumer_repo": "Tree-of-Sophia",
+        "provider_repo": "aoa-kag",
+        "provider_revision": "d9b00bc456ea95dd8447311331ee83ba51afa023",
+        "provider_action": ".github/actions/repo-local-kag-index/action.yml",
+        "family_schema": validator.SEGMENTED_FAMILY_SCHEMA,
+        "schema_ref": validator.SEGMENTED_SCHEMA_REF,
+        "consumer_adapter": "scripts/validate_local_kag_provider.py",
+        "migration": {
+            "mode": "explicit-provider-pin-dual-read",
+            "rollback": "retain-last-good-manifest-and-select-by-digest",
+            "decision_ref": validator.SEGMENTED_DECISION_REF,
+        },
+        "source_refs": [
+            {"repo": "Tree-of-Sophia", "path": "ToS/derived-exports/kag_export.min.json"}
+        ],
+    }
+    (tmp_path / "kag").mkdir(exist_ok=True)
+    (tmp_path / "kag/provider-pin.json").write_text(
+        json.dumps(pin, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    compatibility = {
+        "view": "aoa-repo-local-kag-v2",
+        "assembly": "deterministic-on-demand-from-segments",
+        "requires_explicit_provider_pin": True,
+        "files": [
+            {
+                "kind": "source",
+                "path": "kag/indexes/source_surface_index.json",
+                "schema_version": source_index["schema_version"],
+                "content_digest": "a" * 64,
+                "records": 1,
+            }
+        ],
+    }
+    manifest = {
+        "schema_version": validator.SEGMENTED_FAMILY_SCHEMA,
+        "repo": {"name": "Tree-of-Sophia"},
+        "family_identity": {
+            "local_id": "family:repo-local:segmented-record-corpus",
+            "artifact_kind": "repo_local_kag_segmented_family",
+            "content_digest": "0" * 64,
+            "schema_ref": validator.SEGMENTED_SCHEMA_REF,
+            "source_snapshot": "sha256:" + "a" * 64,
+        },
+        "producer_identity": {
+            "version": "aoa-kag:segmented-family-producer-v1",
+            "route": "aoa-kag:scripts/repo_local/segmented_family.py",
+        },
+        "candidate_identity": {
+            "version": "aoa-kag:segmented-family-candidate-v1",
+            "content_digest": "b" * 64,
+            "source_index_content_digest": "a" * 64,
+        },
+        "migration": {
+            "mode": "explicit-provider-pin-dual-read",
+            "rollback": "retain-last-good-manifest-and-select-by-digest",
+            "decision_ref": validator.SEGMENTED_DECISION_REF,
+        },
+        "budgets": {
+            "part_bytes_max": 16 * 1024 * 1024,
+            "request_bytes_max": 4 * 1024 * 1024,
+            "legacy_owner_hard_bytes_max": validator.OWNER_HARD_BYTES_MAX,
+            "tracked_bytes_max": validator.OWNER_HARD_BYTES_MAX,
+            "fail_closed": True,
+        },
+        "summary": {
+            "segments": 1,
+            "canonical_records": 1,
+            "logical_bytes": len(segment_bytes),
+            "max_segment_bytes": len(segment_bytes),
+            "tracked_bytes": 1,
+            "control_bytes": 1,
+        },
+        "source_index_header": {
+            "index_identity": index_identity,
+        },
+        "compatibility": compatibility,
+        "segments": [
+            {
+                "kind": "source",
+                "range": "aa",
+                "path": segment_relative.as_posix(),
+                "digest": "sha256:" + hashlib.sha256(segment_bytes).hexdigest(),
+                "bytes": len(segment_bytes),
+                "records": 1,
+                "request_bytes_max": 4 * 1024 * 1024,
+            }
+        ],
+    }
+    manifest["family_identity"]["content_digest"] = validator.segmented_manifest_digest(manifest)
+    manifest_path = tmp_path / "kag/indexes/index_family.manifest.json"
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
+    return manifest_path
+
+
+def test_segmented_family_adapter_validates_bounded_consumer_contract(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    validator = load_validator()
+    write_segmented_family(tmp_path)
+    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
+    validator.validate_repo_local_family()
+
+
+def test_segmented_family_adapter_rejects_tampered_segment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    validator = load_validator()
+    write_segmented_family(tmp_path)
+    manifest = json.loads((tmp_path / "kag/indexes/index_family.manifest.json").read_text())
+    manifest["source_index_header"] = json.loads(
+        (tmp_path / "kag/indexes/source_surface_index.json").read_text()
+    )
+    manifest["family_identity"]["content_digest"] = validator.segmented_manifest_digest(manifest)
+    (tmp_path / "kag/indexes/index_family.manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True) + "\n"
+    )
+    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
+    (tmp_path / "kag/indexes/segments/source/aa.jsonl").write_bytes(b"tampered\n")
+    with pytest.raises(validator.ValidationError, match="segment bytes drifted"):
+        validator.validate_repo_local_family()

@@ -10,7 +10,12 @@ python scripts/validation_lanes.py --run public_entry
 
 The manifest owns these sequences. `public_entry` protects the narrow ToS
 export; the portable source family additionally needs the pinned `aoa-kag`
-builder and owner-family parity check described in `docs/RELEASING.md`.
+builder and owner-family parity check described in `docs/RELEASING.md`. When
+`kag/indexes/index_family.manifest.json` declares
+`aoa-repo-local-kag-segmented-family-v1`, `kag/provider-pin.json` is the
+source-owned provider admission contract: the validator checks the exact pin,
+control digest, source-index identity, all segment digests and per-request
+budgets without materialising the complete family.
 Regenerate changed source projections before claiming currentness. There is
 no freeze-only alternative or automatic refreeze.
 

@@ -26,7 +26,7 @@ jobs:
           python-version: "3.12"
 
       - name: Check current canonical KAG owner family
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@14ee1e33e43749d23c557b3ef526eca7edb36196
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@d9b00bc456ea95dd8447311331ee83ba51afa023
         with:
           history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
           event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}

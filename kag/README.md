@@ -10,6 +10,7 @@ source-linked records.
 | role | local KAG provider for ToS-derived export surfaces |
 | records | `nodes/`, `edges/`, `indexes/`, `projections/`, `receipts/` |
 | manifest | `manifest.json` |
+| provider pin | `provider-pin.json` |
 | source route | `ToS/derived-exports/` and the derived KAG seam mechanic |
 | consumer route | `aoa-kag` registry/composition, `abyss-stack`, MCP resources |
 | owner return | `ToS/derived-exports/README.md` and `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` |
@@ -26,4 +27,7 @@ source-linked records.
 
 Runtime graph and vector stores consume these records downstream through their
 own owner routes. Git holds the compact provider packet and source-return
-handles.
+handles. The generated family may use the pinned `aoa-repo-local-kag-segmented-family-v1`
+carrier when the complete corpus exceeds the legacy v3/v4 materialisation
+ceiling; the local adapter validates one bounded segment at a time and does
+not silently assemble the full compatibility view.
