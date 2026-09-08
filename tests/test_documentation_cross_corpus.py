@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -301,6 +303,73 @@ class DocumentationCrossCorpusTests(unittest.TestCase):
                 mutated_issues: list[tuple[str, str]] = []
                 validator.validate_markdown_routes(root, mutated_issues)
         self.assertTrue(any("broken local documentation route: missing.md" in message for _, message in mutated_issues))
+
+    def test_gitignored_source_payload_route_uses_manifest_when_payload_is_unmaterialized(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            document = root / "ToS/philosophy/README.md"
+            item_root = root / "ToS/source-witnesses/works/example/work/expressions/expression/editions/edition/items/item"
+            payload = item_root / "payload/source.xml"
+            write_text(
+                item_root / "item.manifest.json",
+                json.dumps(
+                    {
+                        "storage_posture": "local_gitignored_payload",
+                        "payload_files": [{"relative_path": "payload/source.xml"}],
+                    }
+                ),
+            )
+            subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "add", "--", (item_root / "item.manifest.json").relative_to(root).as_posix()],
+                cwd=root,
+                check=True,
+                capture_output=True,
+            )
+            reference = Path(os.path.relpath(payload, document.parent)).as_posix()
+            write_text(document, f"[source payload]({reference})\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[document.relative_to(root)]):
+                issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, issues)
+            self.assertEqual([], issues)
+
+            write_text(payload, "<source />\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[document.relative_to(root)]):
+                materialized_issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, materialized_issues)
+            self.assertEqual([], materialized_issues)
+
+            manifest = json.loads((item_root / "item.manifest.json").read_text(encoding="utf-8"))
+            manifest["payload_files"][0]["relative_path"] = "payload/other.xml"
+            (item_root / "item.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            payload.unlink()
+            with mock.patch.object(validator, "tracked_paths", return_value=[document.relative_to(root)]):
+                invalid_issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, invalid_issues)
+            self.assertTrue(any("broken local documentation route" in message for _, message in invalid_issues))
+
+            other_payload = root / "other-owner/item/payload/source.xml"
+            other_manifest = other_payload.parent.parent / "item.manifest.json"
+            write_text(
+                other_manifest,
+                json.dumps(
+                    {
+                        "storage_posture": "local_gitignored_payload",
+                        "payload_files": [{"relative_path": "payload/source.xml"}],
+                    }
+                ),
+            )
+            subprocess.run(
+                ["git", "add", "--", other_manifest.relative_to(root).as_posix()],
+                cwd=root,
+                check=True,
+                capture_output=True,
+            )
+            write_text(document, f"[source payload]({Path(os.path.relpath(other_payload, document.parent)).as_posix()})\n")
+            with mock.patch.object(validator, "tracked_paths", return_value=[document.relative_to(root)]):
+                owner_issues: list[tuple[str, str]] = []
+                validator.validate_markdown_routes(root, owner_issues)
+            self.assertTrue(any("broken local documentation route" in message for _, message in owner_issues))
 
     def test_nested_executable_route_keeps_its_full_owner_path(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
