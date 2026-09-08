@@ -1,0 +1,366 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-immortality-of-writers.2026-09-08.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.egyptian-literature.immortality-of-writers",
+      "tos.expression.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec",
+      "tos.edition.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2",
+      "tos.item.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+      "tos.expression.egyptian-literature.immortality-of-writers.de-aed-tei-oraec"
+    ],
+    "description": "ORAEC mixed scholarly JSON bundle containing Egyptian written forms, hieroglyphic representations, German translation/glosses and annotations, derived from AED-TEI and the January 2018 database export; immutable ORAEC Git snapshot. The Egyptian and German expressions are separately identified within one Item.",
+    "required_properties": [
+      "This version covers the verso 2.5–3.11 composition section of EA 10684, not the entire papyrus.",
+      "The two ORAEC selections are sections of one physical carrier, not two separate papyri.",
+      "Egyptian transcription/transliteration, annotations and any included glosses remain distinct supplied layers; no new translation is created.",
+      "A digital edition section does not establish complete critical reconstruction or ancient authorship.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "egy",
+      "de"
+    ],
+    "formats": [
+      "application/json"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "oraec/corpus_raw_data upstream metadata/license evidence",
+      "endpoint_url": "https://api.github.com/repos/oraec/corpus_raw_data/git/trees/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+      "interface_type": "api",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://api.github.com/repos/oraec/corpus_raw_data/git/trees/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+      "queried_at": "2026-09-08T20:47:46.086536+00:00",
+      "elapsed_seconds": 1.5403854239993962,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-immortality-of-writers-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "oraec-tree.json",
+          "result_url": "https://api.github.com/repos/oraec/corpus_raw_data/git/trees/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+          "originating_record_url": "https://api.github.com/repos/oraec/corpus_raw_data/git/trees/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://api.github.com/repos/oraec/corpus_raw_data/git/trees/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "api",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "abf1b630b906becc736dae7c380c88da6ac303a8690b15f7ab9ed505e12d48b1",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-tree.json"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "oraec/corpus_raw_data upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/README.md",
+      "queried_at": "2026-09-08T20:47:50.247651+00:00",
+      "elapsed_seconds": 0.3078323809986614,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-immortality-of-writers-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "oraec-README.md",
+          "result_url": "https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "2e1706a36d74cb2dbf143c7dae9b3480839931582973e6e66c932d7169ffb4aa",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "oraec/corpus_raw_data upstream metadata/license evidence",
+      "endpoint_url": "https://oraec.github.io/corpus/oraec1016.html",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://oraec.github.io/corpus/oraec1016.html",
+      "queried_at": "2026-09-08T20:47:50.555959+00:00",
+      "elapsed_seconds": 0.30586653299906175,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-immortality-of-writers-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "oraec1016-metadata.html",
+          "result_url": "https://oraec.github.io/corpus/oraec1016.html",
+          "originating_record_url": "https://oraec.github.io/corpus/oraec1016.html",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://oraec.github.io/corpus/oraec1016.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "520f504bc7ea1615c7232b0f9e5b2a6f1dd20e479ce805c7e447bb850648cc41",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec1016-metadata.html"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "oraec/corpus_raw_data upstream metadata/license evidence",
+      "endpoint_url": "https://oraec.github.io/corpus/oraec3091.html",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://oraec.github.io/corpus/oraec3091.html",
+      "queried_at": "2026-09-08T20:47:50.862273+00:00",
+      "elapsed_seconds": 0.21892160499919555,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-immortality-of-writers-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "oraec3091-metadata.html",
+          "result_url": "https://oraec.github.io/corpus/oraec3091.html",
+          "originating_record_url": "https://oraec.github.io/corpus/oraec3091.html",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://oraec.github.io/corpus/oraec3091.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "73bcbe3395500b60401447bf7aa7e0ed7994d81a389bb0039a744f9c89d25574",
+            "reason": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/oraec3091-metadata.html"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-file-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "oraec/corpus_raw_data",
+      "endpoint_url": "https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/oraec1016.json",
+      "interface_type": "bulk",
+      "interface_version": "b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+      "exact_query": "GET https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/oraec1016.json",
+      "queried_at": "2026-09-08T21:18:54.928888+00:00",
+      "elapsed_seconds": 0.28621923600076116,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-immortality-of-writers-file-5",
+          "rank": 1,
+          "title_as_displayed": "oraec1016.json",
+          "result_url": "https://raw.githubusercontent.com/oraec/corpus_raw_data/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd/oraec1016.json",
+          "originating_record_url": "https://github.com/oraec/corpus_raw_data/tree/b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "4c80c6dc983d71b1ce0a6636fbae48ec6abd0477"
+            }
+          ],
+          "available_formats": [
+            "JSON"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://oraec.github.io/corpus/oraec3091.html",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-08T21:18:55.215103+00:00",
+            "byte_size": 72095,
+            "sha256": "2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+            "event_ref": "tos.event.acquisition.registry-20260908.immortality-of-writers"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.5403854239993962,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3078323809986614,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.30586653299906175,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.21892160499919555,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-immortality-of-writers-file-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28621923600076116,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-immortality-of-writers-file-5"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-08T20:47:46.086536+00:00",
+  "ended_at": "2026-09-08T21:18:55.215103+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260908.immortality-of-writers",
+    "tos.event.acquisition.registry-20260908.immortality-of-writers"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

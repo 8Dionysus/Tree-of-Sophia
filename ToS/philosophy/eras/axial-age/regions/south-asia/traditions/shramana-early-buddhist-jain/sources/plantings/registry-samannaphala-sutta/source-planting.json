@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a18.registry-samannaphala-sutta",
+  "atlas_row_id": "A18",
+  "dossier_id": "A18",
+  "branch_path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain",
+  "source_backlog_anchor": {
+    "line": 10,
+    "path": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/source-anchor-backlog.jsonl",
+    "source_label": "Nikāya / Āgama-параллели",
+    "source_row_index": 1,
+    "source_table_index": 12
+  },
+  "source_witness": {
+    "work_id": "tos.work.pali-canon.samannaphala-sutta",
+    "record_ref": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/registry-samannaphala-sutta.2026-09-08.v1.json",
+  "provenance_event_ref": "tos.event.discovery.registry-20260908.samannaphala-sutta",
+  "research_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+  "fulfilled_source_needs": [
+    "DN 2 and MN 56 provide selected Pali Nikaya texts in the Mahasangiti–SuttaCentral edition.",
+    "Exact prepared version is locally retained: 1 immutable files; Item manifest fixes SHA-256 and resource inventory records observed coverage."
+  ],
+  "remaining_controls": [
+    "Agama parallels and their textual comparison remain unacquired and unassessed.",
+    "These individual texts do not complete the Nikaya corpus or establish historical authenticity.",
+    "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+    "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+    "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+    "Local file custody and branch route do not admit text, translation, semantics or canon."
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-08T21:20:57.831508+00:00",
+  "record_version": 1
+}

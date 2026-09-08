@@ -207,6 +207,29 @@
         }
       }
     },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Owner-recorded execution state; omission preserves legacy pending selection. Completion concerns local acquisition and branch planting, not semantic or rights admission.",
+      "required": ["status", "evidence_posture", "owner_refs", "rationale"],
+      "properties": {
+        "status": {"enum": ["pending", "completed", "deferred", "blocked"]},
+        "evidence_posture": {"enum": ["owner-reviewed", "imported-assertion", "unreviewed"]},
+        "owner_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/ref"}
+        },
+        "rationale": {"type": "string", "minLength": 1}
+      },
+      "allOf": [{
+        "if": {"properties": {"status": {"enum": ["completed", "deferred", "blocked"]}}, "required": ["status"]},
+        "then": {"properties": {
+          "evidence_posture": {"const": "owner-reviewed"},
+          "owner_refs": {"minItems": 1}
+        }}
+      }]
+    },
     "target": {
       "type": "object",
       "additionalProperties": false,
@@ -298,6 +321,9 @@
         },
         "acquisition": {
           "$ref": "#/$defs/acquisition"
+        },
+        "execution": {
+          "$ref": "#/$defs/execution"
         }
       }
     }

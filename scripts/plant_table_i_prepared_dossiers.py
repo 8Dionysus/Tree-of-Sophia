@@ -2033,6 +2033,11 @@ def render_branch_readme(dossier: Dossier) -> str:
         if planting_paths
         else ""
     )
+    source_index_row = (
+        "| [Sources and local texts](sources/README.md) | named works, exact versions, and local file routes |\n"
+        if (REPO_ROOT / path_ref / "sources/README.md").is_file()
+        else ""
+    )
     review_posture = str(route_fields.get("review_posture") or route["review_posture"])
     review_reason = str(route_fields.get("review_reason") or route.get("review_reason") or "")
     route_constraints = route.get("route_constraints")
@@ -2069,6 +2074,7 @@ def render_branch_readme(dossier: Dossier) -> str:
         "## Local Surfaces\n\n"
         "| Surface | Role |\n"
         "| --- | --- |\n"
+        f"{source_index_row}"
         "| `sources/source-anchor-backlog.jsonl` | future real source witness and edition anchors for this branch |\n"
         f"{planting_row}"
         "| `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |\n\n"

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "file_sha256": "b73ef028b5d663fc5c7f3eba4618bfc82191f913a47e0d6fadae4baf07486cad",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 174,
+          "array_count": 28,
+          "string_count": 1292,
+          "number_count": 0,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 1318
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 173,
+            "array_count": 28,
+            "string_count": 1292,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 1317
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "d9ded1eb1bf67aefb2e895456895bec4860b03a25957531f629ce641a4a6f3b0",
+            "character_count": 9
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json.2026-09-08",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

@@ -1,0 +1,4394 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.hebrew-bible.ecclesiastes.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.2dfc858d19048f6479eca33b9fe781c2d7e9059e9ae3ab0b37b802d3afec02bb",
+      "file_sha256": "2dfc858d19048f6479eca33b9fe781c2d7e9059e9ae3ab0b37b802d3afec02bb",
+      "media_type": "application/xml",
+      "profile": "osis_structure_v1",
+      "summary": {
+        "resource_count": 234,
+        "chapter_count": 12,
+        "verse_count": 222,
+        "word_count": 2999
+      },
+      "resources": [
+        {
+          "resource_id": "osis-chapter-0001",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.1",
+            "chapter_index": 1,
+            "container_order": 1
+          },
+          "verse_count": 18,
+          "word_count": 215
+        },
+        {
+          "resource_id": "osis-verse-00001",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.1",
+            "chapter_index": 1,
+            "verse_index": 1,
+            "container_order": 2,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 6,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "985f4325047b33af1759816e51626a5b019f016cd6428459bdefb42899232dda",
+            "character_count": 117
+          }
+        },
+        {
+          "resource_id": "osis-verse-00002",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.2",
+            "chapter_index": 1,
+            "verse_index": 2,
+            "container_order": 3,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c439750bcf0f0696fffc0d2a89632056fd2ff4fd84951f60b6be739192f2267c",
+            "character_count": 156
+          }
+        },
+        {
+          "resource_id": "osis-verse-00003",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.3",
+            "chapter_index": 1,
+            "verse_index": 3,
+            "container_order": 4,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e4618e5b069c8e71326c7f39f4fe827b141262edab9b3a7861c306bfc5d1694f",
+            "character_count": 150
+          }
+        },
+        {
+          "resource_id": "osis-verse-00004",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.4",
+            "chapter_index": 1,
+            "verse_index": 4,
+            "container_order": 5,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3c0ee0a9117db80b7038ac51020b3af00ce74358b702435daf9b28ea2b8d3155",
+            "character_count": 143
+          }
+        },
+        {
+          "resource_id": "osis-verse-00005",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.5",
+            "chapter_index": 1,
+            "verse_index": 5,
+            "container_order": 6,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "63ab627fc28a780e6a2c3c9aca498d68bff00191de4eddf55246aed8e91e0daf",
+            "character_count": 194
+          }
+        },
+        {
+          "resource_id": "osis-verse-00006",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.6",
+            "chapter_index": 1,
+            "verse_index": 6,
+            "container_order": 7,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b573f8dc9f581cb211e62287c533b44e3e9e593aba1186e95448ef6e32d96f48",
+            "character_count": 248
+          }
+        },
+        {
+          "resource_id": "osis-verse-00007",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.7",
+            "chapter_index": 1,
+            "verse_index": 7,
+            "container_order": 8,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "95523f3f7ec5066c61d59279711b611848febcbc2a3eee3d09b1bfc33c22b4f1",
+            "character_count": 285
+          }
+        },
+        {
+          "resource_id": "osis-verse-00008",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.8",
+            "chapter_index": 1,
+            "verse_index": 8,
+            "container_order": 9,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b0bd5f2266dc85812cc2ad5f8aa58151b4dcf0516c0db1528b2e717d79af3776",
+            "character_count": 250
+          }
+        },
+        {
+          "resource_id": "osis-verse-00009",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.9",
+            "chapter_index": 1,
+            "verse_index": 9,
+            "container_order": 10,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "5fc301cef08898d10f336004763f9436789b70af8b4af86d3e934f53a7b04645",
+            "character_count": 234
+          }
+        },
+        {
+          "resource_id": "osis-verse-00010",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.10",
+            "chapter_index": 1,
+            "verse_index": 10,
+            "container_order": 11,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1b399d05f114963361fe18caa211a9e79e33156c432a7af458efcd8546f2c917",
+            "character_count": 243
+          }
+        },
+        {
+          "resource_id": "osis-verse-00011",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.11",
+            "chapter_index": 1,
+            "verse_index": 11,
+            "container_order": 12,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3c57a242e4f230d515a8881dfba3050a4902e04e2dfcb750c213820a1dd9dd71",
+            "character_count": 276
+          }
+        },
+        {
+          "resource_id": "osis-verse-00012",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.12",
+            "chapter_index": 1,
+            "verse_index": 12,
+            "container_order": 13,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "714fcfde157cb5f6639a267e1576e04099dbefdff5a086344b6e0f301f06e26e",
+            "character_count": 137
+          }
+        },
+        {
+          "resource_id": "osis-verse-00013",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.13",
+            "chapter_index": 1,
+            "verse_index": 13,
+            "container_order": 14,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "974eaeeb0304bd1195e5daccc20ef302d98de576e7d465022fd55fcddbb9a279",
+            "character_count": 401
+          }
+        },
+        {
+          "resource_id": "osis-verse-00014",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.14",
+            "chapter_index": 1,
+            "verse_index": 14,
+            "container_order": 15,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "60ef6e4007fed02c7f87ce23ae7a99dbf3f2fe36d5f10562b5d5242e5b8f07d2",
+            "character_count": 228
+          }
+        },
+        {
+          "resource_id": "osis-verse-00015",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.15",
+            "chapter_index": 1,
+            "verse_index": 15,
+            "container_order": 16,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "0646b7078c42fc668389ea10fea1fd8a7368f3580784efd65959e113a038bcbf",
+            "character_count": 141
+          }
+        },
+        {
+          "resource_id": "osis-verse-00016",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.16",
+            "chapter_index": 1,
+            "verse_index": 16,
+            "container_order": 17,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 22,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "59a35e0baa26aba2665a6919cf43833cf1aabdfc82b8f5aaaaccc7e4add43088",
+            "character_count": 390
+          }
+        },
+        {
+          "resource_id": "osis-verse-00017",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.17",
+            "chapter_index": 1,
+            "verse_index": 17,
+            "container_order": 18,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "2234437d9f88d447260e0236efd9dc1b13644821c58c93441418425627c66fd7",
+            "character_count": 256
+          }
+        },
+        {
+          "resource_id": "osis-verse-00018",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.1.18",
+            "chapter_index": 1,
+            "verse_index": 18,
+            "container_order": 19,
+            "parent_resource_id": "osis-chapter-0001"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d3f8efc3c8a2f15c455896361de1c20593c52fe248f5ff0a839c3cdc14313d1a",
+            "character_count": 165
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0002",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.2",
+            "chapter_index": 2,
+            "container_order": 20
+          },
+          "verse_count": 26,
+          "word_count": 381
+        },
+        {
+          "resource_id": "osis-verse-00019",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.1",
+            "chapter_index": 2,
+            "verse_index": 19,
+            "container_order": 21,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "5cb68ed34b2a67963e54191778c51614f5490a535aa16263ea648ace3372e45a",
+            "character_count": 239
+          }
+        },
+        {
+          "resource_id": "osis-verse-00020",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.2",
+            "chapter_index": 2,
+            "verse_index": 20,
+            "container_order": 22,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "78a9fe8401c5958b3aadfe9239dd8a790ef05b6593e0115628f8bd03ec8d5637",
+            "character_count": 138
+          }
+        },
+        {
+          "resource_id": "osis-verse-00021",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.3",
+            "chapter_index": 2,
+            "verse_index": 21,
+            "container_order": 23,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 26,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "09a0c9aa162f81946456bcc4e553a88e9720af44e26f612143a83fe2556267c1",
+            "character_count": 489
+          }
+        },
+        {
+          "resource_id": "osis-verse-00022",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.4",
+            "chapter_index": 2,
+            "verse_index": 22,
+            "container_order": 24,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "49d770d12e92368e1b7d881c0a174b96aff96a8ca350e2720dc52d3c394038d0",
+            "character_count": 172
+          }
+        },
+        {
+          "resource_id": "osis-verse-00023",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.5",
+            "chapter_index": 2,
+            "verse_index": 23,
+            "container_order": 25,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c7bce1017a7868e5e99c37c8158d02b296d7ecf568d2c749a819128f545aad15",
+            "character_count": 174
+          }
+        },
+        {
+          "resource_id": "osis-verse-00024",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.6",
+            "chapter_index": 2,
+            "verse_index": 24,
+            "container_order": 26,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a6a174b8c2d8744696dd332998dbe5f67f404264d47b838267a59fc1d150a0a6",
+            "character_count": 181
+          }
+        },
+        {
+          "resource_id": "osis-verse-00025",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.7",
+            "chapter_index": 2,
+            "verse_index": 25,
+            "container_order": 27,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "6ae4418e3757bded7b29fc2c98a0aa26ce5d782426256abec4733c7245e08f2f",
+            "character_count": 347
+          }
+        },
+        {
+          "resource_id": "osis-verse-00026",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.8",
+            "chapter_index": 2,
+            "verse_index": 26,
+            "container_order": 28,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 17,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "fa67704e71171724d436903ccee2f445f9c6dfbc3752cc353ca42bfa6bfc378d",
+            "character_count": 346
+          }
+        },
+        {
+          "resource_id": "osis-verse-00027",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.9",
+            "chapter_index": 2,
+            "verse_index": 27,
+            "container_order": 29,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b2e32f860293753c3bce5d55373981854b2a2538d6e4c14c9a89f07b3dfbe821",
+            "character_count": 222
+          }
+        },
+        {
+          "resource_id": "osis-verse-00028",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.10",
+            "chapter_index": 2,
+            "verse_index": 28,
+            "container_order": 30,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 23,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "7459d73d87e38cbf96a4f8469688af78f879dae911c769fda7b3820ba60d8587",
+            "character_count": 365
+          }
+        },
+        {
+          "resource_id": "osis-verse-00029",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.11",
+            "chapter_index": 2,
+            "verse_index": 29,
+            "container_order": 31,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "85ce4150289a1f3f5153ec97a2292871d05f4981643045efd0bbd845096901c2",
+            "character_count": 369
+          }
+        },
+        {
+          "resource_id": "osis-verse-00030",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.12",
+            "chapter_index": 2,
+            "verse_index": 30,
+            "container_order": 32,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "09fc1a6f67dbc22a8dccc1e55662cac2e312fe30d01dcfec84993675aab4530d",
+            "character_count": 327
+          }
+        },
+        {
+          "resource_id": "osis-verse-00031",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.13",
+            "chapter_index": 2,
+            "verse_index": 31,
+            "container_order": 33,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9288a5b14bf79eeb3e607f852587e1727f923ba9ea5136da44ff2706ba7ef3f7",
+            "character_count": 211
+          }
+        },
+        {
+          "resource_id": "osis-verse-00032",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.14",
+            "chapter_index": 2,
+            "verse_index": 32,
+            "container_order": 34,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1e76aebfcf36185eeede8248cef49191f7cec8638a9736deaaaa714f7e4d6921",
+            "character_count": 272
+          }
+        },
+        {
+          "resource_id": "osis-verse-00033",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.15",
+            "chapter_index": 2,
+            "verse_index": 33,
+            "container_order": 35,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "61d1c838bab7decdeb207faf0daaa0818770a9ad255511d5b8c7a05be87d84f8",
+            "character_count": 348
+          }
+        },
+        {
+          "resource_id": "osis-verse-00034",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.16",
+            "chapter_index": 2,
+            "verse_index": 34,
+            "container_order": 36,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 17,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "db03efd0e85c7930c2a9bc04b4e06b74ae71918327ee9272f2065092bed57d16",
+            "character_count": 325
+          }
+        },
+        {
+          "resource_id": "osis-verse-00035",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.17",
+            "chapter_index": 2,
+            "verse_index": 35,
+            "container_order": 37,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f0dc4b653df76d21a48311ac627c372b3db99209b2d660d0eb2a4fb58d7d61a4",
+            "character_count": 282
+          }
+        },
+        {
+          "resource_id": "osis-verse-00036",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.18",
+            "chapter_index": 2,
+            "verse_index": 36,
+            "container_order": 38,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b8438b203e1751084a655fee3cabc31767c95b862dce78b07a2deff8e875cbf8",
+            "character_count": 254
+          }
+        },
+        {
+          "resource_id": "osis-verse-00037",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.19",
+            "chapter_index": 2,
+            "verse_index": 37,
+            "container_order": 39,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "6c2b4a44291e34865b47a268bca6337755f33cc595b0aed928814efeab70eb8e",
+            "character_count": 304
+          }
+        },
+        {
+          "resource_id": "osis-verse-00038",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.20",
+            "chapter_index": 2,
+            "verse_index": 38,
+            "container_order": 40,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "5669d4162ffc8cbe2fcf876fb1dd6c6097cecdc50ba31c2e1cbd480fd420a0ad",
+            "character_count": 204
+          }
+        },
+        {
+          "resource_id": "osis-verse-00039",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.21",
+            "chapter_index": 2,
+            "verse_index": 39,
+            "container_order": 41,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ba0aff031eeb545cd53f6763dcb839de16cb1238812be0171c2a4712d07822b3",
+            "character_count": 331
+          }
+        },
+        {
+          "resource_id": "osis-verse-00040",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.22",
+            "chapter_index": 2,
+            "verse_index": 40,
+            "container_order": 42,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "869364464d6f2adb71f570bd4f36050f4a926d5d2949cc1601d426d473a94d8d",
+            "character_count": 395
+          }
+        },
+        {
+          "resource_id": "osis-verse-00041",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.23",
+            "chapter_index": 2,
+            "verse_index": 41,
+            "container_order": 43,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "16b1a51fddd4ede80e0a9529f0e1c5b0885d5acd2d500ab1f716fb08010d4321",
+            "character_count": 237
+          }
+        },
+        {
+          "resource_id": "osis-verse-00042",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.24",
+            "chapter_index": 2,
+            "verse_index": 42,
+            "container_order": 44,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1bac751618695c79e06b61b5d464ffacf65ce23307ccab2727c414d151c75f4f",
+            "character_count": 315
+          }
+        },
+        {
+          "resource_id": "osis-verse-00043",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.25",
+            "chapter_index": 2,
+            "verse_index": 43,
+            "container_order": 45,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ceaa259f091daedbe4eb6baed3991f912b3ee9d119afceb6e89d12edd5cc1aa9",
+            "character_count": 134
+          }
+        },
+        {
+          "resource_id": "osis-verse-00044",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.2.26",
+            "chapter_index": 2,
+            "verse_index": 44,
+            "container_order": 46,
+            "parent_resource_id": "osis-chapter-0002"
+          },
+          "word_count": 22,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9e9fb5193158e2e5517b7976cd44056f87a856f927b9449b22582b92c84edd0a",
+            "character_count": 429
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0003",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.3",
+            "chapter_index": 3,
+            "container_order": 47
+          },
+          "verse_count": 22,
+          "word_count": 273
+        },
+        {
+          "resource_id": "osis-verse-00045",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.1",
+            "chapter_index": 3,
+            "verse_index": 45,
+            "container_order": 48,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "59267f1001770c079dd3bc843071d58e4fb7e4d536af3e94c151fe24f0540445",
+            "character_count": 142
+          }
+        },
+        {
+          "resource_id": "osis-verse-00046",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.2",
+            "chapter_index": 3,
+            "verse_index": 46,
+            "container_order": 49,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "924ff47dd2934d7550c4dddc37ff9d0d846716245240e10e91f35abab5a3205e",
+            "character_count": 175
+          }
+        },
+        {
+          "resource_id": "osis-verse-00047",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.3",
+            "chapter_index": 3,
+            "verse_index": 47,
+            "container_order": 50,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d6db7a3c8def92e68934ef9315f1eca28416d8f1084c9379a3ccf3eb3c2c85fe",
+            "character_count": 161
+          }
+        },
+        {
+          "resource_id": "osis-verse-00048",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.4",
+            "chapter_index": 3,
+            "verse_index": 48,
+            "container_order": 51,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4d77040897c9ce98ac444e5b7ad3df0b9b387a63f9dd17c5c5d241f7db6a149d",
+            "character_count": 156
+          }
+        },
+        {
+          "resource_id": "osis-verse-00049",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.5",
+            "chapter_index": 3,
+            "verse_index": 49,
+            "container_order": 52,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "941a19e12defe2e833e567a714f1d342c4bc9f5495a32f0fe8fec5953130cfb1",
+            "character_count": 222
+          }
+        },
+        {
+          "resource_id": "osis-verse-00050",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.6",
+            "chapter_index": 3,
+            "verse_index": 50,
+            "container_order": 53,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a39d359a2af802249fe7aa5c234a6aa31d879dac0a9f20d83cf9a92b87d761c8",
+            "character_count": 166
+          }
+        },
+        {
+          "resource_id": "osis-verse-00051",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.7",
+            "chapter_index": 3,
+            "verse_index": 51,
+            "container_order": 54,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4b62f790a36c0c5119fe10d464c40108cc707405731005736d36b1fe5799d0ba",
+            "character_count": 164
+          }
+        },
+        {
+          "resource_id": "osis-verse-00052",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.8",
+            "chapter_index": 3,
+            "verse_index": 52,
+            "container_order": 55,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "2bb46c4fecb4bea5b76a6d22647eb6df49d956e95b7b98ada0b2f55062e1e739",
+            "character_count": 170
+          }
+        },
+        {
+          "resource_id": "osis-verse-00053",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.9",
+            "chapter_index": 3,
+            "verse_index": 53,
+            "container_order": 56,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 6,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "79067f146db91633deb31c76c5ab176172ab328a0cd22954b27d0c2c04f97e56",
+            "character_count": 113
+          }
+        },
+        {
+          "resource_id": "osis-verse-00054",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.10",
+            "chapter_index": 3,
+            "verse_index": 54,
+            "container_order": 57,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "49b59d6f030b332c17f297a0b52a7d375d8041e378b3b7ad7d5850a33e5f8014",
+            "character_count": 190
+          }
+        },
+        {
+          "resource_id": "osis-verse-00055",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.11",
+            "chapter_index": 3,
+            "verse_index": 55,
+            "container_order": 58,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 23,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e439a3bff028e178545b649d3a622bbe506846e8cb750d57c5e3771e3f71a3b4",
+            "character_count": 372
+          }
+        },
+        {
+          "resource_id": "osis-verse-00056",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.12",
+            "chapter_index": 3,
+            "verse_index": 56,
+            "container_order": 59,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "fc950843d77293bb489455f8e10b98603c5be90b855c3393f1f0de7835e4e725",
+            "character_count": 205
+          }
+        },
+        {
+          "resource_id": "osis-verse-00057",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.13",
+            "chapter_index": 3,
+            "verse_index": 57,
+            "container_order": 60,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "da2c7f85772db75f3740bd29e838dd21ceecd4449eda83f8e33c0ed5469c4793",
+            "character_count": 215
+          }
+        },
+        {
+          "resource_id": "osis-verse-00058",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.14",
+            "chapter_index": 3,
+            "verse_index": 58,
+            "container_order": 61,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "7fda40ffbb7b63d68a5119bfa8120cc6ffa0ee0878fbf27f209b042f87f4794b",
+            "character_count": 384
+          }
+        },
+        {
+          "resource_id": "osis-verse-00059",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.15",
+            "chapter_index": 3,
+            "verse_index": 59,
+            "container_order": 62,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "dba2085214a94203aae3f84130d905ea84af7594be4322a4a3ef9f000edc772b",
+            "character_count": 219
+          }
+        },
+        {
+          "resource_id": "osis-verse-00060",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.16",
+            "chapter_index": 3,
+            "verse_index": 60,
+            "container_order": 63,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4f1159f0ce2d4a00568d7108be3a91e98e120dcac9be46c2816617552ecd928a",
+            "character_count": 257
+          }
+        },
+        {
+          "resource_id": "osis-verse-00061",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.17",
+            "chapter_index": 3,
+            "verse_index": 61,
+            "container_order": 64,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 17,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1e1a00a2d7d8292c4a43694db40da3ea913d7cb6afd8eea135d3e8345d41823a",
+            "character_count": 281
+          }
+        },
+        {
+          "resource_id": "osis-verse-00062",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.18",
+            "chapter_index": 3,
+            "verse_index": 62,
+            "container_order": 65,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "8f79b2e17f525205a33f9231320139089aca55142f74e84e22570c92baa8f282",
+            "character_count": 267
+          }
+        },
+        {
+          "resource_id": "osis-verse-00063",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.19",
+            "chapter_index": 3,
+            "verse_index": 63,
+            "container_order": 66,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 25,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "8050e7f5c9d4c70b2b716ab7631778d9ba4d94f14bbd29cd488fc1ffccae81f8",
+            "character_count": 449
+          }
+        },
+        {
+          "resource_id": "osis-verse-00064",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.20",
+            "chapter_index": 3,
+            "verse_index": 64,
+            "container_order": 67,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4d1052dbbc3fdcfbaa9f0049925c105cbf21f6fced78e32661413b58c0489a48",
+            "character_count": 210
+          }
+        },
+        {
+          "resource_id": "osis-verse-00065",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.21",
+            "chapter_index": 3,
+            "verse_index": 65,
+            "container_order": 68,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f2ab4ca8de6d757575ec4c1effff7e509d9b6651cc83a935c98fd1db63408e72",
+            "character_count": 282
+          }
+        },
+        {
+          "resource_id": "osis-verse-00066",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.3.22",
+            "chapter_index": 3,
+            "verse_index": 66,
+            "container_order": 69,
+            "parent_resource_id": "osis-chapter-0003"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "abf47d44ced0ccbeebf204110bcea999ceb5d924182de75cbb8bbfff10d144cf",
+            "character_count": 351
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0004",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.4",
+            "chapter_index": 4,
+            "container_order": 70
+          },
+          "verse_count": 17,
+          "word_count": 239
+        },
+        {
+          "resource_id": "osis-verse-00067",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.1",
+            "chapter_index": 4,
+            "verse_index": 67,
+            "container_order": 71,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 22,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "448f48ccd74165b06c4f5d5c2bc67ebfbd3589b1a2d8c257f7462e070d52e2a0",
+            "character_count": 441
+          }
+        },
+        {
+          "resource_id": "osis-verse-00068",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.2",
+            "chapter_index": 4,
+            "verse_index": 68,
+            "container_order": 72,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3098dd2d27ce97c33a38654d7789c0e7da571cabc1c618b677d93c381133141c",
+            "character_count": 217
+          }
+        },
+        {
+          "resource_id": "osis-verse-00069",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.3",
+            "chapter_index": 4,
+            "verse_index": 69,
+            "container_order": 73,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 17,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "215930a326c8e336d5fb1ebcd2180099a7ecb632797d20b1bdb907d35e136cf4",
+            "character_count": 291
+          }
+        },
+        {
+          "resource_id": "osis-verse-00070",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.4",
+            "chapter_index": 4,
+            "verse_index": 70,
+            "container_order": 74,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9a830b721c0705cb27ea41455599ce8a32f7a297d79848f11909b9f130953187",
+            "character_count": 302
+          }
+        },
+        {
+          "resource_id": "osis-verse-00071",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.5",
+            "chapter_index": 4,
+            "verse_index": 71,
+            "container_order": 75,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b5b78aec30b32b23aa4661d94ef5b0edf6afcb94d34a9aa327b867cf1f36369b",
+            "character_count": 118
+          }
+        },
+        {
+          "resource_id": "osis-verse-00072",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.6",
+            "chapter_index": 4,
+            "verse_index": 72,
+            "container_order": 76,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b108f1ac8e2bdf9f655556676c3becdb79e11aa5ceadc7728872de8dad0881ba",
+            "character_count": 172
+          }
+        },
+        {
+          "resource_id": "osis-verse-00073",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.7",
+            "chapter_index": 4,
+            "verse_index": 73,
+            "container_order": 77,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 6,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "88a532e6f0882596c4f1357a226cfd39f8e653911d1b6925f876db2eb3bfa0f4",
+            "character_count": 131
+          }
+        },
+        {
+          "resource_id": "osis-verse-00074",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.8",
+            "chapter_index": 4,
+            "verse_index": 74,
+            "container_order": 78,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 32,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "184c7e2226cc21ac7b4e57ca265cbaeba769087fac307bb0588ae56fc8f0ff17",
+            "character_count": 519
+          }
+        },
+        {
+          "resource_id": "osis-verse-00075",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.9",
+            "chapter_index": 4,
+            "verse_index": 75,
+            "container_order": 79,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e304210c2370743166660176c5aad919c20dc412219c52f4a742a1bda5d055cf",
+            "character_count": 176
+          }
+        },
+        {
+          "resource_id": "osis-verse-00076",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.10",
+            "chapter_index": 4,
+            "verse_index": 76,
+            "container_order": 80,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "51ae3e06c5a4d832524a670f08482c80195d2952128cbb38d4d410087595aeea",
+            "character_count": 242
+          }
+        },
+        {
+          "resource_id": "osis-verse-00077",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.11",
+            "chapter_index": 4,
+            "verse_index": 77,
+            "container_order": 81,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "59d11ce3f56dcc5e29d4d5630e69f46488320923da581f9645ffe82416cde55e",
+            "character_count": 166
+          }
+        },
+        {
+          "resource_id": "osis-verse-00078",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.12",
+            "chapter_index": 4,
+            "verse_index": 78,
+            "container_order": 82,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f7209e427a4abd3c5c1ab539f814072b002ffc96125788a725d9112ae7955334",
+            "character_count": 231
+          }
+        },
+        {
+          "resource_id": "osis-verse-00079",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.13",
+            "chapter_index": 4,
+            "verse_index": 79,
+            "container_order": 83,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a538954c55909762ab57542769fd3f40771d8091b27a1d192fa12714211dbcd0",
+            "character_count": 221
+          }
+        },
+        {
+          "resource_id": "osis-verse-00080",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.14",
+            "chapter_index": 4,
+            "verse_index": 80,
+            "container_order": 84,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "bdc87406dc2fe583bb30f5bfbb7aaad102166f14b637acdbcd7b4debb985c617",
+            "character_count": 189
+          }
+        },
+        {
+          "resource_id": "osis-verse-00081",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.15",
+            "chapter_index": 4,
+            "verse_index": 81,
+            "container_order": 85,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a4dca98a4a269495af20cbf0b3db612e93b9bf1f49c437866ca42ed642ebdcf8",
+            "character_count": 249
+          }
+        },
+        {
+          "resource_id": "osis-verse-00082",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.16",
+            "chapter_index": 4,
+            "verse_index": 82,
+            "container_order": 86,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a0751031dbead372b1b0a4875fee1d27114e6bdd4ef4ee7bd9e48f28322cface",
+            "character_count": 288
+          }
+        },
+        {
+          "resource_id": "osis-verse-00083",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.4.17",
+            "chapter_index": 4,
+            "verse_index": 83,
+            "container_order": 87,
+            "parent_resource_id": "osis-chapter-0004"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c1d180529d7450bbac6bf69545615b6d0d80a5b06e45437d9e372fff70d95ddf",
+            "character_count": 356
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0005",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.5",
+            "chapter_index": 5,
+            "container_order": 88
+          },
+          "verse_count": 19,
+          "word_count": 269
+        },
+        {
+          "resource_id": "osis-verse-00084",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.1",
+            "chapter_index": 5,
+            "verse_index": 84,
+            "container_order": 89,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 22,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "530fc5569c8af45281f88cf9286502c49aeebc35924fec73a5ca67f5cc3e25d9",
+            "character_count": 467
+          }
+        },
+        {
+          "resource_id": "osis-verse-00085",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.2",
+            "chapter_index": 5,
+            "verse_index": 85,
+            "container_order": 90,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ce06b6ae7da5c84697b3d321836d8922e9fe347447e5124faac3f43d58acd729",
+            "character_count": 202
+          }
+        },
+        {
+          "resource_id": "osis-verse-00086",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.3",
+            "chapter_index": 5,
+            "verse_index": 86,
+            "container_order": 91,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "094c524d9f3c9890739436d1ea21d6e91dfe5ffe235bb9220888d4f771e71c45",
+            "character_count": 298
+          }
+        },
+        {
+          "resource_id": "osis-verse-00087",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.4",
+            "chapter_index": 5,
+            "verse_index": 87,
+            "container_order": 92,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "0163c7c76d6d56ed902651921408c85d188d09c229e48a21bc3745b017d21277",
+            "character_count": 325
+          }
+        },
+        {
+          "resource_id": "osis-verse-00088",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.5",
+            "chapter_index": 5,
+            "verse_index": 88,
+            "container_order": 93,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 23,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "cc6d7d1eafe22f5bf7a96eaf951a4ea25e8b7828b0c56230400ddd746328717a",
+            "character_count": 401
+          }
+        },
+        {
+          "resource_id": "osis-verse-00089",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.6",
+            "chapter_index": 5,
+            "verse_index": 89,
+            "container_order": 94,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "214e815ed0b3bb0d94648d1a72b88091bdeaced0c1b4035639ee2680b00fbfbe",
+            "character_count": 213
+          }
+        },
+        {
+          "resource_id": "osis-verse-00090",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.7",
+            "chapter_index": 5,
+            "verse_index": 90,
+            "container_order": 95,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e40323a112f215a20d8d7c674ec532c7b057d8134ee7740b32532c302897ce01",
+            "character_count": 530
+          }
+        },
+        {
+          "resource_id": "osis-verse-00091",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.8",
+            "chapter_index": 5,
+            "verse_index": 91,
+            "container_order": 96,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "eb7f776fce2e6f848b7084a83ed4fe0f13457153ba29a7ef7227332565ab17c9",
+            "character_count": 173
+          }
+        },
+        {
+          "resource_id": "osis-verse-00092",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.9",
+            "chapter_index": 5,
+            "verse_index": 92,
+            "container_order": 97,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "45ef0f03293bd7224008845fd342f539e923fc2fcc3f7403854e0507260eb672",
+            "character_count": 232
+          }
+        },
+        {
+          "resource_id": "osis-verse-00093",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.10",
+            "chapter_index": 5,
+            "verse_index": 93,
+            "container_order": 98,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f7443cdc177873330808a2f8310c0647df3e5c42ea0991843219a7e2cb989d3b",
+            "character_count": 239
+          }
+        },
+        {
+          "resource_id": "osis-verse-00094",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.11",
+            "chapter_index": 5,
+            "verse_index": 94,
+            "container_order": 99,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9ecbe721e37b9c5228bd0996ac55dbc20e48a2d960adaf9b3a8ad1020578b07b",
+            "character_count": 286
+          }
+        },
+        {
+          "resource_id": "osis-verse-00095",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.12",
+            "chapter_index": 5,
+            "verse_index": 95,
+            "container_order": 100,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "39e0c005bb499100a093e366e880bc8cf57e2e8dbd73bb88c654e2b4db4e7f22",
+            "character_count": 230
+          }
+        },
+        {
+          "resource_id": "osis-verse-00096",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.13",
+            "chapter_index": 5,
+            "verse_index": 96,
+            "container_order": 101,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "55d60cdec0615f6322689cc5c33210e293b1df514a0ad73dc0f9db9073694ecd",
+            "character_count": 231
+          }
+        },
+        {
+          "resource_id": "osis-verse-00097",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.14",
+            "chapter_index": 5,
+            "verse_index": 97,
+            "container_order": 102,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "fb3e2fa80c9413ad473f165149211f06ef2c98b048359abce1025aa4f2a4952f",
+            "character_count": 309
+          }
+        },
+        {
+          "resource_id": "osis-verse-00098",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.15",
+            "chapter_index": 5,
+            "verse_index": 98,
+            "container_order": 103,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e02fecada5a2be06793bedabafee5b76fd9e43fd541e21d1124fc597dce816c2",
+            "character_count": 258
+          }
+        },
+        {
+          "resource_id": "osis-verse-00099",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.16",
+            "chapter_index": 5,
+            "verse_index": 99,
+            "container_order": 104,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9a731b7270123b3d2342bd0ce610d143c59bf1197901f7a78c349e4e097780a1",
+            "character_count": 198
+          }
+        },
+        {
+          "resource_id": "osis-verse-00100",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.17",
+            "chapter_index": 5,
+            "verse_index": 100,
+            "container_order": 105,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 27,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "cb63479e602bb180eb5b6cdc2e2f0678dccb33422f33011738d4024238ddb78b",
+            "character_count": 644
+          }
+        },
+        {
+          "resource_id": "osis-verse-00101",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.18",
+            "chapter_index": 5,
+            "verse_index": 101,
+            "container_order": 106,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "167de7dd9c7faca050141f6f3092cb8c20b97c17389e9885c33fb58b10ea9248",
+            "character_count": 416
+          }
+        },
+        {
+          "resource_id": "osis-verse-00102",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.5.19",
+            "chapter_index": 5,
+            "verse_index": 102,
+            "container_order": 107,
+            "parent_resource_id": "osis-chapter-0005"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "5ad2d8b3ddb38caa34503dad49f26d3f23e0d656af61f3ebda3660030428f228",
+            "character_count": 247
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0006",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.6",
+            "chapter_index": 6,
+            "container_order": 108
+          },
+          "verse_count": 12,
+          "word_count": 171
+        },
+        {
+          "resource_id": "osis-verse-00103",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.1",
+            "chapter_index": 6,
+            "verse_index": 103,
+            "container_order": 109,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "81a55dfcc32d52d105551166e6e6fa02c9fcaf6dc82bdc6e8ab4abb781e56d1d",
+            "character_count": 183
+          }
+        },
+        {
+          "resource_id": "osis-verse-00104",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.2",
+            "chapter_index": 6,
+            "verse_index": 104,
+            "container_order": 110,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 28,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b85729e7f67deb38a12af02ae8bdf12dafc33fb363b5a3ee3c035e4ef599167a",
+            "character_count": 541
+          }
+        },
+        {
+          "resource_id": "osis-verse-00105",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.3",
+            "chapter_index": 6,
+            "verse_index": 105,
+            "container_order": 111,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 25,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "5c2fd754578704c9495d207839048321484da0bfc3f5eb5da3b60f9a98a94dc4",
+            "character_count": 432
+          }
+        },
+        {
+          "resource_id": "osis-verse-00106",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.4",
+            "chapter_index": 6,
+            "verse_index": 106,
+            "container_order": 112,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "140719b3c35cdf3298f74b826718f007a2d29d8893e1933a331b93522e831b3e",
+            "character_count": 159
+          }
+        },
+        {
+          "resource_id": "osis-verse-00107",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.5",
+            "chapter_index": 6,
+            "verse_index": 107,
+            "container_order": 113,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c38ef79a10d099c789e9863613092914a970fed60da5f5e2d45b830663e5ae1e",
+            "character_count": 144
+          }
+        },
+        {
+          "resource_id": "osis-verse-00108",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.6",
+            "chapter_index": 6,
+            "verse_index": 108,
+            "container_order": 114,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "8bdd821afe2de8958dc74839e0383128aa0287f5c25a298cd669d93c9e75baf8",
+            "character_count": 254
+          }
+        },
+        {
+          "resource_id": "osis-verse-00109",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.7",
+            "chapter_index": 6,
+            "verse_index": 109,
+            "container_order": 115,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c9b652393da45b2e0e2c22185fde1c643005e7a892f425313e6111e346efeb41",
+            "character_count": 138
+          }
+        },
+        {
+          "resource_id": "osis-verse-00110",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.8",
+            "chapter_index": 6,
+            "verse_index": 110,
+            "container_order": 116,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b754dc457040e6c2f2abaaf7d57f3ef545ab3a23f4d1ad5b4c3666c0a900f8f1",
+            "character_count": 200
+          }
+        },
+        {
+          "resource_id": "osis-verse-00111",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.9",
+            "chapter_index": 6,
+            "verse_index": 111,
+            "container_order": 117,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "cd0d4bd21b5da44b4041437d3e550ead1870da198c8f7dd81edbd9ff30b89a51",
+            "character_count": 169
+          }
+        },
+        {
+          "resource_id": "osis-verse-00112",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.10",
+            "chapter_index": 6,
+            "verse_index": 112,
+            "container_order": 118,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "696e16b438e8ba760907f75bf2aea59e2ce596521cf1bf817c055d31385bca0f",
+            "character_count": 273
+          }
+        },
+        {
+          "resource_id": "osis-verse-00113",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.11",
+            "chapter_index": 6,
+            "verse_index": 113,
+            "container_order": 119,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d7323f4bcb606d867d3ea1ae9ce1cf49201d7e2aed078f3a5619868a340dd44b",
+            "character_count": 152
+          }
+        },
+        {
+          "resource_id": "osis-verse-00114",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.6.12",
+            "chapter_index": 6,
+            "verse_index": 114,
+            "container_order": 120,
+            "parent_resource_id": "osis-chapter-0006"
+          },
+          "word_count": 22,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "69359dcc1fd1df85aa5c3f130f9c4ac918ddf6fd5a7f7ccb1f5c1e5d243f5ec0",
+            "character_count": 373
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0007",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.7",
+            "chapter_index": 7,
+            "container_order": 121
+          },
+          "verse_count": 29,
+          "word_count": 331
+        },
+        {
+          "resource_id": "osis-verse-00115",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.1",
+            "chapter_index": 7,
+            "verse_index": 115,
+            "container_order": 122,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "31ae6ee03f805ec83a141bea319fa2fc6a459b432c99a32214f59401c4e6c514",
+            "character_count": 163
+          }
+        },
+        {
+          "resource_id": "osis-verse-00116",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.2",
+            "chapter_index": 7,
+            "verse_index": 116,
+            "container_order": 123,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9f608cf113f8b3f428e6bfbd1c2d2d38dec00d44733b043dc077b8fbb180020f",
+            "character_count": 279
+          }
+        },
+        {
+          "resource_id": "osis-verse-00117",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.3",
+            "chapter_index": 7,
+            "verse_index": 117,
+            "container_order": 124,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "0a3302fd2d30f6df8f9f85ab5f4d8fb0a2c93c1530085b4f1159ff3f3bf87d80",
+            "character_count": 143
+          }
+        },
+        {
+          "resource_id": "osis-verse-00118",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.4",
+            "chapter_index": 7,
+            "verse_index": 118,
+            "container_order": 125,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4b65f5e369dd184272c1528e214142a6e848530ab87ef8bc99f812a27cf46baf",
+            "character_count": 162
+          }
+        },
+        {
+          "resource_id": "osis-verse-00119",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.5",
+            "chapter_index": 7,
+            "verse_index": 119,
+            "container_order": 126,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "cd53e5c229133c8493f5660d3a31746c6389911adad017ae9d71c7c8e436aae6",
+            "character_count": 163
+          }
+        },
+        {
+          "resource_id": "osis-verse-00120",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.6",
+            "chapter_index": 7,
+            "verse_index": 120,
+            "container_order": 127,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "08626a7b8b1a76101a4813329284afe791ade8028510646af098b71bad9f3e68",
+            "character_count": 201
+          }
+        },
+        {
+          "resource_id": "osis-verse-00121",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.7",
+            "chapter_index": 7,
+            "verse_index": 121,
+            "container_order": 128,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4f1288a64aead372d629b58c6b68c7f929e485c1047a93df771cf5bdfa94dba6",
+            "character_count": 146
+          }
+        },
+        {
+          "resource_id": "osis-verse-00122",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.8",
+            "chapter_index": 7,
+            "verse_index": 122,
+            "container_order": 129,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "57c26daaae7a175057f1ab0722de0aa752cbf32fb0c17922e3e8f6164c92abcf",
+            "character_count": 160
+          }
+        },
+        {
+          "resource_id": "osis-verse-00123",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.9",
+            "chapter_index": 7,
+            "verse_index": 123,
+            "container_order": 130,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "6d86c7366dc8f088923be5599517c82f483e2e7bd0a7754c1404ad420b111284",
+            "character_count": 174
+          }
+        },
+        {
+          "resource_id": "osis-verse-00124",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.10",
+            "chapter_index": 7,
+            "verse_index": 124,
+            "container_order": 131,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "bb99b4c16c6682b2874ff7d152a37163aff9ba80f29282aacd12abae5df790d2",
+            "character_count": 269
+          }
+        },
+        {
+          "resource_id": "osis-verse-00125",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.11",
+            "chapter_index": 7,
+            "verse_index": 125,
+            "container_order": 132,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ad2626ca3d8d0c0a35d3e869d7dd6efc311e2623d4072142ae5c9dc1c24b6893",
+            "character_count": 134
+          }
+        },
+        {
+          "resource_id": "osis-verse-00126",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.12",
+            "chapter_index": 7,
+            "verse_index": 126,
+            "container_order": 133,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "655624ce5eb8e18052ebcdc2c96cddbd91b3d6c6016993e2bc32d70fed608da1",
+            "character_count": 215
+          }
+        },
+        {
+          "resource_id": "osis-verse-00127",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.13",
+            "chapter_index": 7,
+            "verse_index": 127,
+            "container_order": 134,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d14042782a25afdf6e7605a4282450ec58ebe52548815aa90e56ea1d4bc80211",
+            "character_count": 198
+          }
+        },
+        {
+          "resource_id": "osis-verse-00128",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.14",
+            "chapter_index": 7,
+            "verse_index": 128,
+            "container_order": 135,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "78283cc522c24a95e8b2520cdc43be2e85457723e3d44851a4000c45493fd94c",
+            "character_count": 367
+          }
+        },
+        {
+          "resource_id": "osis-verse-00129",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.15",
+            "chapter_index": 7,
+            "verse_index": 129,
+            "container_order": 136,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f33516cbb357138864763f1da066d839326c797f31b2843896ba9af0afc00cc1",
+            "character_count": 251
+          }
+        },
+        {
+          "resource_id": "osis-verse-00130",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.16",
+            "chapter_index": 7,
+            "verse_index": 130,
+            "container_order": 137,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b67bcb4e8e502f289def84ac445e33c6ebd4565950caf9956cfb25f06d7e2a68",
+            "character_count": 161
+          }
+        },
+        {
+          "resource_id": "osis-verse-00131",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.17",
+            "chapter_index": 7,
+            "verse_index": 131,
+            "container_order": 138,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "356db36af88150123d3226d71ab038fe6c3eb0952dd8a0e5106c01ff9dbc0212",
+            "character_count": 173
+          }
+        },
+        {
+          "resource_id": "osis-verse-00132",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.18",
+            "chapter_index": 7,
+            "verse_index": 132,
+            "container_order": 139,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "6fa8b9abd30b2afc0c50f85de7786b4797e37118dfdd6ccc925198402c2981f8",
+            "character_count": 239
+          }
+        },
+        {
+          "resource_id": "osis-verse-00133",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.19",
+            "chapter_index": 7,
+            "verse_index": 133,
+            "container_order": 140,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "67e709c54834d70469365d7bfc81b347df46a08c4f14e9d86e76f77911fc9f78",
+            "character_count": 173
+          }
+        },
+        {
+          "resource_id": "osis-verse-00134",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.20",
+            "chapter_index": 7,
+            "verse_index": 134,
+            "container_order": 141,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1339613eef2494ddfb81d1ed7bc7e175a9f5693a6f4f8554e49ae3248c32be76",
+            "character_count": 180
+          }
+        },
+        {
+          "resource_id": "osis-verse-00135",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.21",
+            "chapter_index": 7,
+            "verse_index": 135,
+            "container_order": 142,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c4d5d06543770b04feb747842f219cfd20b6ea9706d56bd09cef5b95a9c4c463",
+            "character_count": 233
+          }
+        },
+        {
+          "resource_id": "osis-verse-00136",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.22",
+            "chapter_index": 7,
+            "verse_index": 136,
+            "container_order": 143,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1016fb4117d4dd443716de0b8dcc5d754e91791bf39459363d447620cbb338cb",
+            "character_count": 195
+          }
+        },
+        {
+          "resource_id": "osis-verse-00137",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.23",
+            "chapter_index": 7,
+            "verse_index": 137,
+            "container_order": 144,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f3a1688d077645103b389646df07b0f665e81482f19036afe04aaaf64f82617f",
+            "character_count": 179
+          }
+        },
+        {
+          "resource_id": "osis-verse-00138",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.24",
+            "chapter_index": 7,
+            "verse_index": 138,
+            "container_order": 145,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "62af390a6dee2afde4bdf5ae45d7d079716e3b56282467e39eb6a73462d212fb",
+            "character_count": 143
+          }
+        },
+        {
+          "resource_id": "osis-verse-00139",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.25",
+            "chapter_index": 7,
+            "verse_index": 139,
+            "container_order": 146,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9069b02f4ed6ef586aaba581a534e7afd25668eb7ddee7647caf0a6cc462a7f1",
+            "character_count": 287
+          }
+        },
+        {
+          "resource_id": "osis-verse-00140",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.26",
+            "chapter_index": 7,
+            "verse_index": 140,
+            "container_order": 147,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "101a1acd57b43641d6b3838d8b00250b8b355a8314f5470843913e643fe26b11",
+            "character_count": 399
+          }
+        },
+        {
+          "resource_id": "osis-verse-00141",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.27",
+            "chapter_index": 7,
+            "verse_index": 141,
+            "container_order": 148,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "be3aea10ecee59034cc8587edd176337b4b6f507f28e6debfe7aaf96e04de8b2",
+            "character_count": 179
+          }
+        },
+        {
+          "resource_id": "osis-verse-00142",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.28",
+            "chapter_index": 7,
+            "verse_index": 142,
+            "container_order": 149,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1e1d1c49ac938075814f351c31077e4ccbfeee729b9c771bdd92cbafbffced71",
+            "character_count": 270
+          }
+        },
+        {
+          "resource_id": "osis-verse-00143",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.7.29",
+            "chapter_index": 7,
+            "verse_index": 143,
+            "container_order": 150,
+            "parent_resource_id": "osis-chapter-0007"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b0a933ddda4fd7b6a7cd53fafc0cd3c7ac7b92793d8222c553d5c15a232d2333",
+            "character_count": 254
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0008",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.8",
+            "chapter_index": 8,
+            "container_order": 151
+          },
+          "verse_count": 17,
+          "word_count": 281
+        },
+        {
+          "resource_id": "osis-verse-00144",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.1",
+            "chapter_index": 8,
+            "verse_index": 144,
+            "container_order": 152,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "7fbb78ecfbde4ead3697863eb94e4909fe372fa7c3a30bc660cdb275155e9c59",
+            "character_count": 258
+          }
+        },
+        {
+          "resource_id": "osis-verse-00145",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.2",
+            "chapter_index": 8,
+            "verse_index": 145,
+            "container_order": 153,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "34bc27cf8bc0105ba8d7719edbe0e49f6b27f686017b7167ba4156183fe1f5f2",
+            "character_count": 148
+          }
+        },
+        {
+          "resource_id": "osis-verse-00146",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.3",
+            "chapter_index": 8,
+            "verse_index": 146,
+            "container_order": 154,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ac828120e68b6d5fe5ba86cf7c88a6da7d79101bfefdf821c4c119a5fec6bf6f",
+            "character_count": 217
+          }
+        },
+        {
+          "resource_id": "osis-verse-00147",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.4",
+            "chapter_index": 8,
+            "verse_index": 147,
+            "container_order": 155,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "10c11b0c6e31b81e84a93e3705e20e08de2ba6ee62272768804a9ff409e1cf44",
+            "character_count": 146
+          }
+        },
+        {
+          "resource_id": "osis-verse-00148",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.5",
+            "chapter_index": 8,
+            "verse_index": 148,
+            "container_order": 156,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d770f5970254a6c0108bdbce691c91288c7fffd9b33546b95c492714deda54f6",
+            "character_count": 204
+          }
+        },
+        {
+          "resource_id": "osis-verse-00149",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.6",
+            "chapter_index": 8,
+            "verse_index": 149,
+            "container_order": 157,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "982470a1b801d0695de7ab625db4f38fc349f40257e362a718db21df735281a1",
+            "character_count": 185
+          }
+        },
+        {
+          "resource_id": "osis-verse-00150",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.7",
+            "chapter_index": 8,
+            "verse_index": 150,
+            "container_order": 158,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "508d8f467ff3deac5f7cce8689333f7df637bf91c7cae4f65e0a78820d70f45f",
+            "character_count": 194
+          }
+        },
+        {
+          "resource_id": "osis-verse-00151",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.8",
+            "chapter_index": 8,
+            "verse_index": 151,
+            "container_order": 159,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b0fd257189a171f5103950eb298c35a08444e4b59c5a052f5ea61a60e0735d48",
+            "character_count": 350
+          }
+        },
+        {
+          "resource_id": "osis-verse-00152",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.9",
+            "chapter_index": 8,
+            "verse_index": 152,
+            "container_order": 160,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 20,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "5106d5a9e1bc7c3e527ec622984dbe39443aaf98980ae966b245e17bf36b9c24",
+            "character_count": 332
+          }
+        },
+        {
+          "resource_id": "osis-verse-00153",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.10",
+            "chapter_index": 8,
+            "verse_index": 153,
+            "container_order": 161,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "7efff55b65a8f76af2c001441a27540f0de3e0254dc2c3acc56821aa4a799adb",
+            "character_count": 305
+          }
+        },
+        {
+          "resource_id": "osis-verse-00154",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.11",
+            "chapter_index": 8,
+            "verse_index": 154,
+            "container_order": 162,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 16,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "19e982b24a92d7bccd34a7e09a8ed12b1a838f09963d9c57d1f172258248909a",
+            "character_count": 267
+          }
+        },
+        {
+          "resource_id": "osis-verse-00155",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.12",
+            "chapter_index": 8,
+            "verse_index": 155,
+            "container_order": 163,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4d9bfeec7ad7a6a33b5d740836d22440c86251da7a5226a2108ccc6c104fe430",
+            "character_count": 345
+          }
+        },
+        {
+          "resource_id": "osis-verse-00156",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.13",
+            "chapter_index": 8,
+            "verse_index": 156,
+            "container_order": 164,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "b8c5be492ffa39cff9c3ccf22b67b0be953516f4d5eb214751617acbfe21d884",
+            "character_count": 243
+          }
+        },
+        {
+          "resource_id": "osis-verse-00157",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.14",
+            "chapter_index": 8,
+            "verse_index": 157,
+            "container_order": 165,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 24,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "799cdd3f8eb2c00dc986ac320543d4177d841e894eec322cebfbc2912e78988a",
+            "character_count": 466
+          }
+        },
+        {
+          "resource_id": "osis-verse-00158",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.15",
+            "chapter_index": 8,
+            "verse_index": 158,
+            "container_order": 166,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 26,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "276476e462973806d9797b02f99e4aa81604d2100a03ec1c3d32ff5248a5d126",
+            "character_count": 474
+          }
+        },
+        {
+          "resource_id": "osis-verse-00159",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.16",
+            "chapter_index": 8,
+            "verse_index": 159,
+            "container_order": 167,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "73c4cf296fca45285be32084404cbd05410c17f1ec485d5972bd50cb99202510",
+            "character_count": 386
+          }
+        },
+        {
+          "resource_id": "osis-verse-00160",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.8.17",
+            "chapter_index": 8,
+            "verse_index": 160,
+            "container_order": 168,
+            "parent_resource_id": "osis-chapter-0008"
+          },
+          "word_count": 31,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ce98b55ad99959f312f1a5b6b32b5bd3281b4b4f1dcfc81da5c8337d525da3cd",
+            "character_count": 543
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0009",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.9",
+            "chapter_index": 9,
+            "container_order": 169
+          },
+          "verse_count": 18,
+          "word_count": 310
+        },
+        {
+          "resource_id": "osis-verse-00161",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.1",
+            "chapter_index": 9,
+            "verse_index": 161,
+            "container_order": 170,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 26,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "8c04f3de2f1f2a32f94753055ef305108adede00e53629ee50ac1711e5b85864",
+            "character_count": 426
+          }
+        },
+        {
+          "resource_id": "osis-verse-00162",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.2",
+            "chapter_index": 9,
+            "verse_index": 162,
+            "container_order": 171,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 20,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "deca73a27b6efbf6f18b2bf607adc586a34b76852dc02b980350f28840478a57",
+            "character_count": 439
+          }
+        },
+        {
+          "resource_id": "osis-verse-00163",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.3",
+            "chapter_index": 9,
+            "verse_index": 163,
+            "container_order": 172,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 23,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "836945dea262770c0f4ea26bfe1040d99edc8e505f0a71ea71d6b98366fb87fd",
+            "character_count": 407
+          }
+        },
+        {
+          "resource_id": "osis-verse-00164",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.4",
+            "chapter_index": 9,
+            "verse_index": 164,
+            "container_order": 173,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "fc54d0cdf03b228fdcd25eb9751f47a2874a9d96684080b6ddc498c5bb03e050",
+            "character_count": 274
+          }
+        },
+        {
+          "resource_id": "osis-verse-00165",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.5",
+            "chapter_index": 9,
+            "verse_index": 165,
+            "container_order": 174,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "814a32811d55f2148a2ad7bc43e66fa7b9200c5960902db8cf05cf840b8b35d2",
+            "character_count": 297
+          }
+        },
+        {
+          "resource_id": "osis-verse-00166",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.6",
+            "chapter_index": 9,
+            "verse_index": 166,
+            "container_order": 175,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e4d890f3ed1d923efa73b37073c67d882d31c635f91de252c629c8cbbb6bca32",
+            "character_count": 308
+          }
+        },
+        {
+          "resource_id": "osis-verse-00167",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.7",
+            "chapter_index": 9,
+            "verse_index": 167,
+            "container_order": 176,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "da0a2f8722c4ae78e3c413a022dd619ed28a81a543d1fa2d5c46eb5fff0b10e0",
+            "character_count": 254
+          }
+        },
+        {
+          "resource_id": "osis-verse-00168",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.8",
+            "chapter_index": 9,
+            "verse_index": 168,
+            "container_order": 177,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a2b3fc734757351e33ac52db9c4bf7f26b489c59821570c801dee046b275046d",
+            "character_count": 163
+          }
+        },
+        {
+          "resource_id": "osis-verse-00169",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.9",
+            "chapter_index": 9,
+            "verse_index": 169,
+            "container_order": 178,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 28,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "2188a33e80ccfc1d9c1193b90bd273ae36acd3a7296491ff90994010851c543b",
+            "character_count": 483
+          }
+        },
+        {
+          "resource_id": "osis-verse-00170",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.10",
+            "chapter_index": 9,
+            "verse_index": 170,
+            "container_order": 179,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "55b753bca444fbb8e47ec561056cc66fc881be421334bcf719d4f470cc153de8",
+            "character_count": 375
+          }
+        },
+        {
+          "resource_id": "osis-verse-00171",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.11",
+            "chapter_index": 9,
+            "verse_index": 171,
+            "container_order": 180,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 29,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "7d4305be9a77a28aecfdbd0362fbae50db6f5741ff23d8b33f71b6e6b738dff5",
+            "character_count": 530
+          }
+        },
+        {
+          "resource_id": "osis-verse-00172",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.12",
+            "chapter_index": 9,
+            "verse_index": 172,
+            "container_order": 181,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 23,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "83b936d3c3185246b2d0cc83998935f7ceb915f4b08b22ea19364c9d6ee59515",
+            "character_count": 456
+          }
+        },
+        {
+          "resource_id": "osis-verse-00173",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.13",
+            "chapter_index": 9,
+            "verse_index": 173,
+            "container_order": 182,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "dc8fc2d72f97a64d882f662e36b44646da237fe04681eb13d31396c7ddc73eb7",
+            "character_count": 167
+          }
+        },
+        {
+          "resource_id": "osis-verse-00174",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.14",
+            "chapter_index": 9,
+            "verse_index": 174,
+            "container_order": 183,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 15,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "39f960a3879753674ba6e56d845eed11f4160db656a4f9f332a728a076255358",
+            "character_count": 291
+          }
+        },
+        {
+          "resource_id": "osis-verse-00175",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.15",
+            "chapter_index": 9,
+            "verse_index": 175,
+            "container_order": 184,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 17,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3607284028819ffccb7e67202b4dc680a8cfe092815cd2ca0bb16a86344b3e8f",
+            "character_count": 465
+          }
+        },
+        {
+          "resource_id": "osis-verse-00176",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.16",
+            "chapter_index": 9,
+            "verse_index": 176,
+            "container_order": 185,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d733efc202dc61b645741034a849e54c8c094cb3ca464b754fd5c0f516fa4db3",
+            "character_count": 246
+          }
+        },
+        {
+          "resource_id": "osis-verse-00177",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.17",
+            "chapter_index": 9,
+            "verse_index": 177,
+            "container_order": 186,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3ebbbae38c34eb92692750eeba71317f445cc00054c2d91e23e866ee8c3acd29",
+            "character_count": 162
+          }
+        },
+        {
+          "resource_id": "osis-verse-00178",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.9.18",
+            "chapter_index": 9,
+            "verse_index": 178,
+            "container_order": 187,
+            "parent_resource_id": "osis-chapter-0009"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "9ca080a8d0121c155c1f03a7436d17842295f377956e19a27f62b7a6d084b650",
+            "character_count": 181
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0010",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.10",
+            "chapter_index": 10,
+            "container_order": 188
+          },
+          "verse_count": 20,
+          "word_count": 199
+        },
+        {
+          "resource_id": "osis-verse-00179",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.1",
+            "chapter_index": 10,
+            "verse_index": 179,
+            "container_order": 189,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "79e41c912da99688b77731e56748702289b00919295327165e8985b9d5d0a4a3",
+            "character_count": 223
+          }
+        },
+        {
+          "resource_id": "osis-verse-00180",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.2",
+            "chapter_index": 10,
+            "verse_index": 180,
+            "container_order": 190,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 6,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e4dded8ed9981a21f3c1250bef333e9ff1449cb5484b60bd5063c5697a133dfb",
+            "character_count": 128
+          }
+        },
+        {
+          "resource_id": "osis-verse-00181",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.3",
+            "chapter_index": 10,
+            "verse_index": 181,
+            "container_order": 191,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "890a0991ca025d1ae4e65c7a999d7ce01103d7b6d5c9d0c647a2abf2baa64249",
+            "character_count": 314
+          }
+        },
+        {
+          "resource_id": "osis-verse-00182",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.4",
+            "chapter_index": 10,
+            "verse_index": 182,
+            "container_order": 192,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "19af44ee234d85ff50b74af0c6c6cfda386da907a368a293ec6c5f32dc4e7cf2",
+            "character_count": 237
+          }
+        },
+        {
+          "resource_id": "osis-verse-00183",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.5",
+            "chapter_index": 10,
+            "verse_index": 183,
+            "container_order": 193,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "785c468a88bba76ff78dbd30d238e43a3d1a9ad8a1ff54e849cd4f9aa3bcceb3",
+            "character_count": 198
+          }
+        },
+        {
+          "resource_id": "osis-verse-00184",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.6",
+            "chapter_index": 10,
+            "verse_index": 184,
+            "container_order": 194,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4ce0df80420d7b666087e2059120e054ecf11c32c12739bba03e25aebbbfa809",
+            "character_count": 162
+          }
+        },
+        {
+          "resource_id": "osis-verse-00185",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.7",
+            "chapter_index": 10,
+            "verse_index": 185,
+            "container_order": 195,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "cfe6b2ba8a70a1d62901880168c0956a82c6b193798740baac9ed4447e97f8cd",
+            "character_count": 163
+          }
+        },
+        {
+          "resource_id": "osis-verse-00186",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.8",
+            "chapter_index": 10,
+            "verse_index": 186,
+            "container_order": 196,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "960ba870d98a78d1de6c9a81cea6329aa16c520ceec496e3b599272d09e3bbdc",
+            "character_count": 164
+          }
+        },
+        {
+          "resource_id": "osis-verse-00187",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.9",
+            "chapter_index": 10,
+            "verse_index": 187,
+            "container_order": 197,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "bd10df60a689f888700d8a5820c9ecdbf92623c733fff138fd3db98d9b8cf0cf",
+            "character_count": 163
+          }
+        },
+        {
+          "resource_id": "osis-verse-00188",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.10",
+            "chapter_index": 10,
+            "verse_index": 188,
+            "container_order": 198,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "23540aa9003bae6c4417cc9b25655abe797061392b26745232cc1ee0a5b78e43",
+            "character_count": 333
+          }
+        },
+        {
+          "resource_id": "osis-verse-00189",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.11",
+            "chapter_index": 10,
+            "verse_index": 189,
+            "container_order": 199,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c142c9d187ffb3c9e5a7fa2fd4f35b4d343e1232c58f7dada0f55b4ea0082436",
+            "character_count": 165
+          }
+        },
+        {
+          "resource_id": "osis-verse-00190",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.12",
+            "chapter_index": 10,
+            "verse_index": 190,
+            "container_order": 200,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a95583104824b323bb7932ac6b7308631a252fde1c1fa4aff1ce9a238e42fbc6",
+            "character_count": 136
+          }
+        },
+        {
+          "resource_id": "osis-verse-00191",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.13",
+            "chapter_index": 10,
+            "verse_index": 191,
+            "container_order": 201,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "6965e3e42825d385155b677fbf4743170f64302bd861237159376cc01762b21e",
+            "character_count": 160
+          }
+        },
+        {
+          "resource_id": "osis-verse-00192",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.14",
+            "chapter_index": 10,
+            "verse_index": 192,
+            "container_order": 202,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "41ec692a8ee2f799e28ee068d2e63cf06d8d51bf504b2c64213a570529a962dc",
+            "character_count": 260
+          }
+        },
+        {
+          "resource_id": "osis-verse-00193",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.15",
+            "chapter_index": 10,
+            "verse_index": 193,
+            "container_order": 203,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1f13ce029879d9566dfac4b8788d8fc5bbbb2687a191529ad607067ef2b2d48c",
+            "character_count": 159
+          }
+        },
+        {
+          "resource_id": "osis-verse-00194",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.16",
+            "chapter_index": 10,
+            "verse_index": 194,
+            "container_order": 204,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ff8811c14ac4c6e64ebb7eb4980f37aa6deb5a49c8dc6c9b4026babab9a714fa",
+            "character_count": 160
+          }
+        },
+        {
+          "resource_id": "osis-verse-00195",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.17",
+            "chapter_index": 10,
+            "verse_index": 195,
+            "container_order": 205,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "c8344eda6cef3b1054af8d5bfb8308c7f07134da354c67ddd8031266c6dd66bb",
+            "character_count": 230
+          }
+        },
+        {
+          "resource_id": "osis-verse-00196",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.18",
+            "chapter_index": 10,
+            "verse_index": 196,
+            "container_order": 206,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "cd42a38c7f944c0fe512cf4ede4e19576ed144dfaa99e2be4e3a5ccd9e43208d",
+            "character_count": 166
+          }
+        },
+        {
+          "resource_id": "osis-verse-00197",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.19",
+            "chapter_index": 10,
+            "verse_index": 197,
+            "container_order": 207,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "90c5a9634aec916cda1190977498c006e255b4fe41c2ef2fb040f0145765f1fa",
+            "character_count": 194
+          }
+        },
+        {
+          "resource_id": "osis-verse-00198",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.10.20",
+            "chapter_index": 10,
+            "verse_index": 198,
+            "container_order": 208,
+            "parent_resource_id": "osis-chapter-0010"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "be5fe3cd69512864cca7ca0b762d9c6bd9c70fc8ea6db0363570959d8514c489",
+            "character_count": 385
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0011",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.11",
+            "chapter_index": 11,
+            "container_order": 209
+          },
+          "verse_count": 10,
+          "word_count": 143
+        },
+        {
+          "resource_id": "osis-verse-00199",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.1",
+            "chapter_index": 11,
+            "verse_index": 199,
+            "container_order": 210,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "a6092521970ab364d547c737c58108449dde34001e25bda96b8805b4efb2c14e",
+            "character_count": 165
+          }
+        },
+        {
+          "resource_id": "osis-verse-00200",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.2",
+            "chapter_index": 11,
+            "verse_index": 200,
+            "container_order": 211,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ca094653d5b191c67ca9c1969e23ca67e9c72f09d07d2a961e31fa7793561d19",
+            "character_count": 210
+          }
+        },
+        {
+          "resource_id": "osis-verse-00201",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.3",
+            "chapter_index": 11,
+            "verse_index": 201,
+            "container_order": 212,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "2a4b0c7e56ba422aa95ca47bf41b1dd912a6bdbc591a579946debde155d3429b",
+            "character_count": 320
+          }
+        },
+        {
+          "resource_id": "osis-verse-00202",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.4",
+            "chapter_index": 11,
+            "verse_index": 202,
+            "container_order": 213,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 8,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "e3add55592e92e1f0b152e4c9e37b457b5bc65ee1511394244da6a476a5427b3",
+            "character_count": 155
+          }
+        },
+        {
+          "resource_id": "osis-verse-00203",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.5",
+            "chapter_index": 11,
+            "verse_index": 203,
+            "container_order": 214,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d84f2a9236159c7cf7111e7d2b00426f07569d2bf60eaf1598dcc38096804c78",
+            "character_count": 343
+          }
+        },
+        {
+          "resource_id": "osis-verse-00204",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.6",
+            "chapter_index": 11,
+            "verse_index": 204,
+            "container_order": 215,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 21,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "840be69c859ff06fc19d47080a10978a18a0a9eda872b2b0a46e38e469840d6c",
+            "character_count": 424
+          }
+        },
+        {
+          "resource_id": "osis-verse-00205",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.7",
+            "chapter_index": 11,
+            "verse_index": 205,
+            "container_order": 216,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 7,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "19b8d03b21fa4b0b379af4890aff391849f5cb8dc11505b1b2c7831f72be8127",
+            "character_count": 141
+          }
+        },
+        {
+          "resource_id": "osis-verse-00206",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.8",
+            "chapter_index": 11,
+            "verse_index": 206,
+            "container_order": 217,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ec6a3976583f93a4f3566d919f8bab38108b35dfdafba229369a22de18bd7535",
+            "character_count": 304
+          }
+        },
+        {
+          "resource_id": "osis-verse-00207",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.9",
+            "chapter_index": 11,
+            "verse_index": 207,
+            "container_order": 218,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 20,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3958225c80354d2c6f2d635976c1e82b977f4546ae5908463d7e8c5cb79d5e9b",
+            "character_count": 411
+          }
+        },
+        {
+          "resource_id": "osis-verse-00208",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.11.10",
+            "chapter_index": 11,
+            "verse_index": 208,
+            "container_order": 219,
+            "parent_resource_id": "osis-chapter-0011"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d1b3c9646cc4b06357301e13cd583c6780f861d54e44376c14b1f864ed281305",
+            "character_count": 214
+          }
+        },
+        {
+          "resource_id": "osis-chapter-0012",
+          "resource_kind": "osis_chapter",
+          "structural_role": "chapter",
+          "locator": {
+            "osis_id": "Eccl.12",
+            "chapter_index": 12,
+            "container_order": 220
+          },
+          "verse_count": 14,
+          "word_count": 187
+        },
+        {
+          "resource_id": "osis-verse-00209",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.1",
+            "chapter_index": 12,
+            "verse_index": 209,
+            "container_order": 221,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 19,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "946ed9ac4543accee1a1a0d7bf7bafcb0db05196b1180b5f62d4ab0ad039c122",
+            "character_count": 337
+          }
+        },
+        {
+          "resource_id": "osis-verse-00210",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.2",
+            "chapter_index": 12,
+            "verse_index": 210,
+            "container_order": 222,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 12,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "ac31b7826fe7fcbf148e725ee8807ef3f6086d6f0b26f044089f726d0956ac19",
+            "character_count": 249
+          }
+        },
+        {
+          "resource_id": "osis-verse-00211",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.3",
+            "chapter_index": 12,
+            "verse_index": 211,
+            "container_order": 223,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "be17af23b1319de3f6b730e922d93cfb15213bc2239ce0302e0f53a87ae1451f",
+            "character_count": 316
+          }
+        },
+        {
+          "resource_id": "osis-verse-00212",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.4",
+            "chapter_index": 12,
+            "verse_index": 212,
+            "container_order": 224,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "533e7cbfa824ea16b30a7f5616edf21292c0ab24626a65c3309465d6b47ddbc8",
+            "character_count": 271
+          }
+        },
+        {
+          "resource_id": "osis-verse-00213",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.5",
+            "chapter_index": 12,
+            "verse_index": 213,
+            "container_order": 225,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 20,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "6fe363278665a0b8b4f3da6cced286acd9de13bb0cf2828032a52a738a099683",
+            "character_count": 584
+          }
+        },
+        {
+          "resource_id": "osis-verse-00214",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.6",
+            "chapter_index": 12,
+            "verse_index": 214,
+            "container_order": 226,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 18,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "0a94d116d4266c1494ceb2feb111bec28c4052c6db9488f7d50a257fe6844846",
+            "character_count": 309
+          }
+        },
+        {
+          "resource_id": "osis-verse-00215",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.7",
+            "chapter_index": 12,
+            "verse_index": 215,
+            "container_order": 227,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 11,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "79af34b934b7bbeee998a92e61d6303ef04823781988795cc90b64cf1af49203",
+            "character_count": 209
+          }
+        },
+        {
+          "resource_id": "osis-verse-00216",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.8",
+            "chapter_index": 12,
+            "verse_index": 216,
+            "container_order": 228,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 6,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "1fb66ed159d7f4d701108f06f185660f92568cc43d4b86517b26c0a9febb3b8d",
+            "character_count": 124
+          }
+        },
+        {
+          "resource_id": "osis-verse-00217",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.9",
+            "chapter_index": 12,
+            "verse_index": 217,
+            "container_order": 229,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "3febdfb939e938b78529c734f2e1163b85ba28230d1c700b2629d7ac50302b80",
+            "character_count": 253
+          }
+        },
+        {
+          "resource_id": "osis-verse-00218",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.10",
+            "chapter_index": 12,
+            "verse_index": 218,
+            "container_order": 230,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 9,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "13cc71b2c59697226873016de344f5d22b8c25fb51d1c96bcf21ca0a7d76cd90",
+            "character_count": 171
+          }
+        },
+        {
+          "resource_id": "osis-verse-00219",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.11",
+            "chapter_index": 12,
+            "verse_index": 219,
+            "container_order": 231,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 10,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "d72022335a03ecca953b5dd2f995e996e04e7509aa17084f727b82c4d1eca55a",
+            "character_count": 227
+          }
+        },
+        {
+          "resource_id": "osis-verse-00220",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.12",
+            "chapter_index": 12,
+            "verse_index": 220,
+            "container_order": 232,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 13,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "7204ca798bf572259390ff7144eb6fb8d3ddc643c6956ffff29b7e2c6f071fcf",
+            "character_count": 258
+          }
+        },
+        {
+          "resource_id": "osis-verse-00221",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.13",
+            "chapter_index": 12,
+            "verse_index": 221,
+            "container_order": 233,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "f80f92e3983fb0451522827bcabe93ad5d967253e71ca077736040ab47d7b8be",
+            "character_count": 221
+          }
+        },
+        {
+          "resource_id": "osis-verse-00222",
+          "resource_kind": "osis_verse",
+          "structural_role": "verse",
+          "locator": {
+            "osis_id": "Eccl.12.14",
+            "chapter_index": 12,
+            "verse_index": 222,
+            "container_order": 234,
+            "parent_resource_id": "osis-chapter-0012"
+          },
+          "word_count": 14,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "xml-character-data-preserved",
+            "sha256": "4b0f1626a1db64f63b2a7860b7d9b2bec987a3549ea7b66c2bf774884bbdbef0",
+            "character_count": 201
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.hebrew-bible.ecclesiastes.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml.2026-09-08",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

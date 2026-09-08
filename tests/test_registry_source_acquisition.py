@@ -17,6 +17,50 @@ import acquire_registry_sources as acquisition
 
 
 class RegistrySourceAcquisitionTests(unittest.TestCase):
+    def test_topology_refresh_keeps_one_jsonl_record_and_retains_exact_preimage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            topology_path = root / acquisition.TOPOLOGY
+            topology_path.parent.mkdir(parents=True)
+            original = {"event_id": acquisition.TOPOLOGY_EVENT, "event_version": 1,
+                        "method": {"configuration": {}}, "inputs": [], "outputs": []}
+            original_bytes = (json.dumps(original, ensure_ascii=False) + "\n").encode()
+            topology_path.write_bytes(original_bytes)
+            evidence_path = root / "ToS/source-witnesses/fixture/record.json"
+            evidence_path.parent.mkdir(parents=True)
+            evidence_path.write_text('{"label":"source evidence"}\n')
+            for route in ("work-expression", "expression-edition", "edition-item"):
+                path = topology_path.parent / route / f"{route}-claims.jsonl"
+                path.parent.mkdir()
+                path.write_text(json.dumps({"evidence_refs": [evidence_path.relative_to(root).as_posix()]}) + "\n")
+            evidence_root = root / "prepared-evidence"
+            acquisition.refresh_topology(root, evidence_root, "2026-09-08T00:00:00+00:00")
+            lines = topology_path.read_text().splitlines()
+            self.assertEqual(len(lines), 1)
+            refreshed = json.loads(lines[0])
+            self.assertEqual(refreshed["event_id"], original["event_id"])
+            self.assertEqual(refreshed["event_version"], 2)
+            self.assertEqual(len(refreshed["outputs"]), 3)
+            self.assertEqual(refreshed["inputs"][0]["sha256"], hashlib.sha256(evidence_path.read_bytes()).hexdigest())
+            preserved = evidence_root / "topology-before" / (hashlib.sha256(original_bytes).hexdigest() + ".json")
+            self.assertEqual(preserved.read_bytes(), original_bytes)
+
+    def test_acquired_file_companions_bind_every_file_without_mutating_prepared_rights(self) -> None:
+        prepared = {"scope_refs": ["tos.item.example"], "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+            "layer_assessments": [{"assessment_status": "public_domain_reviewed", "rights_statement_uri": "https://creativecommons.org/licenses/by/4.0/"},
+                                  {"assessment_status": "licensed", "rights_statement_uri": "https://creativecommons.org/licenses/by/4.0/"}]}
+        original = copy.deepcopy(prepared)
+        manifest = {"payload_files": [{"file_id": f"tos.file.sha256.{digit * 64}",
+            "sha256": digit * 64, "relative_path": f"payload/source-{digit}.json"} for digit in ("a", "b")]}
+        acquired = acquisition.rights_with_file_scopes(prepared, manifest)
+        self.assertEqual(prepared, original)
+        self.assertEqual(acquired["scope_refs"], ["tos.item.example", "tos.file.sha256." + "a" * 64, "tos.file.sha256." + "b" * 64])
+        self.assertEqual(acquired["layer_assessments"][0]["rights_statement_uri"], "https://creativecommons.org/publicdomain/mark/1.0/")
+        self.assertEqual(acquired["layer_assessments"][1], original["layer_assessments"][1])
+        self.assertEqual(acquired["license_uri"], original["license_uri"])
+        self.assertEqual(acquisition.rights_with_file_scopes(acquired, manifest), acquired)
+        self.assertEqual(acquisition.manifest_fixity(manifest), "a" * 64 + "  payload/source-a.json\n" + "b" * 64 + "  payload/source-b.json\n")
+
     def test_repository_paths_reject_escape_absolute_and_symlink_routes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -105,6 +149,14 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
         self.assertEqual(len({component["file_id"] for component in components}), 1)
         self.assertEqual(components[0]["selectors"][0]["json_pointer_pattern"], "/sentences/*/words/*/written_form")
         self.assertNotIn("German translation", json.dumps(result))
+        with_gloss = copy.deepcopy(parsed)
+        with_gloss["sentences"][0]["words"][0]["cotext_translation"] = "German lexical gloss"
+        gloss_report = acquisition.inspect_payloads(target, [({"basename": "source.json"}, json.dumps(with_gloss).encode())])
+        self.assertEqual(gloss_report["component_witnesses"][1]["selectors"], [
+            {"json_pointer_pattern": "/sentences/*/translation", "nonempty_string_count": 1},
+            {"json_pointer_pattern": "/sentences/*/words/*/cotext_translation", "nonempty_string_count": 1},
+        ])
+        self.assertNotIn("German lexical gloss", json.dumps(gloss_report))
         without_translation = copy.deepcopy(parsed)
         del without_translation["sentences"][0]["translation"]
         with self.assertRaisesRegex(ValueError, "separate German"):

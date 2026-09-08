@@ -1,0 +1,46 @@
+{
+  "target_slug": "immortality-of-writers",
+  "file_count": 1,
+  "byte_size": 72095,
+  "source_bytes_changed": false,
+  "textual_acceptance": false,
+  "files": [
+    {
+      "basename": "oraec1016.json",
+      "root_type": "dict",
+      "root_member_count": 1
+    }
+  ],
+  "component_witnesses": [
+    {
+      "expression_ref": "tos.expression.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec",
+      "language": "egy",
+      "file_id": "tos.file.sha256.2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "file_sha256": "2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "selectors": [
+        {
+          "json_pointer_pattern": "/oraec1016/sentences/*/token/*/written_form",
+          "nonempty_string_count": 323
+        }
+      ],
+      "selection_posture": "observed supplied fields; no extraction or text acceptance"
+    },
+    {
+      "expression_ref": "tos.expression.egyptian-literature.immortality-of-writers.de-aed-tei-oraec",
+      "language": "de",
+      "file_id": "tos.file.sha256.2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "file_sha256": "2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "selectors": [
+        {
+          "json_pointer_pattern": "/oraec1016/sentences/*/token/*/cotext_translation",
+          "nonempty_string_count": 319
+        },
+        {
+          "json_pointer_pattern": "/oraec1016/sentences/*/translation",
+          "nonempty_string_count": 43
+        }
+      ],
+      "selection_posture": "observed supplied fields; no extraction or text acceptance"
+    }
+  ]
+}

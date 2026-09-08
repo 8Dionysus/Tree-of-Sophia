@@ -1,0 +1,38 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "expression",
+  "record_id": "tos.expression.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral",
+  "preferred_label": "Khuddakapāṭha — pli source-language layer",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "work_ref": "tos.work.pali-canon.khuddakapatha",
+  "language": "pli",
+  "expression_role": "source_language",
+  "responsibility_claim_refs": [],
+  "embodiment_claim_refs": [
+    "tos.claim.topology.registry-20260908.khuddakapatha.expression-edition"
+  ],
+  "notes": "SuttaCentral Mahāsaṅgīti-derived Pāli root text, Roman script, preserved in the pinned Bilara published snapshot. Root edition metadata reports Dhamma Society Fund, Bangkok, 2010; SuttaCentral adapted structure/markup and sometimes punctuation. The Dhamma Society prepared the Mahāsaṅgīti edition; Ven. Yuttadhammo preserved and supplied its XML; SuttaCentral maintains the supplied structure, markup and punctuation. No modern actor is asserted to be the ancient author. Supplied annotation or punctuation does not establish ToS source-text acceptance.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

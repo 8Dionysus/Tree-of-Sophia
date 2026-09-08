@@ -1,0 +1,379 @@
+{
+  "schema_version": "tos_registry_first_planting_result_v1",
+  "completed_at": "2026-09-08T21:23:36.722382+00:00",
+  "preparation_commit": "8861fecf8e328a874887e875b255876061c80ac9",
+  "normalization_snapshot": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "planted": [
+    {
+      "target_slug": "proverbs",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 678669,
+      "textual_acceptance": false,
+      "title": "Proverbs",
+      "atlas_row": "A12",
+      "version": "openscriptures/morphhb@3d15126fb1ef74867fc1434be1942e837932691f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-proverbs/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-proverbs/README.md",
+      "coverage": {
+        "kind": "osis-book",
+        "book": "Prov",
+        "chapter_count": 31
+      },
+      "remaining_controls": [
+        "This is not a Sefaria copy and does not establish equivalence with its versions.",
+        "Morphology and lemma annotation remain a modern OSHB layer; ancient attribution is unresolved separately.",
+        "Alternative WLC/OSHB edition for the named work need; not a copy of Sefaria or an equivalence claim.",
+        "Original XML bytes and Hebrew character order must be preserved; no NFC normalization.",
+        "Morphological analysis and lemma assignments are modern annotations, not accepted ToS analysis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "job",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/job/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 813715,
+      "textual_acceptance": false,
+      "title": "Job",
+      "atlas_row": "A12",
+      "version": "openscriptures/morphhb@3d15126fb1ef74867fc1434be1942e837932691f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-job/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-job/README.md",
+      "coverage": {
+        "kind": "osis-book",
+        "book": "Job",
+        "chapter_count": 42
+      },
+      "remaining_controls": [
+        "This is not a Sefaria copy and does not establish equivalence with its versions.",
+        "Morphology and lemma annotation remain a modern OSHB layer; ancient attribution is unresolved separately.",
+        "Alternative WLC/OSHB edition for the named work need; not a copy of Sefaria or an equivalence claim.",
+        "Original XML bytes and Hebrew character order must be preserved; no NFC normalization.",
+        "Morphological analysis and lemma assignments are modern annotations, not accepted ToS analysis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "ecclesiastes",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.hebrew-bible.ecclesiastes.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/hebrew-bible/ecclesiastes/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 285122,
+      "textual_acceptance": false,
+      "title": "Ecclesiastes (Qohelet)",
+      "atlas_row": "A12",
+      "version": "openscriptures/morphhb@3d15126fb1ef74867fc1434be1942e837932691f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-ecclesiastes/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/plantings/registry-ecclesiastes/README.md",
+      "coverage": {
+        "kind": "osis-book",
+        "book": "Eccl",
+        "chapter_count": 12
+      },
+      "remaining_controls": [
+        "This is not a Sefaria copy and does not establish equivalence with its versions.",
+        "Morphology and lemma annotation remain a modern OSHB layer; ancient attribution is unresolved separately.",
+        "Alternative WLC/OSHB edition for the named work need; not a copy of Sefaria or an equivalence claim.",
+        "Original XML bytes and Hebrew character order must be preserved; no NFC normalization.",
+        "Morphological analysis and lemma assignments are modern annotations, not accepted ToS analysis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "immortality-of-writers",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+      "files": 1,
+      "bytes": 72095,
+      "textual_acceptance": false,
+      "title": "Immortality of Writers",
+      "atlas_row": "A04",
+      "version": "oraec/corpus_raw_data@b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+      "planting_ref": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-immortality-of-writers/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-immortality-of-writers/README.md",
+      "coverage": {
+        "kind": "oraec-composition",
+        "oraec_id": "oraec1016",
+        "physical_carrier": "pChester Beatty IV / British Museum EA 10684",
+        "carrier_region": "verso 2.5–3.11"
+      },
+      "remaining_controls": [
+        "Coverage is verso 2.5–3.11 for Immortality of Writers and verso 3.11–4.6 for Be a Scribe.",
+        "Two work-level textual sections share one physical artifact; no whole-papyrus or critical-composite completeness claim.",
+        "This version covers the verso 2.5–3.11 composition section of EA 10684, not the entire papyrus.",
+        "The two ORAEC selections are sections of one physical carrier, not two separate papyri.",
+        "Egyptian transcription/transliteration, annotations and any included glosses remain distinct supplied layers; no new translation is created.",
+        "A digital edition section does not establish complete critical reconstruction or ancient authorship.",
+        "Coverage is limited to verso 2.5–3.11 of pChester Beatty IV / British Museum EA 10684.",
+        "Egyptian written-form transliteration, German sentence translation, token glosses and annotations remain separate supplied components.",
+        "The broader ORAEC platform description does not establish a hieroglyphic representation in this exact raw JSON.",
+        "No source characters, gaps or editorial signs were changed; no translation, semantic or canon admission follows.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "be-a-scribe",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.egyptian-literature.be-a-scribe.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+      "files": 1,
+      "bytes": 33766,
+      "textual_acceptance": false,
+      "title": "Be a Scribe!",
+      "atlas_row": "A04",
+      "version": "oraec/corpus_raw_data@b83a0ee5fae27a40d4c0a2a9a8c9c2973d45e9cd",
+      "planting_ref": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-be-a-scribe/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/plantings/registry-be-a-scribe/README.md",
+      "coverage": {
+        "kind": "oraec-composition",
+        "oraec_id": "oraec3091",
+        "physical_carrier": "pChester Beatty IV / British Museum EA 10684",
+        "carrier_region": "verso 3.11–4.6"
+      },
+      "remaining_controls": [
+        "Coverage is verso 2.5–3.11 for Immortality of Writers and verso 3.11–4.6 for Be a Scribe.",
+        "Two work-level textual sections share one physical artifact; no whole-papyrus or critical-composite completeness claim.",
+        "This version covers the verso 3.11–4.6 composition section of EA 10684, not the entire papyrus.",
+        "The two ORAEC selections are sections of one physical carrier, not two separate papyri.",
+        "Egyptian transcription/transliteration, annotations and any included glosses remain distinct supplied layers; no new translation is created.",
+        "A digital edition section does not establish complete critical reconstruction or ancient authorship.",
+        "Coverage is limited to verso 3.11–4.6 of pChester Beatty IV / British Museum EA 10684.",
+        "Egyptian written-form transliteration, German sentence translation, token glosses and annotations remain separate supplied components.",
+        "The broader ORAEC platform description does not establish a hieroglyphic representation in this exact raw JSON.",
+        "No source characters, gaps or editorial signs were changed; no translation, semantic or canon admission follows.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "khuddakapatha",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.khuddakapatha.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/khuddakapatha/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 9,
+      "bytes": 17885,
+      "textual_acceptance": false,
+      "title": "Khuddakapāṭha",
+      "atlas_row": "A21",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-khuddakapatha/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-khuddakapatha/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "kp",
+        "file_count": 9
+      },
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "dhammapada",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.dhammapada.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/dhammapada/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 26,
+      "bytes": 99950,
+      "textual_acceptance": false,
+      "title": "Dhammapada",
+      "atlas_row": "A21",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-dhammapada/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-dhammapada/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "dhp",
+        "file_count": 26
+      },
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "sutta-nipata",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.sutta-nipata.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/sutta-nipata/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 73,
+      "bytes": 323169,
+      "textual_acceptance": false,
+      "title": "Suttanipāta",
+      "atlas_row": "A21",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-sutta-nipata/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-sutta-nipata/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "snp",
+        "file_count": 73
+      },
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "udana",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.udana.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/udana/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 80,
+      "bytes": 260459,
+      "textual_acceptance": false,
+      "title": "Udāna",
+      "atlas_row": "A21",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-udana/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-udana/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "ud",
+        "file_count": 80
+      },
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "itivuttaka",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.itivuttaka.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/itivuttaka/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 112,
+      "bytes": 181424,
+      "textual_acceptance": false,
+      "title": "Itivuttaka",
+      "atlas_row": "A21",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-itivuttaka/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/plantings/registry-itivuttaka/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "iti",
+        "file_count": 112
+      },
+      "remaining_controls": [
+        "The entire Sutta-pitaka remains outside this batch.",
+        "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "samannaphala-sutta",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.samannaphala-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/samannaphala-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 1,
+      "bytes": 88116,
+      "textual_acceptance": false,
+      "title": "Sāmaññaphala Sutta (DN 2)",
+      "atlas_row": "A18",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-samannaphala-sutta/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-samannaphala-sutta/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "dn2",
+        "file_count": 1
+      },
+      "remaining_controls": [
+        "Agama parallels and their textual comparison remain unacquired and unassessed.",
+        "These individual texts do not complete the Nikaya corpus or establish historical authenticity.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "upali-sutta",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.upali-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/upali-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 1,
+      "bytes": 41764,
+      "textual_acceptance": false,
+      "title": "Upāli Sutta (MN 56)",
+      "atlas_row": "A18",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-upali-sutta/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/south-asia/traditions/shramana-early-buddhist-jain/sources/plantings/registry-upali-sutta/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "mn56",
+        "file_count": 1
+      },
+      "remaining_controls": [
+        "Agama parallels and their textual comparison remain unacquired and unassessed.",
+        "These individual texts do not complete the Nikaya corpus or establish historical authenticity.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "sammaditthi-sutta",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.pali-canon.sammaditthi-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+      "item_manifest_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+      "files": 1,
+      "bytes": 29786,
+      "textual_acceptance": false,
+      "title": "Sammādiṭṭhi Sutta (MN 9)",
+      "atlas_row": "T2-39",
+      "version": "suttacentral/bilara-data@d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "planting_ref": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/plantings/registry-sammaditthi-sutta/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/plantings/registry-sammaditthi-sutta/README.md",
+      "coverage": {
+        "kind": "bilara-root",
+        "uid": "mn9",
+        "file_count": 1
+      },
+      "remaining_controls": [
+        "No medieval commentary is acquired by planting its canonical antecedent.",
+        "No attribution of the canonical text to Buddhaghosa and no commentary completeness claim.",
+        "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+        "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+        "For MN 9 the registry describes a Sujato translation and also points to the cognate root; this selects the separate root version as an antecedent to the later commentarial branch.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    }
+  ],
+  "deferred": [],
+  "blocked": [],
+  "total_files": 308,
+  "total_bytes": 2925920,
+  "scope": "13 selected work versions; earlier unrelated backlog remains outside this completed batch",
+  "source_text_admitted": false,
+  "payload_visibility": "local_only",
+  "public_or_remote_deployment": false
+}

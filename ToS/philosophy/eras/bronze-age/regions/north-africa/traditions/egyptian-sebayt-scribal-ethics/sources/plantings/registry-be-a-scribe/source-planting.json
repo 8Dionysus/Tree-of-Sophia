@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a04.registry-be-a-scribe",
+  "atlas_row_id": "A04",
+  "dossier_id": "A04",
+  "branch_path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics",
+  "source_backlog_anchor": {
+    "line": 15,
+    "path": "ToS/philosophy/eras/bronze-age/regions/north-africa/traditions/egyptian-sebayt-scribal-ethics/sources/source-anchor-backlog.jsonl",
+    "source_label": "TLA",
+    "source_row_index": 6,
+    "source_table_index": 13
+  },
+  "source_witness": {
+    "work_id": "tos.work.egyptian-literature.be-a-scribe",
+    "record_ref": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/registry-be-a-scribe.2026-09-08.v1.json",
+  "provenance_event_ref": "tos.event.discovery.registry-20260908.be-a-scribe",
+  "research_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+  "fulfilled_source_needs": [
+    "ORAEC provides openly licensed AED-TEI-derived representations of two distinct sections of pChester Beatty IV (EA 10684), within the TLA source route.",
+    "Exact prepared version is locally retained: 1 immutable files; Item manifest fixes SHA-256 and resource inventory records observed coverage."
+  ],
+  "remaining_controls": [
+    "Coverage is verso 2.5–3.11 for Immortality of Writers and verso 3.11–4.6 for Be a Scribe.",
+    "Two work-level textual sections share one physical artifact; no whole-papyrus or critical-composite completeness claim.",
+    "This version covers the verso 3.11–4.6 composition section of EA 10684, not the entire papyrus.",
+    "The two ORAEC selections are sections of one physical carrier, not two separate papyri.",
+    "Egyptian transcription/transliteration, annotations and any included glosses remain distinct supplied layers; no new translation is created.",
+    "A digital edition section does not establish complete critical reconstruction or ancient authorship.",
+    "Coverage is limited to verso 3.11–4.6 of pChester Beatty IV / British Museum EA 10684.",
+    "Egyptian written-form transliteration, German sentence translation, token glosses and annotations remain separate supplied components.",
+    "The broader ORAEC platform description does not establish a hieroglyphic representation in this exact raw JSON.",
+    "No source characters, gaps or editorial signs were changed; no translation, semantic or canon admission follows.",
+    "Local file custody and branch route do not admit text, translation, semantics or canon."
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-08T21:23:36.252185+00:00",
+  "record_version": 1
+}

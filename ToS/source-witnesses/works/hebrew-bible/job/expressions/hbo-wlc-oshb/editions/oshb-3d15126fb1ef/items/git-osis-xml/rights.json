@@ -1,0 +1,240 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+  "scope_refs": [
+    "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+    "tos.file.sha256.7db3311184122f37a8fd52f3c7c0c4a6d2da7b77ee82f4fdb26bcba9171d297f"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://creativecommons.org/licenses/by/4.0/",
+  "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+  "jurisdictions_reviewed": [
+    "MX"
+  ],
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+    "https://creativecommons.org/licenses/by/4.0/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml.layer.wlc-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.expression.hebrew-bible.job.hbo-wlc-oshb"
+      ],
+      "assessment_status": "public_domain_reviewed",
+      "assessment_basis": "mixed",
+      "rights_statement_uri": "https://creativecommons.org/publicdomain/mark/1.0/",
+      "license_uri": null,
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+        "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+        "https://creativecommons.org/licenses/by/4.0/"
+      ],
+      "rights_holder_refs": [],
+      "permissions": [
+        "Acquire and retain the exact openly supplied files locally.",
+        "Process the licensed digital layers, keeping input bytes and versions traceable."
+      ],
+      "restrictions": [],
+      "redistribution_posture": "authorized",
+      "derivative_posture": "allowed",
+      "server_processing_posture": "authorized",
+      "term": {
+        "calculation_status": "not_calculated",
+        "basis": "Provider public-domain declaration; no independent jurisdictional term calculation.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No additional jurisdiction-wide conclusion is asserted."
+      },
+      "uncertainty": "The supplier's scope and authority remain the evidence boundary; no human legal review is claimed.",
+      "assessed_at": "2026-09-08T20:47:52.020380+00:00",
+      "review_status": "unreviewed",
+      "rationale": "The pinned OSHB license explicitly distinguishes the public-domain Westminster Leningrad Codex text."
+    },
+    {
+      "layer_id": "tos.rights.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml.layer.oshb-annotation",
+      "layer_role": "annotation",
+      "scope_refs": [
+        "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+        "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+        "https://creativecommons.org/licenses/by/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/openscriptures/morphhb"
+      ],
+      "permissions": [
+        "Acquire and retain the exact openly supplied files locally.",
+        "Process the licensed digital layers, keeping input bytes and versions traceable."
+      ],
+      "restrictions": [
+        "Retain source credit, license link and supplied copyright/license notices.",
+        "Identify changes in any future derivative; acquired source bytes remain unchanged.",
+        "Do not impose restrictions that prevent the licensed freedoms.",
+        "Original work of the Open Scriptures Hebrew Bible available at https://github.com/openscriptures/morphhb"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive Creative Commons license/waiver; no term expiry is relied on for this use.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No additional jurisdiction-wide conclusion is asserted."
+      },
+      "uncertainty": "The supplier's scope and authority remain the evidence boundary; no human legal review is claimed.",
+      "assessed_at": "2026-09-08T20:47:52.020380+00:00",
+      "review_status": "unreviewed",
+      "rationale": "The OSHB contribution, including lemma and morphology annotation, is covered by CC BY 4.0 and the project attribution requirement."
+    },
+    {
+      "layer_id": "tos.rights.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml.layer.digital-presentation",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.edition.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef",
+        "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+        "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+        "https://creativecommons.org/licenses/by/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/openscriptures/morphhb"
+      ],
+      "permissions": [
+        "Acquire and retain the exact openly supplied files locally.",
+        "Process the licensed digital layers, keeping input bytes and versions traceable."
+      ],
+      "restrictions": [
+        "Retain source credit, license link and supplied copyright/license notices.",
+        "Identify changes in any future derivative; acquired source bytes remain unchanged.",
+        "Do not impose restrictions that prevent the licensed freedoms.",
+        "Original work of the Open Scriptures Hebrew Bible available at https://github.com/openscriptures/morphhb"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive Creative Commons license/waiver; no term expiry is relied on for this use.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No additional jurisdiction-wide conclusion is asserted."
+      },
+      "uncertainty": "The supplier's scope and authority remain the evidence boundary; no human legal review is claimed.",
+      "assessed_at": "2026-09-08T20:47:52.020380+00:00",
+      "review_status": "unreviewed",
+      "rationale": "The exact OSIS distribution is the licensed OSHB version; no facsimile, third-party translation or Sefaria material is included."
+    },
+    {
+      "layer_id": "tos.rights.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml.layer.metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "tos.item.hebrew-bible.job.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+        "https://github.com/openscriptures/morphhb/tree/3d15126fb1ef74867fc1434be1942e837932691f",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-LICENSE.md",
+        "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/morphhb-README.md",
+        "https://creativecommons.org/licenses/by/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/openscriptures/morphhb"
+      ],
+      "permissions": [
+        "Acquire and retain the exact openly supplied files locally.",
+        "Process the licensed digital layers, keeping input bytes and versions traceable."
+      ],
+      "restrictions": [
+        "Retain source credit, license link and supplied copyright/license notices.",
+        "Identify changes in any future derivative; acquired source bytes remain unchanged.",
+        "Do not impose restrictions that prevent the licensed freedoms.",
+        "Original work of the Open Scriptures Hebrew Bible available at https://github.com/openscriptures/morphhb"
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive Creative Commons license/waiver; no term expiry is relied on for this use.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "No additional jurisdiction-wide conclusion is asserted."
+      },
+      "uncertainty": "The supplier's scope and authority remain the evidence boundary; no human legal review is claimed.",
+      "assessed_at": "2026-09-08T20:47:52.020380+00:00",
+      "review_status": "unreviewed",
+      "rationale": "Metadata and attribution retained from the same exact licensed distribution; repository API transport metadata reports identifiers and fixity without conferring content rights."
+    }
+  ],
+  "permissions": [
+    "Acquire and retain the exact openly supplied files locally.",
+    "Process the licensed digital layers, keeping input bytes and versions traceable."
+  ],
+  "restrictions": [
+    "Retain source credit, license link and supplied copyright/license notices.",
+    "Identify changes in any future derivative; acquired source bytes remain unchanged.",
+    "Do not impose restrictions that prevent the licensed freedoms.",
+    "Original work of the Open Scriptures Hebrew Bible available at https://github.com/openscriptures/morphhb"
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "assessed_at": "2026-09-08T20:47:52.020380+00:00",
+  "rationale": "Model assessment of the exact provider's positive public-domain/license statements and the applicable Creative Commons instrument for local acquisition in Mexico. This is a license-scope assessment, not an independent legal determination of ancient authorship, copyright term in every jurisdiction, or public-release approval. The requested operation retains source payloads locally; broader reuse permissions remain recorded with their conditions.",
+  "review_status": "unreviewed",
+  "review_refs": [
+    "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md"
+  ],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}

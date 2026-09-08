@@ -3115,6 +3115,76 @@ def _readiness_ref(repo_root: Path, ref: dict[str, Any], *, location: str) -> Pa
     return relative
 
 
+def _readiness_execution_status(
+    repo_root: Path, target: dict[str, Any], dimensions: dict[str, Any]
+) -> str:
+    """Bind completion to the exact Work, local files and branch planting.
+
+    The historical queue and plans without execution state retain their old
+    behavior. This checks declared execution evidence, not semantic admission.
+    """
+    execution = target.get("execution")
+    if execution is None:
+        return "pending"
+    target_id = target["target_id"]
+    status = execution["status"]
+    refs = {
+        _readiness_ref(repo_root, ref, location=f"{target_id}:execution").as_posix()
+        for ref in execution["owner_refs"]
+    }
+    if status == "pending":
+        return status
+    if execution["evidence_posture"] != "owner-reviewed" or not refs:
+        raise QueueBuildError(f"{target_id}: execution state needs owner-reviewed evidence")
+    if any(not ref.startswith(("ToS/source-witnesses/", "ToS/philosophy/"))
+           or ref.startswith("ToS/source-witnesses/discovery/candidates/") for ref in refs):
+        raise QueueBuildError(f"{target_id}: execution evidence must return to source or philosophy owner")
+    if status != "completed":
+        return status
+    if dimensions["file"]["status"] != "present" or dimensions["branch"]["status"] != "ready":
+        raise QueueBuildError(f"{target_id}: completed execution requires present files and a ready branch")
+
+    specification = target["target"]
+    planned_ids = specification.get("planned_ids", {})
+    record_refs = specification.get("create_record_refs", {})
+    work_id = planned_ids.get("work") if isinstance(planned_ids, dict) else None
+    work_ref = record_refs.get("work") if isinstance(record_refs, dict) else None
+    if (not isinstance(work_id, str) or not work_id.startswith("tos.work.")
+            or not isinstance(work_ref, str) or work_ref not in refs
+            or not work_ref.startswith("ToS/source-witnesses/")):
+        raise QueueBuildError(f"{target_id}: completed execution requires the exact planned Work and digest evidence")
+    work = _load_json(repo_root / work_ref, repo_root)
+    if (work.get("schema_version") != "tos_corpus_record_v1"
+            or work.get("record_type") != "work" or work.get("record_id") != work_id):
+        raise QueueBuildError(f"{target_id}: completed execution Work record does not match planned identity")
+
+    from jsonschema import Draft202012Validator, FormatChecker
+
+    schema = _load_json(repo_root / "ToS/contracts/philosophy-source-planting.schema.json", repo_root)
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    matched = False
+    for ref in sorted(refs):
+        relative = Path(ref)
+        if not ref.startswith("ToS/philosophy/") or relative.name != "source-planting.json":
+            continue
+        planting = _load_json(repo_root / relative, repo_root)
+        errors = list(validator.iter_errors(planting))
+        if errors:
+            raise QueueBuildError(f"{target_id}: execution planting is invalid: {ref}: {errors[0].message}")
+        branch = planting["branch_path"]
+        source = planting["source_witness"]
+        if (source.get("work_id") != work_id or source.get("record_ref") != work_ref
+                or branch not in specification["known_tos_refs"]
+                or relative.parent.parent.name != "plantings"
+                or relative.parent.parent.parent.name != "sources"
+                or relative.parents[3].as_posix() != branch):
+            raise QueueBuildError(f"{target_id}: execution planting does not bind the planned Work and exact branch")
+        matched = True
+    if not matched:
+        raise QueueBuildError(f"{target_id}: completed execution lacks owner source-planting evidence")
+    return status
+
+
 def build_readiness_payload(
     repo_root: Path = REPO_ROOT,
     *,
@@ -3238,11 +3308,12 @@ def build_readiness_payload(
             evidenced = {ref["path"] for ref in dimensions["file"]["owner_refs"]}
             if not set(destinations) <= evidenced:
                 raise QueueBuildError(f"{target_id}: present payloads need exact digest evidence")
+        execution_status = _readiness_execution_status(repo_root, target, dimensions)
         eligible = candidate_id is None or (
             existing[candidate_id]["candidate_kind"] in QUEUEABLE_KINDS
             and existing[candidate_id]["effective_status"] == READY_STATUS
         )
-        ready = eligible and all(
+        ready = execution_status == "pending" and eligible and all(
             dimensions[name]["status"] == "ready" for name in ("version", "access", "rights", "branch")
         ) and file_status in {"absent", "present"} and bool(destinations) and bool(
             target["acquisition"]["source_urls"]
@@ -3253,7 +3324,10 @@ def build_readiness_payload(
             "eligible": eligible,
             "ready_for_acquisition_review": ready,
             "next_action": (
-                "verify-existing-witness" if ready and file_status == "present"
+                "completed-owner-evidenced" if execution_status == "completed"
+                else "await-owner-resumption" if execution_status == "deferred"
+                else "resolve-execution-blocker" if execution_status == "blocked"
+                else "verify-existing-witness" if ready and file_status == "present"
                 else "acquire-after-owner-gates" if ready
                 else "resolve-owner-evidence" if eligible else "historical-terminal-or-excluded"
             ),
@@ -3285,7 +3359,8 @@ def build_readiness_payload(
         candidate = existing.get(entry["candidate_id"], {})
         selection = candidate.get("selection", {})
         return (
-            not entry["eligible"], not entry["ready_for_acquisition_review"], blocked, -known,
+            not entry["eligible"], not entry["ready_for_acquisition_review"],
+            entry.get("execution", {}).get("status", "pending") != "pending", blocked, -known,
             selection.get("chronology_sort_year", 10**9), selection.get("atlas_row_order", 10**9),
             entry["target_id"],
         )

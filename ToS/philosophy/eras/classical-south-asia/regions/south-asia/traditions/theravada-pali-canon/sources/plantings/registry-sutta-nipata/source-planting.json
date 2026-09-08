@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a21.registry-sutta-nipata",
+  "atlas_row_id": "A21",
+  "dossier_id": "A21",
+  "branch_path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon",
+  "source_backlog_anchor": {
+    "line": 13,
+    "path": "ToS/philosophy/eras/classical-south-asia/regions/south-asia/traditions/theravada-pali-canon/sources/source-anchor-backlog.jsonl",
+    "source_label": "Sutta-piṭaka",
+    "source_row_index": 3,
+    "source_table_index": 13
+  },
+  "source_witness": {
+    "work_id": "tos.work.pali-canon.sutta-nipata",
+    "record_ref": "ToS/source-witnesses/works/pali-canon/sutta-nipata/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/registry-sutta-nipata.2026-09-08.v1.json",
+  "provenance_event_ref": "tos.event.discovery.registry-20260908.sutta-nipata",
+  "research_ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+  "fulfilled_source_needs": [
+    "Five named Khuddaka collections provide bounded constituent works of the Sutta-pitaka in the Mahasangiti–SuttaCentral edition.",
+    "Exact prepared version is locally retained: 73 immutable files; Item manifest fixes SHA-256 and resource inventory records observed coverage."
+  ],
+  "remaining_controls": [
+    "The entire Sutta-pitaka remains outside this batch.",
+    "Provider segments, repeated passage abbreviations and edition-specific divisions remain explicit.",
+    "Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
+    "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
+    "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions.",
+    "Local file custody and branch route do not admit text, translation, semantics or canon."
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-08T21:20:57.595668+00:00",
+  "record_version": 1
+}

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-sammaditthi-sutta",
+  "item_ref": "tos.item.pali-canon.sammaditthi-sutta.pli-mahasangiti-suttacentral.bilara-d6d54741b7f2.git-root-segment-json",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/item.manifest.json",
+    "sha256": "e82f97c8aa2b3e93486b456fde756ba247ee9eb66cce76d828b953d0d3c752e9",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.cbd4cd8a3e327da1fe7a20a88b44fd6576f9130234d54f3d9b31fe9d7fb1ef32",
+      "relative_path": "payload/mn9_root-pli-ms.json",
+      "byte_size": 29786,
+      "sha256": "cbd4cd8a3e327da1fe7a20a88b44fd6576f9130234d54f3d9b31fe9d7fb1ef32",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/pali-canon/sammaditthi-sutta/expressions/pli-mahasangiti-suttacentral/editions/bilara-d6d54741b7f2/items/git-root-segment-json/rights.json",
+    "rights_record_sha256": "0af0b89aa837593aafef623f2cfc0f9c842b5d27586d59a7879f0f2a8076ed2f",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+      "https://github.com/suttacentral/bilara-data/tree/d6d54741b7f2ddfeca82f02c3f95eb3990b4e351",
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-root-edition.json",
+      "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/evidence/suttacentral-licensing.json",
+      "https://creativecommons.org/publicdomain/zero/1.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-08T21:20:58.088415+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260908.sammaditthi-sutta"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

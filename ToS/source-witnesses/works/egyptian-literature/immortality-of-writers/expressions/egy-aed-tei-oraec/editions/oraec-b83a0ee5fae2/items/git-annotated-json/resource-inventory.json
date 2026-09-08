@@ -1,0 +1,72 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/egyptian-literature/immortality-of-writers/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "file_sha256": "2f5fcc23f56a02e34b50da34979f468fe83cd7fd99b3d8f3bde7591f265a1a9c",
+      "media_type": "application/json",
+      "profile": "json_members_v1",
+      "summary": {
+        "resource_count": 2,
+        "top_level_member_count": 1,
+        "json_value_counts": {
+          "object_count": 374,
+          "array_count": 50,
+          "string_count": 2791,
+          "number_count": 0,
+          "boolean_count": 0,
+          "null_count": 0,
+          "object_key_count": 2839
+        }
+      },
+      "resources": [
+        {
+          "resource_id": "json-root",
+          "resource_kind": "json_container",
+          "structural_role": "container_metadata",
+          "locator": {
+            "json_value_type": "object"
+          }
+        },
+        {
+          "resource_id": "json-member-00001",
+          "resource_kind": "json_member",
+          "structural_role": "member",
+          "locator": {
+            "json_member_index": 1,
+            "json_value_type": "object",
+            "parent_resource_id": "json-root"
+          },
+          "json_value_counts": {
+            "object_count": 373,
+            "array_count": 50,
+            "string_count": 2791,
+            "number_count": 0,
+            "boolean_count": 0,
+            "null_count": 0,
+            "object_key_count": 2838
+          },
+          "label_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "e54ee67e622527935659c8eca0f6c5898d737464979bc89b4b0fa8876c159115",
+            "character_count": 9
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.egyptian-literature.immortality-of-writers.egy-aed-tei-oraec.oraec-b83a0ee5fae2.git-annotated-json.2026-09-08",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}
