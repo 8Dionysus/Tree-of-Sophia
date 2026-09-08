@@ -28,6 +28,10 @@ source-witnesses/
 │   └── <place>/place.json
 ├── organizations/
 │   └── <historical-organization>/organization.json
+├── social-bodies/                          # source-described groups, communities, institutions
+│   └── <kind>-<subject>/<kind>.json         # separate membership and activity Claims
+├── intellectual-formations/               # schools, traditions and movements, not atlas categories
+│   └── <kind>-<subject>/<kind>.json         # source-described continuity, separate association Claims
 ├── links/                                  # first-class observed web/API/file routes
 │   └── <provider>/<object>/<route>/link.json
 ├── discovery/                              # reviewed candidate queue + ordered query/result evidence
@@ -48,6 +52,7 @@ source-witnesses/
 │   ├── collections.jsonl
 │   ├── items.jsonl
 │   ├── links.jsonl
+│   ├── artifacts.jsonl                    # native physical IDs; no book-ladder coercion
 │   └── claims.jsonl                       # generated source-returnable relation index
 ├── relations/                             # corpus-wide identity-ladder assertions
 │   ├── work-expression/
@@ -117,6 +122,19 @@ claim. Anonymous, disputed, collective, and tradition-owned works receive
 speaking routes and explicit responsibility claims in the catalog.
 
 ## Identity and path boundary
+
+Historical people and collective descriptions use the
+[social profile and relationship contract](../doctrine/semantic-interchange/README.md#social-bodies-and-source-attributed-relationships).
+The source-described body, its place, an intellectual formation and an atlas
+navigation category are not interchangeable. Adjacent native Corpus and
+declared-profile human forms reach both source graph carriers with their exact
+bindings and quality gaps; catalog presence does not admit their content.
+
+Source-described reception, legacy, historical canon formation, forgetting and
+rediscovery use the [reception profiles](../doctrine/semantic-interchange/README.md#reception-historical-recognition-and-later-life).
+Their historical scope and receiving context remain content. Claims separately
+identify targets, carriers, participants and dates; a historical canon is not a
+ToS admission, and catalog absence is not evidence of forgetting.
 
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,

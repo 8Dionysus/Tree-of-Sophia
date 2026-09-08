@@ -1,0 +1,54 @@
+#sophia-gestures .sc-evidence{right:28px;top:192px;width:min(510px,44%);max-height:calc(100dvh - 285px);padding:17px 24px 14px;display:flex;flex-direction:column;background:linear-gradient(145deg,#111b28,#0b121deF 65%);border-color:#47505b;box-shadow:0 22px 65px #0008}
+#sophia-gestures .sc-evidence[data-tab=compare]{width:min(660px,49%)}
+#sophia-gestures .sc-provenance>.sc-neighbor{margin:0 7px 8px 0}
+#sophia-gestures .sc-evidence:not([hidden]){animation:so-window-in .18s ease-out}
+#sophia-gestures .sc-evidence-heading{display:flex;align-items:center;gap:14px;margin:15px 0 20px;min-height:0;flex-shrink:0}
+#sophia-gestures .sc-evidence-symbol{color:#d8bc84;font:34px Georgia,serif;text-shadow:0 0 15px #d8bc8430}
+#sophia-gestures .sc-evidence-kind{margin:0 0 6px;font-size:9px;letter-spacing:1.6px;color:#99aec8}
+#sophia-gestures .sc-evidence h3{font:400 27px/1.25 Georgia,serif;color:#eee3cc;margin:0;max-height:100px;overflow:auto;overflow-wrap:anywhere;scrollbar-width:thin}
+#sophia-gestures .sc-evidence-tabs{display:flex;gap:27px;border-bottom:1px solid #334051;flex-shrink:0}
+#sophia-gestures .sc-evidence-tabs button{padding:0 0 11px;border:0;border-bottom:2px solid transparent;background:none;color:#a6b6ca}
+#sophia-gestures .sc-evidence-tabs button[aria-selected=true]{color:#e6ce9d;border-color:#c2a675}
+#sophia-gestures .sc-evidence-body{overflow:auto;overscroll-behavior:contain;min-height:0;padding:6px 4px 4px 0;scrollbar-width:thin;scrollbar-color:#425065 transparent}
+#sophia-gestures .sc-evidence-body:focus-visible{outline:1px solid #d8bc84;outline-offset:3px}
+#sophia-gestures .sc-evidence-section{margin:20px 0 23px}
+#sophia-gestures .sc-evidence :is(p,li){font:12px/1.85 system-ui,sans-serif;color:#bdc9d8;overflow-wrap:anywhere}
+#sophia-gestures .sc-evidence h4{font:500 11px/1.6 system-ui,sans-serif;color:#e0cda8;letter-spacing:.3px;margin:0 0 9px}
+#sophia-gestures .sc-evidence-section p{margin:8px 0;white-space:pre-wrap}
+#sophia-gestures .sc-evidence .sc-evidence-finding p{font:17px/1.8 Georgia,serif;color:#e3ddd1}
+#sophia-gestures .sc-evidence-conclusions{border-top:1px solid #2d3c4e;border-bottom:1px solid #2d3c4e;padding:4px 0}
+#sophia-gestures .sc-evidence ul{padding-left:17px;margin:0}
+#sophia-gestures .sc-evidence li{padding-left:3px;margin:7px 0}
+#sophia-gestures .sc-evidence li::marker{color:#91b8cd;font-size:8px}
+#sophia-gestures .sc-evidence-limits li::marker{color:#cbb08b}
+#sophia-gestures .sc-evidence .sc-evidence-note{font-size:11px;color:#95a7bd;line-height:1.7}
+#sophia-gestures .sc-evidence-posture{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0;padding:15px 0;border-block:1px solid #2d3c4e}
+#sophia-gestures .sc-evidence-posture dt{font-size:10px;color:#95a7bd;margin-bottom:5px}
+#sophia-gestures .sc-evidence-posture dd{font-size:11px;color:#d8c6a4;line-height:1.6;overflow-wrap:anywhere;margin:0}
+#sophia-gestures .sc-evidence-refs{border-top:1px solid #2b394b;padding:10px 0;color:#a9bbd0;font-size:11px}
+#sophia-gestures .sc-evidence-refs>summary{padding:5px 0;color:#c7d4e2;cursor:pointer;line-height:1.8}
+#sophia-gestures .sc-evidence-ref{padding:8px 0;overflow-wrap:anywhere;line-height:1.8;user-select:text}
+#sophia-gestures .sc-evidence-ref a{color:#b2d0e3;text-underline-offset:4px}
+#sophia-gestures .sc-evidence-ref>span{font-size:10px}
+#sophia-gestures .sc-evidence-copy{display:block;background:none;border:0;color:#d8bc84;font-size:10px;padding:6px 0}
+#sophia-gestures .sc-evidence-source{background:#192637;border:1px solid #475166;border-radius:3px;padding:10px 14px;color:#e2cca3;margin:14px 0}
+#sophia-gestures .sc-evidence-source:hover{background:#243247}
+#sophia-gestures .sc-evidence-footer{display:flex;align-items:center;gap:10px;border-top:1px solid #334051;margin-top:8px;padding-top:12px;color:#8fa3ba;font-size:10px;flex-shrink:0}
+#sophia-gestures .sc-evidence-footer::before{content:'';width:4px;height:4px;background:#c9ad79;box-shadow:6px 0 #c9ad7933}
+#sophia-gestures .sc-evidence-status{font-size:11px;color:#d8bc84;line-height:1.7;flex-shrink:0}
+#sophia-gestures .sc-evidence-loading{padding:30px 0;color:#aabbd0;font:15px/1.8 Georgia,serif}
+#sophia-gestures .sc-reading-spread{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:22px 0}
+#sophia-gestures .sc-reading{padding:15px 14px;background:#111e2c;border-top:1px solid #6d829d;min-width:0}
+#sophia-gestures .sc-reading-selected{border-color:#b79c69;background:#c0a16e08}
+#sophia-gestures .sc-reading-caption{display:block;font-size:8px;letter-spacing:1.4px;color:#a9bcd1;margin-bottom:14px}
+#sophia-gestures .sc-reading h4{font:19px/1.45 Georgia,serif;overflow-wrap:anywhere}
+#sophia-gestures .sc-reading-text{white-space:pre-wrap}
+#sophia-gestures .sc-evidence .sc-reading-route{font-size:10px;color:#b1c6dc}
+#sophia-gestures .sc-reading-empty{padding:14px;border-top:1px solid #51637b;margin:0}
+#sophia-gestures .sc-reading-alternative{min-width:0}
+#sophia-gestures .sc-reading-alternative label{display:block;font-size:10px;color:#a0b5cb;margin:0 0 6px}
+#sophia-gestures .sc-reading-alternative select{width:100%;min-height:34px;background:#101b29;color:#d0deeb;border:1px solid #3c4e65;border-radius:3px;padding:6px;font:11px system-ui,sans-serif;margin-bottom:14px}
+@container(max-width:1050px){#sophia-gestures .sc-evidence,#sophia-gestures .sc-evidence[data-tab=compare]{width:44%;right:20px;padding:14px 18px}#sophia-gestures .sc-reading-spread{grid-template-columns:1fr}#sophia-gestures .sc-evidence h3{font-size:24px}}
+@container(max-width:650px){#sophia-gestures .sc-evidence,#sophia-gestures .sc-evidence[data-tab=compare]{top:auto;bottom:115px;left:15px;right:15px;width:auto;max-height:42dvh;padding:12px 17px}#sophia-gestures .sc-evidence-heading{margin:5px 0 12px;gap:10px}#sophia-gestures .sc-evidence h3{font-size:22px;max-height:60px}#sophia-gestures .sc-evidence-kind{font-size:8px;margin-bottom:4px}#sophia-gestures .sc-evidence-symbol{font-size:27px}#sophia-gestures .sc-evidence-footer{padding-top:7px}#sophia-gestures .sc-evidence-tabs button{padding-bottom:8px}}
+@container(max-width:650px){#sophia-gestures .sc-evidence .sc-panel-top{position:absolute;right:10px;top:8px}#sophia-gestures .sc-evidence .sc-panel-top>.sc-eyebrow{display:none}#sophia-gestures .sc-evidence-heading{padding-right:33px}}
+@media(prefers-reduced-motion:reduce){#sophia-gestures .sc-evidence:not([hidden]){animation:none}}

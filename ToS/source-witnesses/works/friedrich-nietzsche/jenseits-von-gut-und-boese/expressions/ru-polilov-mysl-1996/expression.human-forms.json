@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+    "version": 2,
+    "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.9565f0eb312896d560a9a0e87ccd1624341ffb3a2525164a553a92df3c545e16",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+        "version": 2,
+        "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.c7e97cd723ce74d63be7067bc3f1ae3c9c10cd7e1002b603de50091b6ff08a5f",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+        "version": 2,
+        "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+            "version": 2,
+            "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+      "request_digest": "sha256:3d5ee0a95589632e344c9c699381801c04c0c3bc950d10352f331d4331ebecca",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:71ccb6a3a2dc37abf5e8577c18c6890b80900bbe0af5c42984401dfb3b6bb80a",
+      "recorded_at": "2026-09-07T03:13:27.619464+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996",
+        "version": 2,
+        "digest": "sha256:752c2b74f9a2d991c145487d6ed09b2c2b27d89ac69d583ced2affc93c80016c"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.9565f0eb312896d560a9a0e87ccd1624341ffb3a2525164a553a92df3c545e16",
+          "version": 1,
+          "digest": "sha256:372d310afc3f926838deeeece8aaaca9feb6d3ffdbb78b61de63ebf3fc856a8f"
+        },
+        {
+          "id": "tos.form.metadata.c7e97cd723ce74d63be7067bc3f1ae3c9c10cd7e1002b603de50091b6ff08a5f",
+          "version": 1,
+          "digest": "sha256:331f6bd6d3a59fd4a6ee6d359bd56f2be70121d048733ae40171c51ae4a9fbd8"
+        }
+      ]
+    }
+  ]
+}

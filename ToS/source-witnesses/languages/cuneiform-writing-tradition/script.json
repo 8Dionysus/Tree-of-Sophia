@@ -1,0 +1,49 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "В описании Metropolitan Museum клинопись характеризуется клиновидными знаками; её развитие рассматривается исторически. Здесь это широкая традиция письма, прежде всего в сумеро-аккадских свидетельствах, а не язык, отдельный шрифт или единый неизменный список знаков.",
+  "preferred_label": "Клинопись — широкая традиция письма",
+  "record_id": "tos.script.cuneiform-writing-tradition",
+  "record_type": "script",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_linguistic_description_record_v1",
+  "semantic_content": {
+    "language": "en",
+    "script": "Latn",
+    "script_account": "A historically variable writing tradition characterized by wedge-shaped signs; the present research scope is centered on Sumerian and Akkadian witnesses.",
+    "sign_inventory_scope": "A broad tradition, not one frozen repertoire. Specific period, region, allograph and sign-value inventories need their own source accounts."
+  },
+  "semantic_scope": {
+    "identity_criterion": "Исторические варианты рассматриваются внутри заявленной широкой традиции; отдельная система письма или иной критерий охвата требует собственного предмета.",
+    "language": "ru",
+    "scope_note": "Широкий предмет исследования, соответствующий общей атрибуции клинописи; точные репертуары и варианты не считаются одинаковыми.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+    "https://www.metmuseum.org/essays/the-origins-of-writing",
+    "https://www.orinst.ox.ac.uk/akkadian",
+    "https://etcsl.orinst.ox.ac.uk/edition2/language.php"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+      "status": "unverified",
+      "value": "Cuneiform writing tradition"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

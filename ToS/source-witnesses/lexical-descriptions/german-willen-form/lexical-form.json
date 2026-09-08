@@ -1,0 +1,54 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "form_identity": {
+    "language": "de",
+    "notation_scope": "Немецкая письменная форма, рассматриваемая в связи с JGB 19; не точный адрес и не все омографы.",
+    "representation_kind": "orthographic",
+    "script": "Latn",
+    "unicode_posture": "preserved_as_supplied",
+    "written_representation": "Willen"
+  },
+  "identity_status": "provisional",
+  "notes": "Записанная форма Willen, рассматриваемая отдельно от Wille. Её связь с той же лексемой — предложенный разбор JGB 19, а не правило, что общая последовательность букв или префикс устанавливает тождество.",
+  "preferred_label": "Willen — написание",
+  "record_id": "tos.lexical-form.german-willen",
+  "record_type": "lexical-form",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_lexical_description_record_v1",
+  "semantic_content": {
+    "form_account": "Строка с конечным n и начальной прописной буквой. Запись формы не выбирает падеж, конкретное употребление, произношение или философское толкование.",
+    "language": "ru",
+    "script": "Cyrl"
+  },
+  "semantic_scope": {
+    "identity_criterion": "Исправляется описание того же письменного предмета; замена строки или нотационного контекста требует явного рассмотрения идентичности.",
+    "language": "ru",
+    "scope_note": "Именно указанная немецкая письменная форма; конкретные употребления и омографы не объединяются по совпадению строки.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+    "http://www.nietzschesource.org/eKGWB/JGB-19"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+      "status": "unverified",
+      "value": "Willen — written form"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

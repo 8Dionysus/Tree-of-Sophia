@@ -1,0 +1,47 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "Unicode 17, §7.1, описывает латинскую письменность как используемую многими языками и расширяемую дополнительными буквами и диакритиками. Здесь это традиция письма, а не латинский язык, ASCII, один национальный алфавит или один диапазон кодовых позиций.",
+  "preferred_label": "Латинская письменность",
+  "record_id": "tos.script.latin-writing-tradition",
+  "record_type": "script",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_linguistic_description_record_v1",
+  "semantic_content": {
+    "language": "en",
+    "script": "Latn",
+    "script_account": "A writing tradition used for many languages and notation systems, not the Latin language.",
+    "sign_inventory_scope": "The broad Latin-script tradition with extensions. A code chart describes encoding coverage, not the complete historical identity or meaning of every written form."
+  },
+  "semantic_scope": {
+    "identity_criterion": "Смена набора кодовых позиций или шрифта не создаёт новую традицию; самостоятельные алфавиты и конвенции могут получать собственные предметы.",
+    "language": "ru",
+    "scope_note": "Широкая латинская традиция письма как возможная основа транслитерационной записи; дополнительные метасимволы схемы остаются отдельными.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+    "https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-7/"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+      "status": "unverified",
+      "value": "Latin script"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

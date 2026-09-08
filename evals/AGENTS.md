@@ -6,7 +6,7 @@ This card applies to `Tree-of-Sophia/evals/` and every file below it.
 
 ## Role
 
-This skeleton port captures ToS-local eval pressure before it is accepted,
+This port captures ToS-local eval pressure before it is accepted,
 rejected, or normalized by `aoa-evals`.
 
 `aoa-evals` owns central verdict, scoring, regression, and proof doctrine

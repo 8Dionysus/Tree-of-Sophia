@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+    "version": 2,
+    "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.6ee6763055910ed722095cf5d02561c3fe96c44ad310d603a7798b7fde1e185c",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+        "version": 2,
+        "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+            "version": 2,
+            "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+            "version": 2,
+            "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+            "version": 2,
+            "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.e89108ccc6055aeaf60d8a2e170e4ed5d0f49267449e051a141fcad6a66d2ce8",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+        "version": 2,
+        "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+            "version": 2,
+            "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+            "version": 2,
+            "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+            "version": 2,
+            "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+      "request_digest": "sha256:f224c94c39c166b5e585227ac25fe7c9652a2e4484ca28cfeb7d848ba24c815f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:c459c2d239a2844249e71df0d109e92bb89d423b33bc2a83fa1c4dd50cc751fc",
+      "recorded_at": "2026-09-07T03:13:28.317599+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-altshuler-typography-1903-second-corrected",
+        "version": 2,
+        "digest": "sha256:b9652918865e9236e272a50c1cf2ad4be7750ab7932ea167a83f36e73a2d37a9"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.6ee6763055910ed722095cf5d02561c3fe96c44ad310d603a7798b7fde1e185c",
+          "version": 1,
+          "digest": "sha256:6001b7f89cbe36e6f4a077b9f56c9aa60c95cfcf1fb0585173a5481de69080f2"
+        },
+        {
+          "id": "tos.form.metadata.e89108ccc6055aeaf60d8a2e170e4ed5d0f49267449e051a141fcad6a66d2ce8",
+          "version": 1,
+          "digest": "sha256:83d2f81a17cf70550dd89f68291e348ae99fe25090e0ce299faa00c8fd72ee9f"
+        }
+      ]
+    }
+  ]
+}

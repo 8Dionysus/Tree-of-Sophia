@@ -1,0 +1,425 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.agent.yuri-antonovsky",
+    "version": 3,
+    "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.9bd60dafd1d9c21a2300d80518b39a656060f7ddc32ed5686e32160f6150c010",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.56b98c965ed06933c44392acac9acce0bad9fb0ab0c4b1c417ba3a4496ec2f8e",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.1cd61c96383fa72ad14848a62f361c98f581e410cd7f4a136f873acc042133ce",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.9380c678e400bb0ec21144d42ee9dac420663ed74139532c690a1a4ecd572c3f",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "role": "name",
+      "language": "de",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/1/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/1/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/1/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/1/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.97eef6bfecee54c586e50351aa2390c7e968c37ace31f15511954e2028434e9c",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "role": "name",
+      "language": "de",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/2/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/2/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/2/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/2/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5d125442ce495e90652a4e60bfd98a483c4172f0243ca3739483003181ffb15c",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "role": "name",
+      "language": "en",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/3/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/3/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/3/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 3,
+            "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+          },
+          "pointer": "/variant_labels/3/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.agent.yuri-antonovsky",
+      "request_digest": "sha256:f49b09f9d04a60ccbe3b20cdb5957e82788147d1927dc501fc5eb124b3655525",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:e3f43c234d17763a931f5f6cf601cb497e940d8d19b463230bb8d38af9d2d79b",
+      "recorded_at": "2026-09-07T03:13:22.889216+00:00",
+      "source": {
+        "id": "tos.agent.yuri-antonovsky",
+        "version": 3,
+        "digest": "sha256:41784772286ff424bdd840412823f3de4bb8b962761c586955a4be0c665144c9"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.9bd60dafd1d9c21a2300d80518b39a656060f7ddc32ed5686e32160f6150c010",
+          "version": 1,
+          "digest": "sha256:a1607f4edebceec13fef55b42c0e2cb5a37c76d2d115c3aab411857d0fba5d5c"
+        },
+        {
+          "id": "tos.form.metadata.56b98c965ed06933c44392acac9acce0bad9fb0ab0c4b1c417ba3a4496ec2f8e",
+          "version": 1,
+          "digest": "sha256:55914b4e625771ffaa11376e27f4fa9574091aed44c089dcc183e9b473bba35e"
+        },
+        {
+          "id": "tos.form.metadata.1cd61c96383fa72ad14848a62f361c98f581e410cd7f4a136f873acc042133ce",
+          "version": 1,
+          "digest": "sha256:211a67897fe94e2938720e22935ac4eb0e8b70083430005d4f1e8747ee36bbb0"
+        },
+        {
+          "id": "tos.form.metadata.9380c678e400bb0ec21144d42ee9dac420663ed74139532c690a1a4ecd572c3f",
+          "version": 1,
+          "digest": "sha256:6324a18750a07506429f3651e162cb58b20bcd0a37ae586fc18466415c4337b6"
+        },
+        {
+          "id": "tos.form.metadata.97eef6bfecee54c586e50351aa2390c7e968c37ace31f15511954e2028434e9c",
+          "version": 1,
+          "digest": "sha256:6c475696c38c2a4dc3acc238a144270c8059832f1b5cd91e09a18965b5d7ca29"
+        },
+        {
+          "id": "tos.form.metadata.5d125442ce495e90652a4e60bfd98a483c4172f0243ca3739483003181ffb15c",
+          "version": 1,
+          "digest": "sha256:e1b1fc03dbe619d690907544f6f39ce3b406c3f8b40049b9f733a66015018d4b"
+        }
+      ]
+    }
+  ]
+}

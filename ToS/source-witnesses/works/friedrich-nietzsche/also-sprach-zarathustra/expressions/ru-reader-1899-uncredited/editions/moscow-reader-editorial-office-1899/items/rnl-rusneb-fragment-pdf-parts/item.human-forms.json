@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+    "version": 1,
+    "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.a6f2815fa5a21ec7efacd6cc8d56eb437bbe240c39d61390b9e0d068d4a86546",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "version": 1,
+        "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+            "version": 1,
+            "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+            "version": 1,
+            "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+            "version": 1,
+            "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.0cbfff7ace938768815168da957286716db3bddbeee27ed2a72ec93f7a9f45a9",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "version": 1,
+        "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+            "version": 1,
+            "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+            "version": 1,
+            "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+            "version": 1,
+            "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+      "request_digest": "sha256:96d5ab5dd53e0d3f52c43894a6000299402236c2aa0e70b9f61bc8908211896f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:87fa3429d4a98cdc526f324a5676374d5b5622c7b04d31bca6ded145a3c122c9",
+      "recorded_at": "2026-09-07T03:13:30.143721+00:00",
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "version": 1,
+        "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.a6f2815fa5a21ec7efacd6cc8d56eb437bbe240c39d61390b9e0d068d4a86546",
+          "version": 1,
+          "digest": "sha256:f9e6cb95c086222c21919b58e6e85ebd3b64bcd04bd387483d9e3ddba7dbc55d"
+        },
+        {
+          "id": "tos.form.metadata.0cbfff7ace938768815168da957286716db3bddbeee27ed2a72ec93f7a9f45a9",
+          "version": 1,
+          "digest": "sha256:05528a1b220843fd228af5fecfe1b73e40321fbc8aa78eef013d88ffa2edc206"
+        }
+      ]
+    }
+  ]
+}

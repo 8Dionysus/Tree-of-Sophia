@@ -68,6 +68,81 @@ membership or a stable Q-number supports return and comparison; it does not
 make the reconstruction an ancient original or its readings semantically
 fixed.
 
+`tos.document.*` identifies a persistent communicative or documentary
+intellectual object without requiring it to be a Work or follow a linear
+Work/Expression/Edition chain. `tos.letter.*` is its addressed-correspondence
+subtype. These are not the physical manuscript, catalog record, transcription,
+published edition or digital representation. Sender, addressee and author are
+contextual roles, not types of people. Date/place of composition, dispatch,
+receipt, custody and later reading remain separate claims. Unknown participants
+or an unsent letter do not invalidate its documentary identity. A copy does not
+by itself settle either shared documentary identity or physical identity.
+
+The source metadata and its exact human forms use the declared reader and
+`source.create` contract. The shared metadata schema reuses Corpus field law;
+the document schema adds only its own identity constraints. Language/genre
+combinations do not create more subclasses. Description correction preserves
+the subject ID and previous record versions; a change of referent or an
+incompatible kind requires an explicit identity transition, never an edited
+prefix. Claims and their evaluations are not hidden in metadata convenience
+fields such as `sender_ref`, `language` or a mutable document year.
+
+An exact `{id, version, digest}` record reference is distinct from that record's
+persistent identity and from the described subject. A derived
+[record-version view](semantic-interchange/README.md#exact-record-version-views)
+may expose verified retained public Claim bytes, or an explicit availability
+gap with the same reference. A later description is never substituted for the
+selected version. Byte integrity and historical assessment context do not
+grant current use or establish the truth of the recorded assertion.
+
+The [fragment/quotation profiles](semantic-interchange/README.md#textual-fragments-and-quoting-passages)
+identify a textual portion separately from a particular passage transmitting
+it. Neither is a physical fragment, an editorial designation, the act of
+citation or an exact text-layer unit. Source-described extent and location
+remain qualified research accounts; source anchors and versioned text layers
+own exact wording. A translated quotation does not establish original-text
+equivalence, and a reconstruction does not become an ancient original.
+
+The [declared metadata profile](semantic-interchange/README.md#declared-source-metadata-profiles)
+binds compatible source kinds and schema versions to the common reader without
+promoting that metadata shape into a universal ontology. The profile belongs
+to the source type registry; catalogs and projections execute it, retain the
+exact record, and cannot infer claims or grant source-write/admission powers.
+
+Initial native Work creation may record a provisional identity with the
+schema-required expression-claim list empty. That means no expression
+assertions have been supplied, not that no expression exists. This operation
+does not create an author, language realization, publication or physical copy.
+The bounded Nietzsche source home's stronger authorship and chronology closure
+remains outside standalone Work creation. The executable operation and limits
+live in the [source-owner creation contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-standalone-identities).
+
+Source-near semantic descriptions use the explicit
+[concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
+not the bibliographic identity family. Their declared research scope and
+continuity criterion are contestable and accompany human forms. A situated
+conception is not a record revision, word, Claim, or canon admission.
+Conceptual membership, attribution and transformation remain evidence-bearing
+Claims with their own source, interpretation and assessment posture. Existing
+scoped Concept nodes are not silently reclassified as crosscutting concepts.
+
+The [physical-artifact adapter](semantic-interchange/README.md#physical-artifacts-existing-source-adapter)
+projects native v1/v2 artifact metadata into the shared catalog and exact
+focus/inspection reader without replacing the authored record or inventing
+relations to Works, texts, composites or visual representations.
+
+The [scholarly-composite adapter](semantic-interchange/README.md#scholarly-composites-existing-source-adapter)
+likewise retains native composite identities and complete v1 records in both
+readers. Source-reported members and coverage remain observations inside their
+original records; catalog inclusion does not create accepted membership edges,
+identify the reconstructed ancient object, or resolve an exact text layer.
+The compatible descriptive `composite.json` profile uses that same identity
+family for modern textual reconstruction, collation and arrangement. It owns
+an explicit composition account, editorial method, coverage limits and
+referent criterion without requiring invented physical members. The native
+witness format is retained, not converted; one ID cannot have two current
+records across these formats. Neither metadata shape accepts its readings.
+
 Responsibility claims retain their role-specific subject and Agent object:
 Work author, Expression translator, Edition editor, paratext author, designer,
 publisher, copyist, corrector, and rights holder are not interchangeable
@@ -109,6 +184,32 @@ where `<class>` is one of `agent`, `work`, `expression`, `edition`,
 `collection`, `item`, `artifact`, `composite`, `file`, `text-layer`, `passage`, `region`, `anchor`, `occurrence`,
 `lexeme`, `annotation`, `sign`, `concept`, `claim`, `relation`, `rights`,
 `review`, or `event`.
+
+The historical-situation profile adds `historical-event`, `historical-process`
+and `historical-state`. These identities are separate from provenance
+`event` records and authored semantic Event/State nodes. Their participants,
+places and associated Works remain evidence-bearing Claims; a historical
+description is neither a cause nor an admission. The executable source and
+consumer contract is in [semantic interchange](semantic-interchange/README.md#historical-situations-source-profile).
+
+The documentary profile adds `document` and `letter`. Their ID prefixes name
+referent families, not languages, archival repositories, mutable shelfmarks or
+the shape of one graph projection.
+
+An explicitly delegated initial historical creation can publish one new
+provisional identity, its separately identified initial claims and source-bound
+human forms together through the [source-owner command](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#initial-historical-subject-creation).
+The creation receipt binds the exact initial files; it is not the claims'
+research provenance, an assessment or historical acceptance. This bounded
+operation does not revise existing subjects or turn a directory into corpus
+identity. Catalog and graph publication remain weaker, separate operations.
+
+Catalog wording may carry explicit per-field language/script declarations in
+`field_languages`; these are distinct from an Expression's `language` and from
+the linguistic originality or translation of a human form. The shared
+[human-forms adapter](HUMAN_FORMS.md#bibliographic-metadata-adapter) retains each
+declaration and its qualifications as exact source-bound context. A corrected
+declaration advances the record and successor form bindings, not the subject ID.
 
 Rules:
 
@@ -248,9 +349,27 @@ algorithm ignores it. Source-observed layout is not accepted linguistic
 analysis; machine, model, imported, and synthetic results cannot accept
 themselves. A sampled review may calibrate a method but cannot silently accept
 a complete segmentation. Acceptance requires a separate source-visible
-real-human review over the exact frozen layer, declared scope, and relevant
-competence. Model subwords and virtual nodes cannot promote themselves to an
+human or agent assessment over the exact frozen layer, declared scope, and
+relevant competence under [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md).
+Research admission can cover a method-qualified batch without a human signature
+per unit; it must not extrapolate a sample beyond the admitted scope. Existing
+human-only packet formats preserve their history and require an explicit
+assessment adapter. Model subwords and virtual nodes cannot promote themselves to an
 occurrence, lexeme, sense, sign, concept, relation, or graph fact.
+
+`tos_native_text_unit_binding_v1` is an exact return to an existing native unit,
+not another textual subject. It pins packet, layer, selected segmentation,
+unit versions and ordered anchors; byte fixity and canonical assessment-record
+digests remain different. Its bounded resolver can validate metadata without
+opening source text, or explicitly verify the frozen UTF-8 representation.
+The v3 local assessment adapter retains the native unit identity and historical
+packet fields. A separate layer record supplies evidence of the same origin;
+neither adaptation nor exact-byte verification accepts a linguistic boundary.
+Research assessment is recorded separately under
+[KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md), without fabricating an old
+human review or widening access/publication. The executable read scopes and
+currentness limits live in the
+[growth-cycle contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-textunit-return-and-assessment).
 
 TEI, CoNLL-U, Web Annotation, ISO/LAF-family JSON, retrieval chunks, and graph
 forms are status-preserving derived projections. The public-synthetic A/B/C
@@ -288,7 +407,26 @@ downstream use. Existing `tos_provenance_event_v1` records retain their
 historical meaning. A v2 successor is created for new materialized work or a
 question-triggered migration, never for a bulk version-count increase.
 
+Historical schema inputs and current schema authority are separate. Required
+prior public schema bytes may be retained immutably in
+[`contracts/history/`](../contracts/history/README.md), addressed by their exact
+SHA-256 and original `$id`. This resolves recorded inputs without restamping
+old events; it neither replaces a missing active schema nor makes the old
+contract current. Current record/output validation remains independent.
+Ordinary source/evidence paths do not gain this schema-only fallback.
+The rationale and rejected alternatives are in
+[TOS-D-0052](../../docs/decisions/TOS-D-0052-historical-contract-input-bytes.md).
+
 ## Sign ladder
+
+Languages, linguistic varieties, scripts and transliteration conventions may
+themselves become source-described research subjects through the
+[linguistic profile](semantic-interchange/README.md#languages-varieties-scripts-and-transliteration-schemes).
+The source's language, an inscription's attributed language/script, the
+notation convention, an exact text layer, a sign reading and the language of
+its description remain distinct. Describing a scheme does not perform a
+transliteration or translation. Artifact period and provider language labels
+do not automatically establish a dialect, sign inventory or accepted reading.
 
 ToS treats a sign as a layered family of addressable records rather than one
 timeless semantic entity.
@@ -308,13 +446,22 @@ timeless semantic entity.
 The identity of a record may be stable while its interpretation is corrected.
 No model may silently lift an occurrence into a concept.
 
+The [lexical metadata profile](semantic-interchange/README.md#lexemes-written-forms-and-contextual-senses)
+gives lexical groupings, written representations and situated senses separate
+source descriptions and grounded membership Claims. Written-form identity
+retains the supplied spelling and notation scope without normalization; it is
+not a native source address or a human display-form identity. Description
+correction does not silently replace that referent. The existing native
+occurrence and exact-text contracts remain stronger for attestation.
+
 The semantic identities remain distinct:
 
 - `occurrence_id` identifies one addressable appearance in an exact witness;
 - `lexeme_id` identifies a linguistic normalization whose membership remains
   a versioned claim;
-- `sign_id` is assigned only after an evidence-bearing human promotion
-  decision over a concrete candidate;
+- `sign_id` is assigned only after an evidence-bearing, competence-scoped
+  promotion decision over a concrete candidate; issuing identity is not proof
+  of truth or a canon decision;
 - `concept_id` identifies a contestable interpretation family, not a hidden
   synonym for a sign;
 - `claim_id` identifies one versioned assertion with maker, time, method,
@@ -325,6 +472,13 @@ The semantic identities remain distinct:
 Before sign promotion, the stable candidate identity is an `annotation_id` or
 `claim_id`, never a prematurely minted `sign_id`. Labels remain mutable and do
 not determine any of these identities.
+
+The [qualified motif proposal](semantic-interchange/README.md#qualified-motif-proposals-and-explicit-member-dependencies)
+uses one Claim ID over a complete declared set of exact Occurrences. Its
+focal occurrence is an entry to the hypothesis, not its only source; the
+interpretation, every member and native grounds must be read together.
+Member-return edges are structural context, not separate accepted membership
+assertions. Revising that set does not mint a Sign or bypass assessment.
 
 The additive `tos_semantic_annotation_packet_v2` contract materializes this
 law as stand-off records. Its opaque stable IDs are issued independently of
@@ -374,13 +528,19 @@ A claim records:
 - maker and method, including software/model/configuration where applicable;
 - creation time and rights/visibility constraints;
 - alternatives, counterevidence, and relations to prior versions;
-- human review state, reviewer, rationale, and decision event.
+- assessment history, reviewer kind and identity, rationale, exact decision
+  event, competence, authority and policy; current admission remains separate.
 
 Allowed review states include `unreviewed`, `accepted`, `accepted_with_limits`,
 `rejected`, `ambiguous`, `deferred`, and `superseded`.
 
 Confidence is the maker's declared uncertainty, not an objective probability
 that the claim is true.
+
+Legacy embedded human-review fields retain the meaning of their original
+schema. New agent assessments bind the exact assertion through the current
+[assessment contract](../contracts/knowledge-assessment.schema.json), not by
+relabeling that history. An accepted research use need not wait for canon.
 
 A generated claim catalog may expose subject, predicate, object, evidence,
 maker, provenance, review posture, exact source line, and canonical source
@@ -406,8 +566,12 @@ on the source string. Its packet must be able to retain:
   rhythm, imagery, syntax, fluency, and intervention;
 - accepted, rejected, and unresolved alternatives with reviewer rationale.
 
-Automatic metrics and LLM judges are diagnostics. Independent human review
-owns promotion.
+Automatic metrics do not themselves make a substantive decision. A model
+self-rating is not evidence of authority or competence. Independent,
+source-visible human or agent assessment can own scoped translation admission
+under [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md). A verified method may be
+reused within its scope; independence is not inferred from repeated calls to
+one model. Rights and publication remain separate decisions.
 
 ## Rights and visibility inheritance
 
@@ -447,6 +611,45 @@ jurisdiction, and the intended use. Unknown marginalia or scan production can
 therefore keep the exact PDF local while a separately reviewed public-domain
 text layer remains a real positive finding rather than being erased.
 
+## Owner-local source contexts
+
+Public source metadata remains tracked under the current corpus rule; no new
+ignored metadata subtree is introduced. Content-bearing private annotations,
+native token packets, human forms and their operation/assessment history need
+a separate explicitly selected confidential source store outside the public
+checkout. They retain the same ToS identities and source contracts. A private
+store is another governed location of authored source, not a parallel ontology,
+an automatically publishable catalog or a cache whose deletion is harmless.
+
+The [owner-local context contract](../contracts/owner-local-source-context.schema.json)
+partitions logical refs by `ToS/source-witnesses/owner-local/<store_id>/`.
+That prefix has exactly one private physical root; all other source/contract
+refs have the existing checkout as their owner. `public_root` names a location,
+not permission to read or publish every file there. There is no search,
+fallback, root shadowing or copied private schema authority. An alias under
+the checkout's reserved owner-local home is refused, even with identical bytes.
+The native v1 binding can retain its logical refs because this transport is
+explicit and singleton; a portable multi-owner reference would require its
+own later contract, not an inferred fallback.
+
+Context configuration and private files require mode 0600; directories from
+the dedicated private root inward require 0700. Account ownership, no-follow
+ancestors and current configuration/contract/root identities are checked
+separately. The context enters an opaque dependency snapshot; its absolute
+locations, short-span hashes and source-bearing bodies are not public export
+fields. This is a trusted local-account boundary, not isolation from hostile
+same-account code, encryption, backup or a portable artifact-trust decision.
+
+The bounded native reader can use the context explicitly. Without it, the
+reserved namespace is unsupported; the public source/profile/catalog reader
+does not discover or consume a private store. Native exact reading still needs
+the separate owner-local read selection and does not establish linguistic
+quality or admission. A private transport cannot become public because its
+underlying text layer has a positive public declaration. Native writer,
+private source/Claim/form commands and private assessment-source integration
+must each opt into this contract and retain their own authority checks;
+creating or opening a context does not implement or delegate those operations.
+
 ## Projection boundary
 
 Translation alignment follows the same evidence law before projection. Each
@@ -456,9 +659,11 @@ artifact, and ordered source anchors. The
 mapping receives a stable opaque identity and a separate versioned claim;
 cardinality, order, omission/addition, technique, certainty, maker,
 competition, supersession, and review are not compressed into one confidence
-score. A machine, model, imported memory, or exchange file may propose but
-cannot accept. Acceptance requires a distinct source-and-target-visible
-real-human review with declared competence and a frozen unassisted baseline.
+score. An imported memory, exchange file, generated answer or green validator
+cannot grant itself admission authority. Acceptance requires a distinct
+source-and-target-visible assessment with trusted authority, declared
+competence and a frozen unassisted baseline, by a human or qualified agent.
+Historical human-only formats are adapted explicitly, not silently retyped.
 The most restrictive source, target, or packet visibility follows every
 derivative. TEI, Web Annotation, XLIFF, TMX, and graph views are therefore
 rebuildable projections, never the authority for the alignment or translation.
@@ -466,7 +671,7 @@ rebuildable projections, never the authority for the alignment or translation.
 The authoritative chain is:
 
 ```text
-tracked identity/claim/review records
+owner-held identity/claim/review records (tracked public or explicitly private)
   -> reproducible projection receipt
     -> lexical or vector index / RDF / property graph / KAG / UI
 ```

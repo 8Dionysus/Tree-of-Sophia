@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/linguistic-relation-claim.schema.json",
+  "title": "Scoped linguistic attribution or relation",
+  "description": "The exact inscription, corpus, community, historical scope or notation level is essential to the relation; no whole-object monolinguality, dialect status or automatic transliteration follows.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-relation-claim.schema.json"
+    },
+    {
+      "properties": {
+        "qualifiers": {
+          "required": [
+            "attestation_scope"
+          ],
+          "properties": {
+            "attestation_scope": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The particular inscription, usage community, source tradition, period or mapping level covered, including evidential limits. Not a universal assignment."
+            }
+          }
+        }
+      }
+    }
+  ]
+}

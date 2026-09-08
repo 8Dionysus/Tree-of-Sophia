@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/lexical-description-record.schema.json",
+  "title": "Lexeme, written lexical form and situated lexical sense",
+  "description": "Descriptions of separate research referents, not exact occurrences, human display packets or philosophical concepts. Membership and interpretation are grounded Claims. A written form fixes its declared representation; revisions of its description cannot silently change that referent.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
+    {"properties": {
+      "schema_version": {"const": "tos_lexical_description_record_v1"},
+      "record_type": {"enum": ["lexeme", "lexical-form", "sense"]}
+    }},
+    {"if": {"properties": {"record_type": {"const": "lexeme"}}},
+     "then": {"properties": {
+       "record_id": {"pattern": "^tos\\.lexeme\\."},
+       "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.lexeme\\."},
+       "semantic_content": {"required": ["lexical_account", "grammatical_account"], "properties": {
+         "lexical_account": {"$ref": "#/$defs/account"},
+         "grammatical_account": {"$ref": "#/$defs/account"}
+       }}
+     }}},
+    {"if": {"properties": {"record_type": {"const": "lexical-form"}}},
+     "then": {"required": ["form_identity"], "properties": {
+       "record_id": {"pattern": "^tos\\.lexical-form\\."},
+       "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.lexical-form\\."},
+       "form_identity": {"type": "object", "additionalProperties": false,
+         "description": "The represented string and its declared notation scope. It is not a quote/selector or a proof of occurrence, pronunciation or language attribution. Changing these identity-bearing fields is outside ordinary record.revise.",
+         "required": ["written_representation", "language", "script", "representation_kind", "notation_scope", "unicode_posture"],
+         "properties": {
+           "written_representation": {"type": "string", "pattern": "\\S", "maxLength": 4096},
+           "language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+           "script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"},
+           "representation_kind": {"enum": ["orthographic", "transliteration", "phonetic_transcription", "other", "unknown"]},
+           "notation_scope": {"$ref": "#/$defs/account"},
+           "unicode_posture": {"enum": ["preserved_as_supplied", "declared_normalized", "unknown"]}
+         }},
+       "semantic_content": {"required": ["form_account"], "properties": {"form_account": {"$ref": "#/$defs/account"}}}
+     }}},
+    {"if": {"properties": {"record_type": {"const": "sense"}}},
+     "then": {"properties": {
+       "record_id": {"pattern": "^tos\\.sense\\."},
+       "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.sense\\."},
+       "semantic_content": {"required": ["sense_account", "interpretation_context", "semantic_range"], "properties": {
+         "sense_account": {"$ref": "#/$defs/account"},
+         "interpretation_context": {"$ref": "#/$defs/account"},
+         "semantic_range": {"$ref": "#/$defs/account"}
+       }}
+     }}}
+  ],
+  "$defs": {"account": {"type": "string", "pattern": "\\S", "description": "A substantive source-described account with explicit limits; uncertainty may be stated and does not imply absence."}},
+  "unevaluatedProperties": false
+}

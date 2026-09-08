@@ -60,6 +60,17 @@ def old_experience_ref() -> str:
 
 
 class ValidateActiveNamingTests(unittest.TestCase):
+    def test_lens_selection_fields_are_content_not_retired_routes(self) -> None:
+        schema = json.loads((SCRIPT_PATH.parents[1] / "access/contracts/lens-spec.v1.schema.json").read_text())
+        token = retired_s_token()
+        fields = [token + "." + name for name in schema['properties'][token]['properties']]
+        fields.append(token + '_field')  # Existing catalog field points to the LensSpec center.
+        for reference in fields:
+            with self.subTest(reference=reference):
+                self.assertIsNone(validate_active_naming.retired_content_issue(reference))
+                self.assertIsNotNone(validate_active_naming.retired_path_issue('ToS/' + reference + '/item.json'))
+                self.assertIsNotNone(validate_active_naming.retired_content_issue(reference + '_retired'))
+
     def test_repository_kag_family_is_outside_authored_naming_checks(self) -> None:
         for relative_path in (
             "kag/indexes/index_family.manifest.json",

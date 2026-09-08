@@ -1,0 +1,1617 @@
+"""Source commands against real metadata copies; no historical review verdicts."""
+from __future__ import annotations
+
+import copy
+import hashlib
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[3]
+MECHANIC = ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'
+sys.path.insert(0, str(MECHANIC))
+import source_commands as commands
+from knowledge_assessment import Record
+
+
+class SourceCommandTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.relative = 'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json'
+        self.source = self.root / self.relative
+        self.source.parent.mkdir(parents=True)
+        self.source.write_bytes((ROOT / self.relative).read_bytes())
+        self.target = self.source.with_name('work.human-forms.json')
+        self.target.write_bytes((ROOT / self.relative).with_name('work.human-forms.json').read_bytes())
+        self.original_source = self.source.read_bytes()
+        self.original_set = json.loads(self.target.read_bytes())
+        self.creator = 'source-command-test-account'
+        self.config = {'schema_version': 'tos_local_source_command_owner_v1', 'uid': os.getuid(),
+            'principal_id': self.creator, 'source_root': str(self.root), 'source_path': self.relative,
+            'authority_ref': 'test-only:operator-delegated-form-writing-not-assessment',
+            'allowed_form_ids': [form['form_id'] for form in self.original_set['forms']] + ['tos.form.test.new'],
+            'allowed_operations': list(commands.OPERATIONS), 'expires_at': '2099-01-01T00:00:00Z'}
+        self.owner = self.root / 'owner.json'
+        self.save_config()
+
+    def save_config(self):
+        self.owner.write_text(json.dumps(self.config))
+
+    def describe(self):
+        return commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+
+    def request(self, changes=None, command_id='test:1'):
+        context = self.describe()
+        old = json.loads(self.target.read_bytes())['forms'][0] if self.target.exists() else self.original_set['forms'][0]
+        form = {**copy.deepcopy(old), 'form_version': old['form_version'] + 1,
+                'creator_id': self.creator, 'revises': commands._form_ref(old)}
+        return {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply', 'command_id': command_id,
+            'expected_source': context['source'], 'expected_revision': context['revision'],
+            'expected_configuration': context['owner_configuration'],
+            'changes': changes or [{'operation': 'form.revise', 'expected_form': commands._form_ref(old), 'form': form}]}
+
+    def run_request(self, request):
+        return commands.run_local_command(self.owner, request)
+
+    def test_real_metadata_revision_is_atomic_retains_history_and_replays_after_restart(self):
+        request = self.request()
+        changed = self.run_request(request)
+        self.assertFalse(changed['replayed'])
+        self.assertFalse(changed['grants_admission'])
+        stored = json.loads(self.target.read_bytes())
+        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][0]])
+        self.assertEqual(stored['forms'][1:], self.original_set['forms'][1:])
+        self.assertEqual(stored['forms'][0], request['changes'][0]['form'])
+        self.assertEqual(stored['growth_history'], [changed['receipt']])
+        self.assertEqual(changed['materializations'][0]['state'], 'ready')
+        self.assertEqual(changed['materializations'][0]['display_text'], json.loads(self.original_source)['preferred_label'])
+        self.assertIsNone(changed['materializations'][0]['admission'])
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+            input=json.dumps(request), text=True, capture_output=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        replay = json.loads(process.stdout)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['revision'], changed['revision'])
+        self.assertEqual(replay['receipt'], changed['receipt'])
+        self.assertEqual(self.source.read_bytes(), self.original_source)
+
+    def test_native_witness_forms_use_original_subject_and_bind_source_schema(self):
+        originals = sorted((ROOT / 'ToS/source-witnesses/scholarly-composites').rglob('composite-witness.json'))[:1]
+        originals += sorted((ROOT / 'ToS/source-witnesses/artifacts').rglob('artifact-witness.json'))[:1]
+        from build_source_witness_catalog import ARTIFACT_SCHEMAS, COMPOSITE_SCHEMA
+        for original in originals:
+            with self.subTest(source=original):
+                relative = original.relative_to(ROOT).as_posix()
+                path = self.root / relative
+                path.parent.mkdir(parents=True)
+                raw = original.read_bytes()
+                path.write_bytes(raw)
+                source = json.loads(raw)
+                schema_ref = ARTIFACT_SCHEMAS.get(source['schema_version'], COMPOSITE_SCHEMA)
+                schema_path = self.root / schema_ref
+                schema_path.parent.mkdir(parents=True, exist_ok=True)
+                schema_raw = (ROOT / schema_ref).read_bytes()
+                schema_path.write_bytes(schema_raw)
+                self.config['source_path'] = relative
+                self.save_config()
+                description = self.describe()
+                identifier = source.get('composite_id', source.get('artifact_id'))
+                self.assertEqual(description['source'], Record.from_payload(identifier, source['record_version'], source).ref)
+                self.assertEqual(description['source_contracts'][schema_ref], 'sha256:' + hashlib.sha256(schema_raw).hexdigest())
+                prepared = self.run_request({'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare',
+                    'form_id': 'tos.form.test.new', 'field_id': 'metadata.source-note'})
+                request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                    'command_id': 'test:native-form', 'expected_source': prepared['source'],
+                    'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
+                    'changes': [prepared['prepared_change']]}
+                schema_path.write_bytes(schema_raw + b'\n')
+                with self.assertRaises(commands.JournalConflict):
+                    self.run_request(request)
+                schema_path.write_bytes(schema_raw)
+                result = self.run_request(request)
+                self.assertEqual(result['materializations'][0]['state'], 'ready')
+                self.assertEqual(result['materializations'][0]['context'][0]['value'], source)
+                self.assertIsNone(result['materializations'][0]['language'])
+                self.assertFalse(result['grants_admission'])
+                self.assertEqual(self.run_request(request)['receipt'], result['receipt'])
+                self.assertEqual(path.read_bytes(), raw)
+                from assessment_journal import _source_records
+                binding = {'path': relative, 'record_id': identifier, 'origin_id': 'test:exact-native-source'}
+                resolved, fixity = _source_records(self.root, [binding])
+                self.assertEqual(resolved[0], {'id': identifier, 'version': source['record_version'],
+                    'payload': source, 'origin_id': binding['origin_id']})
+                self.assertIn({'path': schema_ref, 'digest': 'sha256:' + hashlib.sha256(schema_raw).hexdigest()}, fixity)
+                forged = {**source, 'schema_version': 'tos_corpus_record_v1', 'record_id': identifier}
+                path.write_text(json.dumps(forged))
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.describe()
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(self.root, [binding])
+                path.write_bytes(raw)
+                private = copy.deepcopy(source)
+                private['authority']['visibility'] = 'local_only'
+                path.write_text(json.dumps(private))
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.run_request(request)  # Revoked visibility applies to exact replay too.
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(self.root, [binding])
+                path.write_bytes(raw)
+                self.config['source_path'] = 'ToS/source-witnesses/works/native/' + path.name
+                outside = self.root / self.config['source_path']
+                outside.parent.mkdir(parents=True, exist_ok=True)
+                outside.write_bytes(raw)
+                self.save_config()
+                with self.assertRaises((ValueError, PermissionError)):
+                    self.describe()
+                with self.assertRaises((ValueError, PermissionError)):
+                    _source_records(self.root, [{**binding, 'path': self.config['source_path']}])
+
+    def test_create_and_revise_together_or_neither_and_no_implicit_acceptance(self):
+        request = self.request()
+        proposed = {**copy.deepcopy(request['changes'][0]['form']), 'form_id': 'tos.form.test.new',
+            'form_version': 1, 'revises': None, 'role': 'statement',
+            'content': {'kind': 'freeform', 'text': 'Test proposal, not a verified historical assertion.'}}
+        request['changes'].append({'operation': 'form.create', 'expected_form': None, 'form': proposed})
+        before = self.target.read_bytes()
+        invalid = copy.deepcopy(request)
+        invalid['changes'][1]['form']['subject']['digest'] = 'sha256:' + '0' * 64
+        with self.assertRaises(commands.JournalConflict):
+            self.run_request(invalid)
+        self.assertEqual(self.target.read_bytes(), before)
+        result = self.run_request(request)
+        self.assertEqual(len(result['receipt']['results']), 2)
+        self.assertEqual(len(result['forms']), 4)
+        view = result['materializations'][-1]
+        self.assertEqual(view['state'], 'unavailable')
+        self.assertIsNone(view['display_text'])
+        self.assertFalse(view['performs_semantic_assessment'])
+        self.assertEqual(json.loads(self.target.read_bytes())['forms'][-1], proposed)
+
+    def test_new_set_uses_the_existing_source_adapter_without_a_second_store(self):
+        self.target.unlink()  # Only a temporary fixture, never the source repo.
+        form = {**copy.deepcopy(self.original_set['forms'][0]), 'creator_id': self.creator}
+        request = self.request([{'operation': 'form.create', 'expected_form': None, 'form': form}])
+        result = self.run_request(request)
+        self.assertIsNone(result['receipt']['previous_revision'])
+        self.assertEqual(result['materializations'][0]['state'], 'ready')
+        self.assertEqual(json.loads(self.target.read_bytes())['prior_forms'], [])
+
+    def test_historical_record_uses_same_command_abi_without_source_rewrite_or_admission(self):
+        self.relative = 'ToS/source-witnesses/history/synthetic/historical-event.json'
+        self.source = self.root / self.relative
+        self.source.parent.mkdir(parents=True)
+        source = {'schema_version': 'tos_historical_record_v1', 'record_type': 'historical-event',
+                  'record_id': 'tos.historical-event.command-fixture', 'record_version': 1,
+                  'preferred_label': 'Условный эпизод, не исторический факт', 'variant_labels': [],
+                  'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+                  'source_refs': ['test:synthetic'], 'external_identifiers': [],
+                  'visibility': 'public_metadata_only'}
+        self.source.write_text(json.dumps(source))
+        before = self.source.read_bytes()
+        self.target = self.source.with_name('historical-event.human-forms.json')
+        self.config['source_path'] = self.relative
+        self.save_config()
+        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': 'tos.form.test.new', 'field_id': 'metadata.preferred-name'})
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+            'command_id': 'historical-form', 'expected_source': prepared['source'],
+            'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
+            'changes': [prepared['prepared_change']]}
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+                                 input=json.dumps(request), text=True, capture_output=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(result['materializations'][0]['display_text'], source['preferred_label'])
+        self.assertFalse(result['grants_admission'])
+        self.assertEqual(self.source.read_bytes(), before)
+        stored = self.target.read_bytes()
+        self.source.write_text(json.dumps({**source, 'visibility': 'local_only'}))
+        with self.assertRaisesRegex(PermissionError, 'visibility'):
+            self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), stored)
+
+    def test_discovered_field_prepares_a_source_bound_change_without_json_path_guessing(self):
+        context = self.describe()
+        field = next(field for field in context['source_fields'] if field['field_id'] == 'metadata.variant-name:0')
+        self.assertEqual(field['language'], 'ru')
+        self.assertNotIn('pointer', field)
+        before = self.target.read_bytes()
+        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': 'tos.form.test.new', 'field_id': field['field_id']})
+        self.assertEqual(self.target.read_bytes(), before)
+        self.assertEqual(prepared['prepared_change']['operation'], 'form.create')
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply', 'command_id': 'discovered-copy',
+            'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+            'expected_configuration': prepared['owner_configuration'], 'changes': [prepared['prepared_change']]}
+        result = self.run_request(request)
+        view = result['materializations'][-1]
+        self.assertEqual(view['state'], 'ready')
+        self.assertEqual(view['language'], 'ru')
+        self.assertEqual(view['display_text'], json.loads(self.original_source)['variant_labels'][0]['value'])
+        self.assertFalse(view['standalone_reading'])
+        self.assertEqual({item['binding']['pointer'] for item in view['context']},
+            {'/identity_status', '/same_as_posture', '/variant_labels/0/language',
+             '/variant_labels/0/source_ref', '/variant_labels/0/status'})
+        revision = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': 'tos.form.test.new', 'field_id': field['field_id']})
+        self.assertEqual(revision['prepared_change']['operation'], 'form.revise')
+        self.assertEqual(revision['prepared_change']['form']['revises'], result['forms'][-1])
+
+    def test_explicit_field_language_survives_preparation_and_revision_without_becoming_original(self):
+        source = json.loads(self.original_source)
+        source['record_version'] += 1
+        metadata = {'language': 'ru', 'script': 'Cyrl',
+                    'source_ref': 'test:synthetic-language-declaration',
+                    'qualification': {'independently_assessed': False, 'future': None}}
+        source['field_languages'] = {'notes': metadata}
+        self.source.write_text(json.dumps(source))
+        before = self.source.read_bytes()
+        identifier = self.original_set['forms'][2]['form_id']
+        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': identifier, 'field_id': 'metadata.source-note'})
+        form = prepared['prepared_change']['form']
+        self.assertEqual((form['language'], form['script']), ('ru', 'Cyrl'))
+        self.assertNotIn('language_context', form)  # A language tag does not declare an original or translation.
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+            'command_id': 'declared-field-language', 'expected_source': prepared['source'],
+            'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
+            'changes': [prepared['prepared_change']]}
+        missing = copy.deepcopy(request)
+        missing['changes'][0]['form']['bindings'] = {key: value for key, value in form['bindings'].items()
+            if value['pointer'] != '/field_languages/notes'}
+        with self.assertRaises(ValueError):
+            self.run_request(missing)
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+            input=json.dumps(request), text=True, capture_output=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        view = result['materializations'][2]
+        self.assertEqual(view['state'], 'ready')
+        self.assertEqual((view['language'], view['script']), ('ru', 'Cyrl'))
+        self.assertEqual(view['display_text'], source['notes'])
+        self.assertIsNone(view['admission'])
+        self.assertNotIn('language_context', view)
+        self.assertEqual(next(item['value'] for item in view['context']
+                             if item['binding']['pointer'] == '/field_languages/notes'), metadata)
+        stored = json.loads(self.target.read_bytes())
+        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][2]])
+        self.assertEqual(self.source.read_bytes(), before)
+
+    def test_field_language_metadata_is_explicit_and_bounded_not_inferred_from_expression_or_ui(self):
+        source = json.loads(self.original_source)
+        source['language'] = 'de'  # Language of an Expression is not language of its catalog notes.
+        fields = commands.metadata_field_catalog(source)
+        self.assertIsNone(next(field for field in fields if field['field_id'] == 'metadata.source-note')['language'])
+        for metadata in ({'language': 'x-test', 'script': None},
+                         {'language': None, 'script': 'Latn'},
+                         {'language': 'i-enochian', 'script': None}):
+            with self.subTest(metadata=metadata):
+                source['field_languages'] = {'preferred_label': metadata}
+                field = commands.metadata_field_catalog(source)[0]
+                self.assertEqual((field['language'], field['script']), (metadata['language'], metadata['script']))
+        for metadata in (None, {'notes': {'language': 'ru'}},
+                         {'notes': {'language': 'ru\n', 'script': None}},
+                         {'notes': {'language': 12, 'script': None}},
+                         {'notes': {'language': 'ru', 'script': 'Cyrillic'}},
+                         {'unowned-field': {'language': 'ru', 'script': None}}):
+            with self.subTest(invalid=metadata):
+                source['field_languages'] = metadata
+                with self.assertRaises(ValueError):
+                    commands.metadata_field_catalog(source)
+
+    def test_source_correction_rebinds_selected_forms_and_preserves_unmodified_stale_forms(self):
+        source = json.loads(self.original_source)
+        source['record_version'] += 1
+        source['variant_labels'][0]['future/a~b'] = {'unknown': None, 'negative': False}
+        self.source.write_text(json.dumps(source))
+        identifier = self.original_set['forms'][1]['form_id']
+        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+            'operation': 'prepare', 'form_id': identifier, 'field_id': 'metadata.variant-name:0'})
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply', 'command_id': 'source-corrected',
+            'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+            'expected_configuration': prepared['owner_configuration'], 'changes': [prepared['prepared_change']]}
+        result = self.run_request(request)
+        self.assertEqual([view['state'] for view in result['materializations']], ['stale', 'ready', 'stale'])
+        context = result['materializations'][1]['context']
+        unknown = next(item for item in context if item['binding']['pointer'].endswith('/future~1a~0b'))
+        self.assertEqual(unknown['value'], {'unknown': None, 'negative': False})
+        stored = json.loads(self.target.read_bytes())
+        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][1]])
+        self.assertEqual(stored['forms'][0], self.original_set['forms'][0])
+
+    def test_current_catalogue_metadata_preparation_covers_each_supported_record_without_writes(self):
+        manifest = json.loads((ROOT / 'ToS/source-witnesses/catalog/catalog.manifest.json').read_bytes())
+        supported = {'agent', 'place', 'organization', 'work', 'expression', 'edition', 'collection', 'item'}
+        seen = set()
+        for kind, path in manifest['record_files'].items():
+            if kind not in supported:
+                continue  # Object links have a separate schema and semantic owner.
+            for line in (ROOT / path).read_text().splitlines():
+                row = json.loads(line)
+                source_path = ROOT / row['source_record_ref']
+                original = source_path.read_bytes()
+                source = json.loads(original)
+                with self.subTest(record=row['record_id']):
+                    self.assertEqual(hashlib.sha256(commands._canonical(source)).hexdigest(), row['record_sha256'])
+                    fields = commands.metadata_field_catalog(source)
+                    self.assertTrue(fields)
+                    # The current metadata corpus is connected, not merely
+                    # preparable in a demonstration. Full source-copy coverage
+                    # remains separate from any judgment of the copied prose.
+                    persisted_path = source_path.with_name(source_path.stem + '.human-forms.json')
+                    persisted = json.loads(persisted_path.read_bytes())
+                    commands._validate_history(persisted)
+                    persisted_views = commands.materialize_metadata_forms(source, persisted, access_allowed=True)
+                    self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None
+                                        for view in persisted_views))
+                    copied_fields = {form['bindings'][form['content']['slot']]['pointer']
+                                     for form in persisted['forms'] if form['content']['kind'] == 'source-copy'}
+                    self.assertTrue({field['pointer'] for field in fields}.issubset(copied_fields))
+                    changes = [commands.prepare_metadata_change(source, None, 'test:source-copy-not-assessment',
+                        'tos.form.test.catalog.' + str(index), field['field_id']) for index, field in enumerate(fields)]
+                    record = Record.from_payload(source['record_id'], source['record_version'], source)
+                    forms = commands._apply(None, record, changes)
+                    views = commands.materialize_metadata_forms(source, forms, access_allowed=True)
+                    self.assertEqual(len(views), len(fields))
+                    for field, view in zip(fields, views):
+                        self.assertEqual(view['state'], 'ready')
+                        self.assertFalse(view['performs_semantic_assessment'])
+                        self.assertIsNone(view['admission'])
+                        if field['field_id'] == 'metadata.preferred-name':
+                            self.assertEqual(view['display_text'], source['preferred_label'])
+                        elif field['field_id'] == 'metadata.source-note':
+                            self.assertEqual(view['display_text'], source['notes'])
+                        else:
+                            self.assertEqual(view['display_text'], source['variant_labels'][int(field['field_id'].split(':')[1])]['value'])
+                        guards = {item['binding']['pointer']: item['value'] for item in view['context']}
+                        self.assertEqual(guards['/identity_status'], source['identity_status'])
+                    self.assertEqual(source_path.read_bytes(), original)
+                seen.add(kind)
+        self.assertEqual(seen, supported)
+
+    def test_live_writer_busy_and_midcommand_configuration_change_do_not_publish(self):
+        request = self.request()
+        before = self.target.read_bytes()
+        with commands._locked(self.target):
+            with self.assertRaises(commands.JournalBusy):
+                with commands._locked(self.target, timeout=0):
+                    self.fail('a competing lock must not be acquired')
+        original = commands._apply
+        def changed_config(*args):
+            value = original(*args)
+            self.config['allowed_operations'] = []
+            self.save_config()
+            return value
+        with patch.object(commands, '_apply', side_effect=changed_config):
+            with self.assertRaises(commands.JournalConflict):
+                self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), before)
+
+    def test_stale_versions_identity_reuse_and_scope_cannot_write(self):
+        before = self.target.read_bytes()
+        for field in ('expected_configuration', 'expected_revision'):
+            request = self.request()
+            request[field] = 'sha256:' + '0' * 64
+            with self.subTest(field=field), self.assertRaises(commands.JournalConflict):
+                self.run_request(request)
+        for field, value in [('creator_id', 'impostor'), ('form_id', 'tos.form.outside-scope')]:
+            request = self.request()
+            request['changes'][0]['form'][field] = value
+            with self.subTest(field=field), self.assertRaises(PermissionError):
+                self.run_request(request)
+        request = self.request()
+        request['changes'][0]['form']['form_version'] += 1
+        with self.assertRaises(commands.JournalConflict):
+            self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), before)
+        request = self.request()
+        result = self.run_request(request)
+        another = self.request()
+        with self.assertRaises(commands.JournalConflict):
+            self.run_request(another)
+        self.assertEqual(self.describe()['revision'], result['revision'])
+
+    def test_revocation_applies_to_replay_and_source_change_does_not_resurrect(self):
+        request = self.request()
+        self.run_request(request)
+        source = json.loads(self.source.read_bytes())
+        source['notes'] += ' Temporary source correction.'
+        source['record_version'] += 1
+        self.source.write_text(json.dumps(source))
+        replay = self.run_request(request)
+        self.assertTrue(replay['replayed'])
+        self.assertTrue(all(view['state'] == 'stale' for view in replay['materializations']))
+        self.assertNotEqual(replay['source'], replay['receipt']['source'])
+        self.config['allowed_operations'] = []
+        self.save_config()
+        before = self.target.read_bytes()
+        with self.assertRaises(PermissionError):
+            self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), before)
+
+    def test_source_copy_cannot_omit_guards_or_turn_unknown_language_into_original(self):
+        for mutate in (lambda form: form['bindings'].pop('identity_status'),
+                       lambda form: form.update(language='de'),
+                       lambda form: form['bindings']['wording'].update(pointer='/absent')):
+            request = self.request()
+            mutate(request['changes'][0]['form'])
+            before = self.target.read_bytes()
+            with self.assertRaises(ValueError):
+                self.run_request(request)
+            self.assertEqual(self.target.read_bytes(), before)
+
+    def test_competing_writers_and_failures_before_or_after_publication(self):
+        first = self.request(command_id='first')
+        second = self.request(command_id='second')
+        def run(request):
+            try:
+                return self.run_request(request)
+            except commands.JournalConflict:
+                return None
+        with ThreadPoolExecutor(2) as pool:
+            results = list(pool.map(run, [first, second]))
+        self.assertEqual(sum(result is not None for result in results), 1)
+        before = self.target.read_bytes()
+        request = self.request(command_id='next')
+        with patch.object(commands.os, 'replace', side_effect=OSError('before publish')):
+            with self.assertRaises(OSError):
+                self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), before)
+        self.assertEqual(list(self.target.parent.glob('*.pending')), [])
+        real_publish = commands._publish
+        def publish_then_fail(path, raw):
+            real_publish(path, raw)
+            raise OSError('response lost after publication')
+        with patch.object(commands, '_publish', side_effect=publish_then_fail):
+            with self.assertRaises(OSError):
+                self.run_request(request)
+        self.assertTrue(self.run_request(request)['replayed'])
+        self.assertEqual(len(json.loads(self.target.read_bytes())['growth_history']), 2)
+
+    def test_corrupt_history_cannot_be_hidden_and_cli_errors_do_not_echo_input(self):
+        request = self.request()
+        self.run_request(request)
+        broken = json.loads(self.target.read_bytes())
+        broken['prior_forms'] = []
+        self.target.write_text(json.dumps(broken))
+        with self.assertRaises(commands.JournalCorruption):
+            self.describe()
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+            input='{"operation":"do-secret-things","operation":"secret"}', text=True, capture_output=True)
+        self.assertEqual(process.returncode, 2)
+        self.assertNotIn('secret', process.stdout + process.stderr)
+        self.assertEqual(json.loads(process.stdout)['schema_version'], 'tos_local_source_command_error_v1')
+
+    def test_receipt_capacity_refuses_without_truncation_and_schema_errors_are_nonreflective(self):
+        result = self.run_request(self.request())
+        stored = json.loads(self.target.read_bytes())
+        stored['growth_history'] = [{**result['receipt'], 'command_id': f'retained-test:{index}'} for index in range(256)]
+        self.target.write_text(json.dumps(stored))
+        before = self.target.read_bytes()
+        request = self.request(command_id='over-capacity')
+        with self.assertRaises(commands.ValidationError):
+            self.run_request(request)
+        self.assertEqual(self.target.read_bytes(), before)
+        request['changes'][0]['form']['unrecognized-private-field'] = 'must-not-echo-this-value'
+        process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
+            input=json.dumps(request), text=True, capture_output=True)
+        self.assertEqual(process.returncode, 2)
+        self.assertEqual(json.loads(process.stdout)['error'], 'ValidationError')
+        self.assertNotIn('must-not-echo', process.stdout + process.stderr)
+        self.assertEqual(self.target.read_bytes(), before)
+
+    def test_owner_paths_uid_expiry_and_request_data_never_select_authority(self):
+        request = self.request()
+        for field, value in [('uid', os.getuid() + 1), ('expires_at', '2000-01-01T00:00:00Z'),
+                             ('source_path', '../outside.json'), ('source_path', '/outside.json')]:
+            original = self.config[field]
+            self.config[field] = value
+            self.save_config()
+            with self.subTest(field=field), self.assertRaises(PermissionError):
+                self.run_request(request)
+            self.config[field] = original
+        self.save_config()
+        for key in ('uid', 'principal_id', 'source_path', 'authority_ref', 'shell'):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                self.run_request({**request, key: 'untrusted source instruction'})
+        self.owner.chmod(0o666)
+        with self.assertRaises(PermissionError):
+            self.run_request(request)
+        self.owner.chmod(0o600)
+        saved = self.target.read_bytes()
+        self.target.unlink()
+        other = self.root / 'other.json'
+        other.write_bytes(saved)
+        self.target.symlink_to(other)
+        with self.assertRaises(OSError):
+            self.run_request(request)
+        self.assertEqual(other.read_bytes(), saved)
+
+
+class HistoricalCreationTests(unittest.TestCase):
+    @contextmanager
+    def native_creation(self, kind='agent'):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            contract = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / contract).write_bytes((ROOT / contract).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version='tos_local_corpus_create_owner_v1', record_type=kind,
+                record_id=f'tos.{kind}.synthetic-native-create',
+                source_path=f'ToS/source-witnesses/{kind}s/synthetic-native-create/{kind}.json',
+                allowed_operations=['source.create'], provenance_event_id=f'tos.event.synthetic-create-{kind}')
+            (root / config['source_path']).parent.parent.mkdir(parents=True, exist_ok=True)
+            owner.write_text(json.dumps(config))
+            source = {key: value for key, value in request['record'].items() if key not in {'visibility', 'extensions'}}
+            source.update(schema_version='tos_corpus_record_v1', record_type=kind, record_id=config['record_id'],
+                          preferred_label=f'Синтетический {kind}; не исторический факт')
+            if kind == 'work':
+                source['expression_claim_refs'] = []
+            request.pop('claims')
+            context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            request.update(operation='source.create', record=source, expected_configuration=context['owner_configuration'])
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            yield root, owner, config, request, rebuild, fixture
+
+    def test_native_creation_rejects_semantic_promotion_and_scope_substitution_without_source_writes(self):
+        from jsonschema import ValidationError
+        mutations = [
+            {'record_version': 2}, {'record_id': 'tos.agent.outside'}, {'record_type': 'organization'},
+            {'identity_status': 'verified'}, {'same_as_posture': 'reviewed_equivalence'},
+            {'supersedes_ref': 'tos.agent.predecessor'}, {'visibility': 'private'},
+            {'schema_version': 'unknown'}, {'unknown': {'negative': False}},
+            {'work_ref': 'tos.work.unchecked-link'}, {'responsibility_claim_refs': []},
+            {'variant_labels': [{'value': 'Alias', 'language': 'und', 'source_ref': 'test-note.md', 'status': 'verified'}]},
+            {'external_identifiers': [{'scheme': 'test', 'value': '123', 'source_ref': 'test-note.md', 'status': 'verified'}]},
+        ]
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            before = {p.relative_to(root).as_posix(): p.read_bytes()
+                      for p in (root / 'ToS/source-witnesses').rglob('*') if p.is_file()}
+            for mutation in mutations:
+                with self.subTest(mutation=mutation):
+                    invalid = copy.deepcopy(request)
+                    invalid['record'].update(mutation)
+                    with self.assertRaises((PermissionError, ValueError, ValidationError)):
+                        commands.run_local_command(owner, {
+                            'schema_version': invalid['schema_version'], 'operation': 'prepare-create',
+                            'record': invalid['record'], 'forms': invalid['forms']})
+            for mutation in ({'record_type': 'work'}, {'record_type': 'person'},
+                             {'maker_type': 'reviewer'}, {'source_path': 'ToS/source-witnesses/payload/agent.json'},
+                             {'record_id': 'tos.organization.wrong-family'}, {'allowed_operations': ['claims.create']}):
+                with self.subTest(config=mutation):
+                    owner.write_text(json.dumps({**config, **mutation}))
+                    with self.assertRaises((PermissionError, ValueError)):
+                        commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            owner.write_text(json.dumps(config))
+            self.assertEqual(before, {p.relative_to(root).as_posix(): p.read_bytes()
+                for p in (root / 'ToS/source-witnesses').rglob('*') if p.is_file()})
+            self.assertFalse((root / config['source_path']).parent.exists())
+
+    def test_creation_refuses_form_identity_already_owned_by_a_declared_claim(self):
+        from build_source_witness_catalog import collect_claims
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            for name in ('semantic-relation-type-registry', 'source-claim-record', 'source-relation-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            claim = json.loads((ROOT / 'ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl').read_text().splitlines()[0])
+            path = root / 'ToS/source-witnesses/history/fixture/source-claims.jsonl'
+            path.write_text(json.dumps(claim) + '\n')
+            self.assertIn(claim['claim_id'], {row['claim_id'] for row in collect_claims(root)})
+            change = commands.prepare_claim_change(claim, None, config['principal_id'],
+                request['forms'][0]['form_id'], 'claim.statement')
+            forms = commands._apply(None, Record.from_payload(claim['claim_id'], 1, claim), [change])
+            commands.claim_forms_path(path, claim['claim_id']).write_text(json.dumps(forms))
+            with self.assertRaisesRegex(commands.JournalConflict, 'form identity already exists'):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            self.assertFalse((root / config['source_path']).parent.exists())
+
+    def test_creation_retry_rejects_corrupt_receipt_and_original_bytes(self):
+        for captured in (False, True):
+            with self.subTest(captured=captured), (self.native_creation() if captured else self.creation()) as (
+                    root, owner, config, request, rebuild, fixture):
+                created = commands.run_local_command(owner, request)
+                target = (root / config['source_path']).parent
+                original = {p.name: p.read_bytes() for p in target.iterdir()}
+                receipt_path = target / 'source-create-receipt.json'
+                for update in ({'grants_admission': True}, {'files': {}}, {'principal_id': 'impostor'},
+                               {'authority_ref': 'impostor:grant'},
+                               {'dependencies': 'sha256:' + '0' * 64}, {'source': {'id': config['record_id']}},
+                               {'owner_configuration': 'sha256:' + '0' * 64}, {'recorded_at': 'unknown'}):
+                    with self.subTest(update=update):
+                        receipt_path.write_text(json.dumps({**created['receipt'], **update}))
+                        with self.assertRaises((commands.JournalCorruption, commands.JournalConflict, ValueError)):
+                            commands.run_local_command(owner, request)
+                        receipt_path.write_bytes(original[receipt_path.name])
+                for name in created['receipt']['files']:
+                    with self.subTest(file=name):
+                        # Whitespace leaves JSON meaning intact but violates the exact original byte binding.
+                        (target / name).write_bytes(original[name] + b' ')
+                        with self.assertRaises((commands.JournalCorruption, commands.JournalConflict)):
+                            commands.run_local_command(owner, request)
+                        (target / name).write_bytes(original[name])
+                self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
+    def test_creation_retry_retains_initial_forms_after_authorized_form_revision(self):
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            created = commands.run_local_command(owner, request)
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at')}
+            form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
+            writer = root / 'form-owner.json'
+            writer.write_text(json.dumps(form_config))
+            prepared = commands.run_local_command(writer, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', **request['forms'][0]})
+            commands.run_local_command(writer, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'apply', 'command_id': 'test:later-form-version',
+                'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+                'expected_configuration': prepared['owner_configuration'], 'changes': [prepared['prepared_change']]})
+            replay = commands.run_local_command(owner, request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], created['receipt'])
+
+    def test_standalone_corpus_identities_use_common_source_creation_without_role_subclasses(self):
+        for kind in ('agent', 'place', 'organization', 'work'):
+            with self.subTest(kind=kind), self.native_creation(kind) as (root, owner, config, request, rebuild, fixture):
+                source = request['record']
+                source['field_languages'] = {'preferred_label': {'language': 'x-test-language', 'script': None,
+                    'unknown_context': [False, None, 0, '', {'instruction': 'Never execute source text.'}]}}
+                source['external_identifiers'] = [{'scheme': 'synthetic', 'value': 'example',
+                    'source_ref': source['source_refs'][0], 'status': 'unverified'}]
+                description = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+                self.assertEqual(description['supported_operations'], ['source.create'])
+                self.assertEqual(description['source_profile']['record_type'], kind)
+                request.update(operation='source.create', record=source, expected_configuration=description['owner_configuration'])
+                preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+                request['expected_dependencies'] = preview['expected_dependencies']
+                result = commands.run_local_command(owner, request)
+                self.assertFalse(result['grants_admission'])
+                self.assertEqual(result['receipt']['schema_version'], 'tos_local_source_create_receipt_v1')
+                target = (root / config['source_path']).parent
+                self.assertEqual(json.loads((root / config['source_path']).read_text()), source)
+                self.assertEqual(len(list(target.iterdir())), 6)
+                event = json.loads((target / 'source-create-provenance.jsonl').read_bytes())
+                self.assertEqual(event['method']['procedure']['name'], 'source-corpus-metadata-serialization')
+                replay = commands.run_local_command(owner, request)
+                self.assertTrue(replay['replayed'])
+                self.assertEqual(replay['receipt'], result['receipt'])
+                graph, _, _ = fixture.historical_knowledge(root, rebuild())
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record'], source)
+                self.assertEqual({f['state'] for f in node['attributes']['human_forms']}, {'ready'})
+                self.assertFalse(any(e for e in graph['relations'] if e['from_id'] == node['id'] or e['to_id'] == node['id']))
+
+    def test_initial_work_creation_does_not_fabricate_bibliographic_closure(self):
+        with self.native_creation('work') as (root, owner, config, request, rebuild, fixture):
+            for fields in ({'expression_claim_refs': ['tos.claim.unbound-expression']},
+                           {'responsibility_claim_refs': []}, {'chronology_claim_refs': []},
+                           {'language': 'de'}, {'expression_role': 'source_language'}, {'edition_statement': 'Test edition'},
+                           {'work_ref': 'tos.work.other'}):
+                with self.subTest(fields=fields), self.assertRaises((PermissionError, ValueError)):
+                    commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                        'operation': 'prepare-create', 'record': {**request['record'], **fields}, 'forms': request['forms']})
+            invalid = copy.deepcopy(request['record'])
+            invalid.pop('expression_claim_refs')
+            with self.assertRaises(commands.ValidationError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', 'record': invalid, 'forms': request['forms']})
+            # The existing Nietzsche source home has stronger authored-by and
+            # chronology closure; a standalone metadata operation cannot fill it.
+            scoped = {**config, 'source_path': 'ToS/source-witnesses/works/friedrich-nietzsche/new-work/work.json'}
+            owner.write_text(json.dumps(scoped))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            owner.write_text(json.dumps(config))
+            self.assertFalse((root / config['source_path']).parent.exists())
+
+    def test_native_creation_stale_contract_concurrency_recovery_and_current_revocation(self):
+        with self.native_creation() as (root, owner, config, request, rebuild, fixture):
+            contract = root / 'ToS/contracts/corpus-record.schema.json'
+            contract.write_bytes(contract.read_bytes() + b' ')
+            with self.assertRaisesRegex(commands.JournalConflict, 'dependencies are stale'):
+                commands.run_local_command(owner, request)
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            with patch.object(commands, '_publish_new_directory', side_effect=RuntimeError('synthetic precommit failure')):
+                with self.assertRaises(RuntimeError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(lambda _: commands.run_local_command(owner, request), range(2)))
+            self.assertEqual(sorted(result['replayed'] for result in results), [False, True])
+            self.assertEqual(results[0]['receipt'], results[1]['receipt'])
+            target = (root / config['source_path']).parent
+            before = {p.name: p.read_bytes() for p in target.iterdir()}
+            owner.write_text(json.dumps({**config, 'allowed_operations': []}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual(before, {p.name: p.read_bytes() for p in target.iterdir()})
+
+    def test_document_and_letter_profiles_create_distinct_intellectual_sources(self):
+        from source_record_profiles import SourceRecordProfiles
+        live_profiles = SourceRecordProfiles(ROOT)
+        for kind in ('document', 'letter'):
+            with self.subTest(kind=kind):
+                self.assertIn(kind, live_profiles.profiles)
+                with self.creation() as (root, owner, config, request, rebuild, fixture):
+                    for ref in ('ToS/contracts/source-metadata-record.schema.json',
+                                'ToS/contracts/document-record.schema.json',
+                                'ToS/contracts/provenance-event-v2.schema.json'):
+                        (root / ref).write_bytes((ROOT / ref).read_bytes())
+                    config.pop('allowed_claim_ids')
+                    config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.' + kind,
+                        allowed_operations=['source.create'], record_id='tos.' + kind + '.synthetic-creation',
+                        source_path='ToS/source-witnesses/history/new-subject/' + kind + '.json',
+                        provenance_event_id='tos.event.' + kind + '-synthetic-creation')
+                    owner.write_text(json.dumps(config))
+                    source = request['record']
+                    source.update(schema_version='tos_document_record_v1', record_type=kind,
+                        record_id=config['record_id'], preferred_label='Условный документ' if kind == 'document' else 'Условное письмо',
+                        field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                         'notes': {'language': 'ru', 'script': 'Cyrl'}})
+                    request.pop('claims')
+                    preview_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                                       'record': source, 'forms': request['forms']}
+                    describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                                  'operation': 'describe'})
+                    preview = commands.run_local_command(owner, preview_request)
+                    request.update(operation='source.create', expected_configuration=describe['owner_configuration'],
+                                   expected_dependencies=preview['expected_dependencies'])
+                    for modified in ({'record_id': 'tos.work.false-equivalence'}, {'language': 'de'},
+                                     {'sender_ref': 'tos.agent.friedrich-nietzsche'}):
+                        with self.assertRaises((ValueError, PermissionError, commands.ValidationError)):
+                            commands.run_local_command(owner, {**preview_request, 'record': {**source, **modified}})
+                    commands.run_local_command(owner, request)
+                    graph, _, _ = fixture.historical_knowledge(root, rebuild())
+                    node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+                    self.assertEqual(node['attributes']['source_record'], source)
+                    self.assertIn('tos.entity.intellectual-object', node['semantics']['type_ancestors'])
+                    self.assertIn('tos.entity.document', node['semantics']['type_ancestors'])
+                    self.assertNotIn('tos.entity.work', node['semantics']['type_ancestors'])
+                    self.assertNotIn('tos.entity.artifact', node['semantics']['type_ancestors'])
+                    self.assertEqual({form['state'] for form in node['attributes']['human_forms']}, {'ready'})
+                    self.assertEqual({form['language'] for form in node['attributes']['human_forms']}, {'ru'})
+
+    def test_new_profile_creation_and_later_forms_need_no_kind_branch(self):
+        """An uninstalled synthetic kind exercises extension, not historical truth."""
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            registry_path = root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
+            registry = json.loads(registry_path.read_bytes())
+            entry = copy.deepcopy(next(item for item in registry['types']
+                                       if item['type_id'] == 'tos.entity.historical-event'))
+            kind, schema_ref = 'fixture-message', 'ToS/contracts/fixture-message.schema.json'
+            entry.update(type_id='tos.entity.' + kind, parent_type_ids=['tos.entity.identity'],
+                         source_mappings=[{'source_graph': graph, 'source_kind_id': kind}
+                                          for graph in ('source-claims', 'source-navigation')])
+            entry['source_record_profile'].update(record_type=kind, id_prefix='tos.fixture-message.',
+                source_basename=kind + '.json', catalog_filename='fixture-messages.jsonl', graph_layer='source-profile',
+                schemas=[{'schema_version': 'tos_fixture_message_v1', 'schema_ref': schema_ref,
+                          'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}])
+            registry['types'].append(entry)
+            registry_path.write_text(json.dumps(registry))
+            schema = json.loads((root / 'ToS/contracts/historical-record.schema.json').read_bytes())
+            schema['$id'] = 'https://tree-of-sophia.local/' + schema_ref
+            schema.pop('allOf')
+            schema['properties'].update(schema_version={'const': 'tos_fixture_message_v1'},
+                record_type={'const': kind}, record_id={'type': 'string', 'pattern': r'^tos\.fixture-message\.'})
+            (root / schema_ref).write_text(json.dumps(schema))
+            contract = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / contract).write_bytes((ROOT / contract).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version='tos_local_profile_create_owner_v1',
+                profile_type_id=entry['type_id'], allowed_operations=['source.create'],
+                record_id='tos.fixture-message.created',
+                source_path='ToS/source-witnesses/history/new-subject/' + kind + '.json',
+                provenance_event_id='tos.event.fixture-message-create')
+            owner.write_text(json.dumps(config))
+            source = request['record']
+            source.update(schema_version='tos_fixture_message_v1', record_type=kind,
+                          record_id=config['record_id'], preferred_label='Условное сообщение')
+            request.pop('claims')
+            describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                          'operation': 'describe'})
+            request.update(operation='source.create', expected_configuration=describe['owner_configuration'])
+            preview_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                               'record': source, 'forms': request['forms']}
+            preview = commands.run_local_command(owner, preview_request)
+            request['expected_dependencies'] = preview['expected_dependencies']
+            schema['description'] = 'An uninstantiated profile schema changed after prepare.'
+            (root / schema_ref).write_text(json.dumps(schema))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            request['expected_dependencies'] = commands.run_local_command(owner, preview_request)['expected_dependencies']
+            for field, value in [('profile_type_id', 'tos.entity.work'),
+                                 ('record_id', 'tos.work.not-delegated'),
+                                 ('source_path', 'ToS/source-witnesses/catalog/new-subject/fixture-message.json')]:
+                owner.write_text(json.dumps({**config, field: value}))
+                with self.subTest(delegation=field), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, preview_request)
+            owner.write_text(json.dumps(config))
+            for field, value in [('schema_version', 'tos_fixture_message_v99'),
+                                 ('record_type', 'historical-event'), ('identity_status', 'verified'),
+                                 ('visibility', 'local_only'), ('record_version', 2)]:
+                with self.subTest(field=field), self.assertRaises((ValueError, PermissionError, commands.ValidationError)):
+                    commands.run_local_command(owner, {**preview_request, 'record': {**source, field: value}})
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['replayed'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+            self.assertEqual(node['attributes']['source_record'], source)
+            # Profile metadata also stays writable through the existing form
+            # contract, without granting profile creation to that contract.
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                       'authority_ref', 'allowed_form_ids', 'expires_at')}
+            form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
+            owner.write_text(json.dumps(form_config))
+            form_context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                              'operation': 'describe'})
+            change = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', 'form_id': config['allowed_form_ids'][0], 'field_id': 'metadata.preferred-name'})
+            applied = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'apply', 'command_id': 'synthetic:revise-profile-form',
+                'expected_configuration': form_context['owner_configuration'], 'expected_source': form_context['source'],
+                'expected_revision': form_context['revision'], 'changes': [change['prepared_change']]})
+            self.assertEqual(applied['receipt']['results'][0]['version'], 2)
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), source)
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, request)
+
+            # Source correction uses the same declared profile without a new
+            # kind branch; it is not inherited from form or creation authority.
+            revise_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at', 'record_id', 'profile_type_id')}
+            revise_config.update(schema_version=commands.PROFILE_REVISION_CONFIG,
+                allowed_operations=['record.revise'], allowed_fields=['notes'])
+            owner.write_text(json.dumps(revise_config))
+            proposal = {'fields': {'notes': 'Corrected synthetic message; not historical evidence.'},
+                        'forms': request['forms'], 'reason': 'Test profile source correction after form revision.'}
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-revise', **proposal})
+            self.assertEqual(prepared['profile_type_id'], entry['type_id'])
+            revised = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'record.revise', 'command_id': 'synthetic:revise-profile-record',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                **proposal})
+            self.assertEqual(revised['source']['version'], 2)
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+            self.assertEqual(node['attributes']['source_record'], {**source, **proposal['fields'], 'record_version': 2})
+            self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None
+                                for view in node['attributes']['human_forms']))
+            owner.write_text(json.dumps(config))
+            self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+
+    def test_native_semantic_identity_blocks_standalone_creation_and_stales_prepared_inputs(self):
+        """Hidden synthetic native subjects retain IDs without exporting text."""
+        from source_record_profiles import SourceRecordProfiles, SourceProfileError
+        from build_source_witness_catalog import collect_records, CatalogBuildError
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            for name in ('source-metadata-record', 'semantic-description-record', 'lexical-description-record',
+                         'semantic-annotation-packet-v2', 'provenance-event-v2'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.lexeme',
+                allowed_operations=['source.create'], record_id='tos.lexeme.sid-11111111111111111111111111111111',
+                source_path='ToS/source-witnesses/history/new-subject/lexeme.json',
+                provenance_event_id='tos.event.synthetic-native-collision-create')
+            owner.write_text(json.dumps(config))
+            source = request['record']
+            source.update(schema_version='tos_lexical_description_record_v1', record_type='lexeme',
+                record_id=config['record_id'], notes='Synthetic lexical identity, not an attested word.',
+                field_languages={'preferred_label': {'language': None, 'script': None},
+                                 'notes': {'language': 'en', 'script': 'Latn'}},
+                semantic_scope={'scope_note': 'Only this synthetic referent.', 'language': 'en', 'script': 'Latn',
+                    'identity_criterion': 'One test subject; shared labels do not merge it.'},
+                semantic_content={'lexical_account': 'Synthetic lexical grouping.',
+                    'grammatical_account': 'No real grammatical analysis.', 'language': 'en', 'script': 'Latn'})
+            request.pop('claims')
+            prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                       'record': source, 'forms': request['forms']}
+            prepared = commands.run_local_command(owner, prepare)
+            request.update(operation='source.create', expected_configuration=prepared['owner_configuration'],
+                           expected_dependencies=prepared['expected_dependencies'])
+            packet = json.loads((ROOT / 'ToS/research-packets/foundation-laboratory-2026-07/'
+                                 'semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json').read_bytes())
+            entity = copy.deepcopy(packet['entities'][-1])
+            entity.update(entity_kind='lexeme', entity_id=source['record_id'], admission_status='proposed')
+            packet['entities'].append(entity)
+            packet['content_posture'] = 'source_bound'  # Artificial fixture of the restricted-source shape.
+            packet['rights_and_visibility'].update(private_source_used=True, publication_authorized=False,
+                record_visibility='local_only', source_content_visibility='local_only')
+            packet_path = root / 'ToS/source-witnesses/history/semantic-annotation.synthetic.json'
+            packet_path.write_text(json.dumps(packet))
+            profiles = SourceRecordProfiles(root)
+            self.assertIn(source['record_id'], profiles.native_semantic_identities())
+            from source_record_profiles import NATIVE_SEMANTIC_PREFIXES
+            native_schema = json.loads((root / 'ToS/contracts/semantic-annotation-packet-v2.schema.json').read_bytes())
+            declared_spaces = {'tos.' + native_schema['$defs'][branch['$ref'].split('/')[-1]]['pattern'].split(r'\.')[1] + '.'
+                               for branch in native_schema['$defs']['entityId']['oneOf']}
+            self.assertEqual(set(NATIVE_SEMANTIC_PREFIXES), declared_spaces)
+            self.assertIn(packet_path.relative_to(root).as_posix(), profiles.native_identity_input_digests)
+            self.assertNotIn(packet_path.relative_to(root).as_posix(), profiles.input_digests)
+            profiles.native_identity_snapshot(read_bytes=commands._read)
+            extra_packet = packet_path.with_name('semantic-annotation.extra.json')
+            extra_packet.write_bytes(packet_path.read_bytes())
+            with self.assertRaises(SourceProfileError):
+                profiles.native_identity_snapshot(read_bytes=commands._read)
+            with patch('source_record_profiles.MAX_NATIVE_IDENTITY_BYTES', packet_path.stat().st_size * 2 - 1):
+                with self.assertRaises(SourceProfileError):
+                    SourceRecordProfiles(root).native_semantic_identities()
+            extra_packet.unlink()
+            from tos_corpus_index_common import project_text_packet
+            self.assertEqual(project_text_packet(packet, packet_path.relative_to(root).as_posix()), ([], []))
+            with self.assertRaises(SourceProfileError):
+                commands.run_local_command(owner, prepare)
+            with self.assertRaises(SourceProfileError):
+                commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).exists())
+            # Even an unrelated native arrival changes the prepare snapshot.
+            packet['entities'][-1]['entity_id'] = 'tos.lexeme.sid-22222222222222222222222222222222'
+            packet_path.write_text(json.dumps(packet))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            request['expected_dependencies'] = commands.run_local_command(owner, prepare)['expected_dependencies']
+            commands.run_local_command(owner, request)
+            form_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at')}
+            form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
+            form_owner = root / 'native-collision-form-owner.json'
+            form_owner.write_text(json.dumps(form_config))
+            form_prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare',
+                            **request['forms'][0]}
+            form_prepared = commands.run_local_command(form_owner, form_prepare)
+            form_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                'command_id': 'synthetic:native-collision-form-revision',
+                'expected_configuration': form_prepared['owner_configuration'],
+                'expected_source': form_prepared['source'], 'expected_revision': form_prepared['revision'],
+                'changes': [form_prepared['prepared_change']]}
+            revision_config = {**form_config, 'schema_version': commands.PROFILE_REVISION_CONFIG,
+                'record_id': config['record_id'], 'profile_type_id': config['profile_type_id'],
+                'allowed_operations': ['record.revise'], 'allowed_fields': ['notes']}
+            revision_owner = root / 'native-collision-revision-owner.json'
+            revision_owner.write_text(json.dumps(revision_config))
+            revision_prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'notes': 'Synthetic metadata correction, not another referent.'},
+                'forms': request['forms'], 'reason': 'Check native identity currentness.'}
+            revision_prepared = commands.run_local_command(revision_owner, revision_prepare)
+            revision_request = {**revision_prepare, 'operation': 'record.revise',
+                'command_id': 'synthetic:native-collision-record-revision',
+                'expected_configuration': revision_prepared['owner_configuration'],
+                'expected_source': revision_prepared['source'], 'expected_revision': revision_prepared['revision'],
+                'expected_dependencies': revision_prepared['expected_dependencies']}
+            from assessment_journal import _source_records
+            bindings = [{'path': config['source_path'], 'record_id': source['record_id'],
+                         'origin_id': 'synthetic:native-identity-boundary'}]
+            # A native packet arriving after standalone creation must also
+            # close existing-record readers, not only new creation.
+            packet['entities'][-1]['entity_id'] = source['record_id']
+            packet_path.write_text(json.dumps(packet))
+            with self.assertRaises(CatalogBuildError):
+                collect_records(root)
+            with self.assertRaises(SourceProfileError):
+                SourceRecordProfiles(root).load('lexeme', config['source_path'])
+            with self.assertRaises(SourceProfileError):
+                SourceRecordProfiles(root).validate('lexeme', source)
+            for selected_owner, command in ((owner, request), (form_owner, form_prepare),
+                    (form_owner, form_request), (revision_owner, revision_prepare),
+                    (revision_owner, revision_request)):
+                with self.subTest(operation=command['operation']), self.assertRaises(SourceProfileError):
+                    commands.run_local_command(selected_owner, command)
+            with self.assertRaises(SourceProfileError):
+                _source_records(root, bindings)
+            # No native content, label or body becomes a public catalog entry.
+            packet['entities'][-1]['entity_id'] = 'tos.lexeme.sid-22222222222222222222222222222222'
+            packet_path.write_text(json.dumps(packet))
+            self.assertNotIn(packet['entities'][-1]['entity_id'], {
+                row['record_id'] for rows in collect_records(root).values() for row in rows})
+            identity_snapshots = {}
+            resolved, fixity = _source_records(root, bindings, identity_snapshots=identity_snapshots)
+            self.assertEqual(len(identity_snapshots), 1)
+            self.assertNotIn(packet_path.relative_to(root).as_posix(), {item['path'] for item in fixity})
+            self.assertNotIn(packet_path.relative_to(root).as_posix(), json.dumps(identity_snapshots))
+            # Changing non-colliding native metadata invalidates prepared
+            # forms, corrections and assessment snapshots, without exporting it.
+            packet['entities'][-1]['entity_id'] = 'tos.lexeme.sid-33333333333333333333333333333333'
+            packet_path.write_text(json.dumps(packet))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(form_owner, form_request)
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(revision_owner, revision_request)
+            updated_snapshots = {}
+            self.assertEqual(_source_records(root, bindings, identity_snapshots=updated_snapshots), (resolved, fixity))
+            self.assertNotEqual(updated_snapshots, identity_snapshots)
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), source)
+            # Historical creation replay remains exact evidence, not a fresh
+            # creation attempt, provided current identity is still unambiguous.
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
+    def test_semantic_description_creation_and_correction_preserve_referent_and_scope(self):
+        lexical = {
+            'lexeme': {'lexical_account': 'Synthetic lexical grouping, not string identity.',
+                       'grammatical_account': 'A proposed nominal analysis.'},
+            'lexical-form': {'form_account': 'A supplied written representation, not an occurrence.'},
+            'sense': {'sense_account': 'A synthetic lexical reading, not a concept.',
+                      'interpretation_context': 'Only the artificial test context.',
+                      'semantic_range': 'Other readings remain open.'},
+        }
+        linguistic = {
+            'language': {'system_account': 'A synthetic language account, not a script.'},
+            'linguistic-variety': {'system_account': 'A synthetic variety, not a period.',
+                'distinguishing_basis': 'Source-scoped linguistic criteria, not a universal classification.'},
+            'script': {'script_account': 'A synthetic writing tradition, not a language.',
+                'sign_inventory_scope': 'A limited repertoire, not fixed readings for all times.'},
+            'transliteration-scheme': {'mapping_convention': 'Synthetic notation, not an executed mapping.',
+                'coverage_and_loss': 'Uncertainty remains; no losslessness claim.'},
+        }
+        reception = {
+            'reception-process': {'engagement_basis': 'Documented response, not inferred agreement.'},
+            'historical-canonization': {'engagement_basis': 'Historical selection practices.',
+                'selection_basis': 'Criteria of this historical community.', 'authority_scope': 'Not ToS admission.'},
+            'historical-forgetting': {'evidence_boundary': 'Attested decline in this context, not a missing catalog row.'},
+            'rediscovery-episode': {'prior_access_boundary': 'Renewed access for this community; known elsewhere is possible.'},
+            'intellectual-legacy': {'transmission_basis': 'Attested persistence with changes; no automatic direct influence.'},
+        }
+        reception = {kind: {'reception_account': 'A synthetic account of the later history.',
+            'receiving_context': 'The receiving community and limits of this test.', **content}
+            for kind, content in reception.items()}
+        reception_properties = {
+            'reception_account': 'tos.property.reception-history-reception-account',
+            'receiving_context': 'tos.property.reception-history-receiving-context',
+            'engagement_basis': 'tos.property.reception-process-engagement-basis',
+        }
+        passages = {
+            'composite': {'composition_account': 'A synthetic scholarly arrangement, not an ancient original.', 'editorial_method': 'Synthetic selection and ordering.', 'coverage_account': 'Partial, with unknown gaps.'},
+            'textual-fragment': {'fragment_account': 'A synthetic textual portion, not a physical fragment.', 'boundary_basis': 'Proposed editorial boundary, not exact text.'},
+            'quotation-passage': {'quotation_account': 'A synthetic quoting passage, not its source fragment.', 'location_account': 'Reported place in the containing work, not a resolved anchor.'},
+        }
+        passage_properties = {'composition_account': 'tos.property.composite-composition-account',
+            'editorial_method': 'tos.property.composite-editorial-method',
+            'coverage_account': 'tos.property.composite-coverage-account',
+            'fragment_account': 'tos.property.fragment-account',
+            'boundary_basis': 'tos.property.fragment-boundary-basis',
+            'quotation_account': 'tos.property.quotation-account', 'location_account': 'tos.property.quotation-location'}
+        formations = {
+            'intellectual-school': {'formation_account': 'A synthetic school, not a building.', 'inquiry_lineage': 'A synthetic teaching and inquiry lineage.'},
+            'intellectual-tradition': {'formation_account': 'A synthetic tradition, not a timeless doctrine.', 'transmission_account': 'Transmission and reworking with gaps.'},
+            'intellectual-movement': {'formation_account': 'A synthetic movement, not an individual thought move.', 'movement_orientation': 'A shared historical direction of inquiry.'},
+        }
+        social = {
+            'social-group': {'group_account': 'A synthetic collective, not a class of similar people.', 'membership_boundary': 'Participation in this test activity.'},
+            'community': {'group_account': 'A synthetic community.', 'membership_boundary': 'Continuing participation.', 'community_practice': 'Repeated shared inquiry.'},
+            'institutional-body': {'institutional_account': 'A synthetic body with organized roles; not its building.'},
+        }
+        practices = {
+            'thought-method': {'method_account': 'Synthetic inquiry method, not executable code.', 'applicability_conditions': ['Only within the test assumptions.']},
+            'thought-operation': {'operation_account': 'Provisionally grant a synthetic condition.', 'prerequisites': ['Suspend actuality claims.']},
+            'thought-move': {'movement_account': 'Reframe a synthetic alternative.', 'context_requirement': 'Within the test question.'},
+            'thought-experiment': {'scenario_account': 'Suppose a synthetic world.', 'assumptions': ['Only the test condition is granted.'], 'assumption_coverage': 'reconstructed_partial', 'examined_consequence': 'Would the synthetic consequence follow?'},
+            'thought-image': {'image_account': 'A synthetic imagined scene, not a digital image file.', 'image_mode': 'Figurative presentation.'},
+            'rhetorical-figure': {'figure_account': 'A synthetic repeated arrangement, not a historical person.'},
+            'metaphor': {'figure_account': 'A synthetic figurative transfer.', 'source_domain': 'Tools.', 'target_domain': 'Test inquiry.', 'mapping_basis': 'Use, not literal material identity.'},
+            'value': {'value_account': 'Synthetic clarity as a value, not a scalar.', 'valuation_context': 'Only this synthetic inquiry.'},
+            'ideal': {'ideal_account': 'A synthetic normative model, not an actual agent.', 'realization_posture': 'normative_model'},
+            'ontological-commitment': {'commitment_account': 'A conditional synthetic ontology, not ToS core law.', 'commitment_force': 'Conditional on the synthetic assumptions.'},
+        }
+        topics = {
+            'aspect': {'perspective_account': 'A synthetic perspective on agency, not a new conception.'},
+            'philosophical-category': {'category_account': 'Time as a synthetic philosophical category, not a datatype.'},
+            'problem': {'problem_statement': 'A synthetic difficulty about agency.', 'inquiry_stakes': 'Its consequences for this synthetic inquiry.'},
+            'problem-family': {'grouping_basis': 'Synthetic questions of agency grouped without identity.'},
+            'question': {'question_text': 'What would count as synthetic agency?', 'presupposition_account': 'The criterion is not assumed to be settled.'},
+            'position': {'stance_account': 'A synthetic stance refusing one proposed answer.'},
+            'distinction': {'differentiation_criterion': 'Synthetic differentiation by the sense of agency.'},
+            'opposition': {'differentiation_criterion': 'Synthetic contrast of accounts.', 'opposition_basis': 'Presented as opposed, not proved contradictory.'},
+        }
+        contents = {
+            'thesis': {'proposition': 'A synthetic hypothetical proposition.', 'assertion_force': 'hypothetical'},
+            'argument': {'reconstruction_note': 'A synthetic partial account.', 'coverage': 'partial'},
+            'inference-step': {'transition_account': 'A synthetic transition.', 'reasoning_mode': 'reductio'},
+            'objection': {'challenge_account': 'The synthetic transition is under examination.'},
+            **topics,
+            **practices,
+            **social,
+            **formations,
+            **passages,
+            **reception,
+            **linguistic,
+            **lexical,
+        }
+        for kind in ('crosscutting-concept', 'conception', *contents):
+            with self.subTest(kind=kind), self.creation() as (root, owner, config, request, rebuild, fixture):
+                for name in ('source-metadata-record', 'semantic-description-record', 'thought-description-record', 'thought-topic-record', 'thought-practice-record', 'social-body-record', 'intellectual-formation-record', 'textual-passage-record', 'scholarly-composite-record', 'reception-record', 'linguistic-description-record', 'lexical-description-record', 'provenance-event-v2'):
+                    ref = 'ToS/contracts/' + name + '.schema.json'
+                    (root / ref).write_bytes((ROOT / ref).read_bytes())
+                config.pop('allowed_claim_ids')
+                config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.' + ('lexical-sense' if kind == 'sense' else kind),
+                    allowed_operations=['source.create'], record_id=f'tos.{kind}.synthetic-create',
+                    source_path=f'ToS/source-witnesses/history/new-subject/{kind}.json',
+                    provenance_event_id=f'tos.event.synthetic-{kind}-create')
+                owner.write_text(json.dumps(config))
+                source = request['record']
+                source.update(schema_version='tos_semantic_description_record_v1', record_type=kind,
+                    record_id=config['record_id'], preferred_label='Условный предмет исследования',
+                    field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                                     'notes': {'language': 'ru', 'script': 'Cyrl'}},
+                    semantic_scope={'scope_note': 'Только синтетическая проверка.',
+                        'identity_criterion': 'Постоянный предмет теста, не сходство имён.', 'language': 'ru', 'script': 'Cyrl'})
+                if kind in contents:
+                    source.update(schema_version=('tos_scholarly_composite_record_v1' if kind == 'composite' else
+                                  'tos_lexical_description_record_v1' if kind in lexical else
+                                  'tos_linguistic_description_record_v1' if kind in linguistic else
+                                  'tos_reception_record_v1' if kind in reception else
+                                  'tos_textual_passage_record_v1' if kind in passages else
+                                  'tos_intellectual_formation_record_v1' if kind in formations else
+                                  'tos_social_body_record_v1' if kind in social else
+                                  'tos_thought_practice_record_v1' if kind in practices else
+                                  'tos_thought_topic_record_v1' if kind in topics else 'tos_thought_description_record_v1'),
+                                  semantic_content={**contents[kind], 'language': 'en', 'script': 'Latn'})
+                if kind == 'lexical-form':
+                    source['form_identity'] = {'written_representation': 'e\u0301', 'language': 'x-test', 'script': 'Latn',
+                        'representation_kind': 'orthographic', 'notation_scope': 'Only this test notation.',
+                        'unicode_posture': 'preserved_as_supplied'}
+                if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic or kind in lexical:
+                    source['semantic_content']['x-uninterpreted'] = [None, False, {'source-field': 'retained'}]
+                request.pop('claims')
+                if kind == 'composite':
+                    with self.assertRaises((ValueError, PermissionError)):
+                        commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                            'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
+                    config['source_path'] = 'ToS/source-witnesses/scholarly-composites/arrangement/synthetic/new-subject/composite.json'
+                    (root / config['source_path']).parent.parent.mkdir(parents=True)
+                    owner.write_text(json.dumps(config))
+                prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
+                request.update(operation='source.create', expected_configuration=prepared['owner_configuration'],
+                               expected_dependencies=prepared['expected_dependencies'])
+                result = commands.run_local_command(owner, request)
+                self.assertFalse(result['grants_admission'])
+                original = (root / config['source_path']).read_bytes()
+                revise_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                    'authority_ref', 'allowed_form_ids', 'expires_at', 'record_id', 'profile_type_id')}
+                revise_config.update(schema_version=commands.PROFILE_REVISION_CONFIG,
+                    allowed_operations=['record.revise'], allowed_fields=['notes', 'semantic_content'])
+                owner.write_text(json.dumps(revise_config))
+                proposal = {'fields': {'notes': 'Уточнённое описание того же условного предмета; не исторический факт.'},
+                            'forms': request['forms'], 'reason': 'Correct description, not semantic transformation.'}
+                if kind in contents:
+                    wording = next(iter(contents[kind]))
+                    proposal['fields']['semantic_content'] = {**source['semantic_content'],
+                        wording: source['semantic_content'][wording] + ' Corrected wording of the same test referent.'}
+                for fields in ({'semantic_scope': {**source['semantic_scope'], 'identity_criterion': 'A different subject'}},
+                               {'record_id': 'tos.conception.another'}, {'notes': ''}, {'semantic_content': {}},
+                               {'form_identity': {'written_representation': 'é'}}):
+                    with self.assertRaises((PermissionError, ValueError)):
+                        commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                            'operation': 'prepare-revise', **proposal, 'fields': fields})
+                    self.assertEqual((root / config['source_path']).read_bytes(), original)
+                prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare-revise', **proposal})
+                revised = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'record.revise', 'command_id': 'synthetic:correct-description',
+                    'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                    'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'], **proposal})
+                self.assertEqual(revised['source']['id'], source['record_id'])
+                self.assertEqual(revised['source']['version'], 2)
+                graph, _, _ = fixture.historical_knowledge(root, rebuild())
+                node = next(n for n in graph['nodes'] if n['entity_id'] == source['record_id'])
+                self.assertEqual(node['attributes']['source_record']['semantic_scope'], source['semantic_scope'])
+                if kind in contents:
+                    self.assertEqual(node['attributes']['source_record']['semantic_content'], proposal['fields']['semantic_content'])
+                    if kind in topics or kind in practices or kind in social or kind in formations or kind in passages or kind in reception or kind in linguistic or kind in lexical:
+                        from tos_access.knowledge import execute_knowledge_lens, select_human_forms
+                        for field in contents[kind]:
+                            property_kind = ('distinction' if kind == 'opposition' and field == 'differentiation_criterion'
+                                else 'social-group' if kind == 'community' and field in {'group_account', 'membership_boundary'}
+                                else 'rhetorical-figure' if kind == 'metaphor' and field == 'figure_account' else kind)
+                            value = proposal['fields']['semantic_content'][field]
+                            lens_result = execute_knowledge_lens(graph, {'schema_version': 'tos_lens_spec_v1',
+                                'lens_id': 'synthetic-content-property', 'node_query': {'filters': [{
+                                    'property_id': (passage_properties[field] if kind in passages else
+                                        reception_properties[field] if kind in reception and field in reception_properties else
+                                        'tos.property.formation-account' if field == 'formation_account'
+                                        else f"tos.property.{property_kind}-{field.replace('_', '-')}"),
+                                    'op': 'contains' if isinstance(value, list) else 'eq',
+                                    'value': value[0] if isinstance(value, list) else value}]},
+                                'relation_query': {'enabled': False}, 'detail': 'full'})
+                            self.assertEqual([n['entity_id'] for n in lens_result['nodes']], [source['record_id']])
+                        context = select_human_forms(node, 'ru')['roles']['hover']['packet']['context']
+                        self.assertTrue(any(c['binding']['pointer'] == '/semantic_content'
+                            and c['value'] == proposal['fields']['semantic_content'] for c in context))
+                        if kind == 'lexical-form':
+                            self.assertEqual(node['attributes']['source_record']['form_identity'], source['form_identity'])
+                            self.assertTrue(any(c['binding']['pointer'] == '/form_identity'
+                                and c['value'] == source['form_identity'] for c in context))
+                    previous = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                        'operation': 'inspect-version', 'source': prepared['source']})
+                    self.assertEqual(previous['record'], source)
+                    self.assertEqual((root / previous['files'][kind + '.json']['archive_path']).read_bytes(), original)
+                self.assertTrue(all(v['state'] == 'ready' and v['admission'] is None for v in node['attributes']['human_forms']))
+                owner.write_text(json.dumps(config))
+                self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+
+    def test_profile_creation_uses_shared_transaction_without_granting_claims_or_admission(self):
+        """Generic operation on an existing declared profile; synthetic data only."""
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            contract = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / contract).write_bytes((ROOT / contract).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version='tos_local_profile_create_owner_v1',
+                          profile_type_id='tos.entity.historical-event',
+                          allowed_operations=['source.create'],
+                          provenance_event_id='tos.event.generic-creation-fixture')
+            owner.write_text(json.dumps(config))
+            describe = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                                                          'operation': 'describe'})
+            self.assertEqual(describe['supported_operations'], ['source.create'])
+            self.assertEqual(describe['source_profile']['record_type'], 'historical-event')
+            self.assertFalse(describe['grants_admission'])
+            request.pop('claims')
+            request.update(operation='source.create', expected_configuration=describe['owner_configuration'])
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            target = (root / config['source_path']).parent
+            self.assertFalse(target.exists())
+            with patch.object(commands, '_publish_new_directory', side_effect=OSError('interrupted')):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse(target.exists())
+            result = commands.run_local_command(owner, request)
+            self.assertEqual(result['schema_version'], 'tos_local_source_create_result_v1')
+            self.assertEqual(result['receipt']['schema_version'], 'tos_local_source_create_receipt_v1')
+            self.assertFalse(result['grants_admission'])
+            self.assertFalse((target / 'historical-claims.jsonl').exists())
+            before = {path.name: path.read_bytes() for path in target.iterdir()}
+            self.assertEqual(len(before), 6)
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), request['record'])
+            provenance = json.loads(before['source-create-provenance.jsonl'])
+            commands._validator_for_provenance(root).validate(provenance)
+            self.assertEqual(provenance['method']['procedure']['name'], 'source-profile-metadata-serialization')
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(item for item in graph['nodes'] if item['entity_id'] == config['record_id'])
+            self.assertEqual(node['attributes']['source_record'], request['record'])
+            self.assertEqual({form['state'] for form in node['attributes']['human_forms']}, {'ready'})
+            process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(owner)],
+                input=json.dumps(request), text=True, capture_output=True)
+            self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
+            self.assertTrue(json.loads(process.stdout)['replayed'])
+            with self.assertRaises(ValueError):
+                commands.run_local_command(owner, {**request, 'claims': []})
+            config['allowed_operations'] = []
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+
+    def test_v2_creation_captures_own_provenance_atomically_and_replays_exact_bytes(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            schema_ref = 'ToS/contracts/provenance-event-v2.schema.json'
+            (root / schema_ref).write_bytes((ROOT / schema_ref).read_bytes())
+            config.update(schema_version='tos_local_historical_create_owner_v2',
+                          provenance_event_id='tos.event.creation-fixture')
+            owner.write_text(json.dumps(config))
+            for claim in request['claims']:
+                claim['provenance_event_ref'] = config['provenance_event_id']
+            discovery = commands.run_local_command(owner, {
+                'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            request['expected_configuration'] = discovery['owner_configuration']
+            preview = commands.run_local_command(owner, {
+                'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+                **{key: request[key] for key in ('record', 'claims', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            target = (root / config['source_path']).parent
+            self.assertFalse(target.exists())
+            invalid = copy.deepcopy(request)
+            invalid['claims'][0]['provenance_event_ref'] = 'tos.event.not-delegated'
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, invalid)
+            self.assertFalse(target.exists())
+            with patch.object(commands, '_publish_new_directory', side_effect=OSError('interrupted')):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse(target.exists())
+            result = commands.run_local_command(owner, request)
+            before = {path.name: path.read_bytes() for path in target.iterdir()}
+            event = json.loads(before['source-create-provenance.jsonl'])
+            commands._validator_for_provenance(root).validate(event)
+            from validate_source_witness_foundation import _provenance_v2_semantic_issues
+            self.assertEqual(_provenance_v2_semantic_issues(event), [])
+            self.assertEqual(event['event_id'], config['provenance_event_id'])
+            self.assertEqual(event['responsibility'][0]['agent_kind'], 'software')
+            self.assertEqual(event['method']['model_invocations'], [])
+            self.assertFalse(event['review_and_authority']['promotion_authorized'])
+            self.assertEqual(json.loads(before['source-create-request.json']), request)
+            for binding in [event['method']['configuration_binding'],
+                            event['method']['environment']['environment_profile_binding']]:
+                self.assertEqual(hashlib.sha256((root / binding['ref']).read_bytes()).hexdigest(), binding['sha256'])
+            for entity in [*event['entities']['inputs'], *event['entities']['outputs']]:
+                raw = (root / entity['entity_ref']).read_bytes()
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), entity['sha256'])
+                self.assertEqual(len(raw), entity['size_bytes'])
+            for name, spec in result['receipt']['files'].items():
+                self.assertEqual(spec['sha256'], commands._digest(before[name]))
+            projection = rebuild()
+            self.assertTrue(any(node['properties'].get('source_event') == event for node in projection['nodes']))
+            retry = commands.run_local_command(owner, request)
+            self.assertTrue(retry['replayed'])
+            self.assertEqual(retry['receipt'], result['receipt'])
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+            config['provenance_event_id'] = 'tos.event.reassigned'
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+
+    @contextmanager
+    def creation(self):
+        sys.path.insert(0, str(ROOT / 'tests'))
+        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
+        fixture = SourceWitnessBibliographicGraphTest()
+        with fixture.historical_fixture() as (root, history, real, old_claims, rebuild):
+            rebuild()
+            source = {**copy.deepcopy(history[0][1]), 'record_id': 'tos.historical-event.creation-fixture',
+                      'extensions': {'unknown': {'negative': False, 'missing': None}}}
+            claims = [{**copy.deepcopy(claim), 'claim_id': f'tos.claim.creation-fixture-{index}',
+                       'subject_ref': source['record_id']} for index, claim in enumerate(old_claims)]
+            relative = 'ToS/source-witnesses/history/new-subject/historical-event.json'
+            config = {'schema_version': 'tos_local_historical_create_owner_v1', 'uid': os.getuid(),
+                'principal_id': 'software:test-fixture', 'maker_type': 'software',
+                'source_root': str(root), 'source_path': relative, 'record_id': source['record_id'],
+                'authority_ref': 'synthetic-test-only:creation-not-assessment',
+                'allowed_form_ids': ['tos.form.creation-name', 'tos.form.creation-hover'],
+                'allowed_claim_ids': [claim['claim_id'] for claim in claims],
+                'allowed_operations': [commands.CREATION_OPERATION], 'expires_at': '2099-01-01T00:00:00Z'}
+            owner = root / 'owner.json'
+            owner.write_text(json.dumps(config))
+            context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            self.assertFalse(context['target_exists'])
+            self.assertEqual(context['allowed_operations'], ['historical.create'])
+            request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'historical.create',
+                'command_id': 'synthetic:create-first', 'expected_configuration': context['owner_configuration'],
+                'expected_source': None, 'expected_revision': None, 'record': source, 'claims': claims,
+                'forms': [{'form_id': 'tos.form.creation-name', 'field_id': 'metadata.preferred-name'},
+                          {'form_id': 'tos.form.creation-hover', 'field_id': 'metadata.source-note'}]}
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare', 'record': source})
+            self.assertFalse((root / relative).parent.exists())
+            self.assertEqual(prepared['prepared_source'], Record.from_payload(source['record_id'], 1, source).ref)
+            self.assertEqual({field['field_id'] for field in prepared['source_fields']},
+                             {'metadata.preferred-name', 'metadata.source-note'})
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'claims', 'forms')}})
+            request['expected_dependencies'] = preview['expected_dependencies']
+            self.assertFalse((root / relative).parent.exists())
+            self.assertFalse((root / 'ToS/source-witnesses/.historical-create.writer.lock').exists())
+            yield root, owner, config, request, rebuild, fixture
+
+    def test_complete_creation_reaches_existing_catalog_graph_and_restart_without_admission(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', **{key: request[key] for key in ('record', 'claims', 'forms')}})
+            result = commands.run_local_command(owner, request)
+            target = (root / config['source_path']).parent
+            self.assertFalse(result['replayed'])
+            self.assertFalse(result['grants_admission'])
+            self.assertEqual(result['receipt']['files'], preview['prepared_files'])
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), request['record'])
+            self.assertEqual([json.loads(line) for line in (target / 'historical-claims.jsonl').read_text().splitlines()], request['claims'])
+            before = {path.name: path.read_bytes() for path in target.iterdir()}
+            for name, spec in result['receipt']['files'].items():
+                self.assertEqual(spec, {'sha256': commands._digest(before[name]), 'bytes': len(before[name])})
+            projection = rebuild()
+            graph, _, _ = fixture.historical_knowledge(root, projection)
+            subject = next(node for node in graph['nodes'] if node.get('entity_id') == config['record_id'])
+            self.assertEqual(subject['type_id'], 'tos.entity.historical-event')
+            self.assertEqual(subject['attributes']['source_record'], request['record'])
+            from tos_access.knowledge import focus_knowledge_node, select_human_forms
+            selected = select_human_forms(subject, 'auto')['roles']['hover']['packet']
+            self.assertEqual(selected['display_text'], request['record']['notes'])
+            self.assertIsNone(selected['admission'])
+            neighbors = focus_knowledge_node(graph, config['record_id'], depth=2)
+            self.assertTrue({claim['object'] for claim in request['claims']}.issubset(
+                {node['entity_id'] for node in neighbors['nodes']}))
+            forms = commands._snapshot(root / config['source_path'])[-1]
+            views = commands.materialize_metadata_forms(request['record'], forms, access_allowed=True)
+            self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None for view in views))
+            for claim in request['claims']:
+                self.assertTrue(any(node.get('entity_id') == claim['claim_id'] for node in graph['nodes']))
+            process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(owner)],
+                input=json.dumps(request), text=True, capture_output=True)
+            self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
+            replay = json.loads(process.stdout)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], result['receipt'])
+            self.assertEqual({path.name: path.read_bytes() for path in target.iterdir()}, before)
+
+    def test_creation_conflicts_when_consumed_profile_contract_changes_after_prepare(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            ref = root / 'ToS/contracts/semantic-entity-type-registry.schema.json'
+            schema = json.loads(ref.read_bytes())
+            schema['description'] = 'Changed profile contract after this command was prepared.'
+            ref.write_text(json.dumps(schema))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+
+    def test_invalid_sources_claims_forms_and_scope_publish_nothing(self):
+        mutations = [
+            lambda r: r['record'].update(record_version=2),
+            lambda r: r['record'].update(visibility='local_only'),
+            lambda r: r['record'].update(record_id='tos.historical-event.outside'),
+            lambda r: r['record'].update(identity_status='established'),
+            lambda r: r['claims'][0]['maker'].update(agent_ref='impostor'),
+            lambda r: r['claims'][0]['maker'].update(maker_type='human'),
+            lambda r: r['claims'][0].update(object='tos.work.missing'),
+            lambda r: r['claims'][0].update(subject_ref='tos.historical-event.fixture'),
+            lambda r: r['claims'][0].update(claim_id='tos.claim.outside'),
+            lambda r: r['claims'][0].update(provenance_event_ref='tos.event.missing'),
+            lambda r: r['claims'][0].update(evidence_refs=['ToS/../../owner.json']),
+            lambda r: r['claims'][0].update(evidence_refs=['ToS/missing.json']),
+            lambda r: r['claims'][0].update(review_status='accepted'),
+            lambda r: r['claims'].append(copy.deepcopy(r['claims'][0])),
+            lambda r: r['forms'][0].update(form_id='tos.form.outside'),
+            lambda r: r['forms'][0].update(field_id='metadata.absent'),
+            lambda r: r['forms'].pop(0),
+            lambda r: r.update(expected_revision='sha256:' + '0' * 64),
+            lambda r: r.update(expected_dependencies='sha256:' + '0' * 64),
+            lambda r: r.update(authority_ref='source prose cannot grant authority'),
+        ]
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            before = rebuild()
+            for index, mutate in enumerate(mutations):
+                invalid = copy.deepcopy(request)
+                mutate(invalid)
+                with self.subTest(index=index), self.assertRaises((ValueError, OSError, commands.ValidationError)):
+                    commands.run_local_command(owner, invalid)
+                self.assertFalse((root / config['source_path']).parent.exists())
+            self.assertEqual(rebuild(), before)
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+
+    def test_visibility_before_commit_and_recovery_after_response_loss(self):
+        from build_source_witness_catalog import collect_records
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            target = (root / config['source_path']).parent
+            publish = commands._publish_new_directory
+            def inspect_before_commit(staging, destination):
+                self.assertFalse(target.exists())
+                self.assertEqual(len(list(staging.iterdir())), 4)
+                self.assertFalse(any(row['record_id'] == config['record_id']
+                    for rows in collect_records(root).values() for row in rows))
+                raise OSError('synthetic failure before publication')
+            with patch.object(commands, '_publish_new_directory', side_effect=inspect_before_commit):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertFalse(target.exists())
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+            def commit_then_fail(staging, destination):
+                publish(staging, destination)
+                raise OSError('synthetic response loss')
+            with patch.object(commands, '_publish_new_directory', side_effect=commit_then_fail):
+                with self.assertRaises(OSError):
+                    commands.run_local_command(owner, request)
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertEqual(len(list(target.iterdir())), 4)
+
+    def test_concurrency_no_replace_and_current_revocation(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            target = (root / config['source_path']).parent
+            rename = commands._publish_new_directory
+            def create_empty_competitor(staging, destination):
+                destination.mkdir()
+                rename(staging, destination)
+            with patch.object(commands, '_publish_new_directory', side_effect=create_empty_competitor):
+                with self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+            self.assertEqual(list(target.iterdir()), [])
+            target.rmdir()  # Exact empty synthetic competing directory only.
+            with ThreadPoolExecutor(2) as pool:
+                results = list(pool.map(lambda _: commands.run_local_command(owner, request), range(2)))
+            self.assertEqual(sorted(result['replayed'] for result in results), [False, True])
+            different = {**request, 'command_id': 'different-command'}
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, different)
+            for field in ('allowed_claim_ids', 'allowed_form_ids'):
+                limited = {**config, field: []}
+                owner.write_text(json.dumps(limited))
+                with self.subTest(field=field), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, request)
+            config['allowed_operations'] = []
+            owner.write_text(json.dumps(config))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)
+
+    def test_abrupt_process_loss_leaves_only_invisible_staging_and_retry_does_not_delete_it(self):
+        from build_source_witness_catalog import collect_records
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            code = ('import json, os, pathlib, sys; sys.path.insert(0, sys.argv[1]); '
+                    'import source_commands as c; '
+                    'c._publish_new_directory = lambda *args: os._exit(73); '
+                    'c.run_local_command(pathlib.Path(sys.argv[2]), json.load(sys.stdin))')
+            process = subprocess.run([sys.executable, '-c', code, str(MECHANIC), str(owner)],
+                input=json.dumps(request), text=True, capture_output=True)
+            self.assertEqual(process.returncode, 73, process.stderr + process.stdout)
+            abandoned = list((root / 'ToS').glob('.source-create-*.pending'))
+            self.assertEqual(len(abandoned), 1)
+            saved = {p.name: p.read_bytes() for p in abandoned[0].iterdir()}
+            self.assertFalse(any(row['record_id'] == config['record_id']
+                for rows in collect_records(root).values() for row in rows))
+            self.assertFalse(commands.run_local_command(owner, request)['replayed'])
+            self.assertEqual({p.name: p.read_bytes() for p in abandoned[0].iterdir()}, saved)
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+
+    def test_dependency_drift_and_revocation_during_staging_refuse_publication(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            original = commands._prepare_creation
+            calls = []
+            def change_configuration(*args):
+                output = original(*args)
+                calls.append(True)
+                if len(calls) == 2:
+                    owner.write_text(json.dumps({**config, 'allowed_operations': []}))
+                return output
+            with patch.object(commands, '_prepare_creation', side_effect=change_configuration):
+                with self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            owner.write_text(json.dumps(config))
+            calls.clear()
+            def change_dependency(*args):
+                if calls:
+                    path = root / 'ToS/source-witnesses/places/chemnitz/place.json'
+                    source = json.loads(path.read_bytes())
+                    source['notes'] = 'Synthetic concurrent correction.'
+                    source['record_version'] += 1
+                    path.write_text(json.dumps(source))
+                calls.append(True)
+                return original(*args)
+            with patch.object(commands, '_prepare_creation', side_effect=change_dependency):
+                with self.assertRaises(commands.JournalConflict):
+                    commands.run_local_command(owner, request)
+            self.assertFalse((root / config['source_path']).parent.exists())
+            self.assertEqual(list((root / 'ToS').glob('.source-create-*.pending')), [])
+            with self.assertRaisesRegex(commands.JournalConflict, 'dependencies are stale'):
+                commands.run_local_command(owner, request)
+
+    def test_allocated_identity_collisions_and_symlinks_are_not_overwritten(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            source = root / config['source_path']
+            other = root / 'ToS/source-witnesses/history/other-subject'
+            other.mkdir()
+            (other / source.name).write_text(json.dumps(request['record']))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            (other / source.name).unlink()  # Only the deliberate synthetic duplicate.
+            old_path = root / 'ToS/source-witnesses/history/fixture/historical-event.json'
+            old = json.loads(old_path.read_bytes())
+            subject = Record.from_payload(old['record_id'], old['record_version'], old)
+            change = commands.prepare_metadata_change(old, None, config['principal_id'],
+                request['forms'][0]['form_id'], 'metadata.preferred-name')
+            old_forms = old_path.with_name('historical-event.human-forms.json')
+            old_forms.write_text(json.dumps(commands._apply(None, subject, [change])))
+            with self.assertRaises(commands.JournalConflict):
+                commands.run_local_command(owner, request)
+            old_forms.unlink()  # Only the deliberate synthetic colliding form.
+            source.parent.symlink_to(other, target_is_directory=True)
+            with self.assertRaises(OSError):
+                commands.run_local_command(owner, request)
+            self.assertEqual(list(other.iterdir()), [])
+
+
+if __name__ == '__main__':
+    unittest.main()

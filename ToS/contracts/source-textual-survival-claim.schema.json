@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-textual-survival-claim.schema.json",
+  "title": "Source-attributed textual survival of an intellectual object",
+  "description": "The reported survival of the specified text, not loss of identity, destruction of every physical copy, certainty, access permission or completeness of a reconstruction. Rival reports retain separate Claims.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_source_textual_survival_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "object": {
+        "allOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json"}],
+        "required": ["status", "scope_note", "coverage_note"],
+        "properties": {
+          "kind": {"const": "textual-survival"},
+          "status": {"enum": ["complete", "fragmentary", "not_extant", "unknown"]},
+          "scope_note": {"type": "string", "pattern": "\\S"},
+          "coverage_note": {"type": "string", "pattern": "\\S"},
+          "extensions": {"type": "object"}
+        },
+        "unevaluatedProperties": false
+      },
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"],
+        "properties": {
+          "statement": {"type": "string", "pattern": "\\S"},
+          "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+          "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+        }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

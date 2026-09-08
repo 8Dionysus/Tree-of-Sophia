@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/native-text-unit-binding.schema.json",
+  "title": "Exact native text-unit binding",
+  "description": "An explicit return to one unit and one segmentation in frozen native metadata. This is not a second TextUnit, a lexical judgment, an assessment, or publication authority. Packet and layer hashes are hashes of raw JSON bytes; the native packet separately binds the full UTF-8 representation digest and the original source-file digest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "packet_ref", "packet_sha256", "packet_id", "packet_version",
+    "segmentation_id", "segmentation_version", "unit_id", "unit_version",
+    "ordered_anchor_refs", "text_layer", "source_record_refs"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_native_text_unit_binding_v1"},
+    "packet_ref": {"$ref": "#/$defs/metadataRef"},
+    "packet_sha256": {"$ref": "#/$defs/sha256"},
+    "packet_id": {"type": "string", "pattern": "^tos\\.source-text-unit-packet\\.sid-[a-f0-9]{32}$"},
+    "packet_version": {"type": "integer", "minimum": 1},
+    "segmentation_id": {"type": "string", "pattern": "^tos\\.text-segmentation\\.sid-[a-f0-9]{32}$"},
+    "segmentation_version": {"type": "integer", "minimum": 1},
+    "unit_id": {"type": "string", "pattern": "^tos\\.text-unit\\.sid-[a-f0-9]{32}$"},
+    "unit_version": {"type": "integer", "minimum": 1},
+    "ordered_anchor_refs": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^tos\\.anchor\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+    },
+    "text_layer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["record_ref", "record_sha256", "layer_id", "layer_version"],
+      "properties": {
+        "record_ref": {"$ref": "#/$defs/metadataRef"},
+        "record_sha256": {"$ref": "#/$defs/sha256"},
+        "layer_id": {"type": "string", "pattern": "^tos\\.text-layer\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "layer_version": {"type": "integer", "minimum": 1}
+      }
+    },
+    "source_record_refs": {
+      "type": "object", "additionalProperties": false,
+      "required": ["work", "expression", "edition", "item"],
+      "properties": {
+        "work": {"$ref": "#/$defs/metadataRef"},
+        "expression": {"$ref": "#/$defs/metadataRef"},
+        "edition": {"$ref": "#/$defs/metadataRef"},
+        "item": {"$ref": "#/$defs/metadataRef"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "metadataRef": {
+      "type": "string", "minLength": 1,
+      "pattern": "^ToS/source-witnesses/(?!.*(?:^|/)(?:\\.\\.?|payload|local-content|catalog)(?:/|$))[^\\u0000\\\\]+\\.json$"
+    }
+  }
+}

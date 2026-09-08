@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+    "version": 3,
+    "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.73de581d2356d5f6c6b14512e6d2983ce1f14f856a2ab5b05b302781a25a57b2",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+        "version": 3,
+        "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+            "version": 3,
+            "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+            "version": 3,
+            "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+            "version": 3,
+            "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.34c0117b84452d182b1c55c492f400ba562e816a1536d4c8dd75841f7ff74651",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+        "version": 3,
+        "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+            "version": 3,
+            "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+            "version": 3,
+            "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+            "version": 3,
+            "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+      "request_digest": "sha256:614d4d3fe68cf2faaa3791dd854e07d15e4c34a3049eeaec08e7d781abc0d9de",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:99bbce7840eb72ac6ec8eebac7ea2eeafce548cee560ab1927a195f8fb8ccd76",
+      "recorded_at": "2026-09-07T03:13:29.134954+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.nietzsches-werke-band-8.leipzig-c-g-naumann-1906",
+        "version": 3,
+        "digest": "sha256:d06d38a1862dc93602c5fe9cf8ac14d75fc1e28daf417c5260bbf5cab131efa6"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.73de581d2356d5f6c6b14512e6d2983ce1f14f856a2ab5b05b302781a25a57b2",
+          "version": 1,
+          "digest": "sha256:ab35c55222354d0fdf11fb33c8397585a554476fa4cbe0abf3b06ecd7b3c7d96"
+        },
+        {
+          "id": "tos.form.metadata.34c0117b84452d182b1c55c492f400ba562e816a1536d4c8dd75841f7ff74651",
+          "version": 1,
+          "digest": "sha256:240542a126d845d15a7dd463f9761df7abb074f3285cc35dbd1cbef3525cb7f0"
+        }
+      ]
+    }
+  ]
+}

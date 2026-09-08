@@ -1,0 +1,277 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+    "version": 1,
+    "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.3c59c081fb64622f4186c231117dd3d4261b649e71b0af034e9c50523a3e03a3",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+        "version": 1,
+        "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.01539569f6cc6d80c9328bda41b741568c155bf95054464929d37048783a4163",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+        "version": 1,
+        "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.58133d27f0ee422fc24f3221491d3f0a0e12fb52949cc2aa2acd5689e6e4bec5",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+        "version": 1,
+        "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+      },
+      "role": "name",
+      "language": "de",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.83f9739ad2048f1c46cfd17c227899578610ea6fbe65eedb91747e7ef0f29885",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+        "version": 1,
+        "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+      },
+      "role": "name",
+      "language": "de",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/1/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/1/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/1/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+            "version": 1,
+            "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+          },
+          "pointer": "/variant_labels/1/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+      "request_digest": "sha256:eb7b23190b5f32f754ef11c746c05d7d5108905987826f1fa6b150cf2f54cbee",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:50fa964c4a3a90481b5c8b3ea7ce3d1f5403da5f192d13e29c66175b7816db2f",
+      "recorded_at": "2026-09-07T03:13:23.476128+00:00",
+      "source": {
+        "id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+        "version": 1,
+        "digest": "sha256:42ea2327850fa3f1432c53b17f7044a2c2612d68cc877a591a5c78ed1688d7fc"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.3c59c081fb64622f4186c231117dd3d4261b649e71b0af034e9c50523a3e03a3",
+          "version": 1,
+          "digest": "sha256:392b79cb3eed89aece37fc67f9a4f59d6e977459fcce7b80e46b312dcc920092"
+        },
+        {
+          "id": "tos.form.metadata.01539569f6cc6d80c9328bda41b741568c155bf95054464929d37048783a4163",
+          "version": 1,
+          "digest": "sha256:3a01ff68f2c727f0ec4f4119440aab8cbd406016412ae9256e545aa0f05d5646"
+        },
+        {
+          "id": "tos.form.metadata.58133d27f0ee422fc24f3221491d3f0a0e12fb52949cc2aa2acd5689e6e4bec5",
+          "version": 1,
+          "digest": "sha256:99fbac2a9f887e2e68e7037e8cdad0c6567a44260273d14dfae39b7d067bbd30"
+        },
+        {
+          "id": "tos.form.metadata.83f9739ad2048f1c46cfd17c227899578610ea6fbe65eedb91747e7ef0f29885",
+          "version": 1,
+          "digest": "sha256:fff2c541774ed820c359ab0db44d3a7f18e467ea91c5c8c285c228bd983c1cfd"
+        }
+      ]
+    }
+  ]
+}

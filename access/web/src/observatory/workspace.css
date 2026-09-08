@@ -1,0 +1,38 @@
+#sophia-gestures .sc-workspace{right:28px;top:215px;width:min(420px,calc(100% - 60px));max-height:calc(100dvh - 300px);display:flex;flex-direction:column;padding:17px 20px;background:#0c1420}
+#sophia-gestures .sc-workspace .sc-panel-top{flex-shrink:0}
+#sophia-gestures .sc-workspace h3{font:400 25px/1.2 Georgia,serif;color:#eee6d7;margin:10px 0 18px}
+#sophia-gestures .sc-workspace-tabs{display:flex;gap:17px;border-bottom:1px solid #263346;margin-bottom:16px;flex-shrink:0}
+#sophia-gestures .sc-workspace-tabs button{background:none;border:0;padding:9px 0;color:#9baabe}
+#sophia-gestures .sc-workspace-tabs button[aria-selected=true]{color:#e8ce9d;border-bottom:2px solid #c6aa75}
+#sophia-gestures .sc-workspace-body{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#354151 transparent;padding:0 3px 3px}
+#sophia-gestures .sc-workspace p{font-size:12px;line-height:1.75;color:#b7c5d8;overflow-wrap:anywhere}
+#sophia-gestures .sc-workspace .sc-muted{color:#8f9fb5;font-size:11px}
+#sophia-gestures .sc-workspace label{display:block;font-size:11px;color:#abbad0;margin:14px 0 7px}
+#sophia-gestures .sc-workspace input,#sophia-gestures .sc-workspace textarea,#sophia-gestures .sc-workspace select{display:block;width:100%;background:#080f19;border:1px solid #334459;border-radius:4px;color:#e5eaf0;padding:10px 12px;font:13px/1.7 system-ui,sans-serif}
+#sophia-gestures .sc-workspace textarea{resize:vertical;min-height:90px;max-height:230px}
+#sophia-gestures .sc-workspace :is(input,textarea,select):focus-visible{outline:1px solid #d8bc84;outline-offset:2px}
+#sophia-gestures .sc-tool-actions{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}
+#sophia-gestures .sc-tool-actions button{background:#142132;border:1px solid #36445a;border-radius:3px;padding:7px 10px;color:#dfc798}
+#sophia-gestures .sc-tool-actions button:disabled{opacity:.4}
+#sophia-gestures .sc-entry{padding:13px 0;border-top:1px solid #263346}
+#sophia-gestures .sc-entry>p{white-space:pre-wrap;margin:5px 0}
+#sophia-gestures .sc-entry h4{font-size:13px;font-weight:500;color:#e2cfaa;margin:4px 0 7px}
+#sophia-gestures .sc-entry small{font-size:10px;color:#899db7;overflow-wrap:anywhere}
+#sophia-gestures .sc-tool-status{font-size:12px;line-height:1.7;color:#dbc394;white-space:pre-wrap;margin:8px 0}
+#sophia-gestures .sc-workspace details{margin:12px 0;font-size:12px;color:#aebed2}
+#sophia-gestures .sc-workspace summary{cursor:pointer;color:#d7c39e;padding:6px 0}
+#sophia-gestures .sc-workspace .sc-source-ref{max-width:100%}
+#sophia-gestures .sc-workspace-footer{border-top:1px solid #263346;margin-top:12px;padding-top:12px;font-size:10px;color:#8fa2bc}
+#sophia-gestures .sc-workspace-copy{display:flex;flex-direction:column;right:28px;top:180px;width:440px;max-height:calc(100% - 285px);padding:18px 24px;font-size:12px;color:#b4c3d7;line-height:1.6}
+#sophia-gestures .sc-copy-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#sophia-gestures .sc-workspace-copy h3{font-family:Georgia,serif;font-size:26px;font-weight:400;color:#e2cfaa;margin:14px 0}
+#sophia-gestures .sc-workspace-copy h4{color:#e2cfaa;font-size:14px}
+#sophia-gestures .sc-workspace-copy button:not(.sc-icon),#sophia-gestures .sc-studio-copy{border:1px solid #425069;border-radius:6px;background:#172131;color:#e0c99e;padding:8px 10px;font-size:11px}
+#sophia-gestures .sc-copy-actions{display:flex;gap:8px;flex-wrap:wrap}
+#sophia-gestures .sc-copy-preview>button{margin:4px 6px 4px 0}
+#sophia-gestures .sc-copy-status{color:#dcc392;white-space:pre-wrap}
+#sophia-gestures .sc-place-actions form{display:flex;gap:5px;flex-wrap:wrap;min-width:0}
+#sophia-gestures .sc-place-actions form input{width:100%;min-width:0;box-sizing:border-box}
+@container(max-width:650px){#sophia-gestures .sc-workspace-copy{top:180px;left:15px;right:15px;width:auto;padding:14px 18px;max-height:calc(100% - 290px)}}
+@container(max-width:800px){#sophia-gestures .sc-header-actions{gap:6px}#sophia-gestures .sc-workspace-open span{display:none}}
+@container(max-width:540px){#sophia-gestures .sc-workspace{top:auto;bottom:115px;left:15px;right:15px;width:auto;max-height:42dvh;padding:12px 17px}#sophia-gestures .sc-workspace h3{font-size:22px;margin:4px 0 8px}#sophia-gestures .sc-workspace-tabs{margin-bottom:9px}#sophia-gestures .sc-workspace-footer{padding-top:6px;margin-top:6px}#sophia-gestures .sc-workspace textarea{min-height:70px}}

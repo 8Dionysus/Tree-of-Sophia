@@ -32,8 +32,8 @@ def main() -> int:
         raise SystemExit("the bibliographic graph must not emit direct subject-object edges")
     if current["relation_model"]["direct_subject_object_edges"] is not False:
         raise SystemExit("the bibliographic graph relation model must remain claim-reified")
-    if set(current["graph_layers"]) != {"bibliographic"}:
-        raise SystemExit("the projection must remain limited to the bibliographic layer")
+    if current["graph_layers"] != expected["graph_layers"]:
+        raise SystemExit("projection layers must match the source-owned bibliographic and historical profiles")
     if sum(current["review_counts"].values()) != counts["source_claims"]:
         raise SystemExit("review counts must cover every source claim exactly once")
     if current["relation_model"]["runtime_owner"] != "abyss-stack":
@@ -62,7 +62,10 @@ def main() -> int:
         event = nodes[trace["provenance_event_node_id"]]["properties"]
         if not event.get("started_at") or not event.get("ended_at"):
             raise SystemExit(f"{trace['claim_ref']}: provenance time is unresolved")
-        if not isinstance(event.get("method"), dict) or not event["method"].get("name"):
+        method = event.get("method")
+        procedure = (method.get('procedure') if event.get('schema_version') == 'tos_provenance_event_v2'
+                     and isinstance(method, dict) else method)
+        if not isinstance(procedure, dict) or not procedure.get("name"):
             raise SystemExit(f"{trace['claim_ref']}: provenance method is unresolved")
         if nodes[trace["maker_node_id"]]["node_kind"] != "maker":
             raise SystemExit(f"{trace['claim_ref']}: maker route is unresolved")

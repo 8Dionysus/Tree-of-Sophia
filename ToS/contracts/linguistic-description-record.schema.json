@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/linguistic-description-record.schema.json",
+  "title": "Source-described language, linguistic variety, script and transliteration scheme",
+  "description": "Distinct persistent research referents with substantive source accounts. Codes, scripts of descriptions, attested inscription language, text layers and transformations remain separate. Classification and historical relations are grounded Claims.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_linguistic_description_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "language",
+            "linguistic-variety",
+            "script",
+            "transliteration-scheme"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "language"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.language\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.language\\."
+          },
+          "semantic_content": {
+            "required": [
+              "system_account"
+            ],
+            "properties": {
+              "system_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "A source-grounded description of the language as a research referent, not a code or one written realization."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "linguistic-variety"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.linguistic-variety\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.linguistic-variety\\."
+          },
+          "semantic_content": {
+            "required": [
+              "system_account",
+              "distinguishing_basis"
+            ],
+            "properties": {
+              "system_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "A described linguistic variety; dialectal or historical relationships require separate Claims."
+              },
+              "distinguishing_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The linguistic, social or historical criterion and its limits, not a universal test separating languages and dialects."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "script"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.script\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.script\\."
+          },
+          "semantic_content": {
+            "required": [
+              "script_account",
+              "sign_inventory_scope"
+            ],
+            "properties": {
+              "script_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "A source-grounded description of a writing system or explicitly scoped writing tradition, not a spoken language."
+              },
+              "sign_inventory_scope": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Whether the referent covers a particular sign repertoire or broader tradition; no timeless universal sign reading is implied."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "transliteration-scheme"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.transliteration-scheme\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.transliteration-scheme\\."
+          },
+          "semantic_content": {
+            "required": [
+              "mapping_convention",
+              "coverage_and_loss"
+            ],
+            "properties": {
+              "mapping_convention": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "A source-described notation and mapping convention, not a translation or an executed text transformation."
+              },
+              "coverage_and_loss": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What the convention represents, leaves ambiguous or omits; reversibility requires evidence, not the scheme name."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

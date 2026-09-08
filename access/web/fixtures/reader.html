@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Проверка чтения — искусственные данные</title><link rel="stylesheet" href="./reader-fixture.css"></head>
+<body>
+<div class="fixture-controls">
+  <strong>Проверочные данные</strong>
+  <label>Случай <select id="fixture-case"><option value="long">Длинное чтение</option><option value="languages">Разные языки</option><option value="missing">Нет описания</option><option value="dense">40 узлов / 80 связей</option></select></label>
+  <button id="fixture-reload">Открыть случай</button>
+  <label>Связь <select id="fixture-connection"><option value="normal">Обычная</option><option value="slow">Задержка 2 с</option><option value="offline">Нет сети</option><option value="restricted">Доступ ограничен</option></select></label>
+  <button id="fixture-revision">Новый снимок</button>
+  <button id="fixture-measure">Измерить 5 с</button>
+  <output id="fixture-metrics"></output>
+</div>
+<div id="app"></div><script type="module" src="./reader-fixture.mjs"></script>
+</body></html>

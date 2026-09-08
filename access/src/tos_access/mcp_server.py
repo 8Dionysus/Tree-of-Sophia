@@ -49,6 +49,25 @@ def build_server(
             philosophy_post_planting_audit_path=philosophy_post_planting_audit_path,
         )
 
+    # Other tools can rediscover source paths on each call. Exploration keeps
+    # its disposable checkpoints for the lifetime of this MCP server only.
+    from .exploration import ExplorationService
+    exploration = ExplorationService(lambda: current_state().knowledge_graph())
+
+    @mcp.tool()
+    def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:
+        """Start a read-only neighborhood or continue with cursor only; expires after 15 minutes.
+
+        Fixed query/page sizes; no authored writes. Upsert context nodes by ID.
+        Snapshot conflict or expired checkpoint requires restarting from focus.
+        """
+        return exploration.explore(request)
+
+    @mcp.tool()
+    def tos_knowledge_exploration_contracts() -> dict[str, Any]:
+        """Read exploration capabilities and request/result schemas; local/native only."""
+        return current_state().knowledge_exploration_contracts()
+
     @mcp.tool()
     def tos_corpus_status() -> dict[str, Any]:
         """Return ToS corpus index path, counts, graph views, and authority boundary."""
@@ -63,6 +82,78 @@ def build_server(
     def tos_corpus_search(query: str, limit: int = 20, resource_kind: str | None = None) -> dict[str, Any]:
         """Search nodes, resources, manifests, branches, and graph views in the ToS corpus index."""
         return current_state().search(query=query, limit=limit, resource_kind=resource_kind)
+
+    @mcp.tool()
+    def tos_knowledge_catalog() -> dict[str, Any]:
+        """Return node kinds, predicates, fields, limits, and stored LensSpec definitions for the generic backend."""
+        return current_state().knowledge_catalog()
+
+    @mcp.tool()
+    def tos_knowledge_contracts() -> dict[str, Any]:
+        """Return the versioned API operation map and JSON Schemas used by human and agent constructors."""
+        return current_state().knowledge_contracts()
+
+    @mcp.tool()
+    def tos_knowledge_search(
+        query: str = "",
+        sources: list[str] | None = None,
+        kind_ids: list[str] | None = None,
+        predicate_ids: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 40,
+    ) -> dict[str, Any]:
+        """Search the unified display-complete graph without choosing a philosophy/corpus legacy mode."""
+        return current_state().knowledge_search(
+            query,
+            sources=sources,
+            kind_ids=kind_ids,
+            predicate_ids=predicate_ids,
+            offset=offset,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def tos_knowledge_node(node_id: str, relation_limit: int = 200) -> dict[str, Any]:
+        """Inspect a normalized knowledge node and its human-readable related relations."""
+        return current_state().knowledge_node(node_id, relation_limit)
+
+    @mcp.tool()
+    def tos_knowledge_relation(relation_id: str) -> dict[str, Any]:
+        """Inspect a normalized relation together with its display-complete endpoints."""
+        return current_state().knowledge_relation(relation_id)
+
+    @mcp.tool()
+    def tos_knowledge_focus(
+        node_id: str,
+        sources: list[str] | None = None,
+        depth: int = 1,
+        direction: str = "either",
+        predicate_ids: list[str] | None = None,
+        node_limit: int = 200,
+        relation_limit: int = 400,
+        profile: str = "overview",
+    ) -> dict[str, Any]:
+        """Center a bounded radial lens on an exact or uniquely resolved node identity."""
+        return current_state().knowledge_focus(
+            node_id,
+            sources=sources,
+            depth=depth,
+            direction=direction,
+            predicate_ids=predicate_ids,
+            node_limit=node_limit,
+            relation_limit=relation_limit,
+            profile=profile,
+        )
+
+    @mcp.tool()
+    def tos_knowledge_lens_compile(spec: dict[str, Any]) -> dict[str, Any]:
+        """Validate and execute an arbitrary bounded, read-only tos_lens_spec_v1 construction."""
+        return current_state().compile_knowledge_lens(spec)
+
+    @mcp.tool()
+    def tos_knowledge_lens_open(lens_id: str) -> dict[str, Any]:
+        """Execute a stored LensSpec through the same generic backend used for arbitrary constructions."""
+        return current_state().stored_knowledge_lens(lens_id)
 
     @mcp.tool()
     def tos_source_descend(node_id: str, max_depth: int = 8, limit: int = 300) -> dict[str, Any]:

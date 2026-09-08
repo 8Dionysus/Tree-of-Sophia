@@ -29,6 +29,15 @@
       "type": "string",
       "minLength": 1
     },
+    "field_languages": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preferred_label": {"$ref": "#/$defs/fieldLanguage"},
+        "notes": {"$ref": "#/$defs/fieldLanguage"}
+      },
+      "description": "Language and script of the exact catalog wording, not the Work or Expression language, linguistic originality, translation quality or interface locale. Additional qualifications inside each declaration are retained as mandatory human-form context."
+    },
     "variant_labels": {
       "type": "array",
       "items": {
@@ -38,6 +47,7 @@
         "properties": {
           "value": {"type": "string", "minLength": 1},
           "language": {"$ref": "#/$defs/languageTagOrUnd"},
+          "script": {"$ref": "#/$defs/scriptTagOrNull"},
           "source_ref": {"$ref": "#/$defs/sourceRef"},
           "status": {"$ref": "#/$defs/assertionStatus"}
         }
@@ -185,7 +195,20 @@
     },
     "languageTagOrUnd": {
       "type": "string",
-      "pattern": "^(und|[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)$"
+      "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"
+    },
+    "scriptTagOrNull": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"
+    },
+    "fieldLanguage": {
+      "type": "object",
+      "required": ["language", "script"],
+      "properties": {
+        "language": {"anyOf": [{"$ref": "#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+        "script": {"$ref": "#/$defs/scriptTagOrNull"}
+      },
+      "description": "An explicit source declaration. Unknown language/script remain null; private-use and unknown but structurally supported tags are preserved, not certified as registered. Qualifications are open and retained; they confer no assessment or admission."
     }
   }
 }

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-temporal-claim.schema.json",
+  "title": "Declared historical dating with a temporal value object",
+  "description": "One source Claim proposes a date, interval, relative order or explicit unknown. The value is not an independent identity. Competing datings and later corrections retain their own source and assessment histories.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_source_temporal_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "object": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate"},
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"],
+        "properties": {
+          "statement": {"type": "string", "pattern": "\\S"},
+          "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+          "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+        }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

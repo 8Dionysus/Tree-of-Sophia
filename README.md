@@ -42,7 +42,7 @@ native MCP are documented in [`access/README.md`](access/README.md).
 ToS uses inspectable source-to-review paths. For bibliographic works, the
 primary identity path is:
 
-`work -> expression -> edition -> item -> immutable file -> passage or region -> observation -> claim or interpretation -> human review -> canon or explicit deferral -> derived view`
+`work -> expression -> edition -> item -> immutable file -> passage or region -> observation -> claim or interpretation -> review -> scoped admission, canon or explicit deferral -> derived view`
 
 Physical artifacts that do not naturally enter that ladder use the parallel
 [`artifacts/` spine](ToS/source-witnesses/artifacts/README.md), and modern
@@ -57,9 +57,11 @@ Every stage is identified and versioned. Witnesses ground material; doctrine
 defines node, relation, naming, and evidence law; intake holds observations
 and proposals; the review ledger records acceptance, rejection, ambiguity,
 counter-readings, and rationale; canon holds reviewed authored knowledge;
-exports derive graph, retrieval, KAG, and runtime views. Human review owns
-textual and philosophical judgment, interpretation, and canon. Validators
-cover mechanics. Authored ToS sources govern generated views.
+exports derive graph, retrieval, KAG, and runtime views. Authorized, competent
+humans and agents assess source-visible knowledge under
+[Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md). Validators check
+mechanics; research admission grants no rights, publication or canon authority.
+Authored sources govern derived views.
 
 ## How ToS grows
 
@@ -71,8 +73,8 @@ ToS grows along two linked fronts:
   branch testing the full path from source evidence through review to authored
   knowledge and derived views.
 
-The corpus provides breadth. The kernel makes the cycle legible and reusable
-and transfers source and review discipline. Each source keeps its ontology and
+The corpus provides breadth. The kernel transfers source and review discipline.
+Each source keeps its ontology and
 vocabulary; new works or traditions may extend the model.
 
 ## Current state

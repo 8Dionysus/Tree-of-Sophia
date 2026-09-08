@@ -1,0 +1,19 @@
+#sophia-gestures .sc-settings-open{flex:none;margin-left:3px;padding:8px;min-width:36px;justify-content:center}
+#sophia-gestures .sc-header-actions{min-width:0;max-width:calc(100% - 285px)}
+#sophia-gestures .sc-settings{display:flex;flex-direction:column;padding:17px 22px;background:linear-gradient(145deg,#121b29,#0c1420 70%);border-color:#465060;box-shadow:0 22px 65px #0008}
+#sophia-gestures .sc-settings-body{overflow:auto;overscroll-behavior:contain;min-height:0;scrollbar-width:thin;scrollbar-color:#425065 transparent;padding:12px 3px 5px 0}
+#sophia-gestures .sc-settings fieldset{border:0;border-top:1px solid #334051;padding:14px 0 22px;margin:0;min-width:0}
+#sophia-gestures .sc-settings legend{padding:0 12px 0 0;font:21px/1.5 Georgia,serif;color:#e4d5b9}
+#sophia-gestures .sc-settings label{display:block;font:12px/1.6 system-ui,sans-serif;color:#c5cfdd;margin:12px 0}
+#sophia-gestures .sc-settings select{display:block;width:100%;margin-top:7px;min-height:38px;padding:7px 10px;border:1px solid #3d4c61;border-radius:3px;background:#0b1421;color:#e2e5e8;font:13px/1.6 system-ui,sans-serif}
+#sophia-gestures .sc-settings :is(p,small){display:block;font:11px/1.8 system-ui,sans-serif;color:#a5b5c8;margin:9px 0;overflow-wrap:anywhere}
+#sophia-gestures .sc-settings-body button{display:block;border:1px solid #3c4b5e;border-radius:3px;background:#172435;color:#dfc89d;padding:8px 11px;text-align:left;line-height:1.6;margin-top:9px;max-width:100%}
+#sophia-gestures .sc-settings-tool{display:flex;gap:10px;align-items:center;border-bottom:1px solid #263142}
+#sophia-gestures .sc-settings-tool label{display:flex;align-items:center;gap:10px;flex:1}
+#sophia-gestures .sc-settings-tool input{accent-color:#d2b781;width:17px;height:17px;flex:none}
+#sophia-gestures .sc-settings-tool button{margin:0;min-width:32px;text-align:center}
+#sophia-gestures .sc-settings-tool button:disabled{opacity:.4}
+#sophia-gestures .sc-settings .sc-settings-status{flex:none;margin:7px 0 0;max-height:65px;overflow:auto;color:#dcc18e}
+#sophia-gestures .sc-settings-status:empty{display:none}
+@container(min-width:651px){#sophia-gestures .sc-settings[data-panel-id][data-dock]{top:var(--sc-tool-top,220px);width:var(--sc-panel-width,430px);height:var(--sc-panel-height,560px);max-height:calc(100% - var(--sc-tool-top,220px) - 95px)}}
+@container(max-width:650px){#sophia-gestures .sc-header-actions{max-width:calc(100% - 197px)}#sophia-gestures .sc-settings legend{font-size:20px}#sophia-gestures .sc-settings-open{margin-left:0}}

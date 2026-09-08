@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/document-record.schema.json",
+  "title": "Document and correspondence intellectual identity metadata",
+  "description": "A communicative/documentary object, not its physical carrier, file, catalog record or an obligatory Work. Sender, addressee, content, date, place and carrier relations need separate claims.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"properties": {
+      "schema_version": {"const": "tos_document_record_v1"},
+      "record_type": {"enum": ["document", "letter"]},
+      "record_id": {"pattern": "^tos\\.(document|letter)\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.(document|letter)\\."}
+    }},
+    {"if": {"properties": {"record_type": {"const": "document"}}},
+     "then": {"properties": {"record_id": {"pattern": "^tos\\.document\\."}}}},
+    {"if": {"properties": {"record_type": {"const": "letter"}}},
+     "then": {"properties": {"record_id": {"pattern": "^tos\\.letter\\."}}}}
+  ],
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,203 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.agent.friedrich-nietzsche",
+    "version": 2,
+    "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.friedrich-nietzsche",
+        "version": 2,
+        "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.ef612d54f6556810586d9fcbb0c77cfb0058a7f8f0dfde43a47f9d4df5102484",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.friedrich-nietzsche",
+        "version": 2,
+        "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.c2976c14db396fd6f5a82355a301899a7cf5e18fcf6455cbea0ca056146cce6d",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.friedrich-nietzsche",
+        "version": 2,
+        "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.agent.friedrich-nietzsche",
+            "version": 2,
+            "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.agent.friedrich-nietzsche",
+      "request_digest": "sha256:67ac2db7a6b98c97237d5bdc6f855d631026ee1bf507db82afafc9013d712063",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:16319d548032886613c521c8b16e66902e018adc955e26c1bb10b10eb6a95df0",
+      "recorded_at": "2026-09-07T03:13:21.353700+00:00",
+      "source": {
+        "id": "tos.agent.friedrich-nietzsche",
+        "version": 2,
+        "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3",
+          "version": 1,
+          "digest": "sha256:b295c9fd739419b00fe77625b48526f95497d594424d0b403af3aedd4ef98d70"
+        },
+        {
+          "id": "tos.form.metadata.ef612d54f6556810586d9fcbb0c77cfb0058a7f8f0dfde43a47f9d4df5102484",
+          "version": 1,
+          "digest": "sha256:75c73b9add135c1dd65fb1d4930627d92d0de1c6cb1705bdb653bb0e69193101"
+        },
+        {
+          "id": "tos.form.metadata.c2976c14db396fd6f5a82355a301899a7cf5e18fcf6455cbea0ca056146cce6d",
+          "version": 1,
+          "digest": "sha256:c15bda42b821d86fa7f5ddc5b9a98e7d91a6489cd762e70fbbafc1b83de87a9c"
+        }
+      ]
+    }
+  ]
+}

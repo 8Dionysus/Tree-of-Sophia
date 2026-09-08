@@ -1,0 +1,309 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.laws-of-hammurapi.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:228c9131c04a8d17a9776487ae1a89e76adcd75b2e6b78e6c45a75582b26fe4a",
+        "id": "tos.form.composite.akkadian.laws-of-hammurapi.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.laws-of-hammurapi.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "source-wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "freeform",
+        "text": "Запись описывает современную критическую реконструкцию «Законов Хаммурапи»: она сопоставляет монументальную стелу и табличные свидетельства, лакуну стелы, позднейшие копии, варианты, пролог, постановления, эпилог и редакторскую нумерацию. Реконструкция не тождественна древнему оригиналу или отдельному материальному предмету. Исходная запись содержит только метаданные; её содержание и наблюдения о составе ещё не прошли содержательную оценку."
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.laws-of-hammurapi.research-hover-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "source-wording": {
+          "pointer": "/editorial_object/description",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "freeform",
+        "text": "This record describes a modern critical reconstruction of the Laws of Hammurapi, coordinating the monumental stela and tablet witnesses, the stela lacuna, later copies, variants, prologue, provisions, epilogue and editorial numbering. The reconstruction is neither the ancient original nor an individual physical artifact. The source record carries metadata only; its content and membership observations remain unreviewed."
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.laws-of-hammurapi.research-hover-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:composite.akkadian.laws-of-hammurapi",
+      "owner_configuration": "sha256:24709b519e1652c15b5fce2e8caa2f97efbce76f32498ff2da1d09e0b1764fbc",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.397474+00:00",
+      "request_digest": "sha256:d26653dbc5f6effde6f317f6b4727c9b9811c23365e92d8013821d81922c067c",
+      "results": [
+        {
+          "digest": "sha256:228c9131c04a8d17a9776487ae1a89e76adcd75b2e6b78e6c45a75582b26fe4a",
+          "id": "tos.form.composite.akkadian.laws-of-hammurapi.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:5d6417fce2c746e949c70789077244f1c125320cf97aa53dd8bb050e4bbc1605",
+          "id": "tos.form.composite.akkadian.laws-of-hammurapi.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:qualified-name:composite.akkadian.laws-of-hammurapi",
+      "owner_configuration": "sha256:24709b519e1652c15b5fce2e8caa2f97efbce76f32498ff2da1d09e0b1764fbc",
+      "previous_revision": "sha256:637f7e0e69dc73cfb7d52bc0d9573e30d8e4fdf9db12eb45a67c7597d89c2dbd",
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:40:11.116067+00:00",
+      "request_digest": "sha256:1ead51e3720c314e49fbd7086a18c8473c77c310188bf0b550fccc8212b10ac4",
+      "results": [
+        {
+          "digest": "sha256:81f61c70fd0147dd82e8c5804432e6d4c7a0018f34e1e322d0ae6640f0db69fb",
+          "id": "tos.form.composite.akkadian.laws-of-hammurapi.source-name",
+          "version": 2
+        }
+      ],
+      "source": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      },
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      }
+    },
+    {
+      "command_id": "assessed-forms:20260907:hammurapi-bilingual-proposals",
+      "request_digest": "sha256:9cc235ac2c2ce62ada2ef258d8484c15df9735e3703809489ecbb7ad744ba098",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:15e505d125c2f59dab53cd04d6cd75c96eadb45b74b4ef3a12ddaec2e6d16f2a",
+      "recorded_at": "2026-09-07T22:11:33.313526+00:00",
+      "source_contracts": {
+        "ToS/contracts/scholarly-composite-witness.schema.json": "sha256:d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9"
+      },
+      "source": {
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2,
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73"
+      },
+      "previous_revision": "sha256:192a0cc930ca872448edfe3e942240108d940b97d43cc62ae44d0ba8ca9e1d34",
+      "results": [
+        {
+          "id": "tos.form.composite.akkadian.laws-of-hammurapi.research-hover-ru",
+          "version": 1,
+          "digest": "sha256:e4bedee11c2b967ce8955ee4fea16b7e5ef7c73607dda96dba9e3ff774c2565b"
+        },
+        {
+          "id": "tos.form.composite.akkadian.laws-of-hammurapi.research-hover-en",
+          "version": 1,
+          "digest": "sha256:28752631888932cba927406984644d9085f80a8f700f1cdaef8066840f125b35"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+            "id": "tos.composite.akkadian.laws-of-hammurapi",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.composite.akkadian.laws-of-hammurapi.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73",
+        "id": "tos.composite.akkadian.laws-of-hammurapi",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.composite.akkadian.laws-of-hammurapi",
+    "version": 2,
+    "digest": "sha256:fa5b7dfb50eddfc2945331adc095004d7de420d858effe3ebb2ba18d9fd38e73"
+  }
+}

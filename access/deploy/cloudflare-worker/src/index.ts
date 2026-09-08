@@ -16,11 +16,21 @@ import {
   philosophyView,
 } from "./queries";
 import { scaleExportResponse } from "./scale";
+import {
+  executeKnowledgeLensD1,
+  focusKnowledgeNodeD1,
+  knowledgeNodeD1,
+  knowledgeRelationD1,
+  knowledgeSearchD1,
+} from "./knowledge-store";
 import { SourceNavigationError, sourceDescend, sourceDossier } from "./source-navigation";
 import { metaItem } from "./store";
+import { KnowledgeRevisionConflict } from "./lens-pagination";
+import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
+const MAX_LENS_REQUEST_BYTES = 64 * 1024;
 
 function segment(pathname: string, prefix: string): string {
   return decodeURIComponent(pathname.slice(prefix.length).split("/", 1)[0] ?? "");
@@ -48,6 +58,17 @@ async function staticApi(env: Env, request: Request, relativePath: string): Prom
   return withSecurity(new Response(asset.body, { status: asset.status, headers }));
 }
 
+async function staticItem(env: Env, request: Request, relativePath: string): Promise<Item> {
+  const assetUrl = new URL(`/__edge/${relativePath}`, request.url);
+  const asset = await env.ASSETS.fetch(new Request(assetUrl));
+  if (!asset.ok) throw new Error(`generated edge asset is missing: ${relativePath}`);
+  const payload = await asset.json();
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error(`generated edge asset is invalid: ${relativePath}`);
+  }
+  return payload as Item;
+}
+
 async function sourceGapResponse(request: Request, env: Env, search: URLSearchParams): Promise<Response> {
   const query = (search.get("query") ?? "").trim();
   if (query.length > 256) throw new HttpError(400, "source-gap query exceeds 256 characters");
@@ -63,20 +84,68 @@ async function sourceGapResponse(request: Request, env: Env, search: URLSearchPa
 }
 
 async function sourceNavigationPayload(request: Request, env: Env): Promise<Item> {
-  const assetUrl = new URL("/__edge/source-navigation/all.json", request.url);
-  const asset = await env.ASSETS.fetch(new Request(assetUrl));
-  if (!asset.ok) throw new Error("generated source-navigation asset is missing");
-  const payload = await asset.json();
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("generated source-navigation asset is invalid");
+  return staticItem(env, request, "source-navigation/all.json");
+}
+
+async function lensCompileResponse(request: Request, env: Env, exploration = false): Promise<Response> {
+  const contentType = ((request.headers.get("Content-Type") ?? "").split(";").at(0) ?? "").trim().toLowerCase();
+  if (contentType !== "application/json") throw new HttpError(415, "lens request must use application/json");
+  const declaredLength = request.headers.get("Content-Length");
+  if (declaredLength !== null) {
+    const normalizedLength = declaredLength.trim();
+    if (!/^[0-9]+$/.test(normalizedLength)) throw new HttpError(400, "invalid lens request Content-Length");
+    if (BigInt(normalizedLength) > BigInt(MAX_LENS_REQUEST_BYTES)) {
+      throw new HttpError(413, `lens request must not exceed ${MAX_LENS_REQUEST_BYTES} bytes`);
+    }
   }
-  return payload as Item;
+  if (!request.body) throw new HttpError(400, "lens request body is required");
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_LENS_REQUEST_BYTES) {
+      await reader.cancel();
+      throw new HttpError(413, `lens request must not exceed ${MAX_LENS_REQUEST_BYTES} bytes`);
+    }
+    chunks.push(value);
+  }
+  if (size === 0) throw new HttpError(400, "lens request body is required");
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  let spec: unknown;
+  try {
+    spec = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));
+  } catch (error) {
+    throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
+  }
+  if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
+  try {
+    return jsonResponse(await (exploration ? exploreD1(env.DB, spec) : executeKnowledgeLensD1(env.DB, spec)), 200, request.method);
+  } catch (error) {
+    if (error instanceof KnowledgeRevisionConflict) throw error;
+    if (error instanceof HttpError) throw error;
+    if (!exploration && error instanceof Error) throw new HttpError(400, error.message);
+    throw error;
+  }
 }
 
 async function apiResponse(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const search = url.searchParams;
   const method = request.method;
+
+  if (path === "/api/knowledge/explore/capabilities") return jsonResponse(await explorationCapabilitiesD1(env.DB), 200, method);
+  if (path === "/api/knowledge/explore/contracts") {
+    const contracts = await staticItem(env, request, "knowledge/exploration-contracts.json");
+    return jsonResponse({...contracts, capabilities: await explorationCapabilitiesD1(env.DB)}, 200, method);
+  }
 
   if (path === "/health") {
     try {
@@ -139,6 +208,8 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const fixedAssets: Record<string, string> = {
     "/api/corpus/status": "corpus/status.json",
     "/api/corpus/summary": "corpus/summary.json",
+    "/api/knowledge/catalog": "knowledge/catalog.json",
+    "/api/knowledge/contracts": "knowledge/contracts.json",
     "/api/philosophy/status": "philosophy/status.json",
     "/api/philosophy/views": "philosophy/views.json",
     "/api/philosophy/layers": "philosophy/layers.json",
@@ -148,6 +219,57 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   };
   const fixedAsset = fixedAssets[path];
   if (fixedAsset) return staticApi(env, request, fixedAsset);
+
+  if (path === "/api/knowledge/search") {
+    return jsonResponse(await knowledgeSearchD1(env.DB, {
+      query: search.get("query") ?? "",
+      sources: listParam(search, "sources").length ? listParam(search, "sources") : null,
+      kindIds: listParam(search, "kind_ids"),
+      predicateIds: listParam(search, "predicate_ids"),
+      offset: boundedInt(search.get("offset"), 0, 0, 100_000),
+      limit: boundedInt(search.get("limit"), 40, 1, 100),
+    }), 200, method);
+  }
+  const knowledgeNodePrefix = "/api/knowledge/nodes/";
+  if (path.startsWith(knowledgeNodePrefix)) {
+    return jsonResponse(
+      await knowledgeNodeD1(env.DB, segment(path, knowledgeNodePrefix), boundedInt(search.get("relation_limit"), 200, 0, 1000)),
+      200,
+      method,
+    );
+  }
+  const knowledgeRelationPrefix = "/api/knowledge/relations/";
+  if (path.startsWith(knowledgeRelationPrefix)) {
+    return jsonResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
+  }
+  const knowledgeFocusPrefix = "/api/knowledge/focus/";
+  if (path.startsWith(knowledgeFocusPrefix)) {
+    const profile = search.get("profile") || "overview";
+    if (profile !== "overview" && profile !== "all") throw new HttpError(400, "profile must be overview or all");
+    const direction = (search.get("direction") || "either").trim().toLowerCase();
+    if (direction !== "outgoing" && direction !== "incoming" && direction !== "either") {
+      throw new HttpError(400, "direction must be outgoing, incoming, or either");
+    }
+    const sources = listParam(search, "sources");
+    return jsonResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
+      ...(sources.length ? { sources } : {}),
+      depth: boundedInt(search.get("depth"), 1, 0, 5),
+      direction,
+      profile,
+      predicateIds: listParam(search, "predicates"),
+      nodeLimit: boundedInt(search.get("node_limit"), 200, 1, 1000),
+      relationLimit: boundedInt(search.get("relation_limit"), 400, 0, 2000),
+    }), 200, method);
+  }
+  const knowledgeLensPrefix = "/api/knowledge/lenses/";
+  if (path.startsWith(knowledgeLensPrefix)) {
+    const lensId = segment(path, knowledgeLensPrefix);
+    const catalog = await staticItem(env, request, "knowledge/catalog.json");
+    const lenses = Array.isArray(catalog.lenses) ? catalog.lenses : [];
+    const spec = lenses.find((item) => item && typeof item === "object" && !Array.isArray(item) && (item as Item).lens_id === lensId);
+    if (!spec) throw new HttpError(404, `unknown ToS knowledge lens: ${lensId}`);
+    return jsonResponse(await executeKnowledgeLensD1(env.DB, spec), 200, method);
+  }
 
   if (path === "/api/philosophy/review-packet") {
     const viewId = (search.get("view_id") || "chronology").trim();
@@ -300,6 +422,16 @@ export default {
     if (url.hostname.toLowerCase() === "www.treeofsophia.com") {
       url.hostname = "treeofsophia.com";
       return Response.redirect(url.toString(), 308);
+    }
+    if (request.method === "POST" && ["/api/knowledge/lenses/compile", "/api/knowledge/explore"].includes(url.pathname)) {
+      try {
+        return await lensCompileResponse(request, env, url.pathname === "/api/knowledge/explore");
+      } catch (error) {
+        if (error instanceof KnowledgeRevisionConflict) return jsonResponse({ error: error.message }, 409, request.method);
+        if (error instanceof HttpError) return jsonResponse({ error: error.message }, error.status, request.method);
+        console.error("Cloudflare edge lens request failed", error);
+        return jsonResponse({ error: "Cloudflare edge lens request failed" }, 500, request.method);
+      }
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return jsonResponse({ error: "standalone access is read-only" }, 405, request.method);

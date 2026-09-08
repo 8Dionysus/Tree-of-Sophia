@@ -113,6 +113,25 @@ class MechanicsRouteDocsTests(unittest.TestCase):
 
         self.assertTrue(any("broken local documentation route" in message for _, message in issues))
 
+    def test_mechanics_test_reference_uses_test_owner_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = 'mechanics/growth-cycle/tests/test_forms.py'
+            write_text(root / target, '# bounded test fixture\n')
+            write_text(root / 'mechanics/growth-cycle/README.md', f'Check `{target}`.\n')
+            # A script-inventory entry cannot replace the actual test owner.
+            write_text(root / 'docs/validation/script_inventory.json',
+                       json.dumps({'script_surfaces': [{'path': target}]}))
+            write_text(root / 'tests/test_inventory.json', json.dumps({'tests': []}))
+            issues = []
+            validate_mechanics_topology.validate_documentation_references(root, issues)
+            self.assertTrue(any('absent from test inventory' in message for _, message in issues))
+            write_text(root / 'tests/test_inventory.json', json.dumps({'tests': [{'path': target}]}))
+            write_text(root / 'docs/validation/script_inventory.json', json.dumps({'script_surfaces': []}))
+            issues = []
+            validate_mechanics_topology.validate_documentation_references(root, issues)
+            self.assertEqual(issues, [])
+
     def test_external_route_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_root = Path(tmpdir)

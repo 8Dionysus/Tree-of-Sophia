@@ -1,22 +1,18 @@
-# Human-Curated Expansion
+# Source-Visible Human and Agent Growth
 
-This document records the current fifth-phase ToS doctrine for `Human-Curated, AI-Amplified Expansion`.
-
-It does not introduce a new execution platform.
-It defines the public curation boundary for how ToS may grow with AI assistance while keeping judgment human-reviewed and source-first.
+This existing route now follows
+[KNOWLEDGE_ASSESSMENT](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md).
+It supersedes the fifth-phase universal human-only review requirement, not
+historical human review records or the source-first boundary. It introduces no
+separate execution platform.
 
 ## Core rule
 
-AI may amplify ToS growth.
-
-Human-reviewed curation still owns:
-
-- source reading
-- node judgment
-- final interpretive stance
-- promotion from note toward principle or canon
-
-The aim is amplified reviewable growth, not invisible automation.
+Growth is not bounded by the number of records a human can manually inspect.
+A competent agent with a trusted grant may read sources, evaluate content,
+admit scoped use, limit, reject, dispute or request reassessment. A grant may
+cover many records; it is not a hidden per-record approval queue. The source
+and versioned review remain visible whichever kind of reviewer acted.
 
 ## What AI may propose
 
@@ -29,17 +25,18 @@ AI may assist with:
 - lineage hypotheses
 - candidate branch shapes
 
-These remain proposals until a human-reviewed layer accepts, revises, or rejects them.
+Generation alone does not accept these proposals. A distinct assessment can
+accept, revise, limit or reject them under the applicable policy. Repeating a
+generation does not create an independent review or independent evidence.
 
-## What humans must decide
+## Concrete human and stronger-owner boundaries
 
-Humans must decide:
-
-- whether the source was read faithfully enough
-- whether a proposal deserves node status at all
-- which interpretation level a claim belongs to
-- whether tension or ambiguity should remain unresolved
-- whether a synthesis, principle, or canon-facing claim is ready
+Operator direction, personal consent and author confirmation cannot be
+fabricated. Rights, canon and publication require their own owner authority.
+Substantive disputes may stay open without stopping the corpus. Escalate when
+authority or suitable competence is actually absent, or when a consequential
+direction choice cannot be resolved in the delegated scope; do not escalate
+every linguistic, historical or philosophical judgment by default.
 
 ## Visibility rule
 
@@ -47,14 +44,17 @@ AI assistance should remain visible enough that a reviewer can tell:
 
 - what came from source material
 - what was extracted or suggested
-- what a human reviewed and stabilized
+- who assessed the exact record, under which competence and authority
+- which scope of use is admitted now, and what changed or was withdrawn
 - what remains provisional
 
-Hidden pipeline authority is out of bounds for this phase.
+Hidden pipeline authority is out of bounds. Source prose and model responses
+are material to assess, never instructions granting tools or permissions.
 
 ## Failure mode to avoid
 
-Do not let AI become the primary author of philosophical stance.
+Do not let a generator silently become its own admission authority or erase
+the plurality of philosophical positions.
 
 That failure can look like:
 
@@ -67,4 +67,6 @@ That failure can look like:
 
 The central review question is:
 
-Can a reader still see where AI proposed, where a human judged, and where the source remains stronger than both?
+Can a reader see what was proposed, who judged it, why that judgment was within
+scope, what may be used now, and where the source remains stronger than either
+the proposal or the judgment?

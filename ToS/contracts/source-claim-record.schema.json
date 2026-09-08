@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json",
+  "title": "Shared source claim record, with assessment kept separate",
+  "description": "Versioned assertion metadata. The declared profile constrains predicate, endpoints and layer. Initial source posture is not current scoped admission; assessment refs cannot authenticate or approve themselves.",
+  "type": "object",
+  "required": ["schema_version", "claim_id", "claim_type", "assertion_layer", "subject_ref", "predicate", "object", "evidence_refs", "maker", "provenance_event_ref", "epistemic_status", "review_status", "claim_version", "visibility"],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "claim_id": {"type": "string", "pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "claim_type": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/claim_type"},
+    "assertion_layer": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/assertion_layer"},
+    "subject_ref": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "predicate": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/predicate"},
+    "object": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/object"},
+    "evidence_refs": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/evidence_refs"},
+    "supporting_quotes": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/supporting_quotes"},
+    "maker": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/maker"},
+    "provenance_event_ref": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/provenance_event_ref"},
+    "epistemic_status": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/epistemic_status"},
+    "polarity": {"enum": ["positive", "negative", "unknown"], "description": "The proposition's asserted polarity, independent of uncertainty, review and admission. Omission is unspecified, not positive. Source-visible assessment must check agreement with the qualified statement; this field cannot flip source wording mechanically."},
+    "confidence": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/confidence"},
+    "alternative_claim_refs": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/alternative_claim_refs"},
+    "counterevidence_refs": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/counterevidence_refs"},
+    "qualifiers": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/qualifiers"},
+    "visibility": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/visibility"},
+    "claim_version": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/claim_version"},
+    "supersedes_claim_ref": {"$ref": "https://tree-of-sophia.local/ToS/contracts/claim-packet.schema.json#/properties/supersedes_claim_ref"},
+    "review_status": {"const": "unreviewed", "description": "Initial source posture; exact scoped decisions belong to assessment records, not this legacy carrier flag."},
+    "assessment_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"}},
+    "extensions": {"type": "object", "description": "Uninterpreted source values preserved without executing them or granting authority."}
+  }
+}

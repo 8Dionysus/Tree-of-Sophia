@@ -13,9 +13,12 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .core import ToSAccessCore
+from .lens_pagination import KnowledgeRevisionConflict
+from .exploration import ExplorationExpired, exploration_capabilities
 from .doctor import web_root_for
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+MAX_LENS_REQUEST_BYTES = 64 * 1024
 
 INDEX_TEMPLATE = """<!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -151,6 +154,8 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     return
                 if path == "/health":
                     errors: list[str] = []
+                    knowledge_schema: str | None = None
+                    knowledge_counts: dict[str, Any] = {}
                     try:
                         index = core.index()
                         if index.get("schema_version") != "tos_corpus_index_v1":
@@ -176,15 +181,71 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                             core.philosophy_view(str(views[0]["view_id"]), limit=1)
                     except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
                         errors.append(f"philosophy projection invalid: {exc}")
+                    try:
+                        knowledge = core.knowledge_graph()
+                        catalog = core.knowledge_catalog()
+                        counts = knowledge.get("counts", {})
+                        coverage = counts.get("display_coverage", {}) if isinstance(counts, dict) else {}
+                        knowledge_schema = str(knowledge.get("schema") or "")
+                        knowledge_counts = counts if isinstance(counts, dict) else {}
+                        if catalog.get("schema") != "tos_knowledge_catalog_v1":
+                            errors.append("knowledge catalog schema is not current")
+                        if coverage.get("node_titles") != counts.get("nodes"):
+                            errors.append("knowledge graph node title coverage is incomplete")
+                        if coverage.get("node_summaries") != counts.get("nodes"):
+                            errors.append("knowledge graph node summary coverage is incomplete")
+                        if coverage.get("relation_labels") != counts.get("relations"):
+                            errors.append("knowledge graph relation label coverage is incomplete")
+                        if coverage.get("relation_statements") != counts.get("relations"):
+                            errors.append("knowledge graph relation statement coverage is incomplete")
+                        if coverage.get("relation_explanations") != counts.get("relations"):
+                            errors.append("knowledge graph relation explanation coverage is incomplete")
+                    except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+                        errors.append(f"knowledge graph invalid: {exc}")
                     health = {
                         "service": "tree-of-sophia-access",
                         "ok": not errors,
                         "write_enabled": False,
                         "errors": errors,
+                        "knowledge_schema": knowledge_schema,
+                        "knowledge_counts": knowledge_counts,
                     }
                     self._json(health, HTTPStatus.OK if not errors else HTTPStatus.SERVICE_UNAVAILABLE)
                     return
                 if path == "/api/corpus/status": self._json(core.status()); return
+                if path == "/api/knowledge/catalog": self._json(core.knowledge_catalog()); return
+                if path == "/api/knowledge/explore/capabilities": self._json(exploration_capabilities()); return
+                if path == "/api/knowledge/explore/contracts": self._json(core.knowledge_exploration_contracts()); return
+                if path == "/api/knowledge/contracts": self._json(core.knowledge_contracts()); return
+                if path == "/api/knowledge/search":
+                    self._json(core.knowledge_search(
+                        _single(query, "query"),
+                        sources=_list(query, "sources") or None,
+                        kind_ids=_list(query, "kind_ids") or None,
+                        predicate_ids=_list(query, "predicate_ids") or None,
+                        offset=_integer(query, "offset", 0, 0, 100_000),
+                        limit=_integer(query, "limit", 40, 1, 100),
+                    )); return
+                if path.startswith("/api/knowledge/nodes/"):
+                    self._json(core.knowledge_node(
+                        unquote(path.removeprefix("/api/knowledge/nodes/")),
+                        _integer(query, "relation_limit", 200, 0, 1000),
+                    )); return
+                if path.startswith("/api/knowledge/relations/"):
+                    self._json(core.knowledge_relation(unquote(path.removeprefix("/api/knowledge/relations/")))); return
+                if path.startswith("/api/knowledge/focus/"):
+                    self._json(core.knowledge_focus(
+                        unquote(path.removeprefix("/api/knowledge/focus/")),
+                        sources=_list(query, "sources") or None,
+                        depth=_integer(query, "depth", 1, 0, 5),
+                        direction=_single(query, "direction", "either"),
+                        profile=_single(query, "profile", "overview"),
+                        predicate_ids=_list(query, "predicates") or None,
+                        node_limit=_integer(query, "node_limit", 200, 1, 1000),
+                        relation_limit=_integer(query, "relation_limit", 400, 0, 2000),
+                    )); return
+                if path.startswith("/api/knowledge/lenses/"):
+                    self._json(core.stored_knowledge_lens(unquote(path.removeprefix("/api/knowledge/lenses/")))); return
                 if path == "/api/source-gaps": self._json(core.source_gap_search(_single(query, "query"), _integer(query, "limit", 20, 1, 100))); return
                 if path == "/api/zarathustra/word-analysis":
                     self._json(core.zarathustra_word_analysis_task(
@@ -289,7 +350,43 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
             self.do_GET()
 
         def do_POST(self) -> None:  # noqa: N802
-            self._json({"error": "standalone access is read-only"}, HTTPStatus.METHOD_NOT_ALLOWED)
+            parsed = urlparse(self.path)
+            if parsed.path not in {"/api/knowledge/lenses/compile", "/api/knowledge/explore"}:
+                self._json({"error": "standalone access is read-only"}, HTTPStatus.METHOD_NOT_ALLOWED)
+                return
+            try:
+                if self.headers.get("Transfer-Encoding"):
+                    raise ValueError("streamed lens requests are not supported")
+                content_type = self.headers.get_content_type()
+                if content_type != "application/json":
+                    self._json({"error": "lens request must use application/json"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+                    return
+                raw_length = self.headers.get("Content-Length")
+                if raw_length is None:
+                    raise ValueError("lens request requires Content-Length")
+                length = int(raw_length)
+                if length < 1:
+                    raise ValueError(f"lens request must be between 1 and {MAX_LENS_REQUEST_BYTES} bytes")
+                if length > MAX_LENS_REQUEST_BYTES:
+                    self._json(
+                        {"error": f"lens request must not exceed {MAX_LENS_REQUEST_BYTES} bytes"},
+                        HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                    )
+                    return
+                body = self.rfile.read(length)
+                if len(body) != length:
+                    raise ValueError("incomplete lens request body")
+                spec = json.loads(body.decode("utf-8"))
+                if not isinstance(spec, dict):
+                    raise ValueError("lens spec must be an object")
+                operation = core.knowledge_explore if parsed.path == "/api/knowledge/explore" else core.compile_knowledge_lens
+                self._json(operation(spec))
+            except ExplorationExpired as exc:
+                self._json({"error": str(exc), "code": "exploration_expired"}, HTTPStatus.GONE)
+            except KnowledgeRevisionConflict as exc:
+                self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 
     return Handler
 

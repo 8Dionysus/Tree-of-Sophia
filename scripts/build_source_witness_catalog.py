@@ -6,9 +6,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
+
+from source_owner_context import OWNER_LOCAL_HOME
+
+from jsonschema import Draft202012Validator, FormatChecker
+from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
+                                    SOURCE_CLAIM_BASENAME, METADATA_LINK_FIELDS)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +35,21 @@ RECORD_FILES = {
     "item": "items.jsonl",
     "link": "links.jsonl",
 }
-SOURCE_BASENAMES = {record_type: f"{record_type}.json" for record_type in RECORD_FILES}
+OPTIONAL_RECORD_FILES = {
+    "historical-event": "historical-events.jsonl",
+    "historical-process": "historical-processes.jsonl",
+    "historical-state": "historical-states.jsonl",
+}
+ADAPTED_RECORD_FILES = {"artifact": "artifacts.jsonl", "composite": "composites.jsonl"}
+COMPOSITE_SCHEMA = 'ToS/contracts/scholarly-composite-witness.schema.json'
+ARTIFACT_SCHEMAS = {
+    'tos_artifact_source_witness_v1': 'ToS/contracts/artifact-source-witness.schema.json',
+    'tos_artifact_source_witness_v2': 'ToS/contracts/artifact-source-witness-v2.schema.json',
+}
+SOURCE_BASENAMES = {
+    record_type: f"{record_type}.json"
+    for record_type in (*RECORD_FILES, *OPTIONAL_RECORD_FILES)
+}
 CLAIM_SOURCE_BASENAMES = (
     "membership-claims.jsonl",
     "responsibility-claims.jsonl",
@@ -40,46 +61,210 @@ CLAIM_SOURCE_BASENAMES = (
     "edition-item-claims.jsonl",
     "expression-derivation-claims.jsonl",
     "object-link-claims.jsonl",
+    "historical-claims.jsonl",
 )
 TRACKED_CLAIM_VISIBILITIES = {"public_metadata_only", "public"}
-LINK_FIELDS = (
-    "work_ref",
-    "expression_claim_refs",
-    "responsibility_claim_refs",
-    "chronology_claim_refs",
-    "embodiment_claim_refs",
-    "derivation_claim_refs",
-    "embodies_expression_refs",
-    "publication_claim_refs",
-    "provision_activity_claim_refs",
-    "exemplar_claim_refs",
-    "collection_ref",
-    "membership_claim_refs",
-    "item_manifest_ref",
-    "association_claim_refs",
-)
+LINK_FIELDS = METADATA_LINK_FIELDS
 
 
 class CatalogBuildError(RuntimeError):
     pass
 
 
+def native_witness_contract(payload: dict, relative: str) -> tuple[str, str, str]:
+    """Resolve a native subject's exact owner path, schema and identity field.
+
+    Callers retain their own protected byte-read, schema validation and digest
+    checks. This descriptor neither rewrites a payload nor supplies authority.
+    """
+    ref = Path(relative)
+    composite = payload.get('schema_version') == 'tos_scholarly_composite_witness_v1'
+    schema_ref = COMPOSITE_SCHEMA if composite else ARTIFACT_SCHEMAS.get(payload.get('schema_version'))
+    subtree, basename, identity, kind = (
+        ('scholarly-composites', 'composite-witness.json', 'composite_id', 'composite') if composite else
+        ('artifacts', 'artifact-witness.json', 'artifact_id', 'artifact'))
+    if (schema_ref is None or ref.is_absolute() or '..' in ref.parts or ref.as_posix() != relative
+            or ref.name != basename or not ref.is_relative_to(SOURCE_ROOT / subtree)):
+        raise ValueError('native witness schema and owner path do not agree')
+    return schema_ref, identity, kind
+
+
 def canonical_json(payload: object) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any]]]:
-    source_root = repo_root / SOURCE_ROOT
-    records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in RECORD_FILES}
-    seen_ids: dict[str, str] = {}
+def artifact_catalog_entry(repo_root: Path, payload: dict, relative: str,
+                           validators: dict | None = None) -> dict:
+    """Project native physical identity; never manufacture a Corpus record.
 
-    for record_type, basename in SOURCE_BASENAMES.items():
+    Inventory wording is an attributed navigation label, not an assessed title.
+    A missing identity assessment remains null rather than inferred from the
+    legacy metadata review state. All native fields stay in the source record.
+    """
+    schema_ref = ARTIFACT_SCHEMAS.get(payload.get('schema_version'))
+    if schema_ref is None:
+        raise CatalogBuildError(f'{relative}: unsupported physical artifact source schema')
+    validators = {} if validators is None else validators
+    if schema_ref not in validators:
+        schema = json.loads((repo_root / schema_ref).read_text(encoding='utf-8'))
+        validators[schema_ref] = Draft202012Validator(schema, format_checker=FormatChecker())
+    if not validators[schema_ref].is_valid(payload):
+        raise CatalogBuildError(f'{relative}: invalid or nonpublic physical artifact metadata')
+    return {
+        'schema_version': 'tos_source_witness_catalog_entry_v1',
+        'source_schema_ref': schema_ref,
+        'record_id': payload['artifact_id'],
+        'record_type': 'artifact',
+        'preferred_label': payload['custody']['inventory_numbers'][0],
+        'label_source_pointer': '/custody/inventory_numbers/0',
+        'identity_status': None,
+        'source_record_ref': relative,
+        'record_sha256': hashlib.sha256(canonical_json(payload).encode('utf-8')).hexdigest(),
+        'links': {},
+    }
+
+
+def load_artifact_record(repo_root: Path, relative: str) -> dict:
+    """Bound a public metadata read to the physical-artifact owner subtree."""
+    ref = Path(relative)
+    if (ref.is_absolute() or '..' in ref.parts or ref.name != 'artifact-witness.json'
+            or not ref.is_relative_to(SOURCE_ROOT / 'artifacts')):
+        raise CatalogBuildError('physical artifact source path is outside its owner subtree')
+    path = repo_root / ref
+    if path.is_symlink() or not path.is_file() or path.resolve() != path.absolute():
+        raise CatalogBuildError(f'{relative}: artifact source must be a regular non-symlink path')
+    with path.open('rb') as handle:
+        raw = handle.read(1_048_577)
+    if len(raw) > 1_048_576:
+        raise CatalogBuildError(f'{relative}: artifact metadata exceeds 1 MiB budget')
+    try:
+        payload = json.loads(raw)
+    except (ValueError, UnicodeError) as exc:
+        raise CatalogBuildError(f'{relative}: invalid physical artifact JSON') from exc
+    if not isinstance(payload, dict):
+        raise CatalogBuildError(f'{relative}: physical artifact record must be an object')
+    return payload
+
+
+def artifact_display_fields(payload: dict) -> dict:
+    """Exact field copies shared by the two readers of a validated artifact."""
+    return {
+        'description': payload['path_identity']['note'],
+        'review_status': payload['authority']['review_status'],
+        'visibility': payload['authority']['visibility'],
+        'label_source_pointer': '/custody/inventory_numbers/0',
+        'metadata_field_sources': {
+            'preferred_label': '/custody/inventory_numbers/0',
+            'description': '/path_identity/note',
+            'review_status': '/authority/review_status',
+            'visibility': '/authority/visibility',
+        },
+    }
+
+
+def composite_catalog_entry(repo_root: Path, payload: dict, relative: str,
+                            validators: dict | None = None) -> dict:
+    """Return native scholarly identity without recasting it as an original.
+
+    Member/coverage observations remain exact source metadata, not accepted
+    relations. The source's identity status does not grant textual authority.
+    """
+    if payload.get('schema_version') != 'tos_scholarly_composite_witness_v1':
+        raise CatalogBuildError(f'{relative}: unsupported scholarly composite source schema')
+    validators = {} if validators is None else validators
+    if COMPOSITE_SCHEMA not in validators:
+        schema = json.loads((repo_root / COMPOSITE_SCHEMA).read_text(encoding='utf-8'))
+        validators[COMPOSITE_SCHEMA] = Draft202012Validator(schema, format_checker=FormatChecker())
+    if not validators[COMPOSITE_SCHEMA].is_valid(payload):
+        raise CatalogBuildError(f'{relative}: invalid or nonpublic scholarly composite metadata')
+    return {
+        'schema_version': 'tos_source_witness_catalog_entry_v1',
+        'source_schema_ref': COMPOSITE_SCHEMA,
+        'record_id': payload['composite_id'],
+        'record_type': 'composite',
+        'preferred_label': payload['preferred_label'],
+        'identity_status': payload['identity_status'],
+        'source_record_ref': relative,
+        'record_sha256': hashlib.sha256(canonical_json(payload).encode('utf-8')).hexdigest(),
+        'links': {},
+    }
+
+
+def load_composite_record(repo_root: Path, relative: str) -> dict:
+    """Bound a native metadata read to the scholarly-composite owner subtree."""
+    ref = Path(relative)
+    if (ref.is_absolute() or '..' in ref.parts or ref.as_posix() != relative
+            or ref.name != 'composite-witness.json'
+            or not ref.is_relative_to(SOURCE_ROOT / 'scholarly-composites')):
+        raise CatalogBuildError('scholarly composite source path is outside its owner subtree')
+    path = repo_root / ref
+    if path.is_symlink() or not path.is_file() or path.resolve() != path.absolute():
+        raise CatalogBuildError(f'{relative}: composite source must be a regular non-symlink path')
+    with path.open('rb') as handle:
+        raw = handle.read(1_048_577)
+    if len(raw) > 1_048_576:
+        raise CatalogBuildError(f'{relative}: composite metadata exceeds 1 MiB budget')
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON field')
+            result[key] = value
+        return result
+    def reject_nonfinite(value):
+        raise ValueError('nonfinite JSON number')
+    try:
+        payload = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_nonfinite)
+        # Overflowing exponents can yield infinity without parse_constant.
+        json.dumps(payload, allow_nan=False)
+    except (ValueError, UnicodeError) as exc:
+        raise CatalogBuildError(f'{relative}: invalid scholarly composite JSON') from exc
+    if not isinstance(payload, dict):
+        raise CatalogBuildError(f'{relative}: scholarly composite record must be an object')
+    return payload
+
+
+def composite_display_fields(payload: dict) -> dict:
+    """Exact source fields, without guessed language or assessed human forms."""
+    return {
+        'description': payload['editorial_object']['description'],
+        'review_status': payload['authority']['review_status'],
+        'visibility': payload['authority']['visibility'],
+        'metadata_field_sources': {
+            'preferred_label': '/preferred_label',
+            'description': '/editorial_object/description',
+            'identity_status': '/identity_status',
+            'review_status': '/authority/review_status',
+            'visibility': '/authority/visibility',
+        },
+    }
+
+
+def collect_records(repo_root: Path = REPO_ROOT, *, profiles: SourceRecordProfiles | None = None) -> dict[str, list[dict[str, Any]]]:
+    try:
+        return _collect_records(repo_root, profiles=profiles)
+    except SourceProfileError as exc:
+        raise CatalogBuildError(str(exc)) from exc
+
+
+def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) -> dict[str, list[dict[str, Any]]]:
+    source_root = repo_root / SOURCE_ROOT
+    if profiles is not None and (type(profiles) is not SourceRecordProfiles or profiles.root.absolute() != repo_root.absolute()):
+        raise CatalogBuildError('public catalog requires its exact public source-profile reader and owner root')
+    profiles = profiles or SourceRecordProfiles(repo_root)
+    basenames = {**{kind: kind + '.json' for kind in RECORD_FILES}, **profiles.source_basenames}
+    records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in basenames}
+    seen_ids: dict[str, str] = {identity: 'native semantic packet'
+                               for identity in profiles.native_semantic_identities()}
+
+    for record_type, basename in basenames.items():
         for path in sorted(source_root.rglob(basename)):
             if CATALOG_ROOT in path.relative_to(repo_root).parents:
                 continue
             relative = path.relative_to(repo_root).as_posix()
             try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
+                payload = (profiles.load(record_type, relative) if record_type in profiles.profiles
+                           else json.loads(path.read_text(encoding="utf-8")))
             except (OSError, json.JSONDecodeError) as exc:
                 raise CatalogBuildError(f"{relative}: cannot read corpus record: {exc}") from exc
             if not isinstance(payload, dict):
@@ -100,6 +285,7 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
             digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
             links = {field: payload[field] for field in LINK_FIELDS if field in payload}
             records[record_type].append(
+                profiles.catalog_entry(record_type, payload, relative) if record_type in profiles.profiles else
                 {
                     "schema_version": "tos_source_witness_catalog_entry_v1",
                     "record_id": record_id,
@@ -112,31 +298,71 @@ def collect_records(repo_root: Path = REPO_ROOT) -> dict[str, list[dict[str, Any
                 }
             )
 
+    artifacts, validators = [], {}
+    for path in sorted((source_root / 'artifacts').rglob('artifact-witness.json')):
+        relative = path.relative_to(repo_root).as_posix()
+        payload = load_artifact_record(repo_root, relative)
+        entry = artifact_catalog_entry(repo_root, payload, relative, validators)
+        if entry['record_id'] in seen_ids:
+            raise CatalogBuildError(f"{relative}: duplicate record_id {entry['record_id']!r}")
+        seen_ids[entry['record_id']] = relative
+        artifacts.append(entry)
+    if artifacts:
+        records['artifact'] = artifacts
+    composites = []
+    for path in sorted((source_root / 'scholarly-composites').rglob('composite-witness.json')):
+        relative = path.relative_to(repo_root).as_posix()
+        payload = load_composite_record(repo_root, relative)
+        entry = composite_catalog_entry(repo_root, payload, relative, validators)
+        if entry['record_id'] in seen_ids:
+            raise CatalogBuildError(f"{relative}: duplicate record_id {entry['record_id']!r}")
+        seen_ids[entry['record_id']] = relative
+        composites.append(entry)
+    if composites:
+        records.setdefault('composite', []).extend(composites)
     for entries in records.values():
         entries.sort(key=lambda entry: entry["record_id"])
-    return records
+    return {kind: entries for kind, entries in records.items()
+            if kind in RECORD_FILES or entries}
 
 
-def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
+def collect_claims(repo_root: Path = REPO_ROOT, *, input_digests=None) -> list[dict[str, Any]]:
+    try:
+        return _collect_claims(repo_root, input_digests=input_digests)
+    except SourceProfileError as error:
+        raise CatalogBuildError(str(error)) from error
+
+
+def _collect_claims(repo_root: Path, *, input_digests=None) -> list[dict[str, Any]]:
+    # Reject the reserved home before globbing or opening even a legacy Claim.
+    # A broken directory alias is still a forbidden public/private ambiguity.
+    if os.path.lexists(repo_root / OWNER_LOCAL_HOME):
+        raise CatalogBuildError('reserved owner-local namespace cannot enter the public claim catalog')
     source_root = repo_root / SOURCE_ROOT
     claims: list[dict[str, Any]] = []
     seen_ids: dict[str, str] = {}
+    profiles = None
 
-    for basename in CLAIM_SOURCE_BASENAMES:
+    for basename in (*CLAIM_SOURCE_BASENAMES, SOURCE_CLAIM_BASENAME):
         for path in sorted(source_root.rglob(basename)):
             relative = path.relative_to(repo_root).as_posix()
+            profiled = basename == SOURCE_CLAIM_BASENAME
             try:
-                lines = path.read_text(encoding="utf-8").splitlines()
+                if profiled:
+                    profiles = profiles or SourceClaimProfiles(repo_root)
+                    rows = profiles.read_rows(relative)
+                else:
+                    rows = enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
             except OSError as exc:
                 raise CatalogBuildError(
                     f"{relative}: cannot read claim packets: {exc}"
                 ) from exc
-            for line_number, raw_line in enumerate(lines, start=1):
-                if not raw_line.strip():
+            for line_number, raw_line in rows:
+                if not profiled and not raw_line.strip():
                     continue
                 location = f"{relative}:{line_number}"
                 try:
-                    payload = json.loads(raw_line)
+                    payload = raw_line if profiled else json.loads(raw_line)
                 except json.JSONDecodeError as exc:
                     raise CatalogBuildError(
                         f"{location}: cannot parse claim packet: {exc}"
@@ -166,6 +392,10 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
                 ).hexdigest()
                 entry = {
                     "schema_version": "tos_source_witness_claim_catalog_entry_v1",
+                    **({'source_schema_ref': 'ToS/contracts/historical-claim.schema.json'}
+                       if payload.get('schema_version') == 'tos_historical_claim_v1' else {}),
+                    **({'source_schema_ref': profiles.schema_routes[payload['predicate'], payload['schema_version']]['schema_ref']}
+                       if profiled else {}),
                     "claim_id": claim_id,
                     "claim_type": payload.get("claim_type"),
                     "assertion_layer": payload.get("assertion_layer"),
@@ -197,17 +427,24 @@ def collect_claims(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
                     entry["qualifiers"] = payload["qualifiers"]
                 claims.append(entry)
 
+    if input_digests is not None and profiles is not None:
+        input_digests.update(profiles.input_digests)
     claims.sort(key=lambda entry: entry["claim_id"])
     return claims
 
 
 def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
-    records = collect_records(repo_root)
+    profiles = SourceRecordProfiles(repo_root)
+    records = collect_records(repo_root, profiles=profiles)
     claims = collect_claims(repo_root)
     outputs: dict[Path, str] = {}
     digest_parts: list[str] = []
 
-    for record_type, filename in RECORD_FILES.items():
+    profile_files = profiles.catalog_files
+    record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
+                                    {**profile_files, **ADAPTED_RECORD_FILES}.items()
+                                    if kind in records}}
+    for record_type, filename in record_files.items():
         lines = [canonical_json(entry) for entry in records[record_type]]
         text = "\n".join(lines) + ("\n" if lines else "")
         relative = CATALOG_ROOT / filename
@@ -230,9 +467,14 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
         "generated_by": "scripts/build_source_witness_catalog.py",
         "record_schema_ref": "ToS/contracts/corpus-record.schema.json",
         "claim_schema_ref": "ToS/contracts/claim-packet.schema.json",
+        **({'extension_schema_refs': sorted({entry['source_schema_ref']
+                                            for entries in [*records.values(), claims] for entry in entries
+                                            if 'source_schema_ref' in entry})}
+           if any(kind in records for kind in (*profile_files, *ADAPTED_RECORD_FILES))
+           or any('source_schema_ref' in entry for entry in claims) else {}),
         "record_files": {
             record_type: (CATALOG_ROOT / filename).as_posix()
-            for record_type, filename in RECORD_FILES.items()
+            for record_type, filename in record_files.items()
         },
         "claim_file": CLAIM_CATALOG_PATH.as_posix(),
         "counts": counts,
@@ -274,7 +516,7 @@ def main() -> int:
 
     try:
         outputs = render_outputs(REPO_ROOT)
-    except CatalogBuildError as exc:
+    except (CatalogBuildError, SourceProfileError) as exc:
         print(f"Source-witness catalog build failed: {exc}", file=sys.stderr)
         return 1
 

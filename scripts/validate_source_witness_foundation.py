@@ -32,13 +32,14 @@ from build_source_witness_catalog import (
     CATALOG_ROOT,
     CLAIM_CATALOG_PATH,
     RECORD_FILES,
-    SOURCE_BASENAMES,
+    ADAPTED_RECORD_FILES,
     SOURCE_ROOT,
     CatalogBuildError,
     check_outputs,
     collect_records,
     render_outputs,
 )
+from source_record_profiles import SourceRecordProfiles, SourceProfileError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -443,6 +444,45 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object) -> Path | None:
+    """Resolve recorded input bytes without treating history as current law.
+
+    Only a named active ToS schema may use the bounded, content-addressed
+    historical-contract lane. Ordinary source/evidence inputs still require
+    their current exact bytes. No Git history, network or fallback search runs.
+    """
+    if (not isinstance(ref, str) or not isinstance(digest, str)
+            or re.fullmatch(r'[a-f0-9]{64}', digest) is None):
+        return None
+    relative = Path(ref)
+    if (relative.as_posix() != ref or relative.is_absolute() or '..' in relative.parts
+            or not relative.parts or relative.parts[0] != 'ToS'
+            or any((repo_root / Path(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1))):
+        return None
+    current = repo_root / relative
+    try:
+        if not current.is_file():
+            return None
+        if _sha256(current) == digest:
+            return current
+        if re.fullmatch(r'ToS/contracts/[a-z][a-z0-9-]*\.schema\.json', ref) is None:
+            return None
+        history = repo_root / 'ToS/contracts/history'
+        archived = history / (digest + '.json')
+        if history.is_symlink() or archived.is_symlink() or not archived.is_file():
+            return None
+        with archived.open('rb') as stream:
+            raw = stream.read(1_048_577)
+        if len(raw) > 1_048_576 or hashlib.sha256(raw).hexdigest() != digest:
+            return None
+        schema = json.loads(raw)
+        if not isinstance(schema, dict) or schema.get('$id') != 'https://tree-of-sophia.local/' + ref:
+            return None
+        return archived
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
 
 
 def _validate_required_provenance_output_digests(
@@ -2114,10 +2154,12 @@ def _semantic_annotation_v2_issues(packet: dict[str, Any]) -> list[str]:
             promotion_reviews = [
                 review_by_id[ref]
                 for ref in entity.get("admission_review_refs", [])
-                if ref in review_by_id and review_by_id[ref].get("review_kind") == "sign_promotion"
+                if ref in review_by_id
+                and review_by_id[ref].get("review_kind") == "sign_promotion"
+                and review_by_id[ref].get("decision") in accepting_decisions
             ]
             if not promotion_reviews:
-                messages.append(f"accepted {entity_kind} lacks a sign-promotion review: {entity_id}")
+                messages.append(f"accepted {entity_kind} lacks an accepting sign-promotion review: {entity_id}")
             for review in promotion_reviews:
                 baseline = review.get("unassisted_baseline", {})
                 if not (
@@ -7202,7 +7244,9 @@ def validate_zarathustra_authored_canon_evidence_bridge(
 
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
-    for record_type, basename in SOURCE_BASENAMES.items():
+    basenames = {**{kind: kind + '.json' for kind in RECORD_FILES},
+                 **SourceRecordProfiles(repo_root).source_basenames}
+    for record_type, basename in basenames.items():
         if record_type == "link":
             continue
         for path in sorted(source_root.rglob(basename)):
@@ -7638,12 +7682,19 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}
+    profiles = SourceRecordProfiles(repo_root)
     for path in _record_paths(repo_root):
         payload = _load_json(path, repo_root, issues)
         if payload is None:
             continue
         location = _relative(path, repo_root)
-        _validate_payload(payload, corpus_validator, location, issues)
+        if payload.get('record_type') in profiles.profiles:
+            try:
+                profiles.validate(payload['record_type'], payload)
+            except SourceProfileError as exc:
+                issues.append((location, str(exc)))
+        else:
+            _validate_payload(payload, corpus_validator, location, issues)
         _validate_source_refs(repo_root, payload, location, issues)
         record_id = payload.get("record_id")
         if isinstance(record_id, str):
@@ -14218,8 +14269,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 )
             )
         for input_ref, input_digest in actual_inputs.items():
-            input_path = repo_root / str(input_ref)
-            if not input_path.is_file() or _sha256(input_path) != input_digest:
+            if _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                 issues.append(
                     (
                         EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
@@ -14473,7 +14523,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                                         f"input is missing: {input_ref}",
                                     )
                                 )
-                            elif _sha256(input_path) != input_digest:
+                            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                                 issues.append(
                                     (
                                         location,
@@ -15035,7 +15085,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         f"work chronology provenance input is missing: {input_ref}",
                     )
                 )
-            elif _sha256(input_path) != input_digest:
+            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                 issues.append(
                     (
                         WORK_CHRONOLOGY_PROVENANCE.as_posix(),
@@ -15337,8 +15387,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         expected_outputs = render_outputs(repo_root)
         for message in check_outputs(repo_root, expected_outputs):
             issues.append((CATALOG_ROOT.as_posix(), message))
-    except CatalogBuildError as exc:
+    except (CatalogBuildError, SourceProfileError) as exc:
         issues.append((CATALOG_ROOT.as_posix(), str(exc)))
+
+    if (any(payload.get('record_type') in profiles.profiles for payload, _ in records_by_id.values())
+            or next((repo_root / SOURCE_ROOT).rglob('historical-claims.jsonl'), None) is not None
+            or next((repo_root / SOURCE_ROOT).rglob('source-claims.jsonl'), None) is not None):
+        # Reuse the source-returnable graph boundary: source schemas, actual
+        # registry domains, exact catalogs, evidence, and provenance resolution.
+        # This is read-only and does not authorize the historical assertions.
+        from source_witness_bibliographic_graph_common import BibliographicGraphBuildError, build_payload
+        try:
+            build_payload(repo_root)
+        except (BibliographicGraphBuildError, SourceProfileError) as exc:
+            issues.append((SOURCE_ROOT.as_posix(), f'declared source profile: {exc}'))
 
     catalog_manifest_path = repo_root / CATALOG_ROOT / "catalog.manifest.json"
     catalog_manifest = _load_json(catalog_manifest_path, repo_root, issues)
@@ -15354,7 +15416,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         entry_class = validator_for(entry_schema)
         entry_class.check_schema(entry_schema)
         entry_validator = entry_class(entry_schema, format_checker=FormatChecker())
-        for filename in RECORD_FILES.values():
+        record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
+                                         {**profiles.catalog_files, **ADAPTED_RECORD_FILES}.items()
+                                         if kind in (catalog_manifest or {}).get('record_files', {})}}
+        for filename in record_files.values():
             catalog_path = repo_root / CATALOG_ROOT / filename
             for index, entry in enumerate(_load_jsonl(catalog_path, repo_root, issues), start=1):
                 _validate_payload(
@@ -15508,7 +15573,7 @@ def main(argv: list[str] | None = None) -> int:
 
     payload_posture = "required and fixity-checked" if args.require_local_payloads else "optional; present bytes fixity-checked"
     print(f"[ok] validated source-witness evidence spine ({payload_posture})")
-    print("[boundary] mechanics only: bibliographic, textual, rights, translation, semantic, and review truth remain human-evidence questions")
+    print("[boundary] mechanics only: source-visible assessment remains with authorized competent humans or agents; rights, consent, canon and publication retain their owners")
     return 0
 
 

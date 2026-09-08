@@ -1,0 +1,125 @@
+{
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jgb-freedom-contradiction-expression.statement-ru",
+      "form_version": 2,
+      "subject": {
+        "id": "tos.claim.jgb-freedom-contradiction-expression",
+        "version": 2,
+        "digest": "sha256:ee0339ef7cf1106651e3397130c17bd4025e4072f5224f70f7bab9827d089b69"
+      },
+      "role": "statement",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": {
+        "id": "tos.form.jgb-freedom-contradiction-expression.statement-ru",
+        "version": 1,
+        "digest": "sha256:276b34137660551bda54d3f82ced1cd013bb94156eeb1808fb4d94cf146ec7c9"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.jgb-freedom-contradiction-expression",
+            "version": 2,
+            "digest": "sha256:ee0339ef7cf1106651e3397130c17bd4025e4072f5224f70f7bab9827d089b69"
+          },
+          "pointer": "/qualifiers/statement"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.jgb-freedom-contradiction-expression",
+            "version": 2,
+            "digest": "sha256:ee0339ef7cf1106651e3397130c17bd4025e4072f5224f70f7bab9827d089b69"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "jgb-freedom:20260907:statement:jgb-freedom-contradiction-expression",
+      "owner_configuration": "sha256:143e577688b5bf2b6d5dde1b80bedb1d92993bc331c5703b8eb2586efe9aa9d0",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T14:06:54.436039+00:00",
+      "request_digest": "sha256:0101726f735c42f6c8331814b540841b2a9fb153bcb3b5e001370acece41f314",
+      "results": [
+        {
+          "digest": "sha256:276b34137660551bda54d3f82ced1cd013bb94156eeb1808fb4d94cf146ec7c9",
+          "id": "tos.form.jgb-freedom-contradiction-expression.statement-ru",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:9bf7404e804fe962f81430b6f786d9b8dda02e8b36522f6409c2334906894b0c",
+        "id": "tos.claim.jgb-freedom-contradiction-expression",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:a6effb9f6339c237a994334df7389e04892a5ba7ddd54b4552b2e3dc78fae088",
+        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:2fc1c9b36d58d64dc628a5592eedfc5e90ab960fff55ba84f3d64e8b2a92a09e",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/thought-relation-claim.schema.json": "sha256:9010c738879df48dcfca4e4bfa0cf2bb5dd65fc0ffd775db67f5f9af0f431d48",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:1e61e5e7b89db254228eb8b71ec4e02a6c49d5dc0c6d69e67b5ff799b84700db",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:1046413b8d72be8a9eba33fc0aeb185696b225e36d5b32688d45cf48d9398418"
+      }
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:9bf7404e804fe962f81430b6f786d9b8dda02e8b36522f6409c2334906894b0c",
+            "id": "tos.claim.jgb-freedom-contradiction-expression",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:9bf7404e804fe962f81430b6f786d9b8dda02e8b36522f6409c2334906894b0c",
+            "id": "tos.claim.jgb-freedom-contradiction-expression",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.jgb-freedom-contradiction-expression.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:9bf7404e804fe962f81430b6f786d9b8dda02e8b36522f6409c2334906894b0c",
+        "id": "tos.claim.jgb-freedom-contradiction-expression",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.jgb-freedom-contradiction-expression",
+    "version": 2,
+    "digest": "sha256:ee0339ef7cf1106651e3397130c17bd4025e4072f5224f70f7bab9827d089b69"
+  }
+}

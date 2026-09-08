@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-record.schema.json",
+  "title": "Source-described scholarly composite",
+  "description": "A modern reconstruction, collation or arrangement, not its ancient referent, a physical member, publication, exact text layer or admitted reading. Native composite-witness v1 records retain their unchanged adapter and identities.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
+    {"properties": {
+      "schema_version": {"const": "tos_scholarly_composite_record_v1"},
+      "record_type": {"const": "composite"},
+      "record_id": {"pattern": "^tos\\.composite\\."},
+      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.composite\\."},
+      "semantic_content": {"required": ["composition_account", "editorial_method", "coverage_account"], "properties": {
+        "composition_account": {"type": "string", "pattern": "\\S", "description": "What this scholarly composition reconstructs, collates or arranges, with attribution and uncertainty. Exact membership is separately grounded."},
+        "editorial_method": {"type": "string", "pattern": "\\S", "description": "Reported editorial operations and their limits; not a replayable extraction event or approval of readings."},
+        "coverage_account": {"type": "string", "pattern": "\\S", "description": "Reported extent, omissions and limits; a complete-looking presentation does not prove completeness of an ancient work or its surviving witnesses."}
+      }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

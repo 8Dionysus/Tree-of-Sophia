@@ -1,0 +1,194 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.agent.parmenides-of-elea",
+    "version": 1,
+    "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.parmenides-survival.parmenides.name-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.parmenides-of-elea",
+        "version": 1,
+        "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.parmenides-survival.parmenides.name-en",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.parmenides-of-elea",
+        "version": 1,
+        "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+      },
+      "role": "name",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/variant_labels/0/script"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-5": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.parmenides-survival.parmenides.note-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.agent.parmenides-of-elea",
+        "version": 1,
+        "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.agent.parmenides-of-elea",
+            "version": 1,
+            "digest": "sha256:cd8dae556e4d4e1d1a9e31b0fddd19bf38b33b6d89178169598424f464a095ab"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

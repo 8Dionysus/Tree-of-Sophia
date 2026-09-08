@@ -7,7 +7,9 @@
 - ...
 
 ## Validation
-<!-- List only checks that actually ran. If none, say Not run. -->
+<!-- List only checks that actually ran. If none, say Not run.
+For Repo Validation, name the exact registry-change baseline and any explicitly
+allowed initial introduction, following docs/RELEASING.md. -->
 - ...
 
 ## Boundary / Direction Impact

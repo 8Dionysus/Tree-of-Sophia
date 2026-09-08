@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+    "version": 1,
+    "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.1fe8e8dc822e412d0dfa2e3851afd6bb042ed0307bc579f8a67ff7885dcc7a47",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+        "version": 1,
+        "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+            "version": 1,
+            "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+            "version": 1,
+            "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+            "version": 1,
+            "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.8c6d512785b180aa7c7c2afcd4b7d7d3b9c61d6697c6546059e5aafd571aa70f",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+        "version": 1,
+        "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+            "version": 1,
+            "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+            "version": 1,
+            "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+            "version": 1,
+            "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+      "request_digest": "sha256:bfc774e2bc03258a62c937d15346ea44f16e30c63e6707832b8397fa35b8918a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:4958daa87fef830cd29b036b5284ac953a53ba9d0c42277fccac8c8cc5a9d8d3",
+      "recorded_at": "2026-09-07T03:13:27.744751+00:00",
+      "source": {
+        "id": "tos.expression.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920",
+        "version": 1,
+        "digest": "sha256:f876d9b33659cee058c878093f4f200dcb107f2d7abf26dd3335d1e773eb72c8"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.1fe8e8dc822e412d0dfa2e3851afd6bb042ed0307bc579f8a67ff7885dcc7a47",
+          "version": 1,
+          "digest": "sha256:4eb6834bf55834a5300445604b90e24699adf395bc71dfeaf9203456c718688c"
+        },
+        {
+          "id": "tos.form.metadata.8c6d512785b180aa7c7c2afcd4b7d7d3b9c61d6697c6546059e5aafd571aa70f",
+          "version": 1,
+          "digest": "sha256:5a024076942dc65cf2e2a54159ae070b4ea04f0f7f63ca480048cbe9bea7548e"
+        }
+      ]
+    }
+  ]
+}

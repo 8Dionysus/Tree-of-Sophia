@@ -27,6 +27,8 @@ export type WebMCPStatus = {
   registration_error: string | null;
 };
 
+const toolCommands = new WeakMap<WebMCPTool, PageCommandId>();
+
 const emptySchema: JsonSchema = { type: "object", properties: {}, additionalProperties: false };
 
 function objectSchema(properties: Record<string, unknown>, required: string[] = []): JsonSchema {
@@ -52,7 +54,7 @@ function commandTool(
   compact?: (value: Record<string, unknown>) => unknown,
   bindInput?: (input: Record<string, unknown>) => Record<string, unknown>,
 ): WebMCPTool {
-  return {
+  const tool: WebMCPTool = {
     ...definition,
     execute: async (input, options) => {
       const boundInput = bindInput ? bindInput(input) : input;
@@ -63,22 +65,26 @@ function commandTool(
       return toolResult(compact ? compact(value) : value);
     },
   };
+  toolCommands.set(tool, commandId);
+  return tool;
 }
+
+function identity(value: unknown): string { return typeof value === "string" ? value : ""; }
 
 function compactSelectionResult(result: Record<string, unknown>): unknown {
   const context = result.context as Record<string, unknown> | undefined;
   const selection = result.value as Record<string, unknown> | undefined;
   return {
     selection: selection ? {
-      id: clipped(selection.id, 96),
+      id: identity(selection.id),
       page_kind: clipped(selection.kind, 24),
       semantic_kind: clipped(selection.semantic_kind || selection.kind, 48),
       label: clipped(selection.label, 120),
       subtitle: clipped(selection.subtitle, 100),
-      from_id: clipped(selection.from_id, 96) || undefined,
-      to_id: clipped(selection.to_id, 96) || undefined,
-      predicate_id: clipped(selection.predicate_id, 64) || undefined,
-      source_refs: Array.isArray(selection.source_refs) ? selection.source_refs.slice(0, 3).map((ref) => clipped(ref, 160)) : [],
+      from_id: identity(selection.from_id) || undefined,
+      to_id: identity(selection.to_id) || undefined,
+      predicate_id: identity(selection.predicate_id) || undefined,
+      source_refs: Array.isArray(selection.source_refs) ? selection.source_refs.slice(0, 3).map((ref) => identity(ref)) : [],
       authority_posture: clipped(selection.authority_posture, 48) || undefined,
       review_posture: clipped(selection.review_posture, 48) || undefined,
       canon_status: clipped(selection.canon_status, 48) || undefined,
@@ -98,19 +104,19 @@ function compactPageContext(value: Record<string, unknown>): unknown {
     view_id: clipped(value.view_id, 96),
     graph_mode: value.graph_mode,
     selected: selected ? {
-      id: clipped(selected.id, 96),
+      id: identity(selected.id),
       page_kind: clipped(selected.kind, 24),
       semantic_kind: clipped(selected.semantic_kind || selected.kind, 48),
       label: clipped(selected.label, 120),
-      from_id: clipped(selected.from_id, 96) || undefined,
-      to_id: clipped(selected.to_id, 96) || undefined,
-      source_refs: Array.isArray(selected.source_refs) ? selected.source_refs.slice(0, 3).map((ref) => clipped(ref, 140)) : [],
+      from_id: identity(selected.from_id) || undefined,
+      to_id: identity(selected.to_id) || undefined,
+      source_refs: Array.isArray(selected.source_refs) ? selected.source_refs.slice(0, 3).map((ref) => identity(ref)) : [],
     } : null,
-    path_start_node_id: clipped(value.path_start_node_id, 96) || null,
+    path_start_node_id: identity(value.path_start_node_id) || null,
     active_layers: Array.isArray(value.active_layers) ? value.active_layers.slice(0, 16) : [],
     active_predicates: Array.isArray(value.active_predicates) ? value.active_predicates.slice(0, 16) : [],
     research_workspace: value.research_workspace,
-    deep_link: clipped(value.deep_link, 240),
+    deep_link: identity(value.deep_link),
     pending_command_ids: Array.isArray(value.pending_command_ids) ? value.pending_command_ids.slice(0, 8) : [],
   };
 }
@@ -123,7 +129,7 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
     query: clipped(value?.query, 160),
     result_count: Number(value?.result_count || 0),
     results: results.slice(0, 6).map((item) => ({
-      id: clipped(item.id, 96),
+      id: identity(item.id),
       kind: clipped(item.semantic_kind || item.kind, 48),
       label: clipped(item.label, 80),
       posture: clipped(item.review_posture || item.canon_status || item.authority_posture, 56),
@@ -144,7 +150,7 @@ function compactSourceGapResult(result: Record<string, unknown>): unknown {
     query: clipped(value?.query, 160),
     result_count: Number(value?.result_count || 0),
     gaps: gaps.slice(0, 6).map((item) => ({
-      id: clipped(item.id, 140),
+      id: identity(item.id),
       label: clipped(item.label, 160),
       status: clipped(item.review_posture || item.authority_posture, 64),
       summary: clipped(item.summary, 180),
@@ -179,14 +185,14 @@ function compactPathResult(result: Record<string, unknown>): unknown {
   if (!value) return result;
   const paths = Array.isArray(value.paths) ? value.paths as Array<Record<string, unknown>> : [];
   const first = paths[0] || {};
-  const nodeIds = Array.isArray(first.node_ids) ? first.node_ids.map((id) => clipped(id)).slice(0, 10) : [];
+  const nodeIds = Array.isArray(first.node_ids) ? first.node_ids.map(identity).slice(0, 10) : [];
   const edgeIds = Array.isArray(first.edge_ids) ? first.edge_ids : [];
   const context = result.context as Record<string, unknown> | undefined;
   return {
-    finding: value.found ? "alternative route found and shown on the page" : "no route found within the requested bounds",
+    finding: value.found ? "route found and shown on the page" : "no route found within the requested bounds",
     found: value.found === true,
-    from_id: clipped(value.from_id),
-    to_id: clipped(value.to_id),
+    from_id: identity(value.from_id),
+    to_id: identity(value.to_id),
     route_count: Number(value.path_count || paths.length || 0),
     first_route_node_ids: nodeIds,
     first_route_edge_count: edgeIds.length,
@@ -194,7 +200,8 @@ function compactPathResult(result: Record<string, unknown>): unknown {
     page_updated: true,
     context_revision: result.context_revision,
     deep_link: context?.deep_link,
-    next_actions: value.found ? ["save the route for comparison", "inspect its uncertain edges"] : ["widen the route bounds", "restore an excluded edge"],
+    exploration_truncated: value.exploration_truncated === true,
+    next_actions: value.next_actions || (value.found ? ["save the route for comparison", "inspect its uncertain edges"] : ["widen the route bounds", "restore an excluded edge"]),
   };
 }
 
@@ -204,15 +211,19 @@ function compactNeighborhoodResult(result: Record<string, unknown>): unknown {
   const node = value?.node as Record<string, unknown> | undefined;
   const neighbors = Array.isArray(value?.neighbors) ? value.neighbors as Array<Record<string, unknown>> : [];
   const edges = Array.isArray(value?.edges) ? value.edges as Array<Record<string, unknown>> : [];
+  const page = value?.page as Record<string, unknown> | undefined;
   return {
     selection: {
-      id: clipped(node?.node_id || node?.id, 96),
+      id: identity(node?.node_id || node?.id),
       label: clipped(node?.label || node?.title, 120),
     },
     neighbor_count: neighbors.length,
     relation_count: edges.length,
+    scope: page ? "exploration-page" : "bounded-neighborhood",
+    page_number: page?.number,
+    has_more: page ? Boolean(page.next_cursor) : undefined,
     neighbors: neighbors.slice(0, 6).map((item) => ({
-      id: clipped(item.node_id || item.id, 72),
+      id: identity(item.node_id || item.id),
       label: clipped(item.label || item.title, 72),
       kind: clipped(item.node_type, 36),
     })),
@@ -230,16 +241,16 @@ function compactReadingComparison(result: Record<string, unknown>): unknown {
   const readings = Array.isArray(value?.competing_readings) ? value.competing_readings as Array<Record<string, unknown>> : [];
   return {
     schema: value?.schema,
-    selection: selection ? { id: clipped(selection.id, 96), kind: clipped(selection.semantic_kind || selection.kind, 48), label: clipped(selection.label, 120) } : null,
+    selection: selection ? { id: identity(selection.id), kind: clipped(selection.semantic_kind || selection.kind, 48), label: clipped(selection.label, 120) } : null,
     posture: value?.posture,
     can_conclude: value?.can_conclude === true,
     competing_reading_count: Number(value?.competing_reading_count || 0),
     competing_readings: readings.slice(0, 4).map((reading) => ({
-      id: clipped(reading.id, 80),
+      id: identity(reading.id),
       label: clipped(reading.label, 96),
-      predicate_id: clipped(reading.predicate_id, 48),
+      predicate_id: identity(reading.predicate_id),
       review_posture: clipped(reading.review_posture, 48) || "unresolved",
-      source_refs: Array.isArray(reading.source_refs) ? reading.source_refs.slice(0, 2).map((ref) => clipped(ref, 120)) : [],
+      source_refs: Array.isArray(reading.source_refs) ? reading.source_refs.slice(0, 2).map((ref) => identity(ref)) : [],
     })),
     gaps: Array.isArray(value?.gaps) ? value.gaps.slice(0, 4).map((gap) => clipped(gap, 120)) : [],
     authority_note: clipped(value?.authority_note, 180),
@@ -263,7 +274,7 @@ function compactWorkspaceMutation(result: Record<string, unknown>): unknown {
     ...(hypothesis ? { hypothesis: { id: clipped(hypothesis.id), title: clipped(hypothesis.title, 140), posture: hypothesis.posture } } : {}),
     ...(route ? { route: { id: clipped(route.id), label: clipped(route.label, 140), node_count: Array.isArray(route.nodeIds) ? route.nodeIds.length : 0, edge_count: Array.isArray(route.edgeIds) ? route.edgeIds.length : 0 } } : {}),
     ...(proposal ? { proposal: {
-      id: clipped(proposal.id, 96),
+      id: identity(proposal.id),
       kind: clipped(proposal.kind, 48),
       statement: clipped(proposal.statement, 180),
       status: proposal.reviewStatus || proposal.review_status,
@@ -291,12 +302,12 @@ function compactWorkspaceRead(result: Record<string, unknown>): unknown {
   return {
     research_workspace: context?.research_workspace,
     selected_lens: packet?.selected_lens || null,
-    hypothesis_preview: hypotheses.slice(-1).map((item) => ({ id: clipped(item.id, 72), title: clipped(item.title, 80), body: clipped(item.body, 96), posture: item.posture })),
-    proposal_preview: proposals.slice(-2).map((item) => ({ id: clipped(item.id, 72), kind: item.kind, statement: clipped(item.statement, 120), review_status: item.review_status, digest: clipped(item.digest, 80) })),
+    hypothesis_preview: hypotheses.slice(-1).map((item) => ({ id: identity(item.id), title: clipped(item.title, 80), body: clipped(item.body, 96), posture: item.posture })),
+    proposal_preview: proposals.slice(-2).map((item) => ({ id: identity(item.id), kind: item.kind, statement: clipped(item.statement, 120), review_status: item.review_status, digest: clipped(item.digest, 80) })),
     excluded_edge_ids: (Array.isArray(packet?.excluded_edge_ids) ? packet.excluded_edge_ids : []).slice(-3).map((id) => clipped(id, 72)),
     route_preview: routes.slice(-2).map((item) => ({ label: clipped(item.label, 80), node_count: Array.isArray(item.node_ids) ? item.node_ids.length : 0, edge_count: Array.isArray(item.edge_ids) ? item.edge_ids.length : 0 })),
-    note_preview: notes.slice(-1).map((item) => ({ body: clipped(item.body, 96), target_id: clipped(item.target_id, 72) })),
-    recent_actions: journal.slice(-3).map((item) => ({ action: clipped(item.action, 48), target_id: clipped(item.target_id, 72) })),
+    note_preview: notes.slice(-1).map((item) => ({ body: clipped(item.body, 96), target_id: identity(item.target_id) })),
+    recent_actions: journal.slice(-3).map((item) => ({ action: clipped(item.action, 48), target_id: identity(item.target_id) })),
     local_only: true,
     authority: { source: false, reviewed: false, canon: false },
     context_revision: result.context_revision,
@@ -469,7 +480,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
   const evidenceAvailable = context.mode === "philosophy"
     || (context.mode === "corpus" && context.view_id === "route-graph");
   if (!evidenceAvailable) return tools;
-  if ((selected.kind === "node" || selected.kind === "edge") && selected.reroutable !== false) {
+  if ((selected.kind === "node" || selected.kind === "edge") && (selected.evidence_available ?? selected.reroutable !== false)) {
     tools.push(
       commandTool(registry, "tos.page.inspect-epistemic", {
         name: "tos.page.inspect-epistemic",
@@ -531,7 +542,8 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         inputSchema: objectSchema({ depth: { type: "integer", minimum: 1, maximum: 3 } }),
         annotations: { readOnlyHint: false },
       }, context.revision, compactNeighborhoodResult),
-      commandTool(registry, "tos.page.start-path", {
+    );
+    if (selected.path_available !== false) tools.push(commandTool(registry, "tos.page.start-path", {
         name: "tos.page.start-path",
         title: "Start a path from this node",
         description: `Use the currently selected node ${selected.id} as the deictic start of the next path query.`,
@@ -539,7 +551,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
         annotations: { readOnlyHint: false },
       }, context.revision),
     );
-    if (context.path_start_node_id && context.path_start_node_id !== selected.id) {
+    if (selected.path_available !== false && context.path_start_node_id && context.path_start_node_id !== selected.id) {
       tools.push(
         commandTool(registry, "tos.page.find-path", {
           name: "tos.page.find-path-to-selection",
@@ -584,7 +596,9 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
 export function createWebMCPAdapter(
   registry: PageCommandRegistry,
   targetDocument: WebMCPDocument,
+  allowedCommands?: ReadonlySet<PageCommandId>,
 ) {
+  const available = (tool: WebMCPTool): boolean => !allowedCommands || allowedCommands.has(toolCommands.get(tool)!);
   let stableController: AbortController | null = null;
   let dynamicController: AbortController | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -633,7 +647,7 @@ export function createWebMCPAdapter(
       const controller = new AbortController();
       dynamicController = controller;
       try {
-        const tools = dynamicTools(registry, context);
+        const tools = dynamicTools(registry, context).filter(available);
         await registerAll(tools, controller);
         selectionToolCount = tools.length;
         registrationError = null;
@@ -665,7 +679,7 @@ export function createWebMCPAdapter(
     }
     stableController = new AbortController();
     try {
-      const tools = stableTools(registry);
+      const tools = stableTools(registry).filter(available);
       await registerAll(tools, stableController);
       stableToolCount = tools.length;
       unsubscribe = registry.subscribe((context) => void refresh(context));

@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+    "version": 3,
+    "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.9b60502e646f7e83d4fa926e2b46116f2ce3653d25f00d0c61980ff1d564e1ad",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+        "version": 3,
+        "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+            "version": 3,
+            "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+            "version": 3,
+            "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+            "version": 3,
+            "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.7bba147a08daf81348ba99cf065c0fb42aba9d52b3203880bb7556401797866a",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+        "version": 3,
+        "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+            "version": 3,
+            "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+            "version": 3,
+            "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+            "version": 3,
+            "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+      "request_digest": "sha256:2f116b182dc2276d21d35f6afe367c7901cab1e680ec1ffcdac4fb47add403be",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:eeb2ebdb27f35196003dfc53736c3d496f157bbcff18112cb319eb18d98d4abc",
+      "recorded_at": "2026-09-07T03:13:27.014797+00:00",
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-mysl-1996",
+        "version": 3,
+        "digest": "sha256:3e3986f2e9ca36bc4c2bf77135572d591c1b7b5b7c2f609abef60a748e1c56e8"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.9b60502e646f7e83d4fa926e2b46116f2ce3653d25f00d0c61980ff1d564e1ad",
+          "version": 1,
+          "digest": "sha256:7c66007712565d7d69628be4d4de1f06c35884cc023fb39c7e397791b4365ea7"
+        },
+        {
+          "id": "tos.form.metadata.7bba147a08daf81348ba99cf065c0fb42aba9d52b3203880bb7556401797866a",
+          "version": 1,
+          "digest": "sha256:c615d2233095249e32b30f45cd8477c404a420122f83e2e2e28487fa2b3695a0"
+        }
+      ]
+    }
+  ]
+}

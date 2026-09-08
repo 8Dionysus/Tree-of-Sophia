@@ -13,7 +13,7 @@ ToS exists to support long-horizon cultivation of thought through:
 - source-linked textual grounding
 - concept and lineage tracing
 - context-rich interpretation
-- human-reviewed synthesis
+- reviewed synthesis by humans and authorized agents
 - provenance-aware growth
 - durable architectural clarity across time and traditions
 
@@ -39,7 +39,7 @@ This repository owns ToS-level truth about:
 - what ToS is
 - what kinds of nodes and relations belong in ToS
 - what source-first discipline should remain stable
-- how raw material, derived extraction, and human-reviewed synthesis stay distinct
+- how raw material, derived extraction, and reviewed synthesis stay distinct
 - how ToS relates to AoA, `aoa-kag`, and `abyss-stack`
 
 ## What this repository does not own
@@ -56,12 +56,17 @@ This repository does not own:
 
 - sources before abstraction
 - lineages before isolated fragments
-- human review before authority claims
+- source-visible review and explicit authority before scoped admission
 - explicit provenance over floating interpretation
 - plural scope without silent flattening
 - growth through explicit structure
 - stable evidence beneath versioned interpretation
 - gold examples that preserve judgment, refusal, and uncertainty
+
+[Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md) owns the concrete
+human/agent competence, authority and admission rules. Reviewer kind alone is
+neither a guarantee of truth nor an automatic ceiling on research use. Rights,
+consent, publication and canon keep their separate owner decisions.
 
 ## Role in the broader ecosystem
 

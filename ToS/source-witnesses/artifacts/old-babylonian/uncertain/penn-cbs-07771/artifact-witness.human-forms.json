@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:3136473398b0cb4df6e7671dbe5bbedc7e70136b7fb9ac8070ca055c35c2040b",
+        "id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+        "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+        "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.old-babylonian.uncertain.penn-cbs-07771",
+      "owner_configuration": "sha256:a5942ffe85ff49c03c375451bc38f1fb28ca0581236ab092da5200f9b2f85412",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:09.952368+00:00",
+      "request_digest": "sha256:98fac414bcce298619662944b5510b46b45b736df75e9251797defa492d1a2f1",
+      "results": [
+        {
+          "digest": "sha256:3136473398b0cb4df6e7671dbe5bbedc7e70136b7fb9ac8070ca055c35c2040b",
+          "id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:6f64127c13a6371ac0a5cb4ac6aeee47611bc3d344575d75728c9c37a02a01ac",
+          "id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+        "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.old-babylonian.uncertain.penn-cbs-07771",
+      "request_digest": "sha256:8a405861b9224b6b03fe701acaac20c808d5692a3dece92778dde8249179f19b",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:a5942ffe85ff49c03c375451bc38f1fb28ca0581236ab092da5200f9b2f85412",
+      "recorded_at": "2026-09-07T21:40:10.643841+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      },
+      "source": {
+        "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+        "version": 1,
+        "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd"
+      },
+      "previous_revision": "sha256:50a83a2439a7aa555294cf19002793292609071b7a051863e487ece5c5e9fabd",
+      "results": [
+        {
+          "id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-name",
+          "version": 2,
+          "digest": "sha256:a49370cab4732b3139fb7682b8f5e96b920ac4d8bdb0cd586b362c0fff509517"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.old-babylonian.uncertain.penn-cbs-07771.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+        "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.old-babylonian.uncertain.penn-cbs-07771",
+    "version": 1,
+    "digest": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd"
+  }
+}

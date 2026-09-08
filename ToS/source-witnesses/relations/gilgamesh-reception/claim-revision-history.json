@@ -1,0 +1,116 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/gilgamesh-reception/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos:gilgamesh-reception:penn-date-wording:20260907",
+      "request_digest": "sha256:897510fa1d80c771191f2e98405b21473e2e3af12cc50d1fab826acd549104c7",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:0a6904e6691ff05bfb5c3546d4bdb3db934100fd2848b923a9d8218a3aabf1db",
+      "recorded_at": "2026-09-07T23:43:34.341813+00:00",
+      "reason": "Attach the explicit 1914 date to the reported purchase, without making the short statement independently date Poebel's identification. Preserve the existing time-scope qualification, sources and identity.",
+      "previous_source": {
+        "id": "tos.claim.gilgamesh-reception.penn-renewed-access",
+        "version": 1,
+        "digest": "sha256:3662ce912ae0b53e4b899556658bc4fac7a45beb93250f38e67edc114b9a93cc"
+      },
+      "source": {
+        "id": "tos.claim.gilgamesh-reception.penn-renewed-access",
+        "version": 2,
+        "digest": "sha256:0c836c9f9b886acea58094af87444dc0324d92c2d9726a1c8cefd0676d50c98c"
+      },
+      "previous_revision": "sha256:af0ed4e11ff3917865d785af1873f40b8026b1d244feb1bcdde95c3cf8c3d138",
+      "archive_path": "ToS/source-witnesses/.record-revisions/7f31b93429b93601994a679ec6ff56930604455bf7ad496a0b768b59d73e6baa-af0ed4e11ff3917865d785af1873f40b8026b1d244feb1bcdde95c3cf8c3d138",
+      "dependencies": "sha256:ed06508e4496d2d48eecd864bb8f2a29569d3f849394886440d8e7c914478d4d",
+      "source_bindings": {
+        "objects": {
+          "tos.artifact.old-babylonian.uncertain.penn-cbs-07771": {
+            "source_ref": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+            "source_sha256": "sha256:60c5c31c846c1e38eeb6e571dc15c85aa4f3cbb26a31edeaa8fd70bc47a2b6ef",
+            "canonical_record_sha256": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "schema_version": "tos_artifact_source_witness_v1",
+            "record_version": 1
+          },
+          "tos.rediscovery-episode.gilgamesh-reception.penn-access-1914": {
+            "source_ref": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/rediscovery-episode.json",
+            "source_sha256": "sha256:68c1c71dbcdeaa4f277851fae1143c1e75caefe027520b14a4ec5d379310fccb",
+            "canonical_record_sha256": "sha256:6e95c3f2aadeb7a6d97d84526c66ef0713fd004e2d7ca6b09ca85f1617e64923",
+            "schema_version": "tos_reception_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-reception-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-reception-source-reading.md",
+            "source_sha256": "sha256:d5b75bbe875dccb62c4a99f101eb84f49f3688498cf294286cd0f634bcf498e1",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.gilgamesh-reception.penn-renewed-access.statement-ru",
+          "version": 2,
+          "digest": "sha256:50c7d698a512ddf3ba1337dbc76f4bee2419d18ce165b83aed4e6458edd4a084"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos:gilgamesh-reception:penn-date-wording:20260907",
+        "expected_configuration": "sha256:0a6904e6691ff05bfb5c3546d4bdb3db934100fd2848b923a9d8218a3aabf1db",
+        "expected_dependencies": "sha256:ed06508e4496d2d48eecd864bb8f2a29569d3f849394886440d8e7c914478d4d",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-reception-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-reception-source-reading.md",
+              "source_sha256": "sha256:d5b75bbe875dccb62c4a99f101eb84f49f3688498cf294286cd0f634bcf498e1"
+            }
+          },
+          "objects": {
+            "tos.artifact.old-babylonian.uncertain.penn-cbs-07771": {
+              "canonical_record_sha256": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+              "record_version": 1,
+              "schema_version": "tos_artifact_source_witness_v1",
+              "source_ref": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+              "source_sha256": "sha256:60c5c31c846c1e38eeb6e571dc15c85aa4f3cbb26a31edeaa8fd70bc47a2b6ef"
+            },
+            "tos.rediscovery-episode.gilgamesh-reception.penn-access-1914": {
+              "canonical_record_sha256": "sha256:6e95c3f2aadeb7a6d97d84526c66ef0713fd004e2d7ca6b09ca85f1617e64923",
+              "record_version": 1,
+              "schema_version": "tos_reception_record_v1",
+              "source_ref": "ToS/source-witnesses/history/gilgamesh-reception/penn-access-1914/rediscovery-episode.json",
+              "source_sha256": "sha256:68c1c71dbcdeaa4f277851fae1143c1e75caefe027520b14a4ec5d379310fccb"
+            }
+          }
+        },
+        "expected_revision": "sha256:af0ed4e11ff3917865d785af1873f40b8026b1d244feb1bcdde95c3cf8c3d138",
+        "expected_source": {
+          "digest": "sha256:3662ce912ae0b53e4b899556658bc4fac7a45beb93250f38e67edc114b9a93cc",
+          "id": "tos.claim.gilgamesh-reception.penn-renewed-access",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "statement": "Джастроу сообщает о покупке пенсильванской таблички в 1914 году и её распознавании Пёбелем; прежняя история доступа не установлена."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.gilgamesh-reception.penn-renewed-access.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Attach the explicit 1914 date to the reported purchase, without making the short statement independently date Poebel's identification. Preserve the existing time-scope qualification, sources and identity.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}
