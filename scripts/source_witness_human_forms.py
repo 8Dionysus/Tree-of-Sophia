@@ -270,6 +270,8 @@ explicitly unavailable, not silently rendered under a more permissive role.
     subject = metadata_subject(source)
     if source.get('schema_version') in NATIVE_IDENTITIES:
         access_allowed = access_allowed is True and source.get('authority', {}).get('visibility') in {'public', 'public_metadata_only'}
+    elif 'visibility' in source:
+        access_allowed = access_allowed is True and source['visibility'] in {'public', 'public_metadata_only'}
     return _materialize_forms(subject, metadata_field_catalog(source), form_set, access_allowed=access_allowed)
 
 

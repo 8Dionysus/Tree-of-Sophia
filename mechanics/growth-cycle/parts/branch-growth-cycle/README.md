@@ -435,8 +435,8 @@ Any consumed private route sets an owner-local disclosure ceiling even when
 the underlying layer is otherwise public. `owner_local_transport` reports
 that boundary without exposing paths; exact private content still needs its
 separate read selection. Context use does not grant source writing, reviewer
-competence, assessment, publication or canon. The explicit native writer below
-uses this Python transport/native-reader interface; v1-v3 assessment command configurations and
+competence, assessment, publication or canon. The explicit native and private
+profile writers below use this transport interface; v1-v3 assessment command configurations and
 public source/Claim/form commands do not implicitly acquire private-source
 support. Each future writer/consumer needs its own explicit adapter.
 
@@ -543,6 +543,101 @@ assessment admission or public projection. Those routes retain their own
 explicit contracts; no public collector gains access to the private store.
 Pure-constructor and command/CLI tests use synthetic evidence, not historical
 or linguistic acceptance.
+
+### Confidential owner-local source profiles
+
+`source_commands.py` selects `source_owner_profile_commands.py` only for the
+independently protected `tos_local_owner_profile_command_v1` configuration.
+It does not relax the public source writer or catalog. The selected record is
+`local_only`, uses its existing `semantic-metadata-v1` profile/schema, and lives
+under the context's exact private logical prefix. The existing parent metadata
+directory must be mode 0700; new flat packages and files use 0700/0600.
+
+The configuration has these exact fields:
+
+- `schema_version`, local `uid`, `principal_id`, `authority_ref`, `expires_at`;
+- `source_context_ref`: independently selected absolute mode-0600 context path;
+- `source_path`: private logical path ending with the profile's typed basename;
+- `profile_type_id`, `record_id`: the declared semantic profile and stable subject;
+- `source_access`: `{read_scope, access_allowed, authority_ref}`;
+- `source_binding`: the complete canonical native binding for an Occurrence,
+  or `null` for a profile without a native adapter;
+- `allowed_operations`: a subset of `source.create`, `record.revise`,
+  `form.create`, `form.revise`;
+- `allowed_fields`: a subset of the common descriptive revision fields;
+- `allowed_form_ids`: up to 32 exact source-form IDs;
+- `provenance_event_id`: the delegated creation serialization event.
+
+An Occurrence requires `exact_owner_local` source-read scope and the same full
+native binding in its record. The command checks current local-derivation
+rights before reading representation bytes. A non-native semantic profile
+uses `metadata_only` and `source_binding: null`; adding a binding field does
+not invent a native adapter for it. Record ID, native binding, scope/continuity
+criterion and visibility cannot be changed by ordinary `record.revise`.
+Identity transitions and publication need their actual owner routes.
+
+Use the same `tos_local_source_command_v1` envelope on stdin:
+
+```bash
+python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
+  --owner-config /absolute/private/source-owner.json < /absolute/private/request.json
+```
+
+The discoverable operations are:
+
+| Operation | Input and result |
+| --- | --- |
+| `describe` | Current source/form selectors, allowed operations, exact package revision and dependency snapshot; an absent target returns no source wording. |
+| `prepare-create` | `record` and 1–32 `forms` selections `{form_id, field_id}`; returns proposed source, files, materializations and expected dependencies. |
+| `source.create` | The prepared record/forms plus command ID, exact expected configuration/dependencies and null expected source/revision; creates one new package, never overwrites a competing directory. |
+| `prepare-revise` | `fields`, `forms`, authored `reason`; returns the proposed successor and expected dependencies. Every current form must be explicitly rebound. |
+| `record.revise` | The proposal plus command ID and exact expected configuration, source, package revision and dependencies; exchanges the whole package after retaining its exact predecessor. |
+| `prepare` | One delegated `form_id` and discovered `field_id`; returns a version-bound common form change. |
+| `apply` | Bounded `changes` and the same exact expected configuration/source/package/dependencies; changes forms only, retaining prior forms and common growth receipts. |
+| `inspect-version` | An exact previous `source` ref from committed record history; returns its unchanged record and byte-bound private archive file locators. |
+
+Creation stores the source, source-copy forms, protected owner configuration,
+request, environment, annotation-serialization provenance and the existing
+`tos_local_source_create_receipt_v1`. It records no model call or linguistic
+review that did not happen. Revision uses `tos_source_revision_history_v1`
+and `tos_source_package_archive_v1`, not a private history grammar. Its archive
+reference starts with the selected private prefix followed by
+`.record-revisions/`; merely changing the physical root of a public archive
+reference would select the wrong owner and is refused.
+
+Common form source/context bindings include the entire native return and
+semantic scope. Source-copy forms remain mechanically ready, unassessed and
+unadmitted; other supported form production modes remain unassessed proposals
+until the assessment owner handles them. Private materializations cannot use
+the public metadata renderer or public catalog reader. Results explicitly
+state `visibility: local_only`, `publication_authorized: false` and
+`grants_admission: false`.
+
+One public-source lock followed by the selected private-store lock coordinates
+these writers with native creation. Discovery scans only bounded public and
+selected private metadata identity homes, excluding payload, local content,
+catalogs, archives and staging. It reserves source/native subject, form and
+creation provenance identities. Exact retry still checks current delegation,
+source/rights/schema/configuration and package integrity; an old receipt is
+not a current permission. Atomic rename/exchange has no non-atomic fallback.
+Interrupted unpublished staging is not a current source and a retry does not
+silently delete that earlier invocation's evidence.
+
+The common 64-file/8-MiB package, 2-MiB file, 1-MiB source/request and
+128-record-correction budgets apply. Identity discovery is bounded to 32,768
+directory entries, 2,048 selected metadata files and 64 MiB, with at most
+32 MiB per older metadata file. This is not an indexed or constant-cost writer,
+a cross-subject transaction, a hostile-same-account security boundary, or a
+private Claim/assessment implementation. No public projection is created.
+
+`OwnerLocalSourceRecordProfiles(context, source_access, source_binding)` is the
+separate read-only Python facade. `validate` and `load` always inspect metadata
+only, even after an earlier exact read. `validate_native_binding(...,
+verify_content=True)` needs distinct exact-read scope; `snapshot()` rechecks
+all previously consumed metadata and exact content. Public registry/schema
+digests are visible, private source dependencies opaque. The facade has no
+catalog or export method and does not itself grant derivation rights or reserve
+identities. Commands provide those separate checks.
 
 ### Descriptions bound to native text
 

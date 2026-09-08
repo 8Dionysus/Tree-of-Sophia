@@ -393,6 +393,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_source_owner_record_profiles.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "protects": "same semantic record grammar through an explicit confidential reader, immutable exact Occurrence delegation, metadata-only reads distinct from exact content, bounded source/context/schema snapshots, private mode and path guards, opaque dependencies, no schema shadow, public alias or catalog/export API; fixtures are synthetic",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_owner_record_profiles.py",
+      "failure_route": "Fix private transport or the common source contract; do not relax public readers or fabricate native bindings.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_source_owner_context.py",
       "home": "tests",
       "home_scope": "root",
@@ -885,6 +900,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/growth-cycle/tests/test_occurrence_assessment_guard.py",
       "failure_route": "Fix the source-owner exact-read gate and currentness guard without turning availability or retained review history into source-visible admission.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_source_owner_profile_commands.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "owner-local profile creation, revision, source-copy forms, exact archives and common receipts without public metadata leakage; explicit read/write/rights scopes, native identity preservation, unknown fields, protected atomic publication, conflict/retry and process interruption; synthetic source and rights assertions are not real assessment evidence",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "medium",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_owner_profile_commands.py",
+      "failure_route": "Fix the private source-owner transaction or shared record/form contract without hiding private content, widening authority or erasing source history.",
       "disposition": "keep"
     },
     {

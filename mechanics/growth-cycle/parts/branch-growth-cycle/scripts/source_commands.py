@@ -53,6 +53,7 @@ CLAIM_STRUCTURED_REVISION_CONFIG = 'tos_local_claim_revision_owner_v3'
 CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
+OWNER_PROFILE_CONFIG = 'tos_local_owner_profile_command_v1'
 REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_languages', 'source_refs', 'extensions',
                    'semantic_content'}
 MAX_COMMAND_BYTES = 1_048_576
@@ -77,6 +78,9 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
+    if config.get('schema_version') == OWNER_PROFILE_CONFIG:
+        from source_owner_profile_commands import configuration
+        return configuration(config, owner_config=path)
     if config.get('schema_version') == TEXT_UNIT_CONFIG:
         from source_text_unit_commands import configuration
         return configuration(config, owner_config=path)
@@ -143,6 +147,7 @@ def _configuration(path):
     relative = Path(config['source_path'])
     if (relative.is_absolute() or relative.as_posix() != config['source_path']
             or '..' in relative.parts or relative.parts[:2] != ('ToS', 'source-witnesses')
+            or relative.is_relative_to('ToS/source-witnesses/owner-local')
             or any(part in ('payload', 'local-content', 'catalog') for part in relative.parts)
             or (relative.name != 'source-claims.jsonl' if claim_forms else relative.suffix != '.json')
             or relative.name.endswith('.human-forms.json')):
@@ -693,7 +698,7 @@ def _validator_for_provenance(root):
 
 def _capture_creation_provenance(config, request, files, started_at, started_ns,
                                  *, procedure_name=None, additional_software_refs=(),
-                                 native_inputs=None):
+                                 native_inputs=None, owner_local_metadata=False):
     """Capture buffer serialization, not upstream research or future publication.
 
     The event and its hash-bearing receipt travel with the atomic directory.
@@ -817,6 +822,14 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
         event['reproducibility']['replay_scope'] = (
             'Exact source-byte verification and deterministic packet construction from the retained '
             'delegation/request, not linguistic correctness or deterministic provenance timestamps.')
+    if owner_local_metadata:
+        # Explicit internal private metadata adapter, never a caller flag.
+        # This records serialization; it does not pretend to segment text.
+        for group in event['entities'].values():
+            for item in group:
+                item['content_disclosure'] = 'private_content'
+        event['method']['configuration_binding'] = binding('source-create-owner-configuration.json')
+        event['rights_and_visibility'].update(intended_uses=['local_research'], content_visibility='local_only')
     _validator_for_provenance(Path(config['source_root'])).validate(event)
     files['source-create-provenance.jsonl'] = _canonical(event) + b'\n'
 
@@ -1032,6 +1045,9 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
+    if config['schema_version'] == OWNER_PROFILE_CONFIG:
+        from source_owner_profile_commands import run_command
+        return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == TEXT_UNIT_CONFIG:
         from source_text_unit_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)

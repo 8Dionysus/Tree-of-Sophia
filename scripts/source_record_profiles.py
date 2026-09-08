@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 from referencing.exceptions import Unresolvable
+
+from source_owner_context import OWNER_LOCAL_HOME
 
 REGISTRY_REF = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
 CONTRACT_REF = 'ToS/contracts/semantic-entity-type-registry.schema.json'
@@ -223,6 +226,7 @@ class SourceRecordProfiles:
         path = Path(ref)
         if (path.is_absolute() or '..' in path.parts or path.as_posix() != ref
                 or not path.is_relative_to(SOURCE_ROOT) or 'catalog' in path.parts
+                or path.is_relative_to(OWNER_LOCAL_HOME)
                 or any(part in {'payload', 'local-content'} for part in path.parts)
                 or path.name != self.profiles[kind]['source_basename']
                 or (kind == 'composite' and (len(path.parts) < 7
@@ -236,6 +240,8 @@ class SourceRecordProfiles:
         return source
 
     def _native_semantic_paths(self) -> list[Path]:
+        if os.path.lexists(self.root / OWNER_LOCAL_HOME):
+            raise SourceProfileError('reserved owner-local namespace cannot enter the public native inventory')
         paths = []
         for path in (self.root / SOURCE_ROOT).rglob('semantic-annotation*.json'):
             if any(part in {'payload', 'local-content', 'catalog'} for part in path.relative_to(self.root).parts):
@@ -253,6 +259,8 @@ class SourceRecordProfiles:
         reference the same native identity. None authorizes a second current
         standalone record. The bounded snapshot is local to this reader.
         """
+        if os.path.lexists(self.root / OWNER_LOCAL_HOME):
+            raise SourceProfileError('reserved owner-local namespace cannot enter the public native inventory')
         if self._native_semantic_identities is not None:
             return self._native_semantic_identities
         identities, byte_budget = {}, [MAX_NATIVE_IDENTITY_BYTES]
@@ -343,10 +351,15 @@ class SourceRecordProfiles:
         except NativeTextBindingError as error:
             raise SourceProfileError('native text binding changed during profile resolution') from error
 
-    def validate(self, kind: str, source: dict) -> None:
+    def _validate_shape(self, kind: str, source: dict) -> None:
+        """Shared profile grammar only; no visibility, source read or admission.
+
+        The explicit public and owner-local readers apply their own transport
+        and disclosure boundaries after this check. This is not an export API.
+        """
+        if kind not in self.profiles or not isinstance(source, dict):
+            raise SourceProfileError('source record requires a declared profile and an object')
         profile = self.profiles[kind]
-        if source.get('visibility') not in {'public', 'public_metadata_only'}:
-            raise SourceProfileError(f'{kind}: source visibility is outside public metadata')
         if (not isinstance(source.get('schema_version'), str) or source.get('record_type') != kind
                 or not isinstance(source.get('record_id'), str)
                 or not re.fullmatch(re.escape(profile['id_prefix']) + r'[a-z0-9]+(?:[.-][a-z0-9]+)*', source['record_id'])
@@ -360,10 +373,16 @@ class SourceRecordProfiles:
                 raise SourceProfileError(f'{kind}: source record violates its exact profile schema or shared metadata contract')
         except Unresolvable as error:
             raise SourceProfileError(f'{kind}: source schema has an undeclared dependency') from error
+
+    def validate(self, kind: str, source: dict) -> None:
+        if not isinstance(source, dict) or source.get('visibility') not in {'public', 'public_metadata_only'}:
+            raise SourceProfileError(f'{kind}: source visibility is outside public metadata')
+        self._validate_shape(kind, source)
         self.assert_identity_not_native(source['record_id'])
         self.validate_native_binding(kind, source)
 
     def catalog_entry(self, kind: str, source: dict, ref: str) -> dict:
+        self.validate_path(kind, ref)
         self.validate(kind, source)
         digest = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True, allow_nan=False,
                                            separators=(',', ':')).encode('utf-8')).hexdigest()

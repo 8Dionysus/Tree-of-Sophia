@@ -246,6 +246,8 @@ def collect_records(repo_root: Path = REPO_ROOT, *, profiles: SourceRecordProfil
 
 def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) -> dict[str, list[dict[str, Any]]]:
     source_root = repo_root / SOURCE_ROOT
+    if profiles is not None and (type(profiles) is not SourceRecordProfiles or profiles.root.absolute() != repo_root.absolute()):
+        raise CatalogBuildError('public catalog requires its exact public source-profile reader and owner root')
     profiles = profiles or SourceRecordProfiles(repo_root)
     basenames = {**{kind: kind + '.json' for kind in RECORD_FILES}, **profiles.source_basenames}
     records: dict[str, list[dict[str, Any]]] = {record_type: [] for record_type in basenames}
