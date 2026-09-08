@@ -254,6 +254,80 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(identity['epistemic']['authority_layer'], 'source-witness')
         self.assertIsNone(identity['epistemic']['canon_status'])
 
+    def property_validation_fixture(self, count):
+        """Repeated instances of one type; their values remain independently checked."""
+        entities = copy.deepcopy(self.entity_type_registry)
+        graph = build_knowledge_graph(*self.fixture(), entity_type_registry=entities,
+                                      relation_type_registry=self.relation_type_registry)
+        template = next(node for node in graph['nodes'] if node['type_id'] == 'tos.entity.concept')
+        definitions = []
+        for name, value_type, parent, inherited in (
+                ('number', 'number', 'tos.entity.semantic-object', True),
+                ('labels', 'string-array', 'tos.entity.concept', False),
+                ('parent-only', 'string', 'tos.entity.semantic-object', False)):
+            definitions.append({'property_id': 'tos.property.fixture-' + name,
+                'field': 'attributes.fixture_' + name, 'labels': {'default': name, 'en': name},
+                'definition': 'Synthetic property for validation scope, not a historical judgment.',
+                'value_type': value_type, 'applies_to': [parent], 'required': True,
+                'inherited': inherited, 'unit': None, 'language': None, 'operators': ['eq', 'exists']})
+        entities['property_definitions'].extend(definitions)
+        nodes = []
+        for index in range(count):
+            node = copy.deepcopy(template)
+            node['id'] = 'fixture:instance:' + str(index)
+            node['entity_id'] = 'tos.fixture.instance-' + str(index)
+            node['attributes'].update({'fixture_number': index, 'fixture_labels': ['Ω', '']})
+            nodes.append(node)
+        return {'nodes': nodes, 'relations': []}, entities, definitions
+
+    def test_property_applicability_work_scales_with_types_not_instances(self):
+        from unittest.mock import patch
+        import tos_access.knowledge as knowledge
+        graph, entities, _definitions = self.property_validation_fixture(64)
+        original = copy.deepcopy(graph)
+        with patch.object(knowledge, '_type_is_a', wraps=knowledge._type_is_a) as subtype:
+            report = validate_knowledge_semantics(graph, entities, self.relation_type_registry)
+        self.assertTrue(report['valid'], report['violations'])
+        self.assertEqual(graph, original)
+        # A growing property registry must not trigger the same ancestry walk
+        # for every instance. Value validation itself is never memoized by type.
+        self.assertLessEqual(subtype.call_count, len(entities['property_definitions']))
+        graph['nodes'][0]['attributes']['fixture_number'] = False
+        del graph['nodes'][1]['attributes']['fixture_number']
+        graph['nodes'][2]['attributes']['fixture_labels'] = ['valid', 3]
+        graph['nodes'][3]['attributes']['fixture_number'] = '3'
+        invalid = validate_knowledge_semantics(graph, entities, self.relation_type_registry)
+        self.assertEqual(invalid['violations'], [
+            'node fixture:instance:0 has invalid property tos.property.fixture-number',
+            'node fixture:instance:1 lacks required property tos.property.fixture-number',
+            'node fixture:instance:2 has invalid property tos.property.fixture-labels',
+            'node fixture:instance:3 has invalid property tos.property.fixture-number',
+        ])
+
+    def test_property_applicability_is_rebuilt_for_each_mutable_registry_snapshot(self):
+        graph, entities, definitions = self.property_validation_fixture(1)
+        node = graph['nodes'][0]
+        check = lambda: validate_knowledge_semantics(graph, entities, self.relation_type_registry)['violations']
+        self.assertEqual(check(), [])
+        # Changing the same dict object cannot reuse the previous definitions.
+        definitions[0]['value_type'] = 'boolean'
+        self.assertEqual(check(), ['node fixture:instance:0 has invalid property tos.property.fixture-number'])
+        definitions[0]['inherited'] = False
+        self.assertEqual(check(), [])
+        definitions[2]['inherited'] = True
+        self.assertEqual(check(), ['node fixture:instance:0 lacks required property tos.property.fixture-parent-only'])
+        node['attributes']['fixture_parent-only'] = 'explicit value'
+        self.assertEqual(check(), [])
+        definitions[0].update(value_type='number', inherited=True)
+        del node['attributes']['fixture_number']
+        self.assertEqual(check(), ['node fixture:instance:0 lacks required property tos.property.fixture-number'])
+        concept = next(entry for entry in entities['types'] if entry['type_id'] == 'tos.entity.concept')
+        parents = concept['parent_type_ids']
+        concept['parent_type_ids'] = ['tos.entity.thing']
+        self.assertEqual(check(), [])
+        concept['parent_type_ids'] = parents
+        self.assertEqual(check(), ['node fixture:instance:0 lacks required property tos.property.fixture-number'])
+
     def test_property_ids_execute_from_snapshot_catalog_with_type_and_missing_guards(self):
         entities = copy.deepcopy(self.entity_type_registry)
         definition = {'property_id': 'tos.property.fixture-score', 'field': 'attributes.fixture_score',
@@ -1497,8 +1571,9 @@ class KnowledgeContractTests(unittest.TestCase):
         graph = build_knowledge_graph(corpus, {}, {}, self.entity_type_registry, self.relation_type_registry)
         types = {n['type_id'] for n in graph['nodes']}
         self.assertTrue({'tos.entity.work', 'tos.entity.text-layer', 'tos.entity.anchor', 'tos.entity.annotation-occurrence',
-                         'tos.entity.sign', 'tos.entity.annotation-claim', 'tos.entity.annotation-evidence'}.issubset(types))
+                         'tos.entity.annotation-sign', 'tos.entity.annotation-claim', 'tos.entity.annotation-evidence'}.issubset(types))
         self.assertNotIn('tos.entity.occurrence', types)
+        self.assertNotIn('tos.entity.sign', types)
         namespace = hashlib.sha256(f"{ref}:{packet['annotation_id']}:{packet['annotation_version']}".encode()).hexdigest()[:20]
         by_entity = {node['entity_id']: node for node in graph['nodes']}
         for entity in packet['entities']:
@@ -1508,6 +1583,10 @@ class KnowledgeContractTests(unittest.TestCase):
             if entity['entity_kind'] == 'occurrence':
                 self.assertEqual(node['type_mapping']['source_kind_id'], 'annotation-occurrence')
                 self.assertNotIn('source_record', node['attributes'])
+            if entity['entity_kind'] == 'sign':
+                self.assertEqual(node['type_mapping']['source_kind_id'], 'annotation-sign')
+                self.assertEqual(node['attributes']['admission_status'], 'proposed')
+                self.assertNotIn('promotion_basis', node['attributes'])
         projected = {node['node_id']: node for node in nodes}
         navigation = [node for node in graph['nodes'] if node['source_graph'] == 'source-navigation']
         self.assertEqual({node['native_id'] for node in navigation}, set(projected))

@@ -2585,6 +2585,19 @@ def validate_knowledge_semantics(
     nodes = _objects(graph.get("nodes")) if isinstance(graph, dict) else []
     relations = _objects(graph.get("relations")) if isinstance(graph, dict) else []
     nodes_by_id: dict[str, dict[str, Any]] = {}
+    properties_by_type: dict[str | None, list[dict[str, Any]]] = {}
+
+    def applicable_properties(type_id):
+        # Applicability depends on this invocation's registry and type, not on
+        # each instance's field values. Preserve definition order and all
+        # instance checks; never retain this table across mutable snapshots.
+        if type_id not in properties_by_type:
+            properties_by_type[type_id] = [
+                definition for definition in (entity_registry or {}).get("property_definitions", [])
+                if (_type_is_a(type_id, definition.get("applies_to", []), entity_entries)
+                    if definition.get("inherited") else type_id in definition.get("applies_to", []))
+            ]
+        return properties_by_type[type_id]
 
     def validate_node(node):
         violations = []
@@ -2610,10 +2623,7 @@ def validate_knowledge_semantics(
             violations.append(f"node {node_id} has no stable entity_id or representation fallback")
         if not _strings(node.get("source_refs")):
             violations.append(f"node {node_id} has no source_refs")
-        for definition in (entity_registry or {}).get("property_definitions", []):
-            applies = _type_is_a(type_id, definition.get("applies_to", []), entity_entries) if definition.get("inherited") else type_id in definition.get("applies_to", [])
-            if not applies:
-                continue
+        for definition in applicable_properties(type_id):
             value = _field(node, definition["field"])
             if value is None:
                 if definition.get("required"):

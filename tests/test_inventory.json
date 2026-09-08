@@ -99,7 +99,7 @@
       "family": "backend_knowledge_lens_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/contracts/knowledge-api.v1.json",
-      "protects": "normalized display-complete knowledge graph, safe declarative LensSpec execution, source-bound fingerprints, adapter operation mapping, schema parity, and temporal comparison without invented calendar, numbering, exactness or nested-context precedence",
+      "protects": "normalized display-complete knowledge graph, safe declarative LensSpec execution, source-bound fingerprints, adapter operation mapping, schema parity, temporal comparison without invented calendar, numbering, exactness or nested-context precedence, and per-type property applicability without sharing instance verdicts or retaining mutable registry state",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",
