@@ -59,6 +59,29 @@ Fallback preserves available source wording without pretending to translate it.
 See the [language transport contract](contracts/README.md) for compatibility
 roles, fallback order and the still-distinct full Forms work.
 
+For an explicit migration diagnostic, run
+`PYTHONPATH=access/src python -m tos_access.coverage --root . --language en`.
+This scans the existing normalized projection and reports per-source carrier
+counts, mapped/unmapped types, missing display wording, derivation, and each
+HumanForm role's delivery and candidate states. `--rows` streams one NDJSON
+observation per node/relation before the terminal summary. Without that final
+summary, an interrupted row stream is incomplete. Output contains references
+and mechanical states, not source wording; its visibility still follows the
+input snapshot and must not be treated as a public-safe derivative by default.
+
+The old `display_coverage` totals count transport fields, including notices;
+they do not measure substantive quality. This separate diagnostic excludes
+notices from available descriptions and distinguishes generated navigation
+from source-marked wording. The latter reports the projection's provenance,
+not independently verified source authorship. It does not score quality, assess rights or admit
+content. Rows retain both carrier and subject identity, so duplicate carriers
+do not inflate a claimed number of distinct subjects. An absent role requires
+its source owner's applicability review, not an invented description. Exact
+source return and next-action categories accompany each row. Objects absent
+from the projection, live source-byte parity, generated currentness and full
+corpus migration remain separate checks. The scan is explicitly offline, not
+a new HTTP/MCP/Worker operation or additional work on the hover/query path.
+
 Clients discover the construction vocabulary through `tos knowledge catalog`
 or `GET /api/knowledge/catalog`. The catalog reports current kinds,
 predicates, safe fields, observed `attributes.*` fields and value types,

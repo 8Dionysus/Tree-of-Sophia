@@ -956,7 +956,7 @@ class ToSAccessCore:
         return payload
 
     def knowledge_graph(self) -> dict[str, Any]:
-        """Return one normalized, display-complete read model over public ToS material."""
+        """Return a public read model with display fields, not a content-completeness verdict."""
         index_stat = self.index_path.stat()
         philosophy_stat = self.philosophy_graph_projection_path.stat()
         bibliographic_stat = self.bibliographic_graph_path.stat()

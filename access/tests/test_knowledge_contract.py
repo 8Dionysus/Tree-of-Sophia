@@ -31,6 +31,94 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_coverage_observes_every_carrier_without_accepting_placeholder_or_mapping(self):
+        from tos_access.coverage import coverage_report
+        corpus, philosophy = self.fixture()
+        graph = build_knowledge_graph(corpus, philosophy)
+        original = copy.deepcopy(graph)
+        rows = []
+        report = coverage_report(graph, language='en', emit_row=rows.append)
+        self.assertEqual(graph, original)
+        self.assertEqual(len(rows), len(graph['nodes']) + len(graph['relations']))
+        self.assertEqual(len({row['observation']['id'] for row in rows}), len(rows))
+        self.assertEqual(sum(group['carriers'] for group in report['groups']), len(rows))
+        self.assertTrue(report['enumeration_complete'])
+        self.assertFalse(report['performs_assessment'])
+        self.assertEqual(report['scope'], 'normalized-snapshot-carriers-only')
+        resource_id = next(node['id'] for node in graph['nodes'] if node['native_id'] == 'ToS/canon/a.json')
+        resource = next(row['observation'] for row in rows if row['observation']['id'] == resource_id)
+        self.assertFalse(resource['display']['summary']['content_available'])
+        self.assertEqual(resource['display']['summary']['wording_state'], 'missing')
+        self.assertEqual(resource['forms']['collection_state'], 'not-provided')
+        self.assertTrue(all(role['state'] == 'not-provided' for role in resource['forms']['roles'].values()))
+        self.assertTrue(resource['next_actions'])
+        self.assertNotIn('display_text', json.dumps(rows))
+        self.assertNotIn('A detailed description has not been added yet.', json.dumps(rows))
+        relation = next(row['observation'] for row in rows if row['observation']['kind'] == 'relation')
+        self.assertEqual(relation['display']['statement']['wording_state'], 'derived-navigation')
+        # Existing ABI field-presence counts remain field presence, not quality.
+        self.assertEqual(graph['counts']['display_coverage']['node_summaries'], len(graph['nodes']))
+
+    def test_coverage_keeps_unknown_mapping_and_duplicate_carriers_visible(self):
+        from tos_access.coverage import coverage_report
+        graph = build_knowledge_graph({'source_navigation': {'nodes': [
+            {'node_id': 'tos.unknown.example', 'node_kind': 'future-unrecognized-kind',
+             'source_ref': 'test:unknown-source', 'properties': {}}], 'edges': []}}, {})
+        node = next(node for node in graph['nodes'] if node['native_id'] == 'tos.unknown.example')
+        graph['nodes'] = [node]
+        other = copy.deepcopy(node)
+        other['id'] = 'test:second-carrier'
+        graph['nodes'].append(other)
+        rows = []
+        report = coverage_report(graph, emit_row=rows.append)
+        self.assertEqual(report['nodes'], 2)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]['observation']['entity_id'], rows[1]['observation']['entity_id'])
+        self.assertEqual(rows[0]['observation']['mapping']['status'], 'unmapped')
+        self.assertIn('review-source-mapping-with-semantic-registry-owner', rows[0]['observation']['next_actions'])
+
+    def test_coverage_invalid_request_and_interrupted_enumeration_do_not_emit_completion(self):
+        from tos_access.coverage import coverage_report, main
+        from unittest.mock import patch
+        from contextlib import redirect_stderr
+        from io import StringIO
+        empty = {'source_revision': 'a' * 64, 'nodes': [], 'relations': []}
+        with self.assertRaisesRegex(ValueError, 'language'):
+            coverage_report(empty, language='en/../../source')
+        with patch('tos_access.core.ToSAccessCore.discover') as discover, redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit) as caught:
+                main(['--root', 'synthetic-unread-root', '--language', 'en/invalid'])
+            self.assertEqual(caught.exception.code, 2)
+            discover.assert_not_called()
+        graph = build_knowledge_graph(*self.fixture())
+        def interrupted(row):
+            self.assertNotIn('enumeration_complete', row)
+            raise OSError('synthetic output interruption')
+        with self.assertRaisesRegex(OSError, 'interruption'):
+            coverage_report(graph, emit_row=interrupted)
+
+    def test_coverage_does_not_replace_restricted_form_with_available_display(self):
+        from tos_access.coverage import coverage_row
+        from tos_access.knowledge import _normalize_node
+        record = {'record_id': 'tos.work.test', 'record_version': 1}
+        subject = {'id': 'tos.work.test', 'version': 1, 'digest': 'sha256:' + 'b' * 64}
+        packet = {'schema_version': 'tos_human_form_materialization_v1',
+            'form': {'id': 'tos.form.test', 'version': 1, 'digest': 'sha256:' + 'c' * 64},
+            'subject': subject, 'performs_semantic_assessment': False,
+            'state': 'restricted', 'role': 'hover', 'language': 'de', 'display_text': None, 'context': []}
+        node = _normalize_node({'node_id': 'tos.work.test', 'node_kind': 'identity',
+            'label': 'Synthetic name', 'source_ref': 'test:forms',
+            'properties': {'source_record': record, 'source_sha256': 'b' * 64,
+                'human_forms': [packet], 'human_forms_source_ref': 'test:forms'}},
+            source_graph='source-claims', kind_id='work')
+        row = coverage_row(node)
+        self.assertEqual(row['forms']['collection_state'], 'available')
+        self.assertEqual(row['forms']['roles']['hover']['candidate_states'], {'restricted': 1})
+        self.assertEqual(row['forms']['roles']['hover']['state'], 'unavailable')
+        self.assertFalse(row['forms']['roles']['hover']['assessment_snapshot_present'])
+        self.assertTrue(row['display']['title']['content_available'])
+        self.assertEqual(row['display']['summary']['wording_state'], 'missing')
+
     def _record_version_fixture(self):
         def exact_digest(value):
             return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
