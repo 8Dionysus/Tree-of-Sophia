@@ -42,3 +42,21 @@ source-home validation and `git diff --check` also passed.
 The integration owner must apply these bytes alongside the expanded active
 schema and rerun the complete source-witness foundation check. The local
 history handoff alone is not a green combined foundation, CI or merge claim.
+
+## Input-consumer follow-up
+
+The combined rerun after the archive addition reduced the failure to five
+specific uses: three provision-activity events and two publication events.
+Those two consumer branches still compared every schema input only to its
+current path, unlike the other retained-provenance consumers. They now call
+the same existing historical-input resolver. Provision-activity **outputs**
+continue to require current exact bytes; publication output bindings are
+unchanged. A recorded input cannot excuse a changed output, an absent active
+schema or ordinary source drift.
+
+The historical-input test passed again (1 test, 98 deselected, 0.20 seconds),
+and the current source worktree's complete source-witness foundation check
+passed. This does not replace the required rerun on the combined identity
+and Artifact candidate. Documentation-family resealing for this follow-up
+belongs to the complete source batch, alongside the independently in-progress
+coverage diagnostic; no stale projection is claimed current.

@@ -14352,7 +14352,9 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
                         issues.append(
                             (location, f"provision-activity {field} is missing: {ref}")
                         )
-                    elif _sha256(path) != expected_digest:
+                    elif ((field == "inputs" and
+                           _recorded_provenance_input_path(repo_root, ref, expected_digest) is None)
+                          or (field == "outputs" and _sha256(path) != expected_digest)):
                         issues.append(
                             (location, f"provision-activity {field} digest drifted: {ref}")
                         )
@@ -14706,7 +14708,7 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
                                         f"is missing: {input_ref}",
                                     )
                                 )
-                            elif _sha256(input_path) != input_digest:
+                            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                                 issues.append(
                                     (
                                         location,
