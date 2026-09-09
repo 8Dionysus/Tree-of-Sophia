@@ -1,0 +1,45 @@
+{
+  "scope": "Pinned remaining Greek Plutarch Moralia filename candidates; not full corpus coverage or absence evidence",
+  "tree": {
+    "ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/perseus-tree.json",
+    "sha256": "619fe08c7f748a53d125a256f217af13ea699b9360525c0baaf535614c3a44f8"
+  },
+  "earlier_manifests": [
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+      "sha256": "a1ef99827f95c5691a387b407d47fed732b3a8739df51c3c9f816f22d62c037b"
+    },
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08/manifest.json",
+      "sha256": "da1bdc754c3bb47ee8be84c0789550ca6657cadd62e9019e1a9fe0ad83a32c74"
+    },
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/manifest.json",
+      "sha256": "3784d04765816700e1c3c0da8e8c3c0bce5a935aec71ef7b402930fd1f351c23"
+    },
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-second-planting-2026-09-08/manifest.json",
+      "sha256": "dc4658e96a632039a6c8560515dade38642838e7e958bda92c5c278bb9b8b6be"
+    },
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+      "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+    },
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/manifest.json",
+      "sha256": "059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712"
+    },
+    {
+      "ref": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/manifest.json",
+      "sha256": "108555bc5f6bfb1c11062def9fef4b8702d7779c7c294377d0001e637e9b35f8"
+    }
+  ],
+  "algorithm": "Keep data/tlg0007/*.perseus-grc*.xml whose numeric CTS work prefix is at least 067; exclude exact upstream paths already declared in the seven earlier manifests. Retain all 73 such candidates; source-visible review selects 45.",
+  "candidate_inventory": {
+    "ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/candidate-files.json",
+    "sha256": "0d8608d82956c276527732fbe865242dc9fe76cefcc9572773a51c34003ad47d"
+  },
+  "candidate_count": 73,
+  "selected_count": 45,
+  "deferred_count": 28
+}

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Αἴτια φυσικά</title>
+<author>Plutarch</author>
+<editor>Grēgorios N. Vernardakēs</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+<name>Lisa Cerrato</name>
+<name>Rashmi Singhal</name>
+<name>Bridget Almas</name>
+    <name>Angelia Hanhardt</name>
+    <name>Michael Konieczny</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+    <respStmt>
+        <persName>Sophia Elzie</persName>
+        <orgName>Center for Hellenic Studies</orgName>
+        <resp>CTS conversion</resp>
+    </respStmt>
+</titleStmt>
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+<date type="release" when="2010-12-13">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg125.perseus-grc2.xml</idno>
+  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+<monogr>
+<author>Plutarch</author>
+<title xml:lang="lat">Moralia</title>
+<editor>Grēgorios N. Vernardakēs</editor>
+<imprint>
+<pubPlace>Leipzig</pubPlace>
+<publisher>Teubner</publisher>
+<date>1893</date>
+</imprint>
+<biblScope unit="volume">5</biblScope>
+</monogr>
+<ref target="https://archive.org/details/moralia05plut/page/373">The Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+    <normalization>
+        <p>Notes are not included.</p>
+    </normalization>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+    <refsDecl n="CTS">
+<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+    <p>This pointer pattern extracts section.</p>
+</cRefPattern>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="lat">Latin</language>
+<language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="RS" when="2010-05">tagged and parsed</change>
+<change who="Sophia Elzie" when="2019-07-19">EpiDoc and CTS Conversion</change>
+</revisionDesc>
+</teiHeader>
