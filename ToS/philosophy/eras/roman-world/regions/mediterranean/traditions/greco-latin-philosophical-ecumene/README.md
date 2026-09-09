@@ -38,3 +38,7 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 ## Registry planting: sixth wave (2026-09-09)
 
 5 English versions alongside existing Latin texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-sixth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: seventh wave (2026-09-09)
+
+9 English versions alongside existing Greek texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-seventh-planting-2026-09-09/RESULTS.md).

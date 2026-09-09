@@ -39,3 +39,7 @@ English reading version of Discourses alongside the already retained Greek versi
 - [Greek source file](../../../../../../../../../../source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg001.perseus-grc2.xml)
 
 Shared Work identity does not establish exact edition dependence or textual alignment.
+
+## Additional English version: discourses-english-1890
+
+[Additional English version](../registry-discourses-english-1890/README.md). No alignment or quality ranking is asserted.

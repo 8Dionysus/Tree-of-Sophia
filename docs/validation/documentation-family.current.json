@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 7398,
+    "tracked_surface_count": 7521,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 2371,
+    "excluded_tracked_path_count": 2390,
     "human_scope": {
-      "bytes": 6903997,
-      "count": 1313,
+      "bytes": 6990700,
+      "count": 1332,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 5704577,
-          "count": 1021,
-          "lines": 85432
+          "bytes": 5791280,
+          "count": 1040,
+          "lines": 86259
         }
       },
-      "lines": 106779
+      "lines": 107606
     },
     "surface_kind_counts": {
-      "executable": 308,
-      "human": 1313,
-      "structured": 5777
+      "executable": 309,
+      "human": 1332,
+      "structured": 5880
     },
-    "tracked_path_count": 9769,
-    "tracked_surface_count": 7398,
+    "tracked_path_count": 9911,
+    "tracked_surface_count": 7521,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -163,12 +163,12 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "executable": 45,
-        "human": 1021,
-        "structured": 5700
+        "executable": 46,
+        "human": 1040,
+        "structured": 5803
       },
-      "tracked_surface_bytes": 347479993,
-      "tracked_surface_count": 6766
+      "tracked_surface_bytes": 352283413,
+      "tracked_surface_count": 6889
     },
     {
       "family_id": "access",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "366d724c1a228be6d5ae8ce67ca7bb88fb9ff1911469257a1934ea1b58a14226",
+  "tracked_surface_digest": "4f003a59c113486f8e870fe0ddece66c596c6c8618dcb13937a1058aa075c279",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -3039,11 +3039,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 21430099,
+      "bytes": 22074855,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "6f6c49c1897c2d746d9c93d377feba72b2a1940391e3e2c957a632ac60046e30",
+      "sha256": "579a189bd4ec276d7bd0f4c28a3796e7bf07dc7030aa9678393c7fc633d65cef",
       "surface_kind": "structured"
     },
     {
@@ -3119,11 +3119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 66596386,
+      "bytes": 66938223,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "2a593c6ab90826dfd4d9503b556428caf5f07eedbc04f759920e9a7b22af9c4e",
+      "sha256": "1c374097a76c22ebc07ecce533280d0b7e610d88be86d880a839be4b3ca5025a",
       "surface_kind": "structured"
     },
     {
@@ -15015,19 +15015,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2367,
+      "bytes": 2602,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/README.md",
-      "sha256": "53a3e32b80afad24b9f858dbd0d2b2505262f3f658e8b341a97f8626b9821d0a",
+      "sha256": "dbde45b3d5c2f79e1677c61ca80e09ffb744d7ad2bd8354106513eb1ac52b444",
       "surface_kind": "human"
     },
     {
-      "bytes": 11499,
+      "bytes": 13166,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
-      "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf",
+      "sha256": "39e706ce40e830e4d4c3e495cd0c1a365953f130f861a75a8ea1f74049c694c3",
       "surface_kind": "structured"
     },
     {
@@ -15047,19 +15047,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 6232,
+      "bytes": 7608,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/README.md",
-      "sha256": "67520dc27a41efd5c3f94ac79efdd1152e2e85362b84aaa15035846992b6c3a3",
+      "sha256": "06e185a8bb0252ac9c433a146c9f5713749aa325fb852dd2eb080d7a1889c889",
       "surface_kind": "human"
     },
     {
-      "bytes": 10944,
+      "bytes": 12611,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/branch.manifest.json",
-      "sha256": "8e0892134b5b3c5df4551b87d67dd7f81d1cc9425bbb3af5a53869067b847026",
+      "sha256": "ce55cb4473c41f15a31f1efc5a2d9495bb91bcf5c6ff1bbc00be066fef00a261",
       "surface_kind": "structured"
     },
     {
@@ -15271,11 +15271,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4147,
+      "bytes": 4890,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate-english-1874/README.md",
+      "sha256": "7a515e22e30ce345c6fa6f16d6cf75b96494c4dcd985000d6aac95e88cdadca7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate-english-1874/source-planting.json",
+      "sha256": "2897c008d5ed562dd243953621b750ed64833b2e04f7282c10a1b11f9086c06f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4334,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate-english/README.md",
-      "sha256": "6abbc1af647d1951cec3d8099fb34441bc4f3dddd1d228ebc71d5b367e41bf73",
+      "sha256": "9c44c8d564867809d69681788fa05d9173b3e00ee907b1ce94c840390f79c0b9",
       "surface_kind": "human"
     },
     {
@@ -15287,11 +15303,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2892,
+      "bytes": 3112,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate/README.md",
-      "sha256": "a437e7e072d6b6142c3bd63f16cd63f217d42128c69a652d7d2111df8ea8eebf",
+      "sha256": "2cf6b6f806ce0fa527ea8513b05f1bcac351579bb52fa944d450289e0df1b83d",
       "surface_kind": "human"
     },
     {
@@ -15303,11 +15319,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4222,
+      "bytes": 4862,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum-english-1874/README.md",
+      "sha256": "7b3cb74bb6b030efbc7a48efc4f95aff6dc80aa48d28b432b7036fafb352ff1a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4180,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum-english-1874/source-planting.json",
+      "sha256": "bd115a6da959ea21fdc6ed4e694ab4131beaa4dc44915b1a1efafd15e0ae97d2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4423,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum-english/README.md",
-      "sha256": "81de659e926642da8ddec9bceff5da8272f30df6f236499170d9faf3972cf84f",
+      "sha256": "3dff99a3720bff6c233837214592a9321c49ec76165bb1f54c4701562c690624",
       "surface_kind": "human"
     },
     {
@@ -15319,11 +15351,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2969,
+      "bytes": 3203,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum/README.md",
-      "sha256": "0f2ec1b2e66606ca05c77cdf9fae076560ee1c06e2ea846256429245eeb0a6fe",
+      "sha256": "e65b3cf33422ac66965bea056f1089071adfb4340a6aa9e69788e393b1772ea0",
       "surface_kind": "human"
     },
     {
@@ -15367,11 +15399,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4168,
+      "bytes": 4838,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos-english-1874/README.md",
+      "sha256": "84c8852a3168dbc9805f2cb246289382481f511f9fd1d3f33f82e23dc5569aca",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4156,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos-english-1874/source-planting.json",
+      "sha256": "e48b314f7d29dde1fe14524e1b45a89041d0a504445cfa7a5a0ae896e53d9231",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4361,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos-english/README.md",
-      "sha256": "700376dcdd472a1f545afff689a7a38e7a457a138ba0acbe1fab922e318a8d3f",
+      "sha256": "4148cb7035c9ab98b32508f914e937fdf6bb4f629d1fbf5124bd6970457bdfb1",
       "surface_kind": "human"
     },
     {
@@ -15383,11 +15431,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2925,
+      "bytes": 3151,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos/README.md",
-      "sha256": "c74e98e19eafcaaba21ea8ef82316d78ff4bd42725fbb74d45040a09210810ec",
+      "sha256": "648fff96f0ce7cdde552bcbe9f824aafcc95b12a7b593611068eb1f4eed9d2cd",
       "surface_kind": "human"
     },
     {
@@ -15399,11 +15447,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4450,
+      "bytes": 5032,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874/README.md",
+      "sha256": "5a6a6405164820ebe026adc47d9a47ac96ca99f1cdca7dbf752561a5df99aaab",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4264,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874/source-planting.json",
+      "sha256": "60fea82b38bf0c5104a671f3e9447fbced2e4d9394e032ab680186d047e9a656",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4679,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet-english/README.md",
-      "sha256": "64cac9a9021089dfdeb404dda2d8000645ca3216d981f5d244bfe5beb64678c1",
+      "sha256": "ab373918eda515a7a298debafd38d3df954af26c9dbcb0ee1c6860c81856d51a",
       "surface_kind": "human"
     },
     {
@@ -15415,11 +15479,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3123,
+      "bytes": 3385,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet/README.md",
-      "sha256": "e85daf2a4df0fdd7c028db5ac4936d2c5a961aae22eef1d1e94307160270f980",
+      "sha256": "c85aca04c5c54e40253a31182609f58dbf30e01a783038f556d4040b09b6099b",
       "surface_kind": "human"
     },
     {
@@ -15463,11 +15527,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4055,
+      "bytes": 4701,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna-english-1874/README.md",
+      "sha256": "df8d2dc1a770f2bd1b10ed411afe499ddbd9e323629a4143cff015e77cb12e34",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4114,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna-english-1874/source-planting.json",
+      "sha256": "148b0f9841d536ae0c17cae036671bf76b5e2d35d0ae067b46a21417e220c937",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4234,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna-english/README.md",
-      "sha256": "783224ec7965e196e80e00bfd9ac45143f7bf621d89b1705543ebfbd527220d8",
+      "sha256": "3576bb5dc41e84ed84e41fe3f50780ed053b6eccae73003ede17b9537c50aa44",
       "surface_kind": "human"
     },
     {
@@ -15479,11 +15559,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2844,
+      "bytes": 3056,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna/README.md",
-      "sha256": "15247e25f3cb42792a0859a2c63a393c6348c62634c5c00c4b0f99fcb13986f5",
+      "sha256": "f84b25f2f9ac1618bd62ff6b3eb149457fa97fe5fd1cdb5233c06c38ac7a621c",
       "surface_kind": "human"
     },
     {
@@ -15511,11 +15591,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4189,
+      "bytes": 4875,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride-english-1874/README.md",
+      "sha256": "b0f7a8b5b026b72f163d696625fd8c195f578a0c65e1c5913ef64d13ff2e2dd2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4168,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride-english-1874/source-planting.json",
+      "sha256": "e8c03ae341bb3d69a628aed003f86d35cc1fdb32b31a0aff226e8d763248db4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4386,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride-english/README.md",
-      "sha256": "36fb1685989c190c9638ec458f61bf73674a7586a6bd6af975b6c942fa97b201",
+      "sha256": "c2b02d32751bd04e0103bc1408ecf221237d1d1b35968b284874646e520f9278",
       "surface_kind": "human"
     },
     {
@@ -15527,11 +15623,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2947,
+      "bytes": 3177,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride/README.md",
-      "sha256": "27a1079ce36f5b268c42650f5fff72780eaa10aa3ae9e6ef24c23e5486dc9dac",
+      "sha256": "116fc527e08eb96100bd5eeb1846703ef519f0f20cb4e206845cf81000db8159",
       "surface_kind": "human"
     },
     {
@@ -15751,11 +15847,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4176,
+      "bytes": 4793,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali-english-1874/README.md",
+      "sha256": "2a867e3b2e8bbefe81fd39463c1899cd7faa21ae55bebf5de9f5677d82e6efe3",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4156,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali-english-1874/source-planting.json",
+      "sha256": "a8332da1e2e2b1a914b8171f5c24d81d0839530697dc324897e95b32117eb9b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4369,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali-english/README.md",
-      "sha256": "49f00c34328793411e49da4c390e66bc07ca7e915d7a1a2bd5cf0a014e2e0895",
+      "sha256": "94da34cad1ec6796bbeb4ee684523732ddaacbca6be3aff3be88f8f25b48c806",
       "surface_kind": "human"
     },
     {
@@ -15767,11 +15879,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2925,
+      "bytes": 3151,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali/README.md",
-      "sha256": "19f0850029d187bcc849338b7c59decf2a76ea40654bbdb939380b7a67022c8b",
+      "sha256": "12c56191a82291d9b87e7744c9a2009ce4655ef970439c126f5bf5ad433b4af5",
       "surface_kind": "human"
     },
     {
@@ -15783,11 +15895,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4029,
+      "bytes": 4704,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses-english-1890/README.md",
+      "sha256": "f749128575f290969990ea8d4f67e595b6f89b897d723b334bba7fce497abf30",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4056,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses-english-1890/source-planting.json",
+      "sha256": "f3487c9505af3054f454d534dd280de28dffa1b2fb4128717581c2f6ce8eceeb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4208,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses-english/README.md",
-      "sha256": "cdbee4173dfcd1bfc2a502c464c371ea3c1af1af328e3a95b8166c789127f31f",
+      "sha256": "a253303097afaf02cb43e39d1cdefec35ab226d26474e4d51d9d6a898861393f",
       "surface_kind": "human"
     },
     {
@@ -15799,11 +15927,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2836,
+      "bytes": 3048,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses/README.md",
-      "sha256": "a9ad05ae65a865274beda5c779782acdc4f93f223363c74ee85c6294aaee703b",
+      "sha256": "5533108328aac502b4d25564a1d4058a89108f75703aaf9ccd64a4cd2b3c95f8",
       "surface_kind": "human"
     },
     {
@@ -15959,11 +16087,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4046,
+      "bytes": 4716,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook-english-1890/README.md",
+      "sha256": "f99da2d5b31f2e4a7c955e18efd8486b09a89a7e9bb34aeb7dfc47a73dad5b9c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4068,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook-english-1890/source-planting.json",
+      "sha256": "b3efb617849eaac3c7c72373e70e29072a52f908acb7b86ef2e549ef0d493242",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4229,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook-english/README.md",
-      "sha256": "70cfaa5a769d6a4db65eebb9e8040d75222c7bb3391d3bccf0fb6b51c62332dc",
+      "sha256": "16e7dbb53ad71865024c12d47874ebb0d3dfc439a42f65c80c3b8df9d890d287",
       "surface_kind": "human"
     },
     {
@@ -15975,11 +16119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2858,
+      "bytes": 3074,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook/README.md",
-      "sha256": "0d829edd19b12552d2997024370bd0030f9ac35db0222747ced44f9396fa222c",
+      "sha256": "1fb7490706084b048201e0e9e63e1bddca7b4d7123836cfd93ce23f73ef50306",
       "surface_kind": "human"
     },
     {
@@ -19679,11 +19823,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 89876,
+      "bytes": 95255,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/source-registries/COVERAGE.md",
-      "sha256": "cb6a34497f3a2cca6d3fd976f593553a34b497f5bd77deb65fb2abd88caf350a",
+      "sha256": "4227ecef865dc9fb89e5be3e55ab57822086876fa8d4e22ce3ae0bff4888e6d3",
       "surface_kind": "human"
     },
     {
@@ -22795,7 +22939,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "5f3f6fea8fcc758e9c927cc7ecf92daa9aec3d68ec3ffe0da5590b78cbb28b37",
+      "sha256": "19acee9f1d42b2a63ea42165065abfd64a3ec54e22eb2f8f2d15c2ef8ef3a320",
       "surface_kind": "structured"
     },
     {
@@ -23135,11 +23279,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 176122,
+      "bytes": 180691,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/candidates/queue.current.json",
-      "sha256": "f3ed894ec3299a4151ae8f8c5bc628c1507339cf408aee090b86b22278f5740b",
+      "sha256": "39dfa37426ab8b2a9e90f970a4d47b6b6ad64093dda2891dedf0ad609f9f1234",
       "surface_kind": "structured"
     },
     {
@@ -24967,11 +25111,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 261,
+      "bytes": 556,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/README.md",
-      "sha256": "3055053682a1288fbeaf0a22af0db0e41a4c1393166e87e717f79c16c25bdf90",
+      "sha256": "7537f9a4632025d2f4220342cf08519722173df6f191613faca6efafab1d00a8",
       "surface_kind": "human"
     },
     {
@@ -27647,11 +27791,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 203,
+      "bytes": 262,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/README.md",
-      "sha256": "ae5627295e641535320257fe473261665869b0c17ac6d1b8d3452cb815f55f62",
+      "sha256": "0687e226bf68433b3193cd312ca55739fd39fb29984ea7b3169c2150ccde90ec",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4358,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/RESULTS.md",
+      "sha256": "8da0187568cb892d5ed7e6734ccf04179b2cb9ba4cf51c26b48f0ff9b343f935",
       "surface_kind": "human"
     },
     {
@@ -27661,6 +27813,14 @@
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
       "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be",
       "surface_kind": "human"
+    },
+    {
+      "bytes": 46377,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/batch-result.json",
+      "sha256": "8999e1eb0f9298f712ac353e20d523f8d89db98e00e9445f712316c2f948d0da",
+      "surface_kind": "structured"
     },
     {
       "bytes": 2356,
@@ -27935,6 +28095,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 56752,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/engine-history/9c54677c03aee952996b938cc296bca5889bfefec0b9f74109559c5af00b0b5a.py",
+      "sha256": "9c54677c03aee952996b938cc296bca5889bfefec0b9f74109559c5af00b0b5a",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 6449,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -27951,11 +28119,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 12851,
+      "bytes": 13393,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/execution/report_seventh_wave.py",
-      "sha256": "5156dc107896e9d825028e5a3a35ea7953ae42ac1f29c43b45341a6e1e730157",
+      "sha256": "f895ad6d3a39056eb499df0e828077b083db82fce1dabaee06bd95003ecab5a8",
       "surface_kind": "executable"
     },
     {
@@ -27975,11 +28143,35 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 621,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/preparation-checkpoint-receipt.json",
+      "sha256": "0cd7512e3b3f1a1de52c24f0c7ff5804c4e9d404fa13497dddae0f41966cd48f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 308639,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/queue.post-acquisition.v1.json",
+      "sha256": "991e1eb20239f8fe01783f3f198102b1490cc6abeea6f0276595da2dc9ab773d",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 290200,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/queue.preparation.v1.json",
       "sha256": "9a32f9ce37871b887f7d8dbe18d41b5f3b22430f6830bfc3dec5424d00265908",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 95877,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/readiness.post-acquisition.v1.json",
+      "sha256": "808cf3293c028b8071f642d0a2a2d5239b5541099666d3f992fd06eed9846e38",
       "surface_kind": "structured"
     },
     {
@@ -28004,6 +28196,78 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/selection-review.json",
       "sha256": "076f744bb2e250f65fc00c51e32d3577903962bf16d3f4c804b3a1a820c5ac15",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 222394,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/0018c5730fb1aa81d6fc61a36a8023359673584cf6cb274e4ea2cebe180753e5.json",
+      "sha256": "0018c5730fb1aa81d6fc61a36a8023359673584cf6cb274e4ea2cebe180753e5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 227991,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/6e01055b3a8356a0a2041f1e9bb4937e926f534d141799ec5a6ced0f80ce7bc0.json",
+      "sha256": "6e01055b3a8356a0a2041f1e9bb4937e926f534d141799ec5a6ced0f80ce7bc0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 226886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/758af939d17b079b93e2c8d2382be78b49cf9f3eca0f4ef827427e2383a51be3.json",
+      "sha256": "758af939d17b079b93e2c8d2382be78b49cf9f3eca0f4ef827427e2383a51be3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 225769,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/886d4fb54b55b3f849f81fdf8d4b717592613290d9ebcfc309c2f03fb987c090.json",
+      "sha256": "886d4fb54b55b3f849f81fdf8d4b717592613290d9ebcfc309c2f03fb987c090",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 221305,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/934ee89e62a329642a91dd6a924fd9d95b24e222bc7779ae789ce0175487da73.json",
+      "sha256": "934ee89e62a329642a91dd6a924fd9d95b24e222bc7779ae789ce0175487da73",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 229180,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/9624b56172d8414bd82ceb780d148fc5820f9b68e9d30eb9a47328f851a4ced8.json",
+      "sha256": "9624b56172d8414bd82ceb780d148fc5820f9b68e9d30eb9a47328f851a4ced8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 224636,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/a3beeac8c1e62ec22d55c4eb2af85cfd3612818c6c208bf55013927a44173671.json",
+      "sha256": "a3beeac8c1e62ec22d55c4eb2af85cfd3612818c6c208bf55013927a44173671",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 230273,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/dd548bcfdbbe3bb6d2c80b32540429be101ef3ba0f500b67e3de39a3a80d1c8d.json",
+      "sha256": "dd548bcfdbbe3bb6d2c80b32540429be101ef3ba0f500b67e3de39a3a80d1c8d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 223519,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/topology-before/fefcef407ae4131824bb3dde711d45b146be79f8518608d326ad05b6e97cf8ad.json",
+      "sha256": "fefcef407ae4131824bb3dde711d45b146be79f8518608d326ad05b6e97cf8ad",
       "surface_kind": "structured"
     },
     {
@@ -31327,6 +31591,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 28297,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate-english-1874.2026-09-09.v1.json",
+      "sha256": "4938253f27e68cfcf51525cb28e2e8e8837f45d12d85c9e949dc20acd7ad260a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 23707,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -31340,6 +31612,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate.2026-09-08.v1.json",
       "sha256": "508c0a679956f4727b3c04ed951aa8dbb92eeb5a433ea569b326c47e05836c23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28431,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-defectu-oraculorum-english-1874.2026-09-09.v1.json",
+      "sha256": "0ac8ad9484d5054e2da5fd5bd3213a61b24d1848939cec599a00ac21d15a1c58",
       "surface_kind": "structured"
     },
     {
@@ -31375,6 +31655,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 28299,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-e-apud-delphos-english-1874.2026-09-09.v1.json",
+      "sha256": "67fe2b4a41b1c51f66497892f3b2e25bde11ef798ccf74dc3ad8638feb951b81",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 23783,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -31388,6 +31676,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-de-e-apud-delphos.2026-09-08.v1.json",
       "sha256": "8655b0fd11a40b9ae6c6d353c9daef6b49bc5dca8e0163a0d1032684431609f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28842,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874.2026-09-09.v1.json",
+      "sha256": "f5e3f60ca202c28f620815c06837ae36c67259799faeb332089e725dcdd80b8e",
       "surface_kind": "structured"
     },
     {
@@ -31423,6 +31719,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 28098,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-fortuna-english-1874.2026-09-09.v1.json",
+      "sha256": "e5e99b8729ed55478681581e74621eecf5ba02cf3cce81cd6a3f0e0b46a2641f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 23568,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -31444,6 +31748,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-de-inventione.2026-09-09.v1.json",
       "sha256": "fbaa3948b567a78b423870967c418febebf36e355feffa1b7546bda675959248",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28372,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-iside-et-osiride-english-1874.2026-09-09.v1.json",
+      "sha256": "ec5ec6e8cc61fbb6eeb97e334a8c45e2c9983442ba2ffb81d264bb9babb8f3de",
       "surface_kind": "structured"
     },
     {
@@ -31567,6 +31879,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 28309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-morali-english-1874.2026-09-09.v1.json",
+      "sha256": "42d73359d8c2916aa4190b5e395280f51c00b15f582da0a28519be2ed3e4e564",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 23790,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -31588,6 +31908,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-dhammapada.2026-09-08.v1.json",
       "sha256": "9473c3f1936cf423fcc84646e1dd588fc464aa5cc6a3acd1e6d18389ceaa95fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28074,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-discourses-english-1890.2026-09-09.v1.json",
+      "sha256": "59f6bbafe42e6d8277b59b81f7c3ad445053a70be1d74f1f3a9ee0e8301cd0a5",
       "surface_kind": "structured"
     },
     {
@@ -32252,6 +32580,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/runs/registry-symposium.2026-09-08.v1.json",
       "sha256": "6faa9dbf5538da0cffd4654ba6ac05e659a125fcafecfb75dcc93e9e3f04d753",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 28135,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/registry-the-handbook-english-1890.2026-09-09.v1.json",
+      "sha256": "7b6d4d7123d456414da28739352a5e48b00c1af51a70d941687f37e179c60ad8",
       "surface_kind": "structured"
     },
     {
@@ -38399,6 +38735,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6685,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-curiositate-english-1874.server-import.json",
+      "sha256": "24d626de7f917ef167ca55752a2aae62fb4f989873220807b98eca861e79649f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6542,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -38412,6 +38756,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-de-curiositate.server-import.json",
       "sha256": "cb76981a617ed0e9673fd064ff6c6e9dd60487eafdd1471c454a70e9fe4a6c5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6721,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-defectu-oraculorum-english-1874.server-import.json",
+      "sha256": "038aec80016f30d83790f0a3b0dd798fa50a6dbf8da62d9aea50b04cf66d3083",
       "surface_kind": "structured"
     },
     {
@@ -38447,6 +38799,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6700,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-e-apud-delphos-english-1874.server-import.json",
+      "sha256": "1bcc5db8ae5be415cd5e13770d0c74603ddf5adffe1b7a726dd6fdd0d42e3eac",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6557,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -38460,6 +38820,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-de-e-apud-delphos.server-import.json",
       "sha256": "beaa44ff1a8917458444bdbef24ed41507f236e35e6a45c9d7f55347045eaa82",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874.server-import.json",
+      "sha256": "29bdc5afae17bc477e58bd6c5ccf0322a3c9be88bd4924ddf33f3293c17c027d",
       "surface_kind": "structured"
     },
     {
@@ -38495,6 +38863,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6665,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-fortuna-english-1874.server-import.json",
+      "sha256": "edaac59b438afc4c3909cc30ebc7792f08aa5c30ac82d99d47529f96c338bc8b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6522,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -38516,6 +38892,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-de-inventione.server-import.json",
       "sha256": "d4362720e2bbe5cb6aa990fbbfa63856fd8cb43106d59d0b5686099580e05e92",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6711,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-iside-et-osiride-english-1874.server-import.json",
+      "sha256": "c2b7541f9c9878203456f571e2a4b3b2bdde3fe1b2e6a21601eafedb8ca1b3ea",
       "surface_kind": "structured"
     },
     {
@@ -38639,6 +39023,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 6700,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-de-virtute-morali-english-1874.server-import.json",
+      "sha256": "bb5928411a4a86b670445fb609304d8f73018dd83ebe00c74546fa90d9bbf6ea",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 6557,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -38660,6 +39052,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-dhammapada.server-import.json",
       "sha256": "2ae2181da9ad184befc2c25d8f851cabc07465b9088b562911e1ff4edb129ffa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6669,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-discourses-english-1890.server-import.json",
+      "sha256": "49c83f216b9e1f5ed665f44f7157bb79c9ffa64eddd8ada3fd18c490ce0e41de",
       "surface_kind": "structured"
     },
     {
@@ -39324,6 +39724,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/registry-symposium.server-import.json",
       "sha256": "0549c6e18d134f8f30fde9e0ccda765cf9d86e588235eb82104e34878287114e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6678,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/registry-the-handbook-english-1890.server-import.json",
+      "sha256": "99761e40e3511d073ad11b5110da3dbb24a0104a0aaa21dc4005d843dc9d4ab1",
       "surface_kind": "structured"
     },
     {
@@ -42871,6 +43279,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3457,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "2120b8314d422ab2d5eb8043e47d96dc3600a715da02cee696a301876265626b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 800,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "2817483e6b2fbb038e38efc2222b5c102351d45fb5dfcd379a421d0f389ed6dc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2944,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "3b748c5deb8412dabd40ed0ac312df7020bdd6e5a63620db32535bd7b796ca4f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3981,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "b1fd147d73a8994148fde17de69316e693aa9bc1faf4579245677866e5f17dd8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3006,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "9b50d1c23515758b718e058c4e6d718be7b7e4a1c3fc2e56d14cc98910e1f688",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 253254,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "dec7b8c2e9c25ec19cdbac70cecf90ce603233416dad3c70f6aac0bc6e172e7e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15874,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "918132383d60448c1d4fe5dc90885d23a494c9bc5da967557f368876c4b06f82",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/expression.json",
+      "sha256": "5a6db2d5b146100a1278afc70e5d0298bfb9fc8c07b4420325bfcf9314807873",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2890,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -42935,11 +43407,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2724,
+      "bytes": 2808,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/epictetus/discourses/work.json",
-      "sha256": "ae3999c9b543e59c5a33652e68bbed714655f9744ae03fbb70cc2e5b8a277b10",
+      "sha256": "1caf1b56c28bdc146ed45460889119ad7ef6ab0923f501dd7f0d466541c00ba7",
       "surface_kind": "structured"
     },
     {
@@ -43007,6 +43479,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3439,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "255d3287c2c00d0a55280d9a67db666778c2d94266b45e006da9c314527ce967",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 785,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "ea54b9298b855a62127cfb6f5f5fd9e301f9b6350f019eedf810c77a40bdf65d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "9b61d386eb38c55dfbba1698a44b327064ec15e2a55ec62db3a9578172732438",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3973,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "a74043fea4900b1e6c5b31a2d15c85d9eeca74fefd6b5ddd3e04dc87f1fd79bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3019,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "69804203779df2101ba312175b7da253c9cba60f2e6d9e8d408d1971c0d59e0f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 49677,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "2e823e174b3b36fd101762a2f004bebe10cfd72a57e2853d9671df3baa8ee2a2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15894,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "501d99470eb68508789bb76960b8be0b577082ba93d2084c555eeaa978db9eb3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/expression.json",
+      "sha256": "6310670f653667042c1eabedb34308402599564d3f161e55baadf2797d97f168",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2855,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -43071,11 +43607,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2732,
+      "bytes": 2818,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/epictetus/the-handbook/work.json",
-      "sha256": "c881c4fe0d5129cfade0866870583efd8427284bbd1c87981d8db30894819f91",
+      "sha256": "6eb526f158fce707663776f13d32ba768a83ac952f5cc40190159e68b43ba344",
       "surface_kind": "structured"
     },
     {
@@ -52631,6 +53167,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3710,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "401c596a66d13f120140be4dd817bf96da7974f95f3e139507ac791cd3b23c0c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 787,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "37c08a5b90db901821f06ec1ceae87c0ced1d7d64b26ba3489d01085c3995516",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3200,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "f341dc0b132dac25d51c85100900fba22df52a0e15430e1aea7bc683dc8cb93b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4089,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "2b1aa3dde6522a33f3926b002c2def7cd525800acc0b07ba053e83932ee02603",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3027,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "04ece1d064fc941a42e9c32fb15a873d644edc9b2e858f83d58e57e7d75cf301",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 19687,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "09e2ba72774bab987dda2e364a3d28cc5b5bb10111b391551c749afed102045b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15904,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "ad0810b12f5a8ffaa0c9743a8a397b27c884c08513b9ab51aaa9cb90ad78e9ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3580,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/expression.json",
+      "sha256": "591a5e343e7ac00081f10f8ee9dad749d0896c3f9eb7e06fe3bb52ee6135a482",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2951,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -52695,11 +53295,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2798,
+      "bytes": 2886,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-curiositate/work.json",
-      "sha256": "fc366e5142ddd5a1eea8cbe5b0265493a7ac62ae331e08036b1b9633d806e9e9",
+      "sha256": "07a74bf75e0a3c2ca290704f0278e719620235cf4bbe8e856e0bbfe02357cd90",
       "surface_kind": "structured"
     },
     {
@@ -52767,6 +53367,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3568,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "c166f5f5241a8e297fb5715ae287d9aaf5c29a74faec1fdf26e89d6a7d74be7f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 795,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "3917404dc132631a3481af603f526790b9c8491e1b09ddf18fe0805df05283ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3117,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "1db884bba81379539993dfa73303f0a0613b8e3f8c4bb5ad9b4d1e456e24c158",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4070,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "b370616b1288e3cea1f0bb88818c9c7c944f28ce211098d2e2014daa984e6a1c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3077,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "48799c6b836c23bbb0aca17f9d948c199bcdbe17edd295f5d4e4202d4a0b7702",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 58033,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "975016ed4ad919edf381364c7b92809ffd12f4255f03d8bda223ffc53ef47f65",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15974,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "be7d626dfd87e63813ec45a3b14c6f9a2a5f4ead8381ce1caa37420241abcc66",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3438,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/expression.json",
+      "sha256": "3c5c742bc6a19f8bb87065063c5204ad87bdc5656bb39a5b4cf991d46120222a",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2967,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -52831,11 +53495,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2826,
+      "bytes": 2921,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/work.json",
-      "sha256": "9f667486019a7958c65a02a41f82cb2b2f8bd7925c643fc6c5092ba1ac942c21",
+      "sha256": "dc3a5ba3a2ab09b96503ccc7ef5d0a0bb1b4aa7ab9b8b9ab863ffffedfdf324c",
       "surface_kind": "structured"
     },
     {
@@ -52903,6 +53567,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3597,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "6ab9e3c21b6fa9e3e592e7093e3aadfac657cc969b44b973641af5462779c26d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 790,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "0f3bba260fd90056366b71320ff67b95c6918e799b5cb717a280ede89a5e6859",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3164,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "5ee32b3158a496b32255ce846f209ef3887ce9e2632839a3a4669e16d8f87026",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4093,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "b57c3c050cfe9d8bc967f1f4dcb9e3cb594271ca2af484407b648136a8fb68eb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3048,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "fecd86119edfdd6e40f2c4ec7eff26be8bda3fff5fb5291208e30c90016c702a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 22669,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "14c915d7f4dd9cc1f62218fe8603a617ee0c3e8de01ed123610618c69469a642",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15934,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "d6cc17d3a34a4f2dd6b921763012c6d4637967886e8cdc6f2a48ea20a979c961",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3467,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/expression.json",
+      "sha256": "d261f62449ca691c70abb1382367088e4e1e1b7185b7ac8977db9a1bcc09057f",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2955,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -52967,11 +53695,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2810,
+      "bytes": 2901,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/work.json",
-      "sha256": "ac7f56cc4113a2fe5f5b78705727a80560eb0e38b64f3fe48b29be7c24ac327e",
+      "sha256": "7bdee7a0c8aa8aa0e1251d2c8011e53b5f14919f6c40680776c194a9d45cfbcf",
       "surface_kind": "structured"
     },
     {
@@ -53039,6 +53767,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3622,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "22cb035d2a7b8013dc0d5435114ae6ca3aab43e7590ff26c5165013af3db50b5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 809,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "453a8ff029f9312551b426e3ed360e3e57346b2200afed6524298a0437529862",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3138,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "9c96894d41cf448acd8a342331a5624de47b44dd652d4226a75c83260eb3522e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4109,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "f542f76986a9251f2bff6de3ea7ab663b4542c01295276d260a283908fefdc96",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3175,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "8235d15dc70a2a738badad62583f0c52d023157a050b3acf5f959ad38947f1a1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 40259,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "9f8df4571a548ac8e077cdcb6755d4eb407c895e265ee0d30960ff824dd95d9e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 16114,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "7fd17c2ce11c42ccacc70e2222174998c29ff073996a090c64e6850a09fe5f2e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3492,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/expression.json",
+      "sha256": "dd11d3be2e4aeeb3a2de1fe079e13095866b27dfafe4673182a8669c59991754",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 3099,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -53103,11 +53895,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2882,
+      "bytes": 2991,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/work.json",
-      "sha256": "fc9566e6e236c8cb26629568083a18637918c28586525087e0aa185834cbc3bb",
+      "sha256": "151b266a79576760a981a5667ce886379a6ceda623b193b1b8fb4c68700fb23f",
       "surface_kind": "structured"
     },
     {
@@ -53175,6 +53967,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3487,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "de5c03d0261f545f10ea5ca664926f6d520cf52fca83c295190d53a0fd4ee0d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 780,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "218b672ac2ae20e12b4dac8a7ee4d804206f5b7e3135cee0a5a7f0f2f09eb4f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3070,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "274a650b2b73af4ee0af0cbd507999efb42a54d7e5907885db4d9a8c18195eb7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4021,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "202733491201459fbaf7530df77337ffa12a44155d593aa6e2ca71efef86efb9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2999,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "1c7c3c4b5a1211e2a397b8ec1fa4ca1bdcf03ea629f875b162ef4296b8f6decd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8545,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "837088815536b5f0e9f5cab87f6c97b3d70e721cf8aff6606509d014731b603b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15864,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "1e03c006ba50099f57254519a55818d5f7bf1db2d5fc52477c14e4d6e605dd34",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3357,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/expression.json",
+      "sha256": "d65d87a12fadd10383f1e0d1d5b5b73c28c6d7f16e3a98041c9ca561304d09c7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2902,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -53239,11 +54095,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2782,
+      "bytes": 2866,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-fortuna/work.json",
-      "sha256": "166277d52517d25726db77d8ba0155d33248c86c94bc2e9f6593898a6a330064",
+      "sha256": "06de006a24c23b6857fa907bbb5184783005ac1586ee5e6d173489f31297c082",
       "surface_kind": "structured"
     },
     {
@@ -53311,6 +54167,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3634,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "285b04afc39ee16b020fc95634ace88ef26abfc25bf4f3b88141f030197e2506",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 794,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "d1c87e91fed0d2628615f408bb71a737641125ae1cb850d7f18bcae47ccb1c83",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3186,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "cc9c5de2dc6f93816d28ef7b4d087353b4961cf3db1eb16ad776bd867bc5e900",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4100,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "d0c85c8ddeb751b3ecf246f347c3cc2cecb783f2f1ff64eedd5810aa692266d2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3063,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "67027ed6b306572b4e0af6c9349833f29b68918dc05951b8f33d9fcf423efabe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 77900,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "add99c0f5e24c31e314446c98f519e54f4fc81c24b510a7a972cfffacf8974dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15954,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "27bd2a31d35c20ac19e5de3bc13694e17110e42602144f0e8e6148b20f9a5bf2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3504,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/expression.json",
+      "sha256": "f4b19d0e3d9f9abbe073c3a37477e86879e86e4295edd3a11c31980f7abc1b82",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2965,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -53375,11 +54295,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2818,
+      "bytes": 2911,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/work.json",
-      "sha256": "b83334b1f2b9fab75cdb548e9769b2c9e3b6a26df4a8cce059d6a8bf99483591",
+      "sha256": "76ed36f2ca865c687f1e6c8805ef1789815011f9c878d6de1059734157af378a",
       "surface_kind": "structured"
     },
     {
@@ -53719,6 +54639,70 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3514,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+      "sha256": "635ca6120935bf489461075508492a9c6297c734ab1d3e26b5036cde7bfede44",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 790,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json",
+      "sha256": "c2406394b6709495719c92560282f6213a2c093f36c565325929aeb4be1907e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3073,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+      "sha256": "f6f947f849c4dc79dad8eb6634709578c81df6d1a2c70b5f1387d4a0a5c74e56",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4040,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+      "sha256": "71d6b41aab5ff86b29de7bdcfe081d47708798291caf95d5292f693eb7e67e31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3048,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "sha256": "3974ef108b6e7a3b7d9263b14f533e1407bdcd033c15d747fce919d265943e9e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 20738,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+      "sha256": "8a6cf744b8d0bde71be44e1661b43a14c09d931b6db581b243ba9746c7295403",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 15934,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+      "sha256": "7d24dbe5209a0970ddf6c8d0324eed965bc4ef201bffa37365c8a9e5f94cc932",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3384,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/expression.json",
+      "sha256": "770412cd78a5904b4474ae1c6757fb0c0ed5bd2399f5ca399f348c3c6e84b974",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 2955,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -53783,11 +54767,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2810,
+      "bytes": 2901,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/work.json",
-      "sha256": "5750e03ca36f585caa7b6192daa4cbfcb307382a202941e97e8abbbfbac77390",
+      "sha256": "5eadb83513d721fef62951ba5373a7fcba1d1687d4863f3e2757482cc5cabac3",
       "surface_kind": "structured"
     },
     {

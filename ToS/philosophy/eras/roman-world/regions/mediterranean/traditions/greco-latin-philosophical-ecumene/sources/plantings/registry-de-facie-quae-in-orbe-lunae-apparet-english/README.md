@@ -39,3 +39,7 @@ English reading version of De Facie Quae in orbe Lunae Apparet alongside the alr
 - [Greek source file](../../../../../../../../../../source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg126.perseus-grc2.xml)
 
 Shared Work identity does not establish exact edition dependence or textual alignment.
+
+## Additional English version: de-facie-quae-in-orbe-lunae-apparet-english-1874
+
+[Additional English version](../registry-de-facie-quae-in-orbe-lunae-apparet-english-1874/README.md). No alignment or quality ranking is asserted.

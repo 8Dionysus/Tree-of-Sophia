@@ -30,3 +30,7 @@ Exact De Defectu Oraculorum Greek edition within the reviewed Плутарх sou
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-de-defectu-oraculorum-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: de-defectu-oraculorum-english-1874
+
+[English version and source file](../registry-de-defectu-oraculorum-english-1874/README.md). Shared Work identity does not establish edition dependence or alignment.

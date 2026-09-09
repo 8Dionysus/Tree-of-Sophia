@@ -39,3 +39,7 @@ English reading version of De fortuna alongside the already retained Greek versi
 - [Greek source file](../../../../../../../../../../source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg074.perseus-grc2.xml)
 
 Shared Work identity does not establish exact edition dependence or textual alignment.
+
+## Additional English version: de-fortuna-english-1874
+
+[Additional English version](../registry-de-fortuna-english-1874/README.md). No alignment or quality ranking is asserted.

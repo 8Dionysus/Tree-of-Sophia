@@ -79,3 +79,17 @@
 - [De Divinatione, De senectute; De amicitia; De divinatione — English / Latin](plantings/registry-de-divinatione-english/README.md)
 - [De Officiis, De officiis — English / Latin](plantings/registry-de-officiis-english/README.md)
 - [De Rerum Natura — English / Latin](plantings/registry-de-rerum-natura-english/README.md)
+
+## Registry planting: seventh wave (2026-09-09)
+
+9 English versions alongside existing Greek texts. [Batch reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-seventh-planting-2026-09-09/RESULTS.md).
+
+- [Of Fortune — English / Greek](plantings/registry-de-fortuna-english-1874/README.md)
+- [Of Isis and Osiris, or of the Ancient Religion and Philosophy of Egypt. — English / Greek](plantings/registry-de-iside-et-osiride-english-1874/README.md)
+- [Of the word ΕΙ engraven over the gate of Apollo's temple at Delphi — English / Greek](plantings/registry-de-e-apud-delphos-english-1874/README.md)
+- [Why the Oracles Cease to Give Answers — English / Greek](plantings/registry-de-defectu-oraculorum-english-1874/README.md)
+- [Of Moral Virtue — English / Greek](plantings/registry-de-virtute-morali-english-1874/README.md)
+- [Of Curiosity, or an Over-Busy Inquisitiveness into Things Impertinent. — English / Greek](plantings/registry-de-curiositate-english-1874/README.md)
+- [Of the Face Appearing Within the Orb Of the Moon — English / Greek](plantings/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874/README.md)
+- [The Discourses of Epictetus — English / Greek](plantings/registry-discourses-english-1890/README.md)
+- [The Enchiridion — English / Greek](plantings/registry-the-handbook-english-1890/README.md)

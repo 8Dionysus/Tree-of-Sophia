@@ -39,3 +39,7 @@ English reading version of De Defectu Oraculorum alongside the already retained 
 - [Greek source file](../../../../../../../../../../source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg092.perseus-grc2.xml)
 
 Shared Work identity does not establish exact edition dependence or textual alignment.
+
+## Additional English version: de-defectu-oraculorum-english-1874
+
+[Additional English version](../registry-de-defectu-oraculorum-english-1874/README.md). No alignment or quality ranking is asserted.

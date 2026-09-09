@@ -30,3 +30,7 @@ Exact De Virtute Morali Greek edition within the reviewed Плутарх source 
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-de-virtute-morali-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: de-virtute-morali-english-1874
+
+[English version and source file](../registry-de-virtute-morali-english-1874/README.md). Shared Work identity does not establish edition dependence or alignment.

@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "a9f4ff5f6003308c53d0f8d311406ff993123fc9c65535aa1cd2a19dbd1b40f7",
+  "queue_sha256": "3b0182b69b1d003aa7b402125239c203f6f0b233d6b022242512da3faa64b079",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
       "catalog_works": 140,
-      "discovery_runs": 259,
+      "discovery_runs": 268,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "8a6293ed17af9d62469caf3001dc816cf2fcb577640e165375fca939ec0bad24",
+    "input_sha256": "09ad57df7e51b8aa20b115c1fea7d0ece071c8855e15de8fc920492a5c53bdd1",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "4ef32ba1302a7d157554a1bf7b9fe82cda73f6bc5b19963d373283e82d4b78ab"
+        "sha256": "44a8f1e2e94d4fefa99ff1ab5f6cac14f06801bfb356a75c67dadcb089e1b7d9"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "c112a02c99ec75324cd01d294344658dacb9b84c22c74b918378eb8d51e645b7"
+        "sha256": "97519c4046f25b036e1130e2f365653d14c8c5e9a84303fa0999770466c25ea1"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1420,12 +1420,20 @@
         "sha256": "f6184ea2a4a460e74f682b77a2803c57e168f1b7f416c9383461cb0989542064"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate-english-1874.2026-09-09.v1.json",
+        "sha256": "4938253f27e68cfcf51525cb28e2e8e8837f45d12d85c9e949dc20acd7ad260a"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate-english.2026-09-09.v1.json",
         "sha256": "8a4465dd9a3a3b913c3dc914caa5659a3e073be8a9f87d3523cab01f4abc5932"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate.2026-09-08.v1.json",
         "sha256": "508c0a679956f4727b3c04ed951aa8dbb92eeb5a433ea569b326c47e05836c23"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-defectu-oraculorum-english-1874.2026-09-09.v1.json",
+        "sha256": "0ac8ad9484d5054e2da5fd5bd3213a61b24d1848939cec599a00ac21d15a1c58"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-defectu-oraculorum-english.2026-09-09.v1.json",
@@ -1444,12 +1452,20 @@
         "sha256": "dfcd32026222ae3020c7fa054d2709aec4caee77ceb683f8ee9a79b858fc4879"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-e-apud-delphos-english-1874.2026-09-09.v1.json",
+        "sha256": "67fe2b4a41b1c51f66497892f3b2e25bde11ef798ccf74dc3ad8638feb951b81"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-e-apud-delphos-english.2026-09-09.v1.json",
         "sha256": "cb302081796f43ec027d567496093413b73421fc2f5d151b4e5b56f82de1369d"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-e-apud-delphos.2026-09-08.v1.json",
         "sha256": "8655b0fd11a40b9ae6c6d353c9daef6b49bc5dca8e0163a0d1032684431609f0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874.2026-09-09.v1.json",
+        "sha256": "f5e3f60ca202c28f620815c06837ae36c67259799faeb332089e725dcdd80b8e"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-facie-quae-in-orbe-lunae-apparet-english.2026-09-09.v1.json",
@@ -1468,6 +1484,10 @@
         "sha256": "4a7f3ea0158810acb66946bfad2a69443c2d9013415315c48266cca32e93c7e7"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-fortuna-english-1874.2026-09-09.v1.json",
+        "sha256": "e5e99b8729ed55478681581e74621eecf5ba02cf3cce81cd6a3f0e0b46a2641f"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-fortuna-english.2026-09-09.v1.json",
         "sha256": "d22369bb37b1626d466242d8927004744801531d143deaf57bc49e37edb91041"
       },
@@ -1478,6 +1498,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-inventione.2026-09-09.v1.json",
         "sha256": "fbaa3948b567a78b423870967c418febebf36e355feffa1b7546bda675959248"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-iside-et-osiride-english-1874.2026-09-09.v1.json",
+        "sha256": "ec5ec6e8cc61fbb6eeb97e334a8c45e2c9983442ba2ffb81d264bb9babb8f3de"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-iside-et-osiride-english.2026-09-09.v1.json",
@@ -1540,6 +1564,10 @@
         "sha256": "23a4d08761091a20266e1487be0f0f801667b280985423fd92e9c1dd4a924335"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-morali-english-1874.2026-09-09.v1.json",
+        "sha256": "42d73359d8c2916aa4190b5e395280f51c00b15f582da0a28519be2ed3e4e564"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-morali-english.2026-09-09.v1.json",
         "sha256": "5b87a7a1079c8827c903a87e01c9267a63370f16e773df0bf44a90a084367f3d"
       },
@@ -1550,6 +1578,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-dhammapada.2026-09-08.v1.json",
         "sha256": "9473c3f1936cf423fcc84646e1dd588fc464aa5cc6a3acd1e6d18389ceaa95fb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-discourses-english-1890.2026-09-09.v1.json",
+        "sha256": "59f6bbafe42e6d8277b59b81f7c3ad445053a70be1d74f1f3a9ee0e8301cd0a5"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-discourses-english.2026-09-09.v1.json",
@@ -1884,6 +1916,10 @@
         "sha256": "6faa9dbf5538da0cffd4654ba6ac05e659a125fcafecfb75dcc93e9e3f04d753"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-the-handbook-english-1890.2026-09-09.v1.json",
+        "sha256": "7b6d4d7123d456414da28739352a5e48b00c1af51a70d941687f37e179c60ad8"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-the-handbook-english.2026-09-09.v1.json",
         "sha256": "0ef2bc9f1f17796564e2c27ed1a7910eab423eaa2981c05a07263d78221726e0"
       },
@@ -2061,7 +2097,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "934ee89e62a329642a91dd6a924fd9d95b24e222bc7779ae789ce0175487da73"
+        "sha256": "486f791e9311ebc7fcbdb60f720516e88968c5c30d4397c5154e411013588d63"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -2173,7 +2209,7 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "d92b596ac1e46b7ccaaedcad8db8fc996b08be4fbc0508c66cc6bb40d694ef0c"
+        "sha256": "6fba7a73fc167834302485464bd47d63d4240c76539a9d0dc5fe372dbbc5a91b"
       },
       {
         "path": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2364,12 +2400,20 @@
         "sha256": "9e7e92bd1df60326de2c1e920078b17a3b52cfaa018995faa99bb9f1685fe27d"
       },
       {
+        "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "8c05e9fe5afa7a9b0cfcb43d223805265bf8a8fcb0925ecfb4daacce632dab0f"
+      },
+      {
         "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "633fea5bcc941c3dab69b322d79aa166020ecb8dfb88441f226bc347bf6bcf16"
       },
       {
         "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "b2c8b2f8c1037dc6de1f2e3b3dd61e2ee632cc424cade48e059ef93f9ff7b4e5"
+      },
+      {
+        "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e46cd986342bcfea8ceeb54ef1d40af833d8fffb53c8d48d47e75db90520ba22"
       },
       {
         "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2860,12 +2904,20 @@
         "sha256": "56ca519cc6e14bcfc08b2939e193220ee2de064ab90908f397ca718dd85f2d67"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0b9455034300fdc63a41d596e069dcab75bff18cf2b4321e708f6e47b654886e"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "d337c9fcbc61038553ecf7e83a10aa47b7eab6094cee27bc51357fa85aa4ffd9"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "3b95f8ec61dc74f8940beab2bc58c502f781fb3acbd37ce2e3a0073d6336d7ce"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c122e0b7553f859d128704e22175b4781a45da5d97e9a82a4d080ffb416b6370"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2876,12 +2928,20 @@
         "sha256": "64b760f50c1f5f9218daa8aa1a48b8e1d86db86ae274bf45e6bbd375e93169eb"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "4354913e295f629a8bd2b586b0042906650d9a998530d5663a5d810d927f5de1"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "893468b76277caf859673f42e41488cd89b19705d432efa8922b9dd34a40b621"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "0b1c2195aedef9536beca45f0b85e89e35f9d924a5682ff956a578943251c4ad"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "adbe2b6e908eae09bb3d26d939229b90370189e06e696ceee6006bf5165630af"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2892,12 +2952,20 @@
         "sha256": "30a80da75396c3ddf191262d72f0738c54d60387d38ecb64b8c1eb1baa057226"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3de5fc3c1d5d322b051bb41db45826b4ae74fb27184304589be3a3d2c867632f"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "2681a6259c1f5976b614ca3bf38e30a89027afaec8da6222645d7e1cd32d4ede"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "f4712a4788e273a693bf51c201fba16d71414467cf4854ca79aa23dfd981fb7d"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e8f80479970a11f33bdb715b33941f7270130f65230614f7115d874dfb4f0b52"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2922,6 +2990,10 @@
       {
         "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "17bbc6540581f50c2a87021539d8fe5a25b789938b3b076846ef4af10bfa334f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "bf503d1c9b51d4968b27d10eae16424e73b6a01a0fbf65d7c7fde326719f3de1"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",

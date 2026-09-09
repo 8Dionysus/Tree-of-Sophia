@@ -39,3 +39,7 @@ English reading version of The Handbook alongside the already retained Greek ver
 - [Greek source file](../../../../../../../../../../source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg002.perseus-grc2.xml)
 
 Shared Work identity does not establish exact edition dependence or textual alignment.
+
+## Additional English version: the-handbook-english-1890
+
+[Additional English version](../registry-the-handbook-english-1890/README.md). No alignment or quality ranking is asserted.

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.registry-de-fortuna-english-1874",
+  "item_ref": "tos.item.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4.perseus-341e309c821d.git-tei-xml",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+    "sha256": "1c7c3c4b5a1211e2a397b8ec1fa4ca1bdcf03ea629f875b162ef4296b8f6decd",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.222d22ef934d2c7dae83b25baad80f68814018e2670ec0fed96021b8417109fa",
+      "relative_path": "payload/tlg0007.tlg074.perseus-eng4.xml",
+      "byte_size": 16784,
+      "sha256": "222d22ef934d2c7dae83b25baad80f68814018e2670ec0fed96021b8417109fa",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+    "rights_record_sha256": "1e03c006ba50099f57254519a55818d5f7bf1db2d5fc52477c14e4d6e605dd34",
+    "assessment_status": "open-licensed",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [
+      "MX"
+    ],
+    "permission_or_license_refs": [
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074-cts.xml",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-header.xml",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-opening.xml",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007-cts.xml",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-README.md",
+      "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/perseus-license.md",
+      "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+      "https://creativecommons.org/licenses/by-sa/4.0/"
+    ],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "search_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    },
+    "graph_projection": {
+      "state": "prohibited",
+      "conditions": [
+        "This plan concerns future server use only. Local preservation/research permissions remain with the Item rights record; no server processing or source-content publication has been authorized."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "not-evaluated",
+  "publication_status": "not-published",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-09T15:52:29.922020+00:00"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.registry-20260909.de-fortuna-english-1874"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 1,
+  "supersedes_server_import_ref": null
+}

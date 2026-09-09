@@ -30,3 +30,7 @@ Exact De fortuna Greek edition within the reviewed Плутарх source need; t
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-de-fortuna-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: de-fortuna-english-1874
+
+[English version and source file](../registry-de-fortuna-english-1874/README.md). Shared Work identity does not establish edition dependence or alignment.

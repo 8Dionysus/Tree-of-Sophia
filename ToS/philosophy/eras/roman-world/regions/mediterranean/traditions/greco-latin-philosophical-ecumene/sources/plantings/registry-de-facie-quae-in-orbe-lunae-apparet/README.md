@@ -30,3 +30,7 @@ Exact De Facie Quae in orbe Lunae Apparet Greek edition within the reviewed Пл
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-de-facie-quae-in-orbe-lunae-apparet-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: de-facie-quae-in-orbe-lunae-apparet-english-1874
+
+[English version and source file](../registry-de-facie-quae-in-orbe-lunae-apparet-english-1874/README.md). Shared Work identity does not establish edition dependence or alignment.

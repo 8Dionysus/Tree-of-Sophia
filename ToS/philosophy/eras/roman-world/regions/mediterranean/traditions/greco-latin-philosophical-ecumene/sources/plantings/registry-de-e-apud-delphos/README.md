@@ -30,3 +30,7 @@ Exact De E apud Delphos Greek edition within the reviewed Плутарх source 
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-de-e-apud-delphos-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: de-e-apud-delphos-english-1874
+
+[English version and source file](../registry-de-e-apud-delphos-english-1874/README.md). Shared Work identity does not establish edition dependence or alignment.

@@ -30,3 +30,7 @@ Exact De Iside et Osiride Greek edition within the reviewed Плутарх sourc
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-de-iside-et-osiride-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: de-iside-et-osiride-english-1874
+
+[English version and source file](../registry-de-iside-et-osiride-english-1874/README.md). Shared Work identity does not establish edition dependence or alignment.

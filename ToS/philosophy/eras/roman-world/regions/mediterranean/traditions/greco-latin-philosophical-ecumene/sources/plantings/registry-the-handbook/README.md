@@ -30,3 +30,7 @@ Exact The Handbook Greek edition within the reviewed Эпиктет source need;
 ## English translation added 2026-09-09
 
 [English version and source file](../registry-the-handbook-english/README.md). Shared Work identity does not establish edition dependence or alignment.
+
+## Additional English version: the-handbook-english-1890
+
+[English version and source file](../registry-the-handbook-english-1890/README.md). Shared Work identity does not establish edition dependence or alignment.

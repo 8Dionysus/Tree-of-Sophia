@@ -1,3 +1,5 @@
-# Seventh registry planting preparation
+# Seventh registry planting
 
-Nine additional English versions of existing Works. [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md). Full acquisition follows the preparation checkpoint.
+[English and Greek reading routes](RESULTS.md). [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md). [Version selection](selection-review.json).
+
+Prepared readiness and post-acquisition completion retain separate exact evidence.

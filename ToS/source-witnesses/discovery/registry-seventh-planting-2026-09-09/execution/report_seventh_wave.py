@@ -137,6 +137,11 @@ def report(completed):
             if path.parent.name == 'sources':
                 added += '\n' + '\n'.join('- [' + row['title'] + ' — English / Greek](' + os.path.relpath(ROOT / row['reading_route'], path.parent) + ')' for row in entries) + '\n'
             path.write_text(prior.rstrip() + added)
+    earlier_readme = BASE.parent / 'registry-fourth-planting-2026-09-09/README.md'
+    marker = '## Alternative translations acquired (seventh planting)'
+    earlier = earlier_readme.read_text()
+    if marker not in earlier:
+        earlier_readme.write_text(earlier.rstrip() + '\n\n' + marker + '\n\nThe nine exact alternatives deferred in this historical batch are now locally retained. [Seventh planting and parallel reading routes](../registry-seventh-planting-2026-09-09/RESULTS.md). The original selection record remains unchanged.\n')
     print(json.dumps({'completed': len(rows), 'new_works': 0, 'files': result['total_files'], 'bytes': result['total_bytes']}))
 
 
