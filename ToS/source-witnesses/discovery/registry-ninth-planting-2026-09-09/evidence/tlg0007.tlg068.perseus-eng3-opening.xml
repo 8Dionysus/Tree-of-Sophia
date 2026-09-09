@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>How the Young Man Should Study Poetry</title>
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+            
+        </titleStmt>
+
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg068.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+               	<author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1927</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/in.ernet.dli.2015.43837/page/n117">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      <editorialDecl>
+         <quotation marks="none"/>
+          <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>    
+   <refsDecl n="CTS">
+   	<cRefPattern n= "section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+   		<p>This pointer pattern extracts section.</p></cRefPattern>
+            
+         </refsDecl>
+     
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="CHS 2019 Interns" when="2019-06-06">CTS and Epidoc conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg068.perseus-eng3">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg068.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v1.p.72"/> 
+
+	<head>HOW THE YOUNG MAN SHOULD STUDY POETRY (<foreign xml:lang="lat">QUOMODO ADOLESCENS POETAS AUDIRE DEBEAT</foreign>)</head> 
+   <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg068.perseus-eng3" n="intro">
+      <head>INTRODUCTION</head> 
+<p rend="indent">Plutarch’s essay on the study of poetry is not a discussion of the essentials of poetry, nor an analysis of its various kinds after the manner of Aristotle’s Poetics, but it is concerned with poetry only as a means of training the young in preparation for the study of philosophy later. Some experience with the adumbrations of philosophic doctrines which are to be found in poetry will, in the opinion of the author, make such doctrines seem less strange when they are met later in the actual study of philosophy.</p> 
+	<p rend="indent">This training is to be imparted, not by confining the reading to selected passages, but by teaching the young to recognize and ignore the false and fabulous in poetry, to choose always the better interpretation, and, in immoral passages where art is employed for art’s sake, not to be deluded into approving vicious sentiments because of their artistic presentation. Such passages may be offset by other passages from the same author or from another author, and, as a last resort, one may try his hand at emending unsavoury lines to make them conform to a higher ethical standard. This last proposal seems to the modern reader a weak subterfuge, but it was a practice not unknown even before Plutarch’s time.</p> 
+	<p rend="indent">Philology, in the narrower sense, Plutarch says, is a science in itself, and a knowledge of it is not <pb xml:id="v1.p.73"/> essential to an unstanding of literature (a fact enunciated from time to time by modern educators as a new discovery). But, on the other hand, Plutarch strongly insists that an exact appreciation of words and of their meanings in different contexts is indispensable to the understanding of any work of poetry.</p> 
+	<p rend="indent">The various points in the essay are illustrated by plentiful quotations drawn in the main from Homer, Hesiod, Archilochus, Pindar, Simonides, Theognis, Aeschylus, Sophocles, Euripides, and Menander. These are accompanied by many keen and intelligent observations (such, for example, as that regarding Paris), which attest Plutarch’s wide and careful reading in the classical authors.</p> 
+	<p rend="indent">The fact that Plutarch does not use the methods of historical criticism will not escape the reader, and, although this seems to us a great defect in the essay, it is wholly in keeping with the spirit of Plutarch’s age. On the other hand there is well shown the genial and kindly Plutarch, who wishes to believe only good of all men, including the poets, however much they may fall short of the standards set by the divine Homer.</p></div>  <pb xml:id="v1.p.75"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg068.perseus-eng3" n="1"> 
+	<p rend="indent">If, my dear Marcus Sedatus, it is true, as the poet Philoxenus used to say, that of meats those that are not meat, and of fish those that are not fish, have the best flavour, let us leave the expounding of this matter to those persons of whom Cato said that their palates are more sensitive than their minds. And so of philosophical discourses it is clear to us that those seemingly not at all philosophical, or even serious, are found more enjoyable by the very young, who present themselves at such lectures as willing and submissive hearers. For in perusing not only Aesop’s Fables, and Tales from the Poets, but even the Abaris of Heracleides, the Lycon of Ariston, and philosophic doctrines about the soul when these are combined with tales from mythology,<note resp="editor" place="inline" anchored="true">Plutarch probably has Plato in mind, and is t

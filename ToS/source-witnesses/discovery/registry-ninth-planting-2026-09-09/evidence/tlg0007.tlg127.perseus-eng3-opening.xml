@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>On the Principle of Cold</title>
+            <author>Plutarch</author>
+            <editor role="translator">Harold Cherniss</editor>
+            <editor role="translator">William C. Helmbold</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+               <name>Bridget Almas</name>
+               <name>Angelia Hanhardt</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Ethan Della Rocca</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2010-12-13">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg127.perseus-eng3.xml</idno>
+           <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Harold Cherniss</editor>
+                  <editor role="translator">William C. Helmbold</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1957</date>
+                  </imprint>
+                  <biblScope unit="volume">12</biblScope>
+               </monogr>
+               <series><title>Loeb Classical Library</title></series>
+               <ref target="https://archive.org/details/moraliainfifteen12plutuoft/page/225">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <!-- <state unit="section"/> -->
+         </refsDecl>
+         <!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+            <language ident="deu">German</language>
+            <language ident="fre">French</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change who="RS" when="2010-05">tagged and parsed</change>
+         <change who="Ethan Della Rocca" when="2019-07-25">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg127.perseus-eng3">
+         <div n="urn:cts:greekLit:tlg0007.tlg127.perseus-eng3" type="translation" xml:lang="eng">
+<head>On the Principle of Cold (<foreign xml:lang="lat">De primo frigido</foreign>)</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg127.perseus-eng3" n="intro"> <pb xml:id="v.12.p.227"/> 
+   <head>INTRODUCTION</head> 
+   <p>This little essay, or open letter to Favorinus, is not written in a controversial spirit, though a few sharp comments are made from time to time. Having established (chapters 5-7) that an element of Cold really exists, Plutarch proceeds to consider what that element may be. Since fire is obviously excluded, can it be air, as the Stoics believe (8-12), or water, as Empedocles, and an early Peripatetic, Strato, hold (13-16)? Or, indeed, may it be earth itself (17-22)? This latter opinion is apparently put forward by Plutarch as an original contribution to theoretical physics and there is no reason to believe it is not his. The essay closes, however, with a recommendation to scepticism,<note resp="editor" place="inline" anchored="true">See J. Schröter, <title xml:lang="deu" rend="italic">Plutarchs Stellung zur Skepsis</title> (Greifswald, 1911), pp. 23 and 40. He compares other recomendations to the suspension of judgement, such as <title xml:lang="lat" rend="italic">Mor.</title> 430 f - 431 a. <foreign xml:lang="lat">Cf.</foreign> also Hartman, <title xml:lang="lat" rend="italic">De Plutarcho</title>, pp. 253 f.</note> so that our author may not have regarded his attempted proof as cogent, as indeed it is not.</p> 
+   <p rend="indent">The work was probably written in Delphi (<foreign xml:lang="lat">cf.</foreign> 953 c-d and e) after A.D. 107-(949 e, note) and addressed to the young philosopher Favorinus,<note resp="editor" place="inline" anchored="true">For the details see Ziegler’s article on Plutarch in Pauly-Wissowa, <title rend="italic">RE</title>, col. 675.</note> the great lover of Aristotle (<title xml:lang="lat" rend="italic">Mor.</title> 734 f), who is also a speaker in <title rend="italic">Symposiacs</title>, viii. 10. Though Favorinus was in all <pb xml:id="v.12.p.228"/> likelihood some twenty years younger than Plutarch, the two men dedicated several works to each other.<note resp="editor" place="inline" anchored="true">Lamprias cat. 132: Plutarch’s <title rend="italic">Letter to Favorinus on Friendship</title> (or <title rend="italic">The Use of Friends</title>); Galen, <title xml:lang="lat" rend="italic">de Opt. Doctr.</title> (i. 41 K): Favorinus’s <title rend="italic">Plutarch, or On the Academic Disposition</title>. See also Suidas, <foreign xml:lang="lat">s.v.</foreign> <foreign xml:lang="grc">Φαβωρῖνος</foreign>.</note> In the present essay it is, perhaps, odd that of the three quotations from Aristotle one is a rebuke (950 b), one is apparently a partial miscitation (948 a, note), while the third is of no importance. No doubt it is in virtue of Favorinus’ youth that his idol is treated so lightly, and that the sceptical note is sounded so firmly at the end. The young Peripatetic was also quoted by Plutarch (for partial refutation) in <title xml:lang="lat" rend="italic">Mor.</title> 271 c; but Plutarch (if Tarn<note resp="editor" place="inline" anchored="true"><title rend="italic">Alexander the Great</title>, ii. 298 f.</note> and others are right) became much more favourable to Peripatetics later in his life (e.g. in the <title rend="italic">Life of Alexander</title>). </p> 
+   <p rend="indent">Bernardakis’s text of this work is one of his most unsatisfactory; even for an <foreign xml:lang="lat">editio minor</foreign> it is careless and confused to a deplorable extent. Nor are the means of correcting and supplementing it at hand, the fifth Teubner volume being still, one fears, in the remote future. Then, too. the only photographs available were those of E and Β. which are not likely to add much to our knowledge.<note resp="editor" plac

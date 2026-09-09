@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Plutarch's Consolatory Letter to His Wife</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">Thomas Creech</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg111.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+        <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                   <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/386">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2018-07-17">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg111.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg111.perseus-eng2" type="translation" xml:lang="eng">
+         <pb xml:id="v.5.p.386"/>
+         <head>Plutarch’s consolatory letter to his wife. <lb/> Plutarch to his wife: all health.</head>
+        <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg111.perseus-eng2" type="textpart" n="1"><p rend="indent">As for the messenger you despatched to tell me of the death of my little daughter, it seems he missed his way as he was going to Athens. But when I came to Tanagra, I heard of it by my niece. I suppose by this time the funeral is over. I wish that whatever has been done may create you no dissatisfaction, as well now as hereafter. But if you have designedly let any thing alone, depending upon my judgment, thinking better to determine the point if I were with you, I pray let it be without ceremony and timorous superstition, which I know are far from you.</p> </div>
+        <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg111.perseus-eng2" type="textpart" n="2"><p rend="indent">Only, dear wife, let you and me bear our affliction with patience. I know very well and do comprehend what loss we have had; but if I should find you grieve beyond measure, this would trouble me more than the thing itself. For I had my birth neither from a stock nor a stone;<note resp="editor" place="inline" anchored="true">See <title>Il</title>. XXII. 126.</note> and you know it full well, I having been assistant to you in the education of so many children, which we brought up at home under our own care. This daughter was born after four sons, when you were longing to bear a daughter; which made me call her by your own name. Therefore I know she was particularly dear to you. And grief must have a peculiar pungency in a mind tenderly affectionate to children, when you call to mind how naturally witty and <pb xml:id="v.5.p.387"/> innocent she was, void of anger, and not querulous. She was naturally mild, and compassionate to a miracle. And her gratitude and kindness not only gave us delight, but also manifested her generous nature; for she would pray her nurse to give suck, not only to other children, but to her very playthings, as it were courteously inviting them to her table, and making the best cheer for them she could.</p> </div>
+        <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg111.perseus-eng2" type="textpart" n="3"><p rend="indent">Now, my dear wife, I see no reason why these and the like things, which delighted us so much when she was alive, should upon remembrance of them afflict us when she is dead. But I also fear lest, while we cease from sorrowing, we should forget her; as Clymene said, <quote rend="blockquote"> <lg> <l>I hate the handy horned bow, </l> <l>And banish youthful pastimes now;</l> </lg> </quote> because she would not be put in mind of her son by the exercises he had been used to. For Nature always shuns such things as are troublesome. But since our little daughter afforded all our senses the sweetest and most charming pleasure; so ought we to cherish her memory, which will conduce many ways—or rather many fold— more to our joy than our grief. And it is but just, that the same arguments which we have oft-times used to others should prevail upon ourselves at this so seasonable a time, and that we should not supinely sit down and overwhelm the joys which we have tasted with a multiplicity of new griefs.</p> </div>
+        <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg111.perseus-eng2" type="textpart" n="4"><p rend="indent">Moreover, they who were present at the funeral report this with admiration, that you neither put on mourning, nor disfigured yourself or any of your maids; neither were there any costly preparations nor magnificent pomp; but all things were managed with silence and moderation in the presence of our relatives alone. And it seemed not strange to me that you, who never used richly <pb xml:id="v.5.p.388"/> to dress

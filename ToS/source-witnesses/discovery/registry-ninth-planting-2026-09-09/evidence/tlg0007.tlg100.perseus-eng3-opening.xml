@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Whether the Affections of the Soul are Worse Than Those of the Body</title>
+            <author>Plutarch</author>
+            <editor role="translator">William Clark Helmbold</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	   <name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg100.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">William Clark Helmbold</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1939</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series> 
+            	<ref target="https://archive.org/details/moraliainfifteen06plutuoft/page/378">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         	<language ident="fre">French</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Sophia Elzie" when="2019-07-15">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg100.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg100.perseus-eng3" type="translation" xml:lang="eng"> 
+	<head>WHETHER THE AFFECTIONS OF THE SOUL ARE WORSE THAN THOSE OF THE BODY (<foreign xml:lang="lat">ANIMINE AN CORPORIS AFFECTIONES SINT PEIORES</foreign>)</head><lb/> 
+<div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg100.perseus-eng3" type="textpart" n="intro"> <pb xml:id="v.6.p.378"/> <head>INTRODUCTION</head> <p rend="indent"> This popular oration, or diatribe, <note resp="editor" place="inline" anchored="true">So Pohlenz, as I think, correctly: I therefore do not accept Wilamowitz’s combination of this and the preceding work as fragments of the same dialogue.</note> was read by Plutarch<note resp="editor" place="inline" anchored="true">Xylander, practically alone, denies the genuineness - on what ground he does not say. </note> in some city of Asia Minor: Volkmann <note resp="editor" place="inline" anchored="true"> <title rend="italic">Plutarch</title>, vol. i. 62 f.</note> thought Sardis, the capital of the province; Haupt<note resp="editor" place="inline" anchored="true"> <title rend="italic" xml:lang="lat">Opuscula</title>, iii. 554 (<title rend="italic">Hermes</title>, vi. 258).</note> thought Halicarnassus; Wilamowitz<note resp="editor" place="inline" anchored="true"> <title rend="italic">Hermes</title>, xl. 161 ff.</note> Ephesus. The occasion is clearly the consul’s yearly hearing of lawsuits from the whole province. </p> 
+	<p rend="indent">The proof that afflictions of the soul are worse than diseases of the body is treated in a popular and, in chapter 4, dramatic manner. The conclusion is lost. </p> 
+	<p rend="indent">The same subject was treated in his commonplace fashion by Maximus Tyrius,<note resp="editor" place="inline" anchored="true"> <title rend="italic">Orat.</title> 7 ed. Hobein, 13 ed. Dübner.</note> who shows no knowledge of Plutarch’s oration, nor any relation to his sources; Cicero, however, at the beginning of the third book of the <title rend="italic">Tusculan Disputations</title>, exhibits some kinship with Plutarch’s argument. Siefert<note resp="editor" place="inline" anchored="true"> <title xml:lang="lat" rend="italic">Comm. Ienenses</title>, 1896, pp. 106-110; <title rend="italic">Plutarchs Schrift</title> <foreign xml:lang="grc">Περὶ εὐθυμίας</foreign>, pp. 26-28.</note> has twice elaborated his opinion that some of this work of <pb xml:id="v.6.p.379"/> Plutarch’s was drawn from the <foreign xml:lang="grc">ὑπόμνημα</foreign> (I should prefer to say <foreign xml:lang="grc">ὑπομνήματα</foreign> <note resp="editor" place="inline" anchored="true">See the introduction to the <title xml:lang="lat" rend="italic">De Tranquillitate</title>.</note>) which Plutarch used in writing <title rend="italic" xml:lang="lat">De Tranquillitate</title>. </p> 
+	<p rend="indent">The text is not good. The work is listed as No. 208 in the Lamprias catalogue. </p> </div> <pb xml:id="v.6.p.381"/> 
+<div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg100.perseus-eng3" type="textpart" n="1"> <p rend="indent">Homer,<note resp="editor" place="inline" anchored="true"> <title rend="italic">Il.</title>, xvii. 446-447; <foreign xml:lang="lat">cf.</foreign> 496 b, <foreign xml:lang="lat">supra</foreign>.</note> having contemplated the mortal varieties of animals and having compared them with each other in respect to their lives and habits, cried out that nothing is <quote rend="blockquote"> <l>More wretched than man, </l> <l>Of all that breathes and creeps upon the earth,</l> </quote> awarding to man an unfortunate primacy in excess of evils. But as for us, as though acknowledging that man has won the victory in wretchedness and has been proclaimed the most miserable of animals, let us compare him with himself, dividing body and soul for competition of their individual miseries, a task not unprofitable but even quite necessary, to the end that we may learn whether it is through

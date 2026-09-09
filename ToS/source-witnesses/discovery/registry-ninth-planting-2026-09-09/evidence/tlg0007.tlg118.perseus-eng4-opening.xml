@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Political Precepts</title>
+				<author>Plutarch</author>
+				<editor>William W. Goodwin</editor>
+				<editor role="translator">Samuel White</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg118.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title>Plutarch's Morals.</title>
+						<respStmt>
+							<resp>Translated from the Greek by several hands. Corrected and revised by</resp>
+							<name>William W. Goodwin, PH. D.</name>
+						</respStmt>
+						<imprint>
+							<pubPlace>Boston</pubPlace>
+							<publisher>Little, Brown, and Company</publisher>
+							<pubPlace>Cambridge</pubPlace>
+							<publisher>Press of John Wilson and Son</publisher>
+							<date>1874</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+					</monogr>
+					<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/97">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Lucy Parr" when="2019-07-18">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg118.perseus-eng4">
+     <div n="urn:cts:greekLit:tlg0007.tlg118.perseus-eng4" type="translation" xml:lang="eng">
+			<head>Political precepts.</head>
+			<pb xml:id="v.5.p.97"/>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg118.perseus-eng4" n="1"><p rend="indent">If ever, O Menemachus, that saying of Nestor’s in Homer, <quote rend="blockquote"> <lg> <l>There is no Greek can contradict or mend </l> <l>What you have said, yet to no perfect end </l> <l>Is your speech brought,</l><note resp="editor" place="inline" anchored="true"><title>Il.</title> IX. 55.</note> </lg> </quote> might pertinently be made use of and applied, it is against those exhorting, but nothing teaching nor any way instructing, philosophers. For they do (in this respect) resemble those who are indeed careful in snuffing the lamps, but negligent in supplying them with o<title>Il.</title> Seeing therefore that you, being by reason moved to engage yourself in the affairs of the state, desire, as becomes the nobility of your family, <quote rend="blockquote"> <lg> <l>Both to speak and act heroicly</l><note resp="editor" place="inline" anchored="true"><title>Il.</title> IX. 443.</note> </lg> </quote> in the service of your country, and that, not having attained to such maturity of age as to have observed the life of a wise and philosophical man openly spent in the transactions of the state and public debates, and to have been a spectator of worthy examples represented not in word but in deed, you request me to lay you down some political precepts and instructions; I think it no ways becoming me to give you a denial, but heartily wish that the work may be worthy both of your zeal and my forwardness. Now I have, according to your request, made use in this my discourse of sundry and various examples.</p> <pb xml:id="v.5.p.98"/> </div>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg118.perseus-eng4" n="2"><p rend="indent">First then for the administration of state affairs, let there be laid, as a firm and solid foundation, an intention and purpose, having for its principles judgment and reason, and not any impulse from vain-glory, emulation, or want of other employment. For as those who have nothing grateful to them at home frequently spend their time in the forum, though they have no occasion that requires it; so some men, because they have no business of their own worth employing themselves in, thrust themselves into public affairs, using policy as a divertisement. Many also, having been by chance engaged in the negotiations of the commonweal, and being cloyed with them cannot yet easily quit them; in which they suffer the same with those who, going on board a ship that they may be there a little tossed, and being after carried away into the deep, send forth many a long look towards the shore, being sea-sick and giddy-headed, and yet necessitated to stay and accommodate themselves to their present fortune. <quote rend="blockquote"> <lg> <l>Past is the lovely pleasure </l> <l>They took, when th’ sea was calm and weather bright, </l> <l>In walking at their leisure </l> <l>On the ship’s deck, </l> <l>Whilst her sharp beak </l> <l>With merry gale, </l> <l>And full blown sail, </l> <l>Did through the surging billows cut its course aright.</l> </lg> </quote> And these do most of all discredit the matter by their repenting and being discontented, when either hoping for glory they fall into disgrace, or expecting to become formidable to others by their power they are engaged in affairs full of dangers and troubles. But he who on a well grounded principle of reason undertakes to act in the public, as an employ very honorable and most beseeming him, is dismayed by none of these things; nor does he therefore change his opinion. For we must not come to the management of the commonweal on a design of gaining and growing rich by it, as Stratocles and Dromo <pb xml:id="v.5.p.99"/> slides exhorted one another to the golden harvest,—

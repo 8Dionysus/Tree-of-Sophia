@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of Envy and Hatred</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">P. Lancaster</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg105.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst02plutuoft/page/94">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction method="silent">
+               <p>optical character recognition</p>
+            </correction>
+            <quotation marks="none"/>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl>
+      	<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2019-07-16">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2" type="translation" xml:lang="eng">
+         <head>Of envy and hatred.</head>
+         <pb xml:id="v.2.p.95"/>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2" type="textpart" n="1"><p rend="indent">Envy and hatred are passions so like each other that they are often taken for the same. And generally, vice has (as it were) many hooks, whereby it gives unto those passions that hang thereto many opportunities to be twisted and entangled with one another; for as differing diseases of the body agree in many like causes and effects, so do the disturbance of the mind. He who is in prosperity is equally an occasion of grief to the envious and to the malicious man; therefore we look upon benevolence, which is a willing our neighbor’s good, as an opposite to both envy and hatred, and fancy these two to be the same because they have a contrary purpose to that of love. But their resemblances make them not so much one as their unlikeness makes them distinct. Therefore we endeavor to describe each of them apart, beginning at the original of either passion.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2" type="textpart" n="2"><p rend="indent">Hatred proceeds from an opinion that the person we hate is evil, if not generally so, at least in particular to us. For they who think themselves injured are apt to hate the author of their wrong; yea, even those who are reputed injurious or malicious to others than ourselves we usually nauseate and abhor. But envy has only one sort of object, the felicity of others. Whence it becomes infinite, and, like an evil or diseased eye, is offended with every thing that is bright. On the other hand, hatred is always determined by the subject it adheres to.</p> <pb xml:id="v.2.p.96"/> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2" type="textpart" n="3"><p rend="indent">Secondly, hatred may be conceived even against brutes; for there are some men who have an antipathy to cats or beetles or toads or serpents. Germanicus could endure neither the crowing nor the sight of a cock; and the Persian Magi were killers of mice, as creatures which they both hated themselves and accounted odious to God. In like manner also all the Arabians and Ethiopians abhor them. But envy is purely a human passion, and directed only against man.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2" type="textpart" n="4"><p rend="indent">Envy is not likely to be found among brutes, whose fancies are not moved by the apprehensions of each other’s good or evil; neither can they be spirited with the notions of glorious or dishonorable, by which envy is chiefly stirred up. Yet they have mutual hatred; they kill each other, and wage most incredible wars. The eagles and the dragons fight, the crows and the owls, yea, the little titmouse and linnet; insomuch that it is said, the very blood of these creatures, when slain, will by no means be mixed; but though you would temper them together, they will immediately separate again. The lion also vehemently hates the cock, and the elephant the hog; but this probably proceeds from fear; for what they fear, the same are they inclined to hate.</p>
+<p rend="indent">We see then herein a great difference betwixt envy and hate, that the one is natural to brutes, but they are not at all capable of the other.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg105.perseus-eng2" type="textpart" n="5"><p rend="indent">Further, envy is always unjust; for none wrong by being happy, and upon this sole account they are envied. But hatred is often just; for there are some men so much to be avoided and disliked, that we should judge those worthy to be hated themselves who do not shun and detest them. And of this it is no weak evidence, that many wil

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>Against Running in Debt, or Taking up Money Upon Usury</title>
+                 <author>Plutarch</author>
+		        <editor>William W. Goodwin</editor>
+			<editor role="translator">R. Smith</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg120.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+               	<editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst05plutuoft/page/412">The Internet Archive</ref>
+            </biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Ethan Della Rocca" when="2019-07-18">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg120.perseus-eng4">
+			<div n="urn:cts:greekLit:tlg0007.tlg120.perseus-eng4" type="translation" xml:lang="eng">
+         <head>Against running in debt, or taking up money upon usury.</head>
+         <pb xml:id="v.5.p.412"/>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg120.perseus-eng4" n="1"><p rend="indent">Plato in his Laws<note resp="editor" place="inline" anchored="true">Plato, <title>Laws</title>, VIII. p. 844 B.</note>permits not any one to go and draw water from his neighbor’s well, who has not first digged and sunk a pit in his own ground till he is come to a vein of clay, and has by his sounding experimented that the place will not yield a spring. For the clay or potter’s earth, being of its own nature fatty, solid, and strong, retains the moisture it receives, and will not let it soak or pierce through. But it must be lawful for them to take water from another’s ground, when there is no way or means for them to find any in their own; for the law ought to provide for men’s necessity, but not favor their laziness. Should there not be the like ordinance also concerning money; that none should be allowed to borrow upon usury, nor to go and dive into other men’s purses,—as it were into their wells and fountains,—before they have first searched at home and sounded every means for the obtaining it; having collected (as it were) and gathered together all the gutters and springs, to try if they can draw from them what may suffice to supply their most necessary occasions? But on the contrary, many there are who, to defray their idle expenses and to satisfy their extravagant and superfluous delights, make not use of their own, but have recourse to others, running themselves deeply into debt without any necessity. Now this may <pb xml:id="v.5.p.413"/> easily be judged, if one does but consider that usurers do not ordinarily lend to those which are in distress, but only to such as desire to obtain somewhat that is superfluous and of which they stand not in need. So that the credit given by the lender is a testimony sufficiently proving that the borrower has of his own; whereas on the contrary, since he has of his own, he ought to keep himself from borrowing.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg120.perseus-eng4" n="2"><p rend="indent">Why shouldst thou go and make thy court to a banker or a merchant? Borrow from thine own table. Thou hast tankards, dishes, and basins of silver. Make use of them for thy necessity, and when they are gone to sup ply thy wants, the pleasant town of Aulis or isle of Tenedos will again refurnish thy board with fair vessels of earth, far more cleanly and neat than those of silver. For they are not scented with the strong and unpleasant smell of usury, which, like rust, daily more and more sullies and tarnishes the lustre of thy sumptuous magnificence. They will not be every day putting thee in mind of the Kalends and new moons, which, being of themselves the most holy and sacred days of the months, are by reason of usuries rendered the most odious and accursed. For as to those who choose rather to carry their goods to the brokers and there lay them in pawn for money taken upon usury than to sell them outright, I do not believe that Jupiter Ctesius himself can preserve them from beggary. They are ashamed forsooth to receive the full price and value of their goods; but they are not ashamed to pay use for the money they have borrowed on them. And yet the great and wise Pericles caused that costly ornament of fine gold, weighing about forty talents, with which Minerva’s statue was adorned, to be made in such a manner that he could take it off and on at his pleasure; to the end (said he) that when we shall stand in need of money to support the charges of war, we may take it and make <pb xml:id="v.5.p.414"/> use of it, putting afterwards in its place another of no less value. Thus we ought in our affairs, as in a besieged town, n

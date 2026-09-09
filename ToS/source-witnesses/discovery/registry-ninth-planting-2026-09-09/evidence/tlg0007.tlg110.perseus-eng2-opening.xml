@@ -1,0 +1,104 @@
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+   <titleStmt>
+   	<title>Of Banishment, or Flying One's Country.</title>
+   	<author>Plutarch</author>
+   	<editor>William W. Goodwin</editor>
+   	<editor role="translator">John Patrick</editor>
+   	<sponsor>Perseus Project, Tufts University</sponsor>
+   	<principal>Gregory Crane</principal>
+   	<respStmt>
+   		<resp>Prepared under the supervision of</resp>
+   		<name>Lisa Cerrato</name>
+   		<name>Rashmi Singhal</name>
+   		<name>Bridget Almas</name>
+   		<name>Angelia Hanhardt</name>
+             <name>Michael Konieczny</name>
+   	</respStmt>
+   	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+     <respStmt>
+       <persName>Lucy Parr</persName>
+       <orgName>Center for Hellenic Studies</orgName>
+       <resp>CTS conversion</resp>
+     </respStmt>
+   </titleStmt>
+   <publicationStmt>
+   	<publisher>Trustees of Tufts University</publisher>
+   	<pubPlace>Medford, MA</pubPlace>
+   	<authority>Perseus Project</authority>
+   	<date type="release" when="2010-12-13">Perseus 4.0</date>
+     <idno type="filename">tlg0007.tlg110.perseus-eng2.xml</idno>
+     <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+   </publicationStmt>
+   <sourceDesc>
+   	<biblStruct>
+   		<monogr>
+      <author>Plutarch</author>
+      <title>Plutarch's Morals.</title>
+      <respStmt>
+      	<resp>Translated from the Greek by several hands. Corrected and revised by</resp>
+      	<name>William W. Goodwin, PH. D.</name>
+      </respStmt>
+      <imprint>
+      	<pubPlace>Boston</pubPlace>
+      	<publisher>Little, Brown, and Company</publisher>
+      	<pubPlace>Cambridge</pubPlace>
+      	<publisher>Press of John Wilson and Son</publisher>
+      	<date>1874</date>
+      </imprint>
+      <biblScope unit="volume">3</biblScope>
+   		</monogr>
+   		<ref target="https://archive.org/details/plutarchsmoralst03plutuoft/page/15">The Internet Archive</ref>
+   	</biblStruct>
+   </sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+   <editorialDecl>
+   	<quotation marks="none"/>
+   	<correction status="high" method="silent">
+   		<p>optical character recognition</p>
+   	</correction>
+   </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+   	CTS/CITE Architecture</p>
+   <refsDecl n="CTS">
+   	<cRefPattern n="section" matchPattern="(\w+)"
+   		replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+   		<p>This pointer pattern extracts section.</p>
+   	</cRefPattern>
+   	<!-- <refsDecl doctype="TEI.2">
+   	<state unit="section"/> -->
+   </refsDecl>
+   <!--<refsDecl doctype="TEI.2">
+   	
+   	</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+   <langUsage>
+   	<language ident="eng">English</language>
+   	<language ident="grc">Greek</language>
+   	<language ident="lat">Latin</language>
+   </langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change who="GRC" when="2006">tagging</change>
+   <change who="Lucy Parr" when="2019-07-17">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg110.perseus-eng2">
+   <div n="urn:cts:greekLit:tlg0007.tlg110.perseus-eng2" type="translation" xml:lang="eng">
+   <head>Of banishment, or flying one’s country.</head>
+   <pb xml:id="v.3.p.15"/>
+   <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg110.perseus-eng2" n="1"><p rend="indent">ONE may say of discourses what they use to say of friends, that they are the best and firmest that afford their useful presence and help in calamities. Many indeed present themselves and discourse with those that are fallen into misfortunes, who yet do them more harm than good. Like men that attempt to succor drowning persons and have themselves no skill in diving under water, they entangle one another, and sink together to the bottom. The discourses of friends, such as would help an afflicted person, ought to be directed to the consolation, and not to the patronage of his sorrows. For we have no need in our distresses of such as may bear us company in weeping and howling, like a chorus in a tragedy, but of such as will deal freely with us, and will convince us that,—as it is in all cases vain and foolish and to no purpose to grieve and cast down one’s self,—so, when the things themselves that afflict us, after a rational examination and discovery of what they are, give a man leave to say to himself thus, <quote rend="blockquote"> <lg> <l>Thou feel’st but little pain and smart, </l> <l>Unless thou’lt feign and act a part,</l> </lg> </quote> it would be extremely ridiculous for him not to put the question to his body, and ask it what it has suffered, nor to his soul, and ask how much worse it is become by this accident, but only to make use of those teachers of grief from abroad, who come to bear a part with him in his sorrow, or to express indignation at what has happened.</p> <pb xml:id="v.3.p.16"/> </div>
+   <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg110.perseus-eng2" n="2"><p rend="indent">Let us therefore, when we are alone, question with ourselves concerning the things that have befallen us, considering them as heavy loads. The body, we know, is under pressure by a burden lying upon it; but the soul oft-times adds a further weight of her own to things. A stone is hard and ice is cold by nature, not by any thing from without happening to make such qualities and impressions upon them. But as for banishment and disgraces and loss of honors (and so for their contraries, crowns, chief rule, and precedency of place), our opinion prescribing the measure of our joys or sorrows and not the nature of the things themselves, every man makes them to himself light or heavy, easy to be borne or grievous. You may hear Polynices’s answer to this question, <quote rend="blockquote"> <lg> <l>JOCAST. But say, is’t so deplorable a case </l> <l>To live in exile from one’s native place? </l> <l>POLYN. It’s sad indeed; and whatsoe’er you guess, </l> <l>’Tis worse to endure than any can express.</l><note resp="editor" place="inline" anchored="true">Eurip. <title rend="italic">Phoeniss.</title> 388 and 389.</note> </lg> </quote> But you may hear Alcman in quite another strain, as the epigrammatist has brought him in saying: <quote rend="blockquote"> <lg> <l>Sardis, my ancient fatherland, </l> <l>Hadst thou, by Fate’s supreme command, </l> <l>My helpless childhood nourished, </l> <l>I must have begg’d my daily bread, </l> <l>Or else, a beardless priest become, </l> <l>Have toss’d Cybele frantic down. </l> <l>Now Alcman I am call’d—a name </l> <l>Inscribed in Sparta’s lists of fame, </l> <l>Whose many tripods record bear </l> <l>Of solemn wreaths and tripods rare, </l> <l>Achieved in worship at the shrine </l> <l>Of Heliconian maids divine, </l> <l>By whose great aid I’m mounted higher </l> <l>Than Gyges or his wealthy sire.</l><note resp="editor" place="inline" anchored="true">This translation is taken from Burges’s <title rend="italic">Greek Anthology</title>, p. 470. It is there signed J. H.

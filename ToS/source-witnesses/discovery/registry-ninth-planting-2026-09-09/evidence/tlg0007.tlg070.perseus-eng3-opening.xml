@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>How to Tell a Flatterer from a Friend</title>
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+      		<principal>Gregory Crane</principal>
+      		<respStmt>
+      			<resp>Prepared under the supervision of</resp>
+      			<name>Lisa Cerrato</name>
+      			<name>Bridget Almas</name>
+      			<name>Rashmi singhal</name>
+      		   <name>Angelia Hanhardt</name>
+      		</respStmt>            
+      		<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Ethan Della Rocca</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg070.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1927</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/in.ernet.dli.2015.43837/page/n307">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">           
+         	<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Ethan Della Rocca" when="2019-06-20">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg070.perseus-eng3">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg070.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v1.p.263"/> <head>HOW TO TELL A FLATTERER FROM A FRIEND (<foreign xml:lang="lat">QUOMODO ADULATOR AB AMICO INTERNOSCATUR</foreign>)</head><lb/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg070.perseus-eng3" n="intro"> <head>INTRODUCTION</head> <p rend="indent">Plutarch’s essay on flatterers is addressed to C. Julius Antiochus Philopappus, a descendant of the kings of Commagene, whose monument still stands on the Museum Hill at Athens. He was a patron of art and literature, and on friendly terms with Plutarch.a</p> <p rend="indent">The essay is not concerned with the impecunious and dependent adherents (parasites) of the rich, but with the adroit flatterers of a higher standing, who worm their way into the confidence of great men, and exercise a pernicious influence upon them. That Philopappus may have stood in need of such a warning may readily be inferred.</p> <p rend="indent">The essay, at the close, digresses into a disquisition on frank speech (<foreign xml:lang="grc">παρρησία</foreign>) that might easily have been made into a separate treatise, but which is developed naturally from the attempt to distinguish the genuineness of a friend from the affectation of a flatterer. Frank speech was regarded in classical times as the birthright of every Athenian citizen, but under the political conditions existent in Plutarch’s day it was probably safer to cultivate it as a private virtue.</p> <note place="inline" anchored="true">a <foreign xml:lang="lat">Cf.</foreign> <title rend="italic" xml:lang="lat">Moralia</title>, 628 b, which gives a brief account of a great dinner given by King Philopappus at which both he and Plutarch were present.</note> </div> <pb xml:id="v1.p.265"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg070.perseus-eng3" n="1"><p rend="indent">Plato <note place="inline" anchored="true"> <title rend="italic">Laws</title>, 731 D, E.</note> says, my dear Antiochus Philopappus, that everyone grants forgiveness to the man who avows that he dearly loves himself, but he also says that along with many other faults which are engendered thereby the most serious is that which makes it impossible for such a man to be an honest and unbiased judge of himself. <q>For Love is blind as regards the beloved,</q> <note place="inline" anchored="true"> <foreign xml:lang="lat">Ibid.</foreign>; cited also in <title rend="italic" xml:lang="lat">Moralia</title>, 90 A, 92 E, and 1000 A.</note> unless one, through study, has acquired the habit of respecting and pursuing what is honourable rather than what is inbred and familiar. This fact affords to the flatterer a very wide field within the realm of friendship,<note place="inline" anchored="true">True friendship is, of course, proof against flattery, but friendship weakened by self-love is a sort of borderland between true friendship and flattery in which the flatterer can work.</note> since in our love of self he has an excellent base of operations against us. It is because of this self-love that everybody is himself his own foremost and greatest flatterer, and hence finds no difficulty in admitting the outsider to witness with him and to confirm his own conceits and desires. For the man who is spoken of with opprobrium as a lover of flatterers is in high degree a lover of self, and, because of his kindly feeling toward himself, he desires and conceives himself to be endowed with all manner of good qualities; but although the desire for these is not unnatural, yet the conceit that one possesses them is dangerous and must be carefully avoided. Now <pb xml:id="v1.p.267"/> if Truth is a thing divine, and, as Plato <note place="inline" anchored="true"> <title rend="italic">Laws</title>, 730 C.</note> puts it, the origin <q>of all good for gods and all good for men,</q> then the flatterer is in all likelihood a

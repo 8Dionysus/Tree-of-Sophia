@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of Herodotus’s Malice.</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">A. G.</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg123.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch’s Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">4</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst04plutuoft/page/330">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl>
+      		<quotation marks="none"/>
+      		<correction status="high" method="silent">
+      			<p>optical character recognition</p>
+      		</correction>
+      	</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p></cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-07-19">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg123.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg123.perseus-eng2" type="translation" xml:lang="eng">
+         <head>Of Herodotus’s malice.</head>
+         <pb xml:id="v.4.p.331"/>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg123.perseus-eng2" n="1"><p rend="indent">The style, O Alexander, of Herodotus, as being simple, free, and easily suiting itself to its subject, has deceived many; but more, a persuasion of his dispositions being equally sincere. For it is not only (as Plato says) an extreme injustice, to make a show of being just when one is not so; but it is also the highest malignity, to pretend to simplicity and mildness and be in the mean time really most malicious. Now since he principally exerts his malice against the Boeotians and Corinthians, though without sparing any other, I think myself obliged to defend our ancestors and the truth against this part of his writings, since those who would detect all his other lies and fictions would have need of many books. But, as Sophocles has it, the face of persuasion is prevalent, especially when delivered in good language, and such as has power to conceal both the other absurdities and the ill-nature of the writer. King Philip told the Greeks who revolted from him to Titus Quinctius, that they had got a more polished, but a longer-lasting yoke. So the malice of Herodotus is indeed more polite and delicate than that of Theopompus, yet it pinches closer, and makes a more severe impression, — not unlike to those winds which, blowing secretly through narrow chinks, are sharper than those that are more diffused. Now it seems to me very convenient to delineate, as it were, in a rough draught, <pb xml:id="v.4.p.332"/> those signs and marks that distinguish a malicious narration from a candid and unbiassed one, applying afterwards every point we shall examine to such as appertain to them.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg123.perseus-eng2" n="2"><p rend="indent">First then, whoever in relating a story shall use the most odious terms when gentler expressions might do as well, is not to be esteemed impartial, but an enjoyer of his own fancy, in putting the worst construction on things; as if any one, instead of saying Nicias is too much given to superstition, should call him fanatic, or should accuse Cleon of presumption and madness rather than of inconsiderateness in speech.</p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg123.perseus-eng2" n="3"><p rend="indent">Secondly, when a writer, catching hold of a fault which has no reference to his story, shall draw it into the relation of such affairs as need it not, extending his narrative with circumlocutions, only that he may insert a man’s misfortune, offence, or discommendable action, it is manifest that he delights in speaking evil. Therefore Thucydides would not clearly relate the faults of Cleon, which were very numerous; and as for Hyperbolus the orator, having touched at him in a word and called him an ill man, he let him go. Philistus also passed over all those outrages committed by Dionysius on the barbarians which had no connection with the Grecian affairs. For the excursions and digressions of history are principally allowed for fables and antiquities, and sometimes also for encomiums. But he who makes reproaches and detractions an addition to his discourse seems to incur the tragedian’s curse on the <q>collector of men’s calamities.</q> </p> </div>
+         <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg123.perseus-eng2" n="4"><p rend="indent">Now the opposite to this is known to every one, as the omitting to relate some good and laudable action, which, though it may seem not to be reprehensible, yet is then done maliciously when the omission happens in a place that is pertinent to the history. For to praise unwillingly is so far from being

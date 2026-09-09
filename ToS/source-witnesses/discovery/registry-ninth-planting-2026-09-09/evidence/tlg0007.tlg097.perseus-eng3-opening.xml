@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>On Brotherly Love</title>
+            <author>Plutarch</author>
+            <editor role="translator">William Clark Helmbold</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>
+         		
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+         	<respStmt>
+         		<persName>Angelia Hanhardt</persName>
+         		<orgName>Center for Hellenic Studies</orgName>        
+         		<resp>CTS conversion</resp>
+         	</respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg097.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+        <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+               	<editor role="translator">William Clark Helmbold</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1939</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+            	<series>
+            		<title>Loeb Classical Library</title>
+            	</series> 
+            	<ref target="https://archive.org/details/moraliainfifteen06plutuoft/page/246">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+        <!-- <refsDecl doctype="TEI.2">
+            <state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+      	<p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2010-05" who="RS">tagged and parsed</change>
+      	<change when="2019-07-15" who="Angelia Hanhardt">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg097.perseus-eng3">
+      	<div n="urn:cts:greekLit:tlg0007.tlg097.perseus-eng3" type="translation" xml:lang="eng">
+      		<head>ON BROTHERLY LOVE
+      			(<foreign xml:lang="lat">DE FRATERNO AMORE</foreign>)</head>
+      		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg097.perseus-eng3" n="intro">
+            <pb xml:id="v.6.p.245"/>
+					<head><lb/>INTRODUCTION</head>
+            <p rend="indent">
+					In this essay Plutarch has arranged his material somewhat more methodically than is his usual practice.
+					In chaps. 1-7 he shows that Brotherly Love is in
+					accordance with nature; in 9-19 he tells us how we
+					should conduct ourselves toward a brother: (a) while
+					our parents are alive, (b) when they are dead, (c) when
+					the brother is our inferior, (d) when our superior;
+					and also the reasons for quarrels and the treatment
+					thereof. He closes with some pleasant tales of
+					affection for brothers’ children.
+				</p>
+            <p rend="indent">
+					That Plutarch wrote this work after <title rend="italic">De Adulatore
+						et Amico</title>, <title rend="italic">De Amicorum Multitudine</title>,<note resp="editor" place="inline" anchored="true">This point was subsequently shown, but with much less care and detail, by G. Hein (<title rend="italic">Quaestiones Plut.</title>, diss. Berlin, 1916, p. 37), who seems to have been ignorant of Brokate’s far superior work.</note> and the <title rend="italic">Life of
+							Cato Minor</title> was demonstrated by C. Brokate (<title rend="italic" xml:lang="lat">De
+								aliquot Plui. libellis</title>, diss. Güttingen, 1913, pp. 17-24,
+					58; and see the excellent tables on pp. 47, 61).
+					Plutarch appears to have retained a certain amount
+					of more or less irrelevant material on friendship from
+					his recent work on these treatises, and also to have
+					drawn upon some portions of Theophrastus’s treatise
+            	<title rend="italic">On Friendship</title>.<note resp="editor" place="inline" anchored="true">
+                  <foreign xml:lang="lat">Cf.</foreign> Brokate, <foreign xml:lang="lat">op. cit.</foreign>, pp. 7 ff.</note>
+				        </p>
+            <p rend="indent">
+					The essay is No. 98 in the Lamprias catalogue.
+					
+				</p>
+         </div>
+         <pb xml:id="v.6.p.247"/>
+      		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg097.perseus-eng3" n="1">
+      			<p rend="indent">The ancient representations of the Dioscuri are
+					called by the Spartans <q>beam-figures</q>
+               <note resp="editor" place="inline" anchored="true">
+               	<foreign xml:lang="lat">Cf.</foreign> M. C. Waites, <title rend="italic">Amer. Jour. Arch.</title>, xxiii., 1919, pp. 1 ff.: this passage is cited by Eustathius on <title rend="italic">Il.</title>, 1125. 60.</note>: they
+					consist of two parallel wooden beams joined by two
+					other transverse beams placed across them; and
+					this common and indivisible character of the offering
+					appears entirely suitable to the brotherly love of
+					these gods. In like manner do I also dedicate this
+					treatise <title rend="italic">On Brotherly Love</title> to you, Nigrinus and
+            	Quietus,<note resp="editor" place="inline" anchored="true">The identity of Avidius Nigrinus and Avidius Quietus is not certainly established; see <title rend="italic" xml:lang="lat">Prosopographia Imp. Rom.</title>, i. pp. 189-190.</note> a joint gift for you both who well deserve
+					it. For as to the exhortations this essay contains,
+					since you are already putting them into practice, you
+					will seem to be giving your testimony in their favour
+					rather than to be encouraged to perform them; and
+					the pleasure you will take in acts which are right will
+					make the perseverance of your judgement more firm,
+					inasmuch as your acts will win approval before spectators, so to speak, who are honourable and devoted
+					to virtue.
+				</p>
+ 

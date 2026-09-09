@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of the Love of Wealth</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">John Patrick</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         		<name>Angelia Hanhardt</name>
+         		<name>Michael Konieczny</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg103.perseus-eng2.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst02plutuoft/page/294">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction method="silent">
+               <p>optical character recognition</p>
+            </correction>
+            <quotation marks="none"/>
+         </editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p>
+         	</cRefPattern>
+            
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="grc">Greek</language>
+         	<language ident="eng">English</language>
+         	<language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Sophia Elzie" when="2019-07-16">EpiDoc and CTS Conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg103.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg103.perseus-eng2" type="translation" xml:lang="eng">
+         <head>Of the love of wealth.</head>
+         <pb xml:id="v.2.p.294"/>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg103.perseus-eng2" type="textpart" n="1"><p rend="indent">HIPPOMACHUS, a master of the exercises, when some were commending a tall man that had long hands as one that promised fair to be good at fisticuffs, replied, A fit man indeed, if the victor’s laurel were to be hanged up aloft, and should be his that could best reach it and take it down. We may say the same to those that esteem so extravagantly and repute it so great a felicity to possess fair fields, stately mansion-houses, and a great deal of money lying by them, —that they were in the right, if happiness were to be bought and sold. You may see indeed many-persons that choose rather to be rich and at the same time very miserable, than to part with their money and become happy. But, alas! indolency and repose of spirit, magnanimity, constancy, resolution, and contentment of mind,—these are not a money-purchase. Being wealthy is not despising wealth; nor is possessing things superfluous the same as not needing things superfluous.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg103.perseus-eng2" type="textpart" n="2"><p rend="indent">From what other evils then can riches free us, if they deliver us not even from an inordinate desire of them? It is true, indeed, that by drinking men allay their thirst after drink, and by eating they satisfy their longings after food; and he that said, <quote rend="blockquote"> <lg> <l>Bestow a coat, of your good will, </l> <l>On poor Hipponax cold and chill</l> </lg> </quote> if more clothes had been heaped on than he needed, would have thrown them off, as being ill at ease. But the <pb xml:id="v.2.p.295"/> love of money is not abated by having silver and gold; neither do covetous desires cease by possessing still more. But one may say to wealth, as to an insolent quack, <quote rend="blockquote">Thy physic’s nought, and makes my illness worse.</quote> When this distemper seizes a man that wants only bread and a house to put his head in, ordinary raiment and such victuals as come first to hand, it fills him with eager desires after gold and silver, ivory and emeralds, hounds and horses; thus taking off the appetite, and carrying it from things that are necessary after things that are troublesome and unusual, hard to come by, and unprofitable when obtained. For no man is poor as to what nature requires and what suffices it; no man takes up money on use to buy meal or cheese, bread or olives; but you may see one man run into debt for the purchase of a sumptuous house, another for an adjoining olive-yard, another for corn-fields or vineyards, another for Galatian mules, and another by a vain expense, <quote rend="blockquote"> <lg> <l>For horses fitly paired, with prancing feet </l> <l>To draw the empty chariots through the street,</l><note resp="editor" place="inline" anchored="true"><title>Il</title>. XV. 453.</note> </lg> </quote> has been plunged over head and ears into contracts and use-money, pawns and mortgages. Moreover, as they that use to drink after they have quenched their thirst, and to eat after their hunger is satisfied, vomit up even what they took when they were athirst or hungry; so they that covet things useless and superfluous, enjoy not even those that are necessary. This is the character of these men.</p> </div>
+         <div subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg103.perseus-eng2" type="textpart" n="3"><p rend="indent">As for those that spend nothing although they possess much, and yet are always craving more, they may still more increase our wonder at their folly, especially when one calls to mind that of Aristippus, who was wont to say, that when a man eats and drinks liberally and yet is never the nearer <pb xml:id="v.2.p.2

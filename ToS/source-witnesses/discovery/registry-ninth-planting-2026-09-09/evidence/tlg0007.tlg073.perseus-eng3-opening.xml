@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>On Having Many Friends</title>
+				<author>Plutarch</author>
+				<editor role="translator">Frank Cole Babbitt</editor>		
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Ethan Della Rocca</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg073.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+				<monogr>
+					<author>Plutarch</author>
+					<title xml:lang="lat">Moralia</title>
+					<editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1928</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/moraliainfifteen02plutuoft/page/45">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+				<language ident="deu">German</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Ethan Della Rocca" when="2019-07-02">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng3">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg073.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.2.p.45"/> <head>ON HAVING MANY FRIENDS (<foreign xml:lang="lat">DE AMICORUM MULTITUDINE</foreign>) </head><lb/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng3" n="intro"> <head>INTRODUCTION</head><p rend="indent"> Plutarch’s essay on friendship may possibly have been offered on some occasion as a lecture, but there is nothing to prove or disprove this assumption. From what we know of Plutarch’s relations to his friends we can well believe that he was singularly happy in his friendships, and hence well fitted to speak on the subject. He was familiar, too, with the literature dealing with friendship, and the result is an essay well worth reading. Cicero’s essay on friendship (De amicitia) may profitably be compared with Plutarch’s. </p><p rend="indent"> Two or three emendations of a more radical nature have been adopted in the text, in the effort to make it intelligible: for example, in 96 a the translation probably gives the right sense of the passage, as Wyttenbach seemed to see, but whether the emendation is right is more doubtful. Even more doubtful is Paton’s <foreign xml:lang="grc">προσεντείνειν</foreign>, based on an even more dubious emendation of <foreign xml:lang="grc">ἐντείνασθαι</foreign> in the quotation from Euripides; for Plutarch would not be apt to refer to an aorist middle by a present active form. In these matters Plutarch was more careful than Paton. </p> </div> <pb xml:id="v.2.p.47"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng3" n="1"><p rend="indent">Meno,<note place="inline" anchored="true">Plato, <title rend="italic">Meno</title> 71 E.</note> the Thessalian, who felt that he had had a good training in debating, and, to quote Empedocles’ familiar expression, was <quote rend="blockquote">Haunting the lofty heights of wisdom, <note place="inline" anchored="true">From a longer fragment; <foreign xml:lang="lat">cf.</foreign> Diels, <title xml:lang="deu" rend="italic">Fragmente der Vorsokratiker</title>, i. p. 225.</note> </quote> was asked by Socrates what virtue is; and when he replied impulsively and promptly that there is a virtue appropriate to a child and to an old man, to a grown man and to a woman, to a public official and to a private citizen, to a master and to a servant, Socrates exclaimed, <q>A fine answer! for when asked for one virtue you have stirred up a whole swarm of virtues,</q> <note place="inline" anchored="true"> <foreign xml:lang="lat">Cf.</foreign> <title xml:lang="lat" rend="italic">Moralia</title> 441 B.</note> inferring, not badly, that it was because the man knew not a single virtue that he was naming so many. And might not we also be subject to ridicule because we, who are not yet in secure possession of one friendship, are afraid that we may unwittingly become involved in a multitude of friendships? We hardly differ at all from a man who, being maimed or blind, is afraid that he may become a Briareus of the hundred hands or an Argus all-seeing. And yet we commend above measure <pb xml:id="v.2.p.49"/> the youth in Menander’s play <note place="inline" anchored="true">The <title rend="italic">Epiclerus</title>. Kock, <title xml:lang="lat" rend="italic">Com. Attic. Frag.</title> iii., Menander, No. 554. See also Plutarch, <title xml:lang="lat" rend="italic">Moralia</title>, 479 C, where four lines of the play are quoted, and Allinson, <title rend="italic">Menander</title> (in the L.C.L.), p. 493.</note> who says that any man counts it a marvellous good thing <quote rend="blockquote">If he but have the shadow of a friend.</quote> </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg073.perseus-eng3" n="2"><p rend="indent">One thing which stands out among many others, as particularly antagonistic to our acqu

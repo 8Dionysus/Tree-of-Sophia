@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 8466,
+    "tracked_surface_count": 8733,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 2595,
+    "excluded_tracked_path_count": 2798,
     "human_scope": {
-      "bytes": 7305993,
-      "count": 1428,
+      "bytes": 7348600,
+      "count": 1432,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 6106573,
-          "count": 1136,
-          "lines": 89025
+          "bytes": 6149180,
+          "count": 1140,
+          "lines": 89312
         }
       },
-      "lines": 110372
+      "lines": 110659
     },
     "surface_kind_counts": {
-      "executable": 316,
-      "human": 1428,
-      "structured": 6722
+      "executable": 322,
+      "human": 1432,
+      "structured": 6979
     },
-    "tracked_path_count": 11061,
-    "tracked_surface_count": 8466,
+    "tracked_path_count": 11531,
+    "tracked_surface_count": 8733,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -163,12 +163,12 @@
     {
       "family_id": "tos",
       "surface_kind_counts": {
-        "executable": 53,
-        "human": 1136,
-        "structured": 6645
+        "executable": 59,
+        "human": 1140,
+        "structured": 6902
       },
-      "tracked_surface_bytes": 380576554,
-      "tracked_surface_count": 7834
+      "tracked_surface_bytes": 384989774,
+      "tracked_surface_count": 8101
     },
     {
       "family_id": "access",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "396478d7ff233df0139835788cd67c6bd6e0f8140caa09c14c6954ec3472aae5",
+  "tracked_surface_digest": "5f7afcb35ea580694888cc0691da9c088b83d347e5f9cc6c04710068f5fe5b2a",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -3119,11 +3119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 69703811,
+      "bytes": 69858771,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "4f43f91d7985d4d3805e541923741573e3b50559c038a84d9987f67064eed2da",
+      "sha256": "412dffbf203e2e403fb89fe3dd57ff311a64f67c663f8831f11c1611113f9d54",
       "surface_kind": "structured"
     },
     {
@@ -17431,6 +17431,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 215227,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/ninth-wave-20260909.json",
+      "sha256": "ab13199220d190b6396360a72b0ecc49a7e6e9ebbc61a63c78b27e91c0c67ea5",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 40843,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -29500,6 +29508,2134 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/work-before/f91cedfbf38bee5058a5ddcbcc321e77f71a04f6e68fe065592e4d29d9d9a2d4.json",
       "sha256": "f91cedfbf38bee5058a5ddcbcc321e77f71a04f6e68fe065592e4d29d9d9a2d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 139,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/README.md",
+      "sha256": "fb2b47949d2c12e05eefedfa1acc92bd27f3157672eb211f8d22eadb6c3db1ad",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 21487,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+      "sha256": "3e791f3390e5f8a4233d41b3da2754192d5db9533152b07aef15700876cd953b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2356,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/perseus-README.md",
+      "sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 812,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/perseus-README.md.receipt.json",
+      "sha256": "5670eb405b05471a62193ebe2b5cace49f139fceb50e3bfae7245efbd7164e46",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 18625,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/perseus-license.md",
+      "sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 816,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/perseus-license.md.receipt.json",
+      "sha256": "fde90294d76bde48afae7921d67e037bcf91f5901a572d5a621b25c43d75f89b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 838,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007-cts.xml.receipt.json",
+      "sha256": "1b5987aee191af1ec6976566d47e2620386e7d7110c54e4864a7535a7fe46ced",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg067-cts.xml.receipt.json",
+      "sha256": "cf108e0dc0d50e9f0d4925d00caa71f850d30f80b1de5d6a01200ce69fd79de3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg067.perseus-eng3-header.xml.receipt.json",
+      "sha256": "86f206ef6ad61c85a6360d50d52c911f97622daf8b9a995e0551a27f50e54aaa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg067.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "6f064114201350475dc691c4681eeafbe212e25d67bef1d2b13524aa88924b54",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg067.perseus-eng4-header.xml.receipt.json",
+      "sha256": "1f02909d5a91af61e4cece1286b5ba5add2638b57b3defa531831479ebd14585",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg067.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "8dfd7223bfed013edce3ca7fe21aea064939ab0358418fcad4ebf120ac53f620",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg068-cts.xml.receipt.json",
+      "sha256": "98c926ae16416ff0d3d13d50481820a37a9bec48e26b9a4da5d9fa3d3dba9be5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg068.perseus-eng3-header.xml.receipt.json",
+      "sha256": "a037566b2fa375aa21530eda720b06ea362c82b41fa31ac62d5c05b29c65065d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg068.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "711026befecf94d435675c821f28ae11e4db1505aa64097fad9674df21b7fe99",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg068.perseus-eng4-header.xml.receipt.json",
+      "sha256": "4377033f980f267e010d1888cccd08aac75f425871f3fb69c18b7925b6047a9a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg068.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "6ce64bb35ea550d1912ba87ecb42dfbc0e55dcc4feb61029ff95dfd3bbf88d19",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg069-cts.xml.receipt.json",
+      "sha256": "eb25698a740f0dfa82d4df9ecc6d1ba7f7cf0991750c4d33afe9c5f4bfb9230d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg069.perseus-eng3-header.xml.receipt.json",
+      "sha256": "a5e4cb33d8a0b65dcd854d60bf63fd8fe460e915c3593167679b663edf49dcc0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg069.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "9c8e8810c961b19497cc9224f000c2e5bf520a862a25d7ff7f7a0ed29df0943d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg069.perseus-eng4-header.xml.receipt.json",
+      "sha256": "07952eb2e6a5c5766a9c625453ccd6e1c0b8a5fa59b37e7546a9710158c2a746",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg069.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "a70d0f178ec5b794843e2f46c6faca8f55232904c4571ca29793675f870cd817",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg070-cts.xml.receipt.json",
+      "sha256": "0b9e86f8f347b9ce22ea7d38a146ace987c2a0a6a5382fe4a55194c997f27315",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg070.perseus-eng3-header.xml.receipt.json",
+      "sha256": "f2c1d64eb02f94a368ece3a8d591e897f62ad667b82c81d72186a161c8323bef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg070.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "577c563810d1862b4fd6b9e4a7c44d31adf0cf5f8396f9d6825a769f4b72ce25",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg070.perseus-eng4-header.xml.receipt.json",
+      "sha256": "4da99874aaef00050f6b71a9a9e2f80df0a8ab5a70acf8abb74276aaccfcd721",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg070.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "118f0602a940d408bb70d9208f406753171f4af20cf4c26bd2914be1e9a30671",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg071-cts.xml.receipt.json",
+      "sha256": "2aa053996c31a85ac7de46d8bc5cf5ab5b77a07ffddc8835604290b3bc137504",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg071.perseus-eng3-header.xml.receipt.json",
+      "sha256": "155c32bdc8cecdc00eee41c43fe241e6768ed843e9b4be319fc7e0a5da3119eb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg071.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "5241209297c04904e613fa5419c2dca2e4c4fc076584a951e85c6ce95d59d872",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg071.perseus-eng4-header.xml.receipt.json",
+      "sha256": "adce834de40c01f4177fedd64382a282a7de58405eeda4802f4948cbd62a66ae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg071.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "61f21557be25d753e8063b865022875b8238f7e4456b6bffbafb7ab2eb7551c9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg072-cts.xml.receipt.json",
+      "sha256": "b6b730344872023cb80caca092fb632dd2fb240a30ece812b3d93bd5efe0c178",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg072.perseus-eng3-header.xml.receipt.json",
+      "sha256": "c8ca01281757cad040052576805ec44c115358c42c3a85e210806909254ec8d5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg072.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "9b6355b959f969732dd57165e8bdeac1756ac27e71067e7c69d9eaa2f35928d9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg072.perseus-eng4-header.xml.receipt.json",
+      "sha256": "9fdaaecc412ad90ca65dadae86c55059d5a2d29bc896d1d445989f644c296371",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg072.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "b21e294cdfc8bd803c7163f5fd556d9539ed29daf749c82efa533e5aa51780c2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg073-cts.xml.receipt.json",
+      "sha256": "e0f3db990355e2ef12ba37173c775cbc909ebf91203adef9a002b80b92d648d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg073.perseus-eng3-header.xml.receipt.json",
+      "sha256": "452ed87b029246bc95e060995e35ae52a02abbe18c0e85404327eb10923666ff",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg073.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "f37764767416eafbd9ca94dad3d1735b498202462d6a23540c18973875f2a55b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg073.perseus-eng4-header.xml.receipt.json",
+      "sha256": "63e426f242dfb644f738ea9f8c5d4f80fb21925359ebe7641f6c507d839b06f9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg073.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "4b72f2ce1a0dfc071ccb273921dcc78f3b91a8edeb526256ef7b8a87a6ab5a3c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075-cts.xml.receipt.json",
+      "sha256": "9e545c30c97b7e916fe5b464877ea1382d08feb6183cee289b8321c37137eab8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075.perseus-eng3-header.xml.receipt.json",
+      "sha256": "34ad8e6a4f070918ccc814a573db5505d337d3baf32e16ff28def5752e257d94",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "9c88638d95985dfe04fb50fb133388b9a5ae3da13cd4baed2c687ae995a81282",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075.perseus-eng4-header.xml.receipt.json",
+      "sha256": "0bacf42125d381ba6475a64c2d1ab6c59a0ea5965ba22e9899c80c05c1f7d00a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg075.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "c63d969fb477f080f31d7ce02606e360435e1516c0946c00bc2af2252de42bbb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg076-cts.xml.receipt.json",
+      "sha256": "5513285cdce8f7d7695056f5a082ec779e65c9e03d616a65ebd0da7778845c15",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg076.perseus-eng3-header.xml.receipt.json",
+      "sha256": "c25bc3d223a70b0441d88373f19e353a843bb60e0b506c4b24b03c8db0af2728",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg076.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "89cb63f75fe71ec8b865a23d76ff81bc4d0d9647c33d7c6097f2fb42a810b2ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg076.perseus-eng4-header.xml.receipt.json",
+      "sha256": "c8c0bb0eadb4d3d0a44d4a0be30bf6ee92585eae55703be9d5e33dd4df544ff5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg076.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "6bb88bf561e3f7174afac2e8281d30c4dc76acdceee32d86fcd20b5490ff445f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg077-cts.xml.receipt.json",
+      "sha256": "526734f7677400e800d8bde28fb2e7704b1777fbb35a464e254d20f38a3055f1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg077.perseus-eng3-header.xml.receipt.json",
+      "sha256": "e27be7a40ff3717ad790d12053cee6c808b989b2a907a709853342694ae0f9ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg077.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "a93eef226d2af17da0f4c7c748f22aa77a29e515d211fe902469cf634e7ec1d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg077.perseus-eng4-header.xml.receipt.json",
+      "sha256": "af0eef17fb23c5446e3d7e2a931350507822534f58517430cec2f708c038ee65",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg077.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "96ad2eff6423d2149314a2d42740b00f881ddd2fa689d67a07e44381d0b0de8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg078-cts.xml.receipt.json",
+      "sha256": "86551d8ba68eb7ddf42cd70d30dbe9ee2db58177745f6849826fb4dd2a5bfbb2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg078.perseus-eng3-header.xml.receipt.json",
+      "sha256": "47bc5aaedef9df1a5e808697f0c6992b1f2bbad1eeb74daa9cb34a8b275b3b51",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg078.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "879b3a5ff82e66a79230fa943cb34e93b5b4dd7cdca7e0f652efbe00d5be8d64",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg078.perseus-eng4-header.xml.receipt.json",
+      "sha256": "d95959c408b76cd3e5cd93a861e651615d105ff903dc99535fbbd52a44ba5a5f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg078.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "e146d0dd83aad5ce29dd2683ab437c007f0c4ee4f2c3c61fba235fc593d5d331",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg079-cts.xml.receipt.json",
+      "sha256": "e906f9c7cb4f8275e53133108c1e93bd15c4f41dd639db5ace6be5dd836cb1ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg079.perseus-eng3-header.xml.receipt.json",
+      "sha256": "3469b8895053927136a67772605b87783d06678c60af266e21407c7e84cbeb59",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg079.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "425c198bb9e5a7a2db9007cf5b9c9841d5d21830d3ada7aaee35dfc1eda41a40",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg079.perseus-eng4-header.xml.receipt.json",
+      "sha256": "c1356dc06cf976028eb7af863af2e6e2e0cc834688fbed2653d746864aeae69d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg079.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "75c54debf6242cdefcfb8de289b2cb2c2522f8a388f86a10ecbf2d878e6aedaa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg080-cts.xml.receipt.json",
+      "sha256": "fbfd89da4987ccfaad75201217b5be6603dcef10572662d6b563e533ff13e552",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg080.perseus-eng3-header.xml.receipt.json",
+      "sha256": "f80b0d13f91a130a0a1145b9915ac024be59cf478b1db09a34b8b9a7e162b0e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg080.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "cd9c3725bfd38591a858cf4bb6c0faf77a7cc66d09db53af8ac2db3509279f57",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg080.perseus-eng4-header.xml.receipt.json",
+      "sha256": "ff13f629d7cc3f9d58cbe610714ce77c5796edd23be45624f3162b3bea5ea471",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg080.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "7541e5e81820ec9c3f991772547d2b1633d4475fe1897b66c8e39adda79eebf0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg091-cts.xml.receipt.json",
+      "sha256": "c48df1a6154b0f8cae56cdd321406140aab2d519e63fd82740945e1ea4570371",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg091.perseus-eng3-header.xml.receipt.json",
+      "sha256": "c81e14d0815105528c0e07706a73c87e67b1fee8b67bd54c5b45f2eeea3f928a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg091.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "817244fd1062ff19b5bba8abe38d828852105cd9c28e072fa9976d29d1622a0e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg091.perseus-eng4-header.xml.receipt.json",
+      "sha256": "a985bed376ee27386967826b5e9e27079ba4536cd15a34d9f563d617dc04b1f9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg091.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "fcada7e5c8ebe1c2428ea2bdf17e7cda76b0442e248179d89d468b23621178db",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg093-cts.xml.receipt.json",
+      "sha256": "cb7437c5c7abd6c0e8f6433352ce9a691a0da27561810489d6b0f9bcfbdc1568",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg093.perseus-eng3-header.xml.receipt.json",
+      "sha256": "16c45bb87862dade068aab8b77403fc93733e6ca398c0d6b27cfc6ee5f24fa01",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg093.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "d15019990779c4c4bcca090b0b0f655a507053e37fd449893eacfad4b7e7a7c6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg093.perseus-eng4-header.xml.receipt.json",
+      "sha256": "07abdd4eba9023c88399c794ea8e76a415ef9e02ea0abc0d9ea1381c62a5ff44",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg093.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "3555477c0f3e916a9282cc8df25e15fd4d96570c171848c15398207026591639",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg095-cts.xml.receipt.json",
+      "sha256": "66f5a7b9df7baa9c4ad39f0be8731d9896d97803a32249bf7c6a801ee498b1db",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg095.perseus-eng3-header.xml.receipt.json",
+      "sha256": "f59b549bfb6f2139ffee2d72a89b818fc33e36ae252abe510acb423781487a09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg095.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "5b52b26b479b2b01c97e9b905bc5b511633a5aa1c24f20300a000b4e2d374104",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg095.perseus-eng4-header.xml.receipt.json",
+      "sha256": "5be0a02184ea6548e20c6be621520c7fd4169fc591dd13a73cf5ac08cf4f332b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg095.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "02181d80cc670eafadc83965fbe4bd3d28f3792cfeca18a8ee372a7db5ebda77",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg096-cts.xml.receipt.json",
+      "sha256": "5a11b5966000a91f8899f24739c9805d3515d4a74738bfdfb626cc958bf80897",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg096.perseus-eng3-header.xml.receipt.json",
+      "sha256": "8e232d3103311aa30858f7158924a3fc9e6b846a593527ae3b121be8a92ef73c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg096.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "2e91e23a700dd8a5d6c1640e3ab989cc9cd40a4bc4a788c3c525ca167837504d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg096.perseus-eng4-header.xml.receipt.json",
+      "sha256": "deb72759b49bd3bf32653822f629e42382f03e8a0e50f1ccc184ce44584dcb18",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg096.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "f976b0c8dda623551d4f5e4d46acc63803cde912f3837921e9f28054e9f202af",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg097-cts.xml.receipt.json",
+      "sha256": "8eade9af167c342d34b31f0609a477dbd43c9b0c7b66b464f7c99f41e6041072",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg097.perseus-eng3-header.xml.receipt.json",
+      "sha256": "db409dd3733c5024910dee49b7e82d01aa29c6b46fbe56fab50309dd4000bb66",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg097.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "54099f008c24896ee282a554152cac0ddd521979ec05fa9608c91d051c95cfb0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg097.perseus-eng4-header.xml.receipt.json",
+      "sha256": "5e7271bebc9be170ec7ad44cebd2da3cd7e8005bdfbcb5f0f82c393190430f80",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg097.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "1aef823ca8ed2d91d4990a4a0a478cf5b972745d2daa1449b4e35a1ecbf538bd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg098-cts.xml.receipt.json",
+      "sha256": "8a208db371b49f9fd4fcfd3c31ef70ac5121057ea6e473cb7e7c773969228156",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg098.perseus-eng3-header.xml.receipt.json",
+      "sha256": "6577c59442fa56b2ad4514e44c0223de85354d9dfb56de6d5a7380c7aa07e01e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg098.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "3caba7ba7e3d7c6e8bdf377d462f52576396f5660fc8ebf0e4065df7d705bf31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg098.perseus-eng4-header.xml.receipt.json",
+      "sha256": "3aeb4ba75b0b59b52a5986f38e0028f6207e3c1612fb34f3f7a045726501cb4a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg098.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "ac7ba8607b3ebcaf43316ee731a1ab9da60212f098dbfef3a535649527d4bffb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg099-cts.xml.receipt.json",
+      "sha256": "5976970498818681b62972479439fbbbb58220246c8b5b818f8e9b71b3f85a86",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg099.perseus-eng3-header.xml.receipt.json",
+      "sha256": "62777ab750db05eb958a7951a722ce59c129a4284bc5d91ea7001a64105a69ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg099.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "c7925be78a2eebe64d2a4f37b09acd02b16857c76e9bb81ef88f5a9d52fb7806",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg099.perseus-eng4-header.xml.receipt.json",
+      "sha256": "25285ef74257cc8c229bbbcba6f128c3003f2101966924822f44b31c0823fbaf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg099.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "fbed6660081ca9e99c6f910b4a1ab94c19f8495256e0097745ea6729f2d00b6c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg100-cts.xml.receipt.json",
+      "sha256": "570f1385c7a49e64227f1e3c6d84cf30fa9b6df199ff20193a5dad880ad3713b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg100.perseus-eng3-header.xml.receipt.json",
+      "sha256": "877833ef8a70f8d720f088d15d5b6d9bc24d20f0602ceb30827d05640f5df998",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg100.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "ac2eb5cceab4ec788d92501b8e382b81e9f3421c165d2dab4b177f437845a117",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg100.perseus-eng4-header.xml.receipt.json",
+      "sha256": "445a496499d62a9179a76bc1c1bd76137afcc8915229ffe017bcd3c5007efffa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg100.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "18906819247193033e9e5f513c69168a8da7d3824f6a20a9e6bdd2c69102f1b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg101-cts.xml.receipt.json",
+      "sha256": "af25fda27e0ac8de115e27cf0c1bb416acc55533e65760d0d3aa4baf02cb1b49",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg101.perseus-eng3-header.xml.receipt.json",
+      "sha256": "2f743751160d2ffe374567e11c721f98fede2f1b210688d23bedf4239278ab45",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg101.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "7803d73efe210601ff88c17c851e5c462f494faddb267e9fb36658c21a8244e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg101.perseus-eng4-header.xml.receipt.json",
+      "sha256": "1bed4b243dd42d5711c8ac2674b59b6842aea82a067fd6f4a138585e58e28e42",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg101.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "6d56b7145b8618858c049055ca5ebf7a34e08089f6101edce6672437bb5983d5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg103-cts.xml.receipt.json",
+      "sha256": "4e27c9ef56a35fcb5b95d02491f8997f1b1f46194cf6d2fb2405b0e8128d9189",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg103.perseus-eng2-header.xml.receipt.json",
+      "sha256": "bf69ed25aef69e66ea2346538bc310baab9fcaf1ad7477e96c5818e212160036",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg103.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "0f3607ed4961abb3abc3867b69ab69661429005df96a9e96830e7038356426e2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg104-cts.xml.receipt.json",
+      "sha256": "b1b734da104295b420272a141293bfa91b34328483e6abd65a6f4b3b4770e3d5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg104.perseus-eng2-header.xml.receipt.json",
+      "sha256": "f35389239457415e189134a1787b97d070825949ba9bec99cc4a5e5b0ed62539",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg104.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "b611eb4f28bbf4f8f927b5779b4ffc22e151ec7806894d7c826ade15c0b58617",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg105-cts.xml.receipt.json",
+      "sha256": "9d983ff821637c4e3213461d1b532026419f32940c6b36c85fe79f05c2459425",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg105.perseus-eng2-header.xml.receipt.json",
+      "sha256": "d4bfd54f328504a16c0e4ea42bd18505c33e06dd88d34e045673203fa350e381",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg105.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "7d836cbb2d301ffaceabff8488b2c9d622b46173bf92e12418d82aa4f53c7601",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg106-cts.xml.receipt.json",
+      "sha256": "37166669189bb52c469ff590603175415f949ac19eb204f119952a3a742fda46",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg106.perseus-eng2-header.xml.receipt.json",
+      "sha256": "d151f48c4fc088a8ee2c9804529e1076ee8f3eafb5af32aa4c26bb7cf58f0483",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg106.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "6552a50f9a5c87eef7de5341364580f985c289944fe9cb1a1a14cb0bc7fd929b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg108-cts.xml.receipt.json",
+      "sha256": "62563b90cb6452e1f66fc0b9d121e3dc283c1f1ba8fd896e4418de54e57395ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg108.perseus-eng2-header.xml.receipt.json",
+      "sha256": "a2452be64337c1963c0f6823ffa74e587713dc159f6803822783528eca1e63e8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg108.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "38b21af6e9a26382bde4bb1624a9aa37835a402d6c6bf32ffa46444ed1d802e0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg109-cts.xml.receipt.json",
+      "sha256": "160d80434a43c6b873f3ee414710bd79c258c60030992a531651386569b2b396",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg109.perseus-eng2-header.xml.receipt.json",
+      "sha256": "cfa88c30a7c2fa98763c065b85f82770e66196dc182163bd5016e5ae78ae37ec",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 967,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg109.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "70d3da517cd87f403b7fa7cbb1180aca43f6feaf6703a42d1dff6dc6ac558f8c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg110-cts.xml.receipt.json",
+      "sha256": "5c2f48abcd4a991cd2d42755f8b7228f8a4d2eff50d52b1ba24e4cc896724217",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg110.perseus-eng2-header.xml.receipt.json",
+      "sha256": "a82488458b57eb10ae1308bb16e133157fc647cb81e496ede90d8af623576be5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg110.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "36ae3aaf7e080e3511c56feeda490e7549365c52b1ba4acdfdfebc1f3a1b8830",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg111-cts.xml.receipt.json",
+      "sha256": "d444b28941c02b73463979af9eac06052ff82059d70957a7dd4ecf0fea6d8bd6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg111.perseus-eng2-header.xml.receipt.json",
+      "sha256": "a3fe4df7b23050720fb1759c153a71665da31d184ca78f5618ec92da4dc55693",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg111.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "e1ac19f8ce62a624ca07738f723ae24bfcbdddc828874963611a39f6ebbdb00a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg113-cts.xml.receipt.json",
+      "sha256": "b364ef8c25b8cdb79f51772037c07969cfffd0aebf26a7691bd2c0a604f1e81d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg113.perseus-eng2-header.xml.receipt.json",
+      "sha256": "f400be9dcb1e693d7dd3c25764c3a766a684a5e4a9a06964aacd93c59bcf3866",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg113.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "041ec7923216738b5f84b3194c40c9f85bdfdf927c073cdf1a9ca15b3f86b78b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg115-cts.xml.receipt.json",
+      "sha256": "5e1d39e5a5f33abfa2bf8b3a63c5f729000036c6ab5a7d63479beaff50e5f1f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg115.perseus-eng3-header.xml.receipt.json",
+      "sha256": "18303f5708d9c5eee51da42053ca5338d42e83d0eabcea83c88e67480de86baf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg115.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "632d072d9643b1e1c45c5da97bbfbd02d677f4b626d698426a78a3861b5d930e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg115.perseus-eng4-header.xml.receipt.json",
+      "sha256": "4df67440e982ef27dd25feb54ed65bb58ee0268ac7d1e4b60855a3e16dfb7dc2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg115.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "00028046cc910ac293b1c2a77ecda69fed392ed3ed8a41d4751df1fdf015e5f4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg116-cts.xml.receipt.json",
+      "sha256": "263ad78f995b0d4b9cd8971b35c929c7eeead613618ca6ddb5c62ff2e6eba45e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg116.perseus-eng3-header.xml.receipt.json",
+      "sha256": "c1d46c340bc1b596ccfc45afb3c64d46ef8f0ebab93b01f1bbbda6aae0647c95",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg116.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "ec884dffd109bc101443eeb84ed868644bb50b773a255cf606e6e77aed7a64f1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg116.perseus-eng4-header.xml.receipt.json",
+      "sha256": "8f5c3b671111b86193b7c0b160697a41a4f5f49dc1e6a8f89f27d1df5664edae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg116.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "af883067174a9b46059e47d05479b6857bbbbaa0a9cfd0876d1b26895f606fba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg117-cts.xml.receipt.json",
+      "sha256": "d0af7fa5b1f69970a5ae38b431a5b39202cd1fbb63c37fcd6b21e4958ef4aa5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg117.perseus-eng3-header.xml.receipt.json",
+      "sha256": "b8838ae76fc1bd926f5442e38361fc911e763e8219aa545001335b50821b968c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg117.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "f11f2d8cbeb6c2e5a1e5b11f16f6437524f12582330a65a650dba7433eb34be9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg117.perseus-eng4-header.xml.receipt.json",
+      "sha256": "9b8972c5cb1847d170e27b713eaebe8f2837f3350fa617e9b9836ec92fcc770b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg117.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "615d7898ed67ac50d2be5045432528534771f58c5880e6bec3977afb3cc3a7e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg118-cts.xml.receipt.json",
+      "sha256": "ac170ad80a290a0fa918c8f217756b44dc75824a1f8e55c3cdcd9f28780be429",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg118.perseus-eng3-header.xml.receipt.json",
+      "sha256": "1ece8abd644e76026f014a9a1cf6e0edde063ac21e9e0c17753122af22507686",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg118.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "c8c98375d6f4738a803624d7f35b295430c239d0e43db65af084a9aa09071e34",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg118.perseus-eng4-header.xml.receipt.json",
+      "sha256": "8a5ea7523f88286b1f16481bd4ac02fb43b1fe580b5b62a6a6da6d66e1ca5ef2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg118.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "c97e08b71887f51e7a41d8f98a1a1f48e7e909d6b940ecf8ea0d45b1a3d5d634",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg119-cts.xml.receipt.json",
+      "sha256": "4b0a5b315519d59bca19376b92e6f8d42a112ed98df854670c3c1b78097fcf36",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg119.perseus-eng3-header.xml.receipt.json",
+      "sha256": "3535d124e79579891573d17130a2f9983abf0e34505d2079c3cf0ddbe7b95ae0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg119.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "26dcd81f823cd594636c3d2e9c034beae45f58e3734ac247cc4e2bcd4a85849a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg119.perseus-eng4-header.xml.receipt.json",
+      "sha256": "b6369a5445ed921b2351a0596f3b24b1398b506768b200b8716069ce4f8aaf3d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg119.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "d87e9138b4de8ceb0251947a6d46f6aa9534dcce740da45b9e76aa18f1df7cfa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg120-cts.xml.receipt.json",
+      "sha256": "233487a211278c7dc71704d9ccfaf513cb95228a57d99635c17e9f3532035eec",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 961,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg120.perseus-eng3-header.xml.receipt.json",
+      "sha256": "2abfed92b8ad5fe044ed7d449313ba9ab22880912306032146d248497e576183",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg120.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "1460803ec332dca91ec47b5c26e8fc796bc2b5d76c9638b8630fe9625f62b52c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg120.perseus-eng4-header.xml.receipt.json",
+      "sha256": "4d2492ce5015484ef2181abd034f821e2dda444f1dc036683c5bf9dcde3a831e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg120.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "fa0ceb845bd177c1a9832e9e11dd2baddf02830feb861b3d5fb23af5cba1a395",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg122-cts.xml.receipt.json",
+      "sha256": "50334d813781b7a4bc46f5e1746f9f61451d1c06317297115bdbf318d8248d8d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg122.perseus-eng3-header.xml.receipt.json",
+      "sha256": "45c7f34f98b05c02ca9acb2cbe57ebe7d91b53ec7a2c4d67d5961d2bc37b467f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg122.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "3ccf0a090e1015f58f5f2b8f74bd6e9fcf002b97562cdd79fec8285df852cb5c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg122.perseus-eng4-header.xml.receipt.json",
+      "sha256": "5e3972d188379afb558f708449f794f12b5d3eb6d5a83b280d58bfb4948e24dc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg122.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "ad16fb48b288862cab93578874ceb6cf4abd52dfa6357c1e2e2019feb8a13b69",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg123-cts.xml.receipt.json",
+      "sha256": "99f0efd7fba5bd212f55208518656cf9def0949f920f673b8a0e1295a482c5b6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg123.perseus-eng2-header.xml.receipt.json",
+      "sha256": "ec890d62608aea22c19122597c715e99c73a5be6aa7abd4700f9148ec10b809d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg123.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "bc956b9cc3cb95322995210647469e9ac371985698a7a3e318f95541f7d9a98e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg125-cts.xml.receipt.json",
+      "sha256": "2c0866aa8e4b357c13b71019bda44ce1ca1e5ec6212cede74827184f3b79bd0a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg125.perseus-eng2-header.xml.receipt.json",
+      "sha256": "23cc5448fff7836f893bac6b3d275dd8d1ad5cce802917a55bc62777ef062bd8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg125.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "b77213d3cd18dd3d5377575cfb4c2e3e729e1f79f2da3fea0bfe2eea179a7957",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg127-cts.xml.receipt.json",
+      "sha256": "bc0238ec489ca1dd48f9d3628d2e754ada64d8d1e74d359d97023665282c4d22",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg127.perseus-eng3-header.xml.receipt.json",
+      "sha256": "79a45a4173d7d762aac0996db9ce886506e040a01c03e072b8e0aa785938c25d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg127.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "f8d6277f6aa6f7447f8dc94951e5cddc635e59f87edfb4b1f36bf59816578c8a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg127.perseus-eng4-header.xml.receipt.json",
+      "sha256": "61f471af0bd9466a9f018f512ccf90db6f9b6ba95e064104d449bbe4419bc203",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 968,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg127.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "aab27b8dcb199a05bbf01a8c2377f47dd66dd37159cc56989742c8b8a8152102",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg128-cts.xml.receipt.json",
+      "sha256": "5bb2c13943aeaacd59010b9572dda743f470a5758f076990d4e093230de8fa86",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg128.perseus-eng3-header.xml.receipt.json",
+      "sha256": "c05a8c1da25688a01a0869f0760f2345819951168870e0464ac1d6b59f1421a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg128.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "8d9fd26cad24c88703031f1791f31a2124d83c2d0983a41726dc25a09e6807fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg128.perseus-eng4-header.xml.receipt.json",
+      "sha256": "e175b44a67279e829bca7084b693ff3d21b680bc2e099ec7962d1a0ad72f5e24",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg128.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "b2bbb2b254d55e0a2cd5c7adf43aa31ca6e14624731b318b8e732e17ecd8dbcf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 861,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg129-cts.xml.receipt.json",
+      "sha256": "cba068d64b7c4af25d67aa5babc71fe64b64e9045b8337e260dfc7ed7ea0fb41",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg129.perseus-eng3-header.xml.receipt.json",
+      "sha256": "7463e6b242b5cee459c9c8fd408a90e85346e2922161c948def3dfc050a23bd7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg129.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "c912dceda167316599e13bef38a57c5f2d3890e777ae4318efb14deaaa579ea0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg129.perseus-eng4-header.xml.receipt.json",
+      "sha256": "c149383f248fcde792a10a61c1bcae65d0450f8981043a5eb188bc17d1a5d9a4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg129.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "614805d748d882d51e0c342b1e6bee38471a12e5a7258550879fa2cc8959daec",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 859,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg130-cts.xml.receipt.json",
+      "sha256": "7f71ff38fa10bbe320dddbf876b5e36d255734acdc9ac34c5ec50dea3400c803",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg130.perseus-eng3-header.xml.receipt.json",
+      "sha256": "6a7d01b3e91b2cd980f4598ae347e246872c015177ea25fad4fd2ae9f3116722",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg130.perseus-eng3-opening.xml.receipt.json",
+      "sha256": "e899aef7012fb4c195baa8f3ebef7027930aba3b8d2e381887a437cdd9c1539d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 963,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg130.perseus-eng4-header.xml.receipt.json",
+      "sha256": "9a256836ea5b9f00b8f012f8326ae7440b705d683cdca37506d2749186c58ac0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg130.perseus-eng4-opening.xml.receipt.json",
+      "sha256": "318ebf4838b3f3ad09413ce5ade8530b086fbfd8efe36b682d704beb47474088",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 860,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg141-cts.xml.receipt.json",
+      "sha256": "d167776491134449d174b24cd3fc26d7d4735f3a6c74bd2bafea9c9611695a74",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 962,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg141.perseus-eng2-header.xml.receipt.json",
+      "sha256": "ce157db08ebcf0fcc7f0e01fa15eb3b1322392d01f2a55fd55768447693d29a5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 969,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/evidence/tlg0007.tlg141.perseus-eng2-opening.xml.receipt.json",
+      "sha256": "1cbd5c234b3f4494db13ee9fb52ad1123dae296b981fcf1abc2da7a218df1f8c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3843,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/close_local_boundaries.py",
+      "sha256": "060573dad598ebb8a5cd44143c9c83ff44346adf470ca531e3cad0e6f02cfe1b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 6509,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/create_metadata_forms.py",
+      "sha256": "857262c6fb1c85c2b69e11e91886f2a8c0f064a277b47566753e2920461aac1b",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 59758,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/engine-history/518c43433f879b456c3392821d04e123cf039ccc83966b8ad3e2c78af01d4851.py",
+      "sha256": "518c43433f879b456c3392821d04e123cf039ccc83966b8ad3e2c78af01d4851",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 5788,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/plant_ninth_wave.py",
+      "sha256": "d7ec3d21be4af68a7f9f303f96ac3166135af81e9b305804a5e7c174e766bdb1",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 26497,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/prepare_translations.py",
+      "sha256": "0442a3c476d35dcd9b13feebde6a0e8102397fa02db6072e17d6a568b5f8a2c6",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 12584,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/execution/report_ninth_wave.py",
+      "sha256": "6e785e5ad6c6ca3bf29b0e92a17eab2373c031e693123322114fc51610462fc6",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 27846,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/local-presence.preparation.json",
+      "sha256": "85357b22e5a7a7429faa4772a91a676827e81b1804cbd07c2937d4994d442b21",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 579230,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/manifest.json",
+      "sha256": "264ad6901ebed243b10d949b3f8d7c0c7b9e783df12e371d6ebca9344f4234e3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 647775,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/queue.preparation.v1.json",
+      "sha256": "30702aa333339164126a4235f1de2040611338322faa189e5c27c3bfbaa4a681",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 407332,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/readiness.preparation.v1.json",
+      "sha256": "efb71b498818ab511da49e4fa3f0d7010416bbd5a8f765f40537eb94cbec4a4b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1812373,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/registry-candidate-leads.json",
+      "sha256": "3539b1456681d2d3014f59729fe348cafa44416d88b3024356d50dd3ea5969cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 886,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/selection-inputs.json",
+      "sha256": "9dcb339acc4d05f8d9ac0c049f7c81defacde479278f6e51209636526360ba90",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 60077,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/selection-review.json",
+      "sha256": "2a628bc3064889954b741d07a740e356827268096a5f9cdd2a4d734fe60d96b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 24508,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/translation-candidate-tree.json",
+      "sha256": "21f4f44d16f524654767295ffa3b22de3f681feddb6d6078ac5d750cdf4e079a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3076,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/04e2ca74eb7a93b7e25ed0081f32b601bad1cfc77584d886b666358f61d9a32f.json",
+      "sha256": "04e2ca74eb7a93b7e25ed0081f32b601bad1cfc77584d886b666358f61d9a32f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3061,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/0f9375dbe388466bdde24e7061023b399f0453e6a30ba2ac07321d36679b5c4c.json",
+      "sha256": "0f9375dbe388466bdde24e7061023b399f0453e6a30ba2ac07321d36679b5c4c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3007,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/13d7f4f346d2f8f8d8775ebbb1e3c73354204a0853145735f2ae4d8245bbfbdb.json",
+      "sha256": "13d7f4f346d2f8f8d8775ebbb1e3c73354204a0853145735f2ae4d8245bbfbdb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3043,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/1534f5b7ac5a43cd27f9c14c9e184ba334703f0277cc24a8873c770508b359d5.json",
+      "sha256": "1534f5b7ac5a43cd27f9c14c9e184ba334703f0277cc24a8873c770508b359d5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3150,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/1beacba2c14ff12e8ae85f976428db6567ef40ad239d03bfd51a9fd39d388580.json",
+      "sha256": "1beacba2c14ff12e8ae85f976428db6567ef40ad239d03bfd51a9fd39d388580",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2995,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/1ee1e5d152054638dac9028d08239120f17661f0172a0dc3552c413dedcdbb42.json",
+      "sha256": "1ee1e5d152054638dac9028d08239120f17661f0172a0dc3552c413dedcdbb42",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/28eb372de4b8ff59f0aac8a4747f4183f8731b04ac24acbcd05e425f02b174aa.json",
+      "sha256": "28eb372de4b8ff59f0aac8a4747f4183f8731b04ac24acbcd05e425f02b174aa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3176,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/295431bd7c69e3c351077a1c754c69ed56012672a73ddb3ddfa17eeff592f651.json",
+      "sha256": "295431bd7c69e3c351077a1c754c69ed56012672a73ddb3ddfa17eeff592f651",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3034,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/2994e50723988592d4d46f88381e1b833ab07ecf4a88bd9142a784d8a99838fb.json",
+      "sha256": "2994e50723988592d4d46f88381e1b833ab07ecf4a88bd9142a784d8a99838fb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3061,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/35273d901453f7bd65eae03ee61ddb357efaa9362962a07e03c41b5794a127c8.json",
+      "sha256": "35273d901453f7bd65eae03ee61ddb357efaa9362962a07e03c41b5794a127c8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2992,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/365eaf3be5a8a603e5fada112f456395710ca6a561eaa05e431e6abe5ba38b25.json",
+      "sha256": "365eaf3be5a8a603e5fada112f456395710ca6a561eaa05e431e6abe5ba38b25",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3013,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/41a3116068917c3c908dade76e93a2c38014d64c7daef80b92febd024ebd3839.json",
+      "sha256": "41a3116068917c3c908dade76e93a2c38014d64c7daef80b92febd024ebd3839",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3004,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/421f079505eca0381cccc451503200a768553e5e6db0147d8923b39964d661a0.json",
+      "sha256": "421f079505eca0381cccc451503200a768553e5e6db0147d8923b39964d661a0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3049,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/432c42bd2fa15cfad3efef6f1852590121e9f625af305631d1e41dce44e4c84d.json",
+      "sha256": "432c42bd2fa15cfad3efef6f1852590121e9f625af305631d1e41dce44e4c84d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3025,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/48a504e84919015fdfd3c5c9d746a4a61a7fc34773e08144322158634f9f9377.json",
+      "sha256": "48a504e84919015fdfd3c5c9d746a4a61a7fc34773e08144322158634f9f9377",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3112,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/4a29160e3b9ada9d86d7e6a1825d8741ebf3cfa8d183e3d9aa5543a9e3c9f454.json",
+      "sha256": "4a29160e3b9ada9d86d7e6a1825d8741ebf3cfa8d183e3d9aa5543a9e3c9f454",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3070,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/4f108559afa184a344adf891e77290c7fdd98256cebb8581980ad456fd2406ed.json",
+      "sha256": "4f108559afa184a344adf891e77290c7fdd98256cebb8581980ad456fd2406ed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2992,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/56060f3ac2c1d48a53ff8ee2581ec68114eeb8a22052973d50d3e2401e37f66b.json",
+      "sha256": "56060f3ac2c1d48a53ff8ee2581ec68114eeb8a22052973d50d3e2401e37f66b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/65803b24df5a7e2239f6ae1f32527d2de8bbf4972d5bfbfc2139f9e9fd1049cc.json",
+      "sha256": "65803b24df5a7e2239f6ae1f32527d2de8bbf4972d5bfbfc2139f9e9fd1049cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3019,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/65a3914d7e8d9636abc033cff82b499cbc4df5935fd4933cb5f037812b4437df.json",
+      "sha256": "65a3914d7e8d9636abc033cff82b499cbc4df5935fd4933cb5f037812b4437df",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2995,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/6addb8f33c1a9b9b0efe0deda7ad4c94e4d70e957b644e1efff7591c7b126b7b.json",
+      "sha256": "6addb8f33c1a9b9b0efe0deda7ad4c94e4d70e957b644e1efff7591c7b126b7b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3007,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/6e66a5ae87b6f0e52a71b30cc7d73fb21bcd6eefa94eb46e1f685f96435569ce.json",
+      "sha256": "6e66a5ae87b6f0e52a71b30cc7d73fb21bcd6eefa94eb46e1f685f96435569ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3013,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/793a588983935ff686b948a2d6df246c28212ee938ab0f52c9679e97083e7b39.json",
+      "sha256": "793a588983935ff686b948a2d6df246c28212ee938ab0f52c9679e97083e7b39",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3025,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/7c68f913651f4e95515f29c74cd80670890ce1b5a8e50f77c16c6d23444f2ed7.json",
+      "sha256": "7c68f913651f4e95515f29c74cd80670890ce1b5a8e50f77c16c6d23444f2ed7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2986,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/811bb6ce5feeed9a21338a72c87e8683120995c116451bb5ab166a7568fb742c.json",
+      "sha256": "811bb6ce5feeed9a21338a72c87e8683120995c116451bb5ab166a7568fb742c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3016,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/86cab06ec32027b92dd978151915e99ffa631ac29495126a9dad90c1a6649303.json",
+      "sha256": "86cab06ec32027b92dd978151915e99ffa631ac29495126a9dad90c1a6649303",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3004,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/8c718d7db90ab12912d18390ae9cce3646662253be5693fbc79de47653054c5c.json",
+      "sha256": "8c718d7db90ab12912d18390ae9cce3646662253be5693fbc79de47653054c5c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2998,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/8ed99ce8dc728a256057e245d0d9a2b086fc337fd569b46b03fc2138c2361c23.json",
+      "sha256": "8ed99ce8dc728a256057e245d0d9a2b086fc337fd569b46b03fc2138c2361c23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2992,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/933df2953644a3726598dd1551439c9e31e14d743d1752e69acb2e24b9f1f0b0.json",
+      "sha256": "933df2953644a3726598dd1551439c9e31e14d743d1752e69acb2e24b9f1f0b0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3022,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/950f571225605b9a47b65a726c78e6f5674969a49f781a97e350189e223eb32c.json",
+      "sha256": "950f571225605b9a47b65a726c78e6f5674969a49f781a97e350189e223eb32c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3013,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/9c8866ca4386a2fa26764bfa3005afaf6c48793fc1f7958d2f46dc62cd848521.json",
+      "sha256": "9c8866ca4386a2fa26764bfa3005afaf6c48793fc1f7958d2f46dc62cd848521",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3028,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/aa67b75305c2d88958b7d2a219688d96770696f7d0e46aac6d93a4d33705ff8d.json",
+      "sha256": "aa67b75305c2d88958b7d2a219688d96770696f7d0e46aac6d93a4d33705ff8d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2971,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/ad750ef2330d8dc945d5996e465412f613d1e9475fb94e5e341533bc71b31fde.json",
+      "sha256": "ad750ef2330d8dc945d5996e465412f613d1e9475fb94e5e341533bc71b31fde",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2989,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/bb36e2afa98e855a563b2b38ebb4b6e616e98d99289a602f5f1bf4ebf2cf5f2a.json",
+      "sha256": "bb36e2afa98e855a563b2b38ebb4b6e616e98d99289a602f5f1bf4ebf2cf5f2a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3061,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/bdd3c7b7db088b07acede65be66caacabd612a61c965107a6d088ee98be3c05c.json",
+      "sha256": "bdd3c7b7db088b07acede65be66caacabd612a61c965107a6d088ee98be3c05c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3219,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/c80cc1ec2d370316cc5e8ecd0718a5a417a17a36e99ccdd1f544824029afbba1.json",
+      "sha256": "c80cc1ec2d370316cc5e8ecd0718a5a417a17a36e99ccdd1f544824029afbba1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3260,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/c835aa39a66afcd9bdba9f34ed45e019c4cb0d7abf73956e49d932f3c38b78ae.json",
+      "sha256": "c835aa39a66afcd9bdba9f34ed45e019c4cb0d7abf73956e49d932f3c38b78ae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3010,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/cc7f8c7448acfe407e81958ead3f5c2a13bed9e9883fa7fc72dc347ae7a57668.json",
+      "sha256": "cc7f8c7448acfe407e81958ead3f5c2a13bed9e9883fa7fc72dc347ae7a57668",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3016,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/cda98d150ea4605e26d367a89214081a812fb6dc34694629bb231534babb3077.json",
+      "sha256": "cda98d150ea4605e26d367a89214081a812fb6dc34694629bb231534babb3077",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3001,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/d0c9e95bb0b4e1273c56fc53c8c6f9410dfa0f9ee25bfb0cc638616594639b5b.json",
+      "sha256": "d0c9e95bb0b4e1273c56fc53c8c6f9410dfa0f9ee25bfb0cc638616594639b5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2971,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/df32ae549ad308c7509eaedfac36e8efef3c61c87e32037c41de06bd3842bbbd.json",
+      "sha256": "df32ae549ad308c7509eaedfac36e8efef3c61c87e32037c41de06bd3842bbbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3082,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/e20829ba63550f31bb5d98aee64c8ecdc22f45da42fed17adf230d1f2a3e8f6f.json",
+      "sha256": "e20829ba63550f31bb5d98aee64c8ecdc22f45da42fed17adf230d1f2a3e8f6f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3013,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/f374348372b63a5d35e0bc8bcc4c130b265a337daf5aa817b9f34910759378cc.json",
+      "sha256": "f374348372b63a5d35e0bc8bcc4c130b265a337daf5aa817b9f34910759378cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2995,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-ninth-planting-2026-09-09/work-before/f6e3c1779b25cd1c54ce5d44436406575c3173257ba2bdb28c63f899ae92235e.json",
+      "sha256": "f6e3c1779b25cd1c54ce5d44436406575c3173257ba2bdb28c63f899ae92235e",
       "surface_kind": "structured"
     },
     {

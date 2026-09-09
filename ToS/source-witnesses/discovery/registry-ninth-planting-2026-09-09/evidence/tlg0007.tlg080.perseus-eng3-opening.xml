@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Superstition</title>
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name> 
+         		<name>Bridget Almas</name>       	
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Sophia Elzie</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg080.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title xml:lang="lat">Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1928</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/moraliainfifteen02plutuoft/page/452">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<editorialDecl><quotation marks="none"/></editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>    
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p></cRefPattern>
+         <!--<editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl doctype="TEI.2">
+            <state unit="section"/>
+         </refsDecl><refsDecl doctype="TEI.2">
+				-->
+				</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         	<language ident="deu">German</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="RS" when="2010-05">tagged and parsed</change>
+      	<change who="Sophia Elzie" when="2019-06-27">CTS and Epidoc conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg080.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg080.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.2.p.452"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg080.perseus-eng3" n="intro"> <head>SUPERSTITION <foreign xml:lang="lat">(DE SUPERSTITIONE)</foreign></head><lb/> <head>INTRODUCTION</head> 
+   <p rend="indent"> Plutarch’s essay on Superstition is, in the main, an attempt to prove that superstition is worse than atheism. Its somewhat impassioned tone savours more of the emotional sermon than of the carefully reasoned discourse, and suggests that it was originally prepared for public presentation. </p> 
+   <p rend="indent">Wyttenbach was disturbed because in the catalogue of Lamprias, in which this essay is No. 155, the title is given as <foreign xml:lang="grc">Περὶ δεισιδαιμονίας πρὸς Ἐπίκουρον</foreign>, and he thought that this title might refer to some other treatise of Plutarch. The explanation is so simple that the only surprising thing is that it should have escaped a man of Wyttenbach’s acumen. On the first page of the essay are the words, <q>the universe . . . atoms and void . . . assumption is false.</q> Then, as now, librarians and reviewers looked at the first page, and reached their conclusions; so it was only natural that the compiler of the catalogue should conclude that the rest of the book was equally hostile to Epicurus. On the other hand, this affords interesting evidence that the compiler of the catalogue of Lamprias probably had a copy of Plutarch’s works before him when he drew up his list. </p> 
+   <p rend="indent">The ms. tradition of this essay is better than of many others, and one ms. (D) has preserved many <pb xml:id="v.2.p.453"/> excellent readings.a Only one passage, a quotation (170 b), presents serious difficulty, and of this Professor Goodwin remarked: <q>As to the original Greek, hardly a word can be made out with certainty.</q> </p> 
+   <p rend="indent">Mention should be made of a separate edition and a parallel English translation of this essay in a book entitled <q> <foreign xml:lang="grc">περὶ δεισιδαιμονίας</foreign>. Plutarchus and Theophrastus on Superstition with various appendices and a life of Plutarchus. Printed a.d. 1828. (Privately) printed by Julian Hibbert . . . Kentish Town.</q> The translation is very literal, but is sometimes an improvement on that of William Baxter in the translation of Plutarch by <q>Several Hands</q> (London, 1684-94). Intimate and amusing is the preface of the author, who, in his notes, admits that he has never read Plato, but ends his preface with these words: <q>I terminate this my Preface by consigning all <q>Greek Scholars</q> to the special care of Beelzebub.</q> </p> 
+   <p rend="indent">A spirited defence of this essay (if any defence is needed) may be found in John Oakesmith’s <title rend="italic">The Religion of Plutarch></title> (London, 1902), chap. ix. pp. 179 ff. <note place="inline" anchored="true">In spite of the fact that Pohlenz in his preface to Vol. I. (Leipzig, 1925) of the <title xml:lang="lat">Moralia</title> (p. xiv) uses these words: <q type="unspecified" xml:lang="lat"> Codicem Paris D e recensione libidinosissima ortum</q>! Paton, who edited this essay, accepts the readings of D a good part of the time, and his edition would have been more intelligible had he accepted them more often.</note> </p> </div> <pb xml:id="v.2.p.455"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg080.perseus-eng3" n="1"> <p rend="indent">Ignorance and blindness in regard to the gods divides itself at the very beginning into two streams, of which the one produces in hardened characters, as it were in stubborn soils, atheism, and the other in tender characters, as in moist soils, produces superstition.<note place="inline" anchored="true"> <foreign xml:lang="lat">Cf.</foreign> Plutarch, <title >Life of Alexander</title>, chap. 

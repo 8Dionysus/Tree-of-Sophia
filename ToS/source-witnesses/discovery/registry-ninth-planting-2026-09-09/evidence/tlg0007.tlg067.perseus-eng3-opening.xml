@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader>
+      <fileDesc>
+         <titleStmt>
+         	<title>The Education of Children</title>            
+            <author>Plutarch</author>
+            <editor role="translator">Frank Cole Babbitt</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+               <name>Bridget Almas</name>
+            </respStmt>
+            
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg067.perseus-eng3.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Moralia</title>
+                  <editor role="translator">Frank Cole Babbitt</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date type="printing">1927</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/in.ernet.dli.2015.43837/page/n45">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts section.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-27" who="Lisa Cerrato">CTS and EpiDoc conversion</change>
+      	<change when="2010-05-01" who="RS">tagged and parsed</change>
+      	</revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng3">
+      	
+
+<div n="urn:cts:greekLit:tlg0007.tlg067.perseus-eng3" type="translation" xml:lang="eng"> 
+	<pb n="v1.p.3"/> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng3" n="intro"> 
+   <head>Introduction</head>
+   <p rend="indent">It is generally believed that the essay which stands first in the collected works of Plutarch cannot have been written by him. The arguments against the genuineness of the essay, based both on external and internal evidence, are too long to be repeated here, but they may be found in Wyttenbach’s edition vol. vi. pp. 29-64.</p> <p rend="indent">The essay, however, is interesting in itself, since it reflects in many ways the educational conditions of its time. Frankly recognizing the difference in natural endowments, the author insists on the great benefits which inevitably come from training. Physical training is of course required, and military training is held to be most important for preparing men to win in battle. A knowledge of philosophy is the final goal of education.</p> <p rend="indent">The invectives against the indifference of parents about the education of their children, and their unwillingness to pay adequate salaries so as to secure men of character as teachers, may have the same familiar ring two thousand years hence.</p> <p rend="indent">Finally, a word is added on the excesses of young men, and a warning against flatterers,—suggested perhaps by Plutarch’s essay devoted to that subject.</p> <pb n="v1.p.5"/> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng3" n="1"><p rend="indent">Let us consider what may be said of the education of free-born children, and what advantages they should enjoy to give them a sound character when they grow up. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng3" n="2"><p rend="indent">It is perhaps better to begin with their parentage first; and I should advise those desirous of becoming fathers of notable offspring to abstain from random cohabitation with women; I mean with such women as courtesans and concubines. For those who are not well-born, whether on the father’s or the mother’s side, have an indelible disgrace in their low birth, which accompanies them throughout their lives, and offers to anyone desiring to use it a ready subject of reproach and insult. Wise was the poet who declares: <quote rend="blockquote">The home’s foundation being wrongly laid, The offspring needs must be unfortunate.<note place="inline" anchored="true">Euripides, <title>Hercules Furens</title>, 1261.</note> </quote> A goodly treasure, then, is honourable birth, and such a man may speak his mind freely, a thing which should be held of the highest account by those who wish to have issue lawfully begotten. In the nature of things, the spirits of those whose blood is base or counterfeit are constantly being brought down and humbled, and quite rightly does the poet declare: <pb n="v1.p.7"/> <quote rend="blockquote">A man, though bold, is made a slave whene’er He learns his mother’s or his sire’s disgrace.<note place="inline" anchored="true">Euripides, <title>Hippolytus</title>, 424.</note> </quote> Children of distinguished parents are, of course, correspondingly full of exultation and pride. At all events, they say that Cleophantus, the son of Themistocles, often declared to many persons, that whatever he desired was always agreed to by the Athenian people; for whatever he wished his mother also wished; whatever his mother wished Themistocles also wished; and whatever Themistocles wished all the Athenians wished. It is very proper also to bestow a word of praise on the Spartans for the noble spirit they showed in fining their king, Archidamus, because he had permitted himself to take to wife a woman short of stature, the reason they gave being that he proposed to supply them not with kings but with kinglets. </

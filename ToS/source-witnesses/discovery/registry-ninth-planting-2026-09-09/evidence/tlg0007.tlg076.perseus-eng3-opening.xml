@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>A letter of Condolence to Apollonius</title>
+				<author>Plutarch</author>
+				<editor role="translator">Frank Cole Babbitt</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg076.perseus-eng3.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title xml:lang="lat">Moralia</title>
+						<editor role="translator">Frank Cole Babbitt</editor>
+						<imprint>
+							<pubPlace>Cambridge, MA</pubPlace>
+							<publisher>Harvard University Press</publisher>
+							<pubPlace>London</pubPlace>
+							<publisher>William Heinemann Ltd.</publisher>
+							<date type="printing">1928</date>
+						</imprint>
+						<biblScope unit="volume">2</biblScope>
+					</monogr>
+					<series>
+						<title>Loeb Classical Library</title>
+					</series>
+					<ref target="https://archive.org/details/moraliainfifteen02plutuoft/page/108"
+						>The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+				<language ident="deu">German</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="RS" when="2010-05">tagged and parsed</change>
+			<change who="Lucy Parr" when="2019-06-05">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng"> <body xml:base="urn:cts:greekLit:tlg0007.tlg076.perseus-eng3"> 
+<div n="urn:cts:greekLit:tlg0007.tlg076.perseus-eng3" type="translation" xml:lang="eng"> <pb xml:id="v.2.p.105"/> <head>A LETTER OF CONDOLENCE TO APOLLONIUS(<foreign xml:lang="lat">Consolatio ad Apollonium</foreign>)</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg076.perseus-eng3" n="intro"> <head>INTRODUCTION</head><p rend="indent"> The Letter of Condolence to Apollonius, into which quotations from earlier authors have been emptied from the sack rather than scattered by hand, has in comparatively recent years fallen under suspicion as being perhaps not the work of Plutarch. The suspicion rests mainly on two grounds, the unusual length of the quotations, and certain incongruities of style. The latter may here be briefly dismissed with the remark that for every departure from accepted Plutarchean style a striking instance of conformity to his style may be cited, so that no very positive results are to be obtained in this way. The case is much the same with the quotations. Many of them are unusually long, although not longer than we find in other authors. Some of them, for example Euripides, Suppliants 1110 and 1112 (Plut. 110c), show an accuracy of ms. tradition so far superior that the reading given by Plutarch is commonly adopted by editors of Euripides in preference to the traditional reading of the mss. of Euripides. On the other hand, the quotation from Plato, Gorgias 523 a (Plut. 120 e), shows many minor variations from our text of Plato; some of these are interesting in themselves, but none of them really disturbs the meaning of the passage. </p><p rend="indent">We learn from the letter almost nothing about <pb xml:id="v.2.p.106"/> Apollonius and his departed son, and hardly more about Plutarch. It lacks the intimate touch of a similar letter which was written by Plutarch to his wife (Moralia, 608 a). Indeed we cannot be wholly sure that the boy was called Apollonius after his father, for one stroke of the pen to change the accusative to a vocative (121 e) would cause his name to disappear entirely. </p><p rend="indent">The title of the letter is not found in Lamprias’ list of Plutarch’s works, nevertheless we have reference to it at a comparatively early date. </p><p rend="indent">Some striking similarities between the letter and Cicero’s Tusculan Disputations are doubtless to be explained by derivation from a common source, and this source was doubtless in large part the works of the Academic philosopher Crantor. </p><p rend="indent">In the absence of actual knowledge it is convenient to assume an hypothesis (as in the realm of science one speaks of <q>atoms</q> or <q> ions</q> or of the electric <q type="unspecified" >current</q>). If we assume that this is the original rough draft of the letter which was to be sent to Apollonius, nearly everything can be made to square with the hypothesis. In selecting some of the quotations Plutarch had put down enough of the context, so that later the lines he might finally choose to insert could be smoothly interwoven with the text, and the text itself was no doubt to be subjected to further polish. </p><p rend="indent">However, we may be profoundly grateful for the collection of extracts included in the letter, and, if the hypothesis be right, we may also be grateful for this glimpse of Plutarch’s methods of composition. </p><p rend="indent">We must bear in mind that this particular form of literary composition had developed a style of its <pb xml:id="v.2.p.107"/> own, the earliest example perhaps being the Axiochus (of Plato ?), and we have records of many more now lost. Among the Romans also this form of composition was popular, and several examples may be found in the works of Seneca. </p> </div> <pb xml:id="v.2.p.109"/> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg076.perseus-eng3" n="1"><p rend="indent">Even before this time, Apollonius, I felt for you in your sorrow and trouble, when I heard of the untim

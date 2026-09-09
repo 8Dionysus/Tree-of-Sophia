@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title>A discourse to an unlearned prince</title>
+				<author>Plutarch</author>
+				<editor>William W. Goodwin</editor>
+				<editor role="translator">John Kersey</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Lisa Cerrato</name>
+					<name>Rashmi Singhal</name>
+					<name>Bridget Almas</name>
+					<name>Angelia Hanhardt</name>
+					<name>Michael Konieczny</name>
+				</respStmt>
+				<funder n="org:NEH">The National Endowment for the Humanities</funder>
+				<respStmt>
+					<persName>Lucy Parr</persName>
+					<orgName>Center for Hellenic Studies</orgName>
+					<resp>CTS conversion</resp>
+				</respStmt>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="2010-12-13">Perseus 4.0</date>
+				<idno type="filename">tlg0007.tlg116.perseus-eng4.xml</idno>
+			  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>Plutarch</author>
+						<title>Plutarch's Morals.</title>
+						<respStmt>
+							<resp>Translated from the Greek by several hands. Corrected and revised by</resp>
+							<name>William W. Goodwin, PH. D.</name>
+						</respStmt>
+						<imprint>
+							<pubPlace>Boston</pubPlace>
+							<publisher>Little, Brown, and Company</publisher>
+							<pubPlace>Cambridge</pubPlace>
+							<publisher>Press of John Wilson and Son</publisher>
+							<date>1874</date>
+						</imprint>
+						<biblScope unit="volume">4</biblScope>
+					</monogr>
+					<ref target="https://archive.org/details/plutarchsmoralst04plutuoft/page/323">The Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+				<correction status="high" method="silent">
+					<p>optical character recognition</p>
+				</correction>
+			</editorialDecl><p>The following text is encoded in accordance with EpiDoc standards and with the
+				CTS/CITE Architecture</p>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)"
+					replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+				<!-- <refsDecl doctype="TEI.2">
+				<state unit="section"/> -->
+			</refsDecl>
+			<!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>-->
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="eng">English</language>
+				<language ident="grc">Greek</language>
+				<language ident="lat">Latin</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change who="GRC" when="2006">tagging</change>
+			<change who="Lucy Parr" when="2019-07-18">EpiDoc and CTS Conversion</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="eng">
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng4">
+     <div n="urn:cts:greekLit:tlg0007.tlg116.perseus-eng4" type="translation" xml:lang="eng">
+				<head>A discourse to an unlearned prince.</head>
+				<pb xml:id="v.4.p.323"/>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng4" n="1"><p rend="indent">PLATO, being desired by the Cyreneans to prescribe to them good laws and to settle their government, refused to do it, saying that it was a hard matter to give them any law whilst they enjoyed so much prosperity, since nothing is so fierce, arrogant, and untamable, as a man that thinks himself to be in a happy condition. Wherefore it is very difficult to give counsel to princes in matters of government; for they fear to receive advice as a thing seeming to command them, lest the force of reason should seem to lessen their power, by obliging it to submit to truth. And they consider not the saying of Theopompus, king of Sparta, who, being the first in that country that joined the Ephori with the Kings, was reproached by his wife, because by this means he would leave the kingdom to his children less than he found it; to whom he replied, that he should render it so much the greater, the firmer it was. For, by holding the reins of government somewhat loose, he avoided envy and danger; nevertheless, since he permitted the stream of his power to flow so freely into other channels, what he gave to them must needs be a loss to himself. Though philosophy possessing a prince as his assistant and keeper, by taking away the dangerous part of fulness of power (as if it were fulness of body), leaves the sound part.</p> </div>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng4" n="2"><p rend="indent">But many kings and princes foolishly imitate those unskilful statuaries who think to make their images look <pb xml:id="v.4.p.324"/> great and fierce if they make them much straddling, with distended arms, and open mouth. After the same manner they, by the grave tone of their voice, stern countenance, morose behavior, and living apart from all society, would affect a kind of majestic grandeur, not unlike those statues that without seem to be of an heroic and divine form. but within are filled with nothing but earth, stone and lead;—with this only difference, that the weight of these massy bodies renders them stable and unmovable; whereas unlearned princes, by their internal ignorance, are often shaken and overthrown, and in regard they do not build their power on a true basis and foundation, they fall together with it. For, as it is necessary at first that the rule itself should be right and straight, before those things that are applied to it can be rectified and made like unto it; so a potentate ought in the first place to learn how to govern his own passions and to endue his mind with a tincture of princely virtues, and afterwards to make his subjects conformable to his example. For it is not the property of one that is ready to fall himself to hinder another from tripping, nor of one that is rude and illiterate to instruct the ignorant; neither can a person govern that is under no government. But most men, being deceived by a false opinion, esteem it the chiefest good in ruling to be subject to no authority; and thus the Persian king accounted all his servants and slaves except his wife, whose master he ought more especially to have been.</p> </div>
+     <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg116.perseus-eng4" n="3"><p rend="indent">Who then shall have power to govern a prince? The law, without doubt; which (as Pindar saith) is the king of mortal and immortal beings; which is not written without in books nor engraven on wood or stone, but is a clear reason imprinted in the heart, always residing and watching therein, and never suffering the mind to be without government. The king of Persia indeed commanded one of his lords that lay in the same chamber to attend <pb xml:

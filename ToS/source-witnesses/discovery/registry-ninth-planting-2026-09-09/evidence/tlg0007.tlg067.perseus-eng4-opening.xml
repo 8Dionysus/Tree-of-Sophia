@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader>
+      <fileDesc>
+         <titleStmt>
+         	<title>A Discourse Touching the Training of Children</title>            
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+            <editor role="translator">Simon Ford</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+               <name>Bridget Almas</name>
+            </respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg067.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <ref target="http://www.archive.org/stream/plutarchsmoralst01plutuoft#page/2/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+		<encodingDesc>
+		   <editorialDecl><quotation marks="none"/></editorialDecl>
+		   <refsDecl n="CTS">
+			<cRefPattern n="section"
+				matchPattern="(\w+)"
+				replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+				<p>This pointer pattern extracts section.</p>
+			</cRefPattern>
+		</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+		  <citeStructure match="/TEI/text/body" use="@xml:base">
+		    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+		  </citeStructure>
+		</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-27" who="Lisa Cerrato">CTS and EpiDoc conversion</change>
+      	<change when="2006-01-01" who="GRC">tagging</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng4"> 
+
+<div n="urn:cts:greekLit:tlg0007.tlg067.perseus-eng4" type="translation" xml:lang="eng"> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng4" n="1" resp="editor"><p rend="indent">The course which ought to be taken for the training of free-born children, and the means whereby their manners may be rendered virtuous, will, with the reader’s leave, be the subject of our present disquisition.</p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng4" n="2" resp="editor"><p rend="indent">In the management of which, perhaps it may be expedient to take our rise from their very procreation. I would therefore, in the first place, advise those who desire to become the parents of famous and eminent children, that they keep not company with all women that they light on; I mean such as harlots, or concubines. For such children as are blemished in their birth, either by the father’s or the mother’s side, are liable to be pursued, as long as they live, with the indelible infamy of their base extraction, as that which offers a ready occasion to all that desire to take hold of it of reproaching and disgracing them therewith. So that it was a wise speech of the poet who said,— <quote rend="blockquote"> <l>Misfortune on that family’s entailed,</l> <l>Whose reputation in its founder failed.<note place="inline" anchored="true"> <bibl>Eurip. Hercules Furens, 1261</bibl> </note> </l> </quote> </p> 
+   <p rend="indent">Wherefore, since to be well born gives men a good stock of confidence, the consideration hereof ought to be of no small value to such as desire to leave behind them a lawful issue. For the spirits of men who are alloyed and <pb n="v.1.p.4"/> counterfeit in their birth are naturally enfeebled and debased; as rightly said the poet again,— <quote rend="blockquote"> <l>A bold and daring spirit is often daunted,</l> <l>When with the guilt of parents’ crimes ’tis haunted.<note place="inline" anchored="true"> <bibl>Eurip. Hippol. 424.</bibl> </note> </l> </quote> </p> 
+   <p rend="indent">So, on the contrary, a certain loftiness and natural gallantry of spirit is wont to fill the breasts of those who are born of illustrious parents. Of which Diophantus, the young son of Themistocles, is a notable instance; for he is reported to have made his boast often and in many companies, that whatsoever pleased him pleased also all Athens: for whatever he liked, his mother liked; and whatever his mother liked, Themistocles liked; and whatever Themistocles liked, all the Athenians liked. Wherefore it was gallantly done of the Lacedaemonian States, when they laid a round fine on their king Archidamus for marrying a little woman, giving this reason for their so doing: that he meant to beget for them not kings, but kinglings.</p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng4" n="3" resp="editor"><p rend="indent">The advice which I am, in the next place, about to give, is, indeed, no other than what hath been given by those who have undertaken this argument before me. You will ask me what is that? It is this: that no man keep company with his wife for issue’s sake but when he is sober, having drunk either no wine, or at least not such a quantity as to distemper him; for they usually prove winebibbers and drunkards, whose parents begot them when they were drunk. Wherefore Diogenes said to a stripling somewhat crack-brained and half-witted: Surely, young man, thy father begot thee when he was drunk. Let this suffice to be spoken concerning the procreation of children; and let us pass thence to their education.</p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg067.perseus-eng4" n="4" resp="editor"><p rend="indent">And here, to speak summarily, what we are wont to say of arts and sciences may be said also concerning virtue: that there is a concurrence of thre

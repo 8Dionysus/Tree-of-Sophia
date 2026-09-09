@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+         	<title>Of the Tranquillity of the Mind.</title>
+            <author>Plutarch</author>
+            <editor>William W. Goodwin</editor>
+         	<editor role="translator">Matthew Morgan</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         		<name>Bridget Almas</name>
+         	   <name>Angelia Hanhardt</name>
+         	</respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+            <respStmt>
+               <persName>Karina Cooper</persName>
+               <orgName>Center for Hellenic Studies</orgName>
+               <resp>CTS conversion</resp>
+            </respStmt>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2010-12-13">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg096.perseus-eng4.xml</idno>
+      	  <availability>
+              <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch’s Morals.</title>
+                  <editor>William W. Goodwin</editor>
+                  <imprint>
+                     <pubPlace>Boston</pubPlace>
+                     <publisher>Little, Brown, and Company</publisher>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Press of John Wilson and Son</publisher>
+                     <date>1874</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+            	<ref target="https://archive.org/details/plutarchsmoralst01plutuoft/page/136">The Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	
+      	<p>The following text is encoded in accordance with EpiDoc standards and with the CTS/CITE Architecture</p>
+         <refsDecl n="CTS">
+            
+         	<cRefPattern matchPattern="(\w+)" n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         		<p>This pointer pattern extracts section.</p></cRefPattern>
+         </refsDecl><!--<refsDecl doctype="TEI.2">
+				
+				</refsDecl>--><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="GRC" when="2006">tagging</change>
+      	<change who="Karina Cooper" when="2019-07-15">EpiDoc and CTS conversion</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg096.perseus-eng4">
+      	<div n="urn:cts:greekLit:tlg0007.tlg096.perseus-eng4" type="translation" xml:lang="eng"> <pb xml:id="v.1.p.136"/> <head>Of the Tranquillity of the Mind.</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg096.perseus-eng4" n="1"> <head type="greeting">Plutarch wisheth all health to his Paccius.</head> <p rend="indent">It was late before I received your letter, wherein you make it your request that I would write something to you concerning the tranquillity of the mind, and of those things in the Timaeus which require a more perspicuous interpretation. At the same time a very urgent occasion called upon our common friend and companion Eros to sail directly to Rome; that which quickened him to a greater expedition was a dispatch he received from Fundanus, that best of men, who, as his custom is, always enjoins the making haste. Therefore, wanting full leisure to consummate those things justly which you requested, and being on the other side unwilling to send one from me to your dear self empty handed, I have transcribed my commonplace book, and hastily put together those collections which I had by me concerning this subject; for I thought you a man that did not look after flourishes of style and the affected elegance of language, but only required what was instructive in its nature and useful to us in the conduct of our lives. And I congratulate that bravery of temper in you, that though you are admitted into the confidence of princes, and have obtained so great a vogue of eloquence at the bar that no man hath exceeded you, you have not, like the tragic Merops, suffered yourself to be puffed up with the applause of the multitude, and transported beyond those bounds which are prescribed to <pb xml:id="v.1.p.137"/> our passions; but you call to mind that which you have so often heard, that a rich slipper will not cure the gout, a diamond ring a whitlow, nor will an imperial diadem ease the headache. For what advantage is there in honor, riches, or an interest at court, to remove all perturbations of mind and procure an equal tenor of life, if we do not use them with decency when they are present to our enjoyment, and if we are continually afflicted by their loss when we are deprived of them? And what is this but the province of reason, when the sensual part of us grows turbulent and makes excursions, to check its sallies and bring it again within the limits it hath transgressed, that it may not be carried away and so perverted with the gay appearances of things. For as Xenophon gives advice, we ought to remember the Gods and pay them particular devotions when our affairs are prosperous, that so when an exigency presseth us we may more confidently invoke them, now we have conciliated their favor and made them our friends. So wise men always ruminate upon those arguments which have any efficacy against the troubles of the mind before their calamities happen, that so the remedies being long prepared, they may acquire energy, and work with a more powerful operation. For as angry dogs are exasperated by every one’s rating them, and are flattered to be quiet only by his voice to which they are accustomed; so it is not easy to pacify the brutish affections of the soul but by familiar reasons, and such as are used to be administered in such inward distempers.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg096.perseus-eng4" n="2"> <p rend="indent">Besides, he that affirmed that whosoever would enjoy tranquillity of mind must disengage himself from all private and public concerns, would make us pay dear for our tranquillity by buying it with idleness; as if he should prescribe thus to a sick man: — <quote rend="blockquote"> <l>Lie still, poor wretch, and keep thy bed.</l> <note place="inline" anchored="true"> <bibl>Eurip. Orestes, 258.</bibl> </note> </quote> <pb xml:id="v.1.p.138"/> Now stupefaction is a bad remedy for desperate pain in the body, and verily
