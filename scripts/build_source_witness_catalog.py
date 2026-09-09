@@ -17,7 +17,7 @@ from source_metadata_snapshot import PublicationSnapshot, PublicationChanged, Pu
 
 from jsonschema import Draft202012Validator, FormatChecker
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
-                                    SOURCE_CLAIM_BASENAME, METADATA_LINK_FIELDS)
+                                    SOURCE_CLAIM_BASENAME, METADATA_LINK_FIELDS, _read_json as _read_profile_json)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -167,6 +167,26 @@ def load_artifact_record(repo_root: Path, relative: str) -> dict:
         raise CatalogBuildError(f'{relative}: invalid physical artifact JSON') from exc
     if not isinstance(payload, dict):
         raise CatalogBuildError(f'{relative}: physical artifact record must be an object')
+    return payload
+
+
+def load_link_record(repo_root: Path, relative: str) -> dict:
+    """Read only the exact public native Link shape, never a Corpus fallback."""
+    ref = Path(relative)
+    if (ref.is_absolute() or ref.as_posix() != relative or '..' in ref.parts or ref.name != 'link.json'
+            or not ref.is_relative_to(SOURCE_ROOT / 'links')):
+        raise CatalogBuildError('Link source path is outside its exact native owner')
+    try:
+        payload = _read_profile_json(repo_root, relative)
+        schema_ref = 'ToS/contracts/source-link.schema.json'
+        schema = _read_profile_json(repo_root, schema_ref)
+        if schema.get('$id') != 'https://tree-of-sophia.local/' + schema_ref:
+            raise CatalogBuildError('native Link schema has another owner identity')
+        Draft202012Validator.check_schema(schema)
+        if not Draft202012Validator(schema, format_checker=FormatChecker()).is_valid(payload):
+            raise CatalogBuildError('Link source does not satisfy its exact native contract')
+    except SourceProfileError as error:
+        raise CatalogBuildError(str(error)) from error
     return payload
 
 

@@ -514,6 +514,31 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_link_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md",
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/contracts/source-link.schema.json",
+        "ToS/contracts/object-link-claim-v2.schema.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"
+      ],
+      "reads": [
+        "exact separately delegated subject, URI, observation, forms and evidence; catalog/source byte bindings",
+        "shared selected transaction and continuous native Link and Claim correction histories"
+      ],
+      "writes": [
+        "two separate new Link and Claim homes, source-copy forms, immutable request/runtime/provenance/receipt through shared selected publication"
+      ],
+      "side_effects": "native object.link.create and exact current-authority recovery only; existing subject remains read-only; no external observation, download, rights decision, source admission or old grant expansion",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_link_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

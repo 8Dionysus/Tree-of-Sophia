@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/object-link-claim-v2.schema.json",
+  "title": "Qualified native object-to-Link source Claim",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"properties": {
+      "schema_version": {"const": "tos_object_link_claim_v2"},
+      "claim_type": {"const": "relation"},
+      "subject_ref": {"type": "string", "pattern": "^tos\\.(work|expression|edition|collection|item|artifact)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+      "predicate": {"enum": ["described_by", "metadata_at", "downloadable_at", "rights_statement_at"]},
+      "object": {"type": "string", "pattern": "^tos\\.link\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+      "assertion_layer": {"const": "forensic_observation"},
+      "epistemic_status": {"enum": ["observed", "reported", "uncertain", "disputed"]},
+      "qualifiers": {"required": ["statement", "statement_language", "statement_script", "link_role", "availability_is_rights_conclusion"], "properties": {
+        "statement": {"type": "string", "minLength": 1},
+        "statement_language": {"type": "string", "minLength": 1},
+        "statement_script": {"type": "string", "pattern": "^[A-Z][a-z]{3}$"},
+        "link_role": {"type": "string", "minLength": 1},
+        "availability_is_rights_conclusion": {"const": false}
+      }}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

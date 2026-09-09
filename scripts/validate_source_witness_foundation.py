@@ -585,6 +585,12 @@ def _native_membership_claims(repo_root, issues):
     return _native_compound_claims(repo_root, issues, 'contains_work', verify_compound)
 
 
+def _native_object_link_claims(repo_root, issues):
+    from source_link_commands import PREDICATES, verify_compound
+    return [row for predicate in sorted(PREDICATES)
+            for row in _native_compound_claims(repo_root, issues, predicate, verify_compound)]
+
+
 def _validate_required_provenance_output_digests(
     repo_root: Path,
     event: dict[str, Any],
@@ -15205,6 +15211,18 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
                     and not (repo_root / evidence_ref).is_file()
                 ):
                     issues.append((location, f"unresolved object-Link evidence ref: {evidence_ref}"))
+
+    for location, claim, _event in _native_object_link_claims(repo_root, issues):
+        identity, target, subject_ref = claim['claim_id'], claim['object'], claim['subject_ref']
+        object_link_claim_ids.add(identity)
+        object_link_claim_targets[identity] = target
+        object_link_claim_events[identity] = claim['provenance_event_ref']
+        subject = records_by_id.get(subject_ref)
+        if subject_ref not in artifact_ids and (subject is None or subject[0].get('record_type') not in
+                {'work', 'expression', 'edition', 'collection', 'item'}):
+            issues.append((location, f'unresolved or invalid native object-Link subject: {subject_ref}'))
+        if target not in link_records:
+            issues.append((location, f'unresolved native Link object: {target}'))
 
     for link_id, (link, link_path) in link_records.items():
         location = _relative(link_path, repo_root)

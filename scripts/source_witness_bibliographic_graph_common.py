@@ -19,7 +19,7 @@ from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, S
                                     SOURCE_CLAIM_BASENAME, CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF,
                                     _read_json as _read_profile_json)
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
-                                         CatalogBuildError, artifact_catalog_entry, load_artifact_record,
+                                         CatalogBuildError, artifact_catalog_entry, load_artifact_record, load_link_record,
                                          artifact_display_fields, composite_catalog_entry,
                                          load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
                                          verify_catalog_publication)
@@ -83,7 +83,7 @@ def _object_catalog_refs(repo_root: Path, profiles: SourceRecordProfiles | None 
     allowed = {*OBJECT_CATALOG_REFS, 'link', *profiles.catalog_files, *ADAPTED_RECORD_FILES}
     if set(declared) - allowed:
         raise BibliographicGraphBuildError('catalog contains a family without an understood source profile')
-    for kind, filename in {**profiles.catalog_files, **ADAPTED_RECORD_FILES}.items():
+    for kind, filename in {'link': 'links.jsonl', **profiles.catalog_files, **ADAPTED_RECORD_FILES}.items():
         if kind in declared:
             expected = (CATALOG_ROOT / filename).as_posix()
             if declared[kind] != expected:
@@ -415,6 +415,7 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
                 source_payload = (load_composite_record(repo_root, source_ref) if native_composite
                                   else profiles.verify_entry(expected_type, entry) if expected_type in profiles.profiles
                                   else load_artifact_record(repo_root, source_ref) if expected_type == 'artifact'
+                                  else load_link_record(repo_root, source_ref) if expected_type == 'link'
                                   else load_json(source_path))
             except (CatalogBuildError, SourceProfileError) as exc:
                 raise BibliographicGraphBuildError(str(exc)) from exc
@@ -436,6 +437,9 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
                     raise BibliographicGraphBuildError(str(exc)) from exc
                 if entry != expected:
                     raise BibliographicGraphBuildError(f'{location}: scholarly composite catalog/source mapping drifted')
+            if expected_type == 'link':
+                if source_payload.get('record_id') != record_id:
+                    raise BibliographicGraphBuildError(f'{location}: native Link catalog/source identity drifted')
             material = dict(entry)
             material["_source_record"] = source_payload
             try:
@@ -1239,6 +1243,9 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
     physical = any(entry['record_type'] == 'artifact' for entry in objects.values())
     scholarly = any(entry['record_type'] == 'composite' for entry in objects.values())
     for entry in objects.values():
+        if entry['record_type'] == 'link':
+            ref = 'ToS/contracts/source-link.schema.json'
+            input_digests[ref] = file_digest(repo_root / ref)
         if entry['record_type'] in {'artifact', 'composite'}:
             ref = entry['source_schema_ref']
             input_digests[ref] = file_digest(repo_root / ref)

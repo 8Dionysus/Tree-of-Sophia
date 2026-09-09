@@ -114,10 +114,10 @@ def _scope(config, claims, *, profiles=None):
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
-        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'embodied_by', 'exemplified_by', 'translated_by', 'contains_work'}:
+        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'embodied_by', 'exemplified_by', 'translated_by', 'contains_work', 'described_by', 'metadata_at', 'downloadable_at', 'rights_statement_at'}:
             # A readable Claim profile is not a standalone writer grant. This
-            # predicate changes its parent's exact outgoing closure and belongs
-            # to the separately authorized compound bibliographic operation.
+            # predicate participates in exact native record/Claim closure and
+            # belongs to its separately authorized compound source operation.
             # Owner-local forwarding deliberately receives the same refusal.
             raise PermissionError('this relation requires its compound bibliographic operation')
         if (not isinstance(claim, dict) or not isinstance(claim.get('claim_id'), str)
@@ -234,7 +234,7 @@ def _ground_claims(config, claims, *, initial):
                 # independent allowed_evidence_refs, not source prose.
                 os.close(source._owned_path(root / relative))
                 source._read(root / relative, source.MAX_SET_BYTES)
-            if (not initial and claim.get('predicate') in {'translated_by', 'contains_work'}
+            if (not initial and claim.get('predicate') in {'translated_by', 'contains_work', 'described_by', 'metadata_at', 'downloadable_at', 'rights_statement_at'}
                     and ref.split(':', 1)[0].lower() in {'http', 'https'}):
                 entry = next((entry for entry in prior_claims if entry['claim_id'] == claim['claim_id']), None)
                 if entry is None or entry['source_claim_file_ref'] != config['source_path']:
@@ -444,7 +444,7 @@ def command_handlers():
                        *([identity_proposals.SCHEMA_REF] if schema == identity_proposals.CREATE_CONFIG else [])),
         profile_selection='Exact predicate selects source_claim_profile in relation-types.v1.json; ' + values + '.',
         preconditions=('Requires an absent relation home, explicit Claim/endpoints/evidence and maker allowlists.',
-                       'has_expression, embodied_by, exemplified_by and translated_by creation require their separately delegated native compound handlers.'))
+                       'Native topology, responsibility, membership and object-Link creation require their separately delegated compound handlers.'))
         for version, schema, values in (
             ('v1', source.CLAIM_CONFIG, 'identity objects only, no typed-value grant'),
             ('v2', source.CLAIM_VALUE_CONFIG, 'separately allowlisted temporal values'),

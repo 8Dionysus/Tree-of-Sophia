@@ -158,6 +158,15 @@ rewritten. Native and retained legacy Claims must close exactly over current
 Collection refs; competing accounts retain distinct identities. Serialization
 does not establish completeness, membership truth or source assessment.
 
+An existing bibliographic object or physical Artifact may receive a native
+[Link association](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md)
+through a separately delegated two-home transaction. Link and qualified Claim
+are distinct records; the subject's metadata is not revised. Additive
+`tos_object_link_claim_v2` extends the explicit domain to physical Artifact
+without changing legacy v1. A URI and a caller-reported observation do not
+prove remote retrieval, content identity, rights applicability or permission.
+The older direct navigation projection is not this new reified assertion.
+
 Source-near semantic descriptions use the explicit
 [concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
 not the bibliographic identity family. Their declared research scope and

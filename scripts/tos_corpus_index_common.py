@@ -13,7 +13,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from source_metadata_snapshot import PublicationSnapshot, PublicationChanged
 from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
-                                         load_artifact_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
+                                         load_artifact_record, load_link_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
                                          composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
                                          verify_catalog_publication)
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
@@ -807,6 +807,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
                 source_record = (load_composite_record(REPO_ROOT, source_ref) if native_composite
                                  else profiles.verify_entry(record_type, entry) if record_type in profiles.profiles
                                  else load_artifact_record(REPO_ROOT, source_ref) if record_type == 'artifact'
+                                 else load_link_record(REPO_ROOT, source_ref) if record_type == 'link'
                                  else load_json(REPO_ROOT / source_ref))
                 if record_type == 'artifact' and entry != artifact_catalog_entry(
                         REPO_ROOT, source_record, source_ref, artifact_validators):
@@ -815,6 +816,9 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
                         REPO_ROOT, source_record, source_ref, artifact_validators):
                     raise ValueError(f'{source_ref}: scholarly composite catalog/source mapping drifted')
                 native_metadata = record_type in RECORD_FILES and record_type != 'link'
+                if record_type == 'link' and (source_record['record_id'] != record_id
+                        or hashlib.sha256(canonical_json(source_record).encode('utf-8')).hexdigest() != entry.get('record_sha256')):
+                    raise ValueError(f'{source_ref}: native Link catalog/source binding drifted')
                 if native_metadata:
                     if (not corpus_validator.is_valid(source_record)
                             or source_record.get('record_id') != record_id
@@ -828,7 +832,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
                     properties.update(artifact_display_fields(source_record))
                 if native_composite:
                     properties.update(composite_display_fields(source_record))
-                if record_type in profiles.profiles or native_metadata or record_type == 'artifact' or native_composite:
+                if record_type in profiles.profiles or native_metadata or record_type in {'artifact', 'link'} or native_composite:
                     forms = load_metadata_forms(REPO_ROOT, source_ref, source_record, access_allowed=True)
                     if forms is not None:
                         forms_ref, _forms_raw, materialized = forms

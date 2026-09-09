@@ -317,13 +317,15 @@ def _event(adapter, scope, request, before, outputs, environment, dependencies, 
     request_ref = (base / adapter.REQUEST_FILE).as_posix()
     request_raw = source._canonical(request) + b'\n'
     environment_raw = source._canonical(environment) + b'\n'
-    archive = revisions._archive_path({'record_id': scope[adapter.PARENT_ID]}, request['expected_revision'])
     def entity(ref, raw, role):
         return {'entity_ref': ref, 'role': role, 'sha256': source._digest(raw)[7:], 'size_bytes': len(raw),
             'media_type': 'application/x-ndjson' if ref.endswith('.jsonl') else 'application/json',
             'availability': 'owner_local', 'content_disclosure': 'public_metadata_only',
             'fixity_verified': False, 'fixity_verified_at': None}
-    prior = {str(archive / (source._digest(raw)[7:] + '.blob')): raw for raw in before.values()}
+    prior = {}
+    if before:
+        archive = revisions._archive_path({'record_id': scope[adapter.PARENT_ID]}, request['expected_revision'])
+        prior = {str(archive / (source._digest(raw)[7:] + '.blob')): raw for raw in before.values()}
     environment_ref = (base / adapter.ENVIRONMENT_FILE).as_posix()
     script_digest = dependencies['implementation'][adapter.MODULE_REF]
     return {

@@ -102,6 +102,10 @@ evidence.
   Collection and publishes a separate Claim; the existing Work and legacy
   membership streams remain unchanged. Empty initial refs are not a claim
   of historical emptiness or completeness.
+- Keep Link and its qualified association Claim in separate exact homes.
+  Native object-Link creation leaves its existing subject unchanged and uses
+  additive v2 Claims for the explicit Artifact-inclusive domain. Legacy v1
+  remains intact; availability and rights-statement addresses grant no rights.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
 - Route extraction runtimes, model caches, benchmarks, and large working

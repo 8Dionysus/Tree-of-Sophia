@@ -1608,6 +1608,9 @@ assertions. Its independently delegated
 [Collection growth route](docs/NATIVE_COLLECTION_GROWTH.md) attaches an existing
 Work through a qualified `contains_work` Claim. Other native kinds retain their
 own source contracts and related-record closure.
+Native [object-Link growth](docs/NATIVE_OBJECT_LINK_GROWTH.md) creates a Link
+and qualified association Claim atomically under its own grant, including an
+existing physical Artifact without changing that subject's metadata.
 Relationship assertions use separately delegated `claims.create`; a label,
 role word or metadata creation receipt cannot supply them.
 

@@ -230,6 +230,8 @@ def _scope(config, request, record, *, profiles=None):
         verify_compound(Path(config['source_root']), config['source_path'], record)
         validate_qualified_membership_claim(record)
     if config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG:
+        if record.get('schema_version') == 'tos_object_link_claim_v2':
+            raise PermissionError('native object-Link v2 does not delegate an assertion-layer transition')
         _layer_transition(request['layer_transition'])
         if (set(fields) != {'assertion_layer'}
                 or request['layer_transition'] not in config['allowed_layer_transitions']
@@ -237,6 +239,10 @@ def _scope(config, request, record, *, profiles=None):
             raise PermissionError('Claim layer transition is not explicitly delegated')
         # Current authority is checked before replay; predecessor matching belongs
         # to _advance, using the archived predecessor for a retained request.
+    if record.get('schema_version') == 'tos_object_link_claim_v2':
+        from source_link_commands import verify_compound, validate_qualified_link_claim
+        verify_compound(Path(config['source_root']), config['source_path'], record)
+        validate_qualified_link_claim(record)
     from source_claim_commands import value_is_delegated, _value_scope
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     if config['schema_version'] == identity_proposals.REVISION_CONFIG and record.get('predicate') != identity_proposals.PREDICATE:
@@ -283,6 +289,9 @@ def _proposal(config, path, files, record, request):
         from source_bibliographic_topology import validate_qualified_membership_claim
         from source_collection_commands import IMPLEMENTATIONS as responsibility_implementations
         validate_qualified_membership_claim(revised)
+    if record.get('schema_version') == 'tos_object_link_claim_v2':
+        from source_link_commands import validate_qualified_link_claim, IMPLEMENTATIONS as responsibility_implementations
+        validate_qualified_link_claim(revised)
     from source_claim_commands import _ground_claims
     _, grounding, bindings = _ground_claims(config, [revised], initial=False)
     dependencies = source._digest(source._canonical({'grounding': grounding,
