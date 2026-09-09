@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">De Optimo Genere Oratorum</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-04-14">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi041.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+        
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno02ciceuoft/page/192/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+          <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." n="chunk" unit="chapter"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      <body>
+       
+
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi041.perseus-lat2">
+  <head rend="align(center)"><abbr>M.<expan> <ex>Marci</ex> </expan> </abbr>Tvlli Ciceronis De Optimo Genere Oratorvm</head> 
+
+   <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi041.perseus-lat2" n="1"> <p rend="align(indent)"> <milestone n="1" unit="chapter"/> <reg>oratorvm</reg> genera esse dicuntur tamquam poetarum; id secus est, nam alterum est multiplex. Poematis enim tragici comici epici melici etiam ac dithyrambici, quo magis<note>magis <hi rend="italic">codd.</hi>: rarius <hi rend="italic">Hedicke</hi> </note> est tractatum <del>a Latinis<note>a Latinis <hi rend="italic">secl. Friedrich</hi> </note> </del>, suum<note>quo ... suum <hi rend="italic">secl. Jahn</hi> </note> cuiusque<note>suum cuiusque <hi rend="italic">Manutius</hi>: suum quo ius <hi rend="italic">GP</hi>: suumque ius <foreign xml:lang="grc">ς</foreign>: suum cuivis <hi rend="italic">Jahn. Totum locum Mommsenio duce sic refinxit Jahn</hi>: id secus est; nam alterum est multiplex poematis tragici comici epici, melici etiam ac dithyrambici, suum cuivis et diversum a reliquis</note> est, diversum a reliquis. Itaque et in tragoedia comicum vitiosum est et in comoedia turpe tragicum; et in ceteris suus est cuique<note>cuique <hi rend="italic">G</hi>: cuiusque <hi rend="italic">P</hi> </note> certus<note>atque certus <hi rend="italic">maluit Hedicke</hi> </note> sonus et quaedam intellegentibus nota vox. </p> </div> 
+
+   <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi041.perseus-lat2" n="2"> <p> <reg>oratorum</reg> autem si quis ita numerat plura genera, ut alios grandis aut gravis aut copiosos, alios tenuis aut subtilis aut brevis, alios eis interiectos et tamquam medios putet, <emph rend="italic">de </emph> hominibus dicit<note>de hominibus dicit <hi rend="italic">Orelli</hi>: hominibus deicit <hi rend="italic">GP</hi> </note> aliquid, de re parum. In re enim quid optimum sit quaeritur, in homine dicitur quod est. Itaque licet dicere et Ennium summum epicum poetam, si cui ita videtur, et Pacuvium tragicum et Caecilium fortasse comicum. </p> </div> 
+
+   <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi041.perseus-lat2" n="3"> <p> <reg>oratorem</reg> genere non divido; perfectum enim quaero. Vnum est autem genus perfecti, a quo qui absunt, non genere differunt, ut Terentius ab Accio, sed in eodem genere non sunt pares. Optimus est enim orator, qui dicendo animos audientium et docet et delectat et permovet. Docere debitum est, delectare honorarium, permovere <pb n="p.2085"/> necessarium. </p> </div> 
+
+   <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi041.perseus-lat2" n="4"> <p> <reg>haec</reg> ut alius melius quam alius, concedendum est; verum id fit non genere sed gradu. Optimum quidem unum est et proximum quod ei simillimum. Ex quo perspicuum est, quod optimo dissimillimum sit, id esse deterrimum. <milestone n="2" unit="chapter"/> <reg>nam</reg> quoniam eloquentia constat ex verbis et ex sententiis, perficiendum est, ut pure et emendate loquentes, quod est Latine, verborum praeterea et propriorum et translatorum elegantiam persequamur: in propriis ut lautissima eligamus, in translatis ut similitudinem secuti verecunde utamur alienis. </p> </div> 
+
+   <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi041.perseus-lat2" n="5"> <p> <reg>sententiarum</reg> autem toti dem genera sunt quot dixi esse laudum. Sunt enim docendi acutae, delectandi quasi argutae, commovendi graves. Sed et verborum est structura quaedam duas res efficiens, numerum et levitatem<note>lenitatem <hi rend="italic">maluit Bentley</hi> (<hi rend="italic">ad Hor. Art. Poet.</hi> 26)</note>, et sententiae suam compositionem habent, <emph rend="italic">et</emph> <note>et <hi rend="italic">add. Lambinus</hi> </note> ad probandam rem accommodatum ordinem. Sed earum omnium rerum <del>ut aedificiorum<note>ut aedificioru

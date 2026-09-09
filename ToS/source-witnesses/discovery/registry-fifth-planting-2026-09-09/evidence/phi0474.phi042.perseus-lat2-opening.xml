@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Topica</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+             <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-04-14">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi042.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno02ciceuoft/page/240/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+         
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." n="chunk" unit="chapter"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body>
+   <div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi042.perseus-lat2">
+
+         <head rend="align(center)"> <abbr>M.<expan> <ex>Marci</ex> </expan> </abbr>Tvlli Ciceronis Topica</head> 
+         <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi042.perseus-lat2" n="sigla">
+      <head rend="align(center)">SIGLA</head>
+      <p> <hi rend="italic">O</hi> = cod. Ottobonianus 1406, saec. x</p>
+      <p>(<hi rend="italic">f</hi>) = cod. Vitebergensis, saec. xv (1432)</p>
+      <p>(<hi rend="italic">A</hi>) = cod. Vossianus 84, saec. x</p>
+      <p>(<hi rend="italic">B</hi>) = cod. Vossianus 86, saec. x</p>
+      <p> <hi rend="italic">m</hi> = cod. Marcianus 257, saec. x</p>
+      <p> <hi rend="italic">A</hi> (<hi rend="italic">A</hi>) (<hi rend="italic">B</hi>) <hi rend="italic">m</hi> </p>
+      <p>(<hi rend="italic">a</hi>) = cod. Einsiedlensis 324, saec. x</p>
+      <p>(<hi rend="italic">b</hi>) = cod. Sangallensis 830, saec. x</p>
+      <p>(<hi rend="italic">c</hi>) = cod. Sangallensis 854, saec. xi</p>
+      <p>(<hi rend="italic">d</hi>) = cod. Sangallensis 818, saec. xi</p>
+      <p> <hi rend="italic">V</hi> = cod. Vossianus 70, saec. x</p>
+      <p> <hi rend="italic">L</hi> = cod. Leidensis 90, saec. xi</p>
+      <p>(<foreign xml:lang="grc">β</foreign>) = cod. Bernensis 219°, saec. xi</p>
+   </div>
+
+<div type="textpart" n="1" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi042.perseus-lat2"> <p rend="align(indent)"> <milestone n="1" unit="chapter"/> <reg>maiores</reg> nos res scribere ingressos, C. Trebati, et his libris, quos brevi tempore satis multos edidimus, digniores e cursu ipso revocavit voluntas tua. Cum enim mecum in Tusculano esses et in bibliotheca separatim uterque nostrum ad suum studium libellos quos vellet evolveret, incidisti in Aristotelis Topica quaedam, quae sunt ab illo pluribus libris explicata. Qua inscriptione commotus continuo a me librorum eorum sententiam requisisti; </p> </div> 
+
+<div type="textpart" n="2" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi042.perseus-lat2"> <p> <reg>quam</reg> cum tibi exposuissem, disciplinam inveniendorum argumentorum, ut sine ullo errore ad ea<note>ad ea <hi rend="italic">Klotz ex Boethio</hi>: ad eam <hi rend="italic">codd.</hi> </note> ratione et via<note>ratione et via <hi rend="italic">vulg. ex Boethio</hi>: rationem via <hi rend="italic">codd.</hi> </note> perveniremus, ab Aristotele inventam illis libris contineri, verecunde tu quidem ut omnia, sed tamen facile ut cernerem te ardere studio, mecum ut tibi illa traderem egisti. Cum autem ego te non tam vitandi laboris mei causa quam quia tua id interesse arbitrarer, vel ut eos per te ipse legeres vel ut totam rationem a doctissimo quodam rhetore acciperes, hortatus essem, utrumque, ut ex te audiebam, es expertus. Sed a libris te obscuritas reiecit; </p> </div> 
+
+<div type="textpart" n="3" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi042.perseus-lat2"> <p> <reg>rhetor</reg> autem ille magnus haec, ut opinor, Aristotelia se ignorare respondit. Quod quidem minime sum admiratus eum philosophum rhetori non esse cognitum, qui ab ipsis philosophis praeter admodum paucos ignoretur; quibus eo minus ignoscendum est, quod non modo rebus eis quae ab illo dictae et inventae <pb n="p.4003"/>  sunt adlici debuerunt, sed dicendi quoque incredibili quadam cum copia tum etiam suavitate. </p> </div> 
+
+<div type="textpart" n="4" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi042.perseus-lat2"> <p> <reg>non</reg> potui igitur tibi saepius hoc roganti et tamen verenti ne mihi gravis esses—facile enim id cernebam—debere diutius, ne ipsi iuris interpreti fieri videretur iniuria. Etenim cum tu mihi meisque multa saepe scripsisses, veritus sum ne, si ego gravarer, aut ingratum id aut superbum videretur. Sed dum fuimus una, tu optimus es testis quam fuerim occupatus; </p> </div> 
+
+<div type="textpart" n="5" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi042.perseus-lat2"> <p> <reg>ut</reg> autem a

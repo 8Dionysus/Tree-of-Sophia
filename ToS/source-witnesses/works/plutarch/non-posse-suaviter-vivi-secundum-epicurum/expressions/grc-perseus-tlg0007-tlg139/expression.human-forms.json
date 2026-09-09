@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+    "version": 1,
+    "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.affc6e8fdd0469ac70f23fa92a8c8ce1c4760559232e69e28222519786bb9114",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+        "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+            "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0f1a4d4bfb5253a82167fc0e6feafe88b7a8a67935bb6c15c1332dc0663c7cbd",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a",
+        "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+      "request_digest": "sha256:2489abb828ad70e3acc2b0b7de4f5b749692cbc81ddce9f5e8d4861934976226",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:fa799b08d67dff1d36b214756c79e707d1d5f42113416b678d956b2b79d6206f",
+      "recorded_at": "2026-09-09T15:55:24.781048+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139",
+        "version": 1,
+        "digest": "sha256:4f68235e97dc670cc030a2341f1913867572e3a85c6673bc63ed56e4c92f110a"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.affc6e8fdd0469ac70f23fa92a8c8ce1c4760559232e69e28222519786bb9114",
+          "version": 1,
+          "digest": "sha256:aae2a4eb7512207321c114e6c40859cb22dbd78633fee2f18039b4b24ee1ae7e"
+        },
+        {
+          "id": "tos.form.metadata.0f1a4d4bfb5253a82167fc0e6feafe88b7a8a67935bb6c15c1332dc0663c7cbd",
+          "version": 1,
+          "digest": "sha256:4a12e10657a79d4de6513e1e5a3a9a5eda8325467e03a161656494fef286da1e"
+        }
+      ]
+    }
+  ]
+}

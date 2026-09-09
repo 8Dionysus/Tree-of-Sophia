@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+    "version": 1,
+    "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.ff85a48dc14e0b0a5d6ed41eb45b29f61dfd2d9987a4e10c115b77fcf106d1b7",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+        "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+            "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.aa2b3b2d9a6c925289dbd598f6ab7e22acf5352406ab95291b5e99263834425c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8",
+        "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+      "request_digest": "sha256:cbfcb09170094dd9cfcb1b8ca2ba7ad5efd879f6063bb1fa85fa949550470bd6",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:da864cd37d9ff57b10be5fb96ec25a1d84ff5ec47e3cc225943fbdb820c7d0a5",
+      "recorded_at": "2026-09-09T15:55:21.229527+00:00",
+      "source": {
+        "id": "tos.work.plutarch.epitome-libri-de-animae-procreatione-in-timaeo",
+        "version": 1,
+        "digest": "sha256:4e11fff6bcb8aae637db7034e7908233144ca3a9b84d203a8bb4fcd2b09d94a8"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.ff85a48dc14e0b0a5d6ed41eb45b29f61dfd2d9987a4e10c115b77fcf106d1b7",
+          "version": 1,
+          "digest": "sha256:9415bcebb9148f6daea9402c36b7c8b8d6bcbd9c846496703fb3ea160377b93f"
+        },
+        {
+          "id": "tos.form.metadata.aa2b3b2d9a6c925289dbd598f6ab7e22acf5352406ab95291b5e99263834425c",
+          "version": 1,
+          "digest": "sha256:08076d07877c74171d24338593eeb591264492433343207e96b28f2dc1b69e93"
+        }
+      ]
+    }
+  ]
+}

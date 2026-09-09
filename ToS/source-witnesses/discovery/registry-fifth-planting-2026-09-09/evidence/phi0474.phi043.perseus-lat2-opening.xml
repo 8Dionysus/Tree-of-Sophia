@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">De Re Publica</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Carl Friedrich Wilhelm Mueller</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi043.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+        
+         
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Librorum de Re Publica Sex</title>
+                  <editor>Carl Friedrich Wilhelm Mueller</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1889</date>
+                  </imprint>
+               </monogr>
+               <ref target="https://archive.org/details/mtuliciceronisl00mlgoog/page/n6/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <editorialDecl><correction><p>OCR cleanup</p></correction></editorialDecl>
+         
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts book and section.</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin
+	</language>
+            <language ident="grc">Greek
+      </language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat"> 
+  <body> 
+
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi043.perseus-lat2"> 
+<pb n="p.272"/> 
+<div type="textpart" n="1" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi043.perseus-lat2"> 
+<head rend="align(center)">Liber Primus</head> 
+
+<div type="textpart" n="1" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi043.perseus-lat2:1"> <p><milestone unit="chapter" n="1"/> 
+<gap reason="lost" extent="34 pages" rend=". . . ."/> <emph rend="italic">im</emph>petu liberavissent, nec C. Duelius, A. Atilius, L. Metellus terrore Karthaginis, non duo Scipiones oriens incendium belli Punici secundi sanguine suo restinxissent, nec id excitatum maioribus copiis aut Q. Maximus enervavisset aut M. Marcellus contudisset aut a portis huius urbis avolsum P. Africanus compulisset intra hostium moenia. M. vero Catoni, homini ignoto et novo, quo omnes, qui isdem rebus studemus, quasi exemplari ad industriam virtutemque ducimur, certe licuit Tusculi se in otio delectare salubri et propinquo loco. Sed homo demens, ut isti putant, cum cogeret eum necessitas nulla, in his undis et tempestatibus ad summam senectutem maluit iactari quam in illa tranquillitate atque otio iucundissime vivere. Omitto innumerabilis viros, quorum singuli saluti huic civitati fuerunt, et quia <pb n="p.273"/> sunt <emph rend="italic">haud</emph> procul ab aetatis huius memoria, commemorare eos desino, ne quis se aut suorum aliquem praetermissum queratur. Unum hoc definio, tantam esse necessitatem virtutis generi hominum a natura tantumque amorem ad communem salutem defendendam datum, ut ea vis omnia blandimenta voluptatis otiique vicerit. </p> </div>
+
+<div type="textpart" n="2" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi043.perseus-lat2:1"><p rend="align(indent)"><milestone unit="chapter" n="2"/>
+Nec vero habere virtutem satis est quasi artem aliquam, nisi utare; etsi ars quidem, cum ea non utare, scientia tamen ipsa teneri potest, virtus in usu sui tota posita est; usus autem eius est maximus civitatis gubernatio et earum ipsarum rerum, quas isti in angulis personant, reapse, non oratione perfectio. Nihil enim dicitur a philosophis, quod quidem recte honesteque dicatur, quod <emph rend="italic">non</emph> ab iis partum confirmatumque sit, a quibus civitatibus iura discripta sunt. Unde enim pietas aut a quibus religio? unde ius aut gentium aut hoc ipsum civile quod dicitur? unde iustitia, fides, aequitas? unde pudor, continentia, fuga turpitudinis, adpetentia laudis et honestatis? unde in laboribus et periculis fortitudo? Nempe ab iis, qui haec disciplinis informata alia moribus confirmarunt, sanxerunt autem alia legibus. </p> </div> 
+
+<div type="textpart" n="3" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi043.perseus-lat2:1"> <p> Quin etiam Xenocraten ferunt, nobilem in primis philosophum, cum quaereretur ex eo, quid adsequerentur eius discipuli, respondisse, ut id sua sponte facerent, quod cogerentur facere legibus. Ergo ille civis, qui id cogit omnis imperio legumque poena, quod vix paucis persuadere oratione philosophi possunt, etiam iis, qui illa disputant, ipsis est praeferendus doctoribus. Quae est enim istorum oratio tam exquisita, quae sit anteponenda bene constitutae civitati publico iure et moribus? Equidem quem ad modum <q>urbes magnas atque imperiosas</q>, ut appellat Ennius, viculis et castellis praeferendas puto, sic eos, qui his urbibus consilio atque auctoritate praesunt, iis, qui omnis negotii publici expertes sint, <pb n="p.274"/> longe duco sapientia ipsa esse anteponendos. Et quoniam maxime rapimur ad opes augendas generis humani studemusque nostris consiliis et laboribus tutiorem et opulentiorem vitam hominum reddere et ad hanc voluptatem ipsius naturae stimulis incitamur, teneamus eum cursum, qui semper fuit optimi cuiusque, neque ea signa audiamus, quae receptui canunt, ut eos etiam revocent, qui iam processerint. </p> </div> 
+
+<div type="textpart" n="4" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi043.perseus-lat2:1"> <p rend="align(indent)"> <milestone un

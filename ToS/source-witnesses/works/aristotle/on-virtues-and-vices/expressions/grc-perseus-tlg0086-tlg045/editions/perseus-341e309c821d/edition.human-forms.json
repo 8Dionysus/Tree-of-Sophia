@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1f2c6de67c978d802cbe7a0108e0db1ab32b59737970e2b99826fb4941cbeec4",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+        "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+            "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2d70b5461827a1d0e2dea4ab10731cc411422f315a1c43ad971f04f0258066f7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed",
+        "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+      "request_digest": "sha256:90f55dc35eaf2d88ec8d3bdd3ed757652dc105ebadd5753101783a6c4c2c329a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:39faf46a296abe666c3439d467e62f0ea2e15ebf1e1b861803775912b8127a17",
+      "recorded_at": "2026-09-09T15:55:25.092070+00:00",
+      "source": {
+        "id": "tos.edition.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:6738e0f2101525041057b73ec3387bf8edb24ada1ec91ea9cc86328de9fbcfed"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.1f2c6de67c978d802cbe7a0108e0db1ab32b59737970e2b99826fb4941cbeec4",
+          "version": 1,
+          "digest": "sha256:cfd00555791bf702fd98eff3596b35404b8932e160c470ab011b3da1a81c3198"
+        },
+        {
+          "id": "tos.form.metadata.2d70b5461827a1d0e2dea4ab10731cc411422f315a1c43ad971f04f0258066f7",
+          "version": 1,
+          "digest": "sha256:507555a6495ce3ba921f4489c77bac9e6db3037edc073eb26f1eeeb8fa2c5a70"
+        }
+      ]
+    }
+  ]
+}

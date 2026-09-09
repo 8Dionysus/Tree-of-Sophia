@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+    "version": 1,
+    "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f7ec17a73138ffccb552d18a3943210a9136ceb1b40c6ba8ed5fbc9563f7bec8",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+        "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+            "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0f1611221cb7dc67419cdb1b530c33f4acfbda374490f489389144af9576f46e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663",
+        "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+      "request_digest": "sha256:828616c051c0a7365d88d64d0b79f19803d625d86fcafba772e2dc36158fe069",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:8e0dd95e4dea08e683e17ea20974b82aad6d5117794484ac9274cc2b1d2f0545",
+      "recorded_at": "2026-09-09T15:55:24.368970+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102",
+        "version": 1,
+        "digest": "sha256:e939696b6df5fe8872f2bbed7de52716405deb9b99a0e8674ef144f9c73fc663"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.f7ec17a73138ffccb552d18a3943210a9136ceb1b40c6ba8ed5fbc9563f7bec8",
+          "version": 1,
+          "digest": "sha256:987cec06ba1acbba31f8fdbed2c5318e8ba7f5c89cdb5a6ab08cd32c5ff3cb3d"
+        },
+        {
+          "id": "tos.form.metadata.0f1611221cb7dc67419cdb1b530c33f4acfbda374490f489389144af9576f46e",
+          "version": 1,
+          "digest": "sha256:da605c050378fdca648fa3261b08b5b707cf9f119212f535cfa8ef7c74aea914"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+		<fileDesc>
+		<titleStmt>
+		<title> Economics</title>
+		<author>Aristotle</author> 
+		  <editor role="translator">George Cyril Armstrong</editor>    
+		<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		    <resp>Prepared under the supervision of</resp>
+		    <name>Lisa Cerrato</name>
+		    <name>William Merrill</name>
+		    <name>Elli Mylonas</name>
+		    <name>David Smith</name>
+		</respStmt>
+		<funder n="org:AnnCPB" >The Annenberg CPB/Project</funder>
+			</titleStmt>
+	
+	<publicationStmt>
+	    <publisher>Trustees of Tufts University</publisher>
+	    <pubPlace>Medford, MA</pubPlace>
+	    <authority>Perseus Digital Library Project</authority>
+	    <date type="release" when="1996" cert="high">Perseus 2.0</date>
+	    <idno type="filename">tlg0086.tlg029.perseus-eng2.xml</idno>
+	    <availability>
+	        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+	    </availability>
+	</publicationStmt>
+			
+	<sourceDesc>
+	    <biblStruct>
+	        <monogr>
+	            <title xml:lang="mul">The Metaphysics; The Oeconomica and The Magna Moralia</title>
+	            <author>Aristotle</author>
+	            <editor>George Cyril Armstrong</editor>
+	            <imprint>
+	                <publisher>William Heinemann Ltd.</publisher>
+	                <pubPlace>London</pubPlace>
+	                <publisher>Harvard University Press</publisher>
+	                <pubPlace>Cambridge, MA</pubPlace>
+	                <date type="printing">1935</date>
+	            </imprint>
+	        </monogr>
+	        <series>
+	            <title>Loeb Classical Library</title>
+	        </series>
+	        <ref target="https://archive.org/details/in.ernet.dli.2015.183332/page/325/mode/2up?view=theater">Internet Archive</ref>
+	    </biblStruct>
+	</sourceDesc>
+		</fileDesc>
+
+<encodingDesc>
+    <refsDecl n="CTS">
+        <cRefPattern n="subsection" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+            <p>This pointer pattern extracts book and section and subsection.</p>
+        </cRefPattern>            
+        <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts book and section.</p>
+        </cRefPattern>
+        <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts book.</p>
+        </cRefPattern>
+    </refsDecl>
+    
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+
+<profileDesc>
+    <langUsage>
+        <language ident="eng">English </language>
+        <language ident="grc">Greek</language>
+        <language ident="lat">Latin</language>
+    </langUsage>
+</profileDesc>
+
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2024-05-02" who="Lisa Cerrato">EpiDoc and CTS conversion and general header review.</change>
+<change when="2010-06-16" who="rsingh04">cleaned up bad place tags in a few texts and cleaned up the document format</change> 
+     <change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+    <change when="2009-10-08" who="rsingh04">began reorganizing texts module by collection.  created separate work directory in texts module to keep hopper files separate from in progress files</change>
+    <change when="2009-07-15" who="CEH">edited entity tags CEH</change>
+       
+    <change when="2009-05-27" who="rsingh04">added cvs log keyword</change>
+    <change when="1993-07-27" who="EM">Put Bekker line 1 milestone tags at the beginning of each section so that the incoming list creator would work. Changed RREFDECL.</change>
+    <change when="1993" who="WPM">Tagged in conformance with Prose.e dtd.</change>
+    <change when="1992">Text was scanned at St. Olaf Spring, 1992.</change>
+</revisionDesc>
+    </teiHeader>
+
+        
+<text xml:lang="eng">
+<body xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2">
+<div n="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2" type="translation" xml:lang="eng">			
+<div type="textpart" subtype="book" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1" n="1"> 
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.1" n="1">
+
+<p rend="align(indent)"><milestone unit="page" resp="Bekker" n="1343a"/> <milestone unit="line" resp="Bekker" n="1"/>Between Housecraft (the art of governing a Household or Home) and Statecraft (the art of governing a Nation) there are differences corresponding to those between the two kinds of community over which they severally preside. There is, however, this further difference: that whereas the government of a nation is in many hands, a household has but a single ruler.</p>
+<p rend="align(indent)">Now some arts are divided into two separate branches, one concerned with the making of an object—for example a lyre or a flute—and the other with its use when made. Statecraft on the other hand shows us how to build up a nation from its beginning, as well as how to order rightly a nation that already exists; from which we infer that Housecraft also tells us first how to acquire a household and then how to conduct its affairs.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.1" n="2">
+<p rend="align(indent)">By a Nation we mean an assemblage of houses, lands, and property sufficient to enable the inhabitants to lead a civilized life. This is proved by the fact that when such a life is no longer possible for them, the tie itself which unites them is dissolved. Moreover, it is with such a life in view that the association is originally formed; and the object for which a thing exists and has come into being is in fact the very essence of that particular thing.</p>
+<p rend="align(indent)">From this definition of a Nation, it is evident that the art of Housecraft is older than that of Statecraft, since the Household, which it creates, is older; being a component part of the Nation created by Statecraft.</p>
+<p rend="align(indent)">Accordingly we must consider the nature of Housecraft, and what the Household, which it creates, actually is.</p></div></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1" n="2"> 
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.2" n="1">
+<p rend="align(indent)">The component parts of a household are (l) human beings, and (2) goods and chattels. And as households are no exception to the rule that the nature of a thing is first studied in its barest and simplest form, <milestone unit="line" resp="Bekker" n="20"/>we will follow Hesiod and begin by postulating<q rend="double">Homestead first, and a woman; a plough-ox hardy to furrow.</q> For the steading takes precedence among our physical necessities, and the woman among our free associates. It is, therefore, one of the tasks of Homecraft to set in order the relation between man and woman; in other words, to see that it is what it ought to be.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.2" n="2">
+<p rend="align(indent)">Of occupations attendant on our goods and chattels, those come first which are natural. Among these precedence is given to the one which cultivates the land; those like mining, which extract wealth from it, take the second place. Agriculture is the most honest of all such occupations; seeing that the wealth it brings is not derived from other men. Herein it is distinguished from trade and the wage-earning employments, which acquire wealth from others by their consent; and from war, which wrings it from them perforce. It is also a natural occupation; since by Nature’s appointment all creatures receive sustenance from their mother,  <milestone unit="page" resp="Bekker" n="1343b"/><milestone unit="line" resp="Bekker" n="1"/> and mankind like the rest from their common mother the earth.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.2" n="3">
+<p rend="align(indent)"> And besides all this, agriculture contributes notably to the making of a manly character; because, unlike the mechanical arts, it does not cripple and weaken the bodies of those engaged in it, but inures them to exposure and toil and invigorates them to face the perils of war. For the farmer’s possessions, unlike those of other men, lie outside the city’s defences.</p></div></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1" n="3"> 
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.3" n="1">
+<p rend="align(indent)">When we turn our attention to the human part of the household, it is the woman who makes the first claim upon it; 〈for the natural comes first, as we have said,〉 and nothing is more natural than the tie between female and male. For we have elsewhere laid down the premiss<note resp="Armstrong">Cf. <bibl n="Aristot. Pol. 1.1252a.1">Aristot. Pol. 1.1</bibl>.</note> that Nature is intent on multiplying severally her types; and this is true of every animal in particular. Neither the female, however, can effect this without the male, nor the male without the female; whence the union of the sexes has of necessity arisen.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.3" n="2">
+<p rend="align(indent)"> Now among the lower animals, this union is irrational in character; it exists merely for the purpose of procreation, and lasts only so long as the parents are occupied in producing their brood. In tame animals, on the other hand, and those which possess a greater share of intelligence, it has assumed a more complex form; for in their case we see more examples of mutual help, goodwill, and co-operation. </p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.3" n="3"> 
+<p>It is, however, in the human species that this complexity is most marked; since the co-operation between woman and man aims not merely at existence, but at a happy  <milestone unit="line" resp="Bekker" n="20"/>existence. Nor do mankind beget children merely to pay the service they owe to Nature, but also that they may themselves receive a benefit; for the toil they undergo while they are strong and their offspring is still weak is repaid by that offspring when it in turn is grown strong and the parents by reason of age are weak.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.3" n="4">
+<p rend="align(indent)"> At the same time Nature, by this cycle of changes, fulfills her purpose of perpetuating existence; preserving the type when she is unable to preserve the individual.<note resp="Armstrong">Cf. <bibl n="Aristot. GA 731b">Aristot. De Gen. An. 731b.</bibl></note> And so with this purpose in view Divine Providence has fashioned the nature of man and of woman for their partnership. For they are distinguished from each other by the possession of faculties not adapted in every case to the same tasks, but in some cases for opposite ones, though contributing to the same end. For Providence made man stronger and woman weaker, <milestone unit="page" resp="Bekker" n="1344a"/><milestone unit="line" resp="Bekker" n="1"/>so that he in virtue of his manly prowess may be more ready to defend the home, and she, by reason of her timid nature, more ready to keep watch over it; and while he brings in fresh supplies from without, she may keep safe what lies within. In handicrafts again, woman was given a sedentary patience, though denied stamina for endurance of exposure; while man, though inferior to her in quiet employments, is endowed with vigor for every active occupation. In the production of children both share alike; but each makes a different contribution to their upbringing. It is the mother who nurtures, and the father who educates.</p></div></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1" n="4"> 
+ <div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.4" n="1">
+<p rend="align(indent)"> We begin then with the rules that should govern a man’s treatment of his wife. And the first of these forbids him to do her wrong; for if he observes this, he is not likely himself to suffer wrong at her hands. As the Pythagoreans declare, even the common rule or custom of mankind thus ordains, forbidding all wrong to a wife as stringently as though she were a suppliant whom one has raised from the hearthstone. And a man does wrong to his wife when he associates with other women.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.4" n="2">
+<p rend="align(indent)"> As regards the intercourse of marriage, wives should neither importune their husbands, nor be restless in their absence; but a man should accustom his wife to be content whether he is at home or away. Good also is the advice of Hesiod: <cit> <quote type="verse"> <l met="dactylic">Take thee a maiden to wife, and teach her ways of discretion.</l> </quote> <bibl n="Hes. WD 699">Hes. WD 699</bibl> </cit> For differences of ways and habits are little conducive to affection.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.4" n="3">
+<p rend="align(indent)"> As regards adornment: it is not well <milestone unit="line" resp="Bekker" n="20"/>that souls should approach one another in borrowed plumes, nor is it well in the case of bodies. Intercourse which depends 〈for its charm〉 upon outward adornment differs in no respect from that of figures on the stage in their conventional attire.</p></div></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1" n="5"> 
+ <div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.5" n="1">
+<p rend="align(indent)"> Of property, the first and most indispensable kind is that which is also best and most amenable to Housecraft; and this is the human chattel. Our first step therefore must be to procure good slaves. Of slaves there are two kinds; those in positions of trust, and the laborers. And since it is matter of experience that the character of the young can be moulded by training, when we require to charge slaves with tasks befitting the free, we have not only to procure the slaves, but to bring them up 〈for the trust〉.</p></div>
+<div type="textpart" subtype="subsection" xml:base="urn:cts:greekLit:tlg0086.tlg029.perseus-eng2:1.5" n="2">
+<p rend="align(indent)"> In our intercourse with slaves we must neither suffer them to be insolent nor treat them with cruelty. A share of honor should be given to those who are doing more of a freeman’s work, and abundance of food to those who are laboring with their hands. And whereas the use of wine renders even free men insolent, so that in many countries they too refrain from it—as, for instance, the Carthaginians do when they are on campaign—it follows that we must either deny wine to slaves altogether, or reserve it for rare occasions.</p></div>
+<div type="textpart" subtype="subsection" xml:

@@ -1,0 +1,1166 @@
+{
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "review_scope": "21 Latin source editions at explicit A29 corpus anchors",
+  "reviewer_ref": "model:codex",
+  "targets": [
+    {
+      "target_slug": "de-inventione",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Inventione Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "on-oratory",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact On Oratory Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "partitiones-oratoriae",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Partitiones Oratoriae Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "brutus",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Brutus Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "orator",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Orator Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-optimo-genere-oratorum",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Optimo Genere Oratorum Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "topica",
+      "registry_source_record_id": "A29-R027",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Topica Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-republica",
+      "registry_source_record_id": "A29-R019",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Republica Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "The supplied surviving or reconstructed text does not restore lost ancient books. Academica/Lucullus redaction and part relations remain unasserted; the separately supplied Lucullus is deferred."
+      ]
+    },
+    {
+      "target_slug": "academica",
+      "registry_source_record_id": "A29-R015",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Academica Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "The supplied surviving or reconstructed text does not restore lost ancient books. Academica/Lucullus redaction and part relations remain unasserted; the separately supplied Lucullus is deferred."
+      ]
+    },
+    {
+      "target_slug": "paradoxa-stoicorum",
+      "registry_source_record_id": "A29-R021",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Paradoxa Stoicorum Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-finibus-bonorum-et-malorum",
+      "registry_source_record_id": "A29-R016",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact de Finibus Bonorum et Malorum Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "tusculanae-disputationes",
+      "registry_source_record_id": "A29-R017",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact Tusculanae Disputationes Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-natura-deorum",
+      "registry_source_record_id": "A29-R018",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact de Natura Deorum Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-senectute",
+      "registry_source_record_id": "A29-R022",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Senectute Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-amicitia",
+      "registry_source_record_id": "A29-R023",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Amicitia Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-divinatione",
+      "registry_source_record_id": "A29-R024",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Divinatione Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-fato",
+      "registry_source_record_id": "A29-R025",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Fato Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-officiis",
+      "registry_source_record_id": "A29-R026",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 16,
+          "source_table_index": 14,
+          "source_row_index": 6,
+          "source_label": "Цицероновский корпус"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "0e3435e5a7cef4f6656f829f98d111244ac0313efa91e6ff1860c3c8c19604fe",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Скепсис, этика, теология, политика, право, язык философии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [82]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Цицероновский корпус",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 6,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Officiis Latin edition within Цицероновский корпус; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-rerum-natura",
+      "registry_source_record_id": "A29-R041",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 17,
+          "source_table_index": 14,
+          "source_row_index": 7,
+          "source_label": "De rerum natura"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "62e30f7688d9342210bc92711267c13e43b6dbbde9cfb258521abe1468869fdd",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Эпикурейская физика, клинамен, критика страха и религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [83]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "De rerum natura",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 7,
+          "source_table_index": 14,
+          "source_type": "Первичный философский текст"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Rerum Natura Latin edition within De rerum natura; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "The Latin header explicitly says Lost information for its print/source bibliography and the CTS edition description is a dash. The underlying print exemplar/editor remain unknown; no modern editor, critical edition or public-domain term is inferred."
+      ]
+    },
+    {
+      "target_slug": "de-beneficiis",
+      "registry_source_record_id": "A29-R073",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 18,
+          "source_table_index": 14,
+          "source_row_index": 8,
+          "source_label": "Сенека"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "6629b1e832a58e07554547bc32f23b7910cd24955ca4dc7f4e12f831b3711dee",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Этика, письмо, натурфилософия, политическая философия",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [84]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Сенека",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 8,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Beneficiis Latin edition within Сенека; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    },
+    {
+      "target_slug": "de-clementia",
+      "registry_source_record_id": "A29-R074",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "75fc69975fe19381e4125b29d27c7f64f7cafad710b462e239b6223bac7849d4"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 18,
+          "source_table_index": 14,
+          "source_row_index": 8,
+          "source_label": "Сенека"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "6629b1e832a58e07554547bc32f23b7910cd24955ca4dc7f4e12f831b3711dee",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Этика, письмо, натурфилософия, политическая философия",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "PHI Latin / Scaife / критические издания [84]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Сенека",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 8,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "bounded-constituent-work",
+      "scope_rationale": "Exact De Clementia Latin edition within Сенека; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine."
+      ]
+    }
+  ]
+}

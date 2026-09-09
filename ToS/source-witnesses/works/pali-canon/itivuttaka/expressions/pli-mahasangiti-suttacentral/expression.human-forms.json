@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+    "version": 1,
+    "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e1f9662098e40cbc10d2a3cbd16a716c2154e567c23528724ecc9941dc58903f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+        "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+            "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.109de448cb1df56f3ab73a65cb9e06f413d9a6c01194ffbda887f5672329c82d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad",
+        "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+      "request_digest": "sha256:e68d99b9990cf0a9b3068036b2c7903616b7832391884ef766e54984cb488699",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:fa0d1308264397fedd1a183ad5c81aa23b15185d511a567fa9bde223a71f7ebc",
+      "recorded_at": "2026-09-09T15:55:22.528730+00:00",
+      "source": {
+        "id": "tos.expression.pali-canon.itivuttaka.pli-mahasangiti-suttacentral",
+        "version": 1,
+        "digest": "sha256:3485f2118b27a831dbb6ddf3f50b266906b98c35d0e15001c20b1f4afb590cad"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.e1f9662098e40cbc10d2a3cbd16a716c2154e567c23528724ecc9941dc58903f",
+          "version": 1,
+          "digest": "sha256:8246fa6f837928666fcdcb347f6407b3cc8ad115100cd58116e6865d2aaaf72a"
+        },
+        {
+          "id": "tos.form.metadata.109de448cb1df56f3ab73a65cb9e06f413d9a6c01194ffbda887f5672329c82d",
+          "version": 1,
+          "digest": "sha256:67d2ad751dbbc4794c065b7deed5ff7adbeb7fa51808c2100b37cb3f54cc0d4d"
+        }
+      ]
+    }
+  ]
+}

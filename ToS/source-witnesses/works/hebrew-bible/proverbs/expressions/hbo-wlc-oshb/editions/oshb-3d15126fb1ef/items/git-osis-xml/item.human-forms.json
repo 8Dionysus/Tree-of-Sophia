@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+    "version": 1,
+    "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a1f1d5e7277f7aa177959688426669923e0cd77b523995e99bc01e3ea85d7628",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+        "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+            "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.936c1cc3c9f8440a4dc6d813183b242a4009e3accdfd4255f646b5eb3ddeb4e3",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71",
+        "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+      "request_digest": "sha256:5f18293bf34769c685187c302f42ccdc5cdfb4eddbaa3371a4976b8694378002",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:885eee2e495a36bed502fc7abc0c4a15d49082e2d14411085c10d70fdd5126dd",
+      "recorded_at": "2026-09-09T15:55:29.352662+00:00",
+      "source": {
+        "id": "tos.item.hebrew-bible.proverbs.hbo-wlc-oshb.oshb-3d15126fb1ef.git-osis-xml",
+        "version": 1,
+        "digest": "sha256:45cdde4ba9497e54da544dd753b62d9ffb7bcbb85690a625b9a24f483c7f6e71"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.a1f1d5e7277f7aa177959688426669923e0cd77b523995e99bc01e3ea85d7628",
+          "version": 1,
+          "digest": "sha256:738d856e8848dbd462d7ef9db30d318837c554bd29ea38948d73526f650dbbe2"
+        },
+        {
+          "id": "tos.form.metadata.936c1cc3c9f8440a4dc6d813183b242a4009e3accdfd4255f646b5eb3ddeb4e3",
+          "version": 1,
+          "digest": "sha256:4f77b4b62ad83a94a9e515a19a5568863441f1b75c4eee8052e17e652d795806"
+        }
+      ]
+    }
+  ]
+}

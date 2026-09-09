@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">de Natura Deorum</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Otto Plasberg</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc xmlns="http://www.tei-c.org/ns/1.0">
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">de Natura Deorum</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Otto Plasberg</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1917</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-04-28">this now includes the fragments</change>
+<change who="gcrane" when="2006-04-28">base file added to repository NB: this does not have the fragments and should have them added</change>
+
+
+<change who="gcrane" when="2006-04-26">added to repository</change>
+
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi050.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <head >De Natura Deorum</head>
+            <div type="textpart" n="1" subtype="book">
+               <head >LIBER PRIMUS</head>
+               <pb n="p.1"/>
+               <div type="textpart" n="1" subtype="section">
+                  <p >
+Cum multae res in philosophia nequaquam satis
+adhuc explicatae sint, tum perdifficilis, Brute, quod tu
+minime ignoras, et perobscura quaestio est de natura
+deorum, quae et ad cognitionem animi pulcherrima
+est et ad moderandam religionem necessaria. De qua
+<add>cum</add> tam variae sint doctissimorum hominum tamque discrepantes sententiae, magno argumento esse
+debeat <add>ea</add> causa, principium philosophiae ad h * scientiam, prudenterque Academici a rebus incertis adsensionem cohibuisse. quid est enim temeritate turpius
+aut quid tam temerarium tamque indignum sapientis
+gravitate atque constantia quam aut falsum sentire aut
+quod non satis explorate perceptum sit et cognitum
+sine ulla dubitatione defendere?
+
+</p>
+               </div>
+               <div type="textpart" n="2" subtype="section">
+                  <p >Velut in hac quaestione plerique, quod maxime veri simile est et quo <pb n="p.2"/>
+omnes †sese duce natura venimus, deos esse dixerunt,
+dubitare se Protagoras, nullos esse omnino Diagoras
+Melius et Theodorus Cyrenaicus putaverunt. Qui vero
+deos esse dixerunt tanta sunt in varietate et dissensione,
+ut eorum infinitum sit enumerare sententias. nam et de
+figuris deorum et de locis atque sedibus et de actione
+vitae multa dicuntur, deque is summa philosophorum
+dissensione certatur; quod vero maxime rem causamque continet, utrum nihil agant nihil moliantur omni
+curatione et administratione rerum vacent, an contra
+ab iis et a principio omnia facta et constituta sint et
+ad infinitum tempus regantur atque moveantur, in primis <del>quae</del> magna dissensio est, eaque nisi diiudicatur
+in summo errore necesse est homines atque in maximarum rerum ignoratione versari.
+
+</p>
+               </div>
+               <div type="textpart" n="3" subtype="section">
+                  <p >Sunt enim philosophi et fuerunt qui omnino nullam habere censerent
+rerum humanarum procurationem deos. quorum si vera
+sententia est, quae potest esse pietas quae sanctitas
+quae religio? haec enim omnia pure atque caste tribuenda deorum numini ita sunt, si animadvertuntur
+ab is et si est aliquid a deis inmortalibus hominum
+generi tributum; sin autem dei neque possunt nos iuvare nec volunt nec omnino curant nec quid agamus
+animadvertunt nec est quod ab is ad hominum vitam
+permanare possit, quid est quod ullos deis inmortalibus cultus honores preces adhibeamus? in specie
+autem fictae simulationis sicut reliquae virtutes item
+pietas inesse non potest; cum qua simul sanctitatem
+et religionem tolli necesse est, quibus sublatis perturbatio vitae sequitur et magna confusio;
+
+</p>
+               </div>
+               <div type="textpart" n="4" subtype="section">
+                  <p >atque haut scio
+an pietate adversus deos sublata fides etiam et societas
+<pb n="p.3"/>
+ generis humani et una excellentissuma virtus iustitia tollatur. Sunt autem alii philosophi, et hi quidem magni atque nobiles, qui deorum mente atque
+ratione omnem mundum administrari et regi censeant,
+neque vero id solum, sed etiam ab isdem hominum
+vitae consuli et provideri; nam et fruges et reliqua
+quae terra pariat et tempestates ac temporum varietates caelique mutationes, quibus omnia quae terra
+gignat maturata pubescant, a dis inmortalibus tribui
+generi humano putant, multaque quae dicentur in his
+libris colligunt, quae talia sunt ut ea ipsa dei inmortales ad usum hominum fabricati paene videantur.
+Contra quos Carneades ita multa disseruit, ut excitaret homines non socordes ad veri investigandi cupiditatem.
+
+</p>
+               </div>
+               <div type="textpart" n="5" subtype="section">
+                  <p >res enim nulla est de qua tantopere non solum indocti sed etiam docti

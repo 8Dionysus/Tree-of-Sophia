@@ -311,6 +311,26 @@ class OpenWorkCandidateQueueTest(unittest.TestCase):
         self.assertFalse(entry["ready_for_acquisition_review"])
         self.assertEqual(before, build_payload(repo))
 
+    def test_completed_translation_reuses_digest_bound_known_work(self) -> None:
+        repo = self.make_repo()
+        path, plan = self.make_readiness_plan(repo)
+        self.mark_completed_readiness_target(repo, plan)
+        target = plan["targets"][0]["target"]
+        work_ref = target.pop("create_record_refs")["work"]
+        target["existing_record_refs"] = {"work": work_ref}
+        target["known_tos_refs"].append(work_ref)
+        _write_json(repo / path, plan)
+        self.assertIsNone(build_readiness_payload(repo, readiness_plan=path)["next_target_id"])
+        target["known_tos_refs"].remove(work_ref)
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "existing Work must be known"):
+            build_readiness_payload(repo, readiness_plan=path)
+        target["known_tos_refs"].append(work_ref)
+        target["create_record_refs"] = {"work": work_ref}
+        _write_json(repo / path, plan)
+        with self.assertRaisesRegex(QueueBuildError, "cannot also be declared new"):
+            build_readiness_payload(repo, readiness_plan=path)
+
     def test_completed_readiness_needs_current_present_file_and_exact_work_identity(self) -> None:
         repo = self.make_repo()
         path, plan = self.make_readiness_plan(repo)

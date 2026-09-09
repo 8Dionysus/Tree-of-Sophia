@@ -1,0 +1,43 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.cicero.brutus.la-perseus-phi0474-phi039.perseus-8668397510ca.git-tei-xml",
+  "preferred_label": "Brutus — exact local git-tei-xml copy",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi039-cts.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi039.perseus-lat2-header.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi039.perseus-lat2-opening.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:latinLit:phi0474.phi039.perseus-lat2",
+      "source_ref": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/evidence/phi0474.phi039-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+  "notes": "The Item identifies one acquired immutable digital file set from the pinned provider version. Its individual Files have content-addressed SHA-256 identities. The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction. Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission. Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions. Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations. Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

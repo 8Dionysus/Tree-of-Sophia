@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.aristotle.poetics",
+    "version": 2,
+    "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.64cb8a84f5c41d699b04a56100afed76ae5d39116909aa71a628e7aeeeaa839f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+        "id": "tos.work.aristotle.poetics",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+            "id": "tos.work.aristotle.poetics",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.cf72d2f0bc29c6c1aa29c6e44b0509c2c9d3afb9240835f6b1ec480bd967a44a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c",
+        "id": "tos.work.aristotle.poetics",
+        "version": 2
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.aristotle.poetics",
+      "request_digest": "sha256:f0bff648bab7e12555a85cb9c6a4495fe1eac4faa3373bd52e82bc66083480a1",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:a0937948ab31ddb4eec0b5a1c54426d64f4eeeb227743682fd8ae86023a2ec09",
+      "recorded_at": "2026-09-09T15:55:19.496096+00:00",
+      "source": {
+        "id": "tos.work.aristotle.poetics",
+        "version": 2,
+        "digest": "sha256:f31117e16c7f929cf5fc2191cbd1510cc9bc8d75a562b4562f06fd23546cb06c"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.64cb8a84f5c41d699b04a56100afed76ae5d39116909aa71a628e7aeeeaa839f",
+          "version": 1,
+          "digest": "sha256:c598cdf06145baae93a976b7618f10f63f5b90137ed92a99949e9174b19876a6"
+        },
+        {
+          "id": "tos.form.metadata.cf72d2f0bc29c6c1aa29c6e44b0509c2c9d3afb9240835f6b1ec480bd967a44a",
+          "version": 1,
+          "digest": "sha256:064ceecb70e84deaad17cea0458005c5d454acc8ff1bb7888512084ef5ed87d9"
+        }
+      ]
+    }
+  ]
+}

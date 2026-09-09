@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+    "version": 1,
+    "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.dd5aa3c8359fdf04cc549e08e1e158fdeb3fcce33ecbe1997b321743698e3fc7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+        "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+            "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.ac8cd2a91af058e060de4ebafd22d5b096954bbcfe0b035b7118d0c2d8b5feb9",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c",
+        "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+      "request_digest": "sha256:1b21af207501beee2faeac1dc2ae2a641c039421ad131d7a06cfd92428ed3e24",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:5476d5a1281f1cf59ad8eec7dd91df9e5b71296710dcdda08c8848242e9929d1",
+      "recorded_at": "2026-09-09T15:55:28.324317+00:00",
+      "source": {
+        "id": "tos.edition.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca",
+        "version": 1,
+        "digest": "sha256:7e9b59da2d662754bde56c28057c1f74bc267a14f9c03b5b6901add3c1b8969c"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.dd5aa3c8359fdf04cc549e08e1e158fdeb3fcce33ecbe1997b321743698e3fc7",
+          "version": 1,
+          "digest": "sha256:b53257138ed4ba4e3cbf390d46520623764327d1e2d8abb65c60cb53e9ef9514"
+        },
+        {
+          "id": "tos.form.metadata.ac8cd2a91af058e060de4ebafd22d5b096954bbcfe0b035b7118d0c2d8b5feb9",
+          "version": 1,
+          "digest": "sha256:3722a2854c51a2c93e0f253dfd7697aece16b16c561a3975535cfc44f63b7640"
+        }
+      ]
+    }
+  ]
+}

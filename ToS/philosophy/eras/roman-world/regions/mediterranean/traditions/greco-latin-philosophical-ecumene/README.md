@@ -26,3 +26,15 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 ## Registry planting: third wave (2026-09-08)
 
 18 exact Greek versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-third-planting-2026-09-08/RESULTS.md).
+
+## Registry planting: fourth wave (2026-09-09)
+
+16 English versions alongside existing Greek texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-fourth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: fifth wave (2026-09-09)
+
+21 exact Latin versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-fifth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: sixth wave (2026-09-09)
+
+5 English versions alongside existing Latin texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-sixth-planting-2026-09-09/RESULTS.md).

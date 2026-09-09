@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.19/tei-epidoc.rng"
+schematypens="http://relaxng.org/ns/structure/1.0"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.19/tei-epidoc.rng"
+schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader>
+<fileDesc>
+<titleStmt>
+<title>De Rerum Natura</title>
+<author n="Lucr.">Lucretius</author>
+<sponsor>Perseus Project, Tufts University</sponsor>
+    <principal>Gregory Crane</principal>
+    <respStmt>
+      <resp>Prepared under the supervision of</resp>
+      <name>Bridget Almas</name>
+      <name>Lisa Cerrato</name>
+      <name>David Mimno</name>
+    </respStmt>
+</titleStmt>
+<publicationStmt>
+    <publisher>Trustees of Tufts University</publisher>
+    <pubPlace>Medford, MA</pubPlace>
+    <authority>Perseus Project</authority>
+    <date type="release">2004-08-24</date>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+<monogr>
+<author>Lucretius</author>
+<title>De Rerum Natura</title>
+<imprint>
+    <publisher>Lost information</publisher>
+</imprint>
+</monogr>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+
+<encodingDesc>
+   <refsDecl n="CTS">
+      <cRefPattern matchPattern="(\w+).(\w+)"
+                   replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:l[@n='$2'])" n="line">
+          <p>This pointer pattern extracts book and line</p>
+      </cRefPattern>
+      <cRefPattern matchPattern="(\w+)"
+                   replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" n="book">
+          <p>This pointer pattern extracts book</p>
+      </cRefPattern>
+  </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+      <citeStructure unit="line" delim="." match="l" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+
+<profileDesc>
+<langUsage>
+<language ident="lat">Latin</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+  <change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+  <change when="2013-06-08" who="gcrane">TEI XML converted to facilitate CTS compatibility</change>
+  <change when="2011-09-07" who="rsingh04">adding rend=displayNum to lb tags</change>
+  <change when="2011-01-16" who="gcrane">sdl file—with LB milestones in place of L tags</change>
+  <change when="2009-12-01" who="rsingh04">moved more xml files around based on copyright status</change>
+  <change when="2004-03-19" who="mimno">moved some translation passages around and added a few cards</change>
+  <change when="2004-03-04" who="mimno">finished cardbreaks</change>
+  <change when="2004-03-01" who="mimno">milestones done through book 3</change>
+  <change when="2003-12-05" who="mimno">card breaks not yet aligned</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="lat"><body xml:base="urn:cts:latinLit:phi0550.phi001.perseus-lat1">
+<div type="edition" xml:lang="lat" >
+<div type="textpart" subtype="book" n="1">
+<head>Liber Primus</head>
+<milestone unit="card" n="1"/>
+<l n="1">Aeneadum genetrix, hominum divomque voluptas,</l>
+<l n="2">alma Venus, caeli subter labentia signa</l>
+<l n="3">quae mare navigerum, quae terras frugiferentis</l>
+<l n="4">concelebras, per te quoniam genus omne animantum</l>
+<l n="5">concipitur visitque exortum lumina solis:</l>
+<l n="6">te, dea, te fugiunt venti, te nubila caeli</l>
+<l n="7">adventumque tuum, tibi suavis daedala tellus</l>
+<l n="8">summittit flores, tibi rident aequora ponti</l>
+<l n="9">placatumque nitet diffuso lumine caelum.</l>
+<l n="10">nam simul ac species patefactast verna diei</l>
+<l n="11">et reserata viget genitabilis aura favoni,</l>
+<l n="12">aeriae primum volucris te, diva, tuumque</l>
+<l n="13">significant initum perculsae corda tua vi.</l>
+<l n="15">inde ferae pecudes persultant pabula laeta</l>
+<l n="14">et rapidos tranant amnis: ita capta lepore</l>
+<l n="16">te sequitur cupide quo quamque inducere pergis.</l>
+<l n="17">denique per maria ac montis fluviosque rapacis</l>
+<l n="18">frondiferasque domos avium camposque virentis</l>
+<l n="19">omnibus incutiens blandum per pectora amorem</l>
+<l n="20">efficis ut cupide generatim saecla propagent.</l>
+<l n="21">quae quoniam rerum naturam sola gubernas</l>
+<l n="22">nec sine te quicquam dias in luminis oras</l>
+<l n="23">exoritur neque fit laetum neque amabile quicquam,</l>
+<l n="24">te sociam studeo scribendis versibus esse,</l>
+<l n="25">quos ego de rerum natura pangere conor</l>
+<l n="26">Memmiadae nostro, quem tu, dea, tempore in omni</l>
+<l n="27">omnibus ornatum voluisti excellere rebus.</l>
+<l n="28">quo magis aeternum da dictis, diva, leporem.</l>
+<l n="29">effice ut interea fera moenera militiai</l>
+<l n="30">per maria ac terras omnis sopita quiescant;</l>
+<l n="31">nam tu sola potes tranquilla pace iuvare</l>
+<l n="32">mortalis, quoniam belli fera moenera Mavors</l>
+<l n="33">armipotens regit, in gremium qui saepe tuum se</l>
+<l n="34">reiicit aeterno devictus vulnere amoris,</l>
+<l n="35">atque ita suspiciens tereti cervice reposta</l>
+<l n="36">pascit amore avidos inhians in te, dea, visus</l>
+<l n="37">eque tuo pendet resupini spiritus ore.</l>
+<l n="38">hunc tu, diva, tuo recubantem corpore sancto</l>
+<l n="39">circum fusa super, suavis ex ore loquellas</l>
+<l n="40">funde petens placidam Romanis, incluta, pacem;</l>
+<l n="41">nam neque nos agere hoc patriai tempore iniquo</l>
+<l n="42">possumus aequo animo nec Memmi clara propago</l>
+<l n="43">talibus in rebus communi desse saluti.</l>
+<l n="44">omnis enim per se divum natura necessest</l>
+<l n="45">immortali aevo summa cum pace fruatur</l>
+<l n="46">semota ab nostris rebus seiunctaque longe;</l>
+<l n="47">nam privata dolore omni, privata periclis,</l>
+<l n="48">ipsa suis pollens opibus, nihil indiga nostri,</l>
+<l n="49">nec bene promeritis capitur nec tangitur ira.</l>
+<milestone unit="card" n="50"/>
+<l n="50">Quod super est, vacuas auris animumque sagacem</l>
+<l n="51">semotum a curis adhibe veram ad rationem,</l>
+<l n="52">ne mea dona tibi studio disposta fideli,</l>
+<l n="53">intellecta prius quam sint, contempta relinquas.</l>
+<l n="54">nam tibi de summa caeli ratione deumque</l>
+<l n="55">disserere incipiam et rerum primordia pandam,</l>
+<l n="56">unde omnis natura creet res, auctet alatque,</l>
+<l n="57">quove eadem rursum natura perempta resolvat,</l>
+<l n="58">quae nos materiem et genitalia corpora rebus</l>
+<l n="59">reddunda in ratione vocare et semina rerum</l>
+<l n="60">appellare suemus et haec eadem usurpare</l>
+<l n="61">corpora prima, quod ex illis sunt omnia primis.</l>
+<milestone unit="card" n="62"/>
+<l n="62">Humana ante oculos foede cum vita iaceret</l>
+<l n="63">in terris oppressa gravi sub religione,</l>
+<l n="64">quae caput a caeli regionibus ostendebat</l>
+<l n="65">horribili super aspectu mortalibus instans,</l>
+<l n="66">primum Graius homo mortalis tollere contra</l>
+<l n="67

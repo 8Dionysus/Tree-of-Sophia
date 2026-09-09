@@ -1,0 +1,487 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-de-rerum-natura-english.2026-09-09.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.lucretius.de-rerum-natura",
+      "tos.expression.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1",
+      "tos.edition.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca",
+      "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml"
+    ],
+    "description": "English translation urn:cts:latinLit:phi0550.phi001.perseus-eng1. Lucretius. De Rerum Natura. William Ellery Leonard. E. P.\n        Dutton. 1916. Pinned digital file: PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764. Supplied source description: Lucretius De Rerum Natura William Ellery Leonard E. P. Dutton 1916",
+    "required_properties": [
+      "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+      "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+      "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+      "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+      "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+      "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+      "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "en"
+    ],
+    "formats": [
+      "application/tei+xml"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+      "queried_at": "2026-09-09T07:01:06.487213+00:00",
+      "elapsed_seconds": 0.33669306799856713,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "perseus-README.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "7ea684aea5b084c38fc919da2adf0df8339490243a43bf744fb8e27384d82623",
+            "reason": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+      "queried_at": "2026-09-09T07:01:06.487822+00:00",
+      "elapsed_seconds": 1.4139744429994607,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "perseus-license.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/license.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+            "reason": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+      "queried_at": "2026-09-09T07:01:07.902140+00:00",
+      "elapsed_seconds": 0.23738299799879314,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "phi0550-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "3e95854e457947d08b4a16085435489695ec968a97153044546bd7e42a2c5c3b",
+            "reason": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+      "queried_at": "2026-09-09T07:01:07.858590+00:00",
+      "elapsed_seconds": 0.23070754400396254,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "phi0550.phi001-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "21b74f426e105f6391f84cf81b092c1c03f46252f686f6b5bcf1055559c1ddd0",
+            "reason": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "queried_at": "2026-09-09T07:01:07.767787+00:00",
+      "elapsed_seconds": 0.32142660800309386,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "phi0550.phi001.perseus-eng1-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "92ebad1fca752a00575395eaccc82bc572fa9e640200bef32d3734e9251daf5e",
+            "reason": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001.perseus-eng1-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-latinLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "queried_at": "2026-09-09T07:01:49.189858+00:00",
+      "elapsed_seconds": 0.155428,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "phi0550.phi001.perseus-eng1-opening.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "689b9075f9b574e64a1d18b2e74b788a669e611a2fe2a74eea4c6ff313c9d541",
+            "reason": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0550.phi001.perseus-eng1-opening.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-file-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "PerseusDL/canonical-latinLit",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "interface_type": "bulk",
+      "interface_version": "8668397510ca77fec6406f7d48f405e50d296764",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+      "queried_at": "2026-09-09T07:18:18.782939+00:00",
+      "elapsed_seconds": 0.458504151996749,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-de-rerum-natura-english-file-7",
+          "rank": 1,
+          "title_as_displayed": "phi0550.phi001.perseus-eng1.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+          "originating_record_url": "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "8668397510ca77fec6406f7d48f405e50d296764"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "f784a393f276b92af396dd3dd5e7b174b8dd526c"
+            }
+          ],
+          "available_formats": [
+            "application/tei+xml"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-eng1.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-09T07:18:19.241438+00:00",
+            "byte_size": 662239,
+            "sha256": "1b87a6b50d94021e66ba0553bc1112f98f66a3b49309a14ea512725b640d5819",
+            "event_ref": "tos.event.acquisition.registry-20260909.de-rerum-natura-english"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.33669306799856713,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 1.4139744429994607,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23738299799879314,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.23070754400396254,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.32142660800309386,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.155428,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-de-rerum-natura-english-file-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.458504151996749,
+      "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-de-rerum-natura-english-file-7"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-09T07:01:06.487213+00:00",
+  "ended_at": "2026-09-09T07:18:19.241438+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260909.de-rerum-natura-english",
+    "tos.event.acquisition.registry-20260909.de-rerum-natura-english"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

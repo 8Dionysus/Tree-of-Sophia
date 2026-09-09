@@ -26,3 +26,7 @@ Exact Menexenus Greek edition within the reviewed Scaife Viewer / Perseus source
 - Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
 - Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-menexenus-english/README.md). Shared Work identity does not establish edition dependence or alignment.

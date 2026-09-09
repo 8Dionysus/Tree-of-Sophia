@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+    "version": 1,
+    "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0cd3f9603d2b4a93066d6230402eba2fed2f1eb5fe63155c49ba1255ef6314b7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+        "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+            "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.64c034610f2fac84cd599bba31744a991f41924392f7c39628883d71cb95e5ec",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01",
+        "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+      "request_digest": "sha256:e1d1f6da06d9196c9506ef460cb50d82ca21eb1a5166d945c1fcfbf4082efe6c",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:0877d52888d0a166e8d85e430c60b1dd17f0424a41619039c1ad1a69d772a042",
+      "recorded_at": "2026-09-09T15:55:29.374537+00:00",
+      "source": {
+        "id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+        "version": 1,
+        "digest": "sha256:d304d2a64cc647cd47d0961c760c0ee5a996f3c9894b8d823c701f5d998e7a01"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.0cd3f9603d2b4a93066d6230402eba2fed2f1eb5fe63155c49ba1255ef6314b7",
+          "version": 1,
+          "digest": "sha256:9a2dace906ac9fd17ee9da07b676ae626f5c732ffe94526f5c48d57a6207b08d"
+        },
+        {
+          "id": "tos.form.metadata.64c034610f2fac84cd599bba31744a991f41924392f7c39628883d71cb95e5ec",
+          "version": 1,
+          "digest": "sha256:888a1dcfad9c1d26d07267d33c5d1a3f18d6aebf58a7de7af19b3db9426adfb0"
+        }
+      ]
+    }
+  ]
+}

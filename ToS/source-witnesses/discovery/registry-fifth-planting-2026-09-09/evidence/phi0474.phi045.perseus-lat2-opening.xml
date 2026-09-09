@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Academica</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Otto Plasberg</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi045.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Academicorum reliquiae cum Lucullo</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Otto Plasberg</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1922</date>
+                     <biblScope unit="volume"/>
+                     <biblScope n="contents"/>
+                  </imprint>
+               </monogr>
+               <series/>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=coo.31924006752632&amp;seq=32">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+         
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+<change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN. Removed front and back matter that was unused.</change>
+<change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-14">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-14">Fixed the metadata.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-05-05">added to repository</change>
+<change who="gcrane" when="2006-05-04">entered repository</change>
+ </revisionDesc>
+ </teiHeader>
+   
+<text xml:lang="lat">
+<body>
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi045.perseus-lat2">
+<pb n="p.1"/>
+   <div type="textpart" n="1" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi045.perseus-lat2">
+<head rend="align(center)">LIBER PRIMUS</head>
+               
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi045.perseus-lat2:1" n="1"> 
+<p rend="align(indent)"><milestone  unit="chapter" n="1"/> In Cumano nuper cum mecum Atticus noster esset, nuntiatum est nobis a M. Varrone venisse eum Roma pridie vesperi et, nisi de via fessus esset, continuo ad nos venturum fuisse. quod cum audissemus, nullam moram interponendam putavimus quin videremus hominem nobiscum et studiis eisdem et vetustate amicitiae coniunctum; itaque confestim ad eum ire perreximus. paulumque cum ab<note>ab <hi rend="italic">om.</hi> <foreign xml:lang="grc">Δ</foreign> </note> eius villa abessemus, ipsum ad nos venientem vidimus; atque illum complexi, ut mos amicorum est (satis enim<note>satis enim <foreign xml:lang="grc">Γ</foreign> </note> longo intervallo * * * ), ad suam<note>-eum <foreign xml:lang="grc">Δ</foreign> se visentium <hi rend="italic">Dav.</hi> </note> villam reduximus.<note> <add>non videramus inter nos</add> <hi rend="italic">Reitz.</hi> <add>advenerat</add> <hi rend="italic">pl.</hi> </note> </p> </div>
+               
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi045.perseus-lat2:1" n="2"> 
+<p> hic pauca primo, atque ea<note>ea <hi rend="italic">om.</hi> <foreign xml:lang="grc">χ</foreign> </note> percunctantibus nobis ecquid<note>ecquid <hi rend="italic">Man.</hi> et sis quid <foreign xml:lang="grc">ΓΔ</foreign> </note> forte Roma<note>Romae <foreign xml:lang="grc">γχ</foreign> </note> novi.</p>
+<p rend="align(indent)"> <add>Tum</add> <note> <hi rend="italic">add. Reid</hi> <add>hic</add> <hi rend="italic">St.</hi> </note> Atticus <q rend="single">Omitte ista quae nec percunctari nec audire sine molestia possumus quaeso</q> inquit <q rend="single">et quaere<note>quaere <foreign xml:lang="grc">μπ</foreign> <hi rend="sup">m</hi> quare <foreign xml:lang="grc">ΓΔ</foreign> </note> potius ecquid<note>ecquid <hi rend="italic">Asc.</hi> et quid <foreign xml:lang="grc">ΓΔ</foreign> </note> ipse novi. silent enim diutius Musae Varronis quam solebant, nec tamen istum cessare sed celare quae scribat existimo.</q> </p> 
+<p rend="align(indent)"> <q rend="single">Minime vero</q> inquit ille; <q rend="single">intemperantis enim arbitror esse scribere quod occultari velit;<note>int. esse arb. scr. quidquam q. occ. velis <hi rend="italic">Hier. adv. Rufin. 1, 1</hi> </note> sed habeo magnum opus<note>opus magunum <foreign xml:lang="grc">Δ</foreign> </note> in manibus, quae<note>qui <foreign xml:lang="grc">γ</foreign> <hi rend="sup">1</hi> quod <hi rend="italic">Asc.</hi> idque <hi rend="italic">Chr.</hi> </note> iam pridem; ad hunc <pb n="p.2"/> enim<note>enim <foreign xml:lang="grc">Γ</foreign> eum <foreign xml:lang="grc">Δ</foreign> <hi rend="italic">om. Asc.</hi> </note> ipsum</q> (me autem dicebat) <q rend="single">quaedam institui, quae et sunt magna sane et limantur a me politius.</q> </p> </div>
+               
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi045.perseus-lat2:1" n="3"> 
+<p>Et ego <q rend="single">Ista quidem</q> inquam <q rend="single">Varro iam diu expectans non audeo tamen flagitare; audivi enim e Libone nostro, cuius nosti studium (nihil enim<note>enim <foreign xml:lang="grc">Δ</foreign> ei, <foreign xml:lang="grc">Γ</foreign> </note> eius modi celare possumus), non te ea intermittere sed accuratius tractare nec de manibus umquam deponere. illud autem mihi ante hoc tempus numquam in mentem venit a te requirere. sed nunc postea quam sum ingressus res eas quas tecum simul didici mandare monumentis philosophiamque veterem illam a Socrate ortam Latinis litteris illustrare, quaero quid sit cur cum<note>cum <add>tam</add> <hi rend="italic">Pl.</hi> </note> multa scribas genus hoc<note>hoc gen

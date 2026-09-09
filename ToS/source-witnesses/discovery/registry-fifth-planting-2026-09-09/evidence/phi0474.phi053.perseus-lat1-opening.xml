@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">De Divinatione</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Carl Friedrich Wilhelm Müller</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+           
+               <respStmt>
+                  <resp>Prepared under the supervision of</resp>
+                  <name>Bridget Almas</name>
+                  <name>Lisa Cerrato</name>
+                  <name>Rashmi Singhal</name>
+               </respStmt>
+               <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc xmlns="http://www.tei-c.org/ns/1.0">
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">De Divinatione</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Carl Friedrich Wilhelm Müller</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1915</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-14">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-05-04">added to repository</change>
+<change who="gcrane" when="2006-05-03">added to repository</change>
+
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <front> <pb n="p.143"/>
+            <div type="textpart" n="1arg" subtype="book">
+               <head >Argumentum.</head>
+               <p >M. Cicero cum tres libros de natura deorum perfecisset,
+		in quibus omnis eius loci quaestio continetur, ingressus est
+		anno post urb. cond. 710 (a. Chr. nat. 44) scribere de divi-
+		natione, quos libros una cum libro de fato, quem his erat
+		adiuncturus, quasi supplementa illius quaestionis de natura
+		deorum esse voluit. Facit autem, cum in villa Tusculana es-
+		sent, Q. fratrem secum ita colloquentem, ut, postquam Q. fra-
+		ter omne genus divinationis e disciplina Stoicorum defendisset,
+		ipse altero libro contra eius sententiam, quae sibi dicenda
+		viderentur, exponeret. In primo igitur libro Cicero complu-
+		rium populorum et philosophorum opinionibus de divinationis
+		veritate et decretis in prooemio (cap. 1–4 § 1–7) explicatis
+		ipsum colloquium exponit. Q. frater antiquissimam se senten-
+		tiam sequi profitetur omnium populorum gentiumque consensu
+		comprobatam. Esse enim duo divinandi genera, unum arti-
+		ficiosum, quod partim constet ex coniectura, partim ex obser-
+		vatione diuturna, alterum naturale, quod animus adripiat aut
+		excipiat extrinsecus ex divinitate, unde omnes haustos animos
+		libatosque habeamus. Nullam autem esse civitatem aut gen-
+		tem, quae non astrologorum, sortium, somniorum praedictione
+		moveri soleat. Atque in his omnino magis eventa rerum spec-
+		tari quam causas quaeri oportere arbitratur. Multa enim in
+		rerum natura accidere, quae nemo dubitet quin vera sint,
+		etiamsi, cur ita eveniant, ignoret (cap. 5–13 § 8–23). Neque
+		vero propterea tollendam esse divinationem, quod quaedam
+		
+		<pb n="p.144"/>
+		
+		falsa sint, quaedam non ita, uti praedicta sint, eveniant. Mul-
+		tas enim praedictiones eventum habuisse, quod negare nemo
+		possit, nisi omnem annalibus fidem detrahat (cap. 14–17 § 24–33). Itaque
+		se iis adsentiri, qui duo divinationis genera esse
+		dixerint, artis unum particeps, expers alterum. Carere autem
+		arte eos, qui non ratione aut coniectura observatis ac notatis
+		signis, sed concitatione quadam animi aut animo a curis vacuo
+		liberoque praesentiant. Huc igitur referendas esse praedictio-
+		nes per oracula (cap. 18, 19 § 36–41), per somnia (cap. 20–30 §
+		42–65) itemque vaticinationes furentium (cap. 31 § 65–67). Extremae
+		huic disputationi Chrysippi argumentatio ad-
+		icitur haec divinandi genera vera esse statuentis (cap. 82
+		§ 68–71).</p>
+               <p >Deinde perlustrantur divinationis artificialis genera, ad
+			quae haruspices, augures, coniectores pertineant. Eorundem
+			alia esse in disciplina et monumentis posita, alia in subita
+			coniectura (cap. 33–37 § 72–80). Tum exponit, quibus Stoici
+			rationibus confirmaverint esse divinationem (cap. 38 seq. § 81–87).
+			Iam, qui divinationem esse negent, quod nulla sit eius
+			ratio et causa, eos errare; nam quaerendum esse, sitne divi-
+			natio necne, non quo modo fiat. Neque vero aut in vita com-
+			muni aut a philosophis dubitari, quin sit divinatio (cap. 40
+			§ 87–89). Recte etiam moveri animos hominum antiquitate
+			clarissimis testimoniis testata et consignata (cap. 41 § 90–92),
+			et in optima quaque re publica cum cetera divinandi genera,
+			tum auspicia semper valuisse (cap. 42–48 § 93–108). Omnem
+			vero divinationis vim et originem referendam esse ad deum
+			(cap. 49–55 § 109–126), ad fatum (cap. 56 § 127–128), ad
+			naturam (cap. 57, 58 § 129–132).</p>
+            </div>
+           </front>
+      <body xml:base="urn:cts:latinLit:phi0474.phi053.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <div type="textpart" n="1" subtype="book">
+               <head >M. Tullii Ciceronis de divinatione liber primus.</head>
+               <milestone  unit="chapter" n="1"/>
+               <div type="textpart" n="1" subtype="section">
+                  <p >
+Vetus opinio est iam usque ab heroicis ducta temporibus, eaque et populi Romani et omnium ge

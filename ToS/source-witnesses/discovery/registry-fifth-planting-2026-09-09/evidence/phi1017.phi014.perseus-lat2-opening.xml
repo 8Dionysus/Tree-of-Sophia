@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+             <title xml:lang="lat">De Clementia</title>
+                <author xml:lang="lat">Seneca, Lucius Annaeus</author>
+                <editor>John W. Basore</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Bridget Almas</name>
+                    <name>Lisa Cerrato</name>
+                    <name>David Mimno</name>
+                    <name>Rashmi Singhal</name>
+                </respStmt>
+                <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            </titleStmt>
+            <extent>About 100Kb</extent>
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release">2009-10-07</date>
+            </publicationStmt> 
+            <sourceDesc>
+             <biblStruct>
+              <monogr>
+               <author xml:lang="lat">L. Annaeus Seneca</author>
+               <title>Moral Essays</title>
+               <editor>John William Basore</editor>
+               <imprint>
+                <pubPlace>London</pubPlace>
+                <pubPlace>New York</pubPlace>
+                <publisher>G. P. Putnam's Sons</publisher>
+                <publisher>William Heinemann</publisher>
+                <date>1928</date>
+               </imprint>
+               <biblScope unit="volume">1</biblScope>
+              </monogr>
+              <series>
+               <title>Loeb Classical Library</title>
+              </series>
+              <ref target="https://archive.org/details/moralessayswithe01seneuoft/page/356/mode/2up">Internet Archive</ref>
+              
+             </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+              <refsDecl n="CTS">
+                  <cRefPattern n="section"
+                               matchPattern="(\w+).(\w+).(\w+)"
+                               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+                      <p>This pointer pattern extracts book, chapter and section</p>
+                  </cRefPattern>
+                  <cRefPattern n="chapter"
+                               matchPattern="(\w+).(\w+)"
+                               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                      <p>This pointer pattern extracts book and chapter</p>
+                  </cRefPattern>
+                  <cRefPattern n="book"
+                               matchPattern="(\w+)"
+                               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                      <p>This pointer pattern extracts book</p>
+                  </cRefPattern>
+              </refsDecl>
+        	<refsDecl n="TEI.2">
+        		<refState unit="book"/>
+        	    <refState unit="chapter" n="chunk"/>
+        	    <refState unit="section"/>
+        	</refsDecl>
+                <refsDecl xml:id="CTS">
+                  <citeStructure match="/TEI/text/body" use="@xml:base">
+                    <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                      <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n">
+                        <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+                      </citeStructure>
+                    </citeStructure>
+                  </citeStructure>
+                </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="lat">Latin</language>
+                <language ident="grc">Greek</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2009-01-01" who="gcrane">Tagging</change>
+            <change when="2015-11-12" who="Thibault Clerice">New URN, Epidoc and CTS</change>
+        </revisionDesc>
+    </teiHeader>
+<text xml:lang="lat">
+<pb n="p.356"/><body xml:base="urn:cts:latinLit:phi1017.phi014.perseus-lat2">
+<div type="edition" xml:lang="lat">
+<head>
+ad Neronem Caesarem:
+de clementia</head>
+<div type="textpart" subtype="book" n="1"><head>Liber I</head>
+<div type="textpart" subtype="chapter" n="1">
+
+<div type="textpart" subtype="section" n="1"><p>  Scribere de clementia, Nero Caesar, institui, ut
+quodam modo speculi vice fungerer et te tibi ostenderem perventurum ad voluptatem maximam omnium. Quamvis enim recte factorum verus fructus
+sit fecisse nec ullum virtutum pretium dignum illis
+extra ipsas sit, iuvat inspicere et circumire bonam
+conscientiam, tum immittere oculos in hanc immensam multitudinem discordem, seditiosam, impotentem, in perniciem alienam suamque pariter
+exultaturam si hoc iugum fregerit, et ita loqui
+ secum:
+</p></div>
+
+<div type="textpart" subtype="section" n="2"><p> " Egone ex omnibus mortalibus placui
+electusque sum, qui in terris deorum vice fungerer ?
+Ego vitae necisque gentibus arbiter; qualem
+quisque sortem statumque habeat, in mea manu
+positum est ; quid cuique mortalium fortuna datum
+velit, meo ore pronuntiat ; ex nostro responso
+laetitiae causas populi urbesque concipiunt ; nulla
+pars usquam nisi volente propitioque me floret;
+haec tot milia gladiorum, quae pax mea comprimit,
+
+<pb n="p.358"/>
+ad nutum meum stringentur ; quas nationes funditus
+excidi, quas transportari, quibus libertatem dari,
+quibus eripi, quos reges mancipia fieri quorumque
+capiti regium circumdari decus oporteat, quae ruant
+ urbes, quae oriantur, mea iuris dictio est.
+</p></div>
+
+<div type="textpart" subtype="section" n="3"><p> In hac
+tanta facultate rerum non ira me ad iniqua supplicia
+compulit, non iuvenilis impetus, non temeritas hominum et contumacia, quae saepe tranquillissimis
+quoque pectoribus patientiam extersit, non ipsa
+ostentandae per terrores potentiae dira, sed frequens
+magnis imperiis gloria. Conditum, immo constratum apud me ferrum est, summa parsimonia
+etiam vilissimi sanguinis ; nemo non, cui alia desunt,
+ hominis nomine apud me gratiosus est.
+</p></div>
+
+<div type="textpart" subtype="section" n="4"><p> Severitatem
+abditam, at clementiam in procinctu habeo ; sic me
+custodio, tamquam legibus, quas ex situ ac tenebris
+in lucem evocavi, rationem redditurus sim. Alterius
+aetate prima motus sum, alterius ultima ; alium
+dignitati donavi, alium humilitati; quotiens nullam
+inveneram misericordiae causam, mihi peperci.
+Hodie dis inmortalibus, si a me rationem repetant,
+adnumerare genus humanum paratus sum."
+</p></div>
+
+<div type="textpart" subtype="section" n="5"><p> Potes hoc, Caesar, audacter praedicare omnia,
+quae in fidem tutelamque tuam venerunt, tuta
+haberi,<note> -que tuam  <gap reason="omitted"/> tuta ha-supplied by Gertz.
+</note> nihil per te neque vi neque clam adimi rei
+publicae. Rarissimam laudem et nulli adhuc princi-
+
+<pb n="p.360"/>
+pum concessam concupisti innocentiam. Non perdit
+operam nec bonitas ista tua singularis ingratos aut
+malignos aestimatores nancta est. Refertur tibi
+gratia ; nemo unus homo uni homini tam carus
+umquam fuit, quam tu populo Romano, magnum
+ longumque eius bonum. Sed ingens tibi onus imposuisti; nemo iam divum Augustum nec Ti.
+</p></div>
+
+<div type="textpart" subtype="section" n="6"><p>
+Caesaris prima tempora loquitur nec, quod te imitari
+velit, exemplar extra te quaerit ; principatus tuus
+ad gustum <note> So N: augustum most MSS. : obrussam Haase.
+</note> exigitur. Difficile hoc fuisset, si non
+naturalis tibi ista bonitas esset, sed ad tempus
+sumpta. Nemo enim potest personam diu ferre,
+ficta cito in naturam suam recidunt ; quibus veritas
+subest quaeque, ut ita dicam, ex solido enascuntur,
+tempore ipso in maius meliusque procedunt.
+</p></div>
+
+<div type="textpart" subtype="section" n="7"><p> Magnam adibat aleam populus Romanus, cum
+incertum esset, quo se ista tua nobilis indoles daret ;
+iam vota publica in tuto sunt ; nec enim periculum
+est, ne te subita tui capiat oblivio. Facit quidem
+avidos nimia felicitas, nec tam temperatae cupiditates
+sunt umquam, ut in eo, quod contigit, desin

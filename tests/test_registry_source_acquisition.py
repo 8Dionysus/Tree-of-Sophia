@@ -17,6 +17,179 @@ import acquire_registry_sources as acquisition
 
 
 class RegistrySourceAcquisitionTests(unittest.TestCase):
+    def test_translation_profile_keeps_language_and_version_role_explicit(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        body = prefix + ('<text><body><div type="translation" n="urn:cts:greekLit:test.eng1" xml:lang="eng">'
+            '<div type="textpart" subtype="section" n="1">' + 'translated words ' * 100 + '</div>'
+            '</div></body></text></TEI>').encode()
+        target = {"slug": "fixture-english", "language": "en", "expression_role": "translation",
+            "coverage": {"kind": "perseus-tei-translation", "citation_scope": "hierarchical_divisions",
+                "cts_urn": "urn:cts:greekLit:test.eng1", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertGreater(report["files"][0]["latin_letter_count"], 1000)
+        self.assertNotIn("greek_character_count", report["files"][0])
+        prefix_target = copy.deepcopy(target)
+        prefix_target['coverage'].update(reviewed_body_prefix_bytes=len(prefix) + 100,
+            reviewed_body_prefix_sha256=acquisition.sha256(body[:len(prefix) + 100]))
+        acquisition.inspect_payloads(prefix_target, [({"basename": "source.xml"}, body)])
+        prefix_target['coverage']['reviewed_body_prefix_sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'source opening'):
+            acquisition.inspect_payloads(prefix_target, [({"basename": "source.xml"}, body)])
+        for changed in (body.replace(b'type="translation"', b'type="edition"'),
+                body.replace(b'xml:lang="eng"', b'xml:lang="grc"'),
+                body.replace(b'test.eng1', b'test.eng2'),
+                body.replace(b'translated words ', '\u03b1'.encode())):
+            with self.subTest(changed=changed[-100:]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
+        with self.assertRaises(ValueError):
+            acquisition.inspect_payloads({**target, "expression_role": "source_language"}, [({"basename": "source.xml"}, body)])
+
+    def test_latin_profile_binds_reviewed_identity_carrier_and_source_language(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        urn = "urn:cts:latinLit:fixture.lat1"
+        body = prefix + ('<text><body xml:base="' + urn + '"><div type="edition" xml:lang="lat">'
+            '<div type="textpart" subtype="book" n="1">' + 'ratio et natura ' * 100 + '</div>'
+            '</div></body></text></TEI>').encode()
+        target = {"slug": "fixture-latin", "language": "la", "expression_role": "source_language",
+            "coverage": {"kind": "perseus-tei-latin-work", "citation_scope": "hierarchical_divisions",
+                "cts_urn": urn, "identity_anchor": "body_xml_base", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertGreater(report["files"][0]["latin_letter_count"], 1000)
+        for changed in (body.replace(b'fixture.lat1', b'fixture.lat2'),
+                body.replace(b'type="edition"', b'type="translation"'),
+                body.replace(b'xml:lang="lat"', b'xml:lang="eng"'),
+                body.replace(b'type="edition"', b'type="edition" n="urn:cts:latinLit:other.lat1"')):
+            with self.subTest(changed=changed[-100:]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
+        for changes in ({"language": "en"}, {"expression_role": "translation"}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                acquisition.inspect_payloads({**target, **changes}, [({"basename": "source.xml"}, body)])
+        target["coverage"]["identity_anchor"] = "edition_n"
+        with self.assertRaises(ValueError):
+            acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        named = body.replace(b'type="edition"', ('type="edition" n="' + urn + '"').encode())
+        acquisition.inspect_payloads(target, [({"basename": "source.xml"}, named)])
+
+    def test_translation_body_identity_and_section_milestones(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        urn = "urn:cts:latinLit:fixture.eng1"
+        body = prefix + ('<text><body xml:base="' + urn + '"><div type="translation" xml:lang="eng">'
+            '<div type="textpart" subtype="book" n="1"><p><milestone unit="section" n="1"/>'
+            + 'English translation ' * 100 + '</p></div>'
+            '<div type="textpart" subtype="book" n="2"><p><milestone unit="section" n="1"/>text</p></div>'
+            '</div></body></text></TEI>').encode()
+        target = {"slug": "milestones", "language": "en", "expression_role": "translation",
+            "coverage": {"kind": "perseus-tei-translation", "cts_urn": urn, "identity_anchor": "body_xml_base",
+                "citation_scope": "hierarchical_divisions_and_section_milestones", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertEqual(report["files"][0]["division_count"], 4)
+        repeated = body.replace(b'<p>', b'<p><milestone unit="section" n="1"/>', 1)
+        observed = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, repeated)])["files"][0]
+        self.assertEqual(observed["division_count"], 5)
+        self.assertEqual(observed["repeated_section_markers"], [{"source_address": [("book", "1"), ("division_occurrence", "1"), ("section", "1")], "occurrences": 2}])
+        self.assertNotEqual(observed["division_addresses_sha256"], report["files"][0]["division_addresses_sha256"])
+        for changed in (body.replace(b'unit="section" n="1"', b'unit="section"'),
+                body.replace(b'type="translation"', b'type="translation" n="urn:cts:latinLit:wrong.eng1"'),
+                body.replace(b'xml:base=', b'wrong='),
+                body.replace(b'xml:lang="eng"', b'xml:lang="lat"')):
+            with self.subTest(changed=changed[:250]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
+
+    def test_occurrence_profile_retains_repeated_division_labels_without_rewriting(self) -> None:
+        import xml.etree.ElementTree as ET
+        text = '<div xmlns="http://www.tei-c.org/ns/1.0"><div type="textpart" subtype="book" n="1">First</div><div type="textpart" subtype="book" n="1">Third</div></div>'
+        edition = ET.fromstring(text)
+        with self.assertRaisesRegex(ValueError, "duplicated"):
+            acquisition.tei_division_addresses(edition)
+        duplicates = []
+        addresses = acquisition.tei_division_addresses(edition, repeated_divisions=duplicates)
+        self.assertEqual(len(set(addresses)), 2)
+        self.assertEqual(duplicates, [{"source_address": [("book", "1")], "occurrences": 2}])
+        self.assertEqual([node.get("n") for node in edition], ["1", "1"])
+
+    def test_metadata_elapsed_requires_retained_measurement_or_valid_interval(self) -> None:
+        observation = {"started_at": "2026-09-09T07:00:00+00:00", "ended_at": "2026-09-09T07:00:02.5+00:00"}
+        self.assertEqual(acquisition.metadata_elapsed_seconds(observation), 2.5)
+        self.assertEqual(acquisition.metadata_elapsed_seconds({**observation, "elapsed_seconds": 1.2}), 1.2)
+        for value in (-1, float("inf"), float("nan"), True, "unknown"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                acquisition.metadata_elapsed_seconds({**observation, "elapsed_seconds": value})
+        with self.assertRaises(ValueError):
+            acquisition.metadata_elapsed_seconds({**observation, "ended_at": "2026-09-09T06:59:59+00:00"})
+
+    def test_existing_item_resumes_only_missing_discovery_bound_to_same_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.json"
+            manifest.write_text("{}")
+            item = root / "item"
+            item.mkdir()
+            (item / "item.json").write_text("{}")
+            event = {"event_type": "acquisition", "inputs": [{"ref": "manifest.json", "sha256": acquisition.sha256(manifest.read_bytes())}]}
+            (item / "provenance.jsonl").write_text(json.dumps(event) + "\n")
+            target = {"slug": "resume", "paths": {"item_root": "item"}, "files": [{"basename": "source.xml"}]}
+            preparation = {"prepared_packages_ref": "packages.jsonl"}
+            with patch.object(acquisition, "verify_target", return_value={"verified": True}), \
+                    patch.object(acquisition, "transfer", return_value=(b"text", {"status": "completed"})) as transfer, \
+                    patch.object(acquisition, "write_discovery") as discovery:
+                self.assertEqual(acquisition.install_target(root, manifest, preparation, target, {}), {"verified": True})
+                transfer.assert_called_once()
+                discovery.assert_called_once()
+                self.assertEqual(discovery.call_args.args[-1], event)
+            event["inputs"][0]["sha256"] = "0" * 64
+            (item / "provenance.jsonl").write_text(json.dumps(event) + "\n")
+            with patch.object(acquisition, "verify_target", return_value={}), patch.object(acquisition, "transfer") as transfer:
+                with self.assertRaisesRegex(ValueError, "does not bind"):
+                    acquisition.install_target(root, manifest, preparation, target, {})
+                transfer.assert_not_called()
+
+    def test_existing_work_extension_preserves_identity_and_prior_assertions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            work_ref = 'ToS/source-witnesses/works/author/work/work.json'
+            before_ref = 'ToS/source-witnesses/discovery/batch/work-before.json'
+            old = {"record_type": "work", "record_id": "tos.work.author.work", "preferred_label": "Original label",
+                "source_refs": ["old-evidence"], "expression_claim_refs": ["tos.claim.old"], "record_version": 2}
+            before = acquisition.json_bytes(old)
+            acquisition.safe_path(root, before_ref).parent.mkdir(parents=True)
+            acquisition.safe_path(root, before_ref).write_bytes(before)
+            expected = {**old, "expression_claim_refs": ["tos.claim.old", "tos.claim.new"], "record_version": 3}
+            target = {"ids": {"work": old["record_id"]}, "paths": {"work": work_ref}}
+            package = {"existing_work": {"record_ref": work_ref, "preimage_ref": before_ref, "sha256": acquisition.sha256(before)},
+                "records": {work_ref: expected, "new-expression": {"record_type": "expression", "record_id": "tos.expression.new", "work_ref": old["record_id"]}},
+                "claims": [{"record": {"subject_ref": old["record_id"], "predicate": "has_expression", "object": "tos.expression.new", "claim_id": "tos.claim.new"}}]}
+            self.assertEqual(acquisition.validate_work_extension(root, target, package), (work_ref, before))
+            for field, value in (("preferred_label", "Silently renamed"), ("source_refs", []),
+                    ("expression_claim_refs", ["tos.claim.new"]), ("record_version", 4)):
+                changed = copy.deepcopy(package)
+                changed["records"][work_ref][field] = value
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    acquisition.validate_work_extension(root, target, changed)
+            changed = copy.deepcopy(package)
+            changed["claims"][0]["record"]["object"] = "tos.expression.other"
+            with self.assertRaises(ValueError):
+                acquisition.validate_work_extension(root, target, changed)
+            acquisition.safe_path(root, before_ref).write_bytes(before + b' ')
+            with self.assertRaises(ValueError):
+                acquisition.validate_work_extension(root, target, package)
+
+    def test_existing_work_drift_stops_before_network_or_source_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            work_ref = 'ToS/source-witnesses/works/author/work/work.json'
+            work = acquisition.safe_path(root, work_ref)
+            work.parent.mkdir(parents=True)
+            work.write_bytes(b'changed by another source operation')
+            target = {"paths": {"item_root": 'ToS/source-witnesses/works/author/work/expressions/en/editions/one/items/one'}}
+            preparation = {"prepared_packages_ref": 'prepared.jsonl'}
+            package = {"records": {work_ref: {}}}
+            with (patch.object(acquisition, 'validate_work_extension', return_value=(work_ref, b'original')),
+                  patch.object(acquisition, 'transfer') as transfer):
+                with self.assertRaisesRegex(ValueError, 'refusing replacement'):
+                    acquisition.install_target(root, root / 'manifest.json', preparation, target, package)
+                transfer.assert_not_called()
+            self.assertEqual(work.read_bytes(), b'changed by another source operation')
+
     def test_large_batch_keeps_target_evidence_exact_and_rejects_missing_refs(self) -> None:
         preparation = {"metadata_observations": [{"retained_ref": ref} for ref in ('perseus/license', 'perseus/one', 'perseus/other')]}
         target = {"provider": "perseus", "metadata_evidence_refs": ['perseus/license', 'perseus/one']}

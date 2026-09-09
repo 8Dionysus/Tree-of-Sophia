@@ -1,0 +1,41 @@
+# That it is Not Possible to Live Pleasurably According to the Doctrine of Epicurus
+
+English translation urn:cts:greekLit:tlg0007.tlg139.perseus-eng2. Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Baxter, William, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 2 The Internet Archive
+
+English reading version of Non Posse Suaviter Vivi Secundum Epicurum alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.
+
+## Local source files
+
+- [tlg0007.tlg139.perseus-eng2.xml](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg139.perseus-eng2.xml)
+
+## Exact owner records
+
+- [Work](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/work.json)
+- [Expression](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/expression.json)
+- [Edition](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/edition.json)
+- [Item and SHA-256](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json)
+- [Rights](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/rights.json)
+- [Provenance](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl)
+- [Observed coverage](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json)
+
+## Limits
+
+- The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.
+- Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.
+- Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.
+- Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.
+- Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.
+- Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.
+- Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.
+- Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.
+- Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
+- The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.
+- Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Parallel Greek version
+
+- [Greek version and owner records](../registry-non-posse-suaviter-vivi-secundum-epicurum/README.md)
+
+- [Greek source file](../../../../../../../../../../source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/grc-perseus-tlg0007-tlg139/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg139.perseus-grc2.xml)
+
+Shared Work identity does not establish exact edition dependence or textual alignment.
