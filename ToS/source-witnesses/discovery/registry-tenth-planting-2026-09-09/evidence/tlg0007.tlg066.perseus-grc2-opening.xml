@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+ <title xml:lang="grc">Ὄθων</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg066.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1926</date>
+</imprint>
+<biblScope unit="volume">11</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives11plut/page/274/mode/2up">Internet Archive</ref> 
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-04-17" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Ὄθων</head> 
+    <pb n="p.276"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2:1" n="1"> <p> ὁ δὲ νεώτερος αὐτοκράτωρ ἅμʼ ἡμέρᾳ προελθὼν εἰς τὸ Καπιτώλιον ἔθυσε· καὶ κελεύσας Μάριον Κέλσον ἀχθῆναι πρὸς αὑτὸν ἠσπάσατο καὶ διελέχθη φιλανθρώπως, καὶ παρεκάλεσε τῆς αἰτίας ἐπιλαθέσθαι μᾶλλον ἢ τῆς ἀφέσεως μνημονεύειν. τοῦ δὲ Κέλσου μήτε ἀγεννῶς ἀποκριναμένου μήτʼ ἀναισθήτως, ἀλλά φήσαντος αὐτὸ τοῦ τρόπου διδόναι τὸ ἔγκλημα πίστιν, ἐγκεκλῆσθαι γὰρ ὅτι Γάλβᾳ βέβαιον ἑαυτὸν παρέσχεν, ᾧ χάριν οὐδεμίαν ὤφειλεν, ἠγάσθησαν οἱ παρόντες ἀμφοτέρων καὶ τὸ στρατιωτικὸν ἐπῄνεσεν.</p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2:1" n="2"> <p> ἐν δὲ συγκλήτῳ πολλὰ δημοτικὰ καὶ φιλάνθρωπα διαλεχθείς, ὃν μὲν αὐτὸς ὑπατεύειν χρόνον ἤμελλε, τούτου μέρος ἔνειμεν Οὐεργινίῳ Ῥούφῳ, τοῖς δὲ ἀποδεδειγμένοις ὑπὸ Νέρωνος ἢ Γάλβα πᾶσιν ἐτήρησε τὰς ὑπατείας. ἱερωσύναις δὲ τοὺς καθʼ ἡλικίαν προήκοντας ἢ δόξαν ἐκόσμησε.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2:1" n="3"> <p> τοῖς δὲ <pb n="paris.1624.1067"/> ἐπὶ Νέρωνος φυγοῦσι καὶ κατελθοῦσιν ἐπὶ Γάλβα συγκλητικοῖς πᾶσιν ἀπέδωκεν ὅσα μὴ πεπραμένα τῶν κτημάτων ἑκάστου<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">ἑκάστου</foreign> Coraës and Bekker, after Stephanus, for the <foreign xml:lang="grc">ἕκαστον</foreign> of the MSS.: <foreign xml:lang="grc">ἑκάστων</foreign>.</note> ἐξεύρισκεν. ὅθεν οἱ πρῶτοι καὶ κράτιστοι πεφρικότες πρότερον ὡς <pb n="p.278"/> οὐκ ἀνδρός, ἀλλά τινος ἢ Ποινῆς ἢ παλαμναίου δαίμονος ἄφνω τοῖς πράγμασιν ἐπιπεπτωκότος, ἡδίους ἐγένοντο ταῖς ἐλπίσι πρὸς τὴν ἠγεμονίαν ὥσπερ διαμειδιῶσαν.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2:2" n="1"> <p> ὁμοῦ δὲ Ῥωμαίους πάντας οὐδὲν εὔφρανεν οὕτως οὐδὲ ᾠκειώσατο πρὸς αὐτὸν ὡς τὰ περὶ Τιγελλῖνον. ἐλελήθει μὲν γὰρ ἤδη κολαζόμενος αὐτῷ τῷ φόβῳ τῆς κολάσεως ἣν ὡς χρέος ἀπῄτει δημόσιον ἡ πόλις, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg066.perseus-grc2:2" n="2"> <p> καὶ νοσήμασιν ἀνηκέστοις σώματος, αὐτάς τε τὰς ἀνοσίους καὶ ἀρρήτους ἐν γυναιξὶ πόρναις καὶ ἀκαθάρτοις ἐγκυλινδήσεις, αἷς ἔτι π�

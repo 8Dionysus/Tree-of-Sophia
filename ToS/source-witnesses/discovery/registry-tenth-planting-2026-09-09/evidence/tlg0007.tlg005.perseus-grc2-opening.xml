@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Νομᾶς</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+   <name>Bridget Almas</name>
+   <name>Lisa Cerrato</name>
+   <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+   <date type="release" when="2010-10-22">Perseus 4.0</date>
+   <idno type="filename">tlg0007.tlg005.perseus-grc2.xml</idno>
+   <availability>
+      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+   </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+   <title>Plutarch's Lives</title>  
+   <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1914</date>
+</imprint>
+<biblScope unit="volume">1</biblScope>
+</monogr>
+   <series>
+      <title>Loeb Classical Library</title>
+   </series>
+   <ref target="https://archive.org/details/plutarchslives01plut2/page/306/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+   <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+   <refsDecl n="CTS">
+      <cRefPattern n="section"
+         matchPattern="(\w+).(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+         <p>This pointer pattern extracts chapter and section.</p>
+      </cRefPattern>
+      <cRefPattern n="chapter"
+         matchPattern="(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         <p>This pointer pattern extracts chapter.</p>
+      </cRefPattern>
+   </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+<language ident="lat">Latin</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change who="Lisa Cerrato" when="2016-12-12">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+   <change who="Lisa Cerrato" when="1998-10-01">tagged and parsed</change>
+
+</revisionDesc>
+</teiHeader>
+   
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2">
+   <div n="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2" type="edition" xml:lang="grc">
+      <head>Νομᾶς</head>
+<pb n="p.306"/>
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2:1" n="1"> 
+<p> ἔστι δὲ καὶ περὶ τῶν Νομᾶ τοῦ βασιλέως χρόνων, καθʼ οὓς γέγονε, νεανικὴ διαφορά, καίπερ ἐξ ἀρχῆς εἰς τοῦτον κατάγεσθαι τῶν στεμμάτων ἀκριβῶς δοκούντων. ἀλλὰ Κλώδιός τις ἐν ἐλέγχῳ χρόνων οὕτω γάρ πως ἐπιγέγραπται τὸ βιβλίον ἰσχυρίζεται τὰς μὲν ἀρχαίας ἐκείνας ἀναγραφὰς ἐν τοῖς Κελτικοῖς πάθεσι τῆς πόλεως ἠφανίσθαι, τὰς δὲ νῦν φαινομένας οὐκ ἀληθῶς συγκεῖσθαι διʼ ἀνδρῶν χαριζομένων τισὶν εἰς τὰ πρῶτα γένη καὶ τοὺς ἐπιφανεστάτους οἴκους ἐξ οὐ προσηκόντων εἰσβιαζομένοις.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2:1" n="2"> 
+<p> λεγομένου δὲ οὖν ὡς Νομᾶς γένοιτο <pb n="paris.1624.60"/> Πυθαγόρου συνήθης, οἱ μὲν ὅλως ἀξιοῦσι μηδὲν Ἑλληνικῆς παιδεύσεως Νομᾷ μετεῖναι, καθάπερ ἢ φύσει δυνατὸν καὶ αὐτάρκη γενέσθαι πρὸς ἀρετὴν ἢ βελτίονι Πυθαγόρου βαρβάρῳ τινὶ τὴν τοῦ βασιλέως ἀποδοῦναι παίδευσιν οἱ δὲ Πυθαγόραν μὲν ὀψὲ γενέσθαι, τῶν Νομᾶ χρόνων ὁμοῦ τι πέντε γενεαῖς ἀπολειπόμενον, </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2:1" n="3"> 
+<p>Πυθαγόρου δὲ τὸν Σπαρτιάτην Ὀλύμπια νενικηκότα στάδιον ἐπὶ τῆς ἑκκαιδεκάτης Ὀλυμπιάδος, ἧς ἔτει τρίτῳ Νομᾶς εἰς τὴν βασιλείαν κατέστη, πλανηθέντα περὶ τὴν Ἰταλίαν συγγενέσθαι τῷ Νομᾷ καὶ <pb n="p.308"/> συνδιακοσμῆσαι τὴν πολιτείαν, ὅθεν οὐκ ὀλίγα τοῖς Ῥωμαϊκοῖς ἐπιτηδεύμασι τῶν Λακωνικῶν ἀναμεμῖχθαι Πυθαγόρου διδάξαντος, ἄλλως δὲ Νομᾶς γένος μὲν ἦν ἐκ Σαβίνων, Σαβῖνοι δὲ βούλονται Λακεδαιμονίων ἑαυτοὺς ἀποίκους γεγονέναι.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2:1" n="4"> 
+<p> τοὺς μὲν οὖν χρόνους ἐξακριβῶσαι χαλεπόν ἐστι, καὶ μάλιστα τοὺς ἐκ τῶν Ὀλυμπιονικῶν ἀναγομένους, ὧν τὴν ἀναγραφὴν ὀψέ φασιν Ἱππίαν ἐκδοῦναι τὸν Ἠλεῖον, ἀπʼ οὐδενὸς ὁρμώμενον ἀναγκαίου πρὸς πίστιν ἃ δὲ παρειλήφαμεν ἡμεῖς ἄξια λόγου περὶ Νομᾶ, διέξιμεν ἀρχὴν οἰκείαν λαβόντες.</p> </div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-grc2:2" n="1"> 
+<p> ἕβδομον ἐνιαυτὸν ἡ Ῥώμη καὶ τριακοστὸν ἤδη Ῥωμύλου βα�

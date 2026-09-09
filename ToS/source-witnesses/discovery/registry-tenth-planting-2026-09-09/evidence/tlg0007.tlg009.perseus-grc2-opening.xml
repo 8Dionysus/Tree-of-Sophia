@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Σόλωνος καὶ Ποπλικόλα σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg009.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>    
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1914</date>
+</imprint>
+<biblScope unit="volume">1</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives01plut2/page/564/mode/2up">Internet Archive</ref>  
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change who="Lisa Cerrato" when="2016-12-14">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2">
+    <div n="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Σόλωνος καὶ Ποπλικόλα σύγκρισις</head>
+<pb n="p.564"/>
+        <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2" n="1">
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2:1" n="1">
+<p> ἆρʼ οὖν ἴδιόν τι περὶ ταύτην τὴν σύγκρισιν ὑπάρχει καὶ μὴ πάνυ συμβεβηκὸς ἑτέρᾳ τῶν ἀναγεγραμμένων, τὸν ἕτερον γεγονέναι μιμητὴν τοῦ ἑτέρου, τὸν ἕτερον δὲ μάρτυν; ὅρα γάρ ἣν ὁ Σόλων ἐξήνεγκε περὶ εὐδαιμονίας ἀπόφασιν πρὸς Κροῖσον, ὡς Ποπλικόλᾳ μᾶλλον ἢ Τέλλῳ προσήκει· </p>
+</div>
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2:1" n="2">
+<p>Τέλλου μὲν γὰρ, ὃν εἶπε γεγονέναι μακαριώτατον διʼ εὐποτμίαν καὶ ἀρετὴν καὶ εὐτεκνίαν, οὔτʼ αὐτὸς ἐν τοῖς ποιήμασιν ὡς ἀνδρὸς ἀγαθοῦ λόγον ἔσχεν οὔτε παῖδες οὔτʼ ἀρχή τις εἰς δόξαν ἦλθεν Ποπλικόλας δὲ καὶ ζῶν ἐπρώτευσε δυνάμει καὶ δόξῃ διʼ ἀρετὴν Ῥωμαίων, καὶ <pb n="p.566"/> τεθνηκότος ἐν τοῖς ἐπιφανεστάτοις γένεσι καὶ στέμμασιν ἔτι καθʼ ἡμᾶς Ποπλικόλαι καὶ Μεσσάλαι καὶ Οὐαλλέριοι διʼ ἐτῶν ἑξακοσίων τῆς εὐγενείας τὴν δόξαν ἀναφέρουσι. </p>
+</div>
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2:1" n="3">
+<p> καὶ Τέλλος μὲν ὑπὸ τῶν πολεμίων ὡς ἀνὴρ ἀγαθὸς ἐν τάξει μένων καὶ μαχόμενος κατέστρεψε· Ποπλικόλας δὲ τοὺς μὲν πολεμίους κτείνας, ὃ τοῦ πεσεῖν εὐτυχέστερόν ἐστι, τὴν δὲ πατρίδα νικῶσαν ἐπιδὼν διʼ αὐτόν ἄρχοντα καὶ στρατηγοῦντα, τιμηθεὶς δὲ καὶ θριαμβεύσας ἔτυχε τῆς ζηλουμένης ὑπὸ Σόλωνος καὶ μακαριζομένης τελευτῆς. </p>
+</div>
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2:1" n="4">
+<p> ἔτι τοίνυν οἷς πρὸς Μίμνερμον ἀντειπὼν περὶ χρόνου ζωῆς ἐπιπεφώνηκε, <quote rend="blockquote"> <l>μηδέ μοι ἄκλαυστος θάνατος μόλοι, ἀλλὰ φίλοισι </l> <l>ποιήσαιμι θανὼν ἄλγεα καὶ στοναχάς</l> </quote> ποιεῖ, τελευτήσας <pb n="paris.1624.110"/> γὰρ οὐ φίλοις οὐδʼ οἰκείοις μόνον, ἀλλὰ τῇ πόλει πάσῃ, μυριάσι πολλαῖς, δάκρυα καὶ πόθον καὶ κατήφειαν ἐφʼ αὑτῷ παρέσχεν αἱ γάρ Ῥωμαίων γυναῖκες ἐπένθησαν αὐτόν ὥσπερ υ ἱὸν ἢ ἀδελφὸν ἢ πατέρα κοινὸν ἀποβαλοῦσαι. </p>
+</div>
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-grc2:1" n="5">
+<p> <q>χρήματα δʼ ἱμείρω μὲν ἔχειν,</q> φησὶν ὁ Σόλων, <q>ἀδίκως δὲ πεπᾶσθαι οὐκ ἐθέλω,</q> ὡς δίκης ἐπιούσης Ποπλικόλᾳ δʼ ὑπῆρχεν οὐ μόνον μ�

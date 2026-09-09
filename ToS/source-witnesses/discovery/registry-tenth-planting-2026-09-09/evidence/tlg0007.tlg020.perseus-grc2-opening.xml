@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Σύγκρισις Τιμολέοντος καὶ Αἰμιλίου</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+    <resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+    <funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+    
+    <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2010-10-22">Perseus 4.0</date>
+        <idno type="filename">tlg0007.tlg020.perseus-grc2.xml</idno>
+        <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+        </availability>
+    </publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1918</date>
+</imprint>
+    <biblScope unit="volume">6</biblScope>
+</monogr>
+<series><title>Loeb Classical Library</title></series>
+<ref target="https://archive.org/details/plutarchslives06plut/page/458/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change who="Lisa Cerrato" when="2016-12-07">EpiDoc and CTS conversion</change>
+    <change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+ 
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Τιμολέοντος καὶ Παύλου Αἰμιλίου σύγκρισις</head> 
+    <pb n="p.458"/> 
+    <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2" n="1"> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:1" n="1"> <p> τοιούτων δὲ τῶν κατὰ τὴν ἱστορίαν ὄντων, δῆλον ὡς οὐκ ἔχει πολλὰς διαφορὰς οὐδὲ ἀνομοιότητας ἡ σύγκρισις. </p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:1" n="2"><p>οἵ τε γὰρ πόλεμοι πρὸς ἐνδόξους γεγόνασιν ἀμφοτέροις ἀνταγωνιστάς, τῷ μὲν Μακεδόνας, τῷ δὲ Καρχηδονίους, αἵ τε νῖκαι περιβόητοι, τοῦ μὲν ἑλόντος Μακεδονίαν <pb n="p.460"/> καὶ τὴν ἀπʼ Ἀντιγόνου διαδοχὴν ἐν ἑβδόμῳ βασιλεῖ καταπαύσαντος, τοῦ δὲ τὰς τυραννίδας πάσας ἀνελόντος ἐκ Σικελίας καὶ τὴν νῆσον ἐλευθερώσαντος· </p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:1" n="3"><p>εἰ μὴ νὴ Δία βούλοιτό τις παρεγχειρεῖν ὡς Αἰμίλιος μὲν ἐρρωμένῳ Περσεῖ καὶ Ῥωμαίους νενικηκότι, Τιμολέων δὲ Διονυσίῳ παντάπασιν ἀπειρηκότι καὶ κατατετριμμένῳ συνέπεσε, </p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:1" n="4"><p>καὶ πάλιν ὑπὲρ Τιμολέοντος, ὅτι πολλοὺς μὲν τυράννους, μεγάλην δὲ τὴν Καρχηδονίων δύναμιν ἀπὸ τῆς τυχούσης στρατιᾶς ἐνίκησεν, οὐχ ὥσπερ Αἰμίλιος ἀνδράσιν ἐμπειροπολέμοις καὶ μεμαθηκόσιν ἄρχεσθαι χρώμενος, ἀλλὰ μισθοφόροις οὖσι καὶ στρατιώταις ἀτάκτοις, πρὸς ἡδονὴν εἰθισμένοις στρατεύεσθαι. </p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:1" n="5"><p>τὰ γὰρ ἀπʼ οὐκ ἴσης παρασκευῆς ἴσα κατορθώματα τῷ στρατηγῷ τὴν αἰτίαν περιτίθησι. </p> </div> </div> 
+    <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2" n="2"> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:2" n="1"> <p> καθαρῶν οὖν καὶ δικαίων ἐν τοῖς πράγμασιν ἀμφοτέρων γεγονότων, Αἰμίλιος μὲν ὑπὸ τῶν νόμων καὶ τῆς πατρίδος οὕτως ἔοικεν εὐθὺς ἀφικέσθαι παρεσκευασμένος, Τιμολέων δὲ τοιοῦτον αὐτὸς ἑαυτὸν παρέσχε. </p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg020.perseus-grc2:2" n="2"><p>τούτου τεκμήριον ὅτι Ῥωμαῖοι μὲν ὁμαλῶς ἐν τῷ τότε χρόνῳ πάντες ἦσαν εὔτακτοι καὶ ὑποχείριοι τοῖς ἐθισμοῖς καὶ τοὺς νόμους δεδιότες καὶ τοὺς πολίτας, Ἑλλήνων δὲ οὐδεὶς ἡγεμών ἐστιν οὐδὲ στρατηγός ὃς οὐ διεφθάρη τότε Σικελίας ἁψάμενος ἔξω Δίωνος.

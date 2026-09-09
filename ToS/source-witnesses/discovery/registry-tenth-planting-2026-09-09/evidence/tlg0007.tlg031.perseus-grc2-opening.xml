@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Γάιος Μάριος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+   <name>Lisa Cerrato</name>
+   <name>Rashmi Singhal</name>
+   <name>Bridget Almas</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+<date type="release" when="2010-10-22">Perseus 4.0</date>
+   <idno type="filename">tlg0007.tlg031.perseus-grc2.xml</idno>
+   <availability>
+      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+   </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+   <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1920</date>
+</imprint>
+<biblScope unit="volume">9</biblScope>
+</monogr>
+   <series>
+      <title>Loeb Classical Library</title>
+   </series>
+   <ref target="https://archive.org/details/plutarchslives09plut/page/346/mode/2up">Internet Archive</ref>  
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+   <refsDecl n="CTS">
+      <cRefPattern n="section"
+         matchPattern="(\w+).(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+         <p>This pointer pattern extracts chapter and section.</p>
+      </cRefPattern>
+      <cRefPattern n="chapter"
+         matchPattern="(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         <p>This pointer pattern extracts chapter.</p>
+      </cRefPattern>
+   </refsDecl>
+   <refsDecl>
+      <refState unit="chapter" delim="."/>
+      <refState unit="section"/>
+   </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+<language ident="lat">Latin</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change when="2018-03-28" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+   <change when="2010-08-01" who="LMC">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2" type="edition" xml:lang="grc"> <head>Γάϊος Μάριος</head> <pb n="p.464"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2:1" n="1"><p> Γαΐου Μαρίου τρίτον οὐκ ἔχομεν εἰπεῖν ὄνομα, καθάπερ οὐδὲ Κοΐντου Σερτωρίου τοῦ κατασχόντος Ἰβηρίαν, οὐδὲ Λευκίου Μομμίου τοῦ Κόρινθον ἑλόντος· ὁ γὰρ Ἀχαϊκὸς τούτῳ γε τῆς πράξεως ἐπώνυμον γέγονεν, ὡς ὁ Ἀφρικανὸς Σκηπίωνι καὶ ὁ Μακεδονικὸς Μετέλλῳ.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2:1" n="2"><p> ἐξ οὗ καὶ μάλιστα Ποσειδώνιος ἐλέγχειν οἴεται τοὺς τὸ τρίτον ὄνομα Ῥωμαίοις κύριον εἶναι νομίζοντας, οἷον τὸν Κάμιλλον καὶ τὸν Μάρκελλον καὶ τὸν Κάτωνα· γίνεσθαι γὰρ ἂν ἀνωνύμους<note resp="editor" place="inline" anchored="true" xml:lang="eng"> <foreign xml:lang="grc">ἂν ἀνωνύμους</foreign> Ziegler, after Schaefer: <foreign xml:lang="grc">ἀνωνύμους</foreign>.</note> τοὺς ἀπὸ μόνων τῶν δυεῖν προσαγορευομένους. λανθάνει δὲ ἑαυτὸν ὅτι τούτῳ τῷ λόγῳ πάλιν αὐτὸς ἀνωνύμους ποιεῖ<note resp="editor" place="inline" anchored="true" xml:lang="eng"> <foreign xml:lang="grc">ποιεῖ</foreign> Bekker and Ziegler, after Coraës: <foreign xml:lang="grc">ποιεῖται</foreign>.</note> τὰς γυναῖκας· οὐδεμιᾷ γάρ γυναικὶ τίθεται τῶν ὀνομάτων τὸ πρῶτον, ὅπερ οἴεται κύρίων ὄνομα Ῥωμαίοις ὑπάρχειν ὁ Ποσειδώνιος.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2:1" n="3"><p> τῶν δὲ ἄλλων τὸ μὲν κοινὸν ἀπὸ συγγενείας, τοὺς Πομπηΐους καὶ τοὺς Μαλλίους καὶ τοὺς Κορνηλίους ὥσπερ ἂν Ἡρακλείδας τις εἴποι καὶ Πελοπίδας, τοῦτο δὲ προσηγορικὸν ἐξ ἐπιθέτου πρὸς τὰς φύσεις ἢ τὰς πράξεις ἢ τὰ τοῦ σώματος εἴδη καὶ πάθη τίθεσθαι, τὸν Μακρῖνον καὶ τὸν Τουρκουᾶτον καὶ τὸν Σύλλαν οἶόν ἐστιν ὁ Μνήμων ἢ ὁ Γρυπὸς ἢ ὁ Καλλίνικος, εἰς μὲν οὖν ταῦτα <pb n="p.466"/> πολλὰς δίδωσιν ἐπιχειρήσεις ἡ τῆς συνηθείας ἀνωμαλία.</p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2:2" n="1"><p> τῆς δὲ ὄψεως τῆς Μαρίου λιθίνην εἰκόνα κειμένην ἐν Ῥαβέννῃ τῆς Γαλατίας ἐθεώμεθα πάνυ τῇ λεγομένῃ περὶ τὸ ἦθος στρυφνότητι καὶ πικρίᾳ πρέπουσαν. ἀνδρώδης γὰρ φύσει καὶ πολεμικὸς γενόμενος, καὶ στρατιωτικῆς μᾶλλον ἢ πολιτικῆς παιδείας μεταλαβών, ἄκρατον ἐν ταῖς ἐξουσίαις τὸν θυμὸν ἔσχε.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-grc2:

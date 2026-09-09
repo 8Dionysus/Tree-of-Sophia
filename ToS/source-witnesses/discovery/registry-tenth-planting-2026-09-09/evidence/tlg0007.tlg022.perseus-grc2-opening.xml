@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+    <title xml:lang="grc">Μάρκελλος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg022.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1917</date>
+</imprint>
+<biblScope unit="volume">5</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives05plut/page/436/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-20" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2">
+    <div n="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Μάρκελλος</head>
+<pb n="p.436"/>
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2:1" n="1"><p>Μᾶρκον δὲ Κλαύδιον τὸν πεντάκις ὑπατεύσαντα <pb n="paris.1624.298"/> Ῥωμαίων Μάρκου μὲν υἱὸν γενέσθαι λέγουσι, κληθῆναι δὲ τῶν ἀπὸ τῆς οἰκίας πρῶτον Μάρκελλον, ὅπερ ἐστὶν Ἀρήϊον, ὥς φησι Ποσειδώνιος. ἦν γὰρ τῇ μὲν ἐμπειρίᾳ πολεμικός, τῷ δὲ σώματι ῥωμαλέος, τῇ δὲ χειρὶ πλήκτης, τῇ δὲ φύσει φιλοπόλεμος κἀν τούτῳ δὴ πολὺ τὸ γαῦρον καὶ ἀγέρωχον ἐπιφαίνων ἐν τοῖς ἀγῶσι, </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2:1" n="2"><p>τῷ δὲ ἄλλῳ τρόπῳ σώφρων, φιλάνθρωπος, Ἑλληνικῆς παιδείας καὶ λόγων ἄχρι τοῦ τιμᾶν καὶ θαυμάζειν τοὺς κατορθοῦντας ἐραστής, αὐτὸς δὲ ὑπʼ ἀσχολιῶν ἐφʼ ὅσον ἦν πρόθυμος ἀσκῆσαι καὶ μαθεῖν οὐκ ἐξικόμενος. εἰ γὰρ ἄλλοις τισὶν ἀνθρώποις ὁ θεός, ὥσπερ Ὅμηρος εἴρηκεν, <quote rend="blockquote"> <l>ἐκ νεότητος ἔδωκε καὶ εἰς γῆρας τολυπεύειν </l> <l>ἀργαλέους πολέμους,</l> </quote> καὶ τοῖς τότε πρωτεύουσι Ῥωμαίων, </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2:1" n="3"><p>οἳ νέοι μὲν ὄντες περὶ Σικελίαν Καρχηδονίοις, ἀκμάζοντες δὲ Γαλάταις ὑπὲρ αὐτῆς Ἰταλίας ἐπολέμουν, ἤδη δὲ γηρῶντες Ἀννίβᾳ πάλιν συνείχοντο καὶ Καρχηδονίοις, οὐκ ἔχοντες, ὥσπερ οἱ πολλοὶ, διὰ γῆρας ἀνάπαυσιν στρατειῶν, ἀλλʼ ἐπὶ στρατηγίας πολέμων καὶ ἡγεμονίας κατʼ εὐγένειαν καὶ ἀρετὴν ἀγόμενοι.<pb n="p.438"/></p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2:2" n="1"><p>Μάρκελλος δὲ πρὸς οὐδὲν μὲν ἦν μάχης εἶδος ἀργὸς οὐδὲ ἀνάσκητος, αὐτὸς δʼ ἑαυτοῦ κράτιστος ἐν τῷ μονομαχεῖν γενόμενος οὐδεμίαν πρόκλησιν ἔφυγε, πάντας δὲ τοὺς προκαλεσαμένους ἀπέκτεινεν. ἐν δὲ Σικελίᾳ τὸν ἀδελφὸν Ὀτακίλιον κινδυνεύοντα διέσωσεν ὑπερασπίσας καὶ ἀποκτείνας τοὺς ἐπιφερομένους.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg022.perseus-grc2:2" n="2"><p>ἀνθʼ ὧν ὄντι μὲν ἔτι νέῳ στέφανοι καὶ γέρα παρὰ τῶν στρατηγῶν ἦσαν, εὐδοκιμοῦντα δὲ μᾶλλον ἀγορανόμον μὲν ἀπέδειξε τῆς ἐπιφανεστέρας τάξεως ὁ δῆμος, οἱ δὲ ἱερεῖς αὔγουρα. τοῦτο δʼ ἐστὶν ἱερωσύνης εἶδος, ᾧ μάλιστα τὴν ἀπʼ οἰωνῶν μ�

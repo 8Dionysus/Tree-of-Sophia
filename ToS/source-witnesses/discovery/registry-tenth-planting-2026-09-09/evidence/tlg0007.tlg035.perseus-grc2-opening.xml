@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Κίμων</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+<name>Lisa Cerrato</name>
+<name>William Merrill</name>
+<name>Elli Mylonas</name>
+<name>David Smith</name>
+</respStmt>
+<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+	<date type="release" when="1992">Perseus 1.0</date>
+	<idno type="filename">tlg0007.tlg035.perseus-grc2.xml</idno>
+	<availability>
+	<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+	</availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1914</date>
+</imprint>
+<biblScope unit="volume">2</biblScope>
+</monogr>
+<series>
+<title>Loeb Classical Library</title>
+</series>
+<ref target="https://archive.org/details/plutarchslives02plut2/page/404/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+	<refsDecl n="CTS">
+		<cRefPattern n="section"
+			matchPattern="(\w+).(\w+)"
+			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+			<p>This pointer pattern extracts chapter and section.</p>
+		</cRefPattern>
+		<cRefPattern n="chapter"
+			matchPattern="(\w+)"
+			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+			<p>This pointer pattern extracts chapter.</p>
+		</cRefPattern>
+	</refsDecl>
+	<refsDecl>
+		<refState unit="chapter" delim="."/>
+		<refState unit="section"/>
+	</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+	
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+	<change when="2018-02-05" who="Lisa Cerrato">file conversion to EpiDoc and CTS</change>
+	<change when="1992-10-22" who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change>
+	<change when="1992-05-20" who="David Smith">uncapitalized non-proper nouns at the beginnings of paragraphs and verse lines</change>
+	<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change>
+	<change who="Scott Ettinger and Roger Travis">Text keyboarded in the Philippines.  Basic SGML tagging.</change>
+</revisionDesc>
+</teiHeader>
+	
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2">
+<div n="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2" type="edition" xml:lang="grc"> 
+<head>Κίμων</head>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2:1" n="1"><p>Περιπόλτας ὁ μάντις ἐκ Θετταλίας εἰς Βοιωτίαν Ὀφέλταν τὸν βασιλέα καὶ τοὺς ὑπʼ αὐτῷ λαοὺς καταγαγὼν γένος εὐδοκιμῆσαν ἐπὶ πολλοὺς χρόνους κατέλιπεν, οὗ τὸ πλεῖστον ἐν Χαιρωνείᾳ κατῴκησεν, ἣν πρώτην πόλιν ἔσχον ἐξελάσαντες τοὺς βαρβάρους. οἱ μὲν οὖν πλεῖστοι τῶν ἀπὸ τοῦ γένους φύσει μάχιμοι καὶ ἀνδρώδεις γενόμενοι καταναλώθησαν ἐν ταῖς Μηδικαῖς ἐπιδρομαῖς καὶ τοῖς Γαλατικοῖς ἀγῶσιν ἀφειδήσαντες ἑαυτῶν· </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2:1" n="2"><p>λείπεται δὲ παῖς ὀρφανὸς γονέων, ὄνομα Δάμων, παρωνύμιον δὲ Περιπόλτας, πολὺ δή τι καὶ σώματος κάλλει καὶ ψυχῆς φρονήματι τοὺς καθʼ αὑτὸν ὑπεραίρων νέους, ἄλλως δʼ ἀπαίδευτος καὶ σκληρὸς τὸ ἦθος.</p>
+<p>τούτου Ῥωμαῖος ἡγεμὼν σπείρας τινὸς ἐν Χαιρωνείᾳ διαχειμαζούσης ἐρασθεὶς ἄρτι τὴν παιδικὴν ἡλικίαν παρηλλαχότος, ὡς οὐκ ἔπειθε πειρῶν καὶ διδούς, δῆλος ἦν οὐκ ἀφεξόμενος βίας, ἅτε δὴ καὶ τῆς πατρίδος ἡμῶν τότε λυπρὰ πραττούσης καὶ διὰ μικρότητα καὶ πενίαν παρορωμένης.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2:1" n="3"><p>τοῦτο δὴ δεδιὼς ὁ Δάμων, καὶ τὴν πεῖραν αὐτὴν διʼ ὀργῆς πεποιημένος, ἐπεβούλευε τῷ ἀνδρὶ καὶ συνίστη τῶν ἡλικιωτῶν τινας ἐπʼ αὐτόν, οὐ πολλοὺς ἕνεκα τοῦ λαθεῖν, ἀλλʼ οἱ σύμπαντες ἑκκαίδεκα γενόμενοι χρίονται μὲν αἰθάλῳ τὰ πρόσωπα νυκτός, ἐμπιόντες δὲ ἄκρατον ἅμʼ ἡμέρᾳ προσπίπτουσι τῷ Ῥωμαίῳ κατʼ ἀγορὰν θύοντι, καὶ καταβαλόντες αὐτόν τε καὶ τῶν περὶ αὐτὸν οὐκ ὀλίγους ἐκ τῆς πόλεως μετέστησαν.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2:1" n="4"><p>γενομένης δὲ ταραχῆς ἡ τῶν Χαιρωνέων βουλὴ συνελθοῦσα θάνατον αὐτῶν κατέγνω· καὶ τοῦτο ἦν ὑπὲρ τῆς πόλεως ἀπολόγημα πρὸς τοὺς Ῥωμαίους. ἑσπέρας δὲ τῶν ἀρχόντων, ὥσπερ ἔθος ἐστί, κοινῇ δειπνούντων οἱ περὶ τὸν Δάμωνα παρεισπεσόντες εἰς τὸ ἀρχεῖον ἀπέσφαξαν αὐτοὺς καὶ πάλιν ᾤχοντο φεύγοντες ἐκ τῆς πόλεως.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg035.perseus-grc2:1" n="5"><p>ἔτυχε δὲ περὶ τὰς ἡμέρας ἐκείνας Λεύκιος Λούκουλλος ἐπί τινα πρᾶξιν μετὰ δ�

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Βροῦτος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg061.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1918</date>
+</imprint>
+<biblScope unit="volume">6</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives06plut/page/126/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+    <language ident="eng">English</language>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-27" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2">
+    
+<div n="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Βροῦτος</head>
+<pb n="p.126"/>
+    <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2" n="1">
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2:1" n="1"><p>Μάρκου δὲ Βρούτουπρόγονος ἦν Ἰούνιος <pb n="paris.1624.984"/> Βροῦτος, ὃν ἀνέστησαν ἐν Καπιτωλίῳ χαλκοῦν οἱ πάλαι Ῥωμαῖοι μέσον τῶν βασιλέων, ἐσπασμένον ξίφος, ὡς βεβαιότατα καταλύσαντα Ταρκυνίους. </p></div>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2:1" n="2"><p>ἀλλʼ ἐκεῖνος μέν, ὥσπερ τὰ ψυχρήλατα τῶν ξιφῶν, σκληρὸν ἐκ φύσεως καὶ οὐ μαλακὸν ἔχων ὑπὸ λόγου τὸ ἦθος ἄχρι παιδοφονίας ἐξώκειλε τῷ θυμῷ τῷ κατὰ τῶν τυράννων, </p></div>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2:1" n="3"><p>οὑτοσὶ δʼ, ὑπὲρ οὗ γράφεται ταῦτα, παιδείᾳ καὶ λόγῳ διὰ φιλοσοφίας καταμίξας τὸ ἦθος, καὶ τὴν φύσιν ἐμβριθῆ καὶ πρᾳεῖαν οὖσαν ἐπεγείρας ταῖς πρακτικαῖς ὁρμαῖς, ἐμμελέστατα δοκεῖ κραθῆναι πρὸς τὸ καλόν, </p></div>
+        <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2:1" n="4"><p>ὥστε καὶ τοὺς ἀπεχθανομένους αὐτῷ διὰ τὴν ἐπὶ Καίσαρα συνωμοσίαν, εἰ μέν τι γενναῖον ἡ πρᾶξις ἤνεγκε, Βρούτῳ προσάπτειν, τὰ δυσχερέστερα δὲ τῶν γεγονότων τρέπειν εἰς Κάσσιον, οἰκεῖον μέν ὄντα Βρούτου καὶ φίλον, ἁπλοῦν δὲ τῷ τρόπῳ καὶ καθαρὸν οὐχ ὁμοίως.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2:1" n="5"><p>Σερβιλία δὲ ἡ μήτηρ ἀνέφερε τὸ γένος εἰς Ἀάλαν<note resp="editor" place="inline" anchored="true" xml:lang="eng"><foreign xml:lang="grc">Ἀάλαν</foreign> Cobet: <foreign xml:lang="grc">Ἄλαν.</foreign></note>  Σερβίλιον, ὃς Μαιλίου Σπορίου τυραννίδα κατασκευαζομένου καὶ ταράττοντος τὸν δῆμον ἐγχειρίδιον λαβὼν ὑπὸ μάλης προῆλθεν εἰς ἀγοράν καὶ παραστὰς τῷ ἀνδρὶ πλησίον, ὡς ἐντυγχάνειν <pb n="p.128"/>τι μέλλων καὶ διαλέγεσθαι, προσνεύσαντα πατὰξας ἀπέκτεινε. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-grc2:1" n="6"><p><milestone unit="para" resp="editor"/>τοῦτο μέν οὖν ὁμολογούμενόν ἐστι· τὸ δὲ πατρῷον γένος οἱ διὰ τὸν Καίσαρος φόνον ἔχθραν τινὰ καὶ δυσμένειαν ἀποδεικνύμενοι πρὸς Βροῦτον οὔ φασιν εἰς τὸν ἐκβαλόντα Ταρκυνίους ἀνήκειν οὐδὲν γὰρ ἐκείνῳ λειφθῆναι γένος ἀνελόντι τοὺς υἱούς, ἀλλὰ δημότην τοῦτον, οἰκονόμου υἱὸν ὄντα Βρούτου, ἄρτι καὶ πρῴην εἰς ἄρχοντα προελθεῖν.</p></div>
+        <div type="textpart" subtype="section" xml:base=

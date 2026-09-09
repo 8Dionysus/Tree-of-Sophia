@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Φωκίων</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+<date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg049.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1919</date>
+</imprint>
+<biblScope unit="volume">8</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives08plut/page/236/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="eng">English</language>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-03-26" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+    <body xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Φωκίων</head> 
+    <pb n="p.144"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2:1" n="1"> <p> Δημάδης ὁ ῥήτωρ ἰσχύων μὲν ἐν ταῖς Ἀθήναις διὰ τὸ πρὸς χάριν πολιτεύεσθαι Μακεδόνων καὶ Ἀντιπάτρου, πολλὰ δὲ γράφειν καὶ λέγειν ἀναγκαζόμενος παρὰ τὸ ἀξίωμα τῆς πόλεως καὶ τὸ ἦθος, ἔλεγε συγγνώμης ἄξιος εἶναι πολιτευόμενος τὰ ναυάγια τῆς πόλεως, τοῦτο δὲ εἰ καὶ τῷ ῥήτορι θρασύτερον εἴρηται, δόξειεν ἂν ἀληθὲς εἶναι μετενεχθὲν ἐπὶ τὴν Φωκίωνος πολιτείαν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2:1" n="2"> <p>Δημάδης μὲν γὰρ αὐτὸς ἦν ναυάγιον τῆς πόλεως, οὕτως ἀσελγῶς βιώσας καὶ πολιτευσάμενος ὥστε Ἀντίπατρον εἰπεῖν ἐπʼ αὐτοῦ, γέροντος ἤδη γεγονότος, ὅτι καθάπερ ἱερείου διαπεπραγμένου γλῶσσα καὶ κοιλία μόνον ἀπολείπεται· τὴν δὲ Φωκίωνος ἀρετήν, ὥσπερ ἀνταγωνιστῇ βαρεῖ καὶ βιαίῳ καιρῷ συλλαχοῦσαν, αἱ τύχαι τῆς Ἑλλάδος ἀμαυρὰν καὶ ἀλαμπῆ πρὸς δόξαν ἐποίησαν.</p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2:1" n="3"> <p> οὐ γὰρ Σοφοκλεῖ γε προσεκτέον ἀσθενῆ ποιοῦντι <pb n="paris.1624.742"/> τὴν ἀρετὴν ἐν οἷς φησιν·<note anchored="true" place="inline" resp="editor" xml:lang="eng"><title>Antigone</title>, 563 f. (<foreign xml:lang="grc">οὐ γάρ ποτ’, ὦναξ, κτλ.</foreign>).</note> <quote rend="blockquote"> <l>ἀλλʼ οὐ γὰρ, ὦναξ, οὐδʼ ὃς ἂν βλάστῃ μένει </l> <l>νοῦς τοῖς κακῶς πράξασιν, ἀλλʼ ἐξίσταται·</l> </quote> τοσοῦτον δὲ τῇ τύχῃ δοτέον ἀντιταττομένῃ πρὸς τοὺς ἀγαθοὺς ἄνδρας ἰσχύειν, ὅσον ἀντὶ τῆς ἀξίας τιμῆς καὶ χάριτος ἐνίοις ψόγους πονηροὺς καὶ <pb n="p.146"/> διαβολὰς ἐπιφέρουσαν τὴν πίστιν ἀσθενεστέραν ποιεῖν τῆς ἀρετῆς.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg049.perseus-grc2:2" n="1"> <p> καίτοι δοκοῦσιν οἱ δῆμοι μᾶλλον εἰς τοὺς ἀγαθοὺς ἐξυβρίζειν ὅταν εὐτυχῶσιν, ὑπὸ πραγμάτων μεγάλων καὶ δυνάμεως ἐπαιρόμενοι· συμβαίνει δὲ τοὐναντίον, αἱ γὰρ συμφοραὶ πικρὰ μὲν τὰ ἤθη καὶ μικρόλυπα καὶ ἀκροσφαλῆ πρὸς ὀργὰς ποιοῦσι, δύσκολον δὲ τὴν ἀκοὴν καὶ τραχεῖαν, ὑπὸ παντὸς λόγου καὶ ῥήματος τόνον ἔχοντος ἐνοχλουμένην ὁ δὲ ἐπιτιμῶν τοῖς ἐξαμαρτανομένοις ἐξονειδίζειν τὰ δυστυχήματα δοκεῖ, καὶ καταφρονεῖν �

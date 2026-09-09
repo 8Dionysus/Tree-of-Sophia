@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Δίων</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg060.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>    
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1918</date>
+</imprint>
+<biblScope unit="volume">6</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives06plut/page/n15/mode/2up">Internet Archive</ref> 
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+    <language ident="eng">English</language>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-27" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2"> 
+    <div n="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2" type="edition" xml:lang="grc"> 
+        <head>Δίων</head> 
+    <pb n="p.2"/>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2" n="1"> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:1" n="1"><p>ἆρά γε, ὥσπερ ὁ Σιμωνίδης φησίν, ὦ <pb n="paris.1624.958"/> Σόσσιε Σενεκίων, τοῖς Κορινθίοις οὐ μηνίειν τὸ Ἴλιον ἐπιστρατεύσασι μετὰ τῶν Ἀχαιῶν, ὅτι κἀκείνοις οἱ περὶ Γλαῦκον ἐξ ἀρχῆς Κορίνθιοι γεγονότες συνεμάχουν προθύμως, οὕτως εἰκὸς τῇ Ἀκαδημείᾳ μήτε Ῥωμαίους μήτε Ἕλληνας ἐγκαλεῖν ἴσον φερομένους ἐκ τῆς γραφῆς ταύτης, ἣ τόν τε Βρούτου περιέχει βίον καὶ τόν Δίωνος, </p></div>
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:1" n="2"><p>ὧν ὁ μὲν αὐτῷ Πλάτωνι πλησιάσας, ὁ δὲ τοῖς λόγοις ἐντραφεὶς τοῖς Πλάτωνος, ὥσπερ ἐκ μιᾶς ὥρμησαν ἀμφότεροι παλαίστρας ἐπὶ τοὺς μεγίστους ἀγῶνας. </p></div>
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:1" n="3"><p>καὶ τὸ μὲν ὅμοια πολλὰ καὶ ἀδελφὰ πράξαντας μαρτυρῆσαι τῷ καθηγεμόνι τῆς ἀρετῆς ὅτι δεῖ φρονήσει καὶ δικαιοσύνῃ δύναμιν ἐπὶ τὸ αὐτὸ καὶ τύχην συνελθεῖν, ἵνα κάλλος ἅμα καὶ μέγεθος αἱ πολιτικαὶ πράξεις λάβωσιν, οὐ θαυμαστόν ἐστιν. </p></div>
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:1" n="4"><p>ὡς γὰρ Ἱππόμαχος ο ἀλείπτης ἔλεγε τοὺς γεγυμνασμένους παρʼ αὐτῷ καὶ κρέας ἐξ ἀγορᾶς ἰδὼν φέροντας ἐπιγνῶναι πόρρωθεν, οὕτω τόν λόγον ἐστὶν εἰκὸς τῶν πεπαιδευμένων ὁμοίως ἕπεσθαι ταῖς πράξεσιν, ἐμμέλειάν τινα καὶ ῥυθμὸν ἐπιφέροντα μετὰ τοῦ πρέποντος.</p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2" n="2"> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:2" n="1"><p>αἱ δὲ τύχαι, τοῖς συμπτώμασι μᾶλλον ἢ ταῖς προαιρέσεσιν οὖσαι αἱ αὐταί, συνάγουσι τῶν ἀνδρῶν τοὺς βίους εἰς ὁμοιότητα. </p></div>
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:2" n="2"><p>προανῃρέθησαν γὰρ ἀμφότεροι τοῦ τέλους, εἰς ὃ προὔθεντο τὰς πράξεις ἐκ πολλῶν καὶ μεγάλων ἀγώνων καταθέσθαι μὴ δυνηθέντες. </p></div>
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:2" n="3"><p>ὃ δὲ πάντων θαυμασιώτατον, ὅτι καὶ τὸ δαιμόνιον ἀμφοτέροις ὑπεδήλωσε τὴν τελευτήν, ὁμοίως ἑκατέρῳ φάσματος εἰς ὄψιν οὐκ εὐμενοῦς παραγενομένου. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-grc2:2" n="4"><p>καίτοι λόγος τίς ἐ

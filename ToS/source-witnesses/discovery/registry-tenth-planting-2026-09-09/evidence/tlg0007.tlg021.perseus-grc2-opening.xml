@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Πελοπίδας</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg021.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1917</date>
+</imprint>
+<biblScope unit="volume">5</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives05plut/page/340/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl>
+<refState unit="chapter" delim="."/>
+<refState unit="section"/>
+</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2017-01-12" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Πελοπίδας</head> <pb n="p.340"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2:1" n="1"><p>Κάτων ὁ πρεσβύτερος πρός τινας ἐπαινοῦντας <pb n="paris.1624.277"/> ἄνθρωπον ἀλογίστως παράβολον καὶ τολμηρὸν ἐν τοῖς πολεμικοῖς διαφέρειν ἔφη τὸ πολλοῦ τινα τὴν ἀρετὴν ἀξίαν καὶ τὸ μὴ πολλοῦ ἄξιον τὸ ζῆν νομίζειν ὀρθῶς ἀποφαινόμενος. ὁ γοῦν παρʼ Ἀντιγόνῳ στρατευόμενος ἰταμός, φαῦλος δὲ τὴν ἕξιν καὶ τὸ σῶμα διεφθορώς, ἐρομένου τοῦ βασιλέως τὴν αἰτίαν τῆς ὠχρότητος ὡμολόγησέ τινα νόσον τῶν ἀπορρήτων· </p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2:1" n="2"><p>ἐπεὶ δὲ φιλοτιμηθεὶς ὁ βασιλεὺς προσέταξε τοῖς ἰατροῖς, ἐάν τις ᾖ βοήθεια, μηδὲν ἐλλιπεῖν τῆς ἄκρας ἐπιμελείας, οὕτω θεραπευθεὶς ὁ γενναῖος ἐκεῖνος οὐκέτʼ ἦν φιλοκίνδυνος οὐδὲ ῥαγδαῖος ἐν τοῖς ἀγῶσιν, ὥστε καὶ τὸν Ἀντίγονον ἐγκαλεῖν καὶ θαυμάζειν τὴν μεταβολήν. οὐ μὴν ὁ ἄνθρωπος ἀπεκρύψατο τὸ <pb n="paris.1624.278"/> αἴτιον, ἀλλʼ εἶπεν <q>ὦ βασιλεῦ, σύ με πεποίηκας ἀτολμότερον, ἀπαλλάξας ἐκείνων τῶν κακῶν διʼ ἃ τοῦ ζῆν ὠλιγώρουν.</q></p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2:1" n="3"><p>πρὸς τοῦτο δὲ φαίνεται καὶ Συβαρίτης ἀνὴρ εἰπεῖν περὶ τῶν Σπαρτιατῶν ὡς οὐ μέγα ποιοῦσι θανατῶντες ἐν τοῖς πολέμοις ὑπὲρ τοῦ τοσούτους πόνους καὶ τοιαύτην ἀποφυγεῖν δίαιταν. ἀλλὰ Συβαρίταις μέν ἐκτετηκόσιν ὑπὸ τρυφῆς καὶ μαλακίας διὰ τὴν πρός τὸ καλὸν ὁρμὴν καὶ φιλοτιμίαν εἰκότως ἐφαίνοντο μισεῖν τὸν βίον οἱ μὴ φοβούμενοι τὸν θάνατον, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-grc2:1" n="4"> <p>Λακεδαιμονίοις δὲ καὶ ζῆν ἡδέως καὶ θνῄσκειν <pb n="p.342"/> ἀμφότερα ἀρετὴ παρεῖχεν, ὡς δηλοῖ τὸ ἐπικήδειον· οἵδε γάρ φησιν ἔθανον<note anchored="true" place="inline" resp="editor" xml:lang="eng"><foreign xml:lang="grc">Οἳ θάνον οὐ τὸ ζῆν κτλ.</foreign>, attributed to Simonides (Bergk, <title>Poet. Lyr. Graec.</title> iii.<hi rend="superscript">4</hi> p. 516).</note> <quote rend="blockquote"> <l>οὐ τὸ ζῇν θέμενοι καλὸν οὐδὲ τὸ θνῄσκειν, </l> <l>αλλὰ τὸ ταῦτα καλῶς ἀμφότερʼ ἐκτελέσαι.</l> </quote> οὔτε γὰρ φυγὴ θανάτου μεμπτόν, ἂν ὀρέγηταί τις τοῦ βίου μὴ αἰσχρῶς, οὔτε ὑπομονὴ καλόν, εἰ μετʼ ὀλιγωρίας γίνοιτο τοῦ ζῆν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.t

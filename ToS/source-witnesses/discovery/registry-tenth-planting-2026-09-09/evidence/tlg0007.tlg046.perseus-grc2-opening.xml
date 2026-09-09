@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+
+<title xml:lang="grc">Ἀγησιλάου καὶ Πομπηΐου σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg046.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1917</date>
+</imprint>
+<biblScope unit="volume">5</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives05plut/page/326/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-02-21" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+<change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+    <body xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2">
+    <div n="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2" type="edition" xml:lang="grc">
+        <head>Ἀγησιλάου καὶ Πομπηΐου σύγκρισις</head>
+<pb n="p.326"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2:1" n="1"><p> ἐκκειμένων οὖν τῶν βίων ἐπιδράμωμεν τῷ <pb n="paris.1624.662"/> λόγῳ ταχέως τὰ ποιοῦντα τὰς διαφοράς, παρʼ ἄλληλα συνάγοντες, ἔστι δὲ ταῦτα· πρῶτον, ὅτι Πομπήϊος ἐκ τοῦ δικαιοτάτου τρόπου παρῆλθεν εἰς δύναμιν καὶ δόξαν, αὐτὸς ὁρμηθεὶς ἀφʼ ἑαυτοῦ καὶ πολλὰ καὶ μεγάλα Σύλλᾳ τὴν Ἰταλίαν ἀπὸ τῶν τυράννων ἐλευθεροῦντι συγκατεργασάμενος, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2:1" n="2"><p>Ἀγησίλαος δὲ τὴν βασιλείαν ἔδοξε λαβεῖν οὔτε τὰ πρὸς θεοὺς ἄμεμπτος οὔτε τὰ πρὸς ἀνθρώπους, κρίνας νοθείας Λεωτυχίδην, ὃν υἱὸν αὑτοῦ<note anchored="true" place="inline" resp="editor" xml:lang="eng"><foreign xml:lang="grc">αὑτοῦ</foreign> bracketed by Sintenis.</note> ἀπέδειξεν ἀδελφὸς γνήσιον, τὸν δὲ χρησμὸν κατειρωνευσάμενος τὸν περὶ τῆς χωλότητος. δεύτερον, ὅτι Πομπήϊος Σύλλαν καὶ ζῶντα τιμῶν διετέλεσε καὶ τεθνηκότος ἐκήδευσε βιασάμενος Λέπιδον τὸ σῶμα, καὶ τῷ παιδὶ Φαύστῳ τὴν αὑτοῦ θυγατέρα συνῴκισεν, Ἀγησίλαος δὲ Λύσανδρον ἐκ τῆς τυχούσης προφάσεως ὑπεξέρριψε καὶ καθύβρισε.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2:1" n="3"><p> καίτοι Σύλλας μὲν οὐκ ἐλαττόνων ἔτυχεν ἢ Πομπηΐῳ παρέσχεν, Ἀγησίλαον δὲ Λύσανδρος καὶ τῆς Σπάρτης βασιλέα καὶ τῆς Ἑλλάδος στρατηγὸν ἐποίησε. τρίτον δέ, αἱ περὶ τὰ πολιτικὰ τῶν δικαίων παραβάσεις Πομπηΐῳ μὲν διʼ οἰκειότητας ἐγένοντο· τὰ γὰρ πλεῖστα Καίσαρι καὶ Σκηπίωνι συνεξήμαρτε κηδεσταῖς οὖσιν· </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2:1" n="4"><p>Ἀγησίλαος δὲ Σφοδρίαν μὲν ἐφʼ οἷς Ἀθηναίους ἠδίκησεν ἀποθανεῖν ὀφείλοντα τῷ τοῦ παιδὸς ἔρωτι χαριζόμενος ἐξήρπασε, Φοιβίδᾳ δὲ Θηβαίους <pb n="p.328"/> παρασπονδήσαντι δῆλος ἦν διʼ αὐτὸ τὸ ἀδίκημα προθύμως βοηθῶν· καθόλου δὲ ὅσα Ῥωμαίους διʼ αἰδῶ Πομπήϊος ἢ ἄγνοιαν αἰτίαν ἔσχε βλάψαι, ταῦτα θυμῷ καὶ φιλονεικίᾳ Λακεδαιμονίους Ἀγησίλαος ἔβλαψε τὸν Βοιώτιον ἐκκαύσας πόλεμον.</p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-grc2:2" n="1"><p> εἰ δὲ καὶ τύχην τινὰ τῶν ἀνδρῶν ἑκατέ

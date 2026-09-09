@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Φιλοποίμενος καὶ Τίτου σύγκρισις</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+    <respStmt>
+        <resp>Prepared under the supervision of</resp>
+        <name>Lisa Cerrato</name>
+        <name>Rashmi Singhal</name>
+        <name>Bridget Almas</name>
+    </respStmt>  
+    <funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+  
+    <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2010-10-22">Perseus 4.0</date>
+        <idno type="filename">tlg0007.tlg029.perseus-grc2.xml</idno>
+        <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+        </availability>
+    </publicationStmt>
+
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1921</date>
+</imprint>
+<biblScope unit="volume">10</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives10plut/page/386/mode/2up">Internet Archive</ref>    
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-04-02" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change></revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Φιλοποίμενος καὶ Τίτου σύγκρισις</head> <pb n="p.386"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2" n="1"> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2:1" n="1"> <p> μεγέθει μὲν οὖν τῶν εἰς τοὺς Ἕλληνας εὐεργεσιῶν οὔτε Φιλοποίμενα Τίτῳ παραβάλλειν οὔτε πάνυ πολλοὺς τῶν Φιλοποίμενος ἀμεινόνων ἀνδρῶν ἄξιόν ἐστι. τοῖς μὲν γὰρ Ἕλλησι πρὸς Ἕλληνας οἱ πόλεμοι, τῷ δὲ οὐχ Ἕλληνι καὶ ὑπὲρ Ἑλλήνων· καὶ ὅτε Φιλοποίμην ἀμηχανῶν τοῖς ἑαυτοῦ πολίταις ἀμύνειν πολεμουμένοις εἰς Κρήτην ἀπῆρε, τότε νικήσας Τίτος ἐν μέσῃ τῇ Ἑλλάδι Φίλιππον ἠλευθέρου καὶ τὰ ἔθνη καὶ πόλεις ἁπάσας. </p> </div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2:1" n="2"> <p>εἰ δέ τις ἐξετάζοι τὰς μάχας ἑκατέρου, πλείους Ἕλληνας Φιλοποίμην Ἀχαιῶν στρατηγῶν ἢ Μακεδόνας Τίτος Ἕλλησι βοηθῶν ἀνεῖλε. <milestone unit="para"/>τὰ τοίνυν ἁμαρτήματα τοῦ μὲν φιλοτιμίας, <pb n="p.388"/> τοῦ δὲ φιλονεικίας γέγονε, καὶ πρὸς ὀργὴν ὁ μὲν εὐκίνητος, ὁ δὲ καὶ δυσπαραίτητος. Τίτος μὲν <pb n="paris.1624.382"/> γὰρ καὶ Φιλίππῳ τὸ ἀξίωμα τῆς βασιλείας ἐφύλαξε καὶ πρὸς Αἰτωλοὺς εὐγνωμόνησε, Φιλοποίμην δὲ τῆς πατρίδος διʼ ὀργὴν ἀφείλετο τὴν περιοικίδα συντέλειαν.</p></div> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2:1" n="3"> <p> ἔτι δὲ ὁ μὲν τοῖς εὖ παθοῦσιν ἀεὶ βέβαιος, ὁ δὲ θυμῷ λῦσαι χάριν ἕτοιμος. Λακεδαιμονίων γὰρ εὐεργέτης πρότερον ὢν ὕστερον καὶ τὰ τείχη κατέσκαψε καὶ τὴν χώραν περιέκοψε καὶ τέλος αὐτὴν μετέβαλε καὶ διέφθειρε τὴν πολιτείαν. ἐδόκει δὲ καὶ τὸν βίον ὀργῇ προέσθαι καὶ φιλονεικίᾳ, μὴ κατὰ καιρὸν, ἀλλʼ ὀξύτερον τοῦ δέοντος εἰς Μεσσήνην ἐπειχθείς, οὐχ ὥσπερ Τίτος πάντα λογισμῷ καὶ πρὸς ἀσφάλειαν στρατηγήσας.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2" n="2"> 
+    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg029.perseus-grc2:2" n="1"> <p> ἀλλὰ πλήθει γε πολέμων καὶ τροπαίων ἡ Φιλοποίμενος ἐμπειρία βεβαιοτέρα, τῷ μὲν γὰρ τὰ πρὸς Φίλιππον ἐκρίθη δυοῖν ἀγώνοιν, ὁ δὲ μυρίας μάχας κατορθώσας οὐδεμίαν ἀμφισβήτησιν τῇ τύχῃ πρὸς τὴν ἐπιστήμην ἀπολέλοιπεν. ἔτι δὲ ὁ μὲν τῇ Ῥωμαίων ἀκμὴν ἐχούσῃ δυνάμει χρησάμενος, ὁ δὲ τῆς Ἑλλάδος ἤδη φθινούσης ἐπακμάσας, δόξαν ἔσχεν, ὥστε τοῦ μὲν ἴδιον, τοῦ δὲ κοιν

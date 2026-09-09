@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+ <title xml:lang="grc">Λυκοῦργος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+   <name>Bridget Almas</name>
+   <name>Lisa Cerrato</name>
+   <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+   <date type="release" when="2010-10-22">Perseus 4.0</date>
+   <idno type="filename">tlg0007.tlg004.perseus-grc2.xml</idno>
+   <availability>
+<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+   </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+   <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1914</date>
+</imprint>
+<biblScope unit="volume">1</biblScope>
+</monogr>
+   <series>
+      <title>Loeb Classical Library</title>
+   </series>
+   <ref target="https://archive.org/details/plutarchslives01plut2/page/204/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+   <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+   <refsDecl n="CTS">
+      <cRefPattern n="section"
+         matchPattern="(\w+).(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+         <p>This pointer pattern extracts chapter and section.</p>
+      </cRefPattern>
+      <cRefPattern n="chapter"
+         matchPattern="(\w+)"
+         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+         <p>This pointer pattern extracts chapter.</p>
+      </cRefPattern>
+   </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+<language ident="lat">Latin</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change who="Lisa Cerrato" when="2016-12-12">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+   <change who="Lisa Cerrato" when="1998-10-01">tagged and parsed</change>
+
+</revisionDesc>
+</teiHeader>
+   
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2">
+   <div n="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2" type="edition" xml:lang="grc">
+<head>Λυκοῦργος</head>
+<pb n="p.204"/>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2:1" n="1"> 
+<p> περὶ Λυκούργου τοῦ νομοθέτου καθόλου μὲν οὐδὲν ἔστιν εἰπεῖν ἀναμφισβήτητον, οὗ γε καὶ γένος καὶ ἀποδημία καὶ τελευτὴ καὶ πρὸς ἅπασιν ἡ περὶ τοὺς νόμους αὐτοῦ καὶ τὴν πολιτείαν πραγματεία διαφόρους ἔσχηκεν ἱστορίας, ἥκιστα δὲ οἱ χρόνοι καθʼ οὓς γέγονεν ὁ ἀνὴρ ὁμολογοῦνται, οἱ μὲν γάρ Ἰφίτῳ συνακμάσαι καὶ συνδιαθεῖναι τὴν Ὀλυμπιακὴν ἐκεχειρίαν λέγουσιν αὐτόν, ὧν ἐστι καὶ Ἀριστοτέλης ὁ φιλόσοφος, τεκμήριον προσφέρων τὸν Ὀλυμπίασι δίσκον ἐν ᾧ τοὔνομα τοῦ Λυκούργου διασώζεται καταγεγραμμένον·</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2:1" n="2"> 
+<p> οἱ δὲ ταῖς διαδοχαῖς τῶν ἐν Σπάρτῃ βεβασιλευκότων ἀναλεγόμενοι τὸν χρόνον, ὥσπερ Ἐρατοσθένης καὶ Ἀπολλόδωρος, οὐκ ὀλίγοις ἔτεσι πρεσβύτερον ἀποφαίνουσι τῆς πρώτης Ὀλυμπιάδος. Τίμαιος δὲ ὑπονοεῖ, δυεῖν ἐν Σπάρτῃ γεγονότων Λυκούργων οὐ κατὰ τὸν αὐτὸν χρόνον, τῷ ἑτέρῳ τὰς ἀμφοῖν πράξεις διὰ τὴν δόξαν ἀνακεῖσθαι καὶ τόν γε πρεσβύτερον οὐ πόρρω τῶν Ὁμήρου γεγονέναι χρόνων, ἔνιοι δὲ καὶ κατʼ ὄψιν ἐντυχεῖν Ὁμήρῳ. <pb n="p.206"/></p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2:1" n="3"> 
+<p> δίδωσι δὲ καὶ Ξενοφῶν ὑπόνοιαν ἀρχαιότητος ἐν <pb n="paris.1624.40"/> οἷς τὸν ἄνδρα λέγει γεγονέναι κατὰ τοὺς Ἡρακλείδας. γένει μὲν γὰρ Ἡρακλεῖδαι δήπουθεν ἦσαν καὶ οἱ νεώτατοι τῶν ἐν Σπάρτῃ βασιλέων, ὁ δὲ ἔοικε βουλομένῳ τοὺς πρώτους ἐκείνους καὶ σύνεγγυς Ἡρακλέους ὀνομάζειν Ἡρακλείδας.</p> 
+<p>οὐ μὴν ἀλλὰ καίπερ οὕτως πεπλανημένης τῆς ἱστορίας, πειρασόμεθα τοῖς βραχυτάτας ἔχουσιν ἀντιλογίας ἢ γνωριμωτάτους μάρτυρας ἑπόμενοι τῶν γεγραμμένων περὶ τοῦ ἀνδρὸς ἀποδοῦναι τὴν διήγησιν.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-grc2:1" n="4"> 
+<p> ἐπεὶ καὶ<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">ἐπεὶ καὶ</foreign> Sintenis would begin the second chapter here, assuming also a lacuna in the text preceding.</note> Σιμωνίδης ὁ ποιητὴς οὐκ Εὐνόμου λέγει τὸν Λυκοῦργον πατρός, ἀλλὰ Πρυτάνιδος καὶ τὸν Λυκοῦργον καὶ τὸν Εὔνομον, οἱ δὲ<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">οἱ δὲ</foreign> with Bekk

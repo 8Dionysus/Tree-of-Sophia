@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title xml:lang="grc">Φιλοποίμην</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+    <respStmt>
+        <resp>Prepared under the supervision of</resp>
+        <name>Lisa Cerrato</name>
+        <name>Rashmi Singhal</name>
+        <name>Bridget Almas</name>
+    </respStmt>
+    
+    <funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+    
+    <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" when="2010-10-22">Perseus 4.0</date>
+        <idno type="filename">tlg0007.tlg027.perseus-grc2.xml</idno>
+        <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+        </availability>
+    </publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1921</date>
+</imprint>
+<biblScope unit="volume">10</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives10plut/page/256/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+    <language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-04-02" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+    <text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Φιλοποίμην</head> 
+    <pb n="p.256"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2:1" n="1"> <p> Κλέανδρος ἦν ἐν Μαντινείᾳ γένους τε πρώτου <pb n="paris.1624.356"/> καὶ δυνηθεὶς ἐν τοῖς μάλιστα τῶν πολιτῶν, τύχῃ δὲ χρησάμενος καὶ τὴν ἑαυτοῦ φυγών ἧκεν εἰς Μεγάλην πόλιν οὐχ ἥκιστα διὰ τὸν Φιλοποίμενος πατέρα Κραῦγιν, ἄνδρα πάντων ἕνεκα λαμπρόν, ἰδίᾳ δὲ πρὸς ἐκεῖνον οἰκείως ἔχοντα.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2:1" n="2"> <p> ζῶντος μὲν οὖν αὐτοῦ πάντων ἐτύγχανε, τελευτήσαντος δὲ τὴν ἀμοιβὴν τῆς φιλοξενίας ἀποδιδούς ἔθρεψεν αὐτοῦ τὸν υἱὸν ὀρφανὸν ὄντα, καθάπερ φησὶν Ὅμηρος ὑπὸ τοῦ Φοίνικος τὸν Ἀχιλλέα τραφῆναι, γενναίαν τινὰ καὶ βασιλικὴν τοῦ ἤθους εὐθὺς ἐξ ἀρχῆς πλάσιν καὶ αὔξησιν λαμβάνοντος, ἤδη δὲ τοῦ Φιλοποίμενος ἀντίπαιδος ὄντος Ἔκδημος καὶ Μεγαλοφάνης οἱ Μεγαλοπολῖται διεδέξαντο τὴν ἐπιμέλειαν, Ἀρκεσιλάῳ συνήθεις ἐν Ἀκαδημείᾳ γεγονότες καὶ φιλοσοφίαν μάλιστα τῶν καθʼ ἑαυτοὺς ἐπὶ πολιτείαν καὶ πράξεις προαγαγόντες.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2:1" n="3"> <p> οὗτοι καὶ τὴν ἑαυτῶν πατρίδα τυραννίδος ἀπήλλαξαν, τοὺς ἀποκτενοῦντας Ἀριστόδημον κρύφα παρασκευάσαντες, καὶ Νικοκλέα τὸν Σικυωνίων τύραννον Ἀράτῳ συνεξέβαλον, καὶ Κυρηναίοις <pb n="p.258"/> δεηθεῖσι, τεταραγμένων τῶν κατὰ τὴν πόλιν καὶ νοσούντων, πλεύσαντες εὐνομίαν ἔθεντο καὶ διεκόσμησαν ἄριστα τὴν πόλιν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2:1" n="4"> <p> αὐτοί γε μὴν ἐν τοῖς ἄλλοις ἔργοις καὶ τὴν Φιλοποίμενος ἐποιοῦντο παίδευσιν, ὡς κοινὸν ὄφελος τῇ Ἑλλάδι τὸν ἄνδρα τοῦτον ὑπὸ φιλοσοφίας ἀπεργασόμενοι. καὶ γὰρ ὥσπερ ὀψίγονον ἐν γήρᾳ ταῖς τῶν παλαιῶν ἡγεμόνων ἐπιτεκοῦσα τοῦτον ἀρεταῖς ἡ Ἑλλὰς ἠγάπησε διαφερόντως καὶ συνηύξησε τῇ δόξῃ τὴν δύναμιν. Ῥωμαίων δέ τις ἐπαινῶν ἔσχατον αὐτὸν Ἑλλήνων προσεῖπεν, ὡς οὐδένα μέγαν μετὰ τοῦτον ἔτι τῆς Ἑλλάδος ἄνδρα γειναμένης οὐδὲ αὑτῆς ἄξιον.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-grc2:2" n="1"> <p> ἦν δὲ τὸ μὲν εἶδος οὐκ αἰσχρός, ὡς ἔνιοι νο

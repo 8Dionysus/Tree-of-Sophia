@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Κάμιλλος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date>
+    <idno type="filename">tlg0007.tlg011.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor> 
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1914</date>
+</imprint>
+<biblScope unit="volume">2</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives02plut2/page/94/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+    <quotation marks="none"/>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section" matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter" matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change who="Lisa Cerrato" when="2016-12-20">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change who="RS" when="2010-03-01">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+    
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2">
+    
+<div n="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2" type="edition" xml:lang="grc"> 
+    <head>Κάμιλλος</head> <pb n="p.94"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2:1" n="1"> 
+<p> περὶ δὲ Φουρίου Καμίλλου πολλῶν καὶ <pb n="paris.1624.129"/> μεγάλων λεγομένων ἴδιον εἶναι δοκεῖ μάλιστα καὶ παράδοξον, ὅτι πλεῖστα μὲν ἐν ἡγεμονίαις καὶ μέγιστα κατορθώσας, δικτάτωρ δὲ πεντάκις αἱρεθείς, θριαμβεύσας δὲ τετράκις, κτίστης δὲ τῆς Ῥώμης ἀναγραφεὶς δεύτερος, οὐδὲ ἅπαξ ὑπάτευσε.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2:1" n="2"> 
+<p> τούτου δʼ αἴτιον ἡ τῆς τότε πολιτείας κατάστασις, ἐκ διαφορᾶς τοῦ δήμου πρὸς τὴν σύγκλητον ὑπάτους μὲν ἐρίσαντος μὴ ἀποδείκνυσθαι, χιλιάρχους δὲ χειροτονοῦντος ἐπὶ τὴν ἡγεμονίαν, ὧν, καίπερ ἀπʼ ἐξουσίας καὶ δυνάμεως ὑπατικῆς ἅπαντα πραττόντων, ἧττον ἦν ἐπαχθὴς ἡ ἀρχὴ διὰ τὸ πλῆθος, τὸ γὰρ ἓξ ἄνδρας, ἀλλὰ μὴ δύο, τοῖς πράγμασιν ἐφιστάναι, παρεμυθεῖτο τοὺς βαρυνομένους τὴν ὀλιγαρχίαν.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2:1" n="3"> 
+<p> κατὰ τοῦτο δὴ καιροῦ μάλιστα τῇ δόξῃ καὶ τοῖς πράγμασιν ἀκμάσας ὁ Κάμιλλος ὕπατος μὲν οὐκ ἠξίωσεν ἄκοντι τῷ δήμῳ γενέσθαι, καίπερ ἐν τῷ διὰ μέσου δεξαμένης ὑπατικὰς ἀρχαιρεσίας τῆς πολιτείας πολλάκις, ἐν δὲ ταῖς ἄλλαις ἡγεμονίαις <pb n="p.96"/> πολλαῖς καὶ παντοδαπαῖς γενομέναις τοιοῦτον αὑτὸν παρέσχεν, ὥστε τὴν μὲν ἐξουσίαν καὶ μοναρχοῦντος εἶναι κοινήν, τὴν δὲ δόξαν ἰδίαν καὶ μεθʼ ἑτέρων στρατηγοῦντος· ὧν τοῦ μὲν ἡ μετριότης αἴτιον ἀνεπιφθόνως ἄρχοντος, τοῦ δʼ ἡ φρόνησις, διʼ ἣν ὁμολογουμένως ἐπρώτευεν.</p> </div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2:2" n="1"> 
+<p> οὔπω δὲ τότε περὶ τὸν τῶν Φουρίων οἶκον οὔσης μεγάλης ἐπιφανείας αὐτὸς ἀφʼ ἑαυτοῦ πρῶτος εἰς δόξαν προῆλθεν ἐν τῇ μεγάλῃ μάχῃ πρὸς Αἰκανοὺς καὶ Οὐολούσκους ὑπὸ δικτάτορι Ποστουμίῳ Τουβέρτῳ στρατευόμενος, προϊππεύων γὰρ τοῦ στρατοῦ καὶ πληγῇ περιπεσὼν εἰς τὸν μηρόν οὐκ ἀνῆκεν, ἀλλʼ ἐγκείμενον τῷ τραύματι παρέλκων τὸ ἀκόντισμα καὶ συμπλεκόμενος τοῖς ἀρίστοις τῶν πολεμίων τροπὴν ἐποίησεν.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg011.perseus-grc2:2" n="2"> 
+<p> ἐκ δὲ 

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+ <title xml:lang="grc">Ἄρατος</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg063.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1926</date>
+</imprint>
+<biblScope unit="volume">11</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives11plut/page/n13/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2018-04-17" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+<change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2"> 
+    <div n="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2" type="edition" xml:lang="grc">
+    <head>Ἄρατος</head> 
+    <pb n="p.2"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2:1" n="1"> <p> παροιμίαν τινὰ παλαιὰν, ὦ Πολύκρατες, δείσας μοι δοκεῖ τὸ δύσφημον αὐτῆς, ὁ φιλόσοφος Χρύσιππος, οὐχ ὃν ἔχει τρόπον, ἀλλʼ ὡς αὐτὸς <pb n="paris.1624.1027"/> ᾤετο βέλτιον εἶναι, διατίθεται, <quote rend="blockquote">τίς πατέρʼ αἰνήσει, εὶ μὴ εὐδαίμονες υἱοί;</quote> Διονυσόδωρος δὲ ὁ Τροιζήνιος ἐλέγχων αὐτὸν ἀντεκτίθησι τὴν ἀληθινὴν οὕτως ἔχουσαν <quote rend="blockquote">τίς πατέρʼ αἰνήσει, εἰ μὴ κακοδαίμονες υἱοί ;</quote></p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2:1" n="2"> <p> καί φησι τοὺς ἀφʼ αὑτῶν οὐδενὸς ἀξίους ὄντας, ὑποδυομένους δὲ προγόνων τινῶν ἀρεταῖς<note anchored="true" place="inline" resp="editor" xml:lang="eng"> <foreign xml:lang="grc">ἀρεταῖς</foreign> Sint. and Ziegler with S<hi rend="super">g</hi>; Bekker has <foreign xml:lang="grc">ἀρετάς</foreign>, with inferior MSS.</note> καί πλεονάζοντας ἐν τοῖς ἐκείνων ἐπαίνοις ὑπὸ τῆς παροιμίας ἐπιστομίζεσθαι· ἀλλʼ ᾧ γε φύσει τὸ γενναῖον ἐπιπρέπει ἐκ πατέρων, κατὰ Πίνδαρον,<note anchored="true" place="inline" resp="editor" xml:lang="eng">Pyth. viii. 44f.(<foreign xml:lang="grc">φυᾷ <gap reason="lost"/> ἐκ πατέρων παισὶ λῆμα</foreign>).</note> ὥσπερ σοί πρὸς τὸ κάλλιστον ἀφομοιοῦντι τῶν οἴκοθεν παραδειγμάτων τὸν βίον, εὔδαιμον ἂν εἴη τὸ μεμνῆσθαι τῶν ἀπὸ γένους ἀρίστων, ἀκούοντας περὶ αὑτῶν ἀεί τι καί λέγοντας.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2:1" n="3"> <p> οὐ γὰρ ἰδίων <pb n="p.4"/> πλυταρξηʼς λιες ἀπορίᾳ καλῶν ἐξαρτῶσιν ἀλλοτρίων ἐπαίνων τὴν δόξαν, ἀλλὰ τοῖς ἐκείνων τὰ οἰκεῖα συνάπτοντες, ὡς καί τοῦ γένους καί τοῦ βίου καθηγεμόνας εὐφημοῦσι. διὸ κἀγὼ τὸν Ἀράτου τοῦ σοῦ πολίτου καί προπάτορος βίον, ὃν οὔτε τῇ δόξῃ τῇ περὶ σεαυτὸν οὔτε τῇ δυνάμει καταισχύνεις, ἀπέσταλκά σοί συγγραψάμενος, οὐχ ὡς οὐχὶ πάντων ἀκριβέστατά σοί μεμεληκὸς ἐξ ἀρχῆς ἐπίστασθαι τὰς ἐκείνου πράξεις, </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-grc2:1" n="4"> <p> ἀλλʼ ὅπως οἱ παῖδές σου Πολυκράτης καί Πυθοκλῆς οἰκείοις παραδείγμασιν ἐντρέφωνται, τὰ μὲν ἀκούοντες, τὰ δὲ ἀναγινώσκοντες, ἅπερ αὐτοὺς μιμεῖσθαι προσήκει, φιλαύτου γὰρ ἀνδρός, οὐ φιλοκάλου, παντὸς ἀεὶ βέλτιστον ἡγεῖσθαι.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg000

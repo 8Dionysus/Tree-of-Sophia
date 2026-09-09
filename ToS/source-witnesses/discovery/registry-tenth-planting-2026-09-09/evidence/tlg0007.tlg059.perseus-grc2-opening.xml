@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+<title xml:lang="grc">Σύγκρισις Δημητρίου καὶ Ἀντωνίου</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+	<name>Bridget Almas</name>
+	<name>Lisa Cerrato</name>
+	<name>Rashmi Singhal</name>
+</respStmt>
+    <funder n="org:Tufts">Tufts University</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+	<date type="release" when="2010-10-22">Perseus 4.0</date> 
+	<idno type="filename">tlg0007.tlg059.perseus-grc2.xml</idno>
+	<availability>
+		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+	</availability>
+</publicationStmt>
+<sourceDesc>
+<listBibl>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+	<editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1920</date>
+</imprint>
+<biblScope unit="volume">9</biblScope>
+</monogr>
+	<series>
+		<title>Loeb Classical Library</title>
+	</series>
+	<ref target="https://archive.org/details/plutarchslives09plut/page/332/mode/2up">Internet Archive</ref> 
+</biblStruct>
+</listBibl>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+	<refsDecl n="CTS">
+		<cRefPattern n="section"
+			matchPattern="(\w+).(\w+)"
+			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+			<p>This pointer pattern extracts chapter and section.</p>
+		</cRefPattern>
+		<cRefPattern n="chapter"
+			matchPattern="(\w+)"
+			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+			<p>This pointer pattern extracts chapter.</p>
+		</cRefPattern>
+	</refsDecl>
+	<refsDecl>
+		<refState unit="chapter" delim="."/>
+		<refState unit="section"/>
+	</refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+<language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+	<change when="2018-03-30" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+	<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+	<change when="2013-06-13" who="gcrane">tagging now should be compatible with CTS</change>
+	<change when="2013-06-13" who="gcrane">changed chapters from milestones to divs</change>
+	<change when="2011-01-04" who="gcrane">base SDL file</change>
+	<change when="2010-11-17" who="gcrane">fixed a problem in the header</change>
+	<change when="2010-11-13" who="gcrane">several loose ends cleaned up: above all -- the basic problem enclitic accent: a)ndro\s tinos to a)ndro/s tinos also: apostrophes represented as rough breathigns have been fixed: ei)=t) to ei)t' some noise has been cleaned up: ou(/tws:: to ou(/tws: floating "'" removed '*fw/kw| to *fw/kw|</change>
+	<change when="2010-11-10" who="gcrane">a bug that removed spaces after ./:/; was fixed</change>
+	<change when="2010-11-09" who="gcrane">We have run a script to check capitalized words at the starts of paragraphs, sentences and quotes, lower-casing
+		common nouns and leaving proper names unchanged. The goal is to have files where only proper nouns are
+		upper cased.</change>
+	<change when="2010-09-08" who="rsingh04">added notes</change>
+	<change when="2010-08-20" who="gcrane">some errors detected with morpheus fixed  -- more to do</change>
+	<change when="2010-08-18" who="gcrane">capialization has been normalized as much as possible -- in Greek, we do not capitalize anything bu proper nouns. A number of common nouns at the start of paragraphs and quotations have been converted to lower case automatigcally.
+	</change>
+	<change when="2009-12-24" who="gcrane">fixed header</change>
+	<change when="2009-12-24" who="gcrane">shifted from LDQUO/RDQUO entites to TEI q tags</change>
+	<change when="2009-12-30" who="rsingh04">fixed the cvs log keyword</change>
+	<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper.  also replaced xml snippets in other plutarch files with their respective entities.</change>
+	<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change>
+	<change when="1998-01-09" who="textgod">Added to repository. Passed SGML parse.</change>
+</revisionDesc>
+</teiHeader>
+	
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2" type="edition" xml:lang="grc"> 
+	<head>Δημητρίου καὶ Ἀντωνίου σύγκρισις</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2:1" n="1"><p> ἐπεὶ τοίνυν μεγάλαι περὶ ἀμφοτέρους γεγόνασι μεταβολαί, πρῶτον τὰ τῆς δυνάμεως καὶ τῆς ἐπιφανείας σκοπῶμεν, ὅτι τῷ μὲν ἦν πατρῷα καὶ προκατειργασμένα, μέγιστον ἰσχύσαντος Ἀντιγόνου τῶν διαδόχων καὶ πρὸ τοῦ Δημήτριον ἐν ἡλικίᾳ γενέσθαι τὰ πλεῖστα τῆς Ἀσίας ἐπελθόντος καὶ κρατήσαντος· </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2:1" n="2"> <p>Ἀντώνιος δὲ χαρίεντος μὲν ἄλλως, ἀπολέμου δὲ καὶ μέγα μηδὲν εἰς δόξαν αὐτῷ καταλιπόντος γενόμενος πατρός, ἐπὶ τὴν <pb n="334"/> Καίσαρος ἐτόλμησεν ἀρχήν, οὐδὲν αὐτῷ κατὰ γένος προσήκουσαν, ἐλθεῖν, καὶ τοῖς ἐκείνῳ προπεπονημένοις αὐτὸς ἑαυτὸν εἰσεποίησε διάδοχον. καὶ τοσοῦτον ἴσχυσεν, ἐκ μόνων τῶν περὶ αὐτὸν ὑπαρχόντων ὁρμώμενος, ὥστε δύο μοίρας τὰ σύμπαντα ποιησάμενος τὴν ἑτέραν ἑλέσθαι καὶ λαβεῖν τὴν ἐπιφανεστέραν, ἀπὼν δὲ αὐτὸς ὑπηρέταις τε καὶ ὑποστρατήγοις Πάρθους τε νικῆσαι πολλάκις καὶ τὰ περὶ Καύκασον ἔθνη βάρβαρα μέχρι τῆς Κασπίας ὤσασθαι θαλάσσης. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2:1" n="3"> <p>μαρτύρια δὲ τοῦ μεγέθους αὐτῷ καὶ δι’ ἃ κακῶς ἀκούει. Δημητρίῳ μὲν γὰρ ὁ πατὴρ ἠγάπησε τὴν Ἀντιπάτρου Φίλαν ὡς κρείττονα συνοικῆσαι παρʼ ἡλικίαν, Ἀντωνίῳ δὲ ὁ Κλεοπάτρας γάμος ὄνειδος ἦν, γυναικὸς ὑπερβαλομένης δυνάμει καὶ λαμπρότητι πάντας πλὴν Ἀρσάκου τοὺς καθʼ αὑτὴν βασιλεῖς. ἀλλʼ οὕτως ἐποίησε μέγαν ἑαυτὸν ὥστε τοῖς ἄλλοις μειζόνων ἢ ἐβούλετο δοκεῖν ἄξιος.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg059.perseus-grc2:2" n="1"><p> ἡ μέντοι προαίρεσις, ἀφʼ ἧς ἐκτήσαντο τὴν ἀρχήν, ἄμεμπτος ἐπὶ<note xml:lang="eng" n="1" resp="editor" place="inline" anchored="true"> <foreign xml:lang="grc">ἐπὶ</foreign> Bekker reads <foreign xml:lang="grc">ἡ,</foreign> with a single MS.</note> τοῦ Δημητρίου, κρατεῖν καὶ βασιλεύειν ἀνθ ρώπων εἰθισμένων κρατεῖσθαι καὶ βασιλεύεσθαι ζητοῦντος, ἡ δʼ Ἀντωνίου χαλεπὴ καὶ τυραννική, καταδουλουμένου τὸν Ῥωμαίων δῆμον ἄρτι διαφυγόντα τὴν ὑπὸ Καίσαρι μοναρχίαν. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tl

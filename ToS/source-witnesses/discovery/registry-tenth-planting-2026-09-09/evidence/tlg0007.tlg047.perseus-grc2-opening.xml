@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?><TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>                
+                <title xml:lang="grc">Ἀλέξανδρος</title>
+                <author>Plutarch</author>
+                <editor>Bernadotte Perrin</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Bridget Almas</name>
+                    <name>Lisa Cerrato</name>
+                    <name>Rashmi Singhal</name>
+                </respStmt>
+                <funder n="org:NEH">The National Endowment for the Humanities</funder>
+            </titleStmt>
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release" when="2010-10-22">Perseus 4.0</date> 
+                <idno type="filename">tlg0007.tlg047.perseus-grc2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+                </availability>
+            </publicationStmt>
+            <sourceDesc>
+                <biblStruct>
+                    
+                    <monogr>
+                        <author>Plutarch</author>
+                        <title>Plutarch's Lives</title>
+                        <editor role="translator">Bernadotte Perrin</editor>                  
+                        <imprint>
+                            <pubPlace>Cambridge, MA</pubPlace>
+                            <publisher>Harvard University Press</publisher>
+                            <pubPlace>London</pubPlace>
+                            <publisher>William Heinemann Ltd.</publisher>
+                            <date>1919</date>
+                        </imprint>
+                        <biblScope unit="volume">7</biblScope>
+                    </monogr>
+                    <series>
+                        <title>Loeb Classical Library</title>
+                    </series>
+                    <ref target="https://archive.org/details/plutarchslives07plut/page/224/mode/2up">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+            <refsDecl n="CTS">
+                <cRefPattern n="section"
+                    matchPattern="(\w+).(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                    <p>This pointer pattern extracts chapter and section.</p>
+                </cRefPattern>
+                <cRefPattern n="chapter"
+                    matchPattern="(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts chapter.</p>
+                </cRefPattern>
+            </refsDecl>
+            <refsDecl>
+                <refState unit="chapter" delim="."/>
+                <refState unit="section"/>
+            </refsDecl>
+            <editorialDecl>
+                <correction method="silent">
+                    <p>optical character recognition</p>
+                </correction>
+            </editorialDecl>
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+              <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+            </citeStructure>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="grc">Greek</language>
+                <language ident="eng">English</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2018-03-05" who="Lisa Cerrato">EpiDoc and CTS cleanup</change>
+            <change when="2015" who="Stella Dee">converted to CTS EpiDoc</change>
+            <change when="2010-03-01" who="RS">tagged and parsed</change>
+        </revisionDesc>
+    </teiHeader>
+    
+    <text xml:lang="grc">
+        <body xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2">
+            <div n="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2" type="edition" xml:lang="grc">
+                <head>Ἀλέξανδρος</head>
+            <pb n="p.224"/>
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2" n="1">
+                <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2:1" n="1">
+                    <p> τὸν Ἀλεξάνδρου τοῦ βασιλέως βίον καὶ τοῦ Καίσαρος, ὑφʼ οὗ κατελύθη Πομπήϊος,
+                        ἐν τούτῳ τῷ βιβλίῳ γράφοντες, διὰ τὸ πλῆθος τῶν ὑποκειμένων πράξεων οὐδὲν
+                        ἄλλο προεροῦμεν ἢ παραιτησόμεθα τοὺς ἀναγινώσκοντας, ἐὰν μὴ πάντα μηδὲ καθʼ
+                        ἕκαστον ἐξειργασμένως τι τῶν περιβοήτων ἀπαγγέλλωμεν, ἀλλὰ ἐπιτέμνοντες τὰ
+                        πλεῖστα, μὴ συκοφαντεῖν. </p>
+                </div>
+                <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2:1" n="2">
+                    <p> οὔτε γὰρ ἱστορίας γράφομεν, ἀλλὰ βίους, οὔτε ταῖς ἐπιφανεστάταις πράξεσι
+                        πάντως ἔνεστι δήλωσις ἀρετῆς ἢ κακίας, ἀλλὰ πρᾶγμα βραχὺ πολλάκις καὶ ῥῆμα
+                        καὶ <pb n="paris.1624.665"/> παιδιά τις ἔμφασιν ἤθους ἐποίησε μᾶλλον ἢ μάχαι
+                        μυριόνεκροι καὶ παρατάξεις αἱ μέγισται καὶ πολιορκίαι πόλεων. </p>
+                </div>
+                <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2:1" n="3">
+                    <p> ὥσπερ οὖν οἱ ζῳγράφοι τὰς ὁμοιότητας ἀπὸ τοῦ προσώπου καὶ τῶν περὶ τὴν ὄψιν
+                        εἰδῶν, οἷς ἐμφαίνεται τὸ ἦθος, ἀναλαμβάνουσιν, ἐλάχιστα τῶν λοιπῶν μερῶν
+                        φροντίζοντες, οὕτως ἡμῖν δοτέον εἰς τὰ τῆς ψυχῆς σημεῖα μᾶλλον ἐνδύεσθαι καὶ
+                        διὰ τούτων εἰδοποιεῖν τὸν ἑκάστου βίον, ἐάσαντας ἑτέροις τὰ μεγέθη καὶ τοὺς
+                        ἀγῶνας. </p>
+                </div>
+            </div>
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2" n="2">
+                <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-grc2:2" n="1">
+                    <p> Ἀλέξανδρος ὅτι τῷ γένει πρὸς πατρὸς μὲν ἦν Ἡρακλείδης ἀπὸ Καράνου, πρὸς δὲ
+                        μητρὸς Αἰακίδης ἀπὸ Νεοπτολέμου, τῶν πάνυ πεπιστευμένων ἐστί. λέγεται δέ
+                        Φίλιππος ἐν <pb n="p.226"/> θρᾴκῃ τῇ Ὀλυμπιάδι συμμυηθείς αὐτός τε μειράκιον
+                        ὢν ἔτι κἀκείνης παιδὸς ὀρφανῆς γονέων ἐρασθῆναι καὶ τὸν γάμον οὕτως ἁρμόσαι,
+                        πείσας τὸν ἀδελφὸν αὐτῆς Ἀρύμβαν. </p>
+                </div>
+                <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+<fileDesc>
+<titleStmt>
+    <title  xml:lang="grc">Γάλβας</title>
+<author>Plutarch</author>
+<editor>Bernadotte Perrin</editor>
+<sponsor>Perseus Project, Tufts University</sponsor>
+<principal>Gregory Crane</principal>
+<respStmt>
+<resp>Prepared under the supervision of</resp>
+    <name>Bridget Almas</name>
+    <name>Lisa Cerrato</name>
+    <name>Rashmi Singhal</name>
+</respStmt>
+<funder n="org:NEH">The National Endowment for the Humanities</funder>
+</titleStmt>
+
+<publicationStmt>
+<publisher>Trustees of Tufts University</publisher>
+<pubPlace>Medford, MA</pubPlace>
+<authority>Perseus Project</authority>
+    <date type="release" when="2010-10-22">Perseus 4.0</date> 
+    <idno type="filename">tlg0007.tlg065.perseus-grc2.xml</idno>
+    <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+    </availability>    
+</publicationStmt>
+<sourceDesc>
+<biblStruct>
+
+<monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+    <editor>Bernadotte Perrin</editor>
+<imprint>
+<pubPlace>Cambridge, MA</pubPlace>
+<publisher>Harvard University Press</publisher>
+<pubPlace>London</pubPlace>
+<publisher>William Heinemann Ltd.</publisher>
+<date>1926</date>
+</imprint>
+<biblScope unit="volume">11</biblScope>
+</monogr>
+    <series>
+        <title>Loeb Classical Library</title>
+    </series>
+    <ref target="https://archive.org/details/plutarchslives11plut/page/204/mode/2up">Internet Archive</ref>
+</biblStruct>
+</sourceDesc>
+</fileDesc>
+<encodingDesc>
+<editorialDecl>
+<correction method="silent">
+<p>optical character recognition</p>
+</correction>
+</editorialDecl>
+    <refsDecl n="CTS">
+        <cRefPattern n="section"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts chapter and section.</p>
+        </cRefPattern>
+        <cRefPattern n="chapter"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts chapter.</p>
+        </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+        <refState unit="chapter" delim="."/>
+        <refState unit="section"/>
+    </refsDecl>
+<refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+<profileDesc>
+<langUsage>
+<language ident="grc">Greek</language>
+    <language ident="eng">English</language>
+</langUsage>
+</profileDesc>
+<revisionDesc>
+  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2018-04-17" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+    <change when="2010-03-01" who="RS">tagged and parsed</change>
+</revisionDesc>
+</teiHeader>
+<text xml:lang="grc">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2" type="edition" xml:lang="grc"> <head>Γάλβας</head> <pb n="p.206"/> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2:1" n="1"> <p> ὁ μὲν Ἀθηναῖος Ἰφικράτης τὸν μισθοφόρον <pb n="paris.1624.1053"/> ἠξίου στρατιώτην καὶ φιλόπλουτον εἶναι καὶ φιλήδονον, ὅπως ταῖς ἐπιθυμίαις χορηγίαν ἐπιζητῶν ἀγωνίζηται παραβολώτερον, οἱ δὲ πλεῖστοι, καθάπερ ἐρρωμένον σῶμα, τὸ στρατιωτικὸν ἀξιοῦσιν ἰδίᾳ μηδέποτε χρώμενον ὁρμῇ συγκινεῖσθαι τῇ τοῦ στρατηγοῦ.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2:1" n="2"> <p> διὸ καὶ Παῦλον Αἰμίλιον λέγουσι τὴν ἐν Μακεδονίᾳ δύναμιν παραλαβόντα λαλιᾶς καὶ περιεργίας, οἷον διαστρατηγοῦσαν, ἀνάπλεων, παρεγγυῆσαι τὴν χεῖρα ποιεῖν ἑτοίμην καὶ τὴν μάχαιραν ὀξεῖαν ἕκαστον, αὐτῷ δὲ τῶν ἄλλων μελήσειν.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2:1" n="3"> <p> ὁ δὲ Πλάτων οὐδὲν ἔργον ὁρῶν ἄρχοντος ἀγαθοῦ καὶ στρατηγοῦ στρατιᾶς μὴ σωφρονούσης μηδὲ ὁμοπαθούσης, ἀλλὰ τὴν πειθαρχικὴν ἀρετὴν ὁμοίως τῇ βασιλικῇ νομίζων φύσεως γενναίας καὶ τροφῆς φιλοσόφου δεῖσθαι, μάλιστα τῷ πρᾴῳ καὶ φιλανθρώπῳ τὸ θυμοειδὲς καὶ δραστήριον ἐμμελῶς ἀνακεραννυμένης, ἄλλα τε πάθη πολλὰ καὶ τὰ Ῥωμαίοις συμπεσόντα μετὰ τὴν Νέρωνος τελευτὴν ἔχει μαρτύρια καὶ παραδείγματα τοῦ μηδὲν εἶναι φοβερώτερον <pb n="p.208"/> ἀπαιδεύτοις χρωμένης καὶ ἀλόγοις ὁρμαῖς ἐν ἡγεμονίᾳ στρατιωτικῆς δυνάμεως.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2:1" n="4"> <p>Δημάδης μὲν γὰρ Ἀλεξάνδρου τελευτήσαντος εἴκαζε τὴν Μακεδόνων στρατιὰν ἐκτετυφλωμένῳ τῷ Κύκλωπι, πολλὰς κινουμένην ὁρῶν κινήσεις ἀτάκτους καὶ παραφόρους· τὴν δὲ Ῥωμαίων ἡγεμονίαν ὅμοια τοῖς λεγομένοις Τιτανικοῖς πάθεσι καὶ κινήμασι κατελάμβανεν, εἰς πολλὰ διασπωμένην ἅμα καὶ πολλαχόθεν αὖθις ἑαυτῇ συμπίπτουσαν, οὐχ οὕτως ὑπὸ φιλαρχίας τῶν ἀναγορευομένων αὐτοκρατόρων, ὡς φιλοπλουτίας καὶ ἀκολασίας τὸν στρατιωτικοῦ διʼ ἀλλήλων ὥσπερ ἥλους τοὺς ἡγεμόνας ἐκκρούοντος.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg065.perseus-grc2:1" n="5"> <p> καίτοι Διονύσιος Φεραῖον ἄρξαντα Θετταλῶν δέκα μῆνας, εἶτα εὐθὺς ἀναιρεθέντα, τὸν τραγικὸν ἀνεκάλει τύραννον, ἐπισκώπτων τὸ τάχος τῆς μεταβ
