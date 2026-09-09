@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a70b4cd437327ace771e2f99c289f5fb5c11b9a1630e62fc58d3bbd3fbc4e0a8",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+        "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+            "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.bf5b9b44e3604eeefc76d888735d4a9c227a667c56c2bfac7ee9a322feb4128c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc",
+        "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+      "request_digest": "sha256:e4b709367112b9615b04278cbc65305b686196dfea88263665426818b68ece99",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:06317f94614d3ea6f027716f5612cad7ac15efac27f55b3c6d7027ad800e2706",
+      "recorded_at": "2026-09-09T15:55:24.803211+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.platonicae-quaestiones.en-perseus-tlg0007-tlg133-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:19edae17944914b9cb49bdda9d90c028f00fa5aa4c8a552046cc74a958bd4dbc"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.a70b4cd437327ace771e2f99c289f5fb5c11b9a1630e62fc58d3bbd3fbc4e0a8",
+          "version": 1,
+          "digest": "sha256:593bea9aa416eef8f6917077db337de2a81b5028cce0802211fe6b8cdd3f2be4"
+        },
+        {
+          "id": "tos.form.metadata.bf5b9b44e3604eeefc76d888735d4a9c227a667c56c2bfac7ee9a322feb4128c",
+          "version": 1,
+          "digest": "sha256:a9dc4de7cb0f593798a6b8de6011be5c0f1fb37f4e48f39e8f18bf7d92d21f4d"
+        }
+      ]
+    }
+  ]
+}

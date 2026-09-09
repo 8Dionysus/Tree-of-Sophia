@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.pali-canon.samannaphala-sutta",
+    "version": 1,
+    "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.99b392c5389b35d52b3931d149ba8b3438a38c96b5f304dbbb6b64056ee72cdc",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+        "id": "tos.work.pali-canon.samannaphala-sutta",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+            "id": "tos.work.pali-canon.samannaphala-sutta",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d790d119fc9c6440afa83dbea4266af24461baa07b61797d43b4ab67d2143301",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267",
+        "id": "tos.work.pali-canon.samannaphala-sutta",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.pali-canon.samannaphala-sutta",
+      "request_digest": "sha256:a9121c13908736005655d4be296013efc4b8d570a734ffb2ba2c549992abc70e",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:5c37ca9e386d9a1e2c2f0110b681174723d48a019a92ebc0ecf0cd5416e7a869",
+      "recorded_at": "2026-09-09T15:55:20.183635+00:00",
+      "source": {
+        "id": "tos.work.pali-canon.samannaphala-sutta",
+        "version": 1,
+        "digest": "sha256:fb0e40a6e3137ff5690e7c6a3a9d565b9bc5a2b0fa8eb4319dcb6fbeb1c06267"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.99b392c5389b35d52b3931d149ba8b3438a38c96b5f304dbbb6b64056ee72cdc",
+          "version": 1,
+          "digest": "sha256:ab56cfd0ef130bc4a13c5f624cf33249de0950418feabd8b6eaf437e4558fea4"
+        },
+        {
+          "id": "tos.form.metadata.d790d119fc9c6440afa83dbea4266af24461baa07b61797d43b4ab67d2143301",
+          "version": 1,
+          "digest": "sha256:f9072a83b2f1eab3fb0206810cbe3b030e476e7419c6c13d643deb3abd6c01d4"
+        }
+      ]
+    }
+  ]
+}

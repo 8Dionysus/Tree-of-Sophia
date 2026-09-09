@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+    "version": 1,
+    "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.37e2adc88d5e78bc7f91c18d10021a2439c5e8e69f8f1e04c98cbacea865c50e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+        "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+            "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.bcb6f55f8e2f2878a486bc85e0605acda845b215613c0f20bc28aa5550f76fd3",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563",
+        "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "request_digest": "sha256:dfa711f24b29542dad2d8ecd1aa8ffb14171d84c21f3c8d8691add77524fc851",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:5193b69ec780648c4b56864048c6300a28844292a2d4feeebbd14d9e2ae2474b",
+      "recorded_at": "2026-09-09T15:55:29.711095+00:00",
+      "source": {
+        "id": "tos.item.plato.apology.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+        "version": 1,
+        "digest": "sha256:8f4a54870c2eaa0dacd893af3b2c2b6536a97837285727b1c3698a26eb204563"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.37e2adc88d5e78bc7f91c18d10021a2439c5e8e69f8f1e04c98cbacea865c50e",
+          "version": 1,
+          "digest": "sha256:db0aba20cc3085d5726f938d7533e8617a79d61bc381791112ee83cff71b4030"
+        },
+        {
+          "id": "tos.form.metadata.bcb6f55f8e2f2878a486bc85e0605acda845b215613c0f20bc28aa5550f76fd3",
+          "version": 1,
+          "digest": "sha256:1183f61007eaf7a3dac71f3014de2f5c226429c2fce700ecf719cd3d8349f680"
+        }
+      ]
+    }
+  ]
+}

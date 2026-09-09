@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plato.phaedo",
+    "version": 2,
+    "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.32d3b2493954609520c7ca7f32834216433ddad8b2a2bd23395a045c12b815b5",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+        "id": "tos.work.plato.phaedo",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+            "id": "tos.work.plato.phaedo",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7ca59feded581c6de419d1584d66e3304f8aaf9e51ff7b4d924004e46e612c4a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36",
+        "id": "tos.work.plato.phaedo",
+        "version": 2
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.plato.phaedo",
+      "request_digest": "sha256:7d172f604b76acdd7d6c213c7b5c7727ebd9fe63e15090fa36e6ea83f5e119f1",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:610f0dd901b681abce1fbbfb2a783333acec5fff8f583674561ef3b7d560a4ff",
+      "recorded_at": "2026-09-09T15:55:20.763506+00:00",
+      "source": {
+        "id": "tos.work.plato.phaedo",
+        "version": 2,
+        "digest": "sha256:361afe4c2df7523a70ec13152f2b992d1a3263f0b5b10f270ba38ebdf201fe36"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.32d3b2493954609520c7ca7f32834216433ddad8b2a2bd23395a045c12b815b5",
+          "version": 1,
+          "digest": "sha256:b4f1567c7c8270116376c22b30ea0b0a5e0144c1404cf0135261dacae1a249eb"
+        },
+        {
+          "id": "tos.form.metadata.7ca59feded581c6de419d1584d66e3304f8aaf9e51ff7b4d924004e46e612c4a",
+          "version": 1,
+          "digest": "sha256:6f4c6c3f2dbe65276529d9e00a90a7f511de27e0e40c494e7b9d56beb8fa4dc5"
+        }
+      ]
+    }
+  ]
+}

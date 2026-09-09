@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.dccd027bc2948de853779d7c46cf60d2098f654a7ae10e3a59a00887d17bfe79",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+        "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+            "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.635ac72d4212d2dcd32e427a08cfb6274f00dead0bb13256ba9ad2a56aac69a6",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd",
+        "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+      "request_digest": "sha256:1ebb13e5ff834d29f11dc8cb9c45b98c959404826503696432d7a5687f52cd29",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:fdc5349ee20cadbd456309eaf7ea6c24519dc0da8da9e6d71eff6cbc1b262bf1",
+      "recorded_at": "2026-09-09T15:55:22.335478+00:00",
+      "source": {
+        "id": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:96b451d738678742a1536862adfaab02f9ef9d88fd23922f887b0d4a531188bd"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.dccd027bc2948de853779d7c46cf60d2098f654a7ae10e3a59a00887d17bfe79",
+          "version": 1,
+          "digest": "sha256:e31f9fa725a68733bc515a2ea79a7ac11c6a01943c7faab3e25fbb9a59af90d3"
+        },
+        {
+          "id": "tos.form.metadata.635ac72d4212d2dcd32e427a08cfb6274f00dead0bb13256ba9ad2a56aac69a6",
+          "version": 1,
+          "digest": "sha256:24edc1ecbf19142c490f6e9db2fbc87edeaeeeceb177ac8eb512efb402b67420"
+        }
+      ]
+    }
+  ]
+}
