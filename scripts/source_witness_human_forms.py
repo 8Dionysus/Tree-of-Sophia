@@ -239,6 +239,9 @@ def metadata_field_catalog(source: dict) -> list[dict]:
                     ('metadata.preferred-name', 'metadata.source-note'), ('name', 'hover'))]
     context = ['/' + key for key in ('identity_status', 'same_as_posture', 'semantic_scope', 'semantic_content',
                                    'form_identity', 'native_text_binding') if key in source]
+    if source.get('schema_version') == 'tos_source_link_v1':
+        context.extend('/' + key for key in ('uri', 'provider_label', 'link_kind', 'access_status', 'observed_at',
+                                            'observation_ref', 'association_claim_refs', 'provenance_event_ref'))
     if source.get('record_type') == 'sign':
         # Birth evidence and limits travel with every source-copy wording.
         # They never supply this HumanForm's current semantic admission.

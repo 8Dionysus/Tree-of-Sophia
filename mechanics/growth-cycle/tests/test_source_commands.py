@@ -444,7 +444,8 @@ class SourceCommandTests(unittest.TestCase):
         self.assertEqual(self.target.read_bytes(), before)
 
     def test_source_copy_cannot_omit_guards_or_turn_unknown_language_into_original(self):
-        for mutate in (lambda form: form['bindings'].pop('identity_status'),
+        for mutate in (lambda form: form['bindings'].pop(next(key for key, binding in form['bindings'].items()
+                                                            if binding['pointer'] == '/identity_status')),
                        lambda form: form.update(language='de'),
                        lambda form: form['bindings']['wording'].update(pointer='/absent')):
             request = self.request()

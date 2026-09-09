@@ -22,7 +22,7 @@ from claim_version_reader import _ReadSnapshot, _Unavailable
 import source_commands as source
 import source_revisions as revisions
 from source_metadata_snapshot import (PublicationSnapshot, PublicationStateError, PublicationPending, PublicationChanged)
-from build_source_witness_catalog import verify_catalog_publication, CatalogBuildError
+from build_source_witness_catalog import verify_catalog_publication, CatalogBuildError, native_witness_contract
 from source_record_profiles import (
     SourceRecordProfiles, REGISTRY_REF, CONTRACT_REF, CORPUS_REF,
 )
@@ -57,8 +57,7 @@ def _ref(value):
 
 
 def _record_ref(record):
-    value = {'id': record.get('record_id'), 'version': record.get('record_version'),
-             'digest': source._digest(source._canonical(record))}
+    value = source.metadata_subject(record).ref
     if not _ref(value):
         raise source.JournalCorruption('invalid exact metadata identity')
     return value
@@ -156,12 +155,29 @@ class MetadataVersionReader:
             self._profiles = profiles
         return self._profiles
 
-    def _route(self, kind):
+    def _route(self, kind, source_ref=None):
         self._verify_publication()
+        if kind in {'artifact', 'link'} or (kind == 'composite' and source_ref is not None
+                                           and Path(source_ref).name == 'composite-witness.json'):
+            basename, filename, identity = {
+                'artifact': ('artifact-witness.json', 'artifacts.jsonl', 'artifact_id'),
+                'composite': ('composite-witness.json', 'composites.jsonl', 'composite_id'),
+                'link': ('link.json', 'links.jsonl', 'record_id'),
+            }[kind]
+            # Type existence is an owner-registry fact; a catalog cannot invent
+            # a type or substitute an unrelated record shape with the same ID.
+            profiles = self._profile_contract()
+            type_id = 'tos.entity.' + kind
+            if not any(entry['type_id'] == type_id for entry in profiles.registry['types']):
+                raise source.JournalCorruption('native metadata type is absent from its owner registry')
+            return {'record_type': kind, 'id_prefix': 'tos.' + kind + '.',
+                    'source_basename': basename, 'catalog_filename': filename,
+                    'adapter': 'native-link' if kind == 'link' else 'native-witness',
+                    'identity_field': identity, 'profile_type_id': type_id}
         if kind in NATIVE_CATALOGS:
             return {'record_type': kind, 'id_prefix': 'tos.' + kind + '.',
                     'source_basename': kind + '.json', 'catalog_filename': NATIVE_CATALOGS[kind],
-                    'adapter': 'native-corpus', 'profile_type_id': None}
+                    'adapter': 'native-corpus', 'identity_field': 'record_id', 'profile_type_id': None}
         profiles = self._profile_contract()
         profile = profiles.profiles.get(kind)
         if profile is None:
@@ -169,7 +185,7 @@ class MetadataVersionReader:
         entry = next(entry for entry in profiles.registry['types']
                      if entry.get('source_record_profile') == profile)
         return {key: profile[key] for key in ('record_type', 'id_prefix', 'source_basename', 'catalog_filename')} | {
-            'adapter': 'declared-profile', 'profile_type_id': entry['type_id']}
+            'adapter': 'declared-profile', 'identity_field': 'record_id', 'profile_type_id': entry['type_id']}
 
     def supports(self, record_type, *, source_ref=None):
         """Checked family routing, optionally excluding a native basename alias.
@@ -181,7 +197,7 @@ class MetadataVersionReader:
         if not isinstance(record_type, str) or not re.fullmatch(r'[a-z][a-z0-9-]*', record_type):
             return False
         try:
-            route = self._route(record_type)
+            route = self._route(record_type, source_ref)
             if source_ref is not None:
                 _source_path(source_ref, route['source_basename'])
         except _Unavailable as error:
@@ -224,7 +240,8 @@ class MetadataVersionReader:
 
     def _public_record(self, record, route, schema_version=None):
         reference = _record_ref(record)
-        if (record.get('record_type') != route['record_type']
+        if ((route['adapter'] != 'native-witness' and record.get('record_type') != route['record_type'])
+                or record.get(route['identity_field']) != reference['id']
                 or not reference['id'].startswith(route['id_prefix'])
                 or not isinstance(record.get('schema_version'), str)
                 or schema_version is not None and record['schema_version'] != schema_version):
@@ -232,12 +249,33 @@ class MetadataVersionReader:
         if route['adapter'] == 'native-corpus':
             if record['schema_version'] != 'tos_corpus_record_v1' or 'visibility' in record:
                 raise _Unavailable('access-restricted', 'source-outside-native-corpus-public-contract')
+        elif route['adapter'] == 'native-witness':
+            if record.get('authority', {}).get('visibility') not in PUBLIC:
+                raise _Unavailable('access-restricted', 'native-witness-record-not-public')
+        elif route['adapter'] == 'native-link':
+            if record['schema_version'] != 'tos_source_link_v1' or 'visibility' in record:
+                raise _Unavailable('access-restricted', 'source-outside-native-link-public-contract')
         elif record.get('visibility') not in PUBLIC:
             raise _Unavailable('access-restricted', 'metadata-record-not-public')
         return reference
 
     def _validate_current(self, record, route, relative):
         self._public_record(record, route)
+        if route['adapter'] in {'native-witness', 'native-link'}:
+            if route['adapter'] == 'native-witness':
+                schema_ref, identity, kind = native_witness_contract(record, relative.as_posix())
+                if (identity, kind) != (route['identity_field'], route['record_type']):
+                    raise source.JournalCorruption('native witness descriptor differs from its owner contract')
+            else:
+                if not relative.is_relative_to('ToS/source-witnesses/links'):
+                    raise _Unavailable('access-restricted', 'native-link-outside-owner-home')
+                schema_ref = 'ToS/contracts/source-link.schema.json'
+            schema = source._json_object(self._contract(schema_ref))
+            if schema.get('$id') != 'https://tree-of-sophia.local/' + schema_ref:
+                raise source.JournalCorruption('native metadata schema identity differs')
+            source.Draft202012Validator.check_schema(schema)
+            source.Draft202012Validator(schema, format_checker=source.FormatChecker()).validate(record)
+            return schema_ref
         if route['adapter'] == 'native-corpus':
             if self._native_validator is None:
                 schema = source._json_object(self._contract(CORPUS_REF))
@@ -335,6 +373,7 @@ class MetadataVersionReader:
         if identity not in entries:
             raise _Unavailable('missing', 'record-not-in-public-catalog')
         entry, line = entries[identity]
+        route = self._route(_identity(identity), entry.get('source_record_ref'))
         relative = _source_path(entry.get('source_record_ref'), route['source_basename'])
         path = self.root / relative
         self._snapshot.mark(path.parent, directory=True)
@@ -342,11 +381,13 @@ class MetadataVersionReader:
         record = source._json_object(raw)
         schema_ref = self._validate_current(record, route, relative)
         current_ref = _record_ref(record)
-        if (record['record_id'] != identity or entry.get('record_sha256') != current_ref['digest'][7:]
-                or entry.get('preferred_label') != record.get('preferred_label')
+        label = (record['custody']['inventory_numbers'][0] if route['record_type'] == 'artifact'
+                 else record.get('preferred_label'))
+        if (record[route['identity_field']] != identity or entry.get('record_sha256') != current_ref['digest'][7:]
+                or entry.get('preferred_label') != label
                 or entry.get('identity_status') != record.get('identity_status')
                 or entry.get('source_schema_ref', schema_ref) != schema_ref
-                or route['adapter'] == 'declared-profile' and 'source_schema_ref' not in entry):
+                or route['adapter'] in {'declared-profile', 'native-witness'} and 'source_schema_ref' not in entry):
             raise _Unavailable('stale', 'catalog-source-binding-mismatch')
         history_path = path.parent / revisions.HISTORY
         history_raw = (self._snapshot.read(history_path, source.MAX_SET_BYTES, 'revision-history-byte-budget')
@@ -359,6 +400,9 @@ class MetadataVersionReader:
         history = revisions._history(files, record)
         versions = {}
         allowed_fields = source.CORPUS_REVISION_FIELDS if route['adapter'] == 'native-corpus' else source.REVISION_FIELDS
+        if route['adapter'] in {'native-witness', 'native-link'}:
+            from source_native_metadata_commands import REVISION_FIELDS
+            allowed_fields = REVISION_FIELDS[route['record_type']]
         for receipt in history['receipts']:
             request = receipt['request']
             selected = 'publication' in receipt
@@ -394,6 +438,9 @@ class MetadataVersionReader:
                 raise source.JournalCorruption('retained request is not a metadata correction')
             previous, binding = self._archive_record(relative, route, receipt, record['schema_version'])
             revised = {**previous, **request['fields'], 'record_version': previous['record_version'] + 1}
+            if route['adapter'] in {'native-witness', 'native-link'}:
+                from source_native_metadata_commands import validate_descriptive_delta
+                validate_descriptive_delta(previous, revised, route['record_type'])
             if self._public_record(revised, route, record['schema_version']) != receipt['source']:
                 raise source.JournalCorruption('retained request does not reconstruct its metadata successor')
             versions[_key(receipt['previous_source'])] = {
@@ -412,7 +459,10 @@ class MetadataVersionReader:
                         'source_record_ref': relative.as_posix(), 'current_record_ref': current_ref},
             'descriptor': {'adapter': route['adapter'], 'record_type': route['record_type'],
                            'profile_type_id': route['profile_type_id'], 'source_schema_ref': schema_ref,
-                           'source_schema_version': record['schema_version'], 'source_scope': 'public_metadata_only'},
+                           'source_schema_version': record['schema_version'], 'source_scope': 'public_metadata_only',
+                           'record_kind': 'subject', 'identity_field': route['identity_field'],
+                           'source_basename': route['source_basename'], 'schema_version': record['schema_version'],
+                           'schema_ref': schema_ref, 'type_id': 'tos.entity.' + route['record_type']},
             'history': {'source_ref': history_path.relative_to(self.root).as_posix() if history_raw is not None else None,
                         'sha256': source._digest(history_raw) if history_raw is not None else None,
                         'receipt_count': len(history['receipts']), 'retained_record_chain_verified': True,
@@ -489,6 +539,17 @@ class MetadataVersionReader:
             status, reason = self._error(error)
             return {**result, 'status': status, 'reason': reason}
 
+    def resolve_typed(self, exact_ref):
+        """Exact subject metadata plus its validated source-owned descriptor.
+
+        Claim refs use ClaimVersionReader, not this subject reader. Neither
+        identity, schema selection nor this descriptor is a semantic verdict.
+        An unavailable reply carries no inferred descriptor or latest fallback.
+        """
+        result = self.resolve(exact_ref)
+        return {**result, 'descriptor': (copy.deepcopy(result['provenance']['descriptor'])
+                                        if result['status'] == 'available' else None)}
+
     def resolve_source_bytes(self, original_source_path, raw_sha256):
         """Verify exact current/retained bytes at their original logical source.
 
@@ -506,7 +567,8 @@ class MetadataVersionReader:
                   'performs_assessment': False, 'writes_to_source': False}
         try:
             relative = Path(original_source_path)
-            route = self._route(relative.stem)
+            kind = {'artifact-witness': 'artifact', 'composite-witness': 'composite'}.get(relative.stem, relative.stem)
+            route = self._route(kind, original_source_path)
             _source_path(original_source_path, route['source_basename'])
             entries, _, _ = self._catalog(route)
             identities = [identity for identity, (entry, _) in entries.items()

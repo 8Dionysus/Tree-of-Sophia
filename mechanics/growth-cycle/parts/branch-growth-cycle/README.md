@@ -138,12 +138,22 @@ are not supplied by this bounded Claim reader.
 ### Read-only exact metadata versions
 
 `metadata_version_reader.MetadataVersionReader(root)` offers `resolve(exact_ref)`,
-`exact_refs(record_id)`, `supports(record_type, source_ref=...)` and
+`resolve_typed(exact_ref)`, `exact_refs(record_id)`, `supports(record_type, source_ref=...)` and
 `verify_current()`. It uses the same exact-ref/status envelope, with no command
 configuration or current-use authority. Supported routes are native Corpus
-Agent, Place, Organization, Work, Expression and Edition, plus the registry's declared metadata
-profiles and schema routes. Pass the locator to `supports` when a catalog also
-contains a different native representation, such as scholarly Composites.
+Agent, Place, Organization, Work, Expression, Edition, Collection and Item,
+native Artifact, Link and retained scholarly Composite, plus the registry's
+declared metadata profiles and schema routes. Pass the locator to `supports`
+when one catalog contains more than one native/declared representation.
+
+`resolve_typed` returns the same envelope plus `descriptor`: the validated
+owner `adapter`, `record_kind` (`subject`), `record_type`, `identity_field`,
+`schema_version`, `schema_ref`, `source_basename` and `type_id`. It is not a
+tuple. An unavailable result has `descriptor: null`, never an inferred type
+or latest fallback. Claim references retain their separate Claim reader.
+Artifact uses `artifact_id`; retained Composite uses `composite_id`. A schema,
+descriptive record and the persistent subject are not interchangeable, and
+the descriptor supplies neither a semantic verdict nor transition authority.
 
 `exact_refs` returns a continuous retained baseline through current, never
 inventing versions before that baseline. Available results include `current_ref`,
@@ -165,8 +175,34 @@ Work is bounded to 8 MiB/8,192 rows per catalog, 128 selected contracts, 128
 corrections, existing package-manifest bounds and 64 MiB cumulative read work per
 instance, including profile shape-reader rechecks. Reuse within one build and
 verify before export; exceeding a bound refuses the record/history without
-partial output. Native Item/File/Link and native
-Artifact/Composite representations are not supported by this reader yet.
+partial output. Native File bytes and textual representations remain outside
+this descriptive metadata reader.
+
+### Native Artifact, retained Composite and Link descriptions
+
+The independent `tos_local_native_metadata_revision_owner_v1` grant selects
+`record_type`, `record_id`, `record_schema_version`, the exact public owner
+`source_path`, bounded `allowed_fields` and `allowed_form_ids`, plus the usual
+local-account principal, authority, expiry and operations. It delegates
+`record.revise` and optionally `record.recover`; existing Corpus and profile
+grants do not gain these native shapes. `prepare-revise`, exact commit fields,
+`expected_publication`, `inspect-version` and explicit recovery reuse the
+[selected metadata transaction contract](docs/SELECTED_METADATA_TRANSACTIONS.md).
+
+Artifact descriptive fields are `path_identity` (only its note may change),
+`physical_description`, `find_context` and `bibliography`. Retained Composite
+permits `preferred_label` and `editorial_object`. Link permits `preferred_label`,
+`variant_labels`, `notes`, `source_refs` and `provider_label`. Exact typed
+schema and persistent identity remain unchanged. No URI/observation,
+membership, custody identity, rights, provenance, original maker or authority
+change is delegated. Native v1/v2 Artifact and retained Composite formats
+remain intact rather than being rewritten as Corpus records.
+
+The writer reads and publishes only the record, adjacent form set and revision
+history, preserves exact predecessor bytes, and explicitly rebinds every
+current form. Descendants, representations and payloads are not enumerated.
+Link forms include the exact URI, provider, observation and association
+context; source-copy readiness still carries no semantic admission.
 
 `resolve_source_bytes(original_source_path, raw_sha256)` joins a provenance
 input to the exact current or retained metadata bytes at its original logical

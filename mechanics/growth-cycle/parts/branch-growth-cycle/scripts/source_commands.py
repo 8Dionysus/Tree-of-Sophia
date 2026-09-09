@@ -50,6 +50,8 @@ CORPUS_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v1'
 CORPUS_SELECTED_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v2'
 CORPUS_COMPLETE_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v3'
 CORPUS_SELECTED_REVISION_CONFIGS = {CORPUS_SELECTED_REVISION_CONFIG, CORPUS_COMPLETE_REVISION_CONFIG}
+NATIVE_METADATA_REVISION_CONFIG = 'tos_local_native_metadata_revision_owner_v1'
+SELECTED_REVISION_CONFIGS = {*CORPUS_SELECTED_REVISION_CONFIGS, NATIVE_METADATA_REVISION_CONFIG}
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
@@ -315,7 +317,14 @@ def _native_form_source(source_path, root):
     from build_source_witness_catalog import native_witness_contract
     raw = _read(source_path, MAX_COMMAND_BYTES)
     source = _json_object(raw)
-    schema_ref, _, _ = native_witness_contract(source, source_path.relative_to(root).as_posix())
+    relative = source_path.relative_to(root)
+    if source_path.name == 'link.json':
+        if (not relative.is_relative_to('ToS/source-witnesses/links')
+                or source.get('schema_version') != 'tos_source_link_v1'):
+            raise PermissionError('Link forms require their exact native public owner contract')
+        schema_ref = 'ToS/contracts/source-link.schema.json'
+    else:
+        schema_ref, _, _ = native_witness_contract(source, relative.as_posix())
     schema_raw = _read(root / schema_ref, MAX_COMMAND_BYTES)
     if not Draft202012Validator(_json_object(schema_raw), format_checker=FormatChecker()).is_valid(source):
         raise ValueError('native form source violates its exact public metadata schema')
@@ -363,7 +372,7 @@ def _snapshot(source_path, root=None, claim_id=None):
         source_raw, source, _ = _claim_form_source(source_path, root, claim_id)
         subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
         target = claim_forms_path(source_path, claim_id)
-    elif source_path.name in {'artifact-witness.json', 'composite-witness.json'}:
+    elif source_path.name in {'artifact-witness.json', 'composite-witness.json', 'link.json'}:
         if root is None:
             raise ValueError('native witness forms require the explicit source owner')
         source_raw, source, _ = _native_form_source(source_path, root)
@@ -372,7 +381,7 @@ def _snapshot(source_path, root=None, claim_id=None):
         source_raw = _read(source_path, MAX_COMMAND_BYTES)
         source = _json_object(source_raw)
         target = source_path.with_name(source_path.stem + '.human-forms.json')
-    if claim_id is None and source_path.name not in {'artifact-witness.json', 'composite-witness.json'} and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
+    if claim_id is None and source_path.name not in {'artifact-witness.json', 'composite-witness.json', 'link.json'} and (source.get('schema_version') not in {'tos_corpus_record_v1', 'tos_historical_record_v1'}
                              or source_path.name == 'composite.json'):
         if root is None:
             raise ValueError('source-command adapter does not understand this source family')
@@ -1379,6 +1388,7 @@ def command_handlers():
     import claim_revisions
     import source_revisions
     import source_selected_revisions
+    import source_native_metadata_commands
     import source_text_unit_commands
     import source_text_layer_commands
     import source_owner_profile_commands
@@ -1388,7 +1398,7 @@ def command_handlers():
     import source_edition_commands
     import source_item_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
-        source_claim_commands, claim_revisions, source_revisions, source_selected_revisions,
+        source_claim_commands, claim_revisions, source_revisions, source_selected_revisions, source_native_metadata_commands,
         source_text_unit_commands, source_text_layer_commands, source_owner_profile_commands, source_owner_claim_commands,
         source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands)
         for handler in module.command_handlers()))

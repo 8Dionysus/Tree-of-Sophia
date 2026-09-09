@@ -27,7 +27,7 @@ def _encode(value):
 
 
 def _selected(config):
-    return config.get('schema_version') in source.CORPUS_SELECTED_REVISION_CONFIGS
+    return config.get('schema_version') in source.SELECTED_REVISION_CONFIGS
 
 
 def _package(directory, *, archive=False):
@@ -94,11 +94,12 @@ def _revision(files):
 
 
 def _history(files, record):
+    subject = source.metadata_subject(record)
     history = source._json_object(files[HISTORY]) if HISTORY in files else {
-        'schema_version': 'tos_source_revision_history_v1', 'record_id': record['record_id'], 'receipts': []}
+        'schema_version': 'tos_source_revision_history_v1', 'record_id': subject.id, 'receipts': []}
     source._keys(history, {'schema_version', 'record_id', 'receipts'})
     if (history['schema_version'] not in {'tos_source_revision_history_v1', 'tos_source_revision_history_v2'}
-            or history['record_id'] != record['record_id']
+            or history['record_id'] != subject.id
             or not isinstance(history['receipts'], list) or len(history['receipts']) > MAX_REVISIONS):
         raise source.JournalCorruption('invalid source revision history')
     previous, commands = None, set()
@@ -143,20 +144,23 @@ def _history(files, record):
                 or receipt['reason'] != receipt['request']['reason']
                 or receipt['changed_fields'] != sorted(receipt['request']['fields'])
                 or receipt['grants_admission'] is not False
-                or receipt['source']['id'] != record['record_id']
-                or receipt['previous_source']['id'] != record['record_id']
+                or receipt['source']['id'] != subject.id
+                or receipt['previous_source']['id'] != subject.id
                 or receipt['source']['version'] != receipt['previous_source']['version'] + 1
                 or previous is not None and receipt['previous_source'] != previous):
             raise source.JournalCorruption('broken source revision lineage')
         commands.add(receipt['command_id'])
         previous = receipt['source']
-    if previous is not None and previous != source.Record.from_payload(record['record_id'], record['record_version'], record).ref:
+    if previous is not None and previous != subject.ref:
         raise source.JournalCorruption('current source is not the retained revision head')
     return history
 
 
 def _validate_record(config, record):
     root = Path(config['source_root'])
+    if config['schema_version'] == source.NATIVE_METADATA_REVISION_CONFIG:
+        from source_native_metadata_commands import validate_record
+        return validate_record(config, record)
     if config['schema_version'] in {source.CORPUS_REVISION_CONFIG, *source.CORPUS_SELECTED_REVISION_CONFIGS}:
         profile = source._configured_corpus_profile(config)
         schema_raw = source._read(root / profile['schema_ref'], source.MAX_COMMAND_BYTES)
@@ -223,7 +227,10 @@ def _proposal(config, path, files, record, request, *, scope_operation='record.r
     _scope(config, request, operation=scope_operation)
     revised = {**record, **request['fields'], 'record_version': record['record_version'] + 1}
     _validate_record(config, revised)
-    subject = source.Record.from_payload(revised['record_id'], revised['record_version'], revised)
+    if config['schema_version'] == source.NATIVE_METADATA_REVISION_CONFIG:
+        from source_native_metadata_commands import validate_descriptive_delta
+        validate_descriptive_delta(record, revised, config['record_type'])
+    subject = source.metadata_subject(revised)
     formname = path.stem + '.human-forms.json'
     payload = source._json_object(files[formname]) if formname in files else None
     if payload is not None:
@@ -287,11 +294,11 @@ def _read_archive_files(root, config, receipt):
 def _read_archive(root, config, receipt):
     restored, locations = _read_archive_files(root, config, receipt)
     old = source._json_object(restored[Path(config['source_path']).name])
-    if source.Record.from_payload(old['record_id'], old['record_version'], old).ref != receipt['previous_source']:
+    if source.metadata_subject(old).ref != receipt['previous_source']:
         raise source.JournalCorruption('archived source bytes do not bind the previous source ref')
     if 'request' in receipt:
         revised = {**old, **receipt['request']['fields'], 'record_version': old['record_version'] + 1}
-        if source.Record.from_payload(revised['record_id'], revised['record_version'], revised).ref != receipt['source']:
+        if source.metadata_subject(revised).ref != receipt['source']:
             raise source.JournalCorruption('retained request does not produce the recorded source successor')
     return restored, locations
 

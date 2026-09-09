@@ -47,7 +47,7 @@ def _inspect(config, path):
     files = revisions._selected_package(path)
     record = source._json_object(files[path.name])
     revisions._validate_record(config, record)
-    subject = source.Record.from_payload(record['record_id'], record['record_version'], record)
+    subject = source.metadata_subject(record)
     return files, record, subject, revisions._history(files, record)
 
 
@@ -64,11 +64,18 @@ def _result(config, configuration, path, snapshot, *, receipt=None, replayed=Fal
         'supported_operations': ['record.revise', 'record.recover'],
         'allowed_operations': config['allowed_operations'], 'allowed_fields': config['allowed_fields'],
         'allowed_form_ids': config['allowed_form_ids'], 'record_type': config['record_type'],
-        'source_profile': source._configured_corpus_profile(config), 'receipt': receipt, 'replayed': replayed,
+        'source_profile': _profile(config, record), 'receipt': receipt, 'replayed': replayed,
         'recovery': recovery, 'grants_admission': False,
         'materializations': source.materialize_metadata_forms(record, forms, access_allowed=True) if forms else []}
     snapshot.verify_current()
     return result
+
+
+def _profile(config, record):
+    if config['schema_version'] == source.NATIVE_METADATA_REVISION_CONFIG:
+        from source_native_metadata_commands import record_profile
+        return record_profile(config, record)
+    return source._configured_corpus_profile(config)
 
 
 def _receipt(config, request, subject, proposed, refs, *, recorded_at):
@@ -89,7 +96,7 @@ def _proposal(config, path, files, record, history, request, *, recorded_at, sco
         raise ValueError('selected metadata history capacity reached; retain history and use its archive owner')
     revised, proposed, output, views, refs = revisions._proposal(
         config, path, files, record, request, scope_operation=scope_operation)
-    subject = source.Record.from_payload(record['record_id'], record['record_version'], record)
+    subject = source.metadata_subject(record)
     receipt = _receipt(config, request, subject, proposed, refs, recorded_at=recorded_at)
     output[revisions.HISTORY] = revisions._encode({**history,
         'schema_version': 'tos_source_revision_history_v2', 'receipts': [*history['receipts'], receipt]})
@@ -151,7 +158,7 @@ def _pending_plan(config, path, pending, *, scope_operation='record.revise'):
                                                        scope_operation=scope_operation)
     if (after != expected_after or receipt != expected_receipt
             or revisions._revision(before) != request['expected_revision']
-            or source.Record.from_payload(record['record_id'], record['record_version'], record).ref
+            or source.metadata_subject(record).ref
                != request['expected_source']):
         raise source.JournalCorruption('pending bytes do not reconstruct the delegated exact correction')
     return authorization, record, receipt
