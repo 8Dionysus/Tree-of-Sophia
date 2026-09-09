@@ -1,0 +1,57 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/philosophy-source-planting.schema.json",
+  "schema_version": "tos_philosophy_source_planting_v1",
+  "planting_id": "tos.planting.a29.registry-de-clementia",
+  "atlas_row_id": "A29",
+  "dossier_id": "A29",
+  "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+  "source_backlog_anchor": {
+    "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+    "line": 18,
+    "source_table_index": 14,
+    "source_row_index": 8,
+    "source_label": "Сенека"
+  },
+  "source_witness": {
+    "work_id": "tos.work.seneca.de-clementia",
+    "record_ref": "ToS/source-witnesses/works/seneca/de-clementia/work.json",
+    "relationship": "grounds_source_backlog_anchor"
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/registry-de-clementia.2026-09-09.v1.json",
+  "provenance_event_ref": "tos.event.discovery.registry-20260909.de-clementia",
+  "research_ref": "ToS/source-witnesses/discovery/registry-fifth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+  "fulfilled_source_needs": [
+    "Exact De Clementia Latin edition within Сенека; rhetoric belongs to A29's explicit philosophical-communication source need. Broader corpus, versions and meaning remain open.",
+    "Exact prepared version is locally retained: 1 immutable files; Item manifest fixes SHA-256 and resource inventory records observed coverage."
+  ],
+  "remaining_controls": [
+    "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+    "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+    "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+    "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+    "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+    "Local file custody and branch route do not admit text, translation, semantics or canon."
+  ],
+  "research_order": [
+    "official_and_classical_documentation",
+    "established_top_scholarship",
+    "fresh_current_relevance_check"
+  ],
+  "authority": {
+    "source_status": "metadata_witness_planted",
+    "review_status": "unreviewed",
+    "source_text_admitted": false,
+    "semantic_status": "not_started",
+    "graph_status": "not_promoted",
+    "canon_status": "not_canon",
+    "human_task_created": false
+  },
+  "status": "source_witness_planted",
+  "maker": {
+    "maker_type": "model",
+    "agent_ref": "model:codex",
+    "human_review_performed": false
+  },
+  "created_at": "2026-09-09T06:46:13.194073+00:00",
+  "record_version": 1
+}

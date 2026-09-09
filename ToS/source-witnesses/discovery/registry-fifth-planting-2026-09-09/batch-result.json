@@ -1,0 +1,734 @@
+{
+  "schema_version": "tos_registry_first_planting_result_v1",
+  "completed_at": "2026-09-09T06:46:16.343298+00:00",
+  "preparation_commit": "5493341e2073484057263104f19ee209f7df7c6f",
+  "normalization_snapshot": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "planted": [
+    {
+      "target_slug": "de-inventione",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-inventione.la-perseus-phi0474-phi036.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 274425,
+      "textual_acceptance": false,
+      "title": "De Inventione",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-inventione/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-inventione/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi036.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi036.perseus-lat2",
+        "division_count": 289,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"2\"],[\"section\",\"178\"]]",
+        "division_addresses_sha256": "9fa81f619300e8fbcb6f784a0fcadcdb092a2236c4559372956d32f643da3b71",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 183888
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "on-oratory",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.on-oratory.la-perseus-phi0474-phi037.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 566202,
+      "textual_acceptance": false,
+      "title": "On Oratory",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-on-oratory/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-on-oratory/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi037.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi037.perseus-lat2",
+        "division_count": 865,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"3\"],[\"section\",\"230\"]]",
+        "division_addresses_sha256": "b7a59a185366d71785339b6de8db34023a35e3928719a7940c5e9326c560ef20",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 343224
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "partitiones-oratoriae",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.partitiones-oratoriae.la-perseus-phi0474-phi038.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 116733,
+      "textual_acceptance": false,
+      "title": "Partitiones Oratoriae",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-partitiones-oratoriae/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-partitiones-oratoriae/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi038.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi038.perseus-lat2",
+        "division_count": 141,
+        "first_division": "[[\"section\",\"sigla\"]]",
+        "last_division": "[[\"section\",\"140\"]]",
+        "division_addresses_sha256": "1e6e849a8e830830c7d3b8be6362b89bf63785861847062a74da09248e97caaf",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 60731
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "brutus",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.brutus.la-perseus-phi0474-phi039.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 317575,
+      "textual_acceptance": false,
+      "title": "Brutus",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-brutus/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-brutus/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi039.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi039.perseus-lat2",
+        "division_count": 334,
+        "first_division": "[[\"section\",\"sigla\"]]",
+        "last_division": "[[\"section\",\"333\"]]",
+        "division_addresses_sha256": "8de54577a834dea244d3675a892ec3223eafe1d48cabde5f4e453c522fd4a110",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 158191
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "orator",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.orator.la-perseus-phi0474-phi040.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/orator/expressions/la-perseus-phi0474-phi040/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 243910,
+      "textual_acceptance": false,
+      "title": "Orator",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-orator/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-orator/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi040.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi040.perseus-lat2",
+        "division_count": 238,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"238\"]]",
+        "division_addresses_sha256": "f9a7528a531c46d7200d66451fe05cc9c52b43989993f153bd944bc7b5ce2838",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 121037
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-optimo-genere-oratorum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-optimo-genere-oratorum.la-perseus-phi0474-phi041.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-optimo-genere-oratorum/expressions/la-perseus-phi0474-phi041/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 23986,
+      "textual_acceptance": false,
+      "title": "De Optimo Genere Oratorum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-optimo-genere-oratorum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-optimo-genere-oratorum/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi041.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi041.perseus-lat2",
+        "division_count": 23,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"23\"]]",
+        "division_addresses_sha256": "6358d43f261c3619c2a0c5505e2d71bf685da9ce85f744056a763ee0bcd604cf",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 10420
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "topica",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.topica.la-perseus-phi0474-phi042.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 77476,
+      "textual_acceptance": false,
+      "title": "Topica",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-topica/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-topica/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi042.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi042.perseus-lat2",
+        "division_count": 101,
+        "first_division": "[[\"section\",\"sigla\"]]",
+        "last_division": "[[\"section\",\"100\"]]",
+        "division_addresses_sha256": "a3ec42158567a6b5ce6136d2f9458fbe6e58c4877549df3e8ae487c3ec78a1b6",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 40483
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-republica",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-republica.la-perseus-phi0474-phi043.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 213840,
+      "textual_acceptance": false,
+      "title": "De Republica",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-republica/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-republica/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi043.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi043.perseus-lat2",
+        "division_count": 261,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"fr\"],[\"section\",\"9\"]]",
+        "division_addresses_sha256": "c9258f87b081897566b110a4691414060849a9fde07b71c51fe9d8df04e36b47",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 122857
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "The supplied surviving or reconstructed text does not restore lost ancient books. Academica/Lucullus redaction and part relations remain unasserted; the separately supplied Lucullus is deferred.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "academica",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.academica.la-perseus-phi0474-phi045.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 91317,
+      "textual_acceptance": false,
+      "title": "Academica",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-academica/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-academica/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi045.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi045.perseus-lat2",
+        "division_count": 73,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"3\"],[\"section\",\"i\"]]",
+        "division_addresses_sha256": "6a3a76130a5a13799ce1e6072c1b76ff4eced8b699005bc46960d14f5d9d3d14",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 35275
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "The supplied surviving or reconstructed text does not restore lost ancient books. Academica/Lucullus redaction and part relations remain unasserted; the separately supplied Lucullus is deferred.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "paradoxa-stoicorum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.paradoxa-stoicorum.la-perseus-phi0474-phi047.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/paradoxa-stoicorum/expressions/la-perseus-phi0474-phi047/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 49343,
+      "textual_acceptance": false,
+      "title": "Paradoxa Stoicorum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-paradoxa-stoicorum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-paradoxa-stoicorum/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi047.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi047.perseus-lat2",
+        "division_count": 59,
+        "first_division": "[[\"book\",\"intro\"]]",
+        "last_division": "[[\"book\",\"6\"],[\"section\",\"52\"]]",
+        "division_addresses_sha256": "cc79af648c41f5a0a84e536b9b095c7e5dfb5f89eb415da3d8ef7eb62b1c4673",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 23790
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-finibus-bonorum-et-malorum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 532293,
+      "textual_acceptance": false,
+      "title": "de Finibus Bonorum et Malorum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-finibus-bonorum-et-malorum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-finibus-bonorum-et-malorum/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi048.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi048.perseus-lat2",
+        "division_count": 448,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"5\"],[\"section\",\"96\"]]",
+        "division_addresses_sha256": "b3ed9a1a62f53dd01b5f235448e0310c265db5da2cf54515e781a0a0a5406562",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 305292
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "tusculanae-disputationes",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.tusculanae-disputationes.la-perseus-phi0474-phi049.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/tusculanae-disputationes/expressions/la-perseus-phi0474-phi049/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 760209,
+      "textual_acceptance": false,
+      "title": "Tusculanae Disputationes",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-tusculanae-disputationes/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-tusculanae-disputationes/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi049.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi049.perseus-lat2",
+        "division_count": 480,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"5\"],[\"section\",\"121\"]]",
+        "division_addresses_sha256": "d52fec34a1cd3fcfe285cc57f1dbc582bfd08f43ee83e7999a5bbe2a748ae08a",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 344341
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-natura-deorum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-natura-deorum.la-perseus-phi0474-phi050.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 312217,
+      "textual_acceptance": false,
+      "title": "de Natura Deorum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-natura-deorum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-natura-deorum/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi050.perseus-lat1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi050.perseus-lat1",
+        "division_count": 390,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"3\"],[\"section\",\"95\"]]",
+        "division_addresses_sha256": "64b5fb58f7c785226fa121eed4e35734d0e67199ebad33a316168c322ce2fef9",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 201796
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-senectute",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-senectute.la-perseus-phi0474-phi051.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 82135,
+      "textual_acceptance": false,
+      "title": "De Senectute",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-senectute/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-senectute/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi051.perseus-lat1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi051.perseus-lat1",
+        "division_count": 85,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"85\"]]",
+        "division_addresses_sha256": "54047bc9280040535e120c6c412bdabe7224eafb86ef439b4f620748de331956",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 47493
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-amicitia",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 89325,
+      "textual_acceptance": false,
+      "title": "De Amicitia",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-amicitia/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-amicitia/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi052.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi052.perseus-lat2",
+        "division_count": 104,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"104\"]]",
+        "division_addresses_sha256": "df17dd463cb3edfceadd4b537366c5bd30a509f91b04b7585af091a439585acb",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 52076
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-divinatione",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-divinatione.la-perseus-phi0474-phi053.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 256351,
+      "textual_acceptance": false,
+      "title": "De Divinatione",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-divinatione/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-divinatione/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi053.perseus-lat1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi053.perseus-lat1",
+        "division_count": 285,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"2\"],[\"section\",\"150\"]]",
+        "division_addresses_sha256": "b2c66f6bdee568c531d5bf5cdcee3a373f5827843be1f07d7ef107ca1304346d",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 157180
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-fato",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 50579,
+      "textual_acceptance": false,
+      "title": "De Fato",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fato/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fato/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi054.perseus-lat1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi054.perseus-lat1",
+        "division_count": 48,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"48\"]]",
+        "division_addresses_sha256": "343232b33a65ebef14985145d43eab8cdc19808933148ea576db013ec29dae78",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 28152
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-officiis",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-officiis.la-perseus-phi0474-phi055.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 311452,
+      "textual_acceptance": false,
+      "title": "De Officiis",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-officiis/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-officiis/README.md",
+      "observed_coverage": {
+        "basename": "phi0474.phi055.perseus-lat1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi055.perseus-lat1",
+        "division_count": 374,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"3\"],[\"section\",\"121\"]]",
+        "division_addresses_sha256": "abc475545cc81f739aaf2d2e4a343ef141f74f491f6b05effe09dc6d441242a7",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 194100
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-rerum-natura",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.lucretius.de-rerum-natura.la-perseus-phi0550-phi001.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 459795,
+      "textual_acceptance": false,
+      "title": "De Rerum Natura",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-rerum-natura/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-rerum-natura/README.md",
+      "observed_coverage": {
+        "basename": "phi0550.phi001.perseus-lat1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0550.phi001.perseus-lat1",
+        "division_count": 6,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"6\"]]",
+        "division_addresses_sha256": "c1b7cfcc3c7e0dda54534ae9a3ee1883dabc87da40cbe33a75150fddb1ab030a",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 274737
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "The Latin header explicitly says Lost information for its print/source bibliography and the CTS edition description is a dash. The underlying print exemplar/editor remain unknown; no modern editor, critical edition or public-domain term is inferred.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-beneficiis",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 439093,
+      "textual_acceptance": false,
+      "title": "De Beneficiis",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-beneficiis/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-beneficiis/README.md",
+      "observed_coverage": {
+        "basename": "phi1017.phi013.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi1017.phi013.perseus-lat2",
+        "division_count": 1141,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"7\"],[\"chapter\",\"32\"],[\"section\",\"1\"]]",
+        "division_addresses_sha256": "2aa16c48d1a2e4d89cb646091f94fac147d445079f2095ecdf6af0256c066188",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 253057
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-clementia",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.seneca.de-clementia.la-perseus-phi1017-phi014.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/la-perseus-phi1017-phi014/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 76411,
+      "textual_acceptance": false,
+      "title": "De Clementia",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-latinLit@8668397510ca77fec6406f7d48f405e50d296764",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-clementia/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-clementia/README.md",
+      "observed_coverage": {
+        "basename": "phi1017.phi014.perseus-lat2.xml",
+        "cts_urn": "urn:cts:latinLit:phi1017.phi014.perseus-lat2",
+        "division_count": 187,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"2\"],[\"chapter\",\"7\"],[\"section\",\"5\"]]",
+        "division_addresses_sha256": "4052eea8d70ca2b507585fe5dc1f22ed2a64fe24f17f28b54290de74bc4d6412",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "latin_letter_count": 48304
+      },
+      "remaining_controls": [
+        "The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction.",
+        "Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission.",
+        "Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions.",
+        "Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.",
+        "Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    }
+  ],
+  "deferred": [
+    {
+      "upstream_path": "data/phi0474/phi046/phi0474.phi046.perseus-lat2.xml",
+      "decision": "defer",
+      "owner": "ToS/source-witnesses with A29 branch source owner",
+      "reason": "Lucullus is separately catalogued but belongs to the complex Academica redaction history. Defer to source-witness identity review for an explicit Work/part/recension relation; do not create an unrelated duplicate from a CTS grouping alone."
+    },
+    {
+      "upstream_path": "data/phi0474/phi053/phi0474.phi053.perseus-lat2.xml",
+      "decision": "defer",
+      "owner": "ToS/source-witnesses with A29 branch source owner",
+      "reason": "Retain the alternative TEI P4 metadata; select the reviewed P5 Mueller version lat1 in this batch. Another textual edition and legacy encoding require their own comparison and adapter review."
+    },
+    {
+      "upstream_path": "data/phi1017/phi011/phi1017.phi011.perseus-lat2.xml",
+      "decision": "defer",
+      "owner": "ToS/source-witnesses with A29 branch source owner",
+      "reason": "Apocolocyntosis is a satirical work. Defer to A29 source owner for a specific satire/political reception anchor, rather than treating the prose corpus label as a genre judgment."
+    },
+    {
+      "upstream_path": "data/phi1017/phi015/phi1017.phi015.perseus-lat2.xml",
+      "decision": "defer",
+      "owner": "ToS/source-witnesses with A29 branch source owner",
+      "reason": "The Epistulae Morales file contains an epistolary collection. Prepare collection and constituent letter identity under the existing source-owner route before intake, consistent with the earlier deferral of Plato Letters."
+    },
+    {
+      "upstream_path": "data/phi0474/phi044/phi0474.phi044.perseus-lat1.xml",
+      "decision": "defer",
+      "owner": "A29 source-witness owner",
+      "reason": "De Legibus CTS metadata exists but the retained tracking file says not migrated; no payload exists in this complete pinned tree. Follow a separately reviewed exact provider route."
+    },
+    {
+      "upstream_path": "data/phi1017/phi012",
+      "decision": "defer",
+      "owner": "A29 source-witness owner",
+      "reason": "Seneca Dialogi has no matching directory or payload in this pinned tree. Find an exact accessible edition elsewhere; no global absence claim."
+    },
+    {
+      "upstream_path": "data/phi1017/phi016",
+      "decision": "defer",
+      "owner": "A29 source-witness owner",
+      "reason": "Seneca Naturales quaestiones has no matching directory or payload in this pinned tree. Find an exact accessible edition elsewhere; no global absence claim."
+    }
+  ],
+  "blocked": [],
+  "total_files": 21,
+  "total_bytes": 5344667,
+  "scope": "21 selected Latin editions in A29; other versions and broader corpus leads remain open.",
+  "source_text_admitted": false,
+  "payload_visibility": "local_only",
+  "public_or_remote_deployment": false
+}
