@@ -249,12 +249,12 @@
       "family": "root_front_door",
       "validation_lane": "route_docs",
       "owner_surface": "README.md",
-      "protects": "README stays command-light and routes to validation owners",
+      "protects": "Root README, ROADMAP and CONTRIBUTING stay command-light and route to owners without treating source evidence or owner-local usage as inherited instructions",
       "coverage_authority": "tests/AGENTS.md root unittest discovery",
       "mode": "blocking",
       "runtime_cost": "fast",
       "focused_target": "tests/test_docs_verify_routes.py",
-      "failure_route": "Fix README.md route wording before changing test expectations.",
+      "failure_route": "Fix root README, ROADMAP and CONTRIBUTING against TOS-D-0008 and DESIGN.AGENTS.md before changing the public-entry guard; inherited cards and stronger operation/source owners keep their separate contracts.",
       "disposition": "keep"
     },
     {
