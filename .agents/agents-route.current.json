@@ -334,17 +334,17 @@
       "whitespace_tokens": 176
     },
     {
-      "bytes": 6815,
+      "bytes": 7461,
       "inheritance_stack": [
         "AGENTS.md",
         "ToS/AGENTS.md",
         "ToS/source-witnesses/AGENTS.md"
       ],
-      "lines": 114,
+      "lines": 123,
       "path": "ToS/source-witnesses/AGENTS.md",
-      "sha256": "37c5552a02ecc9c025a4edb5c65a4e3a621ac800dfea2dd7fe4fc105497c1607",
+      "sha256": "dbf0eb74339662e1fe65275ba5e205d9faaf231a9b1bc1aa225e388e2ec22203",
       "tracked": true,
-      "whitespace_tokens": 872
+      "whitespace_tokens": 961
     },
     {
       "bytes": 3823,
@@ -894,13 +894,13 @@
       "whitespace_tokens": 1837
     },
     {
-      "bytes": 235942,
+      "bytes": 242179,
       "exists": true,
-      "lines": 3676,
+      "lines": 3743,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "6dd5d1fa2ac5a1cbc5a260c6968613b63c82fa42e8c9271fed46f1157bedb570",
-      "whitespace_tokens": 13722
+      "sha256": "ecc74208176b78a84aec2dbf23ef87dbc5813c8ae6ef129dcbda6e1932606832",
+      "whitespace_tokens": 14101
     },
     {
       "bytes": 8155,
@@ -990,34 +990,34 @@
   "source_inventory_sha256": "582165a341a91a61cfbfedc45d6feabeecfaac8ff97cb3bc83696b3534212dfd",
   "task_routes": [
     {
-      "additional_context_tokens": 16261,
+      "additional_context_tokens": 16618,
       "completion_evidence": [
         {
-          "bytes": 6815,
+          "bytes": 7461,
           "exists": true,
-          "lines": 114,
+          "lines": 123,
           "path": "ToS/source-witnesses/AGENTS.md",
           "role": "completion",
-          "sha256": "37c5552a02ecc9c025a4edb5c65a4e3a621ac800dfea2dd7fe4fc105497c1607",
-          "whitespace_tokens": 872
+          "sha256": "dbf0eb74339662e1fe65275ba5e205d9faaf231a9b1bc1aa225e388e2ec22203",
+          "whitespace_tokens": 961
         },
         {
-          "bytes": 85393,
+          "bytes": 86471,
           "exists": true,
-          "lines": 1340,
+          "lines": 1355,
           "path": "ToS/source-witnesses/README.md",
           "role": "completion",
-          "sha256": "1605428d05cc450409797847adbe1294c085d54b373a6559762abca9ebde77fe",
-          "whitespace_tokens": 10760
+          "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
+          "whitespace_tokens": 10905
         },
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         }
       ],
       "id": "source_witness_intake",
@@ -1026,36 +1026,36 @@
         "ToS/AGENTS.md",
         "ToS/source-witnesses/AGENTS.md"
       ],
-      "inherited_context_tokens": 2463,
+      "inherited_context_tokens": 2552,
       "on_demand_surfaces": [
         {
-          "bytes": 85393,
+          "bytes": 86471,
           "exists": true,
-          "lines": 1340,
+          "lines": 1355,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "1605428d05cc450409797847adbe1294c085d54b373a6559762abca9ebde77fe",
-          "whitespace_tokens": 10760
+          "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
+          "whitespace_tokens": 10905
         },
         {
-          "bytes": 42383,
+          "bytes": 44244,
           "exists": true,
-          "lines": 728,
+          "lines": 755,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "on_demand",
-          "sha256": "c600c9cb675d56d9d550d12fe6031e1bab30271dd06f0ce36b8ab771c869ae3b",
-          "whitespace_tokens": 5501
+          "sha256": "17e4e8b74beeafd7539de9eca97da0d284a11fc797a69a62b616dcc5fdb968ff",
+          "whitespace_tokens": 5713
         }
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 6815,
+        "bytes": 7461,
         "exists": true,
-        "lines": 114,
+        "lines": 123,
         "path": "ToS/source-witnesses/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "37c5552a02ecc9c025a4edb5c65a4e3a621ac800dfea2dd7fe4fc105497c1607",
-        "whitespace_tokens": 872
+        "sha256": "dbf0eb74339662e1fe65275ba5e205d9faaf231a9b1bc1aa225e388e2ec22203",
+        "whitespace_tokens": 961
       },
       "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
@@ -1064,13 +1064,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         },
         {
           "bytes": 23014,
@@ -1084,34 +1084,34 @@
       ]
     },
     {
-      "additional_context_tokens": 16261,
+      "additional_context_tokens": 16618,
       "completion_evidence": [
         {
-          "bytes": 6815,
+          "bytes": 7461,
           "exists": true,
-          "lines": 114,
+          "lines": 123,
           "path": "ToS/source-witnesses/AGENTS.md",
           "role": "completion",
-          "sha256": "37c5552a02ecc9c025a4edb5c65a4e3a621ac800dfea2dd7fe4fc105497c1607",
-          "whitespace_tokens": 872
+          "sha256": "dbf0eb74339662e1fe65275ba5e205d9faaf231a9b1bc1aa225e388e2ec22203",
+          "whitespace_tokens": 961
         },
         {
-          "bytes": 42383,
+          "bytes": 44244,
           "exists": true,
-          "lines": 728,
+          "lines": 755,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "completion",
-          "sha256": "c600c9cb675d56d9d550d12fe6031e1bab30271dd06f0ce36b8ab771c869ae3b",
-          "whitespace_tokens": 5501
+          "sha256": "17e4e8b74beeafd7539de9eca97da0d284a11fc797a69a62b616dcc5fdb968ff",
+          "whitespace_tokens": 5713
         },
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         }
       ],
       "id": "corpus_identity_provenance_rights",
@@ -1123,57 +1123,57 @@
       "inherited_context_tokens": 1806,
       "on_demand_surfaces": [
         {
-          "bytes": 42383,
+          "bytes": 44244,
           "exists": true,
-          "lines": 728,
+          "lines": 755,
           "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
           "role": "on_demand",
-          "sha256": "c600c9cb675d56d9d550d12fe6031e1bab30271dd06f0ce36b8ab771c869ae3b",
-          "whitespace_tokens": 5501
+          "sha256": "17e4e8b74beeafd7539de9eca97da0d284a11fc797a69a62b616dcc5fdb968ff",
+          "whitespace_tokens": 5713
         },
         {
-          "bytes": 85393,
+          "bytes": 86471,
           "exists": true,
-          "lines": 1340,
+          "lines": 1355,
           "path": "ToS/source-witnesses/README.md",
           "role": "on_demand",
-          "sha256": "1605428d05cc450409797847adbe1294c085d54b373a6559762abca9ebde77fe",
-          "whitespace_tokens": 10760
+          "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
+          "whitespace_tokens": 10905
         }
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 6815,
+        "bytes": 7461,
         "exists": true,
-        "lines": 114,
+        "lines": 123,
         "path": "ToS/source-witnesses/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "37c5552a02ecc9c025a4edb5c65a4e3a621ac800dfea2dd7fe4fc105497c1607",
-        "whitespace_tokens": 872
+        "sha256": "dbf0eb74339662e1fe65275ba5e205d9faaf231a9b1bc1aa225e388e2ec22203",
+        "whitespace_tokens": 961
       },
-      "owner_handoff_context_tokens": 872,
+      "owner_handoff_context_tokens": 961,
       "owner_in_inheritance_stack": false,
       "owner_route": "ToS/source-witnesses/AGENTS.md",
       "target": "ToS/doctrine/CORPUS_FOUNDATION.md",
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 28928,
+          "bytes": 30088,
           "exists": true,
-          "lines": 604,
+          "lines": 624,
           "path": "scripts/build_source_witness_catalog.py",
           "role": "validation",
-          "sha256": "752f1a98ed9ad29306ab6e7dfaaeeccffb8937ac7f04101cc12795dc16d49fe2",
-          "whitespace_tokens": 2223
+          "sha256": "c973e04fc6bf0856440a66a7ac22fab375e69c14b0815682b209afe59432be5c",
+          "whitespace_tokens": 2328
         },
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         }
       ]
     },
@@ -1199,13 +1199,13 @@
           "whitespace_tokens": 1741
         },
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         }
       ],
       "id": "text_segmentation",
@@ -1252,13 +1252,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         },
         {
           "bytes": 23014,
@@ -1293,13 +1293,13 @@
           "whitespace_tokens": 1483
         },
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "completion",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         }
       ],
       "id": "translation_alignment",
@@ -1346,13 +1346,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 716000,
+          "bytes": 719122,
           "exists": true,
-          "lines": 15610,
+          "lines": 15660,
           "path": "scripts/validate_source_witness_foundation.py",
           "role": "validation",
-          "sha256": "a926b622d64adc1a46d98333e3e54ec8208e094db777d41ffe8e175cb333fb85",
-          "whitespace_tokens": 46211
+          "sha256": "0cf2a5e4ab6c2019ac831117e656a92221cd1a21187037c8bd1d3e14ed2c7b7c",
+          "whitespace_tokens": 46448
         },
         {
           "bytes": 23014,
