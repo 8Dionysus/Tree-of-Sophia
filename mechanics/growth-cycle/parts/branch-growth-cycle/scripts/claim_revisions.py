@@ -209,6 +209,13 @@ def _scope(config, request, record, *, profiles=None):
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):
         raise PermissionError('Claim correction fields exceed the delegated scope')
+    if record.get('predicate') == 'translated_by':
+        from source_responsibility_commands import verify_compound
+        from source_bibliographic_responsibility import validate_qualified_translator_claim
+        verify_compound(Path(config['source_root']), config['source_path'], record)
+        # A replay checks current qualification, not a second application of an
+        # earlier correction. Proposal construction below validates its successor.
+        validate_qualified_translator_claim(record)
     if config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG:
         _layer_transition(request['layer_transition'])
         if (set(fields) != {'assertion_layer'}
@@ -252,6 +259,11 @@ def _scope(config, request, record, *, profiles=None):
 def _proposal(config, path, files, record, request):
     _scope(config, request, record)
     revised = _advance(record, request['fields'], request.get('layer_transition'))
+    responsibility_implementations = ()
+    if record.get('predicate') == 'translated_by':
+        from source_bibliographic_responsibility import validate_qualified_translator_claim
+        from source_responsibility_commands import IMPLEMENTATIONS as responsibility_implementations
+        validate_qualified_translator_claim(revised)
     from source_claim_commands import _ground_claims
     _, grounding, bindings = _ground_claims(config, [revised], initial=False)
     dependencies = source._digest(source._canonical({'grounding': grounding,
@@ -259,7 +271,8 @@ def _proposal(config, path, files, record, request):
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
              'scripts/source_witness_human_forms.py', 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
              'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
-             'ToS/contracts/human-form-template.schema.json')}}))
+             'ToS/contracts/human-form-template.schema.json',
+             *responsibility_implementations)}}))
     formname = source.claim_forms_path(path, config['claim_id']).name
     payload = source._json_object(files[formname]) if formname in files else None
     selected_ids = {item['form_id'] for item in request['forms']}

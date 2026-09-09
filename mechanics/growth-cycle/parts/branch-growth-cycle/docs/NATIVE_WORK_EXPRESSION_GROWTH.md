@@ -3,6 +3,10 @@
 `source_expression_commands.py` is the separately delegated owner adapter for
 one current native Work, one newly named child Expression and one explicit
 `has_expression` Claim. Its command is dispatched through `source_commands.py`.
+Shared catalog/form/dependency and publication lifecycle mechanics live in
+`source_compound_commands.py`; typed scope and retained reconstruction remain
+with this adapter. [Expression responsibility attachment](NATIVE_EXPRESSION_RESPONSIBILITY.md)
+uses that same transport with its own separate delegation and attribution law.
 The `has_expression` source reader profile is not a standalone creation or
 revision grant: ordinary public and private Claim writers refuse that predicate.
 

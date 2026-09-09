@@ -1704,6 +1704,24 @@ link is not bibliographic or textual admission, an Edition/Item, a responsibilit
 assertion or publication permission. Standalone Claim grants cannot write or
 revise this topology predicate merely because a read profile understands it.
 
+### Native Expression responsibility attachment
+
+The separate `tos_local_expression_responsibility_owner_v1` delegates one exact
+existing Expression and Agent, `translated_by`, one new Claim home and selected
+forms/evidence. `prepare-attach`, `expression.responsibility.attach` and explicit
+recovery are described in the
+[responsibility owner contract](docs/NATIVE_EXPRESSION_RESPONSIBILITY.md).
+Only Expression version and the appended responsibility ref change. A qualified
+unreviewed Claim keeps attribution evidence separate from endpoint metadata,
+and competing Claims may name the same Agent. Its standalone source profile
+does not grant flat creation; separately authorized descriptive Claim correction
+must preserve the exact initial compound lineage and qualified scope.
+
+External evidence URLs remain declared addresses. Their derived citation
+occurrences return to the exact local citing Claim; no remote bytes, reading,
+independence, review or truth are manufactured. The command neither creates nor
+edits the Agent or the Expression's earlier immutable topology Claim stream.
+
 ### Declared source Claim creation
 
 The same `source_commands.py --owner-config /absolute/owner.json` entrypoint

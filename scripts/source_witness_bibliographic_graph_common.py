@@ -8,6 +8,8 @@ import json
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import urlsplit
+import unicodedata
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
@@ -841,6 +843,46 @@ def _maker_node(
     }
 
 
+def validate_external_citation_address(address: str) -> None:
+    """Validate an unchanged address, without opening or observing its target."""
+    if (not isinstance(address, str) or not 1 <= len(address) <= 4096
+            or any(character.isspace() or unicodedata.category(character).startswith('C') for character in address)
+            or '\\' in address):
+        raise BibliographicGraphBuildError('external citation address has unsafe characters or exceeds its bound')
+    try:
+        parsed = urlsplit(address)
+        if (parsed.scheme not in {'http', 'https'} or not parsed.netloc or not parsed.hostname
+                or parsed.username is not None or parsed.password is not None):
+            raise ValueError('unsupported external address')
+        parsed.port
+    except ValueError as error:
+        raise BibliographicGraphBuildError('external citation requires a credential-free HTTP(S) address') from error
+
+
+def _external_citation_node(address, claim, entry, *, citation_status='tracked_claim'):
+    """One source-returnable citation occurrence, not a remote-content object."""
+    validate_external_citation_address(address)
+    if (citation_status not in {'tracked_claim', 'candidate_claim'} or not isinstance(claim, dict)
+            or not isinstance(entry, dict) or entry.get('claim_id') != claim.get('claim_id')
+            or entry.get('claim_sha256') != canonical_digest(claim)
+            or address not in [*claim.get('evidence_refs', []), *claim.get('counterevidence_refs', [])]
+            or not isinstance(entry.get('source_claim_file_ref'), str)
+            or not entry['source_claim_file_ref'].startswith('ToS/')
+            or type(entry.get('source_claim_line')) is not int or entry['source_claim_line'] < 1):
+        raise BibliographicGraphBuildError('external citation must bind its exact citing Claim declaration')
+    path = Path(entry['source_claim_file_ref'])
+    if path.as_posix() != entry['source_claim_file_ref'] or '..' in path.parts or path.is_absolute():
+        raise BibliographicGraphBuildError('external citation declaration path is not canonical repository metadata')
+    return {'node_id': _node_id('evidence', canonical_json([claim['claim_id'], address])),
+        'node_kind': 'evidence', 'source_ref': entry['source_claim_file_ref'],
+        'source_line': entry['source_claim_line'], 'source_sha256': entry['claim_sha256'],
+        'properties': {'evidence_ref': address, 'evidence_kind': 'external_citation',
+            'citing_claim_ref': claim['claim_id'], 'citation_status': citation_status,
+            'resolved': False, 'remote_content_sha256': None,
+            'observation_posture': 'address_only_not_observed',
+            'source_hash_scope': 'citing_claim_declaration_not_remote_content'}}
+
+
 def _evidence_node(
     evidence_ref: str,
     *,
@@ -848,6 +890,8 @@ def _evidence_node(
     anchors: dict[str, dict[str, Any]],
     objects: dict[str, dict[str, Any]],
     events: dict[str, dict[str, Any]],
+    citing_claim: dict[str, Any] | None = None,
+    claim_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     node_id = _node_id("evidence", evidence_ref)
     if evidence_ref.startswith("ToS/"):
@@ -916,6 +960,8 @@ def _evidence_node(
                 "provenance_event_node_id": _node_id("provenance_event", evidence_ref),
             },
         }
+    if citing_claim is not None and claim_entry is not None:
+        return _external_citation_node(evidence_ref, citing_claim, claim_entry)
     raise BibliographicGraphBuildError(
         f"{evidence_ref}: claim evidence does not resolve to a tracked source surface"
     )
@@ -1003,6 +1049,19 @@ def _validate_cross_references(payload: dict[str, Any]) -> None:
         for node in payload["nodes"]
         if node["node_kind"] == "claim"
     }
+    for node in nodes.values():
+        if node.get('node_kind') != 'evidence' or node.get('properties', {}).get('evidence_kind') != 'external_citation':
+            continue
+        citing_id = claim_nodes.get(node['properties'].get('citing_claim_ref'))
+        citing = nodes.get(citing_id)
+        if citing is None:
+            raise BibliographicGraphBuildError('external citation lacks its source Claim node')
+        source_claim = citing['properties']['source_claim']
+        expected = _external_citation_node(node['properties'].get('evidence_ref'), source_claim, {
+            'claim_id': source_claim['claim_id'], 'source_claim_file_ref': citing['source_ref'],
+            'source_claim_line': citing['source_line'], 'claim_sha256': citing['source_sha256']})
+        if node != expected:
+            raise BibliographicGraphBuildError('external citation drifted from its exact local declaration or address-only posture')
     for edge in payload["edges"]:
         for field in (
             "from_id",
@@ -1305,6 +1364,8 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                 anchors=anchors,
                 objects=objects,
                 events=events,
+                citing_claim=claim,
+                claim_entry=entry,
             )
             _add_node(nodes, evidence_node)
             evidence_node_ids.append(str(evidence_node["node_id"]))
@@ -1327,6 +1388,8 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
                 anchors=anchors,
                 objects=objects,
                 events=events,
+                citing_claim=claim,
+                claim_entry=entry,
             )
             _add_node(nodes, counterevidence_node)
             counterevidence_node_ids.append(str(counterevidence_node["node_id"]))

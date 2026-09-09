@@ -92,6 +92,10 @@ evidence.
 - Keep canonical-source, working-translation, and bridge-translation posture
   explicit.
 - Preserve translator, editor, donor, and uncertainty notes where they matter.
+- Responsibility references close over unchanged legacy carriers and explicitly
+  verified native attachments. Native `translated_by` uses a separate Claim home
+  and exact Expression append, never the immutable `has_expression` stream.
+  Endpoint metadata bindings do not manufacture attribution evidence or review.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
 - Route extraction runtimes, model caches, benchmarks, and large working

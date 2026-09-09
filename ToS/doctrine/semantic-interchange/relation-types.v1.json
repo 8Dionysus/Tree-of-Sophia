@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 30,
+  "registry_version": 31,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -1989,6 +1989,7 @@
         {"source_graph": "source-navigation", "source_predicate_id": "translated_by", "scope": "edge"},
         {"source_graph": "source-claims", "source_predicate_id": "translated_by", "scope": "claim-predicate"}
       ],
+      "source_claim_profile": {"profile_version": 1, "reader": "identity-relation-v1", "assertion_layers": ["scholarly_report", "bibliographic_assertion"], "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]},
       "supersedes_relation_type_id": null
     },
     {

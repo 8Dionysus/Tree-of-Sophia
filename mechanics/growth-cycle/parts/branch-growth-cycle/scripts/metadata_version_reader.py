@@ -361,12 +361,16 @@ class MetadataVersionReader:
         for receipt in history['receipts']:
             request = receipt['request']
             selected = 'publication' in receipt
-            compound = request.get('operation') == 'work.expression.create'
+            attachment = request.get('operation') == 'expression.responsibility.attach'
+            compound = request.get('operation') == 'work.expression.create' or attachment
             if compound:
-                from source_expression_commands import validate_parent_receipt
+                if attachment:
+                    from source_responsibility_commands import validate_parent_receipt
+                else:
+                    from source_expression_commands import validate_parent_receipt
                 validate_parent_receipt(receipt)
-                if route['record_type'] != 'work':
-                    raise source.JournalCorruption('compound history must belong to its existing Work')
+                if route['record_type'] != ('expression' if attachment else 'work'):
+                    raise source.JournalCorruption('compound history must belong to its declared existing parent')
             else:
                 source._keys(request, {'schema_version', 'operation', 'fields', 'forms', 'reason', 'command_id',
                                   'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies'}
@@ -377,7 +381,8 @@ class MetadataVersionReader:
                                   or request['operation'] != 'record.revise')
                     or not _ref(receipt['source']) or not _ref(request['expected_source'])
                     or not isinstance(request['fields'], dict) or not request['fields']
-                    or not set(request['fields']) <= ({'expression_claim_refs'} if compound else allowed_fields)):
+                    or not set(request['fields']) <= ({'responsibility_claim_refs'} if attachment
+                        else {'expression_claim_refs'} if compound else allowed_fields)):
                 raise source.JournalCorruption('retained request is not a metadata correction')
             previous, binding = self._archive_record(relative, route, receipt, record['schema_version'])
             revised = {**previous, **request['fields'], 'record_version': previous['record_version'] + 1}

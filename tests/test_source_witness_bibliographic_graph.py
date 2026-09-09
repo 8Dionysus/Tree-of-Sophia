@@ -37,6 +37,55 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def test_external_citations_remain_per_claim_source_return_not_remote_content(self):
+        from source_witness_bibliographic_graph_common import _external_citation_node
+        with self.historical_fixture() as (root, history, real, claims, rebuild):
+            address = 'https://example.invalid/Record?Case=Preserved#Scope'
+            for claim in claims[:2]:
+                claim['evidence_refs'] = [address]
+            projection = rebuild()
+            citations = [node for node in projection['nodes'] if node['properties'].get('evidence_kind') == 'external_citation']
+            self.assertEqual(len(citations), 2)
+            self.assertNotEqual(citations[0]['node_id'], citations[1]['node_id'])
+            self.assertEqual({node['properties']['citing_claim_ref'] for node in citations}, {claim['claim_id'] for claim in claims[:2]})
+            for node in citations:
+                source_claim = next(claim for claim in claims if claim['claim_id'] == node['properties']['citing_claim_ref'])
+                self.assertEqual(node['source_ref'], 'ToS/source-witnesses/history/fixture/historical-claims.jsonl')
+                self.assertEqual(node['source_sha256'], canonical_digest(source_claim))
+                self.assertEqual(node['properties']['evidence_ref'], address)
+                self.assertIsNone(node['properties']['remote_content_sha256'])
+                self.assertFalse(node['properties']['resolved'])
+                self.assertEqual(node['properties']['observation_posture'], 'address_only_not_observed')
+                changed = {**source_claim, 'claim_version': 2}
+                successor = _external_citation_node(address, changed, {'claim_id': changed['claim_id'],
+                    'source_claim_file_ref': node['source_ref'], 'source_claim_line': node['source_line'],
+                    'claim_sha256': canonical_digest(changed)})
+                self.assertEqual(successor['node_id'], node['node_id'])
+            self.historical_knowledge(root, projection)
+            tampered = copy.deepcopy(projection)
+            selected = next(node for node in tampered['nodes'] if node['properties'].get('evidence_kind') == 'external_citation')
+            selected['properties']['resolved'] = True
+            with self.assertRaises(BibliographicGraphBuildError):
+                _validate_cross_references(tampered)
+
+    def test_external_citation_rejects_missing_context_unsafe_addresses_and_digest_substitution(self):
+        from source_witness_bibliographic_graph_common import _evidence_node, _external_citation_node
+        address = 'https://example.invalid/source'
+        claim = {'claim_id': 'tos.claim.synthetic.citation', 'claim_version': 1, 'evidence_refs': [address]}
+        entry = {'claim_id': claim['claim_id'], 'source_claim_file_ref': 'ToS/source-witnesses/relations/synthetic/source-claims.jsonl',
+            'source_claim_line': 1, 'claim_sha256': canonical_digest(claim)}
+        with self.assertRaises(BibliographicGraphBuildError):
+            _evidence_node(address, repo_root=REPO_ROOT, anchors={}, objects={}, events={})
+        with self.assertRaises(BibliographicGraphBuildError):
+            _external_citation_node(address, claim, {**entry, 'claim_sha256': hashlib.sha256(address.encode()).hexdigest()})
+        for value in ('javascript:alert(1)', 'file:///tmp/local', 'data:text/plain,content',
+                      'https://user:password@example.invalid/source', 'https://example.invalid/a\nb',
+                      'https://example.invalid/\u202e', ' https://example.invalid', 'https://example.invalid:bad/',
+                      'https://example.invalid/a b', 'https://example.invalid\\other/'):
+            altered = {**claim, 'evidence_refs': [value]}
+            with self.subTest(address=value), self.assertRaises(BibliographicGraphBuildError):
+                _external_citation_node(value, altered, {**entry, 'claim_sha256': canonical_digest(altered)})
+
     @contextmanager
     def claim_navigation_fixture(self):
         """Only synthetic Claim associations; names retain their source bytes."""

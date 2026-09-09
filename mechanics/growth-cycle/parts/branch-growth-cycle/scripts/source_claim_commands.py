@@ -99,12 +99,12 @@ def _scope(config, claims, *, profiles=None):
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
-        if isinstance(claim, dict) and claim.get('predicate') == 'has_expression':
+        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'translated_by'}:
             # A readable Claim profile is not a standalone writer grant. This
-            # predicate changes the Work's exact outgoing closure and belongs
+            # predicate changes its parent's exact outgoing closure and belongs
             # to the separately authorized compound bibliographic operation.
             # Owner-local forwarding deliberately receives the same refusal.
-            raise PermissionError('has_expression requires the compound bibliographic operation')
+            raise PermissionError('this relation requires its compound bibliographic operation')
         if (not isinstance(claim, dict) or not isinstance(claim.get('claim_id'), str)
                 or claim['claim_id'] not in config['allowed_claim_ids']
                 or claim.get('subject_ref') not in config['allowed_subject_refs']
@@ -176,7 +176,7 @@ def _ground_claims(config, claims, *, initial):
     operation, immutable subject identity and current delegation first.
     """
     from build_source_witness_catalog import collect_records, collect_claims
-    from source_witness_bibliographic_graph_common import _scan_index, _evidence_node
+    from source_witness_bibliographic_graph_common import _scan_index, _evidence_node, _external_citation_node
     root = Path(config['source_root'])
     metadata = SourceRecordProfiles(root)
     records = collect_records(root, profiles=metadata)
@@ -210,7 +210,15 @@ def _ground_claims(config, claims, *, initial):
                 # independent allowed_evidence_refs, not source prose.
                 os.close(source._owned_path(root / relative))
                 source._read(root / relative, source.MAX_SET_BYTES)
-            evidence.append(_evidence_node(ref, repo_root=root, anchors=anchors, objects=objects, events=events))
+            if (not initial and claim.get('predicate') == 'translated_by'
+                    and ref.split(':', 1)[0].lower() in {'http', 'https'}):
+                entry = next((entry for entry in prior_claims if entry['claim_id'] == claim['claim_id']), None)
+                if entry is None or entry['source_claim_file_ref'] != config['source_path']:
+                    raise ValueError('external citation correction requires the exact current Claim source locator')
+                evidence.append(_external_citation_node(ref, claim,
+                    {**entry, 'claim_sha256': source._digest(source._canonical(claim))[7:]}, citation_status='candidate_claim'))
+            else:
+                evidence.append(_evidence_node(ref, repo_root=root, anchors=anchors, objects=objects, events=events))
     claim_ids = {claim['claim_id'] for claim in [*prior_claims, *claims]}
     if any(ref not in claim_ids for claim in claims for ref in claim.get('alternative_claim_refs', [])):
         raise ValueError('alternative claim does not resolve in source or this batch')
@@ -234,6 +242,11 @@ def _ground_claims(config, claims, *, initial):
         source_bindings['evidence'][node['properties']['evidence_ref']] = {
             'source_ref': node['source_ref'], 'source_sha256': 'sha256:' + node['source_sha256'],
             'source_line': node.get('source_line'), 'evidence_kind': node['properties']['evidence_kind']}
+        if node['properties']['evidence_kind'] == 'external_citation':
+            source_bindings['evidence'][node['properties']['evidence_ref']].update(
+                citation_status='candidate_claim', citing_claim_ref=node['properties']['citing_claim_ref'],
+                resolved=False, remote_content_sha256=None,
+                source_hash_scope='candidate_claim_declaration_not_preexisting_input_or_remote_content')
     dependencies = source._digest(source._canonical({'records': records, 'claims': prior_claims,
         'source_profiles': source._profile_input_snapshot(metadata), 'existing_claim_profiles': input_digests,
         'new_claim_profiles': profiles.input_digests, 'events': events, 'anchors': anchors, 'evidence': evidence,

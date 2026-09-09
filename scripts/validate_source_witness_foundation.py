@@ -542,9 +542,8 @@ def _legacy_topology_configuration(claims):
     }
 
 
-def _native_topology_claims(repo_root, issues):
+def _native_compound_claims(repo_root, issues, predicate, verify_compound):
     """Admit a current carrier only through its exact committed compound plan."""
-    from source_expression_commands import verify_compound
     profiles = SourceClaimProfiles(repo_root)
     accepted = []
     for path in sorted((repo_root / SOURCE_ROOT).rglob('source-claims.jsonl')):
@@ -553,18 +552,28 @@ def _native_topology_claims(repo_root, issues):
             continue
         try:
             for line, claim in profiles.read_rows(relative.as_posix()):
-                if claim.get('predicate') != 'has_expression':
+                if claim.get('predicate') != predicate:
                     continue
                 location = f'{relative.as_posix()}:{line}'
                 try:
                     verified = verify_compound(repo_root, relative.as_posix(), claim)
                 except (OSError, ValueError, KeyError, TypeError) as error:
-                    issues.append((location, f'native topology requires exact committed compound evidence: {error}'))
+                    issues.append((location, f'native {predicate} requires exact committed compound evidence: {error}'))
                     continue
                 accepted.append((location, claim, verified['event']))
         except (OSError, ValueError, KeyError, TypeError) as error:
             issues.append((relative.as_posix(), f'declared source Claim reader: {error}'))
     return accepted
+
+
+def _native_topology_claims(repo_root, issues):
+    from source_expression_commands import verify_compound
+    return _native_compound_claims(repo_root, issues, 'has_expression', verify_compound)
+
+
+def _native_responsibility_claims(repo_root, issues):
+    from source_responsibility_commands import verify_compound
+    return _native_compound_claims(repo_root, issues, 'translated_by', verify_compound)
 
 
 def _validate_required_provenance_output_digests(
@@ -14552,6 +14561,26 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
                             f"{evidence_ref}",
                         )
                     )
+
+    for location, claim, event in _native_responsibility_claims(repo_root, issues):
+        identity = claim['claim_id']
+        if identity in claim_ids:
+            issues.append((location, f'duplicate claim_id: {identity}'))
+        claim_ids.add(identity)
+        responsibility_claim_ids.add(identity)
+        responsibility_claim_subjects[identity] = claim['subject_ref']
+        responsibility_claim_predicates[identity] = claim['predicate']
+        responsibility_claim_objects[identity] = claim['object']
+        require_record(claim['subject_ref'], 'expression', location)
+        require_record(claim['object'], 'agent', location)
+        if event['event_id'] in event_ids:
+            issues.append((location, f'duplicate native responsibility provenance identity: {event["event_id"]}'))
+        event_ids.add(event['event_id'])
+        for evidence_ref in claim.get('evidence_refs', []):
+            if evidence_ref.startswith('tos.anchor.') and evidence_ref not in evidence_anchor_ids:
+                issues.append((location, f'unresolved source evidence anchor: {evidence_ref}'))
+            elif evidence_ref.startswith('ToS/') and not (repo_root / evidence_ref).is_file():
+                issues.append((location, f'unresolved repository evidence ref: {evidence_ref}'))
 
     validated_publication_event_refs: set[str] = set()
     for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("publication-claims.jsonl")):

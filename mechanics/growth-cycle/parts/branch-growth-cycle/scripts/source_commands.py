@@ -87,6 +87,9 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
+    if config.get('schema_version') == 'tos_local_expression_responsibility_owner_v1':
+        from source_responsibility_commands import configuration
+        return configuration(config, owner_config=path)
     if config.get('schema_version') == 'tos_local_work_expression_owner_v1':
         from source_expression_commands import configuration
         return configuration(config, owner_config=path)
@@ -1210,6 +1213,9 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
+    if config['schema_version'] == 'tos_local_expression_responsibility_owner_v1':
+        from source_responsibility_commands import run_responsibility_command
+        return run_responsibility_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] == 'tos_local_work_expression_owner_v1':
         from source_expression_commands import run_expression_command
         return run_expression_command(owner_config, config, configuration, source_path, request)

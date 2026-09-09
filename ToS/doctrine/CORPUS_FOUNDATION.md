@@ -127,6 +127,17 @@ Participating readers require committed publication evidence and a matching
 catalog before combining the legacy and native topology carriers. Transport
 completion does not perform bibliographic, textual or rights assessment.
 
+An existing Expression may gain a qualified `translated_by` Claim to an existing
+Agent through a separately delegated
+[responsibility attachment](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md).
+The appended responsibility ref and versioned Claim remain distinct from
+descriptive metadata and the earlier Work/Expression creation stream. Competing
+attributions remain possible; identity does not settle the role. Endpoint
+metadata bindings provide source return, not additional attribution evidence.
+An external evidence URL is a declared citation, not observed remote content:
+its derived occurrence binds the exact local citing Claim and makes no claim
+of source reading, independent corroboration, remote fixity or acceptance.
+
 Source-near semantic descriptions use the explicit
 [concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
 not the bibliographic identity family. Their declared research scope and

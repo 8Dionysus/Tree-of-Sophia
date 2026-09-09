@@ -416,6 +416,34 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_compound_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md"],
+      "reads": ["adapter-selected exact catalog, source-copy forms, dependency bytes and current protected delegation", "adapter-verified retained before/after plan and exact pending or committed publication state"],
+      "writes": ["adapter-composed selected source bytes through the existing common-lock publication engine and predecessor archive"],
+      "side_effects": "shared bounded mechanics only; typed scope, append delta and current-lineage verification remain with each adapter; no inferred grant, generic semantic operation, remote fetch, source admission or old receipt rewriting",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_expression_commands.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"],
+      "reads": ["separate exact Expression/Agent/translated_by/Claim/form/evidence delegation and selected catalog-bound current responsibility closure", "exact existing Agent packet/raw bytes and continuous history; retained native compound plans, parent and Claim correction history"],
+      "writes": ["one selected Expression version and append-only responsibility ref with form successors and predecessor archive", "one separate new relation Claim home, source-copy statement, immutable request/runtime/provenance/receipt through shared selected publication"],
+      "side_effects": "native expression.responsibility.attach and explicit current-authority recovery only; competing claims remain distinct; no Agent write, old topology stream append, remote source reading, equivalence, admission or expanded flat creation grant",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_responsibility_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
@@ -738,6 +766,20 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/source_bibliographic_responsibility.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md"],
+      "reads": ["supplied existing Expression and Agent, proposed exact version/reference append and qualified initial Claim", "complete supplied verified current translator Claim union for one Expression"],
+      "writes": [],
+      "side_effects": "pure append and closure checks retain competing attribution identities; no filesystem, source discovery, remote fetch, transport verification, source acceptance or role-family expansion",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "focused-tests",
+      "test_target": "mechanics/growth-cycle/tests/test_source_responsibility_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/source_bibliographic_topology.py",
       "family": "projection_helper",
       "organ_lane": "shared-library",
@@ -863,10 +905,13 @@
         "ToS/contracts/artifact-source-witness.schema.json",
         "ToS/contracts/artifact-source-witness-v2.schema.json",
         "ToS/source-witnesses/artifacts/**/artifact-witness.json",
-        "ToS/source-witnesses/**/historical-claims.jsonl"
+        "ToS/source-witnesses/**/historical-claims.jsonl",
+        "ToS/source-witnesses/**/source-claims.jsonl",
+        "ToS/doctrine/CORPUS_FOUNDATION.md"
       ],
       "reads": [
         "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets; v2 provenance schema and existing source-foundation cross-field checks; optional caller-selected assessed snapshot through the owner command",
+        "literal external evidence addresses only as Claim-specific citation occurrences; local citing Claim path/line/canonical hash, never fetched remote bytes or source-reading evidence",
         "selected source publication snapshot, catalog manifest and exact file hash closure before and after actual consumption"
       ],
       "writes": [],

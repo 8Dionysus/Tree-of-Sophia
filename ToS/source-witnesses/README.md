@@ -232,7 +232,7 @@ and no-equivalence: chronology, edition numbering, a shared translator label,
 or a generated graph cannot fill a missing historical edge.
 
 Work, Expression, and Edition records may close over evidence-bearing
-`responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
+legacy `responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
 The initial typed predicates are `authored_by` and `contributed_by` on a Work,
 `translated_by` on an Expression, and `edited_by`, `afterword_by`, or
 `designed_by` on an Edition. Every object resolves to an Agent. Every claim is
@@ -241,6 +241,14 @@ provenance event, and unreferenced or cross-subject claims fail validation. A
 role statement remains a versioned claim: it does not collapse author,
 contributor, translator, copyist, editor, paratext author, designer, publisher,
 or rights holder into one generic “creator”.
+
+The [native translator attachment](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md)
+adds a separately scoped Expression-to-existing-Agent Claim in a new
+`relations/<slug>/source-claims.jsonl` home. The foundation joins only its exact
+committed, continuously retained evidence with the unchanged legacy carriers.
+Competing translator reports are not collapsed by endpoint equality. External
+URLs remain attribution citations, with local citing-Claim source return and
+no implied remote reading; endpoint metadata bindings are not extra witnesses.
 
 In the current bounded corpus, all seven Nietzsche Work records close over one
 `authored_by` claim to the GND-backed Friedrich Nietzsche Agent. Each claim
