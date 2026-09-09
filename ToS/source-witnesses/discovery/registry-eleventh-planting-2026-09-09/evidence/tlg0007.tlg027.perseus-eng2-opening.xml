@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Philopoemen</title>
+            <author>Plutarch</author>
+         	<editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         	   <resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg027.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1921</date>
+                  </imprint>
+                  <biblScope unit="volume">10</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives10plut/page/256/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-04" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2000-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>PHILOPOEMEN</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2:1" n="1"><p>Cleander was a man of the highest lineage and greatest influence among the citizens of Mantineia, but he met with reverses and was exiled from his native city. He then betook himself to Megalopolis, chiefly because of Craugis, the father of Philopoemen, a man in every way illustrious, and attached to him by ties of personal friendship. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2:1" n="2"><p>As long as Craugis lived, Cleander’s wants were all supplied, and when Craugis died, Cleander, wishing to requite him for his hospitality, undertook the rearing of his orphan son, just as Homer says that Achilles was reared by Phoenix,<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Hom. Il. 9.438"> <title>Iliad</title>, ix. 438 ff.</bibl> </note> so that the boy’s character took on from the very outset a noble and kingly mould and growth. But as soon as Philopoemen had ceased to be a boy, Ecdemus and Megalophanes, of Megalopolis, were put in charge of him.<note resp="editor" place="inline" anchored="true">A brief biography of Philopoemen may be found in <bibl n="Paus. 8.49">Pausanias, viii. 49-51</bibl>. It agrees, in the main, with that of Plutarch. Philopoemen was born about 252 B.C.</note> They had been comrades of Arcesilaüs at the Academy, and beyond all men of their day had brought philosophy to bear upon political action and affairs of state. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2:1" n="3"><p>They freed their own native city from tyranny, by secretly procuring men to kill Aristodemus; they joined with Aratus in expelling Nicocles the tyrant of Sicyon;<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Arat. 2.1"> <title>Aratus</title>, ii.</bibl>-<bibl n="Plut. Arat. 10.1">x.</bibl> </note> and at the request of the people of Cyrene, whose city was full of confusion and political distemper, they sailed thither, introduced law and order, and arranged matters in the city most happily. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2:1" n="4"><p>They themselves, however, counted the education of Philopoemen also among their many achievements, believing that their philosophical teachings had made him a common benefit to Greece. For since he was the child, as it were, of her late old age and succeeded to the virtues of her ancient commanders, Greece loved him surpassingly, and as his reputation grew, increased his power. And a certain Roman, in praising him, called him the last of the Greeks,<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Arat. 24.2"> <title>Aratus</title>, xxiv. 2.</bibl> </note> implying that Greece produced no great man after him, nor one worthy of her.</p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2:2" n="1"><p>In looks he was not, as some suppose, ill-favoured; for a statue of him is still to be seen at Delphi; and the mistake of his Megarian hostess was due, as we are told, to a certain indifference and simplicity on his part. This woman, learning that the general of the Achaeans was coming to her house, in great confusion set about preparing supper; besides, her husband chanced to be away from home. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg027.perseus-eng2:2" n="2"><p>Just then Philopoemen came in, wearing a simple soldier’s cloak, 

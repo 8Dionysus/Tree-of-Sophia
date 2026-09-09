@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Artaxerxes</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date> 
+      	   <idno type="filename">tlg0007.tlg064.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1926</date>
+                  </imprint>
+                  <biblScope unit="volume">11</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               
+               <ref target="https://archive.org/details/plutarchslives11plut/page/128/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-18" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1999-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2" type="translation" xml:lang="eng"> <head>ARTAXERXES</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2:1" n="1"><p>The first Artaxerxes,<note resp="editor" place="inline" anchored="true">Artaxerxes I. 465-425 B.C. The parallel form Artaxerxes has become fixed in English.</note> preeminent among the kings of Persia for gentleness and magnanimity, was surnamed Longimanus, because his right hand was longer than his left, and was the son of Xerxes; the second Artaxerxes,<note resp="editor" place="inline" anchored="true">Artaxerxes II. 404-362 B.C.</note> the subject of this Life, was surnamed Memor, or <emph>Mindful</emph>, and was the grandson of the first by his daughter Parysatis. For Dareius<note resp="editor" place="inline" anchored="true">Dareius II. 424-404 B.C.</note> and Parysatis had four sons—an eldest, Artaxerxes, and next to him Cyrus, and after these Ostanes and Oxathres. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2:1" n="2"><p>Cyrus took his name from Cyrus of old,<note resp="editor" place="inline" anchored="true">Cyrus the Elder, 559-529 B.C.</note> who, as they say, was named from the sun; for <q type="foreign">Cyrus</q> is the Persian word for <gloss>sun</gloss>. Artaxerxes was at first called Arsicas; although Deinon gives the name as Oarses. But it is unlikely that Ctesias, even if be has put into his work a perfect farrago of extravagant and incredible tales, should be ignorant of the name of the king at whose court he lived as physician to the king’s wife and mother and children. </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2:2" n="1"><p>Now Cyrus, from his very earliest years, was high-strung and impetuous, but Artaxerxes seemed gentler in everything and naturally milder in his impulses. His wife, a beautiful and excellent woman, he married in compliance with his parents’ bidding, and kept her in defiance of them; for after the king had put her brother to death, he wished to kill her also. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2:2" n="2"><p>But Arsicas, throwing himself at his mother’s feet and supplicating her with many tears, at last obtained her promise that his wife should neither be killed nor separated from him. But the mother had more love for Cyrus, and wished that he should succeed to the throne. Therefore, when his father was now lying sick, Cyrus was summoned home from the sea-coast, and went up in full hope that by his mother’s efforts he had been designated as successor to the kingdom. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2:2" n="3"><p>For Parysatis had a specious argument (the same that Xerxes the Elder employed on the advice of Demaratus<note resp="editor" place="inline" anchored="true">See <bibl n="Hdt. 7.3">Herodotus, vii. 3.</bibl> </note>), to the effect that she had borne Arsicas to Dareius when he was in private station, but Cyrus when he was a king. However, she could not prevail, but the elder son was declared king, under the new name of Artaxerxes, while Cyrus remained satrap of Lydia and commander of the forces in the maritime provinces.<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Xen. Anab. 1.1.1">Xenophon, <title>Anab.</title> i. 1, 1 ff.</bibl> </note> </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2" n="3">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg064.perseus-eng2:3" n="1"><p>A little while after the

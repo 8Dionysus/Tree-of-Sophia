@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Pyrrhus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	 <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+               <name>Bridget Almas</name>
+            </respStmt>
+         <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	  <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg030.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>                  
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1920</date>
+                  </imprint>
+                  <biblScope unit="volume">9</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives09plut/page/346/mode/2up">Internet Archive</ref>                              
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="fre">French</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-28" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2009" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>PYRRHUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:1" n="1"><p>Historians tell us that the first king of the Thesprotians and Molossians after the flood was Phaethon, one of those who came into Epeirus with Pelasgus; but some say that Deucalion and Pyrrha established the sanctuary at Dodona and dwelt there among the Molossians. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:1" n="2"><p>In after time, however, Neoptolemus the son of Achilles, bringing a people with him, got possession of the country for himself, and left a line of kings descending from him. These were called after him Pyrrhidae; for he had the surname of Pyrrhus in his boyhood, and of his legitimate children by Lanassa, the daughter of Cleodaeus the son of Hyllus, one was named by him Pyrrhus. Consequently Achilles also obtained divine honours in Epeirus, under the native name of Aspetus. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:1" n="3"><p>But the kings who followed in this line soon lapsed into barbarism and became quite obscure, both in their power and in their lives, and it was Tharrhypas, historians say, who first introduced Greek customs and letters and regulated his cities by humane laws, thereby acquiring for himself a name. Alcetas was a son of Tharrhypas, Arybas of Alcetas, and of Arybas and Troas, Aeacides. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:1" n="4"><p>He married Phthia, the daughter of Menon the Thessalian, a man who won high repute at the time of the Lamian war<note resp="editor" place="inline" anchored="true">323-322 B.C. See the <bibl n="Plut. Dem. 28.1"> <title>Demosthenes</title>, xxvii. 1</bibl>.</note> and acquired the highest authority among the confederates after Leosthenes. Phthia bore to Aeacides two daughters, Deïdameia and Troas, and a son, Pyrrhus.  </p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:2" n="1"><p>But factions arose among the Molossians, and expelling Aeacides they brought into power the sons of Neoptolemus.<note resp="editor" place="inline" anchored="true">A brother of Arybas, and therefore uncle of Aeacides.</note> The friends of Aeacides were then seized and put to death, but Pyrrhus, who was still a babe and was sought for by the enemy, was stolen away by Androcleides and Angelus, who took to flight. However, they were obliged to take along with them a few servants, and women for the nursing of the child, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:2" n="2"><p>and on this account their flight was laborious and slow and they were overtaken. They therefore entrusted the child to Androcleion, Hippias, and Neander, sturdy and trusty young men, with orders to fly with all their might and make for Megara, a Macedonian town; while they themselves, partly by entreaties and partly by fighting, stayed the course of the pursuers until late in the evening. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg030.perseus-eng2:2" n="3"><p>After these had at last been driven back, they hastened to join the men who were carrying Pyrrhus. The sun had already set and they were near their hoped-for refuge, when suddenly they found themselves cut off from it by the river which flowed past the city. This had a forbidding and savage look, and when they tried to cross it, proved altogether impassable. For its current was greatly swollen and v

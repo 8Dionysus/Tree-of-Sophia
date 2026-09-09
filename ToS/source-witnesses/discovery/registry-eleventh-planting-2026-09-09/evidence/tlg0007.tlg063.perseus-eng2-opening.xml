@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Aratus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date> 
+      	   <idno type="filename">tlg0007.tlg063.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1926</date>
+                  </imprint>
+                  <biblScope unit="volume">11</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives11plut/page/n13/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-18" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1999-07-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>ARATUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2:1" n="1"><p>There is an ancient proverb, Polycrates,<note resp="editor" place="inline" anchored="true">A friend of Plutarch, not otherwise known, to whom he thus dedicates this <title>Life</title>. See the note on the <bibl n="Plut. Thes. 1.1"> <title>Theseus</title>, i. 1.</bibl> </note> which the philosopher Chrysippus puts not as it really is, but as he thought better:— <quote rend="blockquote"> <l>Who will praise a father, except happy sons?</l> </quote> But Dionysodorus of Troezen corrects him, and restores the true form thus:— <quote rend="blockquote"> <l>Who will praise a father, except unhappy sons?</l> </quote> </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2:1" n="2"><p> And he says that the proverb stops the mouths of those who, being worthless in themselves, take refuge in the virtues of certain ancestors and are forever praising them. But surely for a man in whom, to use Pindar’s words, <quote type="paraphrase">the noble spirit naturally displayes itself as inherited from sires,</quote> and who, like thee, patterns his life after the fairest examples in his family line,—for such men it will be good fortune to be reminded of their noblest progenitors, ever and anon hearing the story of them, or telling it themselves. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2:1" n="3"><p>For it is not that they lack noble qualities of their own and make their reputation dependent on their praises of others, nay rather, they associate their own careers with the careers of their great ancestors, whom they hail both as founders of their line and as directors of their lives. And therefore, now that I have written the life of Aratus, who was thy countryman and forefather, and to whom thou thyself art no discredit in either reputation or influence, I send it to thee, not as though thou hadst not been at pains from the beginning to have the most precise knowledge of thy great ancestor’s career, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2:1" n="4"><p>but in order that thy sons Polycrates and Pythocles may be reared, now by hearing and now by reading, after examples found in their own family line—examples which it well becomes them to imitate. For it is the lover of himself, and not the lover of goodness, who thinks himself always superior to others. </p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2:2" n="1"><p>The city of Sicyon, as soon as it had fallen away from its pure Doric form of aristocracy (which was now like a harmony dissolved) and had become a prey to factions and the ambitious schemes of demagogues, was without cease distempered and agitated, and kept changing one tyrant for another, until, after the murder of Cleon, Timocleides and Cleinias were chosen chief magistrates, men of the highest repute and influence among the citizens. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg063.perseus-eng2:2" n="2"><p>But no sooner did the government appear to be somewhat settled than Timocleides died, and Abantidas the son of Paseas, attempting to make himself tyrant, slew Cleinias,<note resp="editor" place="inline" anchored="true">In 264 B.C.</note> and, of the friends and kinsmen of Cleinias, banished some and killed others. He tried to kill also the son of Cleinias, Aratus, left fatherless at the age of seven. </p></div>
+<div type="textpart" s

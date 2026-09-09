@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Demosthenes with Cicero</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date> 
+            <idno type="filename">tlg0007.tlg056.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1919</date>
+                  </imprint>
+                  <biblScope unit="volume">7</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives07plut/page/210/mode/2up">Internet Archive</ref>                
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-03-07" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+         <change when="2000-07-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2" type="translation" xml:lang="eng">
+         <head>COMPARISON OF DEMOSTHENES AND CICERO</head>
+         <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2:1" n="1"><p> These, then, are the memorable incidents in the recorded careers of Demosthenes and Cicero which have come to our knowledge. And though I have renounced the comparison of their oratorical styles,<note anchored="true" place="inline" resp="editor">See the <bibl n="Plut. Dem. 3.1"> <title>Demosthenes</title>, iii. 1.</bibl> </note> yet this, I think, ought not to be left unsaid, namely, that Demosthenes devoted to the rhetorical art all the powers of speech which he possessed by nature or acquired by practice, surpassing in force and effectiveness his rivals in forensic and judicial pleading, in pomp and majesty of utterance the professional declaimers, and in precision and skill the sophists; </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2:1" n="2"><p>Cicero, on the other hand, became widely learned and had a variety of interest in the pursuit of letters, and left behind him not a few philosophical treatises of his own conforming to the fashion of the Academy; indeed, even in the speeches which he wrote for the forum and the courts he clearly desires to display by the way a considerable acquaintance with letters.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2:1" n="3"><p><milestone unit="para"/>It is possible, too, to get a glimpse of the character of each in his style of speaking. For that of Demosthenes, which had no prettiness or pleasantry, and was condensed with a view to power and earnestness, did not smell of lamp-wicks, as Pytheas scoffingly said,<note anchored="true" place="inline" resp="editor">Cf. the <bibl n="Plut. Dem. 8.3"> <title>Demosthenes</title>, viii. 3</bibl>.</note> but of water-drinking and anxious thought, and of what men called the bitterness and sullenness of his disposition; </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2:1" n="4"><p>whereas Cicero was often carried away by his love of jesting into scurrility, and when, to gain his ends in his cases, he treated matters worthy of serious attention with ironical mirth and pleasantry, he was careless of propriety. Thus, in his defence of Caelius, he said that his client, surrounded as he was by great luxury and extravagance, did nothing out of the way when indulging in pleasures; for not to enjoy what is in one’s possession was madness, he said, particularly when the most eminent philosophers assert that true happiness consists in pleasure.<note anchored="true" place="inline" resp="editor">Cf. <bibl n="Cic. Cael. 28">Cicero, <title>pro Caelio</title>, 12, 28</bibl>; but Plutarch’s interpretation does Cicero great injustice. Cf. <bibl n="Cic. Cael. 39">17, 39 f.</bibl></note> </p></div>
+ <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2:1" n="5"><p>And we are told that when Cato prosecuted Murena, Cicero, who was then consul, defended him, and because of Cato’s beliefs made much fun of the Stoic sect, in view of the absurdities of their so-called paradoxes;<note anchored="true" place="inline" resp="editor">Cf. <bibl n="Cic. Mur. 29"> <title>pro Murena</title>, 29-31</bibl>.</note> and when loud laughter spread from the audience to the jurors, Cato, with a quiet smile, said to those who sat by: <q type="spoken">What a funny man we have, my friends, for consul!</q> </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg056.perseus-eng2:1" n="6"><p>And it would seem that Cicero was naturally prone to laughter and fond of jesting; his face, too

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Lysander and Sulla</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg034.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1916</date>
+                  </imprint>
+                  <biblScope unit="volume">4</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives04plut/page/444/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2018-02-16" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+            <change when="1998-12-01" who="Lisa Cerrato">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2" type="translation" xml:lang="eng"> 
+            <head>COMPARISON OF LYSANDER AND SULLA</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2:1" n="1"><p>And now since we have completed this Life also, let us come at once to the Comparison. In this respect, then, they were alike, namely, that both were founders of their own greatness; but it was a peculiar virtue in Lysander that he obtained all his high offices with the consent of his fellow-citizens, and when affairs were in a sound condition; he did not force anything from them against their will, nor did he acquire any power which was contrary to the laws. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2:1" n="2"><p><quote rend="blockquote"> <l>But in a time of sedition, the base man too is in honour,</l></quote><note resp="editor" place="inline" anchored="true">A proverb in hexameter verse, attributed to Callimachus of Alexandria. Plutarch uses it also in the <bibl n="Plut. Nic. 11.3"> <title>Nicias</title>, xi. 3</bibl>, and in , <bibl n="Plut. Mor. 479a"> <title>Morals</title> p. 479a</bibl>.</note> and so in Rome at that time, since the people was corrupt and their government in a distempered state, men of various origin rose to power. And it was no wonder that Sulla held sway, when such men as Glaucia and Saturninus drove such men as Metellus from the city, when sons of consuls were butchered in assemblies, when silver and gold purchased arms and men to wield them, and laws were enacted with fire and sword in defiance of all opposition. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2:1" n="3"><p>Now I do not blame the man who, in such a state of affairs, forced his way to supreme power; but I cannot regard his becoming first man, when the city was in such an evil plight, as a proof that he was also the best man. Whereas Lysander, since Sparta was at the height of good government and sobriety when she sent him forth upon the greatest commands and undertakings, was virtually decided to be first of her first men, and best of her best. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2:1" n="4"><p>Lysander, therefore, though he often surrendered his power into the hands of his fellow-citizens, as often received it back again, since the honour accorded to virtue continued to rank highest in the state; but Sulla, when he had once been chosen leader of an army, remained in arms for ten years together, making himself now consul, and now dictator, but always being a usurper.</p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2:2" n="1"><p>It is true, indeed, that Lysander attempted, as I have said, to change the form of government, but it was by milder and more legal methods than Sulla’s; by persuasion, namely, not by force of arms, nor by subverting everything at once, as Sulla did, but by amending merely the appointment of the kings. And it seemed but natural justice, in a way, that the best of the best should rule in a city which had the leadership in Hellas by virtue of his excellence, and not of his noble birth. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg034.perseus-eng2:2" n="2"><p>For just as a hunter looks for a dog, and not the whelp of a certain bitch, and a horseman for a horse, and not the foal of a certain mare (for what if the foal should prove to be a mule?), so the statesman makes an utter mistake if he enquires, not what sort of a man the ruler is, but from whom he is descended. And inde

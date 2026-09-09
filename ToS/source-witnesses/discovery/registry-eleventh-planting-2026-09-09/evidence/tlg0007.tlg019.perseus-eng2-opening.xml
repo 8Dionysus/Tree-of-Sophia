@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            
+            <title>Aemilius Paulus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+			<resp>Prepared under the supervision of</resp>
+			<name>Bridget Almas</name>
+			<name>Lisa Cerrato</name>
+			<name>Rashmi Singhal</name>
+		</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder></titleStmt>
+         <publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+         	<date type="release" when="2009-03-16">Perseus 4.0</date>
+         	<idno type="filename">tlg0007.tlg019.perseus-eng2.xml</idno>
+         	<availability>
+         		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+         	</availability>
+		</publicationStmt><sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+               	<editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1918</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+            	<series>
+            		<title>Loeb Classical Library</title>
+            	</series>
+            	<ref target="https://archive.org/details/plutarchslives06plut/page/260/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition
+					</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English
+				</language>
+            <language ident="lat">Latin
+				</language>
+            <language ident="grc">Greek
+				</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2017-01-09" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+         <change who="LMC" when="1999-07-01">tagged and parsed</change>
+     
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2" type="translation" xml:lang="eng"> 
+<head>AEMILIUS PAULUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:2" n="1"><p><note resp="editor" place="inline" anchored="true">The first chapter has been transposed to serve as Introduction to both the <title>Timoleon</title> and the<title>Aemilius Paulus</title>.</note> That the Aemilii were one of the ancient and patrician houses at Rome, most writers agree. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:2" n="2"><p>And that the first of them, and the one who gave his surname to the family, was Mamercus, a son of Pythagoras the philosopher, who received the surname of Aemilius for the <gloss>grace</gloss><note resp="editor" place="inline" anchored="true">Plutarch suggests the identity of the Latin Aemilius with the Greek <foreign xml:lang="grc">αἱμύλιος</foreign> (<gloss>winning</gloss>). Cf. <bibl n="Hom. Od. 1.56"> <title>Odyssey</title>, i. 56.</bibl> </note> and charm of his discourse, is the statement of some of those writers who hold that Pythagoras was the educator of Numa the king.<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Num. 1.2"> <title>Numa</title>, i. 2 f.</bibl> </note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:2" n="3"><p>Now, most of this family who rose to distinction by their cultivation of virtue, were blessed with good fortune; and in the case of Lucius Paulus, his misfortune at Cannae gave testimony alike to his wisdom and valour. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:2" n="4"><p>For when he could not dissuade his colleague from giving battle, he took part with him in the struggle, though reluctantly, but would not be a partner in his flight; nay, though the one who had brought on the peril left him in the lurch, he himself kept his post and died fighting the enemy.<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Fab. 14.1"> <title>Fabius Maximus</title>, chapters xiv.</bibl> and <bibl n="Plut. Fab. 16.1">xvi.</bibl> </note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:2" n="5"><p><milestone unit="para" resp="editor"/>This Paulus had a daughter, Aemilia, who was the wife of Scipio the Great, and a son, Aemilius Paulus, whose Life I now write. He came of age at a time which abounded in men of the greatest reputation and most illustrious virtue, and yet he was a conspicuous figure, although he did not pursue the same studies as the young nobles of the time, nor set out on his career by the same path. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:2" n="6"><p>For he did not practise pleading private cases in the courts, and refrained altogether from the salutations and greetings and friendly attentions to which most men cunningly resorted when they tried to win the favour of the people by becoming their zealous servants; not that he was naturally incapable of either, but he sought to acquire for himself what was better than both, namely, a reputation arising from valour, justice, and trustworthiness. In these virtues he at once surpassed his contemporaries. </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2" n="3"> 
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg019.perseus-eng2:3" n="1"><p>At all events, when he sued for the first of the high offices in the state, the aedileship, he was elected over twelve competitors,<note resp="editor" place="inline" anchored="true">In 192 B.C.</note> all of wh

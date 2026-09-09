@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Antony</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date> 
+      	   <idno type="filename">tlg0007.tlg058.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1920</date>
+                  </imprint>
+                  <biblScope unit="volume">9</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives09plut/page/138/mode/2up">Internet Archive</ref>               
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-04-02" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2001-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>ANTONY</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:1" n="1"><p>Antony’s grandfather was the orator Antonius, who joined the party of Sulla and was put to death by Marius;<note resp="editor" place="inline" anchored="true">Cf. the <bibl n="Plut. Mar. 44.1"> <title>Marius</title>, xliv. 1-4</bibl>.</note> his father was Antonius surnamed Creticus, a man of no great repute in public life, nor illustrious, but kindly and honest, and particularly a liberal giver, as one may see from a single instance. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:1" n="2"><p>He had not much property himself, and therefore was prevented by his wife from indulging his kindly feelings. When, accordingly, one of his intimates came to him with a request for money, money he had not, but he ordered a young slave to put water into a silver bowl and bring it to him, and when it was brought, he moistened his chin, as though about to shave. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:1" n="3"><p>The slave was then sent away on another errand improvised for the occasion, whereupon Antonius gave the bowl to his friend and bade him dispose of it. Later, when a careful search was made for it among the slaves, seeing that his wife was angry and proposed to put them to the torture one by one, Antonius confessed what he had done, and by his entreaties gained her pardon. </p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:2" n="1"><p>His wife was Julia, of the house of the Caesars, and she could vie with the noblest and most discreet women of her time. By this mother her son Antony was reared, after the death of whose father she married Cornelius Lentulus, whom Cicero put to death for joining the conspiracy of Catiline.<note resp="editor" place="inline" anchored="true">Cf. the <bibl n="Plut. Cic. 22.1"> <title>Cicero</title>, xxii</bibl>.</note> This would seem to have been the origin and ground of the violent hatred which Antony felt towards Cicero. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:2" n="2"><p>At any rate, Antony says that not even the dead body of Lentulus was given up to them until his mother had begged it from the wife of Cicero. This, however, is admittedly false; for no one of those who were punished at that time by Cicero was deprived of burial. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:2" n="3"><p>Antony gave brilliant promise in his youth, they say, until his intimate friendship with Curio fell upon him like a pest. For Curio himself was unrestrained in his pleasures, and in order to make Antony more manageable, engaged him in drinking bouts, and with women, and in immoderate and extravagant expenditures. This involved Antony in a heavy debt and one that was excessive for his years—a debt of two hundred and fifty talents.<note resp="editor" place="inline" anchored="true">An equivalent, roughly, of £60,000, or $300,000, with four or five times the purchasing power of modern money.</note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg058.perseus-eng2:2" n="4"><p>For this whole sum Curio went surety, but his father heard of it and banished Antony from his house. Then Antony allied himself for a short time with Clodius, the most audacious and low-lived demagogue of his time, in the violent courses which were convulsing the state; but he soon became

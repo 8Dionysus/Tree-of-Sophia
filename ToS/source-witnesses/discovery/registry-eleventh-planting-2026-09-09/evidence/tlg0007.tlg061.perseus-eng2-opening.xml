@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>                
+                <title>Brutus</title>
+                <author>Plutarch</author>
+                <editor role="translator">Bernadotte Perrin</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Bridget Almas</name>
+                    <name>Lisa Cerrato</name>
+                    <name>Rashmi Singhal</name>
+                </respStmt>
+                <funder n="org:Tufts">Tufts University</funder>
+            </titleStmt>
+            
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release" when="2009-03-16">Perseus 4.0</date> 
+                <idno type="filename">tlg0007.tlg061.perseus-eng2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+                </availability>
+            </publicationStmt>
+            <sourceDesc>
+                <biblStruct>
+                    
+                    <monogr>
+                        <author>Plutarch</author>
+                        <title>Plutarch's Lives</title>
+                        <imprint>
+                            <pubPlace>Cambridge, MA</pubPlace>
+                            <publisher>Harvard University Press</publisher>
+                            <pubPlace>London</pubPlace>
+                            <publisher>William Heinemann Ltd.</publisher>
+                            <date>1918</date>
+                        </imprint>
+                        <biblScope unit="volume">6</biblScope>
+                    </monogr>
+                    <series>
+                        <title>Loeb Classical Library</title>
+                    </series>
+                    <ref target="https://archive.org/details/plutarchslives06plut/page/126/mode/2up">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+            <editorialDecl>
+                <correction status="high" method="silent">
+                    <p>optical character recognition</p>
+                </correction>
+            </editorialDecl>
+            <refsDecl n="CTS">
+                <cRefPattern n="section"
+                    matchPattern="(\w+).(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                    <p>This pointer pattern extracts chapter and section.</p>
+                </cRefPattern>
+                <cRefPattern n="chapter"
+                    matchPattern="(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts chapter.</p>
+                </cRefPattern>
+            </refsDecl>
+            <refsDecl>
+                <refState unit="chapter" delim="."/>
+                <refState unit="section"/>
+            </refsDecl>
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+              <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+            </citeStructure>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="eng">English</language>
+                <language ident="lat">Latin</language>
+                <language ident="grc">Greek</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2018-02-27" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+            <change when="1999-06-01" who="Lisa Cerrato">tagged and parsed</change>
+        </revisionDesc>
+    </teiHeader>
+    <text xml:lang="eng">
+        <body xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2">
+            <div n="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2" type="translation" xml:lang="eng">
+                <head>BRUTUS</head>
+                <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2" n="1">
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="1"><p>Marcus Brutus was a descendant of that Junius Brutus whose bronze statue, with a drawn sword in its hand, was erected by the ancient Romans on the Capitol among those of their kings, in token that he was most resolute in dethroning the Tarquins. </p></div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="2"><p>But that Brutus, like the tempered steel of swords, had a disposition which was hard by nature and not softened by letters, so that his wrath against the tyrants drove him upon the dreadful act of slaying his sons;<note resp="editor" place="inline" anchored="true">See the <bibl n="Plut. Publ. 6.1"> <title>Publicola</title>, chapter vi.</bibl> </note> </p></div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="3"><p>whereas this Brutus, of whom I now write, modified his disposition by means of the training and culture which philosophy gives, and stimulated a nature which was sedate and mild by active enterprises, and thus seems to have been most harmoniously attempered for the practice of virtue. </p></div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="4"><p>As a consequence, even those who hated him on account of his conspiracy against Caesar ascribed whatever was noble in the undertaking to Brutus, but laid the more distressing features of what was done to the charge of Cassius, who was a kinsman of Brutus, indeed, and his friend, but not so simple and sincere in his character. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="5"><p>Servilia, the mother of Brutus, traced her lineage back to Servilius Ahala, who, when Spurius Maelius was seditiously plotting to usurp absolute power, took a dagger under his arm, went into the forum, drew nigh the man, as if intending to confer privately with him, and when he inclined his head to listen, stabbed him to death.<note resp="editor" place="inline" anchored="true">In 439 B.C. Cf. <bibl n="Liv. 4.13.1">Livy, iv. 13 f.</bibl> </note> </p></div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="6"><p><milestone unit="para" resp="editor"/>This, at all events, is generally admitted; but as to the lineage of Brutus by his father’s side, those who display great hatred and malevolence towards him because of the murder of Caesar deny that it goes back to that Brutus who expelled the Tarquins, since no offspring was left to him when he had slain his sons. The ancestor of Brutus, they say, was a plebeian, son of a steward by the name of Brutus, and had only recently risen to office. </p></div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="7"><p>Poseidonius the philosopher, however, says that the two sons of Brutus who were of age perished according to the story, but that a third son was left, an infant, from whom the family descended. </p></div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2:1" n="8"><p>He says, moreover, that there were certainly illustrious men of this house in his own day, some of whom called attention to their likeness in form and features to the statue of Brutus. Thus much, then, on this head. </p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg061.perseus-eng2" n="2">
+ 

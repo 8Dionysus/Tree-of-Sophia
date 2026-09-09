@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>  
+            <title>Numa</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+			<name>Bridget Almas</name>
+			<name>Lisa Cerrato</name>
+			<name>Rashmi Singhal</name>
+		</respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg005.perseus-eng2.xml</idno>
+      		<availability>
+      	<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      		</availability>
+		</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            <ref target="https://archive.org/details/plutarchslives01plut2/page/306/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction method="silent">
+               
+<p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">		
+<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         	<change who="Lisa Cerrato" when="2016-12-12">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+         	<change who="Lisa Cerrato" when="1998-10-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+<text xml:lang="eng">
+<body xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2">
+<div n="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2" type="translation" xml:lang="eng">
+         <head>NUMA</head>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2:1" n="1">
+<p>There is likewise<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Plut. Lyc. 1.1">Lycurgus, i. 1-3.</bibl> </note> a vigorous dispute about the time at which King Numa lived, although from the beginning down to him the genealogies seem to be made out accurately. But a certain Clodius, in a book entitled <title>An Examination of Chronology,</title> insists that the ancient records were lost when the city was sacked by the Gauls,<note resp="editor" place="inline" anchored="true">390 B.C. Cf. <bibl n="Plut. Cam. 19">Camillus, xix.-xxix.</bibl> </note> and that those which are now exhibited as such were forged, their compilers wishing to gratify the pride of certain persons by inserting their names among the first families and the most illustrious houses, where they had no cause to appear. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2:1" n="2">
+<p>Accordingly, when it is said that Numa was an intimate friend of Pythagoras, some deny utterly that Numa had any Greek culture, holding either that he was naturally capable of attaining excellence by his own efforts, or that the culture of the king was due to some Barbarian superior to Pythagoras. Others say that Pythagoras the philosopher lived as many as five generations after Numa, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2:1" n="3">
+<p>but that there was another Pythagoras, the Spartan, who was Olympic victor in the foot-race for the sixteenth Olympiad<note resp="editor" place="inline" anchored="true">657-654 B.C.</note> (in the third year of which Numa was made king), and that in his wanderings about Italy he made the acquaintance of Numa, and helped him arrange the government of the city, whence it came about that many Spartan customs were mingled with the Roman, as Pythagoras taught them to Numa. And at all events, Numa was of Sabine descent, and the Sabines will have it that they were colonists from Lacedaemon. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2:1" n="4">
+<p>Chronology, however, is hard to fix, and especially that which is based on the names of victors in the Olympic games, the list of which is said to have been published at a late period by Hippias of Elis, who had no fully authoritative basis for his work. I shall therefore begin at a convenient point, and relate the noteworthy facts which I have found in the life of Numa.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2:2" n="1">
+<p>For thirty-seven years, now, Rome had been built and Romulus had been its king; and on the fifth of the month of July, which day they now call the Capratine Nones, Romulus was offering a public sacrifice outside the city at the so-called Goat’s Marsh, in the presence of the senate and most of the people. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg005.perseus-eng2:2" n="2">
+<p>Suddenly there was a great commotion in the air, and a cloud descended upon the earth bringing with it blasts of wind and rain. The throng of common folk were terrified and fled in all directions, but Romulus disappeared, and was never found again either alive or dead. Upon this a grievous suspicion attached itself to the patricians, and an accusing story was current among the people to the effect that they had long been weary of kingly rule, and desired to transfer the power to themselves, and had t

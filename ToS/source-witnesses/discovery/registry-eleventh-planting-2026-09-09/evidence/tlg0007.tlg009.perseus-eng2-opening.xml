@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>           
+            <title>Comparison of Solon and Publicola</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		   <name>Bridget Almas</name>
+		   <name>Lisa Cerrato</name>
+		   <name>Rashmi Singhal</name>
+		</respStmt>
+         <funder n="org:Tufts">Tufts University</funder></titleStmt>
+         
+         <publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg009.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+            </availability>
+		</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives01plut2/page/564/mode/2up">Internet Archive</ref>  
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl> <refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change who="Lisa Cerrato" when="2016-12-14">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+         <change who="LMC" when="1998-10-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2">
+      <div n="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2" type="translation" xml:lang="eng">
+     
+         <head>COMPARSION OF SOLON AND PUBLICOLA</head>
+         <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2" n="1">
+
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2:1" n="1"><p>There is, then, something peculiar in this comparison, and something that has not been true of any other thus far, namely, that the second imitated the first, and the first bore witness for the second. For it must be plain that the verdict concerning happiness which Solon pronounced to Croesus, is more applicable to Publicola than to Tellus. </p></div>
+
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2:1" n="2"><p>Tellus, whom Solon pronounced the most blessed man he knew, because of his fortunate lot, his virtue, and his goodly offspring, was not celebrated in Solon’s poems as a good man, nor did his children or any magistracy of his achieve a reputation; whereas Publicola, while he lived, was foremost among the Romans influence and repute for virtue, and since his death the most illustrious family lines of our own day, like the Publicolae, the Messalae, and the Valerii, have for six hundred years ascribed the glory of their noble birth to him. </p></div>
+
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2:1" n="3"><p>Tellus, moreover, though he kept his post and fought like a brave man, died at the hands of his enemies; whereas Publicola slew his enemies, which is a better fortune than to be slain by them, saw his country victorious through his efforts as consul and general, and enjoyed honours and triumphs before he came to the end which Solon pronounced so enviable and blest. </p></div>
+
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2:1" n="4"><p>Still further, what Solon says to Mimnermus,<note resp="editor" place="inline" anchored="true">Fragment 21 (Bergk).</note> in arguing with him on the proper duration of human life, <quote rend="blockquote"> <l>May not an unlamented death be mine, but unto friends</l> <l>Let me be cause, when dead, for sorrow and for sighing,</l> </quote>argues Publicola a happy man. For when he died, his loss filled not only friends and kindred, but the entire city, numbering many tens of thousands, with weeping and yearning and sorrow. For the women of Rome mourned for him as though they had lost a son, or a brother, or a common father. </p></div>
+
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2:1" n="5"><p> <q type="spoken">Wealth I desire to have,</q> says Solon, <q type="spoken">but wrongfully to get it, I do not wish,</q> <note resp="editor" place="inline" anchored="true">See <bibl n="Plut. Sol. 2.3">Solon, ii. 3</bibl>.</note> believing that punishment would follow. And Publicola’s wealth was not only not ill got, but also nobly spent in benefactions to the needy. So that if Solon was the wisest, Publicola was the most happy of men, since what Solon prayed for as the greatest and fairest of blessings, these Publicola was privileged to win and continue to enjoy until the end. </p>
+
+</div></div>
+
+         <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2" n="2">
+
+            <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg009.perseus-eng2:2" n="1"><p>Thus did Solon enhance the fame of Publicola. And Publicola, too, in his political activities, enhanced the fame of Solon, by making him the fairest of examples for one who was arranging a democracy. For he took away the arrogant powers of the consulship and made it gracious and acceptable to all, and he adopted many of Solon’s laws. For instance, he put the appoin

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?><TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>                
+                <title>Alexander</title>
+                <author>Plutarch</author>
+                <editor role="translator">Bernadotte Perrin</editor>
+                <sponsor>Perseus Project, Tufts University</sponsor>
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Bridget Almas</name>
+                    <name>Lisa Cerrato</name>
+                    <name>David Mimno</name>
+                    <name>Rashmi Singhal</name>
+                </respStmt>
+                <funder n="org:Tufts">Tufts University</funder>
+            </titleStmt>
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release" when="2005-03-28">Perseus 3.0</date> 
+                <idno type="filename">tlg0007.tlg047.perseus-eng2.xml</idno>
+                <availability>
+                    <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+                </availability>
+            </publicationStmt>
+            <sourceDesc>
+                <biblStruct>                    
+                    <monogr>
+                        <author>Plutarch</author>
+                        <title>Plutarch's Lives</title>
+                        <editor role="translator">Bernadotte Perrin</editor>                  
+                        <imprint>
+                            <pubPlace>Cambridge, MA</pubPlace>
+                            <publisher>Harvard University Press</publisher>
+                            <pubPlace>London</pubPlace>
+                            <publisher>William Heinemann Ltd.</publisher>
+                            <date>1919</date>
+                        </imprint>
+                        <biblScope unit="volume">7</biblScope>
+                    </monogr>
+                    <series>
+                        <title>Loeb Classical Library</title>
+                    </series>
+                    <ref target="https://archive.org/details/plutarchslives07plut/page/224/mode/2up">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+            <refsDecl n="CTS">
+                <cRefPattern n="section"
+                    matchPattern="(\w+).(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+                    <p>This pointer pattern extracts chapter and section.</p>
+                </cRefPattern>
+                <cRefPattern n="chapter"
+                    matchPattern="(\w+)"
+                    replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                    <p>This pointer pattern extracts chapter.</p>
+                </cRefPattern>
+            </refsDecl>
+            <refsDecl>
+                <refState unit="chapter" delim="."/>
+                <refState unit="section"/>
+            </refsDecl>
+            <editorialDecl>
+                <p>optical character recognition</p>
+            </editorialDecl>
+                <refsDecl xml:id="CTS">
+          <citeStructure match="/TEI/text/body" use="@xml:base">
+            <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+              <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+            </citeStructure>
+          </citeStructure>
+        </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="eng">English</language>
+                <language ident="grc">Greek</language>
+                <language ident="fre">French</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2018-03-05" who="Lisa Cerrato">EpiDoc and CTS cleanup</change>
+            <change when="2000-04-01" who="LMC">tagged and parsed</change>
+        </revisionDesc>
+    </teiHeader>
+    <text xml:lang="eng">
+        <body xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2">
+            <div n="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2" type="translation" xml:lang="eng">
+                <head>ALEXANDER</head>
+                <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2" n="1">
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2:1" n="1">
+                        <p>It is the life of Alexander the king, and of Caesar, who overthrew
+                            Pompey, that I am writing in this book, and the multitude of the deeds
+                            to be treated is so great that I shall make no other preface than to
+                            entreat my readers, in case I do not tell of all the famous actions of
+                            these men, nor even speak exhaustively at all in each particular case,
+                            but in epitome for the most part, not to complain. </p>
+                    </div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2:1" n="2">
+                        <p>For it is not Histories that I am writing, but Lives; and in the most
+                            illustrious deeds there is not always a manifestation of virtue or vice,
+                            nay, a slight thing like a phrase or a jest often makes a greater
+                            revelation of character than battles where thousands fall, or the
+                            greatest armaments, or sieges of cities. </p>
+                    </div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2:1" n="3">
+                        <p>Accordingly, just as painters get the likenesses in their portraits from
+                            the face and the expression of the eyes, wherein the character shows
+                            itself, but make very little account of the other parts of the body, so
+                            I must be permitted to devote myself rather to the signs of the soul in
+                            men, and by means of these to portray the life of each, leaving to
+                            others the description of their great contests. </p>
+                    </div>
+                </div>
+                <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2" n="2">
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2:2" n="1">
+                        <p>As for the lineage of Alexander, on his father’s side he was a descendant
+                            of Heracles through Caranus, and on his mother’s side a descendant of
+                            Aeacus through Neoptolemus; this is accepted without any question. And
+                            we are told that Philip, after being initiated into the mysteries of
+                            Samothrace at the same time with Olympias, he himself being still a
+                            youth and she an orphan child, fell in love with her and betrothed
+                            himself to her at once with the consent of her brother, Arymbas. </p>
+                    </div>
+                    <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg047.perseus-eng2:2" n="2">
+                        <p>Well, then, the night before that on which the marriage was consummated,
+                            the bride dreamed that there was a peal of thunder and that a
+                            thunder-bolt fell upon her womb, and that thereby much fire was kindled,
+                            which broke into flames that travelled all about, and then was
+                            extinguished. At a later time, too, after the marriage, Philip dreamed
+                            that he was putting a seal upon his wife’s womb; and the device of 

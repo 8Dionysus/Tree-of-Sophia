@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Romulus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Bridget Almas</name>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         	</titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg002.perseus-eng2.xml</idno>
+      		<availability>
+      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+               	<title>Plutarch's Lives</title>               
+                  <editor role="translator">Bernadotte Perrin</editor> 
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>                  
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/plutarchslives01plut2/page/90/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="medium" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         
+      	<refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+     
+   	<profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+   	
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2016-12-07" who="Lisa Cerrato">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1998-10-01" who="Lisa Cerrato">fixed note tags and checked them</change>
+      	<change when="1997-10-01" who="Lisa Cerrato">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+	<text xml:lang="eng"> 
+		<body xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2" type="translation" xml:lang="eng"> 
+<head>ROMULUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:1" n="1">
+<p>From whom, and for what reason the great name of Rome, so famous among mankind, was given to that city, writers are not agreed. Some say that the Pelasgians, after wandering over most of the habitable earth and subduing most of mankind, settled down on that site, and that from their <emph>strength</emph> in war they called their city Rome. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:1" n="2">
+<p>Others say that at the taking of Troy some of its people escaped, found sailing vessels, were driven by storms upon the coast of Tuscany, and came to anchor in the river Tiber; that here, while their women were perplexed and distressed at thought of the sea, one of them, who was held to be of superior birth and the greatest understanding, and whose name was Roma, proposed that they should burn the ships<note resp="editor" place="inline" anchored="true"> <bibl n="Verg. A. 5.604">Cf. <title>Aeneid</title>, v. 604-699.</bibl> </note>; </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:1" n="3">
+<p>that when this was done, the men were angry at first, but afterwards, when they had settled of necessity on the Palatine, seeing themselves in a little while more prosperous than they had hoped, since they found the country good and the neighbours made them welcome, they paid high honours to Roma, and actually named the city after her, since she had been the occasion of their founding it. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:1" n="4">
+<p>And from that time on, they say, it has been customary for the women to salute their kinsmen and husbands with a kiss; for those women, after they had burned the ships, made use of such tender salutations as they supplicated their husbands and sought to appease their wrath.</p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:2" n="1">
+<p>Others again say that the Roma who gave her name to the city was a daughter of Italus and Leucaria, or, in another account, of Telephus the son of Heracles; and that she was married to Aeneas, or, in another version, to Ascanius the son of Aeneas. Some tell us that it was Romanus, a son of Odysseus and Circe, who colonized the city; others that it was Romus, who was sent from Troy by Diomedes the son of Emathion; and others still that it was Romis, tyrant of the Latins, after he had driven out the Tuscans, who passed from Thessaly into Lydia, and from Lydia into Italy. Moreover, even those writers who declare, in accordance with the most authentic tradition, that it was Romulus who gave his name to the city, do not agree about his lineage. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:2" n="2">
+<p>For some say that he was a son of Aeneas and Dexithea the daughter of Phorbas, and was brought to Italy in his infancy, along with his brother Romus; that the rest of the vessels were destroyed in the swollen river, but the one in which the boys were was gently directed to a grassy bank, where they were unexpectedly saved, and the place was called Roma from them. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg002.perseus-eng2:2" n="3">
+<p>Others say it was Roma, a daughter of the Trojan woman I have mentioned, who was wedded to Latinus the son of Telemachus and bore him Romulus; others that Aemilia, the daughter of Aeneas and Lavi

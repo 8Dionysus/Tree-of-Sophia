@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Lycurgus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+			<name>Bridget Almas</name>
+			<name>Lisa Cerrato</name>
+			<name>Rashmi Singhal</name>
+		</respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg004.perseus-eng2.xml</idno>
+      		<availability>
+      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+		</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            <ref target="https://archive.org/details/plutarchslives01plut2/page/204/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="Lisa Cerrato" when="2016-12-12">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change who="Lisa Cerrato" when="1998-10-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2" type="translation" xml:lang="eng">
+         <head>LYCURGUS</head>
+         
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2:1" n="1">
+<p>Concerning Lycurgus the lawgiver, in general, nothing can be said which is not disputed, since indeed there are different accounts of his birth, his travels, his death, and above all, of his work as lawmaker and statesman; and there is least agreement among historians as to the times in which the man lived. Some say that he flourished at the same time with Iphitus, and in concert with him established the Olympic truce. Among these is Aristotle the philosopher, and he alleges as proof the discus at Olympia on which an inscription preserves the name of Lycurgus.<note resp="editor" place="inline" anchored="true">As joining with Iphitus in founding, or reviving, the Olympic games, in 776 B.C., the date assigned to the first recorded victory. Cf. <bibl n="Paus. 5.4.5">Pausanias, v. 4, 5 f.</bibl>; <bibl n="Paus. 5.20.1">20, 1.</bibl> A stay of hostilities was observed all over Greece during the festival.</note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2:1" n="2">
+<p>But those who compute the time by the successions of kings at Sparta, like Eratosthenes and Apollodorus, prove that Lycurgus was many years earlier than the first Olympiad.<note resp="editor" place="inline" anchored="true">776-73 B.C.</note> And Timaeus conjectures that there were two Lycurgus at Sparta, at different times, and that to one of them the achievements of both were ascribed, owing to his greater fame; he thinks also that the elder of the two lived not far from the times of Homer, and some assert that he actually met Homer face to face. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2:1" n="3">
+<p>Xenophon, also,<note resp="editor" place="inline" anchored="true"> <bibl n="Xen. Const. Lac. 10.8"> <title>Reip. Lac.</title> x. 8.</bibl> <q type="written">Lycurgus is said to have lived in the times of the Heracleidae.</q> </note> makes an impression of simplicity in the passage where he says that Lycurgus lived in the time of the Heracleidae. For in lineage, of course, the latest of the Spartan kings were also Heracleidae; but Xenophon apparently wishes to use the name Heracleidae of the first and more immediate descendants of Heracles, so famous in story. However, although the history of these times is such a maze, I shall try, in presenting my narrative, to follow those authors who are least contradicted, or who have the most notable witnesses for what they have written about the man. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg004.perseus-eng2:1" n="4">
+<p>For instance, Simonides the poet says that Lycurgus was not the son of Eunomus, but that both Lycurgus and Eunomus were sons of Prytanis; whereas most writers give a different genealogy, as follows: Aristodemus begat Procles, Procles begat Soüs, Soüs begat Eurypon, and he begat Prytanis, from whom sprang Eunomus, and from Eunomus Polydectes by a first wife, and Lycurgus, who was a younger son by a second wife, Dionassa, as Dieutychidas has written, making Lycurgus sixth from Procles, and eleventh from Heracles.<note resp="editor" place="inline" anchored="true">Aristodemus, from whose twin sons Eurysthenes and Procles the elder and younger royal lines at Sparta (the Agids and Eurypontids) were descended, was the son of Aristomachus, the son of Cleodaeus, the son of Hyllus, the son of Heracles. See <bibl n="Paus. 3.1.1">Pausanias, iii. 1-10</bibl>; <bibl n="Hdt. 7.204">Herodotus, vii. 204</bibl> and<bibl n="Hdt. 8.131"> viii. 131</bibl>.</note></p></div> </div> 
+<div type="textpart" subtype="chapter" xml:ba

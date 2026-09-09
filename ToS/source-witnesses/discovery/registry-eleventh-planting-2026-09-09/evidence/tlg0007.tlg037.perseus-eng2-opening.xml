@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Lucullus and Cimon</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg037.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor>Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives02plut2/page/610/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-02-05" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+         <change when="2018-02-01" who="Lisa Cerrato">bumped URN</change>
+         <change when="1999-03-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2" type="translation" xml:lang="eng"> 
+            <head>COMPARISON OF LUCULLUS AND CIMON</head> 
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="1"><p>One might deem Lucullus especially happy in his end, from the fact that he died before that constitutional change had come, which fate was already contriving by means of the civil wars. His country was in a distempered state when he laid down his life, but still she was free. And in this respect, more than any other, he is like Cimon. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="2"><p>For Cimon also died before Greece was confounded, and while she was at the acme of her power. He died, however, in the field, and at the head of an army, not exhausted or of a wandering mind, nor yet making feastings and revellings the crowning prize for arms and campaigns and trophies. Plato<note resp="editor" place="inline" anchored="true"> <bibl n="Plat. Rep. 363"> <title>Republic</title>, ii. p. 363.</bibl> </note> banters the followers of Orpheus for declaring that for those who have lived rightly, there is laid up in Hades a treasure of everlasting intoxication. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="3"><p>Leisure, no doubt, and quiet, and the pursuit of pleasantly speculative learning, furnish a most fitting solace for a man of years who has retired from wars and politics. But to divert fair achievements to pleasure as their final end, and then to sport and wanton at the head of Aphrodite’s train, as a sequel to wars and fightings, was not worthy of the noble Academy, nor yet of one who would follow Xenocrates, but rather of one who leaned towards Epicurus. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="4"><p>And this is the more astonishing, because, contrariwise, Cimon seems to have been of ill repute and unrestrained in his youth, while Lucullus was disciplined and sober. Better, surely, is the man in whom the change is for the better; for it argues a more wholesome nature when its evil withers and its good ripens.  And further, though both alike were wealthy, they did not make a like use of their wealth. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="5"><p>There is no comparing the south wall of the Acropolis, which was completed with the moneys brought home by Cimon, with the palaces and sea-washed Belvideres at Neapolis, which Lucullus built out of the spoils of the Barbarians. Nor can the table of Cimon be likened to that of Lucullus; the one was democratic and charitable, the other sumptuous and oriental. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="6"><p>The one, at slight outlay, gave daily sustenance to many; the other, at large cost, was prepared for a few luxurious livers. It may be said, indeed, that the difference in state was due to the difference in time. For it is at least possible that Cimon also, if he had retired after his active campaigns to an old age which knew neither war nor politics, might have led an even more ostentatious and pleasure-loving life. He was fond of wine and given to display, and his relations with women, as I have said before,<note resp="editor" place="inline" anchored="true">See <bibl n="Plut. Cim. 4.8"> <title>Cimon</title>, iv. 8.</bibl> </note> were scandalous. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg037.perseus-eng2:1" n="7"><p>But success in strenuous achievement, affording as it does a higher pleasure, gives public-spirited and ambitious natures 

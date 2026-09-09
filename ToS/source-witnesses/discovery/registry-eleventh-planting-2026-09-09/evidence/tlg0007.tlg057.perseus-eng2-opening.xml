@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Demetrius</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date> 
+      	   <idno type="filename">tlg0007.tlg057.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1920</date>
+                  </imprint>
+                  <biblScope unit="volume">9</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives09plut/page/2/mode/2up">Internet Archive</ref>     
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-30" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+         <change when="2001-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+   	<body xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2" type="translation" xml:lang="eng"> <head>DEMETRIUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="1"><p>Those who first assumed that the arts are like the bodily senses, seem to me to have perceived very clearly the power of making distinctions which both possess, by which power we are enabled to apprehend opposites, as well in the one case as in the other. For the arts and the senses have this power in common; though in the use to which we put the distinctions made, they differ. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="2"><p>For our sense-perception has no greater facility in distinguishing white objects than black, or sweet things than bitter, or soft and yielding substances than hard and resisting ones, but its function is to receive impressions from all objects alike, and having received them, to report the resulting sensation to the understanding. The arts, on the other hand, which proceed by the use of reason to the selection and adoption of what is appropriate, and to the avoidance and rejection of what is alien to themselves, contemplate the one class of objects with direct intent and by preference, and, yet incidentally contemplate the other class also, and in order to avoid them. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="3"><p>For instance, the art of healing has incidentally studied the nature of disease, and the art of harmony the nature of discord, in order to produce their opposites; and the most consummate arts of all, namely, temperance, justice, and wisdom, since their function is to distinguish, not only what is good and just and expedient, but also what is bad and unjust and disgraceful, have no praises for a guilelessness which plumes itself on its inexperience of evil, nay, they consider it to be foolishness, and ignorance of what ought especially to be known by men who would live aright. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="4"><p>Accordingly, the ancient Spartans would put compulsion upon their helots at the festivals to drink much unmixed wine, and would then bring them into the public messes, in order to show their young men what it was to be drunk. And though I do not think that the perverting of some to secure the setting right of others is very humane, or a good civil policy, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="5"><p>still, when men have led reckless lives, and have become conspicuous, in the exercise of power or in great undertakings, for badness, perhaps it will not be much amiss for me to introduce a pair or two of them into my biographies, though not that I may merely divert and amuse my readers by giving variety to my writing. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="6"><p>Ismenias the Theban used to exhibit both good and bad players to his pupils on the flute and say, <q type="spoken">you must play like this one,</q> or again, <q type="spoken">you must not play like this one</q>; and Antigenidas used to think that young men would listen with more pleasure to good flute-players if they were given an experience of bad ones also. So, I think, we also shall be more eager to observe and imitate the better lives if we are not left without narratives of the blameworthy and the bad. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg057.perseus-eng2:1" n="7"><p><milestone unit="para"/>This book will therefore contain the Lives of Demetrius the City-besieger and Antony the <foreign xml:lang="lat">I

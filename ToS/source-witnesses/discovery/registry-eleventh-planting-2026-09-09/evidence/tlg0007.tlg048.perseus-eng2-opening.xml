@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Caesar</title>
+            <author>Plutarch</author>
+         	<editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         	  <resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>David Mimno</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2005-03-28">Perseus 3.0</date> 
+      	   <idno type="filename">tlg0007.tlg048.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1919</date>
+                  </imprint>
+                  <biblScope unit="volume">7</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives07plut/page/442/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-07" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+         <change when="2000-04-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2" type="translation" xml:lang="eng">
+         <head>CAESAR</head>
+         <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2:1" n="1"><p>The wife of Caesar<note resp="editor" place="inline" anchored="true">Many think that opening paragraphs of this <title>Life</title>, describing the birth and boyhood of Caesar, have been lost.</note> was Cornelia, the daughter of the Cinna who had once held the sole power at Rome,<note resp="editor" place="inline" anchored="true">In 86 B.C., after the death of his colleague, Valerius Flaccus.</note> and when Sulla became master of affairs,<note resp="editor" place="inline" anchored="true">In 82 B.C. Cf. the <bibl n="Plut. Pomp. 9.1"> <title>Pompey</title>, ix. 1</bibl> f.</note> he could not, either by promises or threats, induce Caesar to put her away, and therefore confiscated her dowry. Now, the reason for Caesar’s hatred of Sulla was Caesar’s relationship to Marius. For Julia, a sister of Caesar’s father, was the wife of Marius the Elder, and the mother of Marius the Younger, who was therefore Caesar’s cousin. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2:1" n="2"><p>Moreover, Caesar was not satisfied to be overlooked at first by Sulla, who was busy with a multitude of proscriptions, but he came before the people as candidate for a priesthood, although he was not yet much more than a stripling. To this candidacy Sulla secretly opposed himself, and took measures to make Caesar fail in it, and when he was deliberating about putting him to death and some said there was no reason for killing a mere boy like him, he declared that they had no sense if they did not see in this boy many Mariuses.<note resp="editor" place="inline" anchored="true"> <foreign xml:lang="lat">Nam Caesari multos Marios inesse</foreign> (<bibl n="Suet. Jul. 1">Suetonius, <title>Divus Julius</title>, i.</bibl>).</note> </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2:1" n="3"><p>When this speech was reported to Caesar, he hid himself for some time, wandering about in the country of the Sabines. Then, as he was changing his abode by night on account of sickness, he fell in with soldiers of Sulla who were searching those regions and arresting the men in hiding there. Caesar gave their leader, Cornelius, two talents to set him free, and at once went down to the sea and sailed to King Nicomedes in Bithynia.<note resp="editor" place="inline" anchored="true">Caesar served under Marcus Thermus, praetor of Asia, in 81-80 B.C., being then nineteen years of age, and by him was sent to Bithynia in order to raise a fleet to assist in the siege of Mitylene.</note> </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2:1" n="4"><p>With him he tarried a short time, and then, on his voyage back,<note resp="editor" place="inline" anchored="true">According to Suetonius (<bibl n="Suet. Jul. 4"> <title>Div. Jul.</title> 4</bibl>), it was on a voyage from Rome to Rhodes (after 77 B.C.) that Caesar was captured by pirates.</note> was captured, near the island Pharmacusa, by pirates, who already at that time controlled the sea with large armaments and countless small vessels.</p></div> </div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg048.perseus-eng2:2" n="1"><p>To begin with, then, when the pirates demanded twenty talents for his ransom, he laughed at them for not knowing who their captive was, and of his own accord agreed to give them fifty. In the next place, after he had sent various followers to various cities to procure the money an

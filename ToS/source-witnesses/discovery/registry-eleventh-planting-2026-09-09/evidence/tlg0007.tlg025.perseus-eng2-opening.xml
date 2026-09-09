@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            
+            <title>Marcus Cato</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg025.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	   
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives02plut2/page/302/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-01" who="Lisa Cerrato">bumped URN</change>
+         <change when="1999-02-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2" type="translation" xml:lang="eng"> 
+      		<head>MARCUS CATO</head> 
+<div type="textpart"  subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2:1" n="1"><p>The family of Marcus Cato, it is said, was of Tusculan origin, though he lived, previous to his career as soldier and statesman, on an inherited estate in the country of the Sabines. His ancestors commonly passed for men of no note whatever, but Cato himself extols his father, Marcus, as a brave man and good soldier. He also says that his grandfather, Cato, often won prizes for soldierly valour, and received from the state treasury, because of his bravery, the price of five horses which had been killed under him in battle. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2:1" n="2"><p>The Romans used to call men who had no family distinction, but were coming into public notice through their own achievements, <q type="soCalled">new men,</q> and such they called Cato. But he himself used to say that as far as office and distinction went, he was indeed new, but having regard to ancestral deeds of valour, he was oldest of the old. His third name was not Cato at first, but Priscus. Afterwards he got the surname of Cato for his great abilities. The Romans call a man who is wise and prudent, <emph>catus.</emph></p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2:1" n="3"><p>As for his outward appearance, he had reddish hair, and keen grey eyes, as the author of the well known epigram ill-naturedly gives us to understand:— <quote rend="blockquote"> <l>Red-haired, snapper and biter, his grey eyes flashing defiance,</l> <l>Porcius, come to the shades, back will be thrust by their Queen.</l> </quote> His bodily habit, since he was addicted from the very first to labour with his own hands, a temperate mode of life, and military duties, was very serviceable, and disposed alike to vigour and health. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2:1" n="4"><p>His discourse,—a second body, as it were, and, for the use of a man who would live neither obscurely nor idly, an instrument with which to perform not only necessary, but also high and noble services,—this he developed and perfected in the villages and towns about Rome, where he served as advocate for all who needed him, and got the reputation of being, first a zealous pleader, and then a capable orator. Thenceforth the weight and dignity of his character revealed themselves more and more to those who had dealings with him; they saw that he was bound to be a man of great affairs, and have a leading place in the state. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2:1" n="5"><p>For he not only gave his services in legal contests without fee of any sort, as it would seem, but did not appear to cherish even the repute won in such contests as his chief ambition. Nay, he was far more desirous of high repute in battles and campaigns against the enemy, and while he was yet a mere stripling, had his breast covered with honourable wounds. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg025.perseus-eng2:1" n="6"><p>He says himself that he made his first campaign when he was seventeen years old, at the time when Hannibal was consuming Italy with the flames of his successes.<note resp="editor" place="inline" anchored="true">217 B.C.</note> In battle, he showed himself effective of hand, sure and steadfast of foot, and of a fierce countenance. With threatening speech and harsh cries he would advance upon the foe, for he rightly thought, and tried to show others, that often-times such action terrifies the e

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            
+            <title>Comparison of Alcibiades and Coriolanus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		   <name>Bridget Almas</name>
+		   <name>Lisa Cerrato</name>
+		   <name>Rashmi Singhal</name>
+		</respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg017.perseus-eng2.xml</idno>
+            <availability>
+           <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+		</publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1916</date>
+                  </imprint>
+                  <biblScope unit="volume">4</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives04plut/page/218/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2017-01-09" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+         <change who="LMC" when="1998-11-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2" type="translation" xml:lang="eng">
+         <head>COMPARISON OF ALCIBIADES AND CORIOLANUS</head>
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:1" n="1">
+   <p>Now that all the deeds of these men are set forth, so far as we consider them worthy of recollection and record, it is plain that their military careers do not incline the balance either way very decidedly. For both alike gave many signal proofs of daring and valour as soldiers, as well as of skill and foresight as commanders; </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:1" n="2">
+   <p>except that some may give the preference to Alcibiades, because he was continually successful and victorious in many struggles by sea, as well as by land, and declare him therefore the more consummate general. It is certainly true of each that, when he was at home and in command, he always conducted his country’s cause with manifest success, and, contrariwise, inflicted even more manifest injury upon it when he went over to the enemy. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:1" n="3">
+<p>As statesmen, if the exceeding wantonness of Alcibiades, and the stain of dissoluteness and vulgarity upon all his efforts to win the favour of the multitude, won the loathing of sober-minded citizens, it was equally true that the utter ungraciousness of Marcius, together with his pride and oligarchical demeanour, won the hatred of the Roman people. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:1" n="4">
+<p>Neither course, then, is to be approved; although the man who seeks to win the people by his favours is less blameworthy than those who heap insults on the multitude, in order to avoid the appearance of trying to win them. For it is a disgrace to flatter the people for the sake of power; but to get power by acts of terror, violence, and oppression, is not only a disgrace, it is also an injustice.</p></div> </div>
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:2" n="1">
+<p>Now, that Marcius is usually thought to have been rather simple in his nature, and straightforward, while Alcibiades was unscrupulous in his public acts, and false, is very clear. And Alcibiades is particularly denounced for the malicious deceit by which he cheated the Lacedaemonian ambassadors, as Thucydides relates,<note resp="editor" place="inline" anchored="true"> <bibl n="Thuc. 5.45">V. 45</bibl>; cf. <bibl n="Plut. Nic. 10">Plutarch’s <title>Nicias</title>, x.</bibl>; <bibl n="Plut. Alc. 14"> <title>Alcibiades</title>, xiv</bibl>.</note> and put an end to the peace. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:2" n="2">
+ <p>But this policy of his, although it did plunge the city again into war, made it nevertheless strong and formidable, by reason of the alliance with Mantinea and Argos which Alcibiades secured for it. And yet Marcius himself also used deceit to stir up war between the Romans and Volscians, when he brought a false charge against the visitors to the games, as Dionysius relates;<note resp="editor" place="inline" anchored="true">See <bibl n="Plut. Cor. 26.2"> <title>Coriolanus</title>, xxvi. 2</bibl>; <bibl n="D.H. 8.2">Dionysius Hal., <title>Antiq. Rom.</title> viii. 2.</bibl> </note> and the motive for his action makes it the worse of the two. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg017.perseus-eng2:2" n="3">
+<p>For he was not influenced by ambition, o

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Cato the Younger</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg050.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1919</date>
+                  </imprint>
+                  <biblScope unit="volume">8</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives08plut/page/144/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+         	<language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-26" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2009" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2"> <div n="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2" type="translation" xml:lang="eng"> 
+      	<head>CATO THE YOUNGER</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2:1" n="1"><p>Cato’s family got its first lustre and fame from his great-grandfather Cato (a man whose virtue gained him the greatest reputation and influence among the Romans, as has been written in his Life), but the death of both parents left him an orphan, together with his brother Caepio and his sister Porcia. Cato had also a half-sister, Servilia, the daughter of his mother.<note resp="editor" place="inline" anchored="true">By her second husband, Q. Servilius Caepio, who was also the father of Cato’s half-brother Caepio.</note> All these children were brought up in the home of Livius Drusus, their uncle on the mother’s side, who at that time was a leader in the conduct of public affairs; for he was a most powerful speaker, in general a man of the greatest discretion, and yielded to no Roman in dignity of purpose. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2:1" n="2"><p>We are told that from his very childhood Cato displayed, in speech, in countenance, and in his childish sports, a nature that was inflexible, imperturbable, and altogether steadfast. He set out to accomplish his purposes with a vigour beyond his years, and while he was harsh and repellent to those who would flatter him, he was still more masterful towards those who tried to frighten him. It was altogether difficult to make him laugh, although once in a while he relaxed his features so far as to smile; and he was not quickly nor easily moved to anger, though once angered he was inexorable. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2:1" n="3"><p>When, accordingly, he came to study, he was sluggish of comprehension and slow, but what he comprehended he held fast in his memory. And this is generally the way of nature: those who are well endowed are more apt to recall things to mind, but those retain things in their memory who acquire them with toil and trouble;<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Aristot. Mem. 1.1.2.24">Aristotle, <title>De Mem.</title> i. 1, 2, 24</bibl>.</note> for everything they learn becomes branded, as it were, upon their minds. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2:1" n="4"><p>It would appear, too, that Cato’s reluctance to be persuaded made his learning anything more laborious. For, to learn is simply to allow something to be done to you, and to be quickly persuaded is natural for those who are less able to offer resistance. Therefore young men are more easily persuaded than old men, and sick folk, than those who are well, and, in a word, where the power to raise objections is weakest, the act of submission is easiest. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2:1" n="5"><p>However, we are told that Cato was obedient to his tutor, and did everything that was enjoined upon him, although in each case he demanded the reason and wanted to know the why and wherefore. And, indeed, his tutor was a man of culture, and more ready to reason with a pupil than to thrash him. His name was Sarpedon. </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg050.perseus-eng2:2" n="1"><p>While Cato was still a boy, the Italian allies of the Romans were making efforts to obtain Roman citizenship. One of their number, Pompaedius Silo,<note resp="editor" place="inline" anchored="true">Erroneously called Publius Silo in the <b

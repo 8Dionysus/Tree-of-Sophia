@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Publicola</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+			<name>Bridget Almas</name>
+			<name>Lisa Cerrato</name>
+			<name>Rashmi Singhal</name>
+		</respStmt>
+         <funder n="org:Tufts">Tufts University</funder></titleStmt>
+         
+      	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg008.perseus-eng2.xml</idno>
+      		<availability>
+      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      		</availability>
+		</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1914</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/plutarchslives01plut2/page/502/mode/2up">Internet Archive</ref>       
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change who="Lisa Cerrato" when="2016-12-14">EpiDoc and CTS file conversion</change>
+      	<change who="LMC" when="1998-10-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2" type="translation" xml:lang="eng"> 
+      		<head>PUBLICOLA</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2:1" n="1">
+<p>Such was Solon, and with him we compare Publicola, to whom the Roman people gave this surname later as a mark of honour. Before that he was called Publius Valerius, and was reputed to be a descendant of that ancient Valerius who was most instrumental in making the Romans and the Sabines one people instead of enemies; for it was he more than anyone else that persuaded their kings to come together, and settled their differences. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2:1" n="2">
+<p>Such being his lineage, Valerius, as we are told, while Rome was still a kingdom, was conspicuous for his eloquence and wealth, always employing the one with integrity and boldness in the service of justice, while with the other he gave liberal and kindly aid to the poor and needy. It was therefore clear that, should Rome become a democracy, he would at once be one of its foremost men. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2:1" n="3">
+<p>Now Tarquinius Superbus had not acquired his power honourably, but by the violation of divine and human laws; nor did he exercise it in kingly fashion, but after the manner of an insolent and haughty tyrant. The people therefore hated him, resented his oppressions, and found occasion for revolt in the fate of Lucretia, who made away with herself after violence had been done to her. Lucius Brutus, engaging in the revolution, came to Valerius first of all, and with his most zealous assistance drove out the kings.<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Liv. 1.58">Livy, i. 58 f.</bibl>; <bibl n="Liv. 2.2.11">ii. 2, 11.</bibl> </note> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2:1" n="4">
+<p>Then, as long as the people was likely to elect one man as their commander in place of the king, Valerius acquiesced, thinking it more fitting that Brutus should have the office, because he had led the way to freedom. But the very name of monarchy was odious to the people, who thought that it would be less vexatious to submit to an authority which was divided, and therefore proposed and demanded that two men should be elected to the highest office. Then Valerius, who hoped that he would be chosen next to Brutus, and would be consul with him, was disappointed. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2:1" n="5">
+<p>For against the wishes of Brutus, Tarquinius Collatinus, the husband of Lucretia, was elected as his colleague,<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Liv. 1.60.4">Livy, i. 60, 4.</bibl> </note> instead of Valerius. He was a man of no greater excellence than Valerius, but the influential citizens were afraid of the kings, who were still putting forth many efforts outside, and trying to appease resentment inside the city, and they therefore desired to have as their commander the most pronounced enemy of the royal family, believing that he would make no concessions to them.</p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg008.perseus-eng2:2" n="1">
+<p>Valerius, accordingly, vexed that his desire to do his utmost for his country should be doubted, merely because he had received no private injury at the hands of the tyrants, withdrew from the senate, gave up his practice as an advocate, and abandoned entirely his public activities. This caused anxious rem

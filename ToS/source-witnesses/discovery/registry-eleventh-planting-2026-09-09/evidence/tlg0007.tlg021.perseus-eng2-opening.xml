@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+           <title>Pelopidas</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		<name>Bridget Almas</name>
+		<name>Lisa Cerrato</name>
+		<name>Rashmi Singhal</name>
+		</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg021.perseus-eng2.xml</idno>
+      		<availability>
+      			<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+		</publicationStmt><sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1917</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+            	<ref target="https://archive.org/details/plutarchslives05plut/page/340/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2017-01-12" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+      	<change when="1999-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2">
+      	
+<div n="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2" type="translation" xml:lang="eng"> 
+      		<head>PELOPIDAS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2:1" n="1">
+<p> Cato the Elder, when certain persons praised a man who was inconsiderately rash and daring in war, told them there was a difference between a man’s setting a high value on valour and his setting a low value on life; and his remark was just. At any rate, there was a soldier of Antigonus who was venturesome, but had miserable health and an impaired body. When the king asked him the reason for his pallor, the man admitted that it was a secret disease, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2:1" n="2">
+<p>whereupon the king took compassion on him and ordered his physicians, if there was any help for him, to employ their utmost skill and care. Thus the man was cured; but then the good fellow ceased to court danger and was no longer a furious fighter, so that even Antigonus rebuked him and expressed his wonder at the change. The man, however, made no secret of the reason, but said: <q type="spoken">O King, it is thou who hast made me less daring, by freeing me from those ills which made me set little value on life.</q> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2:1" n="3">
+<p>On these grounds, too, as it would seem, a man of Sybaris said it was no great thing for the Spartans to seek death in the wars in order to escape so many hardships and such a wretched life as theirs. But to the Sybarites, who were dissolved in effeminate luxury, men whom ambition and an eager quest of honour led to have no fear of death naturally seemed to hate life; </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2:1" n="4">
+<p>whereas the virtues of the Lacedaemonians gave them happiness alike in living or dying, as the following elegy testifies: These, it says, died, <quote rend="blockquote"> <l>not deeming either life or death honourable in themselves, </l> <l>But only the accomplishment of them both with honour.</l> </quote> For neither is a man to be blamed for shunning death, if he does not cling to life disgracefully, nor to be praised for boldly meeting death, if he does this with contempt of life. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2:1" n="5">
+<p>For this reason Homer always brings his boldest and most valiant heroes into battle well armed and equipped; and the Greek lawgivers punish him who casts away his shield, not him who throws down his sword or spear, thus teaching that his own defence from harm, rather than the infliction of harm upon the enemy, should be every man’s first care, and particularly if he governs a city or commands an army. </p> </div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg021.perseus-eng2:2" n="1">
+<p>For if, as Iphicrates analyzed the matter, the light-armed troops are like the hands, the cavalry like the feet, the line of men-at-arms itself like chest and breastplate, and the general like the head, then he, in taking undue risks and being over bold, would seem to neglect not himself, but all, inasmuch as their safety depends on him, and their destruction too. Therefore Callicratidas, although otherwise he was a great man, did not make a good answer to the seer who begged him to be careful, since the sacrificial omens foretold his death; <q type="spoken">Sparta,</q> said he, <q type="spoken">does not depend upon one man.</q> </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLi

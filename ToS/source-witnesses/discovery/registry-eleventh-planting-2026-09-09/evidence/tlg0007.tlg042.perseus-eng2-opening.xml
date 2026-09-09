@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Sertorius</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	   <name>Bridget Almas</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg042.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1919</date>
+                  </imprint>
+                  <biblScope unit="volume">8</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives08plut/page/2/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-23" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2000-08-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2" type="translation" xml:lang="eng">
+      		<head>SERTORIUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2:1" n="1"><p>It is perhaps not to be wondered at, since fortune is ever changing her course and time is infinite, that the same incidents should occur many times, spontaneously. For, if the multitude of elements is unlimited, fortune has in the abundance of her material an ample provider of coincidences; and if, on the other hand, there is a limited number of elements from which events are interwoven, the same things must happen many times, being brought to pass by the same agencies.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2:1" n="2"><p>Now, there are some who delight to collect, from reading and hearsay, such accidental happenings as look like works of calculation and forethought. They note, for example, that there were two celebrated persons called Attis, one a Syrian,<note resp="editor" place="inline" anchored="true">The story of a Lydian Attis who was killed by a wild boar is told by <bibl n="Paus. 7.17.5">Pausanias, vii. 17, 5</bibl>; that of the Arcadian Attis is unknown. </note> the other an Arcadian, and that both were killed by a wild boar; that there were two Actaeons, one of whom was torn in pieces by his dogs, the other by his lovers<note resp="editor" place="inline" anchored="true">The Actaeon, son of Aristaeus, who saw Artemis bathing, was changed by the goddess into a stag and devoured by his own dogs. An Actaeon, son of Melissus, was beloved by Archias of Corinth, who sought to take him away by violence. The friends of Actaeon resisted, and in the struggle Actaeon was torn to death (<bibl n="Plut. Mor. 772">Plutarch, <title>Morals</title>, p. 772</bibl>).</note>; that there were two Scipios, by one of whom the Carthaginians were conquered in an earlier war, and by the other, in a later war, were destroyed root and branch;</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2:1" n="3"><p>that Ilium was taken by Heracles on account of the horses of Laomedon, by Agamemnon by means of what is called the wooden horse, and a third time by Charidemus, because a horse fell in the gateway and prevented the Ilians from closing the gate quickly enough; that there are two cities which have the same name as the most fragrant plants, Ios and Smyrna,<note resp="editor" place="inline" anchored="true"> <emph>Violet</emph> and <emph>Myrrh</emph>.</note> in one of which the poet Homer is said to have been born, and in the other to have died.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2:1" n="4"><p>I will therefore make this addition to their collection. The most warlike of generals, and those who achieved most by a mixture of craft and ability, have been one-eyed men,—Philip, Antigonus, Hannibal, and the subject of this Life, Sertorius; of whom one might say that he was more continent with women than Philip, more faithful to his friends than Antigonus, more merciful towards his enemies than Hannibal, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2:1" n="5"><p>and inferior to none of them in understanding, though in fortune to them all. Fortune he ever found harder to deal with than his open foes, and yet he made himself equal to the experience of Metellus, the daring of Pompey, the fortune of Sulla, and the power of Rome, though he was an exile and a stranger in command of Barbarians.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg042.perseus-eng2:1" n="6"><p><milestone unit="para"/>With him we may best compare, among the Greeks, Eumenes of Cardia. 

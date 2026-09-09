@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Crassus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg039.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1916</date>
+                  </imprint>
+                  <biblScope unit="volume">3</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/314/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-14" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+      	<change when="1998-10-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2"> 
+      	<div n="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2" type="translation" xml:lang="eng"> 
+      	<head>CRASSUS</head> 
+      	
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2:1" n="1"><p>Marcus Crassus was the son of a man who had been censor and had enjoyed a triumph; but he was reared in a small house with two brothers. His brothers were married while their parents were still alive, and all shared the same table, which seems to have been the chief reason why Crassus was temperate and moderate in his manner of life. When one of his brothers died, Crassus took the widow to wife, and had his children by her, and in these relations also he lived as well-ordered a life as any Roman.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2:1" n="2"><p>And yet when he was further on in years, he was accused of criminal intimacy with Licinia, one of the vestal virgins, and Licinia was formally prosecuted by a certain Plotius. Now Licinia was the owner of a pleasant villa in the suburbs which Crassus wished to get at a low price, and it was for this reason that he was forever hovering about the woman and paying his court to her, until he fell under the abominable suspicion. And in a way it was his avarice that absolved him from the charge of corrupting the vestal, and he was acquitted by the judges. But he did not let Licinia go until he had acquired her property.</p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2:2" n="1"><p>The Romans, it is true, say that the many virtues of Crassus were obscured by his sole vice of avarice; and it is likely that the one vice which became stronger than all the others in him, weakened the rest. The chief proofs of his avarice are found in the way he got his property and in the amount of it.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2:2" n="2"><p>For at the outset he was possessed of not more than three hundred talents;<note resp="editor" place="inline" anchored="true">Plutarch gives Greek values. The talent was a sum of money nearly equivalent to £240, or $1200, with many times the purchasing power of money to-day.</note> then during his consulship he sacrificed the tenth of his goods to Hercules, feasted the people, gave every Roman out of his own means enough to live on for three months, and still, when he made a private inventory of his property before his Parthian expedition, he found that it had a value of seventy-one hundred talents.</p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2:2" n="3"><p>The greatest part of this, if one must tell the scandalous truth, he got together out of fire and war, making the public calamities his greatest source of revenue.   For when Sulla took the city and sold the property of those whom he had put to death, considering it and calling it spoil of war, and wishing to defile with his crime as many and as influential men as he could, Crassus was never tired of accepting or of buying it.<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Plut. Crass. 6.6">chapter vi. 6.</bibl> </note></p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg039.perseus-eng2:2" n="4"><p>And besides this, observing how natural and familiar at Rome were such fatalities as the conflagration and collapse of buildings, owing to their being too massive and close together, he proceeded to buy slaves who were architects and builders. Then, when he had over five hundred of these, he would buy houses that were afire, and houses which adjoined those that were afire, and these th

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+<titleStmt>
+  <title>Solon</title>
+   <author>Plutarch</author>
+    <editor role="translator">Bernadotte Perrin</editor>
+	<sponsor>Perseus Project, Tufts University</sponsor>
+	<principal>Gregory Crane</principal>
+	<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		<name>Lisa Cerrato</name>
+		<name>William Merrill</name>
+		<name>Elli Mylonas</name>
+		<name>David Smith</name>
+	</respStmt>
+	<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+	<respStmt>
+		<persName>Allison Dempsey</persName>
+		<orgName>Tufts University</orgName>
+		<resp>Digital editing</resp>
+	</respStmt>
+	
+   </titleStmt>
+  
+      	<publicationStmt>
+     <publisher>Trustees of Tufts University</publisher>
+     <pubPlace>Medford, MA</pubPlace>
+     <authority>Perseus Project</authority>
+ 	<date type="release" when="1992">Perseus 1.0</date>
+ 	<idno type="filename">tlg0007.tlg007.perseus-eng2.xml</idno>
+ 	<availability>
+ 		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+ 	</availability>
+ </publicationStmt><sourceDesc>
+   <biblStruct>
+      
+      <monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<editor role="translator">Bernadotte Perrin</editor>
+<imprint>
+   <pubPlace>Cambridge, MA</pubPlace>
+   <publisher>Harvard University Press</publisher>
+   <pubPlace>London</pubPlace>
+   <publisher>William Heinemann Ltd.</publisher>
+   <date>1914</date>
+</imprint>
+<biblScope unit="volume">1</biblScope>
+      </monogr>
+      <series>
+<title>Loeb Classical Library</title>
+      </series>
+   	<ref target="https://archive.org/details/plutarchslives01plut2/page/404/mode/2up">Internet Archive</ref>
+   </biblStruct>
+</sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+<editorialDecl>
+	<quotation marks="none"/>
+   <correction method="silent">
+      <p>optical character recognition</p>
+   </correction>
+</editorialDecl>
+
+	<refsDecl n="CTS">
+		<cRefPattern n="section"
+			matchPattern="(\w+).(\w+)"
+			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+			<p>This pointer pattern extracts chapter and section.</p>
+		</cRefPattern>
+		<cRefPattern n="chapter"
+			matchPattern="(\w+)"
+			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+			<p>This pointer pattern extracts chapter.</p>
+		</cRefPattern>
+	</refsDecl><refsDecl xml:id="CTS">
+  <citeStructure match="/TEI/text/body" use="@xml:base">
+    <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+      <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+    </citeStructure>
+  </citeStructure>
+</refsDecl>
+</encodingDesc>
+      <profileDesc>
+<langUsage>
+   <language ident="eng">English</language>
+   <language ident="grc">Greek</language>
+</langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2016-12-13" who="Lisa Cerrato">review of EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="2015" who="Stella Dee"> converted to CTS EpiDoc</change>
+      	<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+      	<change when="2013-06-29" who="gcrane">chapters are now divs</change> 
+      	<change when="2010-11-30" who="balmas01">getting rid of angle brackets in commit comments</change>  
+      	<change when="2010-11-19" who="balmas01">Normalizing quote, q, and lb</change>
+      	<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper. also replaced xml snippets in other plutarch files with their respective entities.</change> 
+      	<change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status. split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change> 
+		<change when="2009-08-06" who="rsingh04">fixed section numbers</change>
+      	<change when="2009-06-24" who="lcerrato">fixed bad bibls</change>
+      	<change when="2009-06-19" who="lcerrato">fixed bad bibls</change>
+      	<change when="2009-06-11" who="student AD">fixing citations</change>
+      	<change when="2009-05-20" who="lcerrato">fixing bad bibls</change> 
+      	<change when="2009-04-29" who="lcerrato">fixed bad bibls</change> 
+      	<change when="2009-01-23" who="rsingh04">small fixes</change> 
+      	<change when="2009-01-23" who="rsingh04">now validates and entities fixed</change>     	
+      	<change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change>
+      	<change when="2001-09-01" who="LMC">removed from group file, retagged and parsed</change>
+      	<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc.</change>
+      	<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+      	<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change>
+      	<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change>
+      	<change when="1997-09-12" who="David Smith">Made conformant with TEI P3.</change>
+      	<change when="1992-10-22" who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change>
+      	<change when="1992-08-01" who="DAS">Removed highlighted text, cleaned up notes and citations, and changed chapters to
+      		div's.</change>
+      	<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change> 
+      	<change when="1990-08-01" who="EM">Proofread by Ted Armstrong.</change> 
+ </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2" type="translation" xml:lang="eng">
+<head>SOLON</head>
+
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2:1" n="1"> 
+<p>Didymus the grammarian, in his reply to Asclepiades on Solon’s tables of law, mentions a remark of one Philocles, in which it is stated that Solon’s father was Euphorion, contrary to the opinion of all others who have written about Solon. For they all unite in saying that he was a son of Execestides, a man of moderate wealth and influence in the city, but a member of its foremost family, being descended from Codrus. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2:1" n="2">
+<p> Solon’s mother, according to Heracleides Ponticus, was a cousin of the mother of Peisistratus. And the two men were at first great friends, largely because of their kinship, and largely because of the youthful beauty of Peisistratus, with whom, as some say, Solon was passionately in love. And this may be the reason why, in later years, when they were at variance about matters of state, their enmity did not bring with it any harsh or savage feelings, but their former amenities lingered in their spirits, and preserved there, <quote rend="blockquote"> <l>smouldering with a lingering flame of Zeus-sent fire,</l> </quote> <note resp="editor" place="inline" anchored="true"> <bibl n="Eur. Ba. 8">Euripides, <title>Bacchae</title> 8.</bibl> </note> the grateful memory of their love. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2:1" n="3">
+<p> And that Solon was not proof against beauty in a youth, and made not so bold with Love as <q type="emph">to confront him like a boxer, hand to hand,</q> may be inferred from his poems. He also wrote a law forbidding a slave to practise gymnastics or have a boy lover, thus putting the matter in the category of honorable and dignified practices, and in a way inciting the worthy to that which he forbade the unworthy. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2:1" n="4">
+<p> And it is said that Peisistratus also had a boy lover, Charmus, and that he dedicated the statue of Love in the Academy, where the runners in the sacred torch race light their torches. </p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2:2" n="1">
+<p> </p> 
+<p>Solon, then, after his father had impaired his estate in sundry benevolent charities, as Hermippus tells us, might have found friends enough who were willing to aid him. But he was ashamed to take from others, since he belonged to a family which had always helped others, and therefore, while still a young man, embarked in commerce. And yet some say that he travelled to get experience and learning rather than to make money. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg007.perseus-eng2:2" n="2">
+<p> For he was admittedly a lover of wisdom, since even when he was well on in years he would say that he <q type="spoken">grew old ever learning many things</q>; and he was not an admirer of wealth, but actually says that two men are alike wealthy of whom one <quote rend="blockquote"> <l>much silver hath,</l> <l>And gold, and wide domains of wheat-bearing soil,</l> <l>Horses and mules; while to the other only enough belongs</l> <l>To give him comfort of food, and clothes, and shoes,</l> <l>Enjoyment of child and blooming wife, when these too come,</l> <l>And only years commensurate therewith are his.</l> </quote> <note place="inline" anchored="true"> <bibl>Solon, Frag. 24. 1-6 (Bergk)</bibl> </note> </p></di

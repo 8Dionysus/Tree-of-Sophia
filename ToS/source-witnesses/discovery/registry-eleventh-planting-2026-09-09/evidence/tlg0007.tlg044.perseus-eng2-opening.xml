@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            
+            <title>Agesilaus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg044.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1917</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives05plut/page/2/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition </p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-21" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+         <change when="1999-11-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2" type="translation" xml:lang="eng">
+         <head>AGESILAÜS</head>
+         
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2:1" n="1"><p>Archidamus, the son of Zeuxidamas, after an illustrious reign over the Lacedaemonians, left behind him a son, Agis, by Lampido, a woman of honourable family; and a much younger son, Agesilaüs, by Eupolia, the daughter of Melesippidas. The kingdom belonged to Agis by law, and it was thought that Agesilaüs would pass his life in a private station. He was therefore given the so-called <q type="foreign">agoge,</q> or course of public training in Sparta, which, although austere in its mode of life and full of hardships, educated the youth to obedience.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2:1" n="2"><p>For this reason it was, we are told, that Simonides gave Sparta the epithet of <q type="soCalled">man-subduing,</q> since more than in any other state her customs made her citizens obedient to the laws and tractable, like horses that are broken in while yet they are colts. From this compulsory training the law exempts the heirs-apparent to the throne.</p></div>  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2:1" n="3"><p>But Agesilaüs was singular in this also, that he had been educated to obey before he came to command. For this reason he was much more in harmony with his subjects than any of the kings; to the commanding and kingly traits which were his by nature there had been added by his public training those of popularity and kindliness. </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2:2" n="1"><p>While he was among the so-called <q type="soCalled">bands</q> of boys who were reared together, he had as his lover Lysander<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Plut. Lyc. 17.1"><title>Lycurgus</title>, xvii. 1</bibl>; <bibl n="Plut. Lys. 22.3"><title>Lysander</title>, xxii. 3</bibl>.</note>, who was smitten particularly with his native decorum. For although he was contentious and high-spirited beyond his fellows, wishing to be first in all things, and having a vehemence and fury which none could contend with or overwhelm, on the other hand he had such a readiness to obey and such gentleness, that he did whatever was enjoined upon him, not at all from a sense of fear, but always from a sense of honour, and was more distressed by censure than he was oppressed by hardships.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2:2" n="2"><p>As for his deformity, the beauty of his person in its youthful prime covered this from sight, while the ease and gaiety with which he bore such a misfortune, being first to jest and joke about himself, went far towards rectifying it. Indeed, his lameness brought his ambition into clearer light, since it led him to decline no hardship and no enterprise whatever. We have no likeness of him (for he himself would not consent to one, and even when he lay dying forbade the making of <q type="spoken">either statue or picture</q> of his person), but he is said to have been a little man of unimposing presence.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg044.perseus-eng2:2" n="3"><p>And yet his gaiety and good spirits in every crisis, and his raillery, which was never offensive or harsh either in word or look, made him more lovable, down to his old age, than the young and beautiful. But according to Theophrastus, Archidamus was fined by the ephors for marrying a little woman, 

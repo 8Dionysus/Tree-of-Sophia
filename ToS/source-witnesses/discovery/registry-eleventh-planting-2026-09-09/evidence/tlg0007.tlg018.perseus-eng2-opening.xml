@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Timoleon</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+		<principal>Gregory Crane</principal>
+		<respStmt>
+			<resp>Prepared under the supervision of</resp>
+			<name>Bridget Almas</name>
+			<name>Lisa Cerrato</name>
+			<name>Rashmi Singhal</name>
+		</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         <publicationStmt>
+		<publisher>Trustees of Tufts University</publisher>
+		<pubPlace>Medford, MA</pubPlace>
+		<authority>Perseus Project</authority>
+         	<date type="release" when="2009-03-16">Perseus 4.0</date>
+         	<idno type="filename">tlg0007.tlg018.perseus-eng2.xml</idno>
+         	<availability>
+         		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+         	</availability>
+		</publicationStmt><sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+               	<editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1918</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+            	<series>
+            		<title>Loeb Classical Library</title>
+            	</series>
+            	<ref target="https://archive.org/details/plutarchslives06plut/page/260/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2017-01-09" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1999-07-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2" type="translation" xml:lang="eng"> <head>TIMOLEON</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2" n="0"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="1"><p>I began the writing of my <title>Lives</title> for the sake of others, but I find that I am continuing the work and delighting in it now for my own sake also, using history as a mirror and endeavouring in a manner to fashion and adorn my life in conformity with the virtues therein depicted.</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="2"><p>For the result is like nothing else than daily living and associating together, when I receive and welcome each subject of my history in turn as my guest, so to speak, and observe carefully <quote>how large he was and of what mien,</quote><note resp="editor" place="inline" anchored="true">As Priam admired Achilles, <bibl n="Hom. Il. 24.630"> <title>Iliad</title>, xxiv. 630</bibl>.</note> and select from his career what is most important and most beautiful to know. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="3"><p> <quote rend="blockquote"> <l>And oh! what greater joy than this canst thou obtain,</l> </quote><note resp="editor" place="inline" anchored="true">An iambic trimeter from the <title>Tympanistae</title> of Sophocles (Nauck, <title>Trag. Graec. Frag.2</title>, p. 270).</note> and more efficacious for moral improvement?</p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="4"><p>Democritus says we ought to pray that we may be visited by phantoms which are propitious, and that from out the circumambient air such only may encounter us as are agreeable to our natures and good, rather than those which are perverse and bad, thereby intruding into philosophy a doctrine which is not true, and which leads astray into boundless superstitions. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="5"><p>But in my own case, the study of history and the familiarity with it which my writing produces, enables me, since I always cherish in my soul the records of the noblest and most estimable characters, to repel and put far from me whatever base, malicious, or ignoble suggestion my enforced associations may intrude upon me, calmly and dispassionately turning my thoughts away from them to the fairest of my examples. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="6"><p>Among these were Timoleon the Corinthian and Aemilius Paulus, whose Lives I have now undertaken to lay before my readers; </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="7"><p>the men were alike not only in the good principles which they adopted, but also in the good fortune which they enjoyed in their conduct of affairs, </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:0" n="8"><p>and they will make it hard for my readers to decide whether the greatest of their successful achievements were due to their good fortune or their wisdom.<note resp="editor" place="inline" anchored="true">In the MSS. this Introduction stands as the first chapter of the <title>Aemilius Paulus</title>.</note> </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.perseus-eng2:1" n="1"><p>The state of affairs in Syracuse, before the expedition of Timoleon into Sicily, was as follows. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg018.pe

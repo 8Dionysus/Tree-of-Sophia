@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+<titleStmt>
+   <title>Lysander</title>
+   <author>Plutarch</author>
+	<editor role="translator">Bernadotte Perrin</editor>
+	<sponsor>Perseus Project, Tufts University</sponsor>
+	<principal>Gregory Crane</principal>
+	<respStmt>
+		<resp>Prepared under the supervision of</resp>
+		<name>Lisa Cerrato</name>
+		<name>William Merrill</name>
+		<name>Elli Mylonas</name>
+		<name>David Smith</name>
+	</respStmt>
+	<funder n="org:AnnCPB">The Annenberg CPB/Project</funder>
+   <respStmt>
+      <persName>Allison Dempsey</persName>
+      <orgName>Tufts University</orgName>
+      <resp>Digital editing</resp>
+   </respStmt>
+</titleStmt>
+
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="1992">Perseus 1.0</date>
+      	   <idno type="filename">tlg0007.tlg032.perseus-eng2.xml</idno>
+      	   <availability>
+      	 <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+   <biblStruct>
+      
+      <monogr>
+<author>Plutarch</author>
+<title>Plutarch's Lives</title>
+<editor role="translator">Bernadotte Perrin</editor>
+<imprint>
+   <pubPlace>Cambridge, MA</pubPlace>
+   <publisher>Harvard University Press</publisher>
+   <pubPlace>London</pubPlace>
+   <publisher>William Heinemann Ltd.</publisher>
+   <date>1916</date>
+</imprint>
+<biblScope unit="volume">4</biblScope>
+      </monogr>
+      <series>
+         <title>Loeb Classical Library</title>
+      </series>
+      <ref target="https://archive.org/details/plutarchslives04plut/page/234/mode/2up">Internet Archive</ref>
+   </biblStruct>
+</sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+<editorialDecl>
+   <correction status="high" method="silent">
+      <p>optical character recognition</p>
+   </correction>
+</editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+<langUsage>
+   <language ident="eng">English</language>
+   <language ident="grc">Greek</language>
+</langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change> 
+      	<change when="2018-02-16" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+<change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change> <change when="2013-06-29" who="gcrane">chapters are now divs</change> 
+      	<change when="2010-11-30" who="balmas01">getting rid of angle brackets in commit comments</change> 
+      	<change when="2010-11-19" who="balmas01">Normalizing quote q and lb</change> 
+      	<change when="2009-12-15" who="rsingh04">converted demetrius, antony and comparison from sgml to xml and added to hopper. also replaced xml snippets in other plutarch files with their respective entities.</change> 
+      	<change when="2009-12-07" who="rsingh04">moved more xml files around based on copyright status. split up Plutarch/plut_gk.xml into separate files and gave them their own doc ids.</change> 
+      	<change when="2009-06-24" who="lcerrato">fixed bad bibls</change> 
+      	<change when="2009-06-11" who="student">fixing citations - ad</change> 
+      	<change when="2009-05-06" who="lcerrato">fixed bad bibls</change> 
+      	<change when="2009-01-23" who="rsingh04">small fixes</change> 
+      	<change when="2009-01-22" who="rsingh04">now validates and entities fixed</change> 
+      	<change when="2001-09-28" who="lcerrato">cleaned up quotes, bibls and notes</change> 
+      	<change when="2001-09-27" who="lcerrato">adding new tags for DE, ISBN, etc.</change>
+      	<change when="2001-09-01" who="LMC">removed from group file, retagged and parsed</change>
+      	<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+      	<change when="1999-07-28" who="dasmith">Added text to REFSDECL.</change> 
+      	<change when="1999-07-09" who="textgod">Converted to TEI-conformant SGML.</change> 
+      	<change when="1997-09-12"  who="David Smith">Made conformant with TEI P3.</change> 
+	<change when="1992-10-22"  who="EM">Glued all Plutarch files together, put in HEAD tags to title them.</change> 
+	<change when="1992-08-01"  who="DAS">Removed highlighted text, cleaned up notes and citations, and changed chapters to DIV2's.</change> 
+	<change when="1991-08-01" who="EM">Revise DTDs and recheck texts.</change> 
+      	<change when="1990-08-01" who="EM">Proofread by Ted Armstrong.</change>
+	</revisionDesc> 	
+      	
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2" type="translation" xml:lang="eng"> 
+      		<head>LYSANDER</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2:1" n="1"><p>The treasury of the Acanthians at Delphi bears this inscription: <q type="written">Brasidas and the Acanthians, with spoil from the Athenians.</q><note resp="editor" place="inline" anchored="true">In B.C. 424, Brasidas won Acanthus, a town on the Chalcidic peninsula, away from its alliance with Athens (<bibl n="Thuc. 4.84">Thuc. 4.84-88</bibl>).</note> For this reason many think that the marble figure standing within the edifice, by the door, is a statue of Brasidas. But it really represents Lysander, with his hair very long, after the ancient custom, and growing a generous beard. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2:1" n="2"><p>For it is not true, as some state, that because the Argives, after their great defeat, shaved their heads for sorrow, the Spartans, in contrary fashion, let their hair grow long in exultation over their victory;<note resp="editor" place="inline" anchored="true"> <bibl n="Hdt. 1.82">Hdt. 1.82</bibl> </note> nor was it because the Bacchiadae,<note resp="editor" place="inline" anchored="true">An oligarchical family, deposed from rule in Corinth by Cypselus, about 650 B.C. (<bibl n="Hdt. 5.92">Hdt. 5.92</bibl>).</note> when they fled from Corinth to Lacedaemon, looked mean and unsightly from having shaved their heads, that the Spartans, on their part, became eager to wear their hair long; but this custom also goes back to Lycurgus. And he is reported to have said that a fine head of hair makes the handsome more comely to look upon, and the ugly more terrible.<note resp="editor" place="inline" anchored="true">Cf. <bibl n="Plut. Lyc. 22.1">Plut. Lyc. 22.1</bibl>.</note>  </p></div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2:2" n="1"><p>The father of Lysander, Aristocleitus, is said to have been of the lineage of the Heracleidae, though not of the royal family. But Lysander was reared in poverty, and showed himself as much as any man conformable to the customs of his people; of a manly spirit, too, and superior to every pleasure, excepting only that which their good deeds bring to those who are successful and honored. To this pleasure it is no disgrace for the youth in Sparta to succumb. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2:2" n="2"><p>Indeed, from the very first they wish their boys to be sensitive toward public opinion, distressed by censure, and exalted by praise; and he who is insensible and stolid in these matters, is looked down upon as without ambition for excellence, and a cumberer of the ground. Ambition, then, and the spirit of emulation, were firmly implanted in him by his Laconian training and and no great fault should be found with his natural disposition on this account. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg032.perseus-eng2:2" n="3"><p>But he seems to have been naturally subservient to men of power and influence, beyond what was usual in a Spartan, and content to endure an arrogant authority for the sake of gaining his ends, a trait which some hold to be no small part of political ability. And Aristotle, when he sets forth that great natures, like those of Socrates and Plato and Heracles, have a tendency to melancholy, writes also<note resp="editor" place="inline" anchored="true"> <bibl n="Aristot. Pr. 30.1">Aristot. Prob. 30.1</bibl> </note> that Lysander, not immediately, but when well on in years, was a prey to melancholy.<

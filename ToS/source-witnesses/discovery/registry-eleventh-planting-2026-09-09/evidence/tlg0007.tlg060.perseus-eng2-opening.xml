@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Dion</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Bridget Almas</name>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         	</respStmt>
+         	<funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date> 
+      		<idno type="filename">tlg0007.tlg060.perseus-eng2.xml</idno>
+      		<availability>
+      			<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>          
+               	<editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1918</date>
+                  </imprint>
+                  <biblScope unit="volume">6</biblScope>
+               </monogr>
+            	<series>
+            		<title>Loeb Classical Library</title>
+            	</series>
+            	<ref target="https://archive.org/details/plutarchslives06plut/page/n15/mode/2up">Internet Archive</ref> 
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-27" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+      	<change when="1999-04-01" who="Lisa Cerrato">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2" type="translation" xml:lang="eng">
+      		<head>DION</head>
+	<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2" n="1">
+		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:1" n="1"><p>If it be true, then, O Sossius Senecio,<note resp="editor" place="inline" anchored="true">One of the many friends whom Plutarch made during his residence at Rome. See on <bibl n="Plut. Thes. 1.1"> <title>Theseus</title>, i. 1.</bibl> </note> as Simonides says,<note resp="editor" place="inline" anchored="true">Fragment 50; <title>Bergk, Poet. Lyr. Graeci</title>, iii. 4 p. 412.</note> that Ilium <quote>is not wroth with the Corinthians</quote> for coming up against her with the Achaeans, because the Trojans also had Glaucus, who sprang from Corinth, as a zealous ally, so it is likely that neither Romans nor Greeks will quarrel with the Academy, since they fare alike in this treatise containing the lives of Dion and Brutus, </p></div>
+		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:1" n="2"><p>for Dion was an immediate disciple of Plato, while Brutus was nourished on the doctrines of Plato. Both therefore set out from one training-school, as it were, to engage in the greatest struggles. </p></div>
+		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:1" n="3"><p>And we need not wonder that, in the performance of actions that were often kindred and alike, they bore witness to the doctrine of their teacher in virtue, that wisdom and justice must be united with power and good fortune if public careers are to take on beauty as well as grandeur. </p></div>
+		<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:1" n="4"><p>For as Hippomachus the trainer used to declare that he could recognize his pupils from afar even though they were but carrying meat from the market-place, so it is natural that the principles of those who have been trained alike should permeate their actions; inducing in these a similar rhythm and harmony along with their propriety. </p></div> </div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2" n="2">
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:2" n="1"><p>Moreover, the fortunes of the two men, which were the same in what befell them rather than in what they elected to do, make their lives alike. </p></div>
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:2" n="2"><p>For both were cut off untimely, without being able to achieve the objects to which they had determined to devote the fruits of their many and great struggles. </p></div>
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:2" n="3"><p>But the most wonderful thing of all was that Heaven gave to both an intimation of their approaching death, by the visible appearance to each alike of an ill-boding spectre. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:2" n="4"><p>And yet there are those who deny such things and say that no man in his right mind was ever visited by a spectre or an apparition from Heaven, but that little children and foolish women and men deranged by sickness, in some aberration of spirit or distemper of body, have indulged in empty and strange imaginings, because they had the evil genius of superstition in themselves. </p></div>
+	<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg060.perseus-eng2:2" n="5"><p>But if Dion and Brutus, men of solid understanding and philosophic training and not easily cast down or overpowered by anything that happened to them, were so affected by a spectre that they actually told others about 

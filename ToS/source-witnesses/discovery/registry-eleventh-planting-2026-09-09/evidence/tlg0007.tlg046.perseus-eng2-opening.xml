@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Agesilaus and Pompey</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg046.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>                  
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1917</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives05plut/page/326/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-02-21" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+         <change when="1999-12-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2">
+         <div n="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2" type="translation" xml:lang="eng">
+         <head>COMPARISON OF AGESILAÜS AND POMPEY</head>
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2" n="1">
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2:1" n="1"><p>Now that their lives lie spread before us, let us briefly run over the points in which the two men differed, and bring these together side by side. They are as follows. In the first place, it was in the justest manner that Pompey came to fame and power, setting out on his career independently, and rendering many great services to Sulla when Sulla was freeing Italy from her tyrants; </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2:1" n="2"><p>Agesilaüs, on the contrary, appeared to get his kingdom by sinning against both gods and men, since he brought Leotychides under condemnation for bastardy, although his brother had recognised him as his legitimate son, and made light of the oracle concerning his lameness. In the second place, Pompey not only continued to hold Sulla in honour while he lived, but also after his death gave his body funeral obsequies in despite of Lepidus, and bestowed upon his son Faustus his own daughter in marriage; whereas Agesilaüs cast out Lysander on the merest pretext, and heaped insult upon him. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2:1" n="3"><p>And yet Sulla got no less from Pompey than he gave him, while in the case of Agesilaüs, it was Lysander who made him king of Sparta and general of all Greece. And, thirdly, Pompey’s transgressions of right and justice in his political life were due to his family connections, for he joined in most of the wrongdoings of Caesar and Scipio because they were his relations by marriage; </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2:1" n="4"><p>but Agesilaüs snatched Sphodrias from the death which hung over him for wronging the Athenians, merely to gratify the love of his son, and when Phoebidas treacherously broke the peace with Thebes, he evidently made the crime itself a reason for zealously supporting him. In a word, whatever harm Pompey was accused of bringing upon the Romans out of deference to his friends or through ignorance, Agesilaüs brought as much upon the Lacedaemonians out of obstinacy and resentment when he kindled the Boeotian war.</p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2:2" n="1"><p>Moreover, if we must assign to any ill-fortune of the two men the disasters which overtook them, that of Pompey could not have been anticipated by the Romans; but Agesilaüs would not permit the Lacedaemonians to guard against the <q>lame sovereignty,</q> although they had heard and knew before- hand about it. For even if Leotychides had been ten thousand times convicted of being bastard and alien, the family of the Eurypontidae could easily have furnished Sparta with a king who was of legitimate birth and sound of limb, had not Lysander darkened the meaning of the oracle in the interests of Agesilaüs. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg046.perseus-eng2:2" n="2"><p>On the other hand, when we consider the remedy which Agesilaüs applied to the perplexity of the state in dealing with those who had played the coward, after the disaster at Leuctra, when he urged that the laws should slumber for that day, there was never another political device like it, nor can we find anything in Pompey’s career to compare with it; on the contrary, he did not even think it incumbent upon him to abid

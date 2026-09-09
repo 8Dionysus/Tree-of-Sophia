@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Comparison of Nicias and Crassus</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2009-03-16">Perseus 4.0</date>
+            <idno type="filename">tlg0007.tlg040.perseus-eng2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1916</date>
+                  </imprint>
+                  <biblScope unit="volume">3</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/liveswithenglish03plutuoft/page/424/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+               matchPattern="(\w+).(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts chapter and section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+               matchPattern="(\w+)"
+               replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2018-02-14" who="Lisa Cerrato">EpiDoc and CTS file conversion</change>
+         <change when="1998-09-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="eng"> 
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2"> 
+         <div n="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2" type="translation" xml:lang="eng"> 
+         <head>COMPARISON OF NICIAS AND CRASSUS</head> 
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2" n="1">
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2:1" n="1"><p>In comparing the men, first, the wealth of Nicias was acquired in a more blameless manner than that of Crassus. For although it is true that the working of mines cannot be highly regarded, since most of it is carried on by employing malefactors or Barbarians, some of whom are kept in chains and done to death in damp and unwholesome places, still, when compared with the public confiscations of Sulla and the making of contracts where fire is raging, it will appear in the more favourable light.</p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2:1" n="2"><p>For Crassus openly utilized these opportunities as men do agriculture and money-lending. And as for the practices which he denied when on trial, namely, taking bribes for his voice in the senate, wronging the allies, circumventing weak women with his flatteries, and aiding base men to cloak their iniquities, no such charges, even though false, were ever made against Nicias; nay, he was rather laughed at for spending his money lavishly on informers out of cowardice, a practice unbecoming, perhaps, in a Pericles and an Aristides, but necessary for him, since he was not well stocked with courage.</p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2:1" n="3"><p>And for this practice Lycurgus the orator, in later times, boldly took to himself credit before the people, when accused of buying up one of these informers; <q type="spoken">I am glad indeed,</q> he said, <q type="spoken">that after such a long political career among you, I have been detected in giving rather than receiving money.</q></p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2:1" n="4"><p>As for their outlays of money, Nicias was more public spirited in his noble ambition to make offerings to the gods and provide the people with gymnastic exhibitions and trained choruses; and yet his whole estate, together with his expenditures, was not a tithe of what Crassus expended when he feasted so many myriads of men at once, and then furnished them with food afterwards. I am therefore amazed that anyone should fail to perceive that vice is a sort of inequality and incongruity of character, when he sees men amassing money shamefully and squandering it uselessly.</p></div></div>
+
+            <div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2" n="2">
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2:2" n="1"><p>So much regarding their wealth. And now in their political careers, no chicanery nor injustice, no violence nor harshness attaches to Nicias, but he was deceived the rather by Alcibiades, and made his appeals to the people with too much caution. Whereas Crassus is accused of much ungenerous faithlessness in his vacillations between friends and enemies; and as for violence, he himself could not deny that when he stood for the consulship, he hired men to lay hands on Cato and Domitius.</p></div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg040.perseus-eng2:2" n="2"><p>And in the assembly which voted on the allotment of the provinces, many were wounded and four killed; and Crassus himself (a fact which escaped us in the narrative of his life), when Lucius Annalius, a senator, was speaking in opposition, smote him in the face with his fist and drove him bleeding from the forum.</p></div>
+     

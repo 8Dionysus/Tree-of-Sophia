@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> 
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Pompey</title>
+            <author>Plutarch</author>
+         	<editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         	   <name>Bridget Almas</name>
+         	   <name>Lisa Cerrato</name>
+         	   <name>Rashmi Singhal</name>
+         	</respStmt><funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+         
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	   <date type="release" when="2009-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg045.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      	   </availability>
+      	</publicationStmt>
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1917</date>
+                  </imprint>
+                  <biblScope unit="volume">5</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives05plut/page/116/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-02-21" who="Lisa Cerrato">EpiDoc and CTS file conversion work</change>
+         <change when="1999-12-01" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+	
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2" type="translation" xml:lang="eng">
+         <head>POMPEY</head>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2" n="1">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2:1" n="1"><p>Towards Pompey the Roman people must have had, from the very beginning, the feeling which the Prometheus of Aeschylus has towards Heracles, when, having been saved by him, he says:— <quote rend="blockquote"> <l>I hate the sire, but dearly love this child of his.</l> </quote><note resp="editor" place="inline" anchored="true">A fragment of the <title>Prometheus Loosed</title> (Nauck, <title>Trag. Graec. Frag.</title>2 p. 68). Prometheus was fastened to a cliff in Scythia by Zeus, whose eagle preyed upon the prisoner. Heracles slew the eagle and released the sufferer.</note> For never have the Romans manifested so strong and fierce a hatred towards a general as they did towards Strabo, the father of Pompey; while he lived, indeed, they feared his talent as a soldier, for he was a very warlike man, </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2:1" n="2"><p>but when he was killed by a thunderbolt,<note resp="editor" place="inline" anchored="true">In 87 B.C.</note> and his body was on its way to the funeral pyre, they dragged it from its bier and heaped insults upon it. On the other hand, no Roman ever enjoyed a heartier goodwill on the part of his countrymen, or one which began sooner, or reached a greater height in his prosperity, or remained more constant in his adversity, than Pompey did. And whereas there was one sole reason for the hatred felt towards Strabo, namely, his insatiable desire for money, there were many reasons for the love bestowed on Pompey; </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2:1" n="3"><p>his modest and temperate way of living, his training in the arts of war, his persuasive speech, his trustworthy character, and his tact in meeting people, so that no man asked a favour with less offence, or bestowed one with a better mien. For, in addition to his other graces, he had the art of giving without arrogance, and of receiving without loss of dignity. </p></div></div>
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2" n="2">
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2:2" n="1"><p>At the outset, too, he had a countenance which helped him in no small degree to win the favour of the people, and which pleaded for him before he spoke. For even his boyish loveliness had a gentle dignity about it, and in the prime and flower of his youthful beauty there was at once manifest the majesty and kingliness of his nature. His hair was inclined to lift itself slightly from his forehead, and this, with a graceful contour of face about the eyes, produced a resemblance, more talked about than actually apparent, to the portrait statues of King Alexander. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2:2" n="2"><p>Wherefore, since many also applied the name to him in his earlier years, Pompey did not decline it, so that presently some called him Alexander in derision. Hence, too, Lucius Philippus, a man of consular rank, when pleading in his behalf, said that he was doing nothing strange if, being Philip, he loved Alexander. <milestone unit="para" resp="editor"/>We are told that Flora the courtesan, when she was now quite old, always took delight in telling about her former intimacy with Pompey, saying that she never left his embraces without bearing the marks of his teeth. </p></div>
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg045.perseus-eng2:2" n="3"><p>Furthermore, Flora would tell how Geminius, one 

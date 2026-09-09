@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>            
+            <title>Caius Marius</title>
+            <author>Plutarch</author>
+            <editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+               <name>Bridget Almas</name>
+            </respStmt>
+         	<funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      	     <date type="release" when="2010-03-16">Perseus 4.0</date>
+      	   <idno type="filename">tlg0007.tlg031.perseus-eng2.xml</idno>
+      	   <availability>
+      	      <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>   
+      	   </availability>
+      	</publicationStmt>
+      	
+      	<sourceDesc>
+            <biblStruct>
+               
+               <monogr>
+                  <author>Plutarch</author>
+                  <title>Plutarch's Lives</title>
+                  <editor role="translator">Bernadotte Perrin</editor>
+                  <imprint>
+                     <pubPlace>Cambridge, MA</pubPlace>
+                     <publisher>Harvard University Press</publisher>
+                     <pubPlace>London</pubPlace>
+                     <publisher>William Heinemann Ltd.</publisher>
+                     <date>1920</date>
+                  </imprint>
+                  <biblScope unit="volume">9</biblScope>
+               </monogr>
+               <series>
+                  <title>Loeb Classical Library</title>
+               </series>
+               <ref target="https://archive.org/details/plutarchslives09plut/page/346/mode/2up">Internet Archive</ref>                 
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+      	<refsDecl>
+      		<refState unit="chapter" delim="."/>
+      		<refState unit="section"/>
+      	</refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2018-03-28" who="Lisa Cerrato">EpiDoc and CTS conversion</change>
+      	<change when="2009" who="LMC">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2"> 
+<div n="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2" type="translation" xml:lang="eng"> 
+	<head>CAIUS MARIUS</head> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2:1" n="1"><p>Of a third name for Caius Marius we are ignorant, as we are in the case of Quintus Sertorius the subduer of Spain, and of Lucius Mummius the captor of Corinth; for Mummius received the surname of Achaïcus from his great exploit, as Scipio received that of Africanus, and Metellus that of Macedonicus. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2:1" n="2"><p>From this circumstance particularly Poseidonius thinks to confute those who hold that the third name is the Roman proper name, as, for instance, Camillus, Marcellus, or Cato; for if that were so, he says, then those with only two names would have had no proper name at all. But it escapes his notice that his own line of reasoning, if extended to women, robs them of their proper names; for no woman is given the first name, which Poseidonius thinks was the proper name among the Romans. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2:1" n="3"><p>Moreover, of the other two names, one was common to the whole family, as in the case of the Pompeii, the Manlii, or the Cornelii (just as a Greek might speak of the Heracleidae or the Pelopidae), and the other was a cognomen or epithet, given with reference to their natures or their actions, or to their bodily appearances or defects, Macrinus, for example, or Torquatus, or Sulla (like the Greek Mnemon, Grypus, or Callinicus).<note resp="editor" place="inline" anchored="true">The full name of a Roman citizen consisted of a <foreign xml:lang="lat">praenomen</foreign> (the <q type="gloss">given,</q> or <q type="gloss">proper</q> name), a <foreign xml:lang="lat">nomen </foreign> designating his family or <foreign xml:lang="lat">gens</foreign>, and a <foreign xml:lang="lat">cognomen</foreign>, which was also hereditary. Women rarely had a <foreign xml:lang="lat">praenomen</foreign>, or <q type="gloss">proper</q> name, but bore the family name only. </note> However, in these matters the irregularity of custom furnishes many topics for discussion.  </p> </div></div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2" n="2"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2:2" n="1"><p>As for the personal appearance of Marius, we have seen a marble statue of him at Ravenna in Gaul, and it very well portrays the harshness and bitterness of character which are ascribed to him. For since he was naturally virile and fond of war, and since he received a training in military rather than in civil life, his temper was fierce when he came to exercise authority. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2:2" n="2"><p>Moreover, we are told that he never studied Greek literature, and never used the Greek language for any matter of real importance, thinking it ridiculous to study a literature the teachers of which were the subjects of another people; and when, after his second triumph and at the consecration of some temple, he furnished the public with Greek spectacles, though he came into the theatre, he merely sat down, and at once went away. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg031.perseus-eng2:2" n="3"><p>Accordingly, just as Plato was wont to say often to Xenocrates the philosopher, who had the reputation of being rather morose in his disposition, <q type="spoken">My good Xenocrates, sacrifice to the Graces,</q> so if Marius could have been persuaded to sacrifice to the Greek Muses and Graces, he would not have put t

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?> <TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title>Caius Marcius Coriolanus</title>
+            <author>Plutarch</author>
+         	<editor role="translator">Bernadotte Perrin</editor>
+         	<sponsor>Perseus Project, Tufts University</sponsor>
+         	<principal>Gregory Crane</principal>
+         	<respStmt>
+         		<resp>Prepared under the supervision of</resp>
+         		<name>Bridget Almas</name>
+         		<name>Lisa Cerrato</name>
+         		<name>Rashmi Singhal</name>
+         	</respStmt>
+         <funder n="org:Tufts">Tufts University</funder>
+         </titleStmt>
+      	
+      	<publicationStmt>
+      		<publisher>Trustees of Tufts University</publisher>
+      		<pubPlace>Medford, MA</pubPlace>
+      		<authority>Perseus Project</authority>
+      		<date type="release" when="2009-03-16">Perseus 4.0</date>
+      		<idno type="filename">tlg0007.tlg016.perseus-eng2.xml</idno>
+      		<availability>
+      		<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+      		</availability>
+      	</publicationStmt><sourceDesc>
+      		<biblStruct>
+      			
+      			<monogr>
+      				<author>Plutarch</author>
+      				<title>Plutarch's Lives</title>
+      			   <editor role="translator">Bernadotte Perrin</editor>
+      				<imprint>
+      					<pubPlace>Cambridge, MA</pubPlace>
+      					<publisher>Harvard University Press</publisher>
+      					<pubPlace>London</pubPlace>
+      					<publisher>William Heinemann Ltd.</publisher>
+      					<date>1916</date>
+      				</imprint>
+      				<biblScope unit="volume">4</biblScope>
+      			</monogr>
+      		   <series>
+      		      <title>Loeb Classical Library</title>
+      		   </series>
+      			<ref target="https://archive.org/details/plutarchslives04plut/page/118/mode/2up">Internet Archive</ref>
+      		</biblStruct>
+      	</sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <editorialDecl>
+         	<quotation marks="none"/>
+            <correction status="high" method="silent">
+               <p>optical character recognition</p>
+            </correction>
+         </editorialDecl>
+      	<refsDecl n="CTS">
+      		<cRefPattern n="section"
+      			matchPattern="(\w+).(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+      			<p>This pointer pattern extracts chapter and section.</p>
+      		</cRefPattern>
+      		<cRefPattern n="chapter"
+      			matchPattern="(\w+)"
+      			replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+      			<p>This pointer pattern extracts chapter.</p>
+      		</cRefPattern>
+      	</refsDecl>
+         <refsDecl>
+            <refState unit="chapter" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+        <citeStructure match="/TEI/text/body" use="@xml:base">
+          <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      	<change when="2017-01-09" who="Lisa Cerrato">EpiDoc and CTS compliance; minor cleanup; bumped URN</change>
+         <change who="LMC" when="1998-11-01">tagged and parsed</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2">
+      	<div n="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2" type="translation" xml:lang="eng">
+         <head>CAIUS MARCUS CORIOLANUS</head>
+         
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2" n="1">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2:1" n="1">
+<p>The patrician house of the Marcii at Rome furnished many men of distinction. One of them was Ancus Marcius, the grandson of Numa by his daughter, and the successor of Tullus Hostilius in the kingship. To this family belonged also Publius and Quintus Marcius, the men who brought into Rome its best and most abundant supply of water. So likewise did Censorinus, whom the Roman people twice appointed censor, and then, at his own instance, made a law by which it was decreed that no one should hold that office twice. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2:1" n="2">
+<p>Caius Marcius, whose life I now write, lost his father at an early age, and was reared by his widowed mother. He showed, however, that such loss of a father, although otherwise bad for a boy, need not prevent him from becoming a worthy and excellent man, and that it is wrong for worthless men to lay upon it the blame for their perverted natures, which are due, as they say, to early neglect. On the other hand, the same Marcius bore witness for those who hold that a generous and noble nature, if it lack discipline, is apt to produce much that is worthless along with its better fruits, like a rich soil deprived of the husbandman’s culture </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2:1" n="3">
+<p>For while the force and vigour of his intelligence, which knew no limitations, led him into great undertakings, and such as were productive of the highest results, still, on the other hand, since he indulged a vehement temper and displayed an unswerving pertinacity, it made him a difficult and unsuitable associate for others. They did indeed look with admiration upon his insensibility to pleasures, toils, and mercenary gains, to which they gave the names of self-control, fortitude, and justice; but in their intercourse with him as a fellow-citizen they were offended by it as ungracious, burdensome, and arrogant. </p></div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2:1" n="4">
+<p>Verily, among all the benefits which men derive from the favour of the Muses, none other is so great as that softening of the nature which is produced by culture and discipline, the nature being induced by culture to take on moderation and cast off excess. It is perfectly true, however, that in those days Rome held in highest honour that phase of virtue which concerns itself with warlike and military achievements, and evidence of this may be found in the only Latin word for virtue, which signifies really <gloss>manly valour</gloss>; they made valour, a specific form of virtue, stand for virtue in general. </p></div> </div> 
+<div type="textpart" subtype="chapter" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2" n="2">  
+<div type="textpart" subtype="section" xml:base="urn:cts:greekLit:tlg0007.tlg016.perseus-eng2:2" n="1">
+<p> And so Marcius, who was by nature exceedingly fond of warlike feats, began at once, from his very boyhood, to handle arms. And since he thought that adventitious weapons were of little avail to such as did not have their natural and native armour developed and prepared for service, he so practised himself in every sort of combat that he was not only nimble of foot, but had also such a weight in grapplings and wrestlings that an enemy found it hard to extricate himself. At any rate, those who from time to time contended with him in feats of courage and valour, laid the blame for their inferiority upon his strength of body, which was inflexible and 
