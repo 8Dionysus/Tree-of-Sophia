@@ -95,6 +95,42 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
             with self.subTest(changed=changed[:250]), self.assertRaises(ValueError):
                 acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
 
+    def test_metadata_elapsed_requires_retained_measurement_or_valid_interval(self) -> None:
+        observation = {"started_at": "2026-09-09T07:00:00+00:00", "ended_at": "2026-09-09T07:00:02.5+00:00"}
+        self.assertEqual(acquisition.metadata_elapsed_seconds(observation), 2.5)
+        self.assertEqual(acquisition.metadata_elapsed_seconds({**observation, "elapsed_seconds": 1.2}), 1.2)
+        for value in (-1, float("inf"), float("nan"), True, "unknown"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                acquisition.metadata_elapsed_seconds({**observation, "elapsed_seconds": value})
+        with self.assertRaises(ValueError):
+            acquisition.metadata_elapsed_seconds({**observation, "ended_at": "2026-09-09T06:59:59+00:00"})
+
+    def test_existing_item_resumes_only_missing_discovery_bound_to_same_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.json"
+            manifest.write_text("{}")
+            item = root / "item"
+            item.mkdir()
+            (item / "item.json").write_text("{}")
+            event = {"event_type": "acquisition", "inputs": [{"ref": "manifest.json", "sha256": acquisition.sha256(manifest.read_bytes())}]}
+            (item / "provenance.jsonl").write_text(json.dumps(event) + "\n")
+            target = {"slug": "resume", "paths": {"item_root": "item"}, "files": [{"basename": "source.xml"}]}
+            preparation = {"prepared_packages_ref": "packages.jsonl"}
+            with patch.object(acquisition, "verify_target", return_value={"verified": True}), \
+                    patch.object(acquisition, "transfer", return_value=(b"text", {"status": "completed"})) as transfer, \
+                    patch.object(acquisition, "write_discovery") as discovery:
+                self.assertEqual(acquisition.install_target(root, manifest, preparation, target, {}), {"verified": True})
+                transfer.assert_called_once()
+                discovery.assert_called_once()
+                self.assertEqual(discovery.call_args.args[-1], event)
+            event["inputs"][0]["sha256"] = "0" * 64
+            (item / "provenance.jsonl").write_text(json.dumps(event) + "\n")
+            with patch.object(acquisition, "verify_target", return_value={}), patch.object(acquisition, "transfer") as transfer:
+                with self.assertRaisesRegex(ValueError, "does not bind"):
+                    acquisition.install_target(root, manifest, preparation, target, {})
+                transfer.assert_not_called()
+
     def test_existing_work_extension_preserves_identity_and_prior_assertions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

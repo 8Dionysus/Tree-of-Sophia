@@ -507,7 +507,16 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     item_root = safe_path(root, target["paths"]["item_root"])
     item_manifest_path = item_root / "item.manifest.json"
     if (item_root / "item.json").exists():
-        return verify_target(root, target)
+        checked = verify_target(root, target)
+        run = root / SOURCE / "discovery/runs" / f"registry-{target['slug']}.{operation_date(target)}.v1.json"
+        if not run.exists():
+            events = [json.loads(line) for line in (item_root / "provenance.jsonl").read_text().splitlines()]
+            acquisitions = [value for value in events if value["event_type"] == "acquisition"]
+            if len(acquisitions) != 1 or not any(value.get("ref") == manifest_ref and value.get("sha256") == sha256(manifest_path.read_bytes()) for value in acquisitions[0]["inputs"]):
+                raise ValueError("incomplete discovery does not bind the current preparation")
+            transfers = [transfer(root, target, entry, log)[1] for entry in target["files"]]
+            write_discovery(root, manifest_path, preparation, target, transfers, acquisitions[0])
+        return checked
     extension = validate_work_extension(root, target, package)
     for ref in package["records"]:
         if safe_path(root, ref).exists():
@@ -515,6 +524,9 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
                 raise ValueError(f"refusing replacement of an existing source record: {ref}")
         elif extension is not None and ref == extension[0]:
             raise ValueError("the Work being extended is no longer present")
+    # Preserve identity-drift priority and validate timing before writing sources.
+    for observation in selected_metadata_observations(preparation, target):
+        metadata_elapsed_seconds(observation)
     started = utcnow()
     bodies, transfers = [], []
     for entry in target["files"]:
@@ -648,6 +660,18 @@ def selected_metadata_observations(preparation: dict, target: dict) -> list[dict
     return matching
 
 
+def metadata_elapsed_seconds(observation: dict) -> float:
+    """Use a retained duration or an explicit receipt timestamp interval."""
+    if "elapsed_seconds" in observation:
+        elapsed = observation["elapsed_seconds"]
+    else:
+        elapsed = (datetime.fromisoformat(observation["ended_at"].replace("Z", "+00:00"))
+                   - datetime.fromisoformat(observation["started_at"].replace("Z", "+00:00"))).total_seconds()
+    if not isinstance(elapsed, (int, float)) or isinstance(elapsed, bool) or not 0 <= elapsed < float("inf"):
+        raise ValueError("metadata receipt elapsed time is invalid")
+    return elapsed
+
+
 def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: dict, transfers: list[dict], acquisition: dict) -> None:
     slug = target["slug"]
     day = operation_date(target)
@@ -658,7 +682,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
     for index, observation in enumerate(matching, 1):
         channels.append({"channel_id": f"channel-{slug}-metadata-{index}", "sequence": index, "channel_type": "specialized-scholarly-project", "role": "originating-record",
             "source_name": target["repository"] + " upstream metadata/license evidence", "endpoint_url": observation["url"], "interface_type": "api" if "api.github.com" in observation["url"] else "web", "interface_version": "pinned repository metadata or dated official page",
-            "exact_query": "GET " + observation["url"], "queried_at": observation["started_at"], "elapsed_seconds": observation["elapsed_seconds"], "result_order_preserved": True,
+            "exact_query": "GET " + observation["url"], "queried_at": observation["started_at"], "elapsed_seconds": metadata_elapsed_seconds(observation), "result_order_preserved": True,
             "results": [{"result_id": f"tos-discovery-result.registry-{slug}-metadata-{index}", "rank": 1, "title_as_displayed": Path(observation["retained_ref"]).name,
                 "result_url": observation["url"], "originating_record_url": observation["url"], "identifiers": [], "available_formats": ["metadata/license evidence"],
                 "declared_rights": {"statement": "Separate exact-provider statements are retained in the source rights record.", "scope": "unknown", "evidence_url": observation["url"], "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
@@ -680,7 +704,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
     run = {"$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json", "schema_version": "tos_material_discovery_record_v1",
         "discovery_id": f"tos.discovery.registry-{slug}.{day}.v1", "protocol_ref": f"{SOURCE}/discovery/DISCOVERY_PROTOCOL.md",
         "target": {"target_kind": "expression", "known_tos_refs": list(target["ids"].values()), "description": target["version_description"], "required_properties": target["limits"] + ["exact pinned provider version and immutable local file identity"], "acceptable_substitutions": [], "languages": [target["language"]] + (["de"] if target["provider"] == "oraec" else []), "formats": sorted({entry["media_type"] for entry in target["files"]}), "purpose_ref": manifest_path.relative_to(root).as_posix()},
-        "channels": channels, "channel_comparison": [{"channel_id": channel["channel_id"], "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": channel["elapsed_seconds"], "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."} for channel in channels],
+        "channels": channels, "channel_comparison": [{"channel_id": channel["channel_id"], "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": channel["elapsed_seconds"], "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."} for channel in channels],
         "selected_result_ids": selected, "rejected_result_ids": [], "rights_inference_from_availability_prohibited": True, "general_web_search_is_last_resort": True, "technical_access_bypass_used": False,
         "maker": {"maker_type": "mixed", "agent_ref": "model:codex"}, "started_at": min(channel["queried_at"] for channel in channels), "ended_at": acquisition["ended_at"], "status": "reconciled", "provenance_event_refs": [event_id, acquisition["event_id"]], "record_version": 1, "supersedes_discovery_ref": None}
     validate_json(run, "material-discovery-record", root)
