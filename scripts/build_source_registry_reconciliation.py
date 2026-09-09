@@ -1,10 +1,9 @@
 """Reconcile reported registry leads with exact current owner records, without merging."""
 from __future__ import annotations
 import argparse
-import gzip
 import json
 from collections import Counter, defaultdict
-from source_registry_common import ROOT, PACKET, canonical_url, digest, encoded, read, safe, urls
+from source_registry_common import ROOT, PACKET, canonical_url, compressed, digest, encoded, read, safe, urls
 
 
 def strings(value):
@@ -115,7 +114,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     result = build()
     path = ROOT / PACKET / 'reconciliation.current.json.gz'
-    body = gzip.compress(encoded(result), mtime=0)
+    body = compressed(encoded(result))
     if args.check:
         if not path.exists() or path.read_bytes() != body:
             raise SystemExit('source registry reconciliation drift')
