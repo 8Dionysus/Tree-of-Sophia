@@ -1,5 +1,5 @@
 import {test,expect} from 'vitest';
-import {validateHumanForms,formView,formIdentity,contentLanguage,FormContractError,resolveClaimReading} from './human-forms.mjs';
+import {validateHumanForms,formView,formIdentity,contentLanguage,FormContractError,inspectExactHumanForm,inspectExactHumanForms,resolveClaimReading} from './human-forms.mjs';
 import {KnowledgeClient,RevisionError} from './knowledge-client.mjs';
 import {readingSnapshot,readingDocument,readingPositionKey,readingKey,createReadingShelf} from './reader-model.mjs';
 import {validateReading} from './reading-resume.mjs';
@@ -42,6 +42,41 @@ test('absence, selection states, matching diagnostics, unknown language and fall
   expect(view.roles.find(r=>r.role==='statement').candidates.every(c=>c.state==='ready')).toBe(true);
   expect(view.roles.find(r=>r.role==='caption').packet.language).toBeNull();expect(view.roles.find(r=>r.role==='hover').packet).toBeNull();
   expect(()=>validateHumanForms(raw,'ru')).toThrow();delete raw.human_form_selection;expect(validateHumanForms(raw)).toBeNull();
+});
+
+test('an over-budget role exposes its exact full packet only through a bounded inspection copy',()=>{
+  const raw=formNode(),selected=raw.human_form_selection.roles.grounds;
+  selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+  const inspected=inspectExactHumanForms(raw);
+  expect(Object.keys(inspected)).toEqual(['grounds']);
+  expect(inspected.grounds.source_pointer).toBe('/attributes/human_forms/4');
+  expect(inspected.grounds.form).toEqual(raw.attributes.human_forms[4].form);
+  expect(inspected.grounds.packet.display_text).toContain('Полная оговорка сохраняется.');
+  expect(inspected.grounds.packet.context).toHaveLength(1);
+  const snapshot=readingSnapshot({packet:formLens([raw]),match:raw},'node');
+  expect(snapshot.raw.attributes).toBeUndefined();
+  expect(snapshot.exactForms.grounds.packet.context[0].value.unknown).toEqual({zero:0,false:false,null:null,empty:''});
+  raw.attributes.human_forms[4].context[0].value.unknown.zero=7;
+  expect(snapshot.exactForms.grounds.packet.context[0].value.unknown.zero).toBe(0);
+});
+
+test('exact inspection rejects a ref, subject, context or owner snapshot that no longer matches',()=>{
+  for(const mutate of [
+    packet=>packet.form={...packet.form,digest:'sha256:'+'e'.repeat(64)},
+    packet=>packet.subject={...packet.subject,version:2},
+    packet=>delete packet.context,
+    packet=>packet.assessment_snapshot={owner_snapshot:'sha256:'+'e'.repeat(64),journal_revision:null,journal_batches:0,publication_authorized:true,current_runtime_grant:false},
+    packet=>packet.context[0].value.long='x'.repeat(65536),
+  ]){
+    const raw=formNode(),selected=raw.human_form_selection.roles.grounds;
+    selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+    mutate(raw.attributes.human_forms[4]);
+    expect(()=>inspectExactHumanForm(raw,'grounds')).toThrow(FormContractError);
+  }
+  const raw=formNode(),selected=raw.human_form_selection.roles.grounds;
+  selected.state='over-budget';selected.reason='inspect-exact-form';selected.packet=null;
+  delete raw.attributes;
+  expect(()=>readingSnapshot({packet:formLens([raw]),match:raw},'node')).toThrow(FormContractError);
 });
 
 test('isolated reading uses a real full LensResult and rejects extra objects or another revision',async()=>{

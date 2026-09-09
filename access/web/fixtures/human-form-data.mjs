@@ -19,7 +19,12 @@ export function formNode(id='fixture:forms',language='ru'){
     selection.roles[role]={state:'ready',reason:'exact-language',form,packet};
     selection.candidates.push({form,role,language,state:'ready',source_pointer:'/attributes/human_forms/'+selection.candidates.length});
   }
-  raw.human_form_selection=selection;return raw;
+  raw.human_form_selection=selection;
+  // Full material reads retain the source-owned packets in attributes. The
+  // compact selection above remains the bounded delivery surface.
+  raw.attributes={human_forms:roles.map(role=>structuredClone(selection.roles[role].packet)),human_forms_source_ref:'fixture:forms',
+    source_record:{record_id:subject.id,record_version:subject.version},source_sha256:subject.digest.slice('sha256:'.length)};
+  return raw;
 }
 export const formLens=(nodes=[formNode()],relations=[])=>({schema:'tos_lens_result_v1',source_revision:revision,
   authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},nodes,relations,focus:{node_id:nodes[0].id}});

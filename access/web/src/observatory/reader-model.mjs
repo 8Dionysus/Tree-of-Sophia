@@ -3,9 +3,11 @@ import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,disp
 import {essentialContext} from './record-context.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
 export {readingForm};
-import {FormContractError,validateHumanForms,formLanguages,formIdentity,claimPathFor,resolveClaimReading} from './human-forms.mjs';
+import {FORM_ROLES,FormContractError,validateHumanForms,inspectExactHumanForms,formLanguages,formIdentity,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 
 const present=value=>typeof value==='string'&&Boolean(value.trim());
+const FORM_ROLES_WITH_EXACT=selection=>FORM_ROLES.filter(role=>selection.roles[role]?.state==='over-budget'
+  &&selection.roles[role]?.reason==='inspect-exact-form'&&selection.roles[role]?.form);
 export const readingKey=(kind,id)=>JSON.stringify([kind,id]);
 export function formLabel(key){
   return ({ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")})[key]||key;
@@ -37,12 +39,15 @@ export function readingSnapshot({packet,match,endpoints:materialEndpoints,path},
   if(!['node','relation'].includes(kind)||!present(match?.id)||!match.display
     ||!/^[a-f0-9]{64}$/.test(match.content_revision||'')||!Array.isArray(match.source_refs)||!match.source_refs.length)
     throw new ContractError(t("Материал не содержит точной версии и источника."));
-  validateHumanForms(match);
+  const selection=validateHumanForms(match);
+  const exactForms=inspectExactHumanForms(match);
+  if(selection&&FORM_ROLES_WITH_EXACT(selection).some(role=>!exactForms?.[role]))throw new FormContractError();
   const endpoints=kind==='relation'?(materialEndpoints||packet.endpoints||[]):[];
   if(kind==='relation'&&![match.from_id,match.to_id].every(id=>endpoints.some(node=>node.id===id)))
     throw new ContractError(t("Для чтения связи нужны оба её участника."));
   const selectedEndpoints=kind==='relation'?[...new Set([match.from_id,match.to_id])].map(id=>endpoints.find(node=>node.id===id)):[];
-  const snapshot={kind,sourceRevision:packet.source_revision,raw:readerRecord(match),endpoints:selectedEndpoints.map(readerRecord),essentialContext:essentialContext(match)};
+  const snapshot={kind,sourceRevision:packet.source_revision,raw:readerRecord(match),endpoints:selectedEndpoints.map(readerRecord),essentialContext:essentialContext(match),
+    ...(exactForms?{exactForms}: {})};
   if(path){
     if(kind!=='node'||path.claim_node_id!==match.id)throw new FormContractError();
     snapshot.claimReference=claimMaterialReference(packet,path);

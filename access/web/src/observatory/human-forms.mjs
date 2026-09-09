@@ -6,6 +6,7 @@ export const FORM_ROLES=['name','caption','hover','statement','grounds','history
 export const FORM_STATES=['ready','missing','unavailable','ambiguous','over-budget'];
 const reasons=['exact-language','less-specific-language','automatic','fallback','original','no-ready-form','multiple-forms','original-role-not-declared','inspect-exact-form'];
 const candidateStates=['ready','invalid','unavailable','stale','restricted','needs-assessment','over-budget'];
+const EXACT_FORM_BYTES=64*1024;
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$(?![\s\S])/.test(value);
@@ -57,6 +58,50 @@ function validatePacket(packet,role,ref,raw){
       &&state.publication_authorized===false&&state.current_runtime_grant===false);
   }
 }
+
+function packetPointer(value){
+  const match=typeof value==='string'&&/^\/attributes\/human_forms\/(\d+)$/.exec(value);
+  return match?Number(match[1]):null;
+}
+
+function sourceSubject(raw){
+  const attributes=raw?.attributes;if(!object(attributes))return null;
+  const claim=object(attributes.source_claim)?attributes.source_claim:null;
+  const record=claim|| (object(attributes.source_record)?attributes.source_record:null);
+  if(!record)return null;
+  const id=claim?.claim_id??record.record_id??record.composite_id??record.artifact_id;
+  const version=claim?.claim_version??record.record_version;
+  const digest=attributes.source_sha256;
+  const subject={id,version,digest:typeof digest==='string'?'sha256:'+digest:null};
+  return exactFormRef(subject)?subject:null;
+}
+
+// The ordinary selection is deliberately capped at the transport budget. A
+// full material read may still carry the source-owned packet which was
+// represented there only by an exact ref. Keep this inspection separate from
+// the bounded reader copy and never manufacture a shortened wording.
+export function inspectExactHumanForm(raw,role){
+  const selection=validateHumanForms(raw),selected=selection?.roles?.[role];
+  if(!selected||selected.state!=='over-budget'||selected.reason!=='inspect-exact-form'||!selected.form)return null;
+  const candidate=selection.candidates.find(value=>value.role===role&&value.state==='ready'&&sameFormRef(value.form,selected.form));
+  const index=packetPointer(candidate?.source_pointer);
+  const forms=raw?.attributes?.human_forms;
+  if(!candidate||index===null||!Array.isArray(forms)||index>=forms.length)return null;
+  const packet=forms[index];requireForm(object(packet)&&sameFormRef(packet.form,selected.form));
+  boundedJSON(packet,EXACT_FORM_BYTES);validatePacket(packet,role,selected.form,raw);
+  const subject=sourceSubject(raw);requireForm(subject&&sameFormRef(packet.subject,subject));
+  return {form:structuredClone(selected.form),source_pointer:candidate.source_pointer,packet:structuredClone(packet)};
+}
+
+export function inspectExactHumanForms(raw){
+  const selection=validateHumanForms(raw);if(!selection)return null;
+  const inspected={};
+  for(const role of FORM_ROLES){
+    const value=inspectExactHumanForm(raw,role);if(value)inspected[role]=value;
+  }
+  return Object.keys(inspected).length?inspected:null;
+}
+
 export function validateHumanForms(raw,requested){
   if(!own(raw,'human_form_selection'))return null;
   const selection=raw.human_form_selection;boundedJSON(selection,16384);

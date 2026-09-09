@@ -3404,6 +3404,18 @@ export const UI_CATALOG={
     "en": "The complete packet did not fit in the response",
     "es": "El paquete completo no cupo en la respuesta"
   },
+  "Показать полную форму": {
+    "en": "Show the complete form",
+    "es": "Mostrar la forma completa"
+  },
+  "Показан полный пакет по точной ссылке. Предел доставки не меняет состояние формы и не означает её семантического принятия.": {
+    "en": "The complete packet is shown from its exact reference. The delivery limit does not change the form state or imply semantic acceptance.",
+    "es": "Se muestra el paquete completo desde su referencia exacta. El límite de entrega no cambia el estado de la forma ni implica aceptación semántica."
+  },
+  "Полную форму не удалось проверить в этой версии ответа.": {
+    "en": "The complete form could not be verified in this version of the response.",
+    "es": "No se pudo verificar la forma completa en esta versión de la respuesta."
+  },
   "Этот ответ не содержит выбранных форм.": {
     "en": "This response does not deliver selected forms.",
     "es": "Esta respuesta no entrega formas seleccionadas."
