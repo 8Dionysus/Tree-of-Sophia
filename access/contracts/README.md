@@ -128,7 +128,12 @@ compact attributes stay empty. The role packet itself retains context,
 dependencies and provenance. Inputs are capped at 32 source materializations;
 delivery has a 16 KiB conservative JSON-byte budget. Oversized forms return a
 ref, not a substring; an oversized candidate inventory requires full
-inspection. Language preferences are bounded at 128 characters independently
+inspection. After resolving each role without adjudicating alternatives,
+allocation reserves all role refs, then gives intact exact-language packets
+priority over less-specific language matches and unrelated fallbacks across
+roles. Equal-priority packets retain the seven-role order above; `auto` and
+`original` also retain that order. An oversized matching packet is not replaced
+with a different-language form. Language preferences are bounded at 128 characters independently
 of whether the current query finds Forms. This is a request budget, not a
 closed language vocabulary. Local Python and Worker/D1 run the same selection
 contract; actual UI consumption remains a separate integration requirement.

@@ -171,6 +171,7 @@ export function selectHumanForms(item: Item, language = 'auto') {
     if (!languageContextValid(packet)) return stop('invalid', 'forms.invalid-language-context');
   }
   if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
+  const choices: {role: string; reason: string; packet: Item; form: ExactRef}[] = [];
   for (const role of HUMAN_FORM_ROLES) {
     const candidates = ready.filter(packet => packet.role === role);
     let selected = candidates, reason = language === 'auto' ? 'automatic' : 'fallback';
@@ -195,11 +196,19 @@ export function selectHumanForms(item: Item, language = 'auto') {
       const packet = selected[0]!;
       // The input loop already checked every selected form reference.
       if (!exactRef(packet.form)) throw new Error('invalid selected form reference');
-      result.roles[role] = {state: 'ready', reason, form: packet.form, packet};
-      if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) {
-        result.roles[role] = {state: 'over-budget', reason: 'inspect-exact-form', form: packet.form, packet: null};
-      }
+      result.roles[role] = {state: 'over-budget', reason: 'inspect-exact-form', form: packet.form, packet: null};
+      choices.push({role, reason, packet, form: packet.form});
     } else if (forms.some(packet => record(packet).state !== 'ready')) result.roles[role]!.state = 'unavailable';
+  }
+  // Reserve every role's reference before allocating intact packets. Requested
+  // language must not be starved by earlier roles using unrelated fallbacks.
+  if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
+  const priority: Record<string, number> = {'exact-language': 0, original: 0, automatic: 0,
+    'less-specific-language': 1, fallback: 2};
+  for (const {role, reason, packet, form} of choices.sort((a, b) => priority[a.reason]! - priority[b.reason]!)) {
+    const referenceOnly = result.roles[role]!;
+    result.roles[role] = {state: 'ready', reason, form, packet};
+    if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) result.roles[role] = referenceOnly;
   }
   if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
   return structuredClone(result);

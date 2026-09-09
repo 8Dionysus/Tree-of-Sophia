@@ -1148,6 +1148,41 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertLessEqual(_form_delivery_cost(result), HUMAN_FORM_SELECTION_BUDGET)
         self.assertLessEqual(len(json.dumps(result, ensure_ascii=False).encode()), HUMAN_FORM_SELECTION_BUDGET)
 
+    def test_form_budget_prioritizes_requested_language_across_roles(self):
+        from tos_access.knowledge import select_human_forms, HUMAN_FORM_SELECTION_BUDGET, _form_delivery_cost
+        node = self.human_form_node()
+        statement = node['attributes']['human_forms'][0]
+        statement['context'][0]['value']['long_qualification'] = 'x' * 11000
+        name = copy.deepcopy(statement)
+        name.update(role='name', language=None, display_text='Fallback name')
+        name['form']['id'] = 'tos.form.fixture-fallback-name'
+        name['context'][0]['value']['long_qualification'] = 'y' * 3500
+        node['attributes']['human_forms'].append(name)
+        before = copy.deepcopy(node)
+        for language, reason in [('FR', 'exact-language'), ('fr-CA', 'less-specific-language')]:
+            result = select_human_forms(node, language)
+            self.assertEqual(result['roles']['statement']['packet'], statement)
+            self.assertEqual(result['roles']['statement']['reason'], reason)
+            self.assertEqual(result['roles']['name']['state'], 'over-budget')
+            self.assertEqual(result['roles']['name']['form'], name['form'])
+            self.assertIsNone(result['roles']['name']['packet'])
+            self.assertLessEqual(_form_delivery_cost(result), HUMAN_FORM_SELECTION_BUDGET)
+            self.assertLessEqual(len(json.dumps(result, ensure_ascii=False).encode()), HUMAN_FORM_SELECTION_BUDGET)
+        # Both packets fit individually, but equal-priority allocation keeps
+        # the declared role order, not packet/input order or a content judgment.
+        for language in ('auto', 'de'):
+            result = select_human_forms(node, language)
+            self.assertEqual(result['roles']['name']['packet'], name)
+            self.assertEqual(result['roles']['statement']['state'], 'over-budget')
+        self.assertEqual(node, before)
+        name['language'] = 'fr'
+        self.assertEqual(select_human_forms(node, 'fr')['roles']['name']['packet'], name)
+        self.assertEqual(select_human_forms(node, 'fr')['roles']['statement']['state'], 'over-budget')
+        # An exact match outranks an earlier role's less-specific match, too.
+        statement['language'] = 'fr-CA'
+        self.assertEqual(select_human_forms(node, 'fr-CA')['roles']['statement']['packet'], statement)
+        self.assertEqual(select_human_forms(node, 'fr-CA')['roles']['name']['state'], 'over-budget')
+
     def test_original_selection_requires_intact_source_bound_language_context(self):
         from tos_access.knowledge import select_human_forms
         node = self.human_form_node()

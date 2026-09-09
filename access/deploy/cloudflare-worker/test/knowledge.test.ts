@@ -569,6 +569,52 @@ test('source human forms preserve ambiguity, exact context and bounded delivery 
   assert.equal(selectHumanForms(node, 'ru').roles.name!.packet!.display_text, 'По ту сторону добра и зла');
 });
 
+test('form budget prioritizes requested language across roles in Python and Worker', () => {
+  // Synthetic packets test allocation and preservation, not language quality.
+  const subject = {id: 'tos.record.form-fixture', version: 1, digest: 'sha256:' + 'a'.repeat(64)};
+  const statement = {schema_version: 'tos_human_form_materialization_v1',
+    form: {id: 'tos.form.fixture-fr', version: 1, digest: 'sha256:' + 'b'.repeat(64)},
+    subject, state: 'ready', role: 'statement', language: 'fr' as string | null, script: 'Latn',
+    display_text: 'Cette attribution n’est pas établie.',
+    context: [{slot: 'qualifiers', binding: {record: subject, pointer: '/qualifiers'},
+      value: {negated: true, unknown: false, confidence: 0, condition: null, long_qualification: 'x'.repeat(11000)}}],
+    issues: [], admission: null, performs_semantic_assessment: false, standalone_reading: false,
+    derivation: 'source-copy', dependencies: [subject]};
+  const name = structuredClone(statement);
+  Object.assign(name, {role: 'name', language: null, display_text: 'Fallback name'});
+  name.form.id = 'tos.form.fixture-fallback-name';
+  name.context[0]!.value.long_qualification = 'y'.repeat(3500);
+  const node = {content_revision: 'c'.repeat(64), attributes: {
+    source_record: {record_id: subject.id, record_version: 1}, source_sha256: 'a'.repeat(64),
+    human_forms_source_ref: 'test-only:allocation-fixture', human_forms: [statement, name]}};
+  const cases = ['FR', 'fr-CA', 'auto', 'de'].map(language => ({item: structuredClone(node), language}));
+  name.language = 'fr';
+  cases.push({item: structuredClone(node), language: 'fr'});
+  statement.language = 'fr-CA';
+  cases.push({item: structuredClone(node), language: 'fr-CA'});
+  const before = structuredClone(cases);
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(c['item'],c['language']) for c in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding: 'utf8'}));
+  const results = cases.map(({item, language}) => selectHumanForms(item, language));
+  assert.deepEqual(results, python);
+  assert.deepEqual(cases, before);
+  for (const [index, result] of results.entries()) {
+    const statementFirst = [0, 1, 5].includes(index);
+    const winner = statementFirst ? 'statement' : 'name', omitted = statementFirst ? 'name' : 'statement';
+    assert.deepEqual(result.roles[winner]!.packet, cases[index]!.item.attributes.human_forms.find(p => p.role === winner));
+    assert.equal(result.roles[omitted]!.state, 'over-budget');
+    assert.deepEqual(result.roles[omitted]!.form, cases[index]!.item.attributes.human_forms.find(p => p.role === omitted)!.form);
+    assert.equal(result.roles[omitted]!.packet, null);
+    assert.ok(formDeliveryCost(result) <= HUMAN_FORM_SELECTION_BUDGET);
+    assert.ok(new TextEncoder().encode(JSON.stringify(result)).length <= HUMAN_FORM_SELECTION_BUDGET);
+  }
+  assert.equal(results[0]!.roles.statement!.reason, 'exact-language');
+  assert.equal(results[1]!.roles.statement!.reason, 'less-specific-language');
+  results[0]!.roles.statement!.packet!.display_text = 'result-only mutation';
+  assert.deepEqual(cases, before);
+});
+
 test('native witness forms bind unchanged identities in Python and Worker', () => {
   for (const [schema, field, prefix] of [
     ['tos_scholarly_composite_witness_v1', 'composite_id', 'tos.composite.'],

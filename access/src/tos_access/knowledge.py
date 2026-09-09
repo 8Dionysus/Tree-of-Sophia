@@ -838,6 +838,7 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
             return stop('invalid', 'forms.invalid-language-context')
     if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
         return stop('over-budget', 'forms.inspect-collection-separately')
+    choices = []
     for role in HUMAN_FORM_ROLES:
         candidates = [packet for packet in ready if packet['role'] == role]
         selected, reason = candidates, 'automatic' if language == 'auto' else 'fallback'
@@ -863,11 +864,21 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
             result['roles'][role] = {**empty(), 'state': 'ambiguous', 'reason': 'multiple-forms'}
         elif selected:
             packet = selected[0]
-            result['roles'][role] = {'state': 'ready', 'reason': reason, 'form': packet['form'], 'packet': packet}
-            if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
-                result['roles'][role] = {'state': 'over-budget', 'reason': 'inspect-exact-form', 'form': packet['form'], 'packet': None}
+            result['roles'][role] = {'state': 'over-budget', 'reason': 'inspect-exact-form', 'form': packet['form'], 'packet': None}
+            choices.append((role, reason, packet))
         elif any(packet.get('state') != 'ready' for packet in forms):
             result['roles'][role]['state'] = 'unavailable'
+    # Reserve every role's reference before allocating intact packets. Requested
+    # language must not be starved by earlier roles using unrelated fallbacks.
+    if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+        return stop('over-budget', 'forms.inspect-collection-separately')
+    priority = {'exact-language': 0, 'original': 0, 'automatic': 0,
+                'less-specific-language': 1, 'fallback': 2}
+    for role, reason, packet in sorted(choices, key=lambda choice: priority[choice[1]]):
+        reference_only = result['roles'][role]
+        result['roles'][role] = {'state': 'ready', 'reason': reason, 'form': packet['form'], 'packet': packet}
+        if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+            result['roles'][role] = reference_only
     if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
         return stop('over-budget', 'forms.inspect-collection-separately')
     return copy.deepcopy(result)
