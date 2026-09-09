@@ -3149,6 +3149,12 @@ def _readiness_execution_status(
     record_refs = specification.get("create_record_refs", {})
     work_id = planned_ids.get("work") if isinstance(planned_ids, dict) else None
     work_ref = record_refs.get("work") if isinstance(record_refs, dict) else None
+    existing_refs = specification.get("existing_record_refs", {})
+    existing_work = existing_refs.get("work") if isinstance(existing_refs, dict) else None
+    if existing_work is not None:
+        if work_ref is not None or existing_work not in specification["known_tos_refs"]:
+            raise QueueBuildError(f"{target_id}: existing Work must be known and cannot also be declared new")
+        work_ref = existing_work
     if (not isinstance(work_id, str) or not work_id.startswith("tos.work.")
             or not isinstance(work_ref, str) or work_ref not in refs
             or not work_ref.startswith("ToS/source-witnesses/")):

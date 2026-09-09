@@ -75,6 +75,7 @@ def report(completed):
             'target': {'target_kind': 'exact-work-version', 'description': target['version_description'],
                 'known_tos_refs': [target['paths']['work'], target['parallel_source']['expression_ref'], branch],
                 'create_record_refs': {key: path for key, path in target['paths'].items() if key != 'work'},
+                'existing_record_refs': {'work': target['paths']['work']},
                 'planned_ids': target['ids'], 'expected_coverage': target['coverage'],
                 'expected_file_count': len(files), 'expected_bytes': target['byte_size'], 'scope_limits': target['limits']},
             'readiness': readiness,
@@ -85,7 +86,7 @@ def report(completed):
             planting = read(ROOT / planting_ref)
             if planting['source_witness']['work_id'] != target['ids']['work'] or planting['discovery_ref'] != discovery_ref:
                 raise ValueError('branch route does not identify this exact translation intake')
-            entry['execution'] = control([planting_ref, target['paths']['expression'], item + '/item.manifest.json'],
+            entry['execution'] = control([planting_ref, target['paths']['work'], target['paths']['expression'], item + '/item.manifest.json'],
                 'Exact English version acquired and branch-linked; no translation-quality or semantic admission.', status='completed')
             rows.append({**checked, 'title': target['title'], 'work_title': target['work_title'], 'language': 'en',
                 'expression_role': 'translation', 'new_work_created': False,

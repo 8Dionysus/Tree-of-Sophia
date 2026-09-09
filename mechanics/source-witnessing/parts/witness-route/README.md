@@ -80,6 +80,8 @@ branch route for one version does not mark another language version planted.
 
 Post-acquisition readiness records use explicit `execution` status.
 `completed` requires digest-bound local files and the exact Work/branch planting
-record. Completed, deferred and blocked entries remain in history and are not
+record. Additional versions name an already known Work in `existing_record_refs`,
+with the same digest and planting checks; they cannot also declare that Work
+new in `create_record_refs`. Completed, deferred and blocked entries remain in history and are not
 silently proposed for acquisition again. Absence of execution status preserves
 the existing pending/chronological behavior.

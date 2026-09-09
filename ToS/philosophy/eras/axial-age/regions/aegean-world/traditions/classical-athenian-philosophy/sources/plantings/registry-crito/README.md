@@ -25,3 +25,7 @@ The Crito Ancient Greek edition is one exact work within the branch Scaife/Perse
 - Dialogue speakers are not automatically assertions of Plato; dramatic voice, chronology and doctrinal confidence remain unassessed.
 - Only this edition of this work is planted; translations, other editions, remaining Plato and Aristotle works stay open.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-crito-english/README.md). Shared Work identity does not establish edition dependence or alignment.

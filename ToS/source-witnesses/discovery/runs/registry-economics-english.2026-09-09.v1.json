@@ -1,0 +1,491 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+  "schema_version": "tos_material_discovery_record_v1",
+  "discovery_id": "tos.discovery.registry-economics-english.2026-09-09.v1",
+  "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+  "target": {
+    "target_kind": "expression",
+    "known_tos_refs": [
+      "tos.work.aristotle.economics",
+      "tos.expression.aristotle.economics.en-perseus-tlg0086-tlg029-perseus-eng2",
+      "tos.edition.aristotle.economics.en-perseus-tlg0086-tlg029-perseus-eng2.perseus-341e309c821d",
+      "tos.item.aristotle.economics.en-perseus-tlg0086-tlg029-perseus-eng2.perseus-341e309c821d.git-tei-xml"
+    ],
+    "description": "English translation urn:cts:greekLit:tlg0086.tlg029.perseus-eng2. Aristotle. Metaphysics; Oeconomica and Magna Moralia. Armstrong, George Cyril, translator. London: William Heinemann Ltd.; Cambridge, MA: Harvard University Press, 1935 (printing). Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: The Metaphysics; The Oeconomica and The Magna Moralia Aristotle George Cyril Armstrong William Heinemann Ltd. London Harvard University Press Cambridge, MA 1935 Loeb Classical Library Internet Archive",
+    "required_properties": [
+      "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+      "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+      "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+      "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+      "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+      "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+      "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+      "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+      "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+      "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+      "Upstream CTS metadata labels this English translation grc; the contradictory label remains retained, while the actual TEI translation envelope and source-visible English opening support the en Expression. No upstream bytes were corrected.",
+      "exact pinned provider version and immutable local file identity"
+    ],
+    "acceptable_substitutions": [],
+    "languages": [
+      "en"
+    ],
+    "formats": [
+      "application/tei+xml"
+    ],
+    "purpose_ref": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/manifest.json"
+  },
+  "channels": [
+    {
+      "channel_id": "channel-economics-english-metadata-1",
+      "sequence": 1,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+      "queried_at": "2026-09-09T05:48:58.657137+00:00",
+      "elapsed_seconds": 0.28683378199639264,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-metadata-1",
+          "rank": 1,
+          "title_as_displayed": "perseus-README.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/README.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "9733e53be0cb9adf77c1e3359fffc81911bbf0dc17b9095b3912768b1a663275",
+            "reason": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/perseus-README.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-2",
+      "sequence": 2,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+      "queried_at": "2026-09-09T05:48:58.657532+00:00",
+      "elapsed_seconds": 0.30525029400450876,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-metadata-2",
+          "rank": 1,
+          "title_as_displayed": "perseus-license.md",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/license.md",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "ccf0e8ce183761bf82700126cc45a4e907b2cede024e65e3fef5c2338b9b7063",
+            "reason": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/perseus-license.md"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-3",
+      "sequence": 3,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/__cts__.xml",
+      "queried_at": "2026-09-09T05:49:07.973246+00:00",
+      "elapsed_seconds": 0.2697612539996044,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-metadata-3",
+          "rank": 1,
+          "title_as_displayed": "tlg0086-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "73f2e4b8660e1ac0620ea02b494adcb2bc368bbe3237ab4b59e10c131095c24b",
+            "reason": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/tlg0086-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-4",
+      "sequence": 4,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/__cts__.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/__cts__.xml",
+      "queried_at": "2026-09-09T05:49:08.430168+00:00",
+      "elapsed_seconds": 0.24778131600032793,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-metadata-4",
+          "rank": 1,
+          "title_as_displayed": "tlg0086.tlg029-cts.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/__cts__.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/__cts__.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/__cts__.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "369e65807adfbabaf09803a7ec286a53a9dc23cb5abad2c142dce3a60adb5fe5",
+            "reason": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/tlg0086.tlg029-cts.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-5",
+      "sequence": 5,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "queried_at": "2026-09-09T06:03:04.920335+00:00",
+      "elapsed_seconds": 0.48222180000448134,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-metadata-5",
+          "rank": 1,
+          "title_as_displayed": "tlg0086.tlg029.perseus-eng2-body-prefix.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "0ba951eebd00a361a3382423dc3a7d7075cad122263f4c013c0b46843b114e12",
+            "reason": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/tlg0086.tlg029.perseus-eng2-body-prefix.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-6",
+      "sequence": 6,
+      "channel_type": "specialized-scholarly-project",
+      "role": "originating-record",
+      "source_name": "PerseusDL/canonical-greekLit upstream metadata/license evidence",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "interface_type": "web",
+      "interface_version": "pinned repository metadata or dated official page",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "queried_at": "2026-09-09T05:49:08.408787+00:00",
+      "elapsed_seconds": 0.24975498599815182,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-metadata-6",
+          "rank": 1,
+          "title_as_displayed": "tlg0086.tlg029.perseus-eng2-header.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+          "originating_record_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+          "identifiers": [],
+          "available_formats": [
+            "metadata/license evidence"
+          ],
+          "declared_rights": {
+            "statement": "Separate exact-provider statements are retained in the source rights record.",
+            "scope": "unknown",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "metadata-only",
+          "machine_interface": "html",
+          "decision": "needs-reconciliation",
+          "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+          "acquisition": {
+            "downloaded": false,
+            "acquired_at": null,
+            "byte_size": null,
+            "sha256": null,
+            "event_ref": null
+          },
+          "snapshot": {
+            "state": "captured",
+            "format": "static-snapshot",
+            "sha256": "009cc0b686817e1e09f5fe2cd440a5a133c6191688e18e7f85b9842f3030ec53",
+            "reason": "ToS/source-witnesses/discovery/registry-fourth-planting-2026-09-09/evidence/tlg0086.tlg029.perseus-eng2-header.xml"
+          }
+        }
+      ]
+    },
+    {
+      "channel_id": "channel-economics-english-file-7",
+      "sequence": 7,
+      "channel_type": "specialized-scholarly-project",
+      "role": "digital-object-record",
+      "source_name": "PerseusDL/canonical-greekLit",
+      "endpoint_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "interface_type": "bulk",
+      "interface_version": "341e309c821d5eca8c976bebca77c28b10bad58f",
+      "exact_query": "GET https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "queried_at": "2026-09-09T06:15:16.424656+00:00",
+      "elapsed_seconds": 0.3436084220011253,
+      "result_order_preserved": true,
+      "results": [
+        {
+          "result_id": "tos-discovery-result.registry-economics-english-file-7",
+          "rank": 1,
+          "title_as_displayed": "tlg0086.tlg029.perseus-eng2.xml",
+          "result_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+          "originating_record_url": "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+          "identifiers": [
+            {
+              "scheme": "Git commit",
+              "value": "341e309c821d5eca8c976bebca77c28b10bad58f"
+            },
+            {
+              "scheme": "Git blob SHA-1",
+              "value": "da5ef839eef95312e0cdae31f6fb9817aa7c1976"
+            }
+          ],
+          "available_formats": [
+            "application/tei+xml"
+          ],
+          "declared_rights": {
+            "statement": "Provider license evidence is assessed separately in the exact Item rights record.",
+            "scope": "digital-object",
+            "evidence_url": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+            "tos_conclusion": "evidence-only-not-a-rights-conclusion"
+          },
+          "availability": "open-download",
+          "machine_interface": "bulk-data",
+          "decision": "select",
+          "rationale": "Exact prepared version, size and Git blob matched; local SHA-256 and parsing/coverage were observed.",
+          "acquisition": {
+            "downloaded": true,
+            "acquired_at": "2026-09-09T06:15:16.768265+00:00",
+            "byte_size": 85271,
+            "sha256": "94db9f9b0f009fdc8d27dea0316dac571723d2636a847e8d4162d19b9e33369d",
+            "event_ref": "tos.event.acquisition.registry-20260909.economics-english"
+          },
+          "snapshot": {
+            "state": "not-needed",
+            "format": null,
+            "sha256": null,
+            "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."
+          }
+        }
+      ]
+    }
+  ],
+  "channel_comparison": [
+    {
+      "channel_id": "channel-economics-english-metadata-1",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.28683378199639264,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-2",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.30525029400450876,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-3",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.2697612539996044,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-4",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24778131600032793,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-5",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.48222180000448134,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-economics-english-metadata-6",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.24975498599815182,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    },
+    {
+      "channel_id": "channel-economics-english-file-7",
+      "completeness": "adequate",
+      "metadata_precision": "strong",
+      "rights_clarity": "adequate",
+      "machine_interface_quality": "strong",
+      "human_minutes": 0,
+      "machine_seconds": 0.3436084220011253,
+      "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."
+    }
+  ],
+  "selected_result_ids": [
+    "tos-discovery-result.registry-economics-english-file-7"
+  ],
+  "rejected_result_ids": [],
+  "rights_inference_from_availability_prohibited": true,
+  "general_web_search_is_last_resort": true,
+  "technical_access_bypass_used": false,
+  "maker": {
+    "maker_type": "mixed",
+    "agent_ref": "model:codex"
+  },
+  "started_at": "2026-09-09T05:48:58.657137+00:00",
+  "ended_at": "2026-09-09T06:15:16.768265+00:00",
+  "status": "reconciled",
+  "provenance_event_refs": [
+    "tos.event.discovery.registry-20260909.economics-english",
+    "tos.event.acquisition.registry-20260909.economics-english"
+  ],
+  "record_version": 1,
+  "supersedes_discovery_ref": null
+}

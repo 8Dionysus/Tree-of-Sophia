@@ -26,3 +26,7 @@ Exact De Defectu Oraculorum Greek edition within the reviewed Плутарх sou
 - Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
 - The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-de-defectu-oraculorum-english/README.md). Shared Work identity does not establish edition dependence or alignment.

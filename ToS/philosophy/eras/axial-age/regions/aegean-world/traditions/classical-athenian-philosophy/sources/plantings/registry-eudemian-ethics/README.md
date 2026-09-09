@@ -26,3 +26,7 @@ Exact Eudemian Ethics Greek edition within the reviewed Scaife Viewer / Perseus 
 - Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
 - Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-eudemian-ethics-english/README.md). Shared Work identity does not establish edition dependence or alignment.
