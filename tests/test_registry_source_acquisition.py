@@ -466,6 +466,58 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
             with self.subTest(altered=altered), self.assertRaises(ValueError):
                 acquisition.inspect_payloads(target, altered)
 
+    def test_bilara_translation_is_bound_to_language_role_file_and_sutta(self) -> None:
+        target = {"slug": "dn1-english", "language": "en", "expression_role": "translation",
+                  "coverage": {"kind": "bilara-translation", "uid": "dn1", "file_count": 1}}
+        body = b'{"dn1:0.1":"Long Discourses 1", "dn1:1.1":"Thus have I heard.", "dn1:1.2":""}'
+        entry = {"basename": "dn1_translation-en-sujato.json"}
+        result = acquisition.inspect_payloads(target, [(entry, body)])
+        self.assertEqual(result["unique_segment_count"], 3)
+        self.assertEqual(result["files"][0]["nonempty_segment_count"], 2)
+        self.assertFalse(result["source_bytes_changed"])
+        self.assertFalse(result["textual_acceptance"])
+        for changes in ({"language": "pli"}, {"language": None}, {"expression_role": "source_language"},
+                        {"expression_role": None}, {"coverage": {**target["coverage"], "uid": "dn2"}},
+                        {"coverage": {**target["coverage"], "file_count": 2}},
+                        {"coverage": {**target["coverage"], "file_count": True}}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                acquisition.inspect_payloads({**target, **changes}, [(entry, body)])
+        for basename in ("dn1_root-pli-ms.json", "dn1_translation-en-bodhi.json", "dn1_translation-de-sujato.json"):
+            with self.subTest(basename=basename), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": basename}, body)])
+        for bodies in ([], [(entry, body), (entry, body)]):
+            with self.subTest(file_count=len(bodies)), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, bodies)
+
+    def test_bilara_translation_rejects_wrong_segments_and_ambiguous_json(self) -> None:
+        target = {"slug": "dn1-english", "language": "en", "expression_role": "translation",
+                  "coverage": {"kind": "bilara-translation", "uid": "dn1", "file_count": 1}}
+        for body in (b'{"dn10:1":"Other sutta"}', b'{"dn1":"Missing segment"}',
+                     b'{"dn1:":"Empty segment"}', b'{"dn1:1":"A", "dn1:1":"B"}',
+                     b'{"dn1:1":1}', b'{"dn1:1":"  "}', b'{}', b'[]'):
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "dn1_translation-en-sujato.json"}, body)])
+
+    def test_bilara_reviewed_opening_binds_both_source_profiles(self) -> None:
+        body = b'{"dn1:0.1":"Heading", "dn1:1":"Text"}'
+        prefix = body[:20]
+        for kind, suffix in (("bilara-root", "root-pli-ms"), ("bilara-translation", "translation-en-sujato")):
+            coverage = {"kind": kind, "uid": "dn1", "file_count": 1,
+                        "reviewed_body_prefix_bytes": len(prefix), "reviewed_body_prefix_sha256": acquisition.sha256(prefix)}
+            target = {"slug": "dn1", "language": "pli" if kind == "bilara-root" else "en",
+                      "expression_role": "source_language" if kind == "bilara-root" else "translation", "coverage": coverage}
+            entry = {"basename": "dn1_" + suffix + ".json"}
+            with self.subTest(kind=kind):
+                acquisition.inspect_payloads(target, [(entry, body)])
+                # A changed reviewed heading fails even though its JSON/UID remain valid.
+                with self.assertRaisesRegex(ValueError, "opening differs"):
+                    acquisition.inspect_payloads(target, [(entry, body.replace(b"Heading", b"Changed"))])
+                for length in (None, 0, True, len(body) + 1):
+                    with self.subTest(length=length), self.assertRaises(ValueError):
+                        acquisition.inspect_payloads({**target, "coverage": {**coverage, "reviewed_body_prefix_bytes": length}}, [(entry, body)])
+                with self.assertRaises(ValueError):
+                    acquisition.inspect_payloads({**target, "coverage": {k: v for k, v in coverage.items() if k != "reviewed_body_prefix_sha256"}}, [(entry, body)])
+
     def test_oraec_components_cannot_be_flattened_into_one_source_language(self) -> None:
         target = {"slug": "egyptian-example", "coverage": {"kind": "oraec-composition"},
                   "ids": {"expression": "tos.expression.example.egy", "translation_expression": "tos.expression.example.de"}}
