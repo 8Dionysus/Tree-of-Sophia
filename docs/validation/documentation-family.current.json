@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 7260,
+    "tracked_surface_count": 7262,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 2330,
+    "excluded_tracked_path_count": 2331,
     "human_scope": {
-      "bytes": 6835742,
-      "count": 1297,
+      "bytes": 6837457,
+      "count": 1298,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 5636322,
-          "count": 1005,
-          "lines": 84794
+          "bytes": 5638037,
+          "count": 1006,
+          "lines": 84803
         }
       },
-      "lines": 106141
+      "lines": 106150
     },
     "surface_kind_counts": {
       "executable": 299,
-      "human": 1297,
-      "structured": 5664
+      "human": 1298,
+      "structured": 5665
     },
-    "tracked_path_count": 9590,
-    "tracked_surface_count": 7260,
+    "tracked_path_count": 9593,
+    "tracked_surface_count": 7262,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 36,
-        "human": 1005,
-        "structured": 5587
+        "human": 1006,
+        "structured": 5588
       },
-      "tracked_surface_bytes": 342028398,
-      "tracked_surface_count": 6628
+      "tracked_surface_bytes": 342032182,
+      "tracked_surface_count": 6630
     },
     {
       "family_id": "access",
@@ -231,7 +231,7 @@
         "executable": 124,
         "human": 2
       },
-      "tracked_surface_bytes": 4069453,
+      "tracked_surface_bytes": 4070189,
       "tracked_surface_count": 126
     },
     {
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1960735,
+      "tracked_surface_bytes": 1961157,
       "tracked_surface_count": 70
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "1ae2124dceab33cf4ad028d9529f83924cd2494034f26948dda34b64d9e53d3f",
+  "tracked_surface_digest": "4286a81861191a21da5b78311db468f5c2bb79015921e7226953f98e32bfe88d",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -3119,11 +3119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 66394596,
+      "bytes": 66395516,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "980f8f4534210f1ab693ef57e6eba64e4a73e95e59d7008033a4a4c521bb9ef8",
+      "sha256": "af3226277ab42998403a9703097c068a0db473edd082c379c1c2ba195a32cb94",
       "surface_kind": "structured"
     },
     {
@@ -27575,6 +27575,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 1715,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/SOURCE_FORMAT_FOLLOWUP.md",
+      "sha256": "dff890f0f53ff9bc540a3f8d9b6a4bd77ee687b1f4ea6fb2e9c3169a303f1b0b",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 2334,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -27751,11 +27759,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5836,
+      "bytes": 6373,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/execution/plant_sixth_wave.py",
-      "sha256": "b50e583aeb2bfbe78c3e810910a416332cab4cd27607b95d871544206a9f8f11",
+      "sha256": "6ceb9b4168013b3730d7a8061bd688131633938b73c05d1ac6a63fd619b5df4e",
       "surface_kind": "executable"
     },
     {
@@ -27788,6 +27796,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/manifest.json",
       "sha256": "059cb8f3f289c3f1b65261c2bce826dd28e1fbc16cd8ec6475d8c58a1740b712",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 612,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/preparation-checkpoint-receipt.json",
+      "sha256": "1937f5e40cc99c1abfe4e12db5ea720a3311e694d30e0c0190c0d0ae041a5229",
       "surface_kind": "structured"
     },
     {
@@ -56767,11 +56783,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 53582,
+      "bytes": 54318,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/acquire_registry_sources.py",
-      "sha256": "c6f4d98199f6daf359e26934c9e5d2fe5dcbfb35f3493989d11678e4ebc76fa9",
+      "sha256": "0f0d950d6d1d8f09a0d711f221feada9106658d015d33a306b1af878c0880c03",
       "surface_kind": "executable"
     },
     {
@@ -58087,11 +58103,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 24558,
+      "bytes": 24980,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_registry_source_acquisition.py",
-      "sha256": "b7e70369e84975d657103325926307a3ba7c35d26f11f940242fa07cd07a7262",
+      "sha256": "d9f9e078c5e7d1c8013ada010ddaad29dd6d4be6a4319156c83431796097b4f5",
       "surface_kind": "executable"
     },
     {

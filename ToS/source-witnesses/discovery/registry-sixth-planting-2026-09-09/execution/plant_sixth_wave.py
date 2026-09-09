@@ -15,6 +15,9 @@ for target in manifest['targets']:
  correction=(json.loads(correction_path.read_text()).get('targets',{}).get(target['slug'],{}) if correction_path.exists() else {})
  version_description=correction.get('corrected_version_description',target['version_description'])
  extra_limits=correction.get('limits',[])
+ observations=json.loads((root/target['paths']['item_root']/'forensic-observations.json').read_text())
+ repeated=observations['files'][0].get('repeated_section_markers',[])
+ if repeated: extra_limits.append('The supplied source repeats logical section numbering: '+json.dumps(repeated,ensure_ascii=False)+'. Occurrence-qualified markers distinguish physical locations without correcting the source or establishing CTS passage identity.')
  plan=plans[target['branch_target_slug']]; anchor=plan['anchor_preparation']; a=anchor['source_backlog_anchor']
  current=prepare_anchor(root,atlas_row_id=anchor['atlas_row_id'],source_table_index=a['source_table_index'],source_row_index=a['source_row_index'],source_label=a['source_label'])
  if current['backlog_row_sha256']!=anchor['backlog_row_sha256']: raise ValueError('backlog changed')
@@ -34,7 +37,7 @@ for target in manifest['targets']:
  parallel=dict(target['parallel_source']); parallel['reading_route']=str((branch/'sources/plantings'/('registry-'+target['work_slug'])/'README.md').relative_to(root))
  lines+=['## Parallel Latin version','', '- [Latin version and owner records]('+link(parallel['reading_route'])+')','']
  for p in parallel['files']: lines.append('- [Latin source file]('+link(p)+')')
- lines+=['','Shared Work identity does not establish exact edition dependence or textual alignment.','']
+ lines+=['','Shared Work identity does not establish exact edition dependence or textual alignment.','', '[Source marker review]('+link(str((base/'SOURCE_FORMAT_FOLLOWUP.md').relative_to(root)))+').','']
  (out/'README.md').write_text('\n'.join(lines))
  latin=root/parallel['reading_route']; prior=latin.read_text(); marker='## English translation added 2026-09-09'
  if marker not in prior:
