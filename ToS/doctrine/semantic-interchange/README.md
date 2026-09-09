@@ -614,6 +614,11 @@ The catalog, graph, ordinary semantic catalog and inspection expose the same
 declaration and source ref. A new predicate in this reader is data in the
 relation registry and its source schema, not another Python predicate branch.
 
+Version 34 adds the existing Collection-to-Work `contains_work` relation to
+this declared reader. Introduction is still restricted to the independently
+delegated Collection membership compound; readable profile support does not
+permit standalone writes or accept the membership account.
+
 | Predicate | Subject → object | Distinction retained |
 | --- | --- | --- |
 | `correspondence_sender` | Letter → Agent/Organization | sender is not automatically author, courier or copyist |

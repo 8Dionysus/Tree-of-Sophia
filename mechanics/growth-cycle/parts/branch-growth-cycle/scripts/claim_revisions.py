@@ -224,6 +224,11 @@ def _scope(config, request, record, *, profiles=None):
         # A replay checks current qualification, not a second application of an
         # earlier correction. Proposal construction below validates its successor.
         validate_qualified_translator_claim(record)
+    if record.get('predicate') == 'contains_work':
+        from source_collection_commands import verify_compound
+        from source_bibliographic_topology import validate_qualified_membership_claim
+        verify_compound(Path(config['source_root']), config['source_path'], record)
+        validate_qualified_membership_claim(record)
     if config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG:
         _layer_transition(request['layer_transition'])
         if (set(fields) != {'assertion_layer'}
@@ -274,6 +279,10 @@ def _proposal(config, path, files, record, request):
         from source_bibliographic_responsibility import validate_qualified_translator_claim
         from source_responsibility_commands import IMPLEMENTATIONS as responsibility_implementations
         validate_qualified_translator_claim(revised)
+    if record.get('predicate') == 'contains_work':
+        from source_bibliographic_topology import validate_qualified_membership_claim
+        from source_collection_commands import IMPLEMENTATIONS as responsibility_implementations
+        validate_qualified_membership_claim(revised)
     from source_claim_commands import _ground_claims
     _, grounding, bindings = _ground_claims(config, [revised], initial=False)
     dependencies = source._digest(source._canonical({'grounding': grounding,

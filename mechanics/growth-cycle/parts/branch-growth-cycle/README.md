@@ -1601,9 +1601,13 @@ do not create an author, Expression, publication date, Edition or Item.
 The existing `works/friedrich-nietzsche/` source home has stronger authorship
 and chronology closure and is refused by this standalone Work route; that
 source-home rule is not weakened to accommodate a new metadata record.
-Expression, Edition, Collection, Item and physical Artifact are not created
-by this route. They need their existing source contracts and related-record
-closure in a multi-subject creation transaction.
+Version 1 does not create Expression, Edition, Collection, Item or physical
+Artifact. Version 2 (`tos_local_corpus_create_owner_v2`) additionally creates
+an empty provisional Collection; it does not add membership or publication
+assertions. Its independently delegated
+[Collection growth route](docs/NATIVE_COLLECTION_GROWTH.md) attaches an existing
+Work through a qualified `contains_work` Claim. Other native kinds retain their
+own source contracts and related-record closure.
 Relationship assertions use separately delegated `claims.create`; a label,
 role word or metadata creation receipt cannot supply them.
 

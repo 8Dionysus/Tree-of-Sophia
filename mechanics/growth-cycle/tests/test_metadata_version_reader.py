@@ -80,7 +80,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
     @contextmanager
     def family(self, kind):
         fixture = (fixtures.NativeSourceRevisionTests() if kind in reader.NATIVE_CATALOGS else
-                   fixtures.ProfileSourceRevisionTests() if kind in {'letter', 'lexeme'} else fixtures.SourceRevisionTests())
+                   fixtures.ProfileSourceRevisionTests() if kind in {'letter', 'lexeme', 'sense'} else fixtures.SourceRevisionTests())
         fixture.setUp()
         try:
             oldpath, oldforms = fixture.path, fixture.formpath
@@ -90,7 +90,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
             fixture.record.update(record_type=kind, record_id='tos.' + kind + '.revision-fixture')
             if kind == 'work':
                 fixture.record['expression_claim_refs'] = []
-            if kind == 'lexeme':
+            if kind in {'lexeme', 'sense'}:
                 for name in ('semantic-description-record', 'lexical-description-record'):
                     ref = 'ToS/contracts/' + name + '.schema.json'
                     (fixture.root / ref).write_bytes((ROOT / ref).read_bytes())
@@ -103,7 +103,13 @@ class MetadataVersionReaderTests(unittest.TestCase):
                     semantic_content={'lexical_account': 'A synthetic lexical account.',
                         'grammatical_account': 'No observed linguistic evidence.', 'language': 'en', 'script': 'Latn',
                         'uninterpreted': [None, False, 0, '', {'qualification': 'not an instruction'}]})
-                fixture.config['profile_type_id'] = 'tos.entity.lexeme'
+                fixture.config['profile_type_id'] = 'tos.entity.lexical-sense' if kind == 'sense' else 'tos.entity.lexeme'
+                if kind == 'sense':
+                    fixture.record['semantic_content'] = {
+                        'sense_account': 'One synthetic proposed reading, not an accepted definition.',
+                        'interpretation_context': 'Only this exact synthetic reader fixture.',
+                        'semantic_range': 'No source-language generalization is claimed.',
+                        'language': 'en', 'script': 'Latn'}
             fixture.path.write_bytes(revisions._encode(fixture.record))
             changes = [source.prepare_metadata_change(fixture.record, None, 'test:synthetic-author', **selection)
                        for selection in fixture.selections]
@@ -120,6 +126,21 @@ class MetadataVersionReaderTests(unittest.TestCase):
             yield fixture
         finally:
             fixture.doCleanups()
+
+    def test_typed_descriptor_uses_exact_registry_mapping_not_an_identity_prefix(self):
+        with self.family('sense') as fixture:
+            result = reader.MetadataVersionReader(fixture.root).resolve_typed(reader._record_ref(fixture.record))
+            self.assertEqual(result['status'], 'available', result)
+            self.assertEqual(result['descriptor']['record_type'], 'sense')
+            self.assertEqual(result['descriptor']['type_id'], 'tos.entity.lexical-sense')
+        registry_path = self.root / reader.REGISTRY_REF
+        registry = json.loads(registry_path.read_bytes())
+        entry = next(entry for entry in registry['types'] if entry['type_id'] == 'tos.entity.agent')
+        entry['source_mappings'] = [mapping for mapping in entry['source_mappings']
+                                   if mapping.get('source_graph') != 'source-navigation']
+        registry_path.write_bytes(source._canonical(registry))
+        self.assertNotEqual(reader.MetadataVersionReader(self.root).resolve_typed(
+            reader._record_ref(self.record))['status'], 'available')
 
     def test_current_native_record_is_lossless_without_commands_private_readers_or_companions(self):
         companion = self.path.parent / 'unrecognized.json'

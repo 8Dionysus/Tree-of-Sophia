@@ -580,6 +580,11 @@ def _native_responsibility_claims(repo_root, issues):
     return _native_compound_claims(repo_root, issues, 'translated_by', verify_compound)
 
 
+def _native_membership_claims(repo_root, issues):
+    from source_collection_commands import verify_compound
+    return _native_compound_claims(repo_root, issues, 'contains_work', verify_compound)
+
+
 def _validate_required_provenance_output_digests(
     repo_root: Path,
     event: dict[str, Any],
@@ -14359,6 +14364,7 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
             )
 
     membership_claim_ids: set[str] = set()
+    membership_claims: list[dict[str, Any]] = []
     responsibility_claim_ids: set[str] = set()
     responsibility_claim_subjects: dict[str, str] = {}
     responsibility_claim_predicates: dict[str, str] = {}
@@ -14377,6 +14383,7 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
             for index, claim in enumerate(_load_jsonl(claim_path, repo_root, issues), start=1):
                 location = f"{_relative(claim_path, repo_root)}:{index}"
                 _validate_payload(claim, claim_validator, location, issues)
+                membership_claims.append(claim)
                 claim_id = claim.get("claim_id")
                 if isinstance(claim_id, str):
                     if claim_id in claim_ids:
@@ -14397,6 +14404,12 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
                     elif isinstance(evidence_ref, str) and evidence_ref.startswith("ToS/"):
                         if not (repo_root / evidence_ref).is_file():
                             issues.append((location, f"unresolved repository evidence ref: {evidence_ref}"))
+
+    for location, claim, event in _native_membership_claims(repo_root, issues):
+        membership_claim_ids.add(claim['claim_id'])
+        membership_claims.append(claim)
+        require_record(claim.get('subject_ref'), 'collection', location)
+        require_record(claim.get('object'), 'work', location)
 
     responsibility_predicate_subject_types = {
         "authored_by": {"work"},
@@ -15209,9 +15222,14 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
 
     for payload, path in (value for value in records_by_id.values() if value[0].get("record_type") == "collection"):
         location = _relative(path, repo_root)
-        missing = sorted(set(payload.get("membership_claim_refs", [])) - membership_claim_ids)
-        if missing:
-            issues.append((location, f"unresolved membership claims: {missing}"))
+        from source_bibliographic_topology import validate_collection_membership_closure
+        try:
+            validate_collection_membership_closure(payload,
+                {identity: record for identity, (record, _) in records_by_id.items()
+                 if record.get('record_type') == 'work'},
+                [claim for claim in membership_claims if claim.get('subject_ref') == payload.get('record_id')])
+        except ValueError as error:
+            issues.append((location, f"unresolved or mismatched membership claims: {error}"))
 
     for payload, path in (
         value

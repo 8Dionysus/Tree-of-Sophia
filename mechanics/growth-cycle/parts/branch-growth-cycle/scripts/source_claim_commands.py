@@ -114,7 +114,7 @@ def _scope(config, claims, *, profiles=None):
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
-        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'embodied_by', 'exemplified_by', 'translated_by'}:
+        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'embodied_by', 'exemplified_by', 'translated_by', 'contains_work'}:
             # A readable Claim profile is not a standalone writer grant. This
             # predicate changes its parent's exact outgoing closure and belongs
             # to the separately authorized compound bibliographic operation.
@@ -234,7 +234,7 @@ def _ground_claims(config, claims, *, initial):
                 # independent allowed_evidence_refs, not source prose.
                 os.close(source._owned_path(root / relative))
                 source._read(root / relative, source.MAX_SET_BYTES)
-            if (not initial and claim.get('predicate') == 'translated_by'
+            if (not initial and claim.get('predicate') in {'translated_by', 'contains_work'}
                     and ref.split(':', 1)[0].lower() in {'http', 'https'}):
                 entry = next((entry for entry in prior_claims if entry['claim_id'] == claim['claim_id']), None)
                 if entry is None or entry['source_claim_file_ref'] != config['source_path']:

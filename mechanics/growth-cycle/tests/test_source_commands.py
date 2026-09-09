@@ -545,12 +545,12 @@ class SourceCommandTests(unittest.TestCase):
 
 class HistoricalCreationTests(unittest.TestCase):
     @contextmanager
-    def native_creation(self, kind='agent'):
+    def native_creation(self, kind='agent', *, schema_version='tos_local_corpus_create_owner_v1'):
         with self.creation() as (root, owner, config, request, rebuild, fixture):
             contract = 'ToS/contracts/provenance-event-v2.schema.json'
             (root / contract).write_bytes((ROOT / contract).read_bytes())
             config.pop('allowed_claim_ids')
-            config.update(schema_version='tos_local_corpus_create_owner_v1', record_type=kind,
+            config.update(schema_version=schema_version, record_type=kind,
                 record_id=f'tos.{kind}.synthetic-native-create',
                 source_path=f'ToS/source-witnesses/{kind}s/synthetic-native-create/{kind}.json',
                 allowed_operations=['source.create'], provenance_event_id=f'tos.event.synthetic-create-{kind}')
@@ -561,6 +561,8 @@ class HistoricalCreationTests(unittest.TestCase):
                           preferred_label=f'Синтетический {kind}; не исторический факт')
             if kind == 'work':
                 source['expression_claim_refs'] = []
+            if kind == 'collection':
+                source['membership_claim_refs'] = []
             request.pop('claims')
             context = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
             request.update(operation='source.create', record=source, expected_configuration=context['owner_configuration'])
@@ -568,6 +570,24 @@ class HistoricalCreationTests(unittest.TestCase):
                 'operation': 'prepare-create', **{key: request[key] for key in ('record', 'forms')}})
             request['expected_dependencies'] = preview['expected_dependencies']
             yield root, owner, config, request, rebuild, fixture
+
+    def test_collection_creation_is_explicitly_versioned_and_cannot_assert_membership(self):
+        with self.assertRaises(PermissionError):
+            with self.native_creation('collection'):
+                self.fail('old creation grant admitted Collection')
+        with self.native_creation('collection', schema_version=commands.CORPUS_COLLECTION_CONFIG) as (
+                root, owner, config, request, rebuild, fixture):
+            for update in ({'membership_claim_refs': ['tos.claim.unverified-member']},
+                           {'identity_status': 'verified'}, {'publication_claim_refs': []},
+                           {'embodies_expression_refs': ['tos.expression.uncreated']}):
+                with self.subTest(update=update), self.assertRaises((PermissionError, ValueError)):
+                    commands.run_local_command(owner, {'schema_version': request['schema_version'],
+                        'operation': 'prepare-create', 'record': {**request['record'], **update}, 'forms': request['forms']})
+            created = commands.run_local_command(owner, request)
+            self.assertFalse(created['receipt']['grants_admission'])
+            self.assertEqual(json.loads((root / config['source_path']).read_bytes()), request['record'])
+            self.assertEqual(request['record']['membership_claim_refs'], [])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
 
     def test_native_creation_rejects_semantic_promotion_and_scope_substitution_without_source_writes(self):
         from jsonschema import ValidationError

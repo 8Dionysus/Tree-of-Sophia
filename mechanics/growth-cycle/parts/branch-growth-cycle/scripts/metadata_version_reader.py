@@ -157,6 +157,14 @@ class MetadataVersionReader:
 
     def _route(self, kind, source_ref=None):
         self._verify_publication()
+        def native_type_id():
+            matches = [entry['type_id'] for entry in self._profile_contract().registry['types']
+                       if any(mapping.get('source_graph') == 'source-navigation'
+                              and mapping.get('source_kind_id') == kind
+                              for mapping in entry.get('source_mappings', []))]
+            if len(matches) != 1:
+                raise source.JournalCorruption('native metadata kind lacks one exact owner-registry mapping')
+            return matches[0]
         if kind in {'artifact', 'link'} or (kind == 'composite' and source_ref is not None
                                            and Path(source_ref).name == 'composite-witness.json'):
             basename, filename, identity = {
@@ -166,10 +174,7 @@ class MetadataVersionReader:
             }[kind]
             # Type existence is an owner-registry fact; a catalog cannot invent
             # a type or substitute an unrelated record shape with the same ID.
-            profiles = self._profile_contract()
-            type_id = 'tos.entity.' + kind
-            if not any(entry['type_id'] == type_id for entry in profiles.registry['types']):
-                raise source.JournalCorruption('native metadata type is absent from its owner registry')
+            type_id = native_type_id()
             return {'record_type': kind, 'id_prefix': 'tos.' + kind + '.',
                     'source_basename': basename, 'catalog_filename': filename,
                     'adapter': 'native-link' if kind == 'link' else 'native-witness',
@@ -177,7 +182,7 @@ class MetadataVersionReader:
         if kind in NATIVE_CATALOGS:
             return {'record_type': kind, 'id_prefix': 'tos.' + kind + '.',
                     'source_basename': kind + '.json', 'catalog_filename': NATIVE_CATALOGS[kind],
-                    'adapter': 'native-corpus', 'identity_field': 'record_id', 'profile_type_id': None}
+                    'adapter': 'native-corpus', 'identity_field': 'record_id', 'profile_type_id': native_type_id()}
         profiles = self._profile_contract()
         profile = profiles.profiles.get(kind)
         if profile is None:
@@ -409,9 +414,12 @@ class MetadataVersionReader:
             attachment = request.get('operation') == 'expression.responsibility.attach'
             embodiment = request.get('operation') == 'expression.edition.create'
             exemplar = request.get('operation') == 'item.adopt'
-            compound = request.get('operation') == 'work.expression.create' or attachment or embodiment or exemplar
+            membership = request.get('operation') == 'collection.work.attach'
+            compound = request.get('operation') == 'work.expression.create' or attachment or embodiment or exemplar or membership
             if compound:
-                if exemplar:
+                if membership:
+                    from source_collection_commands import validate_parent_receipt
+                elif exemplar:
                     from source_item_commands import validate_parent_receipt
                 elif embodiment:
                     from source_edition_commands import validate_parent_receipt
@@ -420,7 +428,7 @@ class MetadataVersionReader:
                 else:
                     from source_expression_commands import validate_parent_receipt
                 validate_parent_receipt(receipt)
-                if route['record_type'] != ('edition' if exemplar else 'expression' if attachment or embodiment else 'work'):
+                if route['record_type'] != ('collection' if membership else 'edition' if exemplar else 'expression' if attachment or embodiment else 'work'):
                     raise source.JournalCorruption('compound history must belong to its declared existing parent')
             else:
                 source._keys(request, {'schema_version', 'operation', 'fields', 'forms', 'reason', 'command_id',
@@ -432,7 +440,7 @@ class MetadataVersionReader:
                                   or request['operation'] != 'record.revise')
                     or not _ref(receipt['source']) or not _ref(request['expected_source'])
                     or not isinstance(request['fields'], dict) or not request['fields']
-                    or not set(request['fields']) <= ({'exemplar_claim_refs'} if exemplar else {'embodiment_claim_refs'} if embodiment
+                    or not set(request['fields']) <= ({'membership_claim_refs'} if membership else {'exemplar_claim_refs'} if exemplar else {'embodiment_claim_refs'} if embodiment
                         else {'responsibility_claim_refs'} if attachment
                         else {'expression_claim_refs'} if compound else allowed_fields)):
                 raise source.JournalCorruption('retained request is not a metadata correction')
@@ -462,7 +470,7 @@ class MetadataVersionReader:
                            'source_schema_version': record['schema_version'], 'source_scope': 'public_metadata_only',
                            'record_kind': 'subject', 'identity_field': route['identity_field'],
                            'source_basename': route['source_basename'], 'schema_version': record['schema_version'],
-                           'schema_ref': schema_ref, 'type_id': 'tos.entity.' + route['record_type']},
+                           'schema_ref': schema_ref, 'type_id': route['profile_type_id']},
             'history': {'source_ref': history_path.relative_to(self.root).as_posix() if history_raw is not None else None,
                         'sha256': source._digest(history_raw) if history_raw is not None else None,
                         'receipt_count': len(history['receipts']), 'retained_record_chain_verified': True,

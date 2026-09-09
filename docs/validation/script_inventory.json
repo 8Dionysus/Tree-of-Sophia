@@ -487,6 +487,32 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_collection_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md",
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/doctrine/HUMAN_FORMS.md",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"
+      ],
+      "reads": [
+        "separate exact Collection/Work/contains_work/Claim/form/evidence delegation and selected catalog-bound current membership closure",
+        "exact existing Work packet/raw bytes and continuous history; retained native compound plans, parent and Claim correction history"
+      ],
+      "writes": [
+        "one selected Collection version and append-only membership ref with form successors and predecessor archive",
+        "one separate new relation Claim home, source-copy statement, immutable request/runtime/provenance/receipt through shared selected publication"
+      ],
+      "side_effects": "native collection.work.attach and explicit current-authority recovery only; competing claims remain distinct; no Work write, old topology stream append, remote source reading, equivalence, admission or expanded flat creation grant",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_collection_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

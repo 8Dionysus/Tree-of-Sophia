@@ -1895,6 +1895,12 @@
     },
     {
       "relation_type_id": "tos.relation.contains-work",
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-relation-v1",
+        "assertion_layers": ["scholarly_report", "bibliographic_assertion"],
+        "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]
+      },
       "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
       "abstract": false,
       "labels": {"default": "contains work", "ru": "содержит произведение", "en": "contains work"},

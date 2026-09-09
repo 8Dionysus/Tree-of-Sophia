@@ -149,6 +149,15 @@ An external evidence URL is a declared citation, not observed remote content:
 its derived occurrence binds the exact local citing Claim and makes no claim
 of source reading, independent corroboration, remote fixity or acceptance.
 
+A provisional Collection may start with no supplied membership assertions.
+The independently delegated
+[Collection growth route](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md)
+attaches an existing Work by publishing one qualified `contains_work` Claim
+and appending only its identity to `membership_claim_refs`. The Work is not
+rewritten. Native and retained legacy Claims must close exactly over current
+Collection refs; competing accounts retain distinct identities. Serialization
+does not establish completeness, membership truth or source assessment.
+
 Source-near semantic descriptions use the explicit
 [concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
 not the bibliographic identity family. Their declared research scope and

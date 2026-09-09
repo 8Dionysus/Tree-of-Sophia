@@ -19,6 +19,57 @@ TOPOLOGY_ROUTES = {
 }
 MAX_ISSUES = 64
 
+def validate_collection_membership_delta(before, after, work, claim):
+    if not all(isinstance(value, dict) for value in (before, after, work, claim)):
+        raise ValueError('membership attachment requires exact source objects')
+    excluded = {'record_version', 'membership_claim_refs'}
+    if (before.get('record_type') != 'collection' or after.get('record_type') != 'collection'
+            or before.get('record_id') != after.get('record_id')
+            or type(before.get('record_version')) is not int or before['record_version'] < 1
+            or type(after.get('record_version')) is not int or after['record_version'] != before['record_version'] + 1
+            or json.dumps({key: value for key, value in before.items() if key not in excluded}, sort_keys=True)
+            != json.dumps({key: value for key, value in after.items() if key not in excluded}, sort_keys=True)):
+        raise ValueError('attachment must preserve every Collection field except exact version and membership append')
+    refs, identity = before.get('membership_claim_refs'), claim.get('claim_id')
+    if (not _refs(refs) or not isinstance(identity, str) or not identity or identity in refs
+            or after.get('membership_claim_refs') != [*refs, identity]):
+        raise ValueError('membership_claim_refs must append exactly one new Claim identity')
+    if (work.get('record_type') != 'work' or claim.get('subject_ref') != before.get('record_id')
+            or claim.get('object') != work.get('record_id') or not isinstance(work.get('record_id'), str)
+            or claim.get('schema_version') != 'tos_source_relation_claim_v1'
+            or claim.get('claim_type') != 'relation' or claim.get('predicate') != 'contains_work'
+            or claim.get('assertion_layer') not in {'bibliographic_assertion', 'scholarly_report'}
+            or type(claim.get('claim_version')) is not int or claim['claim_version'] != 1
+            or claim.get('review_status') != 'unreviewed' or claim.get('assessment_refs', []) != []
+            or claim.get('supersedes_claim_ref') is not None or claim.get('visibility') != 'public_metadata_only'):
+        raise ValueError('attachment requires an unreviewed qualified membership Claim to the existing Work')
+    validate_qualified_membership_claim(claim)
+    if not _refs(claim.get('evidence_refs')) or not claim['evidence_refs']:
+        raise ValueError('membership Claim requires explicit membership evidence, distinct from endpoint bindings')
+
+
+def validate_qualified_membership_claim(claim):
+    qualifiers = claim.get('qualifiers')
+    if (not isinstance(qualifiers, dict) or any(not isinstance(qualifiers.get(key), str) or not qualifiers[key].strip()
+            for key in ('statement', 'statement_language', 'statement_script', 'membership_scope'))):
+        raise ValueError('membership Claim requires explicit statement language/script and membership_scope qualification')
+
+
+def validate_collection_membership_closure(collection, works, claims):
+    """Caller supplies the complete verified current membership union."""
+    identities = set()
+    for claim in claims:
+        identity = claim.get('claim_id')
+        work = works.get(claim.get('object')) if isinstance(claim.get('object'), str) else None
+        if (not isinstance(identity, str) or identity in identities
+                or claim.get('subject_ref') != collection.get('record_id')
+                or claim.get('predicate') != 'contains_work' or work is None or work.get('record_type') != 'work'):
+            raise ValueError('Collection membership union has duplicate identities or mistyped endpoints')
+        identities.add(identity)
+    refs = collection.get('membership_claim_refs')
+    if not _refs(refs) or set(refs) != identities:
+        raise ValueError('Collection membership refs do not close over all verified current Claims')
+
 
 class BibliographicTopologyError(ValueError):
     """Bounded structural issues; never a textual/semantic assessment."""

@@ -46,6 +46,8 @@ PROFILE_CONFIG = 'tos_local_profile_create_owner_v1'
 SIGN_CONFIG = 'tos_local_sign_promote_owner_v1'
 PROFILE_CREATION_CONFIGS = {PROFILE_CONFIG, SIGN_CONFIG}
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
+CORPUS_COLLECTION_CONFIG = 'tos_local_corpus_create_owner_v2'
+CORPUS_CREATION_CONFIGS = {CORPUS_CONFIG, CORPUS_COLLECTION_CONFIG}
 CORPUS_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v1'
 CORPUS_SELECTED_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v2'
 CORPUS_COMPLETE_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v3'
@@ -105,7 +107,7 @@ def _builtin_configuration(config, path):
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
-    corpus_creation = config.get('schema_version') == CORPUS_CONFIG
+    corpus_creation = config.get('schema_version') in CORPUS_CREATION_CONFIGS
     corpus_revision = config.get('schema_version') in {CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS}
     profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
     revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
@@ -123,7 +125,7 @@ def _builtin_configuration(config, path):
           | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -204,6 +206,9 @@ def _builtin_configuration(config, path):
         if not (corpus_creation or corpus_revision):
             profiles, _ = _configured_profile(config)
             profiles.validate_path(profile['record_type'], config['source_path'])
+        if corpus_creation and config['record_type'] == 'collection' and (
+                relative.parts[:3] != ('ToS', 'source-witnesses', 'collections')):
+            raise PermissionError('Collection creation requires its canonical Collection owner home')
         if (corpus_creation and config['record_type'] == 'work'
                 and relative.is_relative_to('ToS/source-witnesses/works/friedrich-nietzsche')):
             raise PermissionError('the Nietzsche Work source home requires its stronger authorship and chronology closure')
@@ -223,6 +228,8 @@ def _configured_corpus_profile(config):
     """
     kind = config.get('record_type')
     allowed = {'agent', 'place', 'organization', 'work'}
+    if config.get('schema_version') == CORPUS_COLLECTION_CONFIG:
+        allowed.add('collection')
     if config.get('schema_version') in CORPUS_SELECTED_REVISION_CONFIGS:
         allowed.add('expression')
     if config.get('schema_version') == CORPUS_COMPLETE_REVISION_CONFIG:
@@ -654,7 +661,7 @@ def _sign_promotion_lock(config):
 
 
 def _initial_source_record(config, source, profiles=None):
-    if config['schema_version'] == CORPUS_CONFIG:
+    if config['schema_version'] in CORPUS_CREATION_CONFIGS:
         profile = _configured_corpus_profile(config)
         from source_record_profiles import METADATA_LINK_FIELDS
         schema = _json_object(_read(Path(config['source_root']) / profile['schema_ref'], MAX_COMMAND_BYTES))
@@ -672,6 +679,13 @@ def _initial_source_record(config, source, profiles=None):
             if source['expression_claim_refs'] != []:
                 raise PermissionError('initial standalone Work cannot assert expression closure')
             link_fields.remove('expression_claim_refs')
+        if profile['record_type'] == 'collection':
+            collection_fields = {'schema_version', 'record_type', 'record_id', 'record_version',
+                'preferred_label', 'variant_labels', 'field_languages', 'identity_status', 'source_refs',
+                'external_identifiers', 'same_as_posture', 'notes', 'supersedes_ref', 'membership_claim_refs'}
+            if set(source) - collection_fields or source.get('membership_claim_refs') != []:
+                raise PermissionError('initial Collection creation cannot assert membership or publication')
+            link_fields.remove('membership_claim_refs')
         if (source['record_type'] != profile['record_type'] or source['record_id'] != config['record_id']
                 or source['record_version'] != 1 or source.get('supersedes_ref') is not None
                 or source['identity_status'] != 'provisional' or source['same_as_posture'] != 'no_equivalence_claim'
@@ -1110,8 +1124,8 @@ def _creation_replay(config, source_path, request, receipt):
 
 
 def _create_source(owner_config, config, configuration, source_path, request):
-    profile_creation = config['schema_version'] in {*PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}
-    corpus_creation = config['schema_version'] == CORPUS_CONFIG
+    profile_creation = config['schema_version'] in {*PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS}
+    corpus_creation = config['schema_version'] in CORPUS_CREATION_CONFIGS
     creation_operation = 'sign.promote' if config['schema_version'] == SIGN_CONFIG else 'source.create' if profile_creation else CREATION_OPERATION
     command_handler(config['schema_version']).validate_request(request)
     root, target = Path(config['source_root']), source_path.parent
@@ -1368,10 +1382,10 @@ def _builtin_handlers():
             'Create one public source metadata record supported by an existing declared profile.', contract.RECORD_HANDLES,
             selection='Select profile_type_id in entity-types.v1.json; source_record_profile supplies the exact schema, not a write grant.',
             preconditions=('Sign requires the separate sign.promote handler and cannot use this generic route.',)),
-        creator('native-corpus-create', (CORPUS_CONFIG,), 'source.create',
-            'Create one provisional standalone Agent, Place, Organization or initial Work.',
+        creator('native-corpus-create', sorted(CORPUS_CREATION_CONFIGS), 'source.create',
+            'Create one provisional standalone native identity; version 2 adds an empty Collection.',
             ('ToS/contracts/corpus-record.schema.json',),
-            selection='Explicit record_type is agent, place, organization or work; no Expression/Edition or role-subclass creation.',
+            selection='Version 1: agent, place, organization, work. Version 2 additionally allows collection with no membership assertions; no Expression/Edition or role-subclass creation.',
             preconditions=('The Nietzsche Work home retains its stronger authorship and chronology route.',)),
         creator('sign-promotion', (SIGN_CONFIG,), 'sign.promote',
             'Issue a Sign source identity from an independently assessed eligible exact candidate.',
@@ -1397,10 +1411,12 @@ def command_handlers():
     import source_responsibility_commands
     import source_edition_commands
     import source_item_commands
+    import source_collection_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions, source_native_metadata_commands,
         source_text_unit_commands, source_text_layer_commands, source_owner_profile_commands, source_owner_claim_commands,
-        source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands)
+        source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands,
+        source_collection_commands)
         for handler in module.command_handlers()))
     schemas = [schema for handler in handlers for schema in handler.owner_schemas]
     if len(set(schemas)) != len(schemas) or len({handler.handler_id for handler in handlers}) != len(handlers):

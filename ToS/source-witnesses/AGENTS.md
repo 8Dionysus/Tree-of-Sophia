@@ -97,6 +97,11 @@ evidence.
   verified native attachments. Native `translated_by` uses a separate Claim home
   and exact Expression append, never the immutable `has_expression` stream.
   Endpoint metadata bindings do not manufacture attribution evidence or review.
+- Keep Collection membership refs in exact closure over retained legacy and
+  verified native `contains_work` Claims. Native attachment appends to the
+  Collection and publishes a separate Claim; the existing Work and legacy
+  membership streams remain unchanged. Empty initial refs are not a claim
+  of historical emptiness or completeness.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
 - Route extraction runtimes, model caches, benchmarks, and large working

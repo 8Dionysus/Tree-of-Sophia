@@ -26,7 +26,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
         schemas = {schema for handler in handlers for schema in handler.owner_schemas}
         self.assertEqual(schemas, {
             'tos_local_source_command_owner_v1', *source.CREATION_CONFIGS,
-            *source.PROFILE_CREATION_CONFIGS, source.CORPUS_CONFIG, source.CLAIM_FORM_CONFIG,
+            *source.PROFILE_CREATION_CONFIGS, *source.CORPUS_CREATION_CONFIGS, source.CLAIM_FORM_CONFIG,
             source.REVISION_CONFIG, source.PROFILE_REVISION_CONFIG, source.CORPUS_REVISION_CONFIG,
             *source.SELECTED_REVISION_CONFIGS, source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG,
             source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG,
@@ -37,6 +37,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
             source.OWNER_CLAIM_CONFIG, source.OWNER_CLAIM_REFERENCE_CONFIG,
             'tos_local_work_expression_owner_v1', 'tos_local_expression_responsibility_owner_v1',
             'tos_local_expression_edition_owner_v1', 'tos_local_item_adoption_owner_v1',
+            'tos_local_collection_membership_owner_v1',
             'tos_local_identity_proposal_create_owner_v1', 'tos_local_identity_proposal_revision_owner_v1'})
         self.assertEqual(len(schemas), sum(len(handler.owner_schemas) for handler in handlers))
         for handler in handlers:
