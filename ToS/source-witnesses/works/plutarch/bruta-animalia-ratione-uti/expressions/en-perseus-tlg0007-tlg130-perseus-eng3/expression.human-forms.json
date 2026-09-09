@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f5717b63222ef1b112152db237c568817eeb5c4824b4cf5acde042540a0a1151",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+        "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+            "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a811e40a757c82666a00c79cfc94fb682db5b966a63010e6cef6690b60509ead",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166",
+        "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:2ba8a204c05d5eb1f5a0dd1d2a1a0734315b153d67715ad005c662f00cb41a0d",
+      "request_digest": "sha256:c354a807af0337e882dc4936063c33107abfd8abfaf1b93bf1b72abe73033769",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:b246938816042cc307188ec793283eabf3cdc415c5ad73c7798ab11c2a8d8c79",
+      "recorded_at": "2026-09-09T18:35:31.171813+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.bruta-animalia-ratione-uti.en-perseus-tlg0007-tlg130-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:b63231b602c80653a129ab0e9797eb98d2b8e069e21dd79e6b91f4773f875166"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.f5717b63222ef1b112152db237c568817eeb5c4824b4cf5acde042540a0a1151",
+          "version": 1,
+          "digest": "sha256:d547ff853295b84e50e374b9f4d65a6a3d4657efcaff0ca1f17f5d05cf8f27e0"
+        },
+        {
+          "id": "tos.form.metadata.a811e40a757c82666a00c79cfc94fb682db5b966a63010e6cef6690b60509ead",
+          "version": 1,
+          "digest": "sha256:fb99804c8ac0d4d075654e5f8ca045eab7946689929c4cfad1971fabe3449785"
+        }
+      ]
+    }
+  ]
+}

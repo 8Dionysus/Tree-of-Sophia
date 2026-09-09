@@ -28,3 +28,7 @@ Exact Bruta animalia ratione uti Greek edition within the reviewed Плутар�
 - Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.
 - The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-bruta-animalia-ratione-uti-english
+
+[English version and source file](../registry-plutarch-bruta-animalia-ratione-uti-english/README.md). Shared Work identity does not establish edition dependence or alignment.

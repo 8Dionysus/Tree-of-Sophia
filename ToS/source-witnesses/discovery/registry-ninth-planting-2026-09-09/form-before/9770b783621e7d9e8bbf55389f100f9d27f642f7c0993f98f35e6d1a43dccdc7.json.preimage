@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.quaestiones-naturales",
+    "version": 1,
+    "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f85760f58573bed29be7064ae2133f4c7ea4fd534e688c7086ab1893ecd7544e",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+        "id": "tos.work.plutarch.quaestiones-naturales",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+            "id": "tos.work.plutarch.quaestiones-naturales",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.db5847d529d042e1d0c9d6074ea8c77c2017f660036842f1675e3daa375c8b7d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6",
+        "id": "tos.work.plutarch.quaestiones-naturales",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:1c053c5a683f313d0d621eae0af1b38e9cfbb1fd6ce42378a300da8a019866a8",
+      "request_digest": "sha256:b73b9aa1ba1fa7ec9d22af350259d5c1d8e89e20bdfd1d50b75cb38dd738674b",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:bba0ecd26abc9072479e6af24a10a560dd4e082e0ba835ee71cfdf212216860e",
+      "recorded_at": "2026-09-09T16:45:41.120388+00:00",
+      "source": {
+        "id": "tos.work.plutarch.quaestiones-naturales",
+        "version": 1,
+        "digest": "sha256:321cab7006998ec86e55b88c27b8f53310582e16d4b5244f789adddbb9f8fec6"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.f85760f58573bed29be7064ae2133f4c7ea4fd534e688c7086ab1893ecd7544e",
+          "version": 1,
+          "digest": "sha256:9cb7ddd4a3dbf3295f7e66f889f0ebf6c5169436dd117a0e8b33d23c3e4e5314"
+        },
+        {
+          "id": "tos.form.metadata.db5847d529d042e1d0c9d6074ea8c77c2017f660036842f1675e3daa375c8b7d",
+          "version": 1,
+          "digest": "sha256:4d1e889709bfb27c053d74dc2d8930f572eb9fbcc81f242f92fee32929c6f0d1"
+        }
+      ]
+    }
+  ]
+}

@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.consolatio-ad-apollonium",
-    "version": 1,
-    "digest": "sha256:dec3d1883b9eb9414f9ef7800121899a4abfc89f4792c3cce0b65046966d0e10"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2c82df376c1c9b47557055d2d57b93b75eceb7406211ce4bc16d1d5111ca9738",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:1287b44747b649bb724ddaf7bb9b20761f8fcbe742e12b5175f38039b828216c",
+        "id": "tos.form.metadata.2c82df376c1c9b47557055d2d57b93b75eceb7406211ce4bc16d1d5111ca9738",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+        "id": "tos.work.plutarch.consolatio-ad-apollonium",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+            "id": "tos.work.plutarch.consolatio-ad-apollonium",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8ea6e7c769298c7faaae1f90d058dd1936f110fc08ae7466ca1e61bc37cc7bdf",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:88aa5e43863240956f82ed0015fe101fc34ea53c62ed1fdab0eced748f6f7d14",
+        "id": "tos.form.metadata.8ea6e7c769298c7faaae1f90d058dd1936f110fc08ae7466ca1e61bc37cc7bdf",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c",
+        "id": "tos.work.plutarch.consolatio-ad-apollonium",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:ee497eaaf42d9fedc1e1bc8373d17b7eb26abd3153b393f804a83ee407b22869",
+      "owner_configuration": "sha256:411cc186fcc03c6084e233db5bb64edcaaa3ec1d7084959f9ab560e8e23dfe2a",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:37.719113+00:00",
+      "request_digest": "sha256:4885ef8acd064a4aa6bbf733a0f939b86265415de3696f193f92f54ca30f0d7c",
+      "results": [
+        {
+          "digest": "sha256:1287b44747b649bb724ddaf7bb9b20761f8fcbe742e12b5175f38039b828216c",
+          "id": "tos.form.metadata.2c82df376c1c9b47557055d2d57b93b75eceb7406211ce4bc16d1d5111ca9738",
+          "version": 1
+        },
+        {
+          "digest": "sha256:88aa5e43863240956f82ed0015fe101fc34ea53c62ed1fdab0eced748f6f7d14",
+          "id": "tos.form.metadata.8ea6e7c769298c7faaae1f90d058dd1936f110fc08ae7466ca1e61bc37cc7bdf",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:dec3d1883b9eb9414f9ef7800121899a4abfc89f4792c3cce0b65046966d0e10",
+        "id": "tos.work.plutarch.consolatio-ad-apollonium",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:ee497eaaf42d9fedc1e1bc8373d17b7eb26abd3153b393f804a83ee407b22869",
+      "request_digest": "sha256:8f7fbd53064f3e7c1fc620352ecca45d30800c06d072b1ee31398a5629e65280",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:49adc04822ce009cd1e9e85e1ce7c45244c290289e78788e23a6ec3ecc6c51ba",
+      "recorded_at": "2026-09-09T18:35:27.367152+00:00",
+      "source": {
+        "id": "tos.work.plutarch.consolatio-ad-apollonium",
+        "version": 2,
+        "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c"
+      },
+      "previous_revision": "sha256:49ea397fa40f906e6188c36b31cc5532a744700e607dd83b1063fd36a3e2d3da",
+      "results": [
+        {
+          "id": "tos.form.metadata.2c82df376c1c9b47557055d2d57b93b75eceb7406211ce4bc16d1d5111ca9738",
+          "version": 2,
+          "digest": "sha256:f34c6132511967109a2a1ab90d764989415d2eb7a21e8fcdc25d8e7b2463c8b4"
+        },
+        {
+          "id": "tos.form.metadata.8ea6e7c769298c7faaae1f90d058dd1936f110fc08ae7466ca1e61bc37cc7bdf",
+          "version": 2,
+          "digest": "sha256:2d8d0d71c75f2fae0faf38bc8e928760cb983def1b070acf09505529e0eda401"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-eighth-source-forms:ee497eaaf42d9fedc1e1bc8373d17b7eb26abd3153b393f804a83ee407b22869",
-      "request_digest": "sha256:4885ef8acd064a4aa6bbf733a0f939b86265415de3696f193f92f54ca30f0d7c",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
-      "owner_configuration": "sha256:411cc186fcc03c6084e233db5bb64edcaaa3ec1d7084959f9ab560e8e23dfe2a",
-      "recorded_at": "2026-09-09T16:45:37.719113+00:00",
-      "source": {
-        "id": "tos.work.plutarch.consolatio-ad-apollonium",
-        "version": 1,
-        "digest": "sha256:dec3d1883b9eb9414f9ef7800121899a4abfc89f4792c3cce0b65046966d0e10"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.2c82df376c1c9b47557055d2d57b93b75eceb7406211ce4bc16d1d5111ca9738",
-          "version": 1,
-          "digest": "sha256:1287b44747b649bb724ddaf7bb9b20761f8fcbe742e12b5175f38039b828216c"
-        },
-        {
-          "id": "tos.form.metadata.8ea6e7c769298c7faaae1f90d058dd1936f110fc08ae7466ca1e61bc37cc7bdf",
-          "version": 1,
-          "digest": "sha256:88aa5e43863240956f82ed0015fe101fc34ea53c62ed1fdab0eced748f6f7d14"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.consolatio-ad-apollonium",
+    "version": 2,
+    "digest": "sha256:febef2ffdcd0bfab3bf30b3c6c82a19c3415a9d3e47eb61d75e5b9ab68f6368c"
+  }
 }

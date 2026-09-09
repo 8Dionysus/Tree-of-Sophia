@@ -28,3 +28,7 @@ Exact Aquane an ignis sit utilior Greek edition within the reviewed Плутар
 - Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.
 - The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-aquane-an-ignis-sit-utilior-english
+
+[English version and source file](../registry-plutarch-aquane-an-ignis-sit-utilior-english/README.md). Shared Work identity does not establish edition dependence or alignment.

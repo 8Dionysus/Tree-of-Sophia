@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.74f411bac16f77cd60b0888999dc5a3fb8db2e74ca8f66b8d4b67de41facc381",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+        "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+            "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.18d6725a5bab02c0d01840092d436d70f18a03a9d226fce92ff8e050c3e25ccc",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c",
+        "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:ccb97294fc4a7b616aeadb8c6d55ffe4dd0558606a960b104eb665fdf1d99997",
+      "request_digest": "sha256:7698177482af62be632eb896b3ef24759fa39b84cfd1d8f019e1ea3b9e22e2ec",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:b350d1758ffa439ec1b4797a232a56e06dd59cac82226ac24c93596cdbaa4660",
+      "recorded_at": "2026-09-09T18:35:29.399971+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-genio-socratis.en-perseus-tlg0007-tlg109-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:88af8f00dff96c76387bface2cc6f492d2a9ebbb63e16525a6759700ab186c1c"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.74f411bac16f77cd60b0888999dc5a3fb8db2e74ca8f66b8d4b67de41facc381",
+          "version": 1,
+          "digest": "sha256:e80bf94b3e3d566ec984975010dbc770b676ed36c44bb88b037008ecfc5cdcbb"
+        },
+        {
+          "id": "tos.form.metadata.18d6725a5bab02c0d01840092d436d70f18a03a9d226fce92ff8e050c3e25ccc",
+          "version": 1,
+          "digest": "sha256:a88530697d6685a603d17d7926f6e74398d8305d0cabe444823b0aa15fe9c8e8"
+        }
+      ]
+    }
+  ]
+}

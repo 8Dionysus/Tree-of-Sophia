@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8032fd39acdea1cd5753d621296544ca538dd0d587fe032e4ce017896a628e3d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+        "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+            "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.3fdcec4f32ac3074ad77b5e76323ac47969775e0296ecd3640b61e27c74b7bef",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a",
+        "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:94f86f6b5e9d4fa3fd59b3845973555eb80c131f9c571274e4fc31f69d876686",
+      "request_digest": "sha256:7a674d495fb2b99247b8f036caeb7ffe4c0340dfaaac08888e210b693653d68a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:61b4bf5ce61c0debb585016945c15cb661c19e7a0e73e85666eb724f6eec8c8a",
+      "recorded_at": "2026-09-09T18:35:29.942581+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.ad-principem-ineruditum.en-perseus-tlg0007-tlg116-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:b7e1c70eff47f607e9581406544a954d2f8b559cbc36c36fd51da7b820cc759a"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.8032fd39acdea1cd5753d621296544ca538dd0d587fe032e4ce017896a628e3d",
+          "version": 1,
+          "digest": "sha256:b415faacfe3274b61382eb6e969bb7489303ac803426e82995dd6468dbd38658"
+        },
+        {
+          "id": "tos.form.metadata.3fdcec4f32ac3074ad77b5e76323ac47969775e0296ecd3640b61e27c74b7bef",
+          "version": 1,
+          "digest": "sha256:003d295c58716f098fd410deeaaa614336006e8fde324f8a6675b8ca525073fb"
+        }
+      ]
+    }
+  ]
+}

@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.de-cohibenda-ira",
-    "version": 1,
-    "digest": "sha256:3b17dd6962fd7481b2be12a2f1cf695f830f9824eaae58ceb56328c4d2474cdd"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.44130cf0ea50671d38b153cae9aae622a86828346a12891d3aa5a6c1e03d9d76",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:9f84419d49d634f8e393ca2e4ea4e754ee355bc2520b0e1292a66269c170fc30",
+        "id": "tos.form.metadata.44130cf0ea50671d38b153cae9aae622a86828346a12891d3aa5a6c1e03d9d76",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+        "id": "tos.work.plutarch.de-cohibenda-ira",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+            "id": "tos.work.plutarch.de-cohibenda-ira",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.73e92cdc609f4941592c9587aa46a90da0167c3fb575ea1aed0f82a6a3899cc8",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:52020e2b2b11184619d65dac282e74fddbe5b011ccccba69950fb3db611fe455",
+        "id": "tos.form.metadata.73e92cdc609f4941592c9587aa46a90da0167c3fb575ea1aed0f82a6a3899cc8",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739",
+        "id": "tos.work.plutarch.de-cohibenda-ira",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:db0077535265fce39a873d5825db9a0b9aa20639eda39e9a45de6e1f9c2d5032",
+      "owner_configuration": "sha256:1fdeb933fcecaa1b25135e0b27119933e4c044af589564e78b0d92d4dc112fa9",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:38.653505+00:00",
+      "request_digest": "sha256:e04d4ebedce070268255862be1a442a1df4d02ea1c66a8edd0132c79efecde31",
+      "results": [
+        {
+          "digest": "sha256:9f84419d49d634f8e393ca2e4ea4e754ee355bc2520b0e1292a66269c170fc30",
+          "id": "tos.form.metadata.44130cf0ea50671d38b153cae9aae622a86828346a12891d3aa5a6c1e03d9d76",
+          "version": 1
+        },
+        {
+          "digest": "sha256:52020e2b2b11184619d65dac282e74fddbe5b011ccccba69950fb3db611fe455",
+          "id": "tos.form.metadata.73e92cdc609f4941592c9587aa46a90da0167c3fb575ea1aed0f82a6a3899cc8",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:3b17dd6962fd7481b2be12a2f1cf695f830f9824eaae58ceb56328c4d2474cdd",
+        "id": "tos.work.plutarch.de-cohibenda-ira",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:db0077535265fce39a873d5825db9a0b9aa20639eda39e9a45de6e1f9c2d5032",
+      "request_digest": "sha256:873a908c1da73bb93ac2f16b25e7505902bc3bca7f529b5fad9afea33f22caea",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:82783a6ac3a0d860a91b910864754867b2f674cec0a3c64ecea37df9ce283a47",
+      "recorded_at": "2026-09-09T18:35:28.049173+00:00",
+      "source": {
+        "id": "tos.work.plutarch.de-cohibenda-ira",
+        "version": 2,
+        "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739"
+      },
+      "previous_revision": "sha256:7624dccbe3f907a4a1cc9924f67baf886b0ebadcb3c67da23c1043665fc66943",
+      "results": [
+        {
+          "id": "tos.form.metadata.44130cf0ea50671d38b153cae9aae622a86828346a12891d3aa5a6c1e03d9d76",
+          "version": 2,
+          "digest": "sha256:6bf0d9f1e2db6f954e93eb1d8cc3f77619f57149b6f2da7e54768a163a79c593"
+        },
+        {
+          "id": "tos.form.metadata.73e92cdc609f4941592c9587aa46a90da0167c3fb575ea1aed0f82a6a3899cc8",
+          "version": 2,
+          "digest": "sha256:d2efcdeba60dc8bf243bcc088e134f536f98a29a8962f807c4e3b1590e4a1a9c"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-eighth-source-forms:db0077535265fce39a873d5825db9a0b9aa20639eda39e9a45de6e1f9c2d5032",
-      "request_digest": "sha256:e04d4ebedce070268255862be1a442a1df4d02ea1c66a8edd0132c79efecde31",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
-      "owner_configuration": "sha256:1fdeb933fcecaa1b25135e0b27119933e4c044af589564e78b0d92d4dc112fa9",
-      "recorded_at": "2026-09-09T16:45:38.653505+00:00",
-      "source": {
-        "id": "tos.work.plutarch.de-cohibenda-ira",
-        "version": 1,
-        "digest": "sha256:3b17dd6962fd7481b2be12a2f1cf695f830f9824eaae58ceb56328c4d2474cdd"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.44130cf0ea50671d38b153cae9aae622a86828346a12891d3aa5a6c1e03d9d76",
-          "version": 1,
-          "digest": "sha256:9f84419d49d634f8e393ca2e4ea4e754ee355bc2520b0e1292a66269c170fc30"
-        },
-        {
-          "id": "tos.form.metadata.73e92cdc609f4941592c9587aa46a90da0167c3fb575ea1aed0f82a6a3899cc8",
-          "version": 1,
-          "digest": "sha256:52020e2b2b11184619d65dac282e74fddbe5b011ccccba69950fb3db611fe455"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.de-cohibenda-ira",
+    "version": 2,
+    "digest": "sha256:a62feab7bf09cee7982a1e9508182b335b45a262d4c2becdfb22d258239bc739"
+  }
 }

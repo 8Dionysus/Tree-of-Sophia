@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1c8dfbd2545011649cb75fc88a7123b6ccfa4df9472dbf3297814715bcadaf4c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+        "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+            "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5c2e3d16f26c79095f7bc4262ecb792714411c2dd69d45ebfe90c7c4ce533dc0",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f",
+        "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:7005f01d37e46b8f33fc7b41d23f7c686c75efb25119c19d6f5c6372e98e0fa5",
+      "request_digest": "sha256:6667ae9c2fe83df943ffbd70843acebc5dd1dd85e2cee369bd49256802048742",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:5acc8af543f136e019ec112dd47a50b416182c8fc0963c42503be5909b2340fd",
+      "recorded_at": "2026-09-09T18:35:27.640603+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.septem-sapientium-convivium.en-perseus-tlg0007-tlg079-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:161bb676f496e0830f81c30dc4161d287cafb4eaad453f7fd83489f9a960267f"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.1c8dfbd2545011649cb75fc88a7123b6ccfa4df9472dbf3297814715bcadaf4c",
+          "version": 1,
+          "digest": "sha256:04f536a07a5fae96333ab1fe98fa0592e20c9e808c8bb543ea132465557e38a8"
+        },
+        {
+          "id": "tos.form.metadata.5c2e3d16f26c79095f7bc4262ecb792714411c2dd69d45ebfe90c7c4ce533dc0",
+          "version": 1,
+          "digest": "sha256:a5243ed38a651b5108b914c5676aa9538a71d3076dafbc68c113fbcd2e8e2e56"
+        }
+      ]
+    }
+  ]
+}

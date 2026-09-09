@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.cc9d2319a2333326cdc986ba5320d8063cb7e8b02ecd9ac72e40fe1658dee5d0",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+        "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+            "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.74a6d95434a3acb6fd03f56dfb840416b1434cff6d7c31c6578b292fffc52ea6",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af",
+        "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:4cd18c2d8d0535c5aa8c613fcc85f1096a70beebb8abd781680851b863d4743a",
+      "request_digest": "sha256:7004f147011c690d8ca2480ac38fdc6951b8ecccd84de182ad15960b67f8e6ba",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:f82d15a9894ae913b13856b0695eeb74ff0bf04d33e8ba1673f9721a6d7f6eea",
+      "recorded_at": "2026-09-09T18:35:28.949138+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-vitioso-pudore.en-perseus-tlg0007-tlg104-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:e3d22998f2804fbeb1361ccc813b661af013b09ca3a9444278e5f626085918af"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.cc9d2319a2333326cdc986ba5320d8063cb7e8b02ecd9ac72e40fe1658dee5d0",
+          "version": 1,
+          "digest": "sha256:3069f2bdb034f4f9bd1b90db81f6b2b48983476f1b807a3a5016700255f013c6"
+        },
+        {
+          "id": "tos.form.metadata.74a6d95434a3acb6fd03f56dfb840416b1434cff6d7c31c6578b292fffc52ea6",
+          "version": 1,
+          "digest": "sha256:f52b8d573aae8b5b7b1328a801f4b737ebb37fc20b6709ca898815f74de3ff89"
+        }
+      ]
+    }
+  ]
+}

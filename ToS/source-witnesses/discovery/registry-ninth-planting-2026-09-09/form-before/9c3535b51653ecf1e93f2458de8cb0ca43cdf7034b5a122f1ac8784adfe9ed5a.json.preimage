@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.ad-principem-ineruditum",
+    "version": 1,
+    "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f9ebde32dfe405c5e9098a401a04664ae5189f8bf087068dbc263ade1676b0eb",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+        "id": "tos.work.plutarch.ad-principem-ineruditum",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+            "id": "tos.work.plutarch.ad-principem-ineruditum",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.36e2471874194f9a174be17f081a42f2dcf26750a06c1ab6cb5a2d857c15bd06",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716",
+        "id": "tos.work.plutarch.ad-principem-ineruditum",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:f0249bcfeb3722446deb39b4c52a635140ba4447781e281876c2f1ee24606c8a",
+      "request_digest": "sha256:17429e698d4ac3e31b37bf584c34dbf71c13ef697ea3f439e3765cebe83eed56",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:99d165abd0d88a9510a438820d4928e3964ddec727909fefcac854f1021630db",
+      "recorded_at": "2026-09-09T16:45:40.439637+00:00",
+      "source": {
+        "id": "tos.work.plutarch.ad-principem-ineruditum",
+        "version": 1,
+        "digest": "sha256:dd8de047b7a768ff920debbbc4de0ae1ea49f973bc1985ea3a132593bf21b716"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.f9ebde32dfe405c5e9098a401a04664ae5189f8bf087068dbc263ade1676b0eb",
+          "version": 1,
+          "digest": "sha256:2e748121f3c19ac9f17d15d595179fb0ff482e1dc20d1a7267c192d1f513a84b"
+        },
+        {
+          "id": "tos.form.metadata.36e2471874194f9a174be17f081a42f2dcf26750a06c1ab6cb5a2d857c15bd06",
+          "version": 1,
+          "digest": "sha256:eedf914f142f6d3150300945870201913f46d229b1d4aef743dd51efa22762e4"
+        }
+      ]
+    }
+  ]
+}

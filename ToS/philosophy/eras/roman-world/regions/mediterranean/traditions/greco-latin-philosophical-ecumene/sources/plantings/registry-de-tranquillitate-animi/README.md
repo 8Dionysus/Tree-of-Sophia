@@ -28,3 +28,7 @@ Exact De Tranquillitate Animi Greek edition within the reviewed Плутарх s
 - Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.
 - The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-de-tranquillitate-animi-english
+
+[English version and source file](../registry-plutarch-de-tranquillitate-animi-english/README.md). Shared Work identity does not establish edition dependence or alignment.

@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.consolatio-ad-uxorem",
-    "version": 1,
-    "digest": "sha256:e1d85f24d75e9fb64d949f2c1a2fb2d0794133700849c2167b94960852f671df"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6bcaafea499f67511f33b6aba84fd8648edac599183dd1b38794e8de7a660f4a",
+      "form_version": 2,
+      "language": "la",
+      "revises": {
+        "digest": "sha256:61990196df19d88f389dfca7255910635603b1f1d2d00ffb9a2eb41ae263d06b",
+        "id": "tos.form.metadata.6bcaafea499f67511f33b6aba84fd8648edac599183dd1b38794e8de7a660f4a",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+        "id": "tos.work.plutarch.consolatio-ad-uxorem",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+            "id": "tos.work.plutarch.consolatio-ad-uxorem",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1ae814d430de2207a048e7eb3c7663e052802d5edee1cbdb3b209808fa8c2c38",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:d0cb25bd5ba7a4e3e6b742fc370a5a28d82b4d103e725df617c7cec1688b0eb3",
+        "id": "tos.form.metadata.1ae814d430de2207a048e7eb3c7663e052802d5edee1cbdb3b209808fa8c2c38",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f",
+        "id": "tos.work.plutarch.consolatio-ad-uxorem",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "command_id": "registry-eighth-source-forms:3dd00a03db6bd900f4774b1b67debf1234866c8a974036885730f96d8a4dad49",
+      "owner_configuration": "sha256:221a093be14b8f471780f3ef4afad4e18cbe1658190d40cf95e18b4d3c9c6561",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T16:45:40.146321+00:00",
+      "request_digest": "sha256:b597afed796e3394c6b098e9ce5c2b84e7f64c84cfdd13ca3d6a071f06cb365b",
+      "results": [
+        {
+          "digest": "sha256:61990196df19d88f389dfca7255910635603b1f1d2d00ffb9a2eb41ae263d06b",
+          "id": "tos.form.metadata.6bcaafea499f67511f33b6aba84fd8648edac599183dd1b38794e8de7a660f4a",
+          "version": 1
+        },
+        {
+          "digest": "sha256:d0cb25bd5ba7a4e3e6b742fc370a5a28d82b4d103e725df617c7cec1688b0eb3",
+          "id": "tos.form.metadata.1ae814d430de2207a048e7eb3c7663e052802d5edee1cbdb3b209808fa8c2c38",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:e1d85f24d75e9fb64d949f2c1a2fb2d0794133700849c2167b94960852f671df",
+        "id": "tos.work.plutarch.consolatio-ad-uxorem",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-ninth-source-forms:3dd00a03db6bd900f4774b1b67debf1234866c8a974036885730f96d8a4dad49",
+      "request_digest": "sha256:c62b94d624a36ec85fc2544bb55fc853fc91a680f1fd39b1fd55bbc1a2e7df41",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:3edca42c597be2cf154962c2e47747e5e971b0271962ab73dacc7fa12cb5b15d",
+      "recorded_at": "2026-09-09T18:35:29.614940+00:00",
+      "source": {
+        "id": "tos.work.plutarch.consolatio-ad-uxorem",
+        "version": 2,
+        "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f"
+      },
+      "previous_revision": "sha256:2999be912d0ad6446f3d75586f8737f76ced68a8960bb5de9329ac07170d1913",
+      "results": [
+        {
+          "id": "tos.form.metadata.6bcaafea499f67511f33b6aba84fd8648edac599183dd1b38794e8de7a660f4a",
+          "version": 2,
+          "digest": "sha256:87b7c15b1d2bcde4e7b471b6ba8db72b2c3cfc735f654e4f73998cda5fa89550"
+        },
+        {
+          "id": "tos.form.metadata.1ae814d430de2207a048e7eb3c7663e052802d5edee1cbdb3b209808fa8c2c38",
+          "version": 2,
+          "digest": "sha256:4106af06b1dab815cd2a0173149c1ebb391cb55b1cfcf8592a09f7079b8c6790"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-eighth-source-forms:3dd00a03db6bd900f4774b1b67debf1234866c8a974036885730f96d8a4dad49",
-      "request_digest": "sha256:b597afed796e3394c6b098e9ce5c2b84e7f64c84cfdd13ca3d6a071f06cb365b",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
-      "owner_configuration": "sha256:221a093be14b8f471780f3ef4afad4e18cbe1658190d40cf95e18b4d3c9c6561",
-      "recorded_at": "2026-09-09T16:45:40.146321+00:00",
-      "source": {
-        "id": "tos.work.plutarch.consolatio-ad-uxorem",
-        "version": 1,
-        "digest": "sha256:e1d85f24d75e9fb64d949f2c1a2fb2d0794133700849c2167b94960852f671df"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.6bcaafea499f67511f33b6aba84fd8648edac599183dd1b38794e8de7a660f4a",
-          "version": 1,
-          "digest": "sha256:61990196df19d88f389dfca7255910635603b1f1d2d00ffb9a2eb41ae263d06b"
-        },
-        {
-          "id": "tos.form.metadata.1ae814d430de2207a048e7eb3c7663e052802d5edee1cbdb3b209808fa8c2c38",
-          "version": 1,
-          "digest": "sha256:d0cb25bd5ba7a4e3e6b742fc370a5a28d82b4d103e725df617c7cec1688b0eb3"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.consolatio-ad-uxorem",
+    "version": 2,
+    "digest": "sha256:790c148ab18157ca7643c195c47bf6720e0a28178dfc153e02fdd7151f27d08f"
+  }
 }

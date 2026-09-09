@@ -28,3 +28,7 @@ Exact De unius in republica dominatione, populari statu, et paucorum imperio Gre
 - Traditional Plutarch attribution includes disputed and pseudonymous works; no authorship verdict is made, including De liberis educandis, Consolatio ad Apollonium and De fato.
 - The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio-english
+
+[English version and source file](../registry-plutarch-de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio-english/README.md). Shared Work identity does not establish edition dependence or alignment.

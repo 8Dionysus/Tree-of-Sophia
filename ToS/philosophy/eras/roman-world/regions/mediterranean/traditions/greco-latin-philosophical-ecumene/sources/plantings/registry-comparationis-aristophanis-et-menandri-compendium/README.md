@@ -29,3 +29,7 @@ Exact Comparationis Aristophanis et Menandri compendium Greek edition within the
 - The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.
 - This transmitted Compendium is a distinct epitome witness; it is not the lost longer comparison and does not establish the wording or completeness of that earlier work.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-comparationis-aristophanis-et-menandri-compendium-english
+
+[English version and source file](../registry-plutarch-comparationis-aristophanis-et-menandri-compendium-english/README.md). Shared Work identity does not establish edition dependence or alignment.

@@ -29,3 +29,7 @@ Exact De Pythiae oraculis Greek edition within the reviewed Плутарх sourc
 - The supplied Latin title is retained literally, including provider spellings; title normalization and person-name equivalence remain unreviewed.
 - Supplied print-volume discrepancy unresolved: CTS description says Moralia Vol II, while TEI sourceDesc says volume 3, both 1891. Exact digital CTS/Git identity is fixed; neither print-volume statement is adjudicated.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-de-pythiae-oraculis-english
+
+[English version and source file](../registry-plutarch-de-pythiae-oraculis-english/README.md). Shared Work identity does not establish edition dependence or alignment.

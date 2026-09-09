@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5bad9e99727a16032ef65b73e0fa79a8a5247f71705776a0aa7ffbfa77acebdc",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+        "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+            "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.081492f0e7bd7e69c742cdb666810ed2137d8e5ac3f816b7aec6eef998a1c360",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e",
+        "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-ninth-source-forms:d9246367bda36fe2b9aea593f0fa82074972da69fe6d6a3936becfc662adaf37",
+      "request_digest": "sha256:d1b09b6fdfbe96efa2267f91e3677f50042a5deb37a22ad435d7396fba19461d",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-ninth-planting",
+      "owner_configuration": "sha256:44d972f34cf85b3d4d829995a196ded1e1fe83f11908f74e60e6cc16a854a0b4",
+      "recorded_at": "2026-09-09T18:35:29.082771+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-invidia-et-odio.en-perseus-tlg0007-tlg105-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:0499e3f64fe56387f817952c4235570e5fd0500a672f3c87d0d708d12a98018e"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5bad9e99727a16032ef65b73e0fa79a8a5247f71705776a0aa7ffbfa77acebdc",
+          "version": 1,
+          "digest": "sha256:dd92803e54681f22998e864cf548262263f894baff23524c088ae88e77b19546"
+        },
+        {
+          "id": "tos.form.metadata.081492f0e7bd7e69c742cdb666810ed2137d8e5ac3f816b7aec6eef998a1c360",
+          "version": 1,
+          "digest": "sha256:0732629f8fe54fb80d43dbb8dbc9fa1e788542053ab8721309e779c874b81611"
+        }
+      ]
+    }
+  ]
+}
