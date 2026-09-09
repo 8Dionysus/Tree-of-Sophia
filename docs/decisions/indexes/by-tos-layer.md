@@ -85,6 +85,7 @@
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0037 - Deduplicated Philosophy Graph View Membership](../TOS-D-0037-deduplicated-philosophy-graph-view-membership.md) (`docs/decisions/TOS-D-0037-deduplicated-philosophy-graph-view-membership.md`)
 - [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
 
 ## derived-exports
 
@@ -150,6 +151,7 @@
 ## docs/route-law
 
 - [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
 
 ## doctrine
 
@@ -182,6 +184,7 @@
 ## generated carrier
 
 - [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
 
 ## local KAG provider
 
@@ -206,6 +209,7 @@
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
 - [TOS-D-0035 - Current KAG provider and action pin supersedes the historical route](../TOS-D-0035-current-kag-provider-action-pin.md) (`docs/decisions/TOS-D-0035-current-kag-provider-action-pin.md`)
 - [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
 
 ## philosophy
 

@@ -92,7 +92,7 @@ task-local reconciliation ledger.
 | Edge | Published provider identity | Current source/CI identity | Exactness rule |
 | --- | --- | --- | --- |
 | `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider/action source snapshot `b95446483f25e1f59c732f5c095d4f641a1c9431`; `kag/provider_pin.json` and workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@b95446483f25e1f59c732f5c095d4f641a1c9431` | Keep the published provider body, current source/action pin, and segmented consumer adapter explicit and distinct; `b9544648` is an unreleased/current source pin, not a retagged `v0.5.0`. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider/action source snapshot `1a0342087b18d0a1f5630036937a548b6526e0e9`; `kag/provider_pin.json` and workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1a0342087b18d0a1f5630036937a548b6526e0e9` | Keep the published provider body, current source/action pin, and segmented consumer adapter explicit and distinct; `1a034208` is the landed successor pin, not a retagged `v0.5.0`. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer

@@ -95,7 +95,7 @@ class RoadmapParityTestCase(unittest.TestCase):
             "`aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57`",
             release_contract,
         )
-        provider_ref = "b95446483f25e1f59c732f5c095d4f641a1c9431"
+        provider_ref = "1a0342087b18d0a1f5630036937a548b6526e0e9"
         action_ref = provider_ref
         self.assertIn(
             "current provider/action source snapshot `" + provider_ref + "`",

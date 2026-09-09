@@ -133,3 +133,7 @@
 - [TOS-D-0056 - Claim-scoped reference values](../TOS-D-0056-claim-scoped-reference-values.md) (`docs/decisions/TOS-D-0056-claim-scoped-reference-values.md`)
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0060 - TOS-D-0060 Bounded Segmented KAG Provider Pin](../TOS-D-0060-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md`)
+
+## 2026-09-09
+
+- [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)

@@ -16,7 +16,7 @@ jobs:
     name: KAG Owner Family
     runs-on: ubuntu-latest
     env:
-      AOA_KAG_REVISION: b95446483f25e1f59c732f5c095d4f641a1c9431
+      AOA_KAG_REVISION: 1a0342087b18d0a1f5630036937a548b6526e0e9
       AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
       # The pinned composite action executes provider scripts by absolute path;
       # expose the matching checkout so segmented-family imports cannot resolve
@@ -41,7 +41,7 @@ jobs:
           test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
 
       - name: Check current canonical KAG owner family
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@b95446483f25e1f59c732f5c095d4f641a1c9431
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1a0342087b18d0a1f5630036937a548b6526e0e9
         with:
           history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
           event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
-      AOA_KAG_REVISION: b95446483f25e1f59c732f5c095d4f641a1c9431
+      AOA_KAG_REVISION: 1a0342087b18d0a1f5630036937a548b6526e0e9
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
