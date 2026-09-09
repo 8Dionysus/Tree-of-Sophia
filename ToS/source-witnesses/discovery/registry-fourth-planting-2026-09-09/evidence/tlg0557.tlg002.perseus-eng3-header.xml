@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>The Encheiridion, or Manual.</title>
+        <author>Epictetus</author>
+        <editor role="translator">George Long</editor>
+        <sponsor>Perseus Project, Tufts University</sponsor>
+        <principal>Gregory Crane</principal>
+        <respStmt>
+          <resp>Prepared under the supervision of</resp>
+          <name>Gregory Crane</name>
+          <name>Lisa Cerrato</name>
+          <name>Anne Mahoney</name>
+          <name>David Mimno</name>
+        </respStmt>
+        <funder n="org:Tufts">Tufts University</funder>
+        
+      </titleStmt>
+      <publicationStmt>
+        <publisher>Trustees of Tufts University</publisher>
+        <pubPlace>Medford, MA</pubPlace>
+        <authority>Perseus Project</authority>
+        <date type="release" cert="low">2004</date>
+        <idno type="filename">tlg0557.tlg002.perseus-eng3.xml</idno>
+        <availability>
+          <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence>
+        </availability>
+      </publicationStmt>
+
+      <sourceDesc>
+        <biblStruct>
+          <monogr>
+            <title>The Discourses of Epictetus, with the Encheridion and Fragments</title>
+            <author>Epictetus</author>
+            <editor role="translator">George Long</editor>
+           
+            <imprint>
+              <pubPlace>London</pubPlace>
+              <publisher>George Bell and Sons</publisher>
+              <date>1890</date>
+            </imprint>
+          </monogr>
+          <ref target="https://archive.org/details/dscrsesepictetus00epiciala/page/378">The Internet Archive</ref>
+        </biblStruct>
+      </sourceDesc>
+    </fileDesc>
+    <encodingDesc>
+      <editorialDecl><quotation marks="none"/>
+        <correction method="silent" status="medium">
+          <p>Perseus OCR</p>
+        </correction></editorialDecl>
+      <refsDecl n="CTS">
+        <cRefPattern n="chapter"
+          matchPattern="(\w+)"
+          replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+          <p>This pointer pattern extracts chapter</p>
+        </cRefPattern>
+      </refsDecl>
+    <refsDecl xml:id="CTS">
+    <citeStructure match="/TEI/text/body" use="@xml:base">
+      <citeStructure unit="chapter" delim=":" match="div/div[@subtype='chapter']" use="@n"/>
+    </citeStructure>
+  </refsDecl>
+</encodingDesc>
+   
+     <!-- <refsDecl>
+        <refState unit="text"/>
+        <refState unit="book"/>
+        <refState n="chunk" unit="chapter"/>
+      </refsDecl>
+      <refsDecl>
+        <refState unit="text"/>
+        <refState n="chunk" unit="chapter"/>
+      </refsDecl>-->
+
+    <profileDesc>
+      <langUsage>
+        <language ident="eng">English</language>
+        <language ident="grc">Greek</language>
+        <language ident="lat">Latin</language>
+        <language ident="deu">German</language>
+      </langUsage>
+    </profileDesc>
+
+    <revisionDesc>
+      <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+      <change when="2020-01-21" who="Lisa Cerrato">minor revisions to header</change>
+      <change when="2020-01-18" who="Gregory Crane">initial EpiDoc and CTS conversion</change>
+      <change when="2014-08-01" who="Stella Dee">edited markup</change>
+      <change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+      <change when="2003-10-03" who="AEM">initial markup</change>
+    </revisionDesc>
+
+  </teiHeader>

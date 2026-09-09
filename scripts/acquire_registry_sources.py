@@ -152,11 +152,16 @@ def load_preparation(root: Path, path: Path, *, allow_unbound: bool = False) -> 
         if target["repository"] not in ALLOWED_REPOSITORIES or not re.fullmatch(r"[a-f0-9]{40}", target["pin"]):
             raise ValueError("unapproved repository or unpinned version")
         package = packages[slug]
+        operation_date(target)
+        work_slug = target.get("work_slug", slug)
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", work_slug):
+            raise ValueError("invalid existing Work path identity")
+        validate_work_extension(root, target, package)
         if target.get("metadata_evidence_refs") is not None:
             selected_metadata_observations(manifest, target)
         for ref in package["records"]:
             safe_path(root, ref)
-            if not ref.startswith(f"{SOURCE}/works/{target['family']}/{slug}/"):
+            if not ref.startswith(f"{SOURCE}/works/{target['family']}/{work_slug}/"):
                 raise ValueError("prepared source record leaves its Work territory")
         for entry in target["files"]:
             upstream = PurePosixPath(entry["upstream_path"])
@@ -177,6 +182,52 @@ def load_preparation(root: Path, path: Path, *, allow_unbound: bool = False) -> 
     if manifest["totals"]["payload_files"] != len(all_destinations) or manifest["totals"]["payload_bytes"] != sum(t["byte_size"] for t in manifest["targets"]):
         raise ValueError("manifest total closure differs")
     return manifest, packages
+
+
+def operation_date(target: dict) -> str:
+    """Keep legacy operation identifiers stable while naming later intakes."""
+    value = target.get("operation_date", "2026-09-08")
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        raise ValueError("invalid acquisition operation date")
+    datetime.strptime(value, "%Y-%m-%d")
+    return value
+
+
+def validate_work_extension(root: Path, target: dict, package: dict) -> tuple[str, bytes] | None:
+    """An existing Work may only gain the exact prepared Expression claims.
+
+    The retained preimage binds its identity and every prior assertion. This is
+    not a general source-record replacement mechanism.
+    """
+    binding = package.get("existing_work")
+    if binding is None:
+        return None
+    work_ref = target["paths"]["work"]
+    if binding.get("record_ref") != work_ref:
+        raise ValueError("existing Work binding names another record")
+    before = safe_path(root, binding["preimage_ref"]).read_bytes()
+    if sha256(before) != binding["sha256"]:
+        raise ValueError("existing Work preimage digest mismatch")
+    old = json.loads(before)
+    if old.get("record_type") != "work" or old.get("record_id") != target["ids"]["work"]:
+        raise ValueError("existing Work identity differs from the prepared target")
+    incoming = [claim["record"] for claim in package["claims"]
+        if claim["record"].get("subject_ref") == old["record_id"]
+        and claim["record"].get("predicate") == "has_expression"]
+    new_expression_ids = {record["record_id"] for record in package["records"].values()
+        if record.get("record_type") == "expression" and record.get("work_ref") == old["record_id"]}
+    if not incoming or {claim["object"] for claim in incoming} != new_expression_ids:
+        raise ValueError("Work extension does not close over its new Expressions")
+    prior_refs = old.get("expression_claim_refs", [])
+    additions = [claim["claim_id"] for claim in incoming]
+    if len(set(prior_refs + additions)) != len(prior_refs) + len(additions):
+        raise ValueError("Work extension repeats an existing or prepared claim")
+    expected = copy.deepcopy(old)
+    expected["expression_claim_refs"] = prior_refs + additions
+    expected["record_version"] = old["record_version"] + 1
+    if package["records"].get(work_ref) != expected:
+        raise ValueError("Work extension changes fields outside additive Expression closure")
+    return work_ref, before
 
 
 def check_preparation_receipt(root: Path, manifest_path: Path, receipt_path: Path) -> dict:
@@ -262,10 +313,17 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
     report = {"target_slug": target["slug"], "file_count": len(bodies), "byte_size": sum(len(body) for _, body in bodies),
               "source_bytes_changed": False, "textual_acceptance": False, "files": []}
     coverage = target["coverage"]
-    if coverage["kind"] == "perseus-tei-work":
+    if coverage["kind"] in {"perseus-tei-work", "perseus-tei-translation"}:
+        translated = coverage["kind"] == "perseus-tei-translation"
+        if translated and (target.get("language") != "en" or target.get("expression_role") != "translation"):
+            raise ValueError("English translation profile requires its explicit language and role")
         if len(bodies) != 1:
             raise ValueError("Perseus work requires exactly one prepared TEI file")
         entry, body = bodies[0]
+        if "reviewed_body_prefix_sha256" in coverage:
+            length = coverage.get("reviewed_body_prefix_bytes")
+            if not isinstance(length, int) or not 0 < length <= len(body) or sha256(body[:length]) != coverage["reviewed_body_prefix_sha256"]:
+                raise ValueError("source opening differs from the reviewed language evidence")
         marker = b"</teiHeader>"
         if marker not in body or sha256(body.split(marker, 1)[0] + marker) != coverage["header_prefix_sha256"]:
             raise ValueError("Perseus header differs from the reviewed metadata prefix")
@@ -274,25 +332,29 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
         text_body = xml.find(ns + "text/" + ns + "body")
         if xml.tag != ns + "TEI" or text_body is None:
             raise ValueError("Perseus file lacks the expected TEI body")
-        editions = [node for node in text_body.iter(ns + "div") if node.get("type") == "edition"]
-        if len(editions) != 1 or editions[0].get("n") != coverage["cts_urn"] or editions[0].get("{http://www.w3.org/XML/1998/namespace}lang") != "grc":
+        editions = [node for node in text_body.iter(ns + "div") if node.get("type") in {"edition", "translation"}]
+        expected_kind = "translation" if translated else "edition"
+        allowed_languages = {"en", "eng"} if translated else {"grc"}
+        if len(editions) != 1 or editions[0].get("type") != expected_kind or editions[0].get("n") != coverage["cts_urn"] or editions[0].get("{http://www.w3.org/XML/1998/namespace}lang") not in allowed_languages:
             raise ValueError("Perseus edition identity or source language differs")
         sections = [node.get("n") for node in editions[0].iter(ns + "div") if node.get("subtype") == "section"]
         text = "".join(editions[0].itertext())
         greek = sum("\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff" for char in text)
+        count = sum(char.isascii() and char.isalpha() for char in text) if translated else greek
+        count_field = "latin_letter_count" if translated else "greek_character_count"
         if coverage.get("citation_scope") == "hierarchical_divisions":
             addresses = tei_division_addresses(editions[0])
-            if not addresses or greek < 1000:
-                raise ValueError("Perseus qualified divisions or nonempty Greek text check failed")
+            if not addresses or count < 1000:
+                raise ValueError("Perseus qualified divisions or nonempty language-profile text check failed")
             report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"],
                 "division_count": len(addresses), "first_division": addresses[0], "last_division": addresses[-1],
                 "division_addresses_sha256": sha256(("\n".join(addresses)+"\n").encode()),
                 "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
-                "greek_character_count": greek})
+                count_field: count})
         else:
-            if not sections or len(sections) != len(set(sections)) or greek < 1000:
-                raise ValueError("Perseus section identity or nonempty Greek text check failed")
-            report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"], "section_count": len(sections), "first_section": sections[0], "last_section": sections[-1], "greek_character_count": greek})
+            if not sections or len(sections) != len(set(sections)) or count < 1000:
+                raise ValueError("Perseus section identity or nonempty language-profile text check failed")
+            report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"], "section_count": len(sections), "first_section": sections[0], "last_section": sections[-1], count_field: count})
         report["coverage_limit"] = "Complete pinned supplied file; no independent critical-edition or missing-passage judgment."
     elif coverage["kind"] == "osis-book":
         namespace = "{http://www.bibletechnologies.net/2003/OSIS/namespace}"
@@ -414,9 +476,13 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     item_manifest_path = item_root / "item.manifest.json"
     if (item_root / "item.json").exists():
         return verify_target(root, target)
+    extension = validate_work_extension(root, target, package)
     for ref in package["records"]:
         if safe_path(root, ref).exists():
-            raise ValueError(f"refusing replacement of an existing source record: {ref}")
+            if extension is None or ref != extension[0] or safe_path(root, ref).read_bytes() != extension[1]:
+                raise ValueError(f"refusing replacement of an existing source record: {ref}")
+        elif extension is not None and ref == extension[0]:
+            raise ValueError("the Work being extended is no longer present")
     started = utcnow()
     bodies, transfers = [], []
     for entry in target["files"]:
@@ -424,6 +490,8 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
         bodies.append((entry, body))
         transfers.append(receipt)
     observations = inspect_payloads(target, bodies)
+    if extension is not None and safe_path(root, extension[0]).read_bytes() != extension[1]:
+        raise ValueError("existing Work changed during acquisition; refusing to overwrite")
     ended = utcnow()
     records = copy.deepcopy(package["records"])
     component_ref = f"{target['paths']['item_root']}/component-witnesses.json"
@@ -431,8 +499,11 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
         write_json(safe_path(root, component_ref), {"schema_version": "tos_observed_bundle_components_v1", "item_ref": target["ids"]["item"], "components": observations["component_witnesses"]})
         for key in ("expression", "translation_expression"):
             records[target["paths"][key]]["source_refs"].append(component_ref)
-    for record in records.values():
-        record["source_refs"].append(preparation["source_registry_snapshot_ref"])
+    for ref, record in records.items():
+        if extension is not None and ref == extension[0]:
+            continue
+        if preparation["source_registry_snapshot_ref"] not in record["source_refs"]:
+            record["source_refs"].append(preparation["source_registry_snapshot_ref"])
     item_manifest = copy.deepcopy(package["manifest_fields"])
     item_manifest["source_record_refs"].append(preparation["source_registry_snapshot_ref"])
     item_manifest["payload_files"] = [{"file_id": "tos.file.sha256." + sha256(body), "relative_path": "payload/" + entry["basename"],
@@ -470,7 +541,7 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
     receipts = [f"{target['paths']['item_root']}/forensic-report.md", log.relative_to(root).as_posix()]
     events = [event(item_manifest["acquisition_event_ref"], "acquisition", min(row["started_at"] for row in transfers), max(row["ended_at"] for row in transfers), inputs, payload_outputs,
         name="pinned-upstream-immutable-acquisition", configuration={"source_urls": [entry["url"] for entry in target["files"]], "byte_identity": "exact Git blob SHA-1 and local SHA-256", "source_bytes_changed": False}, rights_ref=rights_ref, receipts=receipts),
-        event(f"tos.event.rights-assessment.registry-20260908.{target['slug']}", "rights_assessment", package["rights"]["assessed_at"], ended, inputs,
+        event(f"tos.event.rights-assessment.registry-{operation_date(target).replace('-', '')}.{target['slug']}", "rights_assessment", package["rights"]["assessed_at"], ended, inputs,
             [{"ref": rights_ref, "role": "layer-separated-license-assessment", "sha256": sha256(rights_path.read_bytes())}], name="prepared-provider-license-scope-assessment",
             configuration={"jurisdictions_reviewed": ["MX"], "publication_authority": False, "human_legal_review_performed": False,
                 "acquired_rights_transformations": ["Bind every computed File ID to the assessed Item scope.", "Use the Public Domain Mark URI for layers explicitly assessed from provider public-domain statements; retain the separate digital-object license."],
@@ -478,6 +549,14 @@ def install_target(root: Path, manifest_path: Path, preparation: dict, target: d
         event(inventory["provenance_event_ref"], "forensic_inspection", started, ended, payload_outputs,
             [{"ref": item_manifest["resource_inventory_ref"], "role": "tracked_text_free_resource_inventory", "sha256": sha256((item_root / "resource-inventory.json").read_bytes())}],
             name="source-resource-inventory", configuration={"profiles": sorted({entry["profile"] for entry in inventory["files"]}), "source_text_included": False}, rights_ref=rights_ref, receipts=receipts)]
+    if extension is not None:
+        work_ref, before = extension
+        events.append(event(f"tos.event.annotation.registry-{operation_date(target).replace('-', '')}.{target['slug']}.work-extension",
+            "annotation", started, ended,
+            [{"ref": package["existing_work"]["preimage_ref"], "role": "exact-prior-work-record", "sha256": sha256(before)}, *inputs],
+            [{"ref": work_ref, "role": "existing-work-with-additive-expression-claim", "sha256": sha256(safe_path(root, work_ref).read_bytes())}],
+            name="guarded-existing-work-expression-extension", configuration={"allowed_fields": ["expression_claim_refs", "record_version"],
+                "prior_claims_preserved": True, "no_new_work_created": True}, rights_ref=rights_ref, receipts=receipts))
     for value in events:
         validate_json(value, "provenance-event", root)
     (item_root / "provenance.jsonl").write_text("".join(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n" for value in events), encoding="utf-8")
@@ -539,8 +618,9 @@ def selected_metadata_observations(preparation: dict, target: dict) -> list[dict
 
 def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: dict, transfers: list[dict], acquisition: dict) -> None:
     slug = target["slug"]
-    run_ref = f"{SOURCE}/discovery/runs/registry-{slug}.2026-09-08.v1.json"
-    event_id = f"tos.event.discovery.registry-20260908.{slug}"
+    day = operation_date(target)
+    run_ref = f"{SOURCE}/discovery/runs/registry-{slug}.{day}.v1.json"
+    event_id = f"tos.event.discovery.registry-{day.replace('-', '')}.{slug}"
     matching = selected_metadata_observations(preparation, target)
     channels, selected = [], []
     for index, observation in enumerate(matching, 1):
@@ -566,7 +646,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
                 "acquisition": {"downloaded": True, "acquired_at": transfer_row["ended_at"], "byte_size": transfer_row["byte_size"], "sha256": transfer_row["sha256"], "event_ref": acquisition["event_id"]},
                 "snapshot": {"state": "not-needed", "format": None, "sha256": None, "reason": "The immutable acquired File is separately retained in ignored local custody and described by its Item manifest."}}]})
     run = {"$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json", "schema_version": "tos_material_discovery_record_v1",
-        "discovery_id": f"tos.discovery.registry-{slug}.2026-09-08.v1", "protocol_ref": f"{SOURCE}/discovery/DISCOVERY_PROTOCOL.md",
+        "discovery_id": f"tos.discovery.registry-{slug}.{day}.v1", "protocol_ref": f"{SOURCE}/discovery/DISCOVERY_PROTOCOL.md",
         "target": {"target_kind": "expression", "known_tos_refs": list(target["ids"].values()), "description": target["version_description"], "required_properties": target["limits"] + ["exact pinned provider version and immutable local file identity"], "acceptable_substitutions": [], "languages": [target["language"]] + (["de"] if target["provider"] == "oraec" else []), "formats": sorted({entry["media_type"] for entry in target["files"]}), "purpose_ref": manifest_path.relative_to(root).as_posix()},
         "channels": channels, "channel_comparison": [{"channel_id": channel["channel_id"], "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": channel["elapsed_seconds"], "notes": "Transport time is measured. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."} for channel in channels],
         "selected_result_ids": selected, "rejected_result_ids": [], "rights_inference_from_availability_prohibited": True, "general_web_search_is_last_resort": True, "technical_access_bypass_used": False,

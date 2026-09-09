@@ -37,7 +37,9 @@ class RegistryCoverageTests(unittest.TestCase):
         manifest = {'item_id': ids['item'], 'embodiment_ref': ids['edition'], 'payload_files': [file], 'provenance_ref': 'source/item/provenance.jsonl', 'acquisition_event_ref': 'event:acquisition'}
         write('source/item/item.manifest.json', manifest)
         write('source/item/provenance.jsonl', {'event_id': 'event:acquisition', 'event_type': 'acquisition', 'status': 'completed', 'outputs': [{'ref': file['file_id'], 'sha256': digest}]})
-        plants = {ids['work']: [('branch/source-planting.json', {'source_witness': {'record_ref': paths['work']}, 'status': 'source_witness_planted'})]}
+        write('source/discovery.json', {'target': {'known_tos_refs': list(ids.values())}, 'provenance_event_refs': ['event:acquisition']})
+        plants = {ids['work']: [('branch/source-planting.json', {'source_witness': {'record_ref': paths['work']},
+            'status': 'source_witness_planted', 'discovery_ref': 'source/discovery.json'})]}
         return target, plants, write
 
     def test_recorded_acquisition_is_portable_and_local_existence_is_separate(self):
@@ -61,6 +63,17 @@ class RegistryCoverageTests(unittest.TestCase):
             self.assertEqual(assess_target(root, target, {})['status'], 'acquired_version_needs_branch')
             (root / 'source/item/item.manifest.json').unlink()
             self.assertEqual(assess_target(root, target, {})['status'], 'prepared_version_not_installed')
+
+    def test_another_version_of_the_same_work_does_not_supply_this_branch_route(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); target, plants, write = self.fixture(root)
+            for discovery in (
+                {'target': {'known_tos_refs': [target['ids']['work'], 'tos.item.other-language']}, 'provenance_event_refs': ['event:acquisition']},
+                {'target': {'known_tos_refs': list(target['ids'].values())}, 'provenance_event_refs': ['event:other-acquisition']},
+            ):
+                with self.subTest(discovery=discovery):
+                    write('source/discovery.json', discovery)
+                    self.assertEqual(assess_target(root, target, plants)['status'], 'acquired_version_needs_branch')
 
     def test_wrong_identity_or_unbound_acquisition_output_stops_projection(self):
         with tempfile.TemporaryDirectory() as directory:
