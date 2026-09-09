@@ -34,8 +34,9 @@ STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
+MAX_D1_ROW_BYTES = 2_000_000
 READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v6"
-READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
+READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v3"
 
 
 def compact_json(value: Any) -> str:
@@ -316,7 +317,7 @@ def append_chunkable_insert(
     """Insert one row while preserving oversized text through bounded updates."""
     # SQL chunking bounds statements, not the eventual SQLite row. Use an
     # intentionally conservative upper bound including escaped text/header.
-    if sum(len(value.encode('utf-8')) for value in values) + 1024 > 2_000_000:
+    if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_ROW_BYTES:
         raise RuntimeError(f'{table} row exceeds the D1 row budget; split the record, never truncate it')
     statement = sql_insert(table, columns, values)
     if len(statement.encode("utf-8")) <= MAX_D1_SQL_STATEMENT_BYTES:
@@ -706,6 +707,13 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             sql_text(search_text),
             sql_text(item_json),
         )
+        # A full JSON copy in search_text is useful for ordinary rows, but it
+        # can double a near-limit provenance record. Keep the lossless JSON
+        # payload and let the Worker query it as a fallback for this rare
+        # shape; truncating the searchable payload would lose discoverability.
+        if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_ROW_BYTES:
+            search_text = ""
+            values = (*values[:8], sql_text(search_text), values[9])
         append_chunkable_insert(
             statements,
             "knowledge_nodes_next",
@@ -743,6 +751,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             sql_text(search_text),
             sql_text(item_json),
         )
+        if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_ROW_BYTES:
+            search_text = ""
+            values = (*values[:9], sql_text(search_text), values[10])
         append_chunkable_insert(
             statements,
             "knowledge_relations_next",

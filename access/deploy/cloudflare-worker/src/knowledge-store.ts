@@ -51,6 +51,16 @@ type RelationHeader = { id: string; from_id: string; to_id: string; from_source:
 type JsonRow = { json: string };
 type CountRow = { count: number };
 
+function searchFragment(alias: string, needle: string): SqlFragment {
+  // Near-limit records keep their lossless JSON but omit the duplicated
+  // search copy. Only those rows need the JSON fallback; ordinary rows keep
+  // the cheaper search_text path.
+  return {
+    sql: `(instr(${alias}.search_text, ?) > 0 OR (${alias}.search_text = '' AND instr(lower(${alias}.json), ?) > 0))`,
+    bindings: [needle, needle],
+  };
+}
+
 function bound(value: unknown): string | number | null {
   if (typeof value === "boolean") return value ? 1 : 0;
   if (typeof value === "string" || typeof value === "number" || value === null) return value;
@@ -369,7 +379,7 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
     });
   }
   if (spec.seed.text_query) {
-    nodeParts.push({ sql: "instr(n.search_text, ?) > 0", bindings: [spec.seed.text_query.toLocaleLowerCase()] });
+    nodeParts.push(searchFragment("n", spec.seed.text_query.toLocaleLowerCase()));
   }
   const nodeWhere = joinFragments(nodeParts);
   const relationParts: SqlFragment[] = [
@@ -546,12 +556,12 @@ async function knowledgeSearchD1Unchecked(
   const nodeWhere = joinFragments([
     sourceFragment("n", sources),
     ...(options.kindIds.length ? [{ sql: "n.kind_id IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(options.kindIds)] }] : []),
-    ...(needle ? [{ sql: "instr(n.search_text, ?) > 0", bindings: [needle] }] : []),
+    ...(needle ? [searchFragment("n", needle)] : []),
   ]);
   const relationWhere = joinFragments([
     sourceFragment("r", sources),
     ...(options.predicateIds.length ? [{ sql: "r.predicate_id IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(options.predicateIds)] }] : []),
-    ...(needle ? [{ sql: "instr(r.search_text, ?) > 0", bindings: [needle] }] : []),
+    ...(needle ? [searchFragment("r", needle)] : []),
   ]);
   const nodeRank = needle
     ? "CASE WHEN lower(n.id) = ? OR lower(n.native_id) = ? OR n.title_text = ? THEN 0 WHEN instr(lower(n.id), ?) = 1 OR instr(lower(n.native_id), ?) = 1 OR instr(n.title_text, ?) = 1 THEN 1 ELSE 2 END, n.id"
