@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/exploration-request.v2.schema.json",
+  "title": "Exact node or relation origin for a resumable exploration",
+  "oneOf": [
+    {"$ref": "exploration-request.v1.schema.json#/oneOf/0", "properties": {"cursor": {"minLength": 64, "maxLength": 64}}},
+    {"$ref": "#/$defs/start"}
+  ],
+  "$defs": {
+    "revision": {"type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$"},
+    "id": {"type": "string", "minLength": 1, "maxLength": 1024, "$comment": "Edge whitespace is the explicit Python str.strip set; ECMAScript \\s differs for U+0085, U+001C..001F and U+FEFF.", "pattern": "^[^\\u0009-\\u000d\\u001c-\\u0020\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000](?:[\\s\\S]*[^\\u0009-\\u000d\\u001c-\\u0020\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000])?(?![\\s\\S])"},
+    "origin": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "id", "content_revision"],
+      "properties": {
+        "kind": {"enum": ["node", "relation"]},
+        "id": {"$ref": "#/$defs/id"},
+        "content_revision": {"$ref": "#/$defs/revision"}
+      }
+    },
+    "start": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "source_revision", "origin"],
+      "properties": {
+        "schema_version": {"const": "tos_exploration_request_v2"},
+        "source_revision": {"$ref": "#/$defs/revision"},
+        "origin": {"$ref": "#/$defs/origin"},
+        "sources": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/sources"},
+        "direction": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/direction"},
+        "profile": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/profile"},
+        "predicate_ids": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/predicate_ids"},
+        "max_depth": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/max_depth"},
+        "page_nodes": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/page_nodes"},
+        "page_relations": {"$ref": "exploration-request.v1.schema.json#/oneOf/1/properties/page_relations"}
+      }
+    }
+  }
+}

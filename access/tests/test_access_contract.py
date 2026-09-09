@@ -310,6 +310,8 @@ def write_fixture(root: Path) -> None:
         "temporal-comparison-result.v1.schema.json",
         "exploration-request.v1.schema.json",
         "exploration-result.v1.schema.json",
+        "exploration-request.v2.schema.json",
+        "exploration-result.v2.schema.json",
     ):
         (contracts / name).write_text(
             (ACCESS_ROOT / "contracts" / name).read_text(encoding="utf-8"),

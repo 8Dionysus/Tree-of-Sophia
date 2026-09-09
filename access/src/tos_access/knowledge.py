@@ -3730,7 +3730,7 @@ _CARRIER_SOURCE_PRIORITY = {
 }
 
 
-def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_id):
+def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_id, focus_relation_id=None):
     """An optional scene view, never a new subject-predicate-object assertion.
 
     Only complete explicit Claim paths fold. Every original record stays in
@@ -3788,6 +3788,8 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
         reason = None
         if vertex['id'] == focus_vertex:
             reason = 'focus-claim'
+        elif focus_relation_id is not None and any(a['relation_id'] == focus_relation_id for a in incident[vertex['id']]):
+            reason = 'focus-relation'
         elif any(id not in candidates for id in identifiers):
             reason = 'mixed-or-incomplete-claim-carriers'
         else:
@@ -3865,7 +3867,7 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
             'authority': 'presentation-only-no-new-assertion'}
 
 
-def knowledge_scene(nodes, relations, focus_node_id=None):
+def knowledge_scene(nodes, relations, focus_node_id=None, focus_relation_id=None):
     """Packet-local presentation mapping, never a corpus identity merge.
 
     Only declared persistent ToS IDs group carriers. Normalizer fallback IDs
@@ -3889,13 +3891,14 @@ def knowledge_scene(nodes, relations, focus_node_id=None):
     arcs, collapsed = [], []
     for relation in sorted(relations, key=lambda r: r['id']):
         left, right = by_node[relation['from_id']], by_node[relation['to_id']]
-        if left == right and relation.get('relation_type_id') == 'tos.relation.projects':
+        if (left == right and relation.get('relation_type_id') == 'tos.relation.projects'
+                and relation['id'] != focus_relation_id):
             collapsed.append(relation['id'])
         else:
             arcs.append({'relation_id': relation['id'], 'from_id': left, 'to_id': right})
     return {'schema_version': 'tos_knowledge_scene_v1', 'vertices': vertices, 'arcs': arcs,
             'collapsed_relation_ids': collapsed, 'focus_vertex_id': by_node.get(focus_node_id),
-            'compact': _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_id),
+            'compact': _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_id, focus_relation_id),
             'scope': 'returned-packet-only', 'identity_rule': 'declared-tos-entity-id',
             'authority': 'presentation-mapping-not-semantic-admission'}
 

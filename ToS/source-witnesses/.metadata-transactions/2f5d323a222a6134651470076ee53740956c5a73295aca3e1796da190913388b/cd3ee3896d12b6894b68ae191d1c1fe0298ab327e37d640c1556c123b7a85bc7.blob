@@ -1,0 +1,194 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+    "version": 1,
+    "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-project-gutenberg-4363-edition.name-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+        "version": 1,
+        "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-project-gutenberg-4363-edition.name-en",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+        "version": 1,
+        "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+      },
+      "role": "name",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/variant_labels/0/script"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-5": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-project-gutenberg-4363-edition.source-note",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+        "version": 1,
+        "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+      },
+      "role": "hover",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+            "version": 1,
+            "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

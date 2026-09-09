@@ -9,6 +9,10 @@ family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the
 compact API, typed owner handles and limits: implemented is not authorized-now,
 and access adapters remain read-only.
 
+[Native Expression/Edition growth](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md)
+adds one separately delegated provisional Edition and exact `embodied_by`
+Claim without creating an Item/File or changing global bibliographic cardinality.
+
 ## Operating Card
 
 | Field | Route |
@@ -131,7 +135,7 @@ are not supplied by this bounded Claim reader.
 `exact_refs(record_id)`, `supports(record_type, source_ref=...)` and
 `verify_current()`. It uses the same exact-ref/status envelope, with no command
 configuration or current-use authority. Supported routes are native Corpus
-Agent, Place, Organization, Work and Expression, plus the registry's declared metadata
+Agent, Place, Organization, Work, Expression and Edition, plus the registry's declared metadata
 profiles and schema routes. Pass the locator to `supports` when a catalog also
 contains a different native representation, such as scholarly Composites.
 
@@ -155,7 +159,7 @@ Work is bounded to 8 MiB/8,192 rows per catalog, 128 selected contracts, 128
 corrections, existing package-manifest bounds and 64 MiB cumulative read work per
 instance, including profile shape-reader rechecks. Reuse within one build and
 verify before export; exceeding a bound refuses the record/history without
-partial output. Native Edition/Item/File/Link and native
+partial output. Native Item/File/Link and native
 Artifact/Composite representations are not supported by this reader yet.
 
 `resolve_source_bytes(original_source_path, raw_sha256)` joins a provenance

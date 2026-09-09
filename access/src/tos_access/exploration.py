@@ -11,15 +11,16 @@ import re
 import secrets
 import threading
 import time
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 
 from .knowledge import (
     KNOWLEDGE_SOURCES, OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, _lens_carrier,
     _resolve_focus_node, _stable_digest, knowledge_scene, _identity_carrier_groups,
 )
 from .lens_pagination import KnowledgeRevisionConflict
+from .exploration_origin import REQUEST_V2, RESULT_V2, ExplorationReadModelInvalid, bind_origin, normalize_origin
 
-EXECUTION_VERSION = "tos-exploration-execution-v5"
+EXECUTION_VERSION = "tos-exploration-execution-v6"
 
 
 class ExplorationExpired(ValueError):
@@ -40,12 +41,25 @@ def exploration_capabilities():
         "ordering": "zero-distance declared identity carriers before relation-id ordered edges; all profile uses carrier BFS",
         "identity_expansion": "overview only; source-filtered declared tos.* IDs; page and session node budgets apply",
         "runtime": "local", "other_runtimes": "discover-on-target",
+        "request_versions": ['tos_exploration_request_v1', REQUEST_V2],
+        "result_versions": ['tos_exploration_result_v1', RESULT_V2],
+        "v2_origin_kinds": ['node', 'relation'],
+        "v2_origin_context": {"max_nodes": 2, "max_relations": 1,
+                              "page_budgets": 'incremental; mandatory origin closure is additional'},
     }
 
 
 def normalize_exploration(request):
     if not isinstance(request, dict):
         raise ValueError("exploration request must be an object")
+    if request.get('schema_version') == REQUEST_V2:
+        origin = normalize_origin(request)
+        options = {k: v for k, v in request.items() if k not in ('schema_version', 'source_revision', 'origin')}
+        if 'focus_node_id' in options:
+            raise ValueError('exploration v2 uses origin, not legacy focus_node_id')
+        query = normalize_exploration({'focus_node_id': origin['id'], **options})
+        del query['focus_node_id']
+        return {'schema_version': REQUEST_V2, 'source_revision': request['source_revision'], 'origin': origin, **query}
     allowed = {"focus_node_id", "sources", "direction", "predicate_ids", "profile",
                "max_depth", "page_nodes", "page_relations"}
     if set(request) - allowed:
@@ -102,19 +116,29 @@ class ExplorationService:
     def _index(self, graph):
         if graph is self.graph:
             return
-        self.nodes = {n["id"]: n for n in graph["nodes"]}
-        self.carrier_groups = _identity_carrier_groups(graph['nodes'])
-        self.relations = {r["id"]: r for r in graph["relations"]}
-        self.adjacency = defaultdict(list)
-        for relation in sorted(graph["relations"], key=lambda r: r["id"]):
-            for endpoint in dict.fromkeys((relation["from_id"], relation["to_id"])):
-                self.adjacency[endpoint].append(relation["id"])
-        self.revision = _stable_digest({
-            "execution_version": EXECUTION_VERSION,
-            "source_revision": graph.get("source_revision"),
-            "nodes": sorted([n["id"], n["content_revision"]] for n in graph["nodes"]),
-            "relations": sorted([r["id"], r["content_revision"]] for r in graph["relations"]),
-        })
+        # Prepare atomically: an invalid replacement must not poison the last
+        # immutable snapshot's index. This checks indexing structure only.
+        try:
+            nodes = {n["id"]: n for n in graph["nodes"]}
+            duplicate_nodes = {id for id, count in Counter(n['id'] for n in graph['nodes']).items() if count > 1}
+            carrier_groups = _identity_carrier_groups(graph['nodes'])
+            relations = {r["id"]: r for r in graph["relations"]}
+            duplicate_relations = {id for id, count in Counter(r['id'] for r in graph['relations']).items() if count > 1}
+            adjacency = defaultdict(list)
+            for relation in sorted(graph["relations"], key=lambda r: r["id"]):
+                for endpoint in dict.fromkeys((relation["from_id"], relation["to_id"])):
+                    adjacency[endpoint].append(relation["id"])
+            revision = _stable_digest({
+                "execution_version": EXECUTION_VERSION,
+                "source_revision": graph.get("source_revision"),
+                "nodes": sorted([n["id"], n["content_revision"]] for n in graph["nodes"]),
+                "relations": sorted([r["id"], r["content_revision"]] for r in graph["relations"]),
+            })
+        except (KeyError, TypeError, AttributeError) as exc:
+            raise ExplorationReadModelInvalid('exploration snapshot cannot be indexed intact') from exc
+        self.nodes, self.relations, self.carrier_groups = nodes, relations, carrier_groups
+        self.duplicate_nodes, self.duplicate_relations = duplicate_nodes, duplicate_relations
+        self.adjacency, self.revision = adjacency, revision
         self.graph = graph
 
     def _remove(self, token):
@@ -161,14 +185,24 @@ class ExplorationService:
                     return record["result"]
                 state = record["state"]
             else:
-                focus = _resolve_focus_node([n for n in self.nodes.values()
-                                             if n["source_graph"] in query["sources"]], query["focus_node_id"])
-                query["focus_node_id"] = focus["id"]
+                if query.get('schema_version') == REQUEST_V2:
+                    origin, roots, seed_relations = bind_origin(query, self.graph.get('source_revision'),
+                        lambda id: None if id in self.duplicate_nodes else self.nodes.get(id),
+                        lambda id: None if id in self.duplicate_relations else self.relations.get(id))
+                    if len(roots) > self.node_limit or len(seed_relations) > self.relation_limit:
+                        raise ValueError('exploration origin closure exceeds session limits')
+                else:
+                    focus = _resolve_focus_node([n for n in self.nodes.values()
+                                                 if n["source_graph"] in query["sources"]], query["focus_node_id"])
+                    query["focus_node_id"] = focus["id"]
+                    roots, seed_relations, origin = [focus['id']], [], None
                 expires = now + self.ttl
-                state = {"query": query, "queue": [[focus["id"], 0]], "head": 0, "offset": 0,
+                state = {"query": query, "queue": [[id, 0] for id in roots], "head": 0, "offset": 0,
                          "identity_offset": 0, "identity_added": 0,
                          "expanded_entities": [],
-                         "seen_nodes": [focus["id"]], "seen_relations": [], "page_number": 0}
+                         "seen_nodes": list(roots), "seen_relations": list(seed_relations), "page_number": 0}
+                if origin is not None:
+                    state.update(origin=origin, roots=roots, seed_relations=seed_relations)
             result, state = self._advance(state)
             next_cursor = secrets.token_hex(32) if result["status"] == "paused" else None
             result["page"]["next_cursor"] = next_cursor
@@ -188,14 +222,18 @@ class ExplorationService:
 
     def _advance(self, state):
         query = state["query"]
-        focus = query["focus_node_id"]
-        primary = [focus] if state["page_number"] == 0 else []
+        origin = state.get('origin')
+        focus = query.get('focus_node_id') if origin is None else origin['id'] if origin['kind'] == 'node' else None
+        roots = state['roots'] if origin is not None else [focus]
+        seed_relations = state.get('seed_relations', [])
+        primary = [focus] if origin is None and state["page_number"] == 0 else []
         emitted = []
         seen_nodes, seen_relations = set(state["seen_nodes"]), set(state["seen_relations"])
-        node_reasons = {focus: {"kind": "focus"}}
+        node_reasons = {id: {'kind': 'origin' if origin and origin['kind'] == 'node'
+                            else 'origin-endpoint' if origin else 'focus'} for id in roots}
         promoted = set()
         expanded_entities = set(state['expanded_entities'])
-        edge_reasons = {}
+        edge_reasons = {id: {'kind': 'origin'} for id in seed_relations}
         work = 0
         limit_reason = None
         while state["head"] < len(state["queue"]) and work < self.work_limit:
@@ -278,7 +316,7 @@ class ExplorationService:
                 node_reasons[target] = {"kind": "traversal", "via_node_id": current,
                                         "via_relation_id": edge["id"], "depth": depth + 1}
         state["page_number"] += 1
-        selected = set(primary) | promoted | {focus}
+        selected = set(primary) | promoted | set(roots)
         for id in emitted:
             selected.update((self.relations[id]["from_id"], self.relations[id]["to_id"]))
         for id in selected - node_reasons.keys():
@@ -286,21 +324,27 @@ class ExplorationService:
         status = ("limit_reached" if limit_reason else
                   "complete" if state["head"] == len(state["queue"]) else "paused")
         delivered_nodes = [_lens_carrier(self.nodes[id], "compact", language="auto") for id in sorted(selected)]
-        delivered_relations = [_lens_carrier(self.relations[id], "compact", language="auto") for id in emitted]
-        return {
-            "schema": "tos_exploration_result_v1", "execution_version": EXECUTION_VERSION,
+        delivered_relations = [_lens_carrier(self.relations[id], "compact", language="auto") for id in [*seed_relations, *emitted]]
+        result = {
+            "schema": RESULT_V2 if origin is not None else "tos_exploration_result_v1", "execution_version": EXECUTION_VERSION,
             "snapshot_revision": self.revision, "source_revision": self.graph.get("source_revision", ""),
             "query": query, "focus": {"node_id": focus}, "status": status, "limit_reason": limit_reason,
             "nodes": delivered_nodes, "relations": delivered_relations,
-            "scene": knowledge_scene(delivered_nodes, delivered_relations, focus),
+            "scene": knowledge_scene(delivered_nodes, delivered_relations, focus,
+                                      origin['id'] if origin and origin['kind'] == 'relation' else None),
             "page": {"number": state["page_number"], "primary_node_ids": primary,
                      "context_node_ids": sorted(selected - set(primary)), "next_cursor": None,
-                     "returned_nodes": len(selected), "returned_relations": len(emitted),
+                     "returned_nodes": len(selected), "returned_relations": len(delivered_relations),
                      "work_units": work, "scope": "resumable-neighborhood"},
-            "counts": {"discovered_nodes": len(seen_nodes), "emitted_relations": len(seen_relations),
+            "counts": {"discovered_nodes": len(seen_nodes), "emitted_relations": len(seen_relations) - len(seed_relations),
                        "scope": "cumulative-discovered-not-global-total"},
             "inclusion": {"nodes": node_reasons, "relations": edge_reasons,
                           "authority": "query-execution-not-semantic-proof"},
             "authority_boundary": self.graph.get("authority_boundary", {}),
             "writes_to_tree": False,
-        }, state
+        }
+        if origin is not None:
+            del result['focus']
+            result['origin'] = origin
+            result['page'].update(primary_relation_ids=emitted, context_relation_ids=list(seed_relations))
+        return result, state

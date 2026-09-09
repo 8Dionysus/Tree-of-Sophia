@@ -571,7 +571,7 @@ def command_handlers():
         typed_handles=(*contract.CLAIM_HANDLES, *contract.FORM_HANDLES, 'ToS/contracts/native-text-unit-binding.schema.json'),
         profile_selection=profile + '; exact predicates still select their source_claim_profile, never a write grant.',
         preconditions=('Execution requires confidential context plus separately bounded per-Claim source and native-binding selections.',
-                       'Native has_expression and translated_by creation remain outside this generic private writer.'))
+                       'Native has_expression, embodied_by and translated_by creation remain outside this generic private writer.'))
         for version, schema, profile in (('v1', CONFIG, 'semantic-relation-v1 and identity-relation-v1 readers'),
             ('v2', REFERENCE_CONFIG, 'v1 readers plus explicitly allowlisted structured-reference-value-v1 objects')))
 

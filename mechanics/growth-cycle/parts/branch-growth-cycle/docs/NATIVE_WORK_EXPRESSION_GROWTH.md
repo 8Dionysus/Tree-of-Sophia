@@ -95,7 +95,8 @@ transition in current verified history and the original Expression bytes in
 its current record or verified retained successor archive.
 
 Foundation closure joins the three unchanged legacy topology streams with
-only these verified native `has_expression` carriers. Each legacy event keeps
+verified native `has_expression` carriers and the separately delegated
+[`embodied_by` carriers](NATIVE_EXPRESSION_EDITION_GROWTH.md). Each legacy event keeps
 its own original stream digests and batch counts. A changed legacy Work or
 Expression input is resolved only by its original logical path and exact raw
 digest through committed retained history; arbitrary blobs or current-value

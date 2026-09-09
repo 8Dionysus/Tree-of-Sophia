@@ -66,7 +66,8 @@ Currently connected families include public source/Claim forms;
 historical, declared-profile and standalone native creation; Sign promotion;
 public record and Claim correction; selected native correction/recovery;
 private TextUnit, metadata-profile and Claim transport; native Work/Expression
-growth; and qualified Expression translator attachment. Distinct owner-schema
+growth; qualified Expression translator attachment; and separately delegated
+[Expression/Edition growth](NATIVE_EXPRESSION_EDITION_GROWTH.md). Distinct owner-schema
 versions retain their actual typed-value and recovery boundaries.
 
 Assessment-journal and semantic-registry evolution remain explicit owner

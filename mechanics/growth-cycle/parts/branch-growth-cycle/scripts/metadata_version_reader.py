@@ -35,7 +35,7 @@ MAX_CONTRACTS = 128
 MAX_SAFE_VERSION = 9_007_199_254_740_991
 NATIVE_CATALOGS = {'agent': 'agents.jsonl', 'place': 'places.jsonl',
                    'organization': 'organizations.jsonl', 'work': 'works.jsonl',
-                   'expression': 'expressions.jsonl'}
+                   'expression': 'expressions.jsonl', 'edition': 'editions.jsonl'}
 PUBLIC = {'public', 'public_metadata_only'}
 FORBIDDEN = {'catalog', 'payload', 'private', 'local-content', 'owner-local'}
 IDENTITY = re.compile(r'tos\.([a-z][a-z0-9-]*)\.[a-z0-9]+(?:[.-][a-z0-9]+)*')
@@ -362,14 +362,17 @@ class MetadataVersionReader:
             request = receipt['request']
             selected = 'publication' in receipt
             attachment = request.get('operation') == 'expression.responsibility.attach'
-            compound = request.get('operation') == 'work.expression.create' or attachment
+            embodiment = request.get('operation') == 'expression.edition.create'
+            compound = request.get('operation') == 'work.expression.create' or attachment or embodiment
             if compound:
-                if attachment:
+                if embodiment:
+                    from source_edition_commands import validate_parent_receipt
+                elif attachment:
                     from source_responsibility_commands import validate_parent_receipt
                 else:
                     from source_expression_commands import validate_parent_receipt
                 validate_parent_receipt(receipt)
-                if route['record_type'] != ('expression' if attachment else 'work'):
+                if route['record_type'] != ('expression' if attachment or embodiment else 'work'):
                     raise source.JournalCorruption('compound history must belong to its declared existing parent')
             else:
                 source._keys(request, {'schema_version', 'operation', 'fields', 'forms', 'reason', 'command_id',
@@ -381,7 +384,8 @@ class MetadataVersionReader:
                                   or request['operation'] != 'record.revise')
                     or not _ref(receipt['source']) or not _ref(request['expected_source'])
                     or not isinstance(request['fields'], dict) or not request['fields']
-                    or not set(request['fields']) <= ({'responsibility_claim_refs'} if attachment
+                    or not set(request['fields']) <= ({'embodiment_claim_refs'} if embodiment
+                        else {'responsibility_claim_refs'} if attachment
                         else {'expression_claim_refs'} if compound else allowed_fields)):
                 raise source.JournalCorruption('retained request is not a metadata correction')
             previous, binding = self._archive_record(relative, route, receipt, record['schema_version'])

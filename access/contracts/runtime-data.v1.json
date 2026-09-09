@@ -4,6 +4,18 @@
   "publication_posture": "allowlist-only",
   "subjects": [
     {
+      "subject_id": "tos-exploration-request-contract-v2",
+      "source_path": "access/contracts/exploration-request.v2.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
+      "subject_id": "tos-exploration-result-contract-v2",
+      "source_path": "access/contracts/exploration-result.v2.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
       "subject_id": "tos-exploration-request-contract",
       "source_path": "access/contracts/exploration-request.v1.schema.json",
       "required": true,

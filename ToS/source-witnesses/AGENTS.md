@@ -76,7 +76,7 @@ evidence.
   closure: Work `expression_claim_refs`, Expression
   `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to
   the retained three legacy streams under `relations/` or a declared native
-  `has_expression` Claim with its verified compound publication evidence.
+  `has_expression` or `embodied_by` Claim with its verified compound publication evidence.
   Their union must agree with `work_ref`, `embodies_expression_refs`, and
   item-manifest `embodiment_ref`. Read support does not grant standalone Claim
   writes or retroactive changes to a legacy batch. Never infer textual

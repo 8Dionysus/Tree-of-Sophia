@@ -93,6 +93,8 @@ def _validate_knowledge_contracts(repo_root: Path) -> None:
         "temporal-comparison-result.v1.schema.json",
         "exploration-request.v1.schema.json",
         "exploration-result.v1.schema.json",
+        "exploration-request.v2.schema.json",
+        "exploration-result.v2.schema.json",
     )
     schemas = {
         name: json.loads((contract_root / name).read_text(encoding="utf-8"))
@@ -212,6 +214,20 @@ def _validate_knowledge_contracts(repo_root: Path) -> None:
     if page["page"]["next_cursor"]:
         page = core.knowledge_explore({"cursor": page["page"]["next_cursor"]})
         Draft202012Validator(schemas["exploration-result.v1.schema.json"], registry=registry).validate(page)
+    for kind, carriers in (("node", graph["nodes"]), ("relation", graph["relations"])):
+        if not carriers:
+            continue
+        origin = carriers[0]
+        request = {
+            "schema_version": "tos_exploration_request_v2", "source_revision": graph["source_revision"],
+            "origin": {"kind": kind, "id": origin["id"], "content_revision": origin["content_revision"]},
+            "max_depth": 0,
+        }
+        Draft202012Validator(schemas["exploration-request.v2.schema.json"], registry=registry).validate(request)
+        page = core.knowledge_explore(request)
+        Draft202012Validator(schemas["exploration-result.v2.schema.json"], registry=registry).validate(page)
+        if page["status"] != "complete" or page["page"]["primary_node_ids"] or page["page"]["primary_relation_ids"]:
+            raise RuntimeError("zero-depth typed exploration must return origin context only")
 
 
 def _validate_contracts(repo_root: Path) -> None:

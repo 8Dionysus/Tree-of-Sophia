@@ -68,7 +68,7 @@
           "type": "object", "additionalProperties": false, "required": ["node_id", "reason"],
           "properties": {"node_id": {"type": "string", "minLength": 1}, "reason": {"enum": [
             "incomplete-claim-contract", "unmapped-claim-predicate", "claim-endpoint-identity-collision",
-            "incomplete-or-ambiguous-path", "focus-claim", "mixed-or-incomplete-claim-carriers",
+            "incomplete-or-ambiguous-path", "focus-claim", "focus-relation", "mixed-or-incomplete-claim-carriers",
             "incomplete-value-member-context", "nonfoldable-incident-relation", "focus-detail"]}}
         }}
       }

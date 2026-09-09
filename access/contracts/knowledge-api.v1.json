@@ -101,8 +101,12 @@
       "mcp_tool": "tos_knowledge_explore",
       "request_schema": "exploration-request.v1.schema.json",
       "result_schema": "exploration-result.v1.schema.json",
+      "versioned_contracts": {
+        "v1": {"request": "exploration-request.v1.schema.json", "result": "exploration-result.v1.schema.json"},
+        "v2": {"request": "exploration-request.v2.schema.json", "result": "exploration-result.v2.schema.json", "origins": ["node", "relation"]}
+      },
       "state": "disposable bounded query checkpoints: local process memory or shared D1 cache; no authored writes",
-      "errors": {"400": "invalid request", "409": "snapshot changed; restart", "410": "checkpoint unavailable; restart", "413": "D1 checkpoint capacity exceeded; narrow scope/page", "503": "D1 migration/read model not prepared"}
+      "errors": {"400": "invalid request or sources exclude origin closure", "404": "unknown or ambiguous exact origin", "409": "snapshot or selected content changed; restart", "410": "checkpoint unavailable; restart", "413": "D1 checkpoint capacity exceeded; narrow scope/page", "503": "migration/read model not prepared or corrupt origin closure"}
     }
   ],
   "invariants": {

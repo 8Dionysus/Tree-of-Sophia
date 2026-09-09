@@ -78,6 +78,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_exploration_origin.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "resumable_neighborhood_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/exploration_origin.py",
+      "protects": "typed exact node and relation origin binding, complete relation endpoint closure, bounded multisource BFS, HTTP and native MCP parity, corrupt source refusal and preserved v1 traversal",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_exploration_origin.py",
+      "failure_route": "Fix typed-origin binding or traversal without hiding incomplete relation neighborhoods, accepting corrupt read models, breaking v1 or promoting projections into source authority.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_incremental_runtime.py",
       "home": "access",
       "home_scope": "product-local",
@@ -1200,6 +1215,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/growth-cycle/tests/test_source_responsibility_commands.py",
       "failure_route": "Fix exact native attachment or retained source lineage without expanding flat grants, manufacturing remote content evidence, changing identity or accepting attribution by transport.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_source_edition_commands.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md",
+      "protects": "exact native Expression Edition append without Item/File or admission; current delegated pending recovery, immutable captures, exact Edition and historical Expression reads, preserved Work Expression and translator receipts across later sibling growth",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_edition_commands.py",
+      "failure_route": "Fix the exact Edition compound and longitudinal evidence without expanding flat writers, rewriting old origin Claims, changing global cardinality or inferring publication and acquired copies.",
       "disposition": "keep"
     },
     {

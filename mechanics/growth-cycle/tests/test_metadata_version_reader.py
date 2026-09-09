@@ -176,6 +176,27 @@ class MetadataVersionReaderTests(unittest.TestCase):
                 self.assertEqual(old['provenance']['catalog']['current_record_ref'], reader._record_ref(current))
                 instance.verify_current()
 
+    def test_edition_read_route_does_not_invent_earlier_versions_or_open_old_writers(self):
+        with self.family('edition') as fixture:
+            fixture.record.update(record_version=4,
+                embodies_expression_refs=['tos.expression.synthetic.first', 'tos.expression.synthetic.second'],
+                publication_claim_refs=[], exemplar_claim_refs=[])
+            fixture.path.write_bytes(revisions._encode(fixture.record))
+            self.sync_catalog(fixture)
+            before = fixture.path.read_bytes()
+            instance = reader.MetadataVersionReader(fixture.root)
+            exact = reader._record_ref(fixture.record)
+            refs = instance.exact_refs(fixture.record['record_id'])
+            self.assertEqual(refs['status'], 'available', refs)
+            self.assertEqual(refs['refs'], [exact])
+            self.assertEqual(instance.resolve(exact)['record'], fixture.record)
+            self.assert_unavailable(instance.resolve({**exact, 'version': 1}), 'missing', 'exact-version-not-retained')
+            for schema in (source.CORPUS_CONFIG, source.CORPUS_REVISION_CONFIG, source.CORPUS_SELECTED_REVISION_CONFIG):
+                with self.subTest(owner_schema=schema), self.assertRaises(PermissionError):
+                    source._configured_corpus_profile({'schema_version': schema, 'record_type': 'edition'})
+            self.assertEqual(fixture.path.read_bytes(), before)
+            instance.verify_current()
+
     def project_fixture(self, fixture):
         """Use the public builder and portable access path, not a history mock."""
         sys.path.insert(0, str(ROOT / 'scripts'))

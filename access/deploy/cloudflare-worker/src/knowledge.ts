@@ -24,7 +24,7 @@ type SceneArc = {relation_id: string; from_id: string; to_id: string};
 // Unknown incident edges keep a Claim explicit; grounds and typed value members
 // fold into inspectable path details, retaining focused or shared neighborhoods.
 function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVertex[], arcs: SceneArc[],
-                           byNode: Map<string, string>, focusNodeId: string | null) {
+                           byNode: Map<string, string>, focusNodeId: string | null, focusRelationId: string | null) {
   const byRelation = new Map(relations.map(r => [String(r.id), r]));
   const detailTypes = new Set(['tos.relation.claim-supported-by', 'tos.relation.claim-value-member']);
   const outgoing = new Map<string, Item[]>(), incident = new Map<string, SceneArc[]>();
@@ -77,6 +77,7 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
     if (!localClaims.length) continue;
     let reason: string | null = null;
     if (vertex.id === focusVertex) reason = 'focus-claim';
+    else if ((incident.get(vertex.id) ?? []).some(arc => arc.relation_id === focusRelationId)) reason = 'focus-relation';
     else if (ids.some(id => !candidates.has(id))) reason = 'mixed-or-incomplete-claim-carriers';
     else {
       const legs = new Set(ids.flatMap(id => candidates.get(id)!.legs));
@@ -141,7 +142,7 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
 
 // Presentation identity only. The enclosing packet owns exact records,
 // revisions, wording and inspection; this does not adjudicate same_as claims.
-export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: string | null = null) {
+export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: string | null = null, focusRelationId: string | null = null) {
   const groups = new Map<string, {entity_id: string | null; nodes: Item[]}>();
   const byNode = new Map<string, string>();
   for (const node of nodes) {
@@ -162,11 +163,11 @@ export function knowledgeScene(nodes: Item[], relations: Item[], focusNodeId: st
   for (const relation of relations.slice().sort((a, b) => compareIds(String(a.id), String(b.id)))) {
     const left = byNode.get(String(relation.from_id)), right = byNode.get(String(relation.to_id));
     if (!left || !right) throw new Error('scene relation endpoint missing from returned packet');
-    if (left === right && relation.relation_type_id === 'tos.relation.projects') collapsed.push(String(relation.id));
+    if (left === right && relation.relation_type_id === 'tos.relation.projects' && relation.id !== focusRelationId) collapsed.push(String(relation.id));
     else arcs.push({relation_id: String(relation.id), from_id: left, to_id: right});
   }
   return {schema_version: 'tos_knowledge_scene_v1', vertices, arcs, collapsed_relation_ids: collapsed,
-    compact: compactClaimScene(nodes, relations, vertices, arcs, byNode, focusNodeId),
+    compact: compactClaimScene(nodes, relations, vertices, arcs, byNode, focusNodeId, focusRelationId),
     focus_vertex_id: focusNodeId === null ? null : byNode.get(focusNodeId) ?? null,
     scope: 'returned-packet-only', identity_rule: 'declared-tos-entity-id',
     authority: 'presentation-mapping-not-semantic-admission'};

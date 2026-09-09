@@ -455,6 +455,8 @@ class ToSAccessCore:
             "capabilities": exploration_capabilities(),
             "request": _read_json(self.tos_root / "access/contracts/exploration-request.v1.schema.json"),
             "result": _read_json(self.tos_root / "access/contracts/exploration-result.v1.schema.json"),
+            "request_v2": _read_json(self.tos_root / "access/contracts/exploration-request.v2.schema.json"),
+            "result_v2": _read_json(self.tos_root / "access/contracts/exploration-result.v2.schema.json"),
         }
 
     @classmethod

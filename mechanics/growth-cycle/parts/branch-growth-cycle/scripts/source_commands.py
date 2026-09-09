@@ -1363,10 +1363,12 @@ def command_handlers():
     import source_owner_claim_commands
     import source_expression_commands
     import source_responsibility_commands
+    import source_edition_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions,
         source_text_unit_commands, source_owner_profile_commands, source_owner_claim_commands,
-        source_expression_commands, source_responsibility_commands) for handler in module.command_handlers()))
+        source_expression_commands, source_responsibility_commands, source_edition_commands)
+        for handler in module.command_handlers()))
     schemas = [schema for handler in handlers for schema in handler.owner_schemas]
     if len(set(schemas)) != len(schemas) or len({handler.handler_id for handler in handlers}) != len(handlers):
         raise ValueError('source command handlers have ambiguous configuration dispatch')

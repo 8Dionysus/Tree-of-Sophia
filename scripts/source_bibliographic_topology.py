@@ -115,6 +115,85 @@ def validate_work_expression_delta(work_before, work_after, expression, claim, *
     _fail(issues)
 
 
+def validate_expression_edition_delta(expression_before, expression_after, edition, claim, *,
+                                      expression_source_ref, edition_source_ref):
+    """One existing Expression and a new provisional Edition, not all bibliography.
+
+    This operation's single-Expression scope does not constrain other Edition
+    homes, collections, documents or the global many-to-many embodiment model.
+    No Item, File, responsibility, publication date or equivalence is inferred.
+    """
+    issues = []
+    if not all(isinstance(value, dict) for value in (expression_before, expression_after, edition, claim)):
+        raise BibliographicTopologyError([('delta', 'four source objects are required')])
+    expression_id, edition_id, claim_id = (expression_before.get('record_id'),
+                                          edition.get('record_id'), claim.get('claim_id'))
+    if (expression_before.get('record_type') != 'expression'
+            or expression_after.get('record_type') != 'expression'
+            or not isinstance(expression_id, str) or expression_after.get('record_id') != expression_id):
+        issues.append(('expression', 'the same existing Expression identity must be preserved'))
+    version = expression_before.get('record_version')
+    if (type(version) is not int or version < 1 or type(expression_after.get('record_version')) is not int
+            or expression_after['record_version'] != version + 1):
+        issues.append(('expression', 'record_version must advance exactly once'))
+    prior_refs = expression_before.get('embodiment_claim_refs')
+    if (not _refs(prior_refs) or not isinstance(claim_id, str) or not claim_id or claim_id in prior_refs
+            or expression_after.get('embodiment_claim_refs') != prior_refs + [claim_id]):
+        issues.append(('expression', 'embodiment_claim_refs must append exactly the new Claim'))
+    excluded = {'record_version', 'embodiment_claim_refs'}
+    if (json.dumps({key: value for key, value in expression_before.items() if key not in excluded}, sort_keys=True)
+            != json.dumps({key: value for key, value in expression_after.items() if key not in excluded}, sort_keys=True)):
+        issues.append(('expression', 'all other Expression fields must remain unchanged'))
+    allowed = {'schema_version', 'record_type', 'record_id', 'record_version', 'preferred_label',
+        'field_languages', 'variant_labels', 'identity_status', 'source_refs', 'external_identifiers',
+        'same_as_posture', 'notes', 'supersedes_ref', 'embodies_expression_refs', 'edition_statement',
+        'publication_claim_refs', 'provision_activity_claim_refs', 'exemplar_claim_refs',
+        'responsibility_claim_refs'}
+    if (set(edition) - allowed or edition.get('schema_version') != 'tos_corpus_record_v1'
+            or edition.get('record_type') != 'edition' or not isinstance(edition_id, str)
+            or edition.get('embodies_expression_refs') != [expression_id]
+            or type(edition.get('record_version')) is not int or edition['record_version'] != 1
+            or edition.get('identity_status') != 'provisional'
+            or edition.get('same_as_posture') != 'no_equivalence_claim' or edition.get('supersedes_ref') is not None):
+        issues.append(('edition', 'one new provisional single-Expression Edition must remain within this operation scope'))
+    if (edition.get('publication_claim_refs') != [] or edition.get('exemplar_claim_refs') != []
+            or edition.get('provision_activity_claim_refs', []) != []
+            or edition.get('responsibility_claim_refs', []) != []):
+        issues.append(('edition', 'initial creation cannot introduce publication, provision, Item or responsibility Claims'))
+    for field in ('variant_labels', 'external_identifiers'):
+        values = edition.get(field)
+        if (not isinstance(values, list) or any(not isinstance(value, dict)
+                or value.get('status') != 'unverified' for value in values)):
+            issues.append(('edition', f'{field} require explicitly unverified identity assertions'))
+    if (claim.get('schema_version') != 'tos_source_relation_claim_v1' or claim.get('claim_type') != 'relation'
+            or claim.get('assertion_layer') != 'bibliographic_assertion' or claim.get('predicate') != 'embodied_by'
+            or claim.get('subject_ref') != expression_id or claim.get('object') != edition_id
+            or type(claim.get('claim_version')) is not int or claim['claim_version'] != 1
+            or claim.get('epistemic_status') != 'observed' or claim.get('polarity') != 'positive'
+            or claim.get('confidence') is not None or claim.get('review_status') != 'unreviewed'
+            or claim.get('assessment_refs', []) != [] or claim.get('supersedes_claim_ref') is not None
+            or claim.get('visibility') != 'public_metadata_only'):
+        issues.append(('claim', 'one new unreviewed public bibliographic relation must bind the exact endpoints'))
+    evidence = claim.get('evidence_refs')
+    if (not isinstance(expression_source_ref, str) or not isinstance(edition_source_ref, str)
+            or not _refs(evidence) or set(evidence) != {expression_source_ref, edition_source_ref}):
+        issues.append(('claim', 'evidence must be exactly the two linked metadata paths'))
+    if not isinstance(expression_source_ref, str) or not isinstance(edition_source_ref, str):
+        issues.append(('delta', 'canonical source paths are required'))
+    else:
+        expression_path, edition_path = PurePosixPath(expression_source_ref), PurePosixPath(edition_source_ref)
+        if (expression_path.is_absolute() or '..' in expression_path.parts
+                or expression_path.as_posix() != expression_source_ref or expression_path.name != 'expression.json'
+                or expression_path.parts[:3] != ('ToS', 'source-witnesses', 'works')
+                or expression_path.parent.parent.name != 'expressions'
+                or edition_path.as_posix() != edition_source_ref
+                or edition_path.parent.parent != expression_path.parent / 'editions'
+                or edition_path.name != 'edition.json'
+                or not re.fullmatch(r'[a-z0-9]+(?:[.-][a-z0-9]+)*', edition_path.parent.name)):
+            issues.append(('delta', 'Edition must occupy one new canonical child of the exact Expression home'))
+    _fail(issues)
+
+
 def validate_current_topology(records_by_id, claims, *, item_edition_by_id=None):
     """Check exact outgoing refs and inverse record links across all carriers.
 

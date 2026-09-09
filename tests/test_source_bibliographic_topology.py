@@ -18,7 +18,7 @@ import claim_revisions
 import source_claim_commands
 import source_owner_claim_commands
 from source_bibliographic_topology import (
-    BibliographicTopologyError, validate_current_topology, validate_work_expression_delta,
+    BibliographicTopologyError, validate_current_topology, validate_work_expression_delta, validate_expression_edition_delta,
 )
 from source_record_profiles import SourceClaimProfiles
 from validate_source_witness_foundation import _legacy_topology_configuration, _topology_evidence_matches
@@ -81,6 +81,69 @@ def topology():
          'object': 'tos.item.old', 'claim_type': 'bibliographic'},
     ]
     return records, legacy, claim, {'tos.item.old': 'tos.edition.old'}
+
+
+class EditionDeltaTests(unittest.TestCase):
+    edition_path = EXPRESSION_PATH.replace('expression.json', 'editions/new/edition.json')
+
+    def values(self):
+        _, _, before, claim = delta()
+        before.update(record_version=2, embodiment_claim_refs=['tos.claim.old-edition'],
+            responsibility_claim_refs=['tos.claim.translator'], language='en', notes='Retain qualified attribution.')
+        after = {**copy.deepcopy(before), 'record_version': 3,
+                 'embodiment_claim_refs': ['tos.claim.old-edition', CLAIM_ID]}
+        edition = {'schema_version': 'tos_corpus_record_v1', 'record_type': 'edition', 'record_id': 'tos.edition.new',
+            'record_version': 1, 'identity_status': 'provisional', 'same_as_posture': 'no_equivalence_claim',
+            'supersedes_ref': None, 'embodies_expression_refs': [EXPRESSION_ID], 'publication_claim_refs': [],
+            'exemplar_claim_refs': [], 'variant_labels': [], 'external_identifiers': []}
+        claim.update(predicate='embodied_by', subject_ref=EXPRESSION_ID, object=edition['record_id'],
+                     evidence_refs=[EXPRESSION_PATH, self.edition_path])
+        return before, after, edition, claim
+
+    def check_delta(self, values):
+        validate_expression_edition_delta(*values, expression_source_ref=EXPRESSION_PATH,
+                                           edition_source_ref=self.edition_path)
+
+    def test_only_exact_append_and_provisional_manifestation_are_allowed(self):
+        values = self.values()
+        original = copy.deepcopy(values)
+        self.check_delta(values)
+        self.assertEqual(values, original)
+        for index, update in ((1, {'language': 'ru'}), (1, {'responsibility_claim_refs': []}),
+                (1, {'record_version': 4}), (1, {'embodiment_claim_refs': [CLAIM_ID]}),
+                (2, {'record_version': True}), (2, {'identity_status': 'verified'}),
+                (2, {'publication_claim_refs': ['tos.claim.date']}), (2, {'exemplar_claim_refs': ['tos.claim.item']}),
+                (2, {'embodies_expression_refs': [EXPRESSION_ID, 'tos.expression.other']}),
+                (2, {'collection_ref': 'tos.collection.other'}), (2, {'work_ref': WORK_ID}),
+                (3, {'review_status': 'accepted'}), (3, {'object': 'tos.edition.other'}),
+                (3, {'evidence_refs': [EXPRESSION_PATH]})):
+            with self.subTest(index=index, update=update):
+                altered = self.values()
+                altered[index].update(update)
+                with self.assertRaises(BibliographicTopologyError):
+                    self.check_delta(altered)
+
+    def test_profile_does_not_open_standalone_public_private_or_revision_writers(self):
+        claim = self.values()[3]
+        profiles = SourceClaimProfiles(ROOT)
+        profiles.validate(claim)
+        with self.assertRaisesRegex(PermissionError, 'compound bibliographic'):
+            source_claim_commands._scope({'allowed_operations': ['claims.create']}, [claim], profiles=profiles)
+        for initial in (True, False):
+            with self.subTest(initial=initial), self.assertRaisesRegex(PermissionError, 'compound bibliographic'):
+                source_owner_claim_commands._scope({}, [claim], profiles, initial=initial)
+        with self.assertRaisesRegex(PermissionError, 'compound bibliographic'):
+            claim_revisions._scope({'allowed_operations': ['claim.revise']}, {}, claim, profiles=profiles)
+
+    def test_global_closure_keeps_multi_expression_and_no_item_editions_valid(self):
+        records, legacy, new_claim, item_links = topology()
+        records['tos.edition.old']['embodies_expression_refs'].append(EXPRESSION_ID)
+        records[EXPRESSION_ID]['embodiment_claim_refs'] = ['tos.claim.shared-edition']
+        shared = {'claim_id': 'tos.claim.shared-edition', 'predicate': 'embodied_by',
+                  'subject_ref': EXPRESSION_ID, 'object': 'tos.edition.old'}
+        records['tos.edition.metadata-only'] = {'record_id': 'tos.edition.metadata-only', 'record_type': 'edition',
+            'embodies_expression_refs': [], 'exemplar_claim_refs': [], 'collection_ref': 'tos.collection.example'}
+        validate_current_topology(records, [*legacy, new_claim, shared], item_edition_by_id=item_links)
 
 
 class BibliographicDeltaTests(unittest.TestCase):

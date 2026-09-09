@@ -127,6 +127,17 @@ Participating readers require committed publication evidence and a matching
 catalog before combining the legacy and native topology carriers. Transport
 completion does not perform bibliographic, textual or rights assessment.
 
+An existing Expression can likewise gain a separately identified provisional
+Edition through the [exact Edition creation route](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md).
+The Expression's appended embodiment ref and distinct `embodied_by` Claim
+preserve one declared metadata relation. Earlier Work origin, responsibility
+Claims and source-copy form history remain intact. One Expression is this
+command's write scope, not a universal one-to-one bibliographic rule; existing
+multi-Expression and collection Editions remain valid, including those with
+no acquired Item. Naming an electronic editorial manifestation does not
+identify its printed ancestry, acquire a file, assert format equivalence or
+grant rights. The command does not attach an already existing Edition.
+
 An existing Expression may gain a qualified `translated_by` Claim to an existing
 Agent through a separately delegated
 [responsibility attachment](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md).

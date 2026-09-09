@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 31,
+  "registry_version": 32,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -1812,6 +1812,12 @@
     },
     {
       "relation_type_id": "tos.relation.embodied-by",
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "identity-relation-v1",
+        "assertion_layers": ["bibliographic_assertion"],
+        "schemas": [{"schema_version": "tos_source_relation_claim_v1", "schema_ref": "ToS/contracts/source-relation-claim.schema.json", "schema_dependencies": []}]
+      },
       "parent_relation_type_ids": ["tos.relation.bibliographic-topology"],
       "abstract": false,
       "labels": {"default": "embodied by", "ru": "воплощено изданием", "en": "embodied by"},

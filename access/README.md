@@ -182,8 +182,9 @@ does not discover other carriers, widen a query, change admission or bypass a
 page budget. Its work/storage are bounded by the returned packet, with sorting
 at most O((nodes + relations) log(nodes + relations)). Older packets may lack
 `scene`; consumers must then preserve exact carrier vertices, not invent a
-grouping heuristic. Current execution v5 fingerprints/checkpoints separate the
-compact-path delivery from older cached responses. UI adoption is separate.
+grouping heuristic. Execution v5 introduced compact-path fingerprints; current
+v6 additionally binds typed origins. Older cached responses require a restart.
+UI adoption is separate.
 
 ### Compact Claim paths
 
@@ -345,6 +346,58 @@ Start with:
 
 Continue by sending **only** `{"cursor": "<page.next_cursor>"}` to the same
 server. Query and page sizes stay fixed; changing filters starts a new walk.
+
+For an exact selected node or relation, use the additive v2 request instead:
+
+```json
+{
+  "schema_version": "tos_exploration_request_v2",
+  "source_revision": "<current graph source_revision>",
+  "origin": {
+    "kind": "relation",
+    "id": "<exact normalized relation id from the selected packet>",
+    "content_revision": "<selected relation content_revision>"
+  },
+  "profile": "overview",
+  "max_depth": 2,
+  "page_nodes": 40,
+  "page_relations": 80
+}
+```
+
+The revision placeholders stand for lowercase 64-hex digests, not arbitrary
+strings. `kind=node` selects an exact normalized node ID; v2 never guesses a
+native/entity alias. The original `focus_node_id` request and v1 result remain
+supported. Discovery keeps `request`/`result` for v1 and adds
+`request_v2`/`result_v2`; capabilities list both versions and origin kinds.
+The shared endpoint infers cursor-only continuation from its bound state.
+
+A relation origin is not a new node, Claim, or assertion of equivalence. Its
+exact `from` and `to` carriers are both depth-zero roots, irrespective of the
+direction for subsequent hops. Self-loops retain both endpoint roles with one
+carrier. The resolved `origin.endpoints` binds their IDs, entity IDs and content
+revisions to the snapshot. At depth zero only this closure is returned: there
+is no adjacency or identity expansion. The selected relation survives even
+when its predicate is excluded from subsequent traversal. A selected Claim leg
+remains an inspectable line and prevents folding that Claim into a different
+compact line; relation focus does not invent a scene vertex.
+
+In v2 every page repeats the origin roots as context and, for relation origins,
+the selected relation in `page.context_relation_ids`. New relations are listed
+in `page.primary_relation_ids`. Page budgets measure incremental discoveries,
+with at most two origin nodes and one origin relation additionally retained;
+ordinary endpoint context is still required. Total delivery is bounded by
+`page_nodes + 2 * page_relations + 2` nodes and `page_relations + 1` relations.
+`counts.discovered_nodes` includes roots; `counts.emitted_relations` excludes
+the origin relation, which counts once against the internal session limit.
+Repeated context never consumes a page's new-discovery budget.
+
+V2 rejects mixed legacy/origin requests (**400**), missing or ambiguous exact
+origins (**404**), source/content revision drift (**409**), source filters that
+exclude the origin or its endpoints (**400**), and corrupt/missing endpoint
+closure (**503**). It does not repair a prepared snapshot during delivery.
+Execution v6 invalidates older checkpoints without changing authored records.
+
 Relation IDs are ordered within each expanded carrier. In `overview`, before
 expanding a carrier below `max_depth`, other source-filtered carriers of the
 same declared `tos.*` entity are discovered at zero distance. The inclusion
@@ -376,7 +429,7 @@ from the idempotent exploration migration. It reads identities in bounded
 Old cached states require a fresh query; applying the migration does not
 modify source records or grant deployment authority.
 
-Only edges expanded from nodes below `max_depth` belong to this neighborhood,
+Apart from an explicitly selected v2 origin relation, only edges expanded from nodes below `max_depth` belong to this neighborhood,
 not all possible edges between visible boundary nodes. `sources` applies to
 both endpoints and relations. `overview` uses the focus profile's exclusions.
 This extension does not yet accept LensSpec path conditions or arbitrary filters.

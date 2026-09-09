@@ -1,21 +1,25 @@
 import { HttpError, parseItem, type Item } from './common.ts';
 import { OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, knowledgeScene, lensCarrier } from './knowledge.ts';
 import { nodesByIds, relationsByIds, resolveFocusNodeD1 } from './knowledge-store.ts';
+import {bindOriginD1, normalizeOrigin, REQUEST_V2, RESULT_V2, type Origin, type ResolvedOrigin} from './exploration-origin.ts';
 
-const VERSION = 'tos-exploration-d1-execution-v5';
+const VERSION = 'tos-exploration-d1-execution-v6';
 const SOURCES = ['philosophy', 'canon', 'candidate-intake', 'source-navigation', 'source-claims', 'semantic-interchange', 'repository'];
 const TTL = 900_000;
 const MAX_BYTES = 1_048_576;
 const ADJACENCY_QUERIES = 24;
-type Query = {
-  focus_node_id: string; sources: string[]; predicate_ids: string[];
+type Options = {
+  sources: string[]; predicate_ids: string[];
   direction: 'either' | 'incoming' | 'outgoing'; profile: 'overview' | 'all';
   max_depth: number; page_nodes: number; page_relations: number;
 };
+type LegacyQuery = Options & {focus_node_id: string};
+type Query = LegacyQuery | (Options & {schema_version: typeof REQUEST_V2; source_revision: string; origin: Origin});
 type State = {query: Query; queue: [string, number][]; head: number; after: string | null;
   identity_after: string | null; identity_complete: boolean; identity_added: number;
   identity_entity: string | null; expanded_entities: string[];
-  seen_relations: string[]; page_number: number};
+  seen_relations: string[]; page_number: number;
+  origin?: ResolvedOrigin; roots?: string[]; seed_relations?: string[]};
 type Snapshot = {epoch: number; revision: string; source_revision: string; authority_boundary: Item};
 type Checkpoint = {token: string; expires: number; epoch: number; version: string; state: string | null; response: string | null};
 type Header = {id: string; from_id: string; to_id: string; source_graph: string; predicate_id: string; relation_type_id: string | null; from_source: string | null; to_source: string | null};
@@ -36,6 +40,13 @@ function object(value: unknown): Item {
 }
 export function normalizeExploration(value: unknown): Query {
   const input = object(value);
+  if (input.schema_version === REQUEST_V2) {
+    const origin = normalizeOrigin(input);
+    const {schema_version: _schema, source_revision, origin: _origin, ...options} = input;
+    if ('focus_node_id' in options) bad('exploration v2 uses origin, not legacy focus_node_id');
+    const {focus_node_id: _focus, ...normalized} = normalizeExploration({focus_node_id: origin.id, ...options}) as LegacyQuery;
+    return {schema_version: REQUEST_V2, source_revision: source_revision as string, origin, ...normalized};
+  }
   const allowed = ['focus_node_id', 'sources', 'direction', 'predicate_ids', 'profile', 'max_depth', 'page_nodes', 'page_relations'];
   if (Object.keys(input).some(k => !allowed.includes(k))) bad('unknown exploration fields; continue with cursor only');
   const focus = input.focus_node_id;
@@ -85,6 +96,9 @@ export async function explorationCapabilitiesD1(db: D1Database): Promise<Item> {
     available = top === 1;
   }
   return {schema: 'tos_exploration_capabilities_v1', available, execution_version: VERSION,
+    request_versions: ['tos_exploration_request_v1', REQUEST_V2], result_versions: ['tos_exploration_result_v1', RESULT_V2],
+    v2_origin_kinds: ['node', 'relation'], v2_origin_context: {max_nodes: 2, max_relations: 1,
+      page_budgets: 'incremental; mandatory origin closure is additional'},
     storage: 'shared-d1-checkpoints', ttl_seconds: TTL / 1000, restart_survival: true, writes_to_tree: false,
     http: {method: 'POST', path: '/api/knowledge/explore'}, max_checkpoints: 128,
     max_checkpoint_bytes: MAX_BYTES, max_cache_bytes: 32 * MAX_BYTES,
@@ -115,12 +129,16 @@ export const IDENTITY_SQL = `SELECT id,entity_id FROM knowledge_nodes INDEXED BY
     AND id>? AND source_graph IN (SELECT value FROM json_each(?)) ORDER BY id LIMIT 32`;
 
 async function advance(db: D1Database, state: State, snap: Snapshot) {
-  const q = state.query, focus = q.focus_node_id;
-  const primary = state.page_number === 0 ? [focus] : [];
-  const emitted: string[] = [], selected = new Set<string>([focus]);
+  const q = state.query, origin = state.origin;
+  const focus = origin ? origin.kind === 'node' ? origin.id : null : (q as LegacyQuery).focus_node_id;
+  const roots = origin ? state.roots! : [focus!], seedRelations = state.seed_relations ?? [];
+  const primary: string[] = !origin && state.page_number === 0 ? [focus!] : [];
+  const emitted: string[] = [], selected = new Set<string>(roots);
   const promoted = new Set<string>();
   const nodes = new Set(state.queue.map(([id]) => id)), edges = new Set(state.seen_relations);
-  const nodeReasons: Record<string, Item> = {[focus]: {kind: 'focus'}}, edgeReasons: Record<string, Item> = {};
+  const nodeReasons: Record<string, Item> = Object.fromEntries(roots.map(id => [id,
+    {kind: origin ? origin.kind === 'node' ? 'origin' : 'origin-endpoint' : 'focus'}]));
+  const edgeReasons: Record<string, Item> = Object.fromEntries(seedRelations.map(id => [id, {kind: 'origin'}]));
   let work = 0, reads = 0, limit: string | null = null;
   let cached: Header[] = [], cachedNode: string | null = null;
   let identities: {id: string; entity_id: string}[] = [], identityNode: string | null = null;
@@ -197,20 +215,22 @@ async function advance(db: D1Database, state: State, snap: Snapshot) {
   primary.forEach(id => selected.add(id));
   selected.forEach(id => { nodeReasons[id] ??= {kind: 'context-endpoint'}; });
   const status = limit ? 'limit_reached' : state.head === state.queue.length ? 'complete' : 'paused';
-  const [selectedNodes, selectedEdges] = await Promise.all([nodesByIds(db, selected), relationsByIds(db, emitted)]);
-  if (selectedNodes.length !== selected.size || selectedEdges.length !== emitted.length) conflict();
+  const deliveredIds = [...seedRelations, ...emitted];
+  const [selectedNodes, selectedEdges] = await Promise.all([nodesByIds(db, selected), relationsByIds(db, deliveredIds)]);
+  if (selectedNodes.length !== selected.size || selectedEdges.length !== deliveredIds.length) conflict();
   const byId = new Map(selectedEdges.map(e => [e.id, e]));
   const deliveredNodes = selectedNodes.map(n => lensCarrier(n, 'compact', 'auto'));
-  const deliveredEdges = emitted.map(id => lensCarrier(byId.get(id)!, 'compact', 'auto'));
+  const deliveredEdges = deliveredIds.map(id => lensCarrier(byId.get(id)!, 'compact', 'auto'));
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([VERSION, snap.revision, snap.epoch])));
-  return {schema: 'tos_exploration_result_v1', execution_version: VERSION,
+  return {schema: origin ? RESULT_V2 : 'tos_exploration_result_v1', execution_version: VERSION,
     snapshot_revision: [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join(''), source_revision: snap.source_revision,
-    query: q, focus: {node_id: focus}, status, limit_reason: limit,
+    query: q, ...(origin ? {origin} : {focus: {node_id: focus}}), status, limit_reason: limit,
     nodes: deliveredNodes, relations: deliveredEdges,
-    scene: knowledgeScene(deliveredNodes, deliveredEdges, focus),
+    scene: knowledgeScene(deliveredNodes, deliveredEdges, focus, origin?.kind === 'relation' ? origin.id : null),
     page: {number: state.page_number, primary_node_ids: primary, context_node_ids: [...selected].filter(id => !primary.includes(id)).sort(),
-      next_cursor: null as string | null, returned_nodes: selected.size, returned_relations: emitted.length, work_units: work, scope: 'resumable-neighborhood'},
-    counts: {discovered_nodes: nodes.size, emitted_relations: edges.size, scope: 'cumulative-discovered-not-global-total'},
+      ...(origin ? {primary_relation_ids: emitted, context_relation_ids: seedRelations} : {}),
+      next_cursor: null as string | null, returned_nodes: selected.size, returned_relations: deliveredIds.length, work_units: work, scope: 'resumable-neighborhood'},
+    counts: {discovered_nodes: nodes.size, emitted_relations: edges.size - seedRelations.length, scope: 'cumulative-discovered-not-global-total'},
     inclusion: {nodes: nodeReasons, relations: edgeReasons, authority: 'query-execution-not-semantic-proof'},
     authority_boundary: snap.authority_boundary, writes_to_tree: false};
 }
@@ -218,7 +238,8 @@ async function advance(db: D1Database, state: State, snap: Snapshot) {
 export async function exploreD1(db: D1Database, request: unknown): Promise<Item> {
   const input = object(request), continuing = 'cursor' in input;
   const cursor = input.cursor;
-  if (continuing && (Object.keys(input).length !== 1 || typeof cursor !== 'string' || !/^[0-9a-f]{64}$/.test(cursor))) bad('continue exploration with one opaque cursor only');
+  if (continuing && (Object.keys(input).length !== 1 || typeof cursor !== 'string' || cursor.length !== 64
+      || !/^[0-9a-f]{64}$/.test(cursor))) bad('continue exploration with one opaque cursor only');
   const query = continuing ? null : normalizeExploration(input);
   if (!(await explorationCapabilitiesD1(db)).available) throw new HttpError(503, 'exploration read model is not prepared');
   const snap = await snapshot(db), now = Date.now();
@@ -238,12 +259,20 @@ export async function exploreD1(db: D1Database, request: unknown): Promise<Item>
     if (!record.state) throw new Error('missing exploration checkpoint state');
     state = JSON.parse(record.state) as State;
   } else {
-    const focus = await resolveFocusNodeD1(db, query!.focus_node_id, query!.sources);
-    if (!focus) bad('unknown exploration focus');
-    query!.focus_node_id = focus.id;
-    state = {query: query!, queue: [[focus.id, 0]], head: 0, after: null,
+    let roots: string[], seedRelations: string[], origin: ResolvedOrigin | undefined;
+    if ('origin' in query!) {
+      ({origin, roots, seedRelations} = await bindOriginD1(db, query, snap.source_revision));
+    } else {
+      const legacy = query as LegacyQuery;
+      const focus = await resolveFocusNodeD1(db, legacy.focus_node_id, legacy.sources);
+      if (!focus) bad('unknown exploration focus');
+      legacy.focus_node_id = focus.id;
+      roots = [focus.id]; seedRelations = [];
+    }
+    state = {query: query!, queue: roots.map(id => [id, 0]), head: 0, after: null,
       identity_after: null, identity_complete: false, identity_added: 0, identity_entity: null, expanded_entities: [],
-      seen_relations: [], page_number: 0};
+      seen_relations: [...seedRelations], page_number: 0,
+      ...(origin ? {origin, roots, seed_relations: seedRelations} : {})};
   }
   const result = await advance(db, state, snap);
   const next = result.status === 'paused' ? token() : null;

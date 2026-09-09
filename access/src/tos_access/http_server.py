@@ -16,6 +16,7 @@ from .core import ToSAccessCore
 from .lens_pagination import KnowledgeRevisionConflict
 from .temporal_comparison import TemporalReadModelInvalid
 from .exploration import ExplorationExpired, exploration_capabilities
+from .exploration_origin import ExplorationReadModelInvalid
 from .doctor import web_root_for
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -390,7 +391,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 self._json({"error": str(exc), "code": "exploration_expired"}, HTTPStatus.GONE)
             except KnowledgeRevisionConflict as exc:
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
-            except TemporalReadModelInvalid as exc:
+            except (TemporalReadModelInvalid, ExplorationReadModelInvalid) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
             except KeyError as exc:
                 self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)

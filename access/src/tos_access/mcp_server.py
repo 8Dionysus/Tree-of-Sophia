@@ -69,7 +69,9 @@ def build_server(
     def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:
         """Start a read-only neighborhood or continue with cursor only; expires after 15 minutes.
 
-        Fixed query/page sizes; no authored writes. Upsert context nodes by ID.
+        Discover schemas: legacy focus_node_id or v2 exact node/relation origin
+        pinned by source/content revision. Fixed query/page sizes; no authored
+        writes. Upsert context nodes and the repeated origin relation by ID.
         Snapshot conflict or expired checkpoint requires restarting from focus.
         """
         return exploration.explore(request)

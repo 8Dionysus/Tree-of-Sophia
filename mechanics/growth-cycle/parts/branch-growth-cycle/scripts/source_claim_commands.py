@@ -100,7 +100,7 @@ def _scope(config, claims, *, profiles=None):
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
-        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'translated_by'}:
+        if isinstance(claim, dict) and claim.get('predicate') in {'has_expression', 'embodied_by', 'translated_by'}:
             # A readable Claim profile is not a standalone writer grant. This
             # predicate changes its parent's exact outgoing closure and belongs
             # to the separately authorized compound bibliographic operation.
@@ -409,7 +409,7 @@ def command_handlers():
         typed_handles=(*contract.CLAIM_HANDLES, 'ToS/contracts/source-structured-value.schema.json', 'ToS/contracts/historical-claim.schema.json'),
         profile_selection='Exact predicate selects source_claim_profile in relation-types.v1.json; ' + values + '.',
         preconditions=('Requires an absent relation home, explicit Claim/endpoints/evidence and maker allowlists.',
-                       'has_expression and translated_by creation require their separately delegated native compound handlers.'))
+                       'has_expression, embodied_by and translated_by creation require their separately delegated native compound handlers.'))
         for version, schema, values in (
             ('v1', source.CLAIM_CONFIG, 'identity objects only, no typed-value grant'),
             ('v2', source.CLAIM_VALUE_CONFIG, 'separately allowlisted temporal values'),

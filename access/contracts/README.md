@@ -249,6 +249,20 @@ digests need not match Python. Ordered discoveries and relation emission agree;
 cursors are backend-specific. D1 413 requires narrowing the request, and 503
 means the migration or compatible data metadata is missing.
 
+The additive `exploration-request.v2.schema.json` /
+`exploration-result.v2.schema.json` pair uses a typed exact `origin` (node or
+relation), pinned by source and selected content revisions. It shares the
+endpoint and cursor-only continuation, but never mixes with legacy
+`focus_node_id`. Discovery preserves v1 `request`/`result` and adds
+`request_v2`/`result_v2`. A relation seeds both exact endpoint carriers at depth
+zero and remains context on every page, without creating a graph identity or
+Claim. Page discovery budgets exclude mandatory origin closure (at most two
+nodes and one relation); emitted-relation counts exclude that seed. Selected
+Claim legs remain visible in the compact scene. The access README defines
+depth/direction/filter behavior, context partitions, and 400/404/409/503
+binding failures. V1 callers retain their result shape; execution v6 requires
+fresh checkpoints on both runtimes.
+
 `tos.zarathustra.word-analysis.prepare` is a local-full-Tree operation. It
 returns a ToS-owned exact-source task when the provider is present and an
 explicit unavailable envelope in the public standalone bundle. Access does
