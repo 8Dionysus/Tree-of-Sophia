@@ -1,0 +1,1303 @@
+{
+  "schema_version": "tos_open_work_readiness_plan_v1",
+  "reviewed_at": "2026-09-09T15:48:16.666805+00:00",
+  "reviewer_ref": "model:codex/session/01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "targets": [
+    {
+      "target_id": "registry-seventh-planting.01.de-fortuna-english-1874",
+      "preferred_label": "Of Fortune",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg074.perseus-eng4. Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Baxter, William, translator.  Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 2 Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-fortuna/work.json",
+          "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-fortuna/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-fortuna",
+          "expression": "tos.expression.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-fortuna.en-perseus-tlg0007-tlg074-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg074.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "356026d3e85d311ecf1dc7d5cb179d680861ac94d7bd5e278b51b3d17b0b7631",
+          "reviewed_body_prefix_sha256": "866c2af74d23d1da901083c7e17eeacb82d924e538e4e2df205c647a06ac2dd2",
+          "reviewed_body_prefix_bytes": 8169
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 16784,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg074.perseus-eng4-header.xml.receipt.json",
+              "sha256": "c2b8d9e0f19d58a763377646ad8f5b23403a4114dcc05a6de278ce2fd467594f"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg074/tlg0007.tlg074.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg074.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.02.de-iside-et-osiride-english-1874",
+      "preferred_label": "Of Isis and Osiris, or of the Ancient Religion and Philosophy of Egypt.",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg089.perseus-eng4. Plutarch. Plutarch's Morals, Vol. IV. Goodwin, William W., editor; Baxter, William, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch’s Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 4 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/work.json",
+          "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-iside-et-osiride",
+          "expression": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg089.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "745f88aeb5555df8b511bfd3db540fe28f1dfeb93f006988718c62fd54412109",
+          "reviewed_body_prefix_sha256": "f7117d06cf202cbff50c3c72313da95929605e79def98e7c62acdf11d1d05280",
+          "reviewed_body_prefix_bytes": 7922
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 166176,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg089.perseus-eng4-header.xml.receipt.json",
+              "sha256": "84496de15a066ca7fc53a380f17fe07174e41867f35269801558e578f3a61574"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg089/tlg0007.tlg089.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg089.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.03.de-e-apud-delphos-english-1874",
+      "preferred_label": "Of the word ΕΙ engraven over the gate of Apollo's temple at Delphi",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg090.perseus-eng4. Plutarch. Plutarch's Morals, Vol. 4. Goodwin, William W., editor; Kippax, R, translator. Boston: Little, Brown, and Company; Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 4 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/work.json",
+          "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-e-apud-delphos",
+          "expression": "tos.expression.plutarch.de-e-apud-delphos.en-perseus-tlg0007-tlg090-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-e-apud-delphos.en-perseus-tlg0007-tlg090-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-e-apud-delphos.en-perseus-tlg0007-tlg090-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg090.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "e7faf63b95fc03dd2874786c97496e7dd7794c0231e7e23e854a3d0eac5bd74c",
+          "reviewed_body_prefix_sha256": "962535cf5b334e883c7e603f829dc0abb38670ccfb8e35ab23cb62e54ee98374",
+          "reviewed_body_prefix_bytes": 7691
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 48748,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg090.perseus-eng4-header.xml.receipt.json",
+              "sha256": "65547203c5dfea366190c494190a4612f0748bde2071892816f035043007966b"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg090/tlg0007.tlg090.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/en-perseus-tlg0007-tlg090-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg090.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.04.de-defectu-oraculorum-english-1874",
+      "preferred_label": "Why the Oracles Cease to Give Answers",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg092.perseus-eng4. Plutarch. Plutarch's Morals, Vol. IV. Goodwin, William W., editor; Midgley, Robert translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 4 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/work.json",
+          "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-defectu-oraculorum",
+          "expression": "tos.expression.plutarch.de-defectu-oraculorum.en-perseus-tlg0007-tlg092-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-defectu-oraculorum.en-perseus-tlg0007-tlg092-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-defectu-oraculorum.en-perseus-tlg0007-tlg092-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg092.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "448de75897060d0858649e92844bb3940dd87ed2dd68ea1cadfd2ced12155187",
+          "reviewed_body_prefix_sha256": "8d3768735de91613cd56816c618f8ee28b0a25af8dccb3034080d993ff089fba",
+          "reviewed_body_prefix_bytes": 7662
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 133030,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg092.perseus-eng4-header.xml.receipt.json",
+              "sha256": "490f29e8234ac4f3eaa94d52ac1446930a66bdfdb4b0ca15a64283ecfabfe5d2"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg092/tlg0007.tlg092.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/en-perseus-tlg0007-tlg092-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg092.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.05.de-virtute-morali-english-1874",
+      "preferred_label": "Of Moral Virtue",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg094.perseus-eng4. Plutarch. Plutarch's Morals, Vol. III. Goodwin, William W., editor; Matthew, Morgan translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 3 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-virtute-morali/work.json",
+          "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-virtute-morali/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-virtute-morali",
+          "expression": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg094.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "ce50246b35af94a0884065ee8fe099ac4a811872ecabe390bae66dd3431b9962",
+          "reviewed_body_prefix_sha256": "329e099338d32bcdb1f469e6a9874da58f6fc8ce158f66d9bf8eb854768cfd05",
+          "reviewed_body_prefix_bytes": 8082
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 73698,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg094.perseus-eng4-header.xml.receipt.json",
+              "sha256": "76090fd43414d52c23fde63d8070d491929a7892bcac2c7af657596c282b6547"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg094.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.06.de-curiositate-english-1874",
+      "preferred_label": "Of Curiosity, or an Over-Busy Inquisitiveness into Things Impertinent.",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg102.perseus-eng4. Plutarch. Plutarch's Morals, Vol. II. Goodwin, William W., editor; Wheeler, Maurice, translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. Translated from the Greek by several hands. Corrected and revised by William W. Goodwin, PH. D. Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 2 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-curiositate/work.json",
+          "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-curiositate/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-curiositate",
+          "expression": "tos.expression.plutarch.de-curiositate.en-perseus-tlg0007-tlg102-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-curiositate.en-perseus-tlg0007-tlg102-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-curiositate.en-perseus-tlg0007-tlg102-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg102.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "544e6ae3f06f9d9ce975ba1577918ad5871ec7c2e22389ee40c5b41a85096cca",
+          "reviewed_body_prefix_sha256": "952ca4ed2a4ad4406598c416b9aedcb3fbed35877b40e96431dd68472067b744",
+          "reviewed_body_prefix_bytes": 7817
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 48368,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg102.perseus-eng4-header.xml.receipt.json",
+              "sha256": "0a41a5bed61abc971512b2ece85d7c8feaf168936389271a68b2d72f603cf63c"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg102/tlg0007.tlg102.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg102.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.07.de-facie-quae-in-orbe-lunae-apparet-english-1874",
+      "preferred_label": "Of the Face Appearing Within the Orb Of the Moon",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-54246bb94e348832782f3a3d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0007.tlg126.perseus-eng4. Plutarch. Plutarch's Morals, Vol. V. Goodwin, William W., editor; G., A., translator. Boston: Little, Brown, and Company;  Cambridge: Press of John Wilson and Son, 1874. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Plutarch Plutarch's Morals. William W. Goodwin Boston Little, Brown, and Company Cambridge Press of John Wilson and Son 1874 5 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/work.json",
+          "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.plutarch.de-facie-quae-in-orbe-lunae-apparet",
+          "expression": "tos.expression.plutarch.de-facie-quae-in-orbe-lunae-apparet.en-perseus-tlg0007-tlg126-perseus-eng4",
+          "edition": "tos.edition.plutarch.de-facie-quae-in-orbe-lunae-apparet.en-perseus-tlg0007-tlg126-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.plutarch.de-facie-quae-in-orbe-lunae-apparet.en-perseus-tlg0007-tlg126-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0007.tlg126.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "a6f804fdedf043f0599e7703dadf4cb6fc75f1207cdba2070f91396e4029a79a",
+          "reviewed_body_prefix_sha256": "a714cab7eb16e3c451626f6b9c386293b6e9d9c1a316dfbedf0fd29517d6d4c3",
+          "reviewed_body_prefix_bytes": 7976
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 126282,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0007.tlg126.perseus-eng4-header.xml.receipt.json",
+              "sha256": "ed120ffb2169ce503fb1e7aaa39aa653d137b41c985cea9997d5ff8f1d70c9bd"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg126/tlg0007.tlg126.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg126.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.08.discourses-english-1890",
+      "preferred_label": "The Discourses of Epictetus",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-dfca59d6d0d1240e64f3aa8d"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0557.tlg001.perseus-eng4. Epictetus. The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Higginson, Thomas Wentworth, translator. New York: Thomas Nelson and Sons. 1890. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Epictetus The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Thomas Wentworth Higginson New York Thomas Nelson and Sons 1890 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/epictetus/discourses/work.json",
+          "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/epictetus/discourses/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.epictetus.discourses",
+          "expression": "tos.expression.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4",
+          "edition": "tos.edition.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.epictetus.discourses.en-perseus-tlg0557-tlg001-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0557.tlg001.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "eab4bc1608a27fee1e44ed9c534ee3ef7a96c6f20112fbc3dbad2c02f5b65622",
+          "reviewed_body_prefix_sha256": "6aedb14dab576ef6f7a1de463780629fc842e2d3d4ddf14e084bf8f9cfa1c49a",
+          "reviewed_body_prefix_bytes": 8334
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 621056,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg001.perseus-eng4-header.xml.receipt.json",
+              "sha256": "b48e4c4278733f3b23ad77d33b286b0dabf2727e28615c94d09067671c58504b"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/epictetus/discourses/expressions/en-perseus-tlg0557-tlg001-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg001.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    },
+    {
+      "target_id": "registry-seventh-planting.09.the-handbook-english-1890",
+      "preferred_label": "The Enchiridion",
+      "source_record_refs": [
+        {
+          "path": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/documents/table-i/A29.json.gz",
+          "sha256": "bb3e15f7e7816d8f7eed3abcce44f255cabe337dd1dbfbf91ee786ee523cad4e",
+          "corpus_id": "table-i",
+          "document_id": "A29",
+          "record_id": "tos-registry:table-i/A29/registry/source-db83f0f1b4794bfbdb2091e2"
+        }
+      ],
+      "target": {
+        "target_kind": "exact-work-version",
+        "description": "English translation urn:cts:greekLit:tlg0557.tlg002.perseus-eng4. Epictetus. The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Higginson, Thomas Wentworth, translator. New York: Thomas Nelson and Sons. 1890. Pinned digital file: PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f. Supplied source description: Epictetus The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. Thomas Wentworth Higginson New York Thomas Nelson and Sons 1890 The Internet Archive",
+        "known_tos_refs": [
+          "ToS/source-witnesses/works/epictetus/the-handbook/work.json",
+          "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/expression.json",
+          "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene"
+        ],
+        "create_record_refs": {
+          "expression": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/expression.json",
+          "edition": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/edition.json",
+          "item": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+          "item_root": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml"
+        },
+        "existing_record_refs": {
+          "work": "ToS/source-witnesses/works/epictetus/the-handbook/work.json"
+        },
+        "planned_ids": {
+          "work": "tos.work.epictetus.the-handbook",
+          "expression": "tos.expression.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4",
+          "edition": "tos.edition.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4.perseus-341e309c821d",
+          "item": "tos.item.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4.perseus-341e309c821d.git-tei-xml"
+        },
+        "expected_coverage": {
+          "kind": "perseus-tei-translation",
+          "citation_scope": "hierarchical_divisions",
+          "cts_urn": "urn:cts:greekLit:tlg0557.tlg002.perseus-eng4",
+          "identity_anchor": "edition_n",
+          "header_prefix_sha256": "92ea057844dfd610bfef03549c336e5b66aae0cc6e1f7d960b5dfc3068b25613",
+          "reviewed_body_prefix_sha256": "dbdec643ecfdefdff2fb88547c06ebf7c69611ea31ee2e63769262b1256f6b42",
+          "reviewed_body_prefix_bytes": 7784
+        },
+        "expected_file_count": 1,
+        "expected_bytes": 45544,
+        "scope_limits": [
+          "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+          "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+          "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+          "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+          "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+          "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+          "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+          "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+          "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+          "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+          "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+          "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+          "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+        ]
+      },
+      "readiness": {
+        "version": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/manifest.json",
+              "sha256": "5f0b95e6f94c4ccc772769d56eacea7af2b5b3c03ddffb52be8aeacca62cf6f1"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Exact English translation, shared Work identity, contributor statement and file list reviewed."
+        },
+        "access": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/evidence/tlg0557.tlg002.perseus-eng4-header.xml.receipt.json",
+              "sha256": "c6142098107b877730d7cc09f13b5049565cebdb57544b5231beca715e86c262"
+            }
+          ],
+          "rationale": "Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks."
+        },
+        "rights": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/prepared-source-packages.jsonl",
+              "sha256": "358eb583433c242d98c7e2432f64770fcaff756f4141b5064954e10bc71e79ca"
+            },
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+              "sha256": "422c657249ad408e675e923847959c8b9d3a61f4219f18ec7bb5b2dfe27529be"
+            }
+          ],
+          "rationale": "Translation and digital edition layers assessed for local preservation and research.",
+          "intended_uses": [
+            "local-preservation",
+            "research-analysis"
+          ]
+        },
+        "file": {
+          "status": "absent",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/source-witnesses/discovery/registry-seventh-planting-2026-09-09/local-presence.preparation.json",
+              "sha256": "84aa7daff70ae17d206a4ddfb980e01c2a0454c0e2bedeee7699a1b04ed0f27a"
+            }
+          ],
+          "rationale": "Exact new version destinations were inspected and are absent before acquisition."
+        },
+        "branch": {
+          "status": "ready",
+          "evidence_posture": "owner-reviewed",
+          "owner_refs": [
+            {
+              "path": "ToS/philosophy/source-planting-preparation/seventh-wave-20260909.json",
+              "sha256": "156dd2c32a3f4bc266bcd9bc505976045c58f42756686428c604bf62d28e1bb6"
+            }
+          ],
+          "rationale": "Current branch and corpus anchor reviewed for an additional translation of the existing Work."
+        }
+      },
+      "acquisition": {
+        "source_urls": [
+          "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml"
+        ],
+        "destination_paths": [
+          "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg002.perseus-eng4.xml"
+        ],
+        "intended_uses": [
+          "local-preservation",
+          "research-analysis"
+        ]
+      }
+    }
+  ]
+}

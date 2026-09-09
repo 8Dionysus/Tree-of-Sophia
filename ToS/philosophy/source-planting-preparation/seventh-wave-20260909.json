@@ -1,0 +1,575 @@
+{
+  "schema_version": "tos_source_planting_preparation_batch_v1",
+  "status": "prepared-not-planted",
+  "review_scope": "9 additional English translations attached to existing Works and A29 branches",
+  "reviewer_ref": "model:codex",
+  "targets": [
+    {
+      "target_slug": "de-fortuna-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De fortuna alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "de-iside-et-osiride-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Iside et Osiride alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "de-e-apud-delphos-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De E apud Delphos alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "de-defectu-oraculorum-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Defectu Oraculorum alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "de-virtute-morali-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Virtute Morali alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "de-curiositate-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De curiositate alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "de-facie-quae-in-orbe-lunae-apparet-english-1874",
+      "registry_source_record_id": "A29-R113",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 20,
+          "source_table_index": 14,
+          "source_row_index": 10,
+          "source_label": "Плутарх"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "32a28997430f8af13f92c872e3324b63fd1cf9fa54e88c86c61c865427afcddb",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Среднеплатоническая метафизика, этика, философия религии",
+          "dossier_id": "A29",
+          "reliability": "Высокая",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [86]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Плутарх",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 10,
+          "source_table_index": 14,
+          "source_type": "Первичный философский корпус"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of De Facie Quae in orbe Lunae Apparet alongside the already retained Greek version within the Плутарх source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "discourses-english-1890",
+      "registry_source_record_id": "A29-R097",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 19,
+          "source_table_index": 14,
+          "source_row_index": 9,
+          "source_label": "Эпиктет"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "812bc92adff908ac98c38a96b2418099a79bed0852d651df6a9625320bc8dd6d",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Стоическая этика выбора и свободы",
+          "dossier_id": "A29",
+          "reliability": "Высокая, но редакторски медиированная",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [85]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Эпиктет",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 9,
+          "source_table_index": 14,
+          "source_type": "Первичный корпус в записи ученика"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of Discourses alongside the already retained Greek version within the Эпиктет source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    },
+    {
+      "target_slug": "the-handbook-english-1890",
+      "registry_source_record_id": "A29-R100",
+      "anchor_preparation": {
+        "schema_version": "tos_philosophy_source_anchor_preparation_v1",
+        "status": "prepared-not-planted",
+        "atlas_row_id": "A29",
+        "dossier_id": "A29",
+        "atlas_source": {
+          "path": "ToS/philosophy/atlas/master-tables/table-i/rows.jsonl",
+          "line": 36,
+          "row_sha256": "5934bbd2eb23eed96b2ef9d29c825b9ae5c07f3695b2a0e552244b338dc81174"
+        },
+        "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+        "branch_manifest": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/branch.manifest.json",
+          "sha256": "556db17401f7807f5633c31232a4252b2fb1cd4e8e870a549fe1747b5778badf"
+        },
+        "source_backlog_anchor": {
+          "path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/source-anchor-backlog.jsonl",
+          "line": 19,
+          "source_table_index": 14,
+          "source_row_index": 9,
+          "source_label": "Эпиктет"
+        },
+        "backlog_sha256": "a489facb4365681f11526b60c03e7076225b063babf90fb3326cb84855d9f052",
+        "backlog_row_sha256": "812bc92adff908ac98c38a96b2418099a79bed0852d651df6a9625320bc8dd6d",
+        "source_backlog_record": {
+          "anchor_kind": "corpus_or_edition_anchor",
+          "atlas_row_id": "A29",
+          "branch_path": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene",
+          "contribution": "Стоическая этика выбора и свободы",
+          "dossier_id": "A29",
+          "reliability": "Высокая, но редакторски медиированная",
+          "route_status": "source_anchor_backlog",
+          "source_access": "Scaife / критические издания [85]",
+          "source_document": "ToS Deep Research_ A29 — Европа — Римский греко-латинский философский экумен.docx",
+          "source_label": "Эпиктет",
+          "source_ref": "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+          "source_row_index": 9,
+          "source_table_index": 14,
+          "source_type": "Первичный корпус в записи ученика"
+        },
+        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted"
+      },
+      "scope_relationship": "parallel-translation-of-existing-work",
+      "scope_rationale": "English reading version of The Handbook alongside the already retained Greek version within the Эпиктет source need. The corpus lead and other versions remain open.",
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Greek Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Greek edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Greek and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+        "This is an additional English version; the previously acquired English Expression and Greek source remain preserved.",
+        "Goodwin is the supplied editor of the Plutarch volume; individual translator names or initials are retained separately and are not expanded or merged.",
+        "CTS and header name-form differences remain literal metadata, not accepted person-identity claims."
+      ]
+    }
+  ]
+}
