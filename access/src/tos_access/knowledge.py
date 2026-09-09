@@ -4766,19 +4766,54 @@ def _normalized_source_filter(sources: Any) -> set[str]:
     return normalized or set(KNOWLEDGE_SOURCES)
 
 
+def _knowledge_search_display_values(item: dict[str, Any], *, relation: bool) -> tuple[str, ...]:
+    """Return only the normalized display forms used for search ordering.
+
+    Search matching intentionally remains a substring scan over the complete
+    serialized item.  Ordering, however, must not let a revision digest or a
+    repository path outrank a name, form, statement, or note that a reader can
+    actually see.  These are transport display fields, not a semantic score.
+    """
+    display = item.get("display") if isinstance(item.get("display"), dict) else {}
+    fields = (
+        ("label", "inverse_label", "statement", "explanation")
+        if relation else
+        ("title", "kind_label", "summary")
+    )
+    values: list[str] = []
+    for field in fields:
+        value = display.get(field)
+        if isinstance(value, dict):
+            values.extend(str(candidate).lower() for candidate in value.values() if isinstance(candidate, str))
+        elif isinstance(value, str):
+            values.append(value.lower())
+    return tuple(values)
+
+
 def _knowledge_search_rank(item: dict[str, Any], needle: str, *, relation: bool) -> tuple[int, str]:
     native_id = str(item.get("native_id") or "").lower()
     item_id = str(item.get("id") or "").lower()
     display = item.get("display") if isinstance(item.get("display"), dict) else {}
     primary = display.get("label") if relation else display.get("title")
-    title = str(primary.get("default") or "").lower() if isinstance(primary, dict) else ""
+    identity_values = tuple(
+        [str(candidate).lower() for candidate in primary.values() if isinstance(candidate, str)]
+        if isinstance(primary, dict) else
+        ([primary.lower()] if isinstance(primary, str) else [])
+    )
+    visible_values = _knowledge_search_display_values(item, relation=relation)
     if not needle:
         return (3, item_id)
-    if needle in {item_id, native_id, title}:
+    if needle in {item_id, native_id} or needle in identity_values:
         return (0, item_id)
-    if item_id.startswith(needle) or native_id.startswith(needle) or title.startswith(needle):
+    if item_id.startswith(needle) or native_id.startswith(needle) or any(
+        value.startswith(needle) for value in identity_values
+    ):
         return (1, item_id)
-    return (2, item_id)
+    if any(needle in value for value in visible_values):
+        return (2, item_id)
+    # Keep metadata/path/digest matches available, but below reader-visible
+    # display forms.  No meaning is inferred from the remaining JSON fields.
+    return (3, item_id)
 
 
 class KnowledgeGraphIndex:

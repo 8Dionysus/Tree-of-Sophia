@@ -360,6 +360,38 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       await knowledgeSearchD1(db,{query:'',sources:null,kindIds:[],predicateIds:[],offset:0,limit:2})]) {
       assert.equal(packet.source_revision, graph.source_revision);
     }
+    // Search ordering must agree with Python when a reader-visible form is
+    // mixed with a digest-only match.  The substring filter remains broad;
+    // only the deterministic display-field ordering changes.
+    const rankingGraph = structuredClone(graph);
+    rankingGraph.nodes[0]!.display.title.default = 'Unrelated node';
+    rankingGraph.nodes[0]!.display.summary.default = 'A reader-visible note names 4363.';
+    rankingGraph.nodes[1]!.display.title.default = 'Anchor · 4363';
+    rankingGraph.nodes[2]!.attributes.content_revision = 'sha256:4363abc';
+    rankingGraph.relations[0]!.display.statement.default = 'Anchor · 4363 — relates Beta.';
+    rankingGraph.relations[1]!.attributes.content_revision = 'sha256:4363def';
+    const restoreRows = async () => {
+      for (const n of graph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
+      for (const r of graph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
+    };
+    try {
+      for (const n of rankingGraph.nodes) await db.prepare('UPDATE knowledge_nodes SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(n), JSON.stringify(n).toLowerCase(), n.id).run();
+      for (const r of rankingGraph.relations) await db.prepare('UPDATE knowledge_relations SET json=?,search_text=? WHERE id=?')
+        .bind(JSON.stringify(r), JSON.stringify(r).toLowerCase(), r.id).run();
+      const expectedSearch = JSON.parse(execFileSync('python3', ['-c',
+        "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph;p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],limit=p['limit'])))"],
+        {cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
+          input: JSON.stringify({graph: rankingGraph, query: '4363', limit: 3}), encoding: 'utf8'}));
+      const actualSearch = await knowledgeSearchD1(db,{query:'4363',sources:null,kindIds:[],predicateIds:[],offset:0,limit:3});
+      assert.deepEqual(actualSearch, expectedSearch);
+      assert.deepEqual((actualSearch.nodes as {id:string}[]).map(n => n.id), ['philosophy:a','philosophy:b','philosophy:c']);
+      assert.deepEqual((actualSearch.relations as {id:string}[]).map(r => r.id), ['philosophy:e','philosophy:f']);
+    } finally {
+      await restoreRows();
+    }
     const scoped = structuredClone(graph);
     // New language/script keys pass through all three execution backends.
     scoped.nodes[0]!.display.title['grc-Grek'] = 'λόγος';

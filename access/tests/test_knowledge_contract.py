@@ -1615,6 +1615,61 @@ class KnowledgeContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'snapshot'):
             search_knowledge_graph(copy.deepcopy(graph),'a',search_index=index)
 
+    def test_search_orders_display_names_and_forms_before_technical_matches(self):
+        from tos_access.knowledge import search_knowledge_graph
+
+        graph = {
+            'schema': 'tos_knowledge_graph_v1', 'source_revision': 'search-ranking-fixture',
+            'authority_boundary': {},
+            'nodes': [
+                {
+                    'id': 'node:technical', 'native_id': 'technical', 'source_graph': 'philosophy',
+                    'display': {'title': {'default': 'Unrelated node'},
+                                'kind_label': {'default': 'concept'},
+                                'summary': {'default': 'No supplied note'}},
+                    'attributes': {'content_revision': 'sha256:abc4363def'},
+                },
+                {
+                    'id': 'node:note', 'native_id': 'note', 'source_graph': 'philosophy',
+                    'display': {'title': {'default': 'Unrelated node'},
+                                'kind_label': {'default': 'concept'},
+                                'summary': {'default': 'A reader-visible note names 4363.'}},
+                },
+                {
+                    'id': 'node:name', 'native_id': 'name', 'source_graph': 'philosophy',
+                    'display': {'title': {'default': 'Anchor · 4363'},
+                                'kind_label': {'default': 'anchor'},
+                                'summary': {'default': 'A note'}},
+                },
+            ],
+            'relations': [
+                {
+                    'id': 'relation:technical', 'native_id': 'technical', 'source_graph': 'philosophy',
+                    'from_id': 'node:name', 'to_id': 'node:note', 'predicate_id': 'linked',
+                    'display': {'label': {'default': 'linked'}, 'statement': {'default': 'No statement'},
+                                'explanation': {'default': 'No explanation'}},
+                    'attributes': {'content_revision': 'sha256:4363abc'},
+                },
+                {
+                    'id': 'relation:statement', 'native_id': 'statement', 'source_graph': 'philosophy',
+                    'from_id': 'node:name', 'to_id': 'node:note', 'predicate_id': 'linked',
+                    'display': {'label': {'default': 'linked'},
+                                'statement': {'default': 'Anchor · 4363 — linked → note.'},
+                                'explanation': {'default': 'A reader-visible statement'}},
+                },
+            ],
+        }
+
+        result = search_knowledge_graph(graph, '4363', limit=3)
+        self.assertEqual([item['id'] for item in result['nodes']],
+                         ['node:name', 'node:note', 'node:technical'])
+        self.assertEqual([item['id'] for item in result['relations']],
+                         ['relation:statement', 'relation:technical'])
+        self.assertEqual(result['counts'], {
+            'matching_nodes': 3, 'matching_relations': 2,
+            'returned_nodes': 3, 'returned_relations': 2,
+        })
+
     def test_inspection_index_preserves_aliases_edges_and_avoids_global_scans(self):
         from tos_access.knowledge import (
             KnowledgeGraphIndex, inspect_knowledge_node, inspect_knowledge_relation,

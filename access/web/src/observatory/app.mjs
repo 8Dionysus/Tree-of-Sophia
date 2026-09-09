@@ -112,7 +112,7 @@ const handlers={
     scene.ui.cancelPending();
     const query=String(input.query||'').trim().slice(0,256);
     const packet=await client.search(query,signal);signal.throwIfAborted();
-    scene.openSearch();scene.ui.cancelSearch();root.querySelector('#sc-query').value=query;
+    scene.ensureSearch();scene.ui.cancelSearch();root.querySelector('#sc-query').value=query;
     const results=root.querySelector('.sc-search-results');uiChildren(results, "replaceChildren");searchHits.clear();searchRevision=packet.source_revision;
     for(const [kind,list]of [['node',packet.nodes],['relation',packet.relations]])for(const raw of list){searchHits.set(raw.id,raw);uiChildren(results, "append", scene.ui.searchRow(raw,kind,packet.source_revision));}
     scene.invalidate();return {query,result_count:packet.counts.matching_nodes+packet.counts.matching_relations,

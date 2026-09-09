@@ -530,6 +530,34 @@ function bounded(value: number, name: string, minimum: number, maximum: number):
   return value;
 }
 
+function displayFieldCondition(alias: string, field: string, mode: "exact" | "prefix" | "contains"): string {
+  const object = `CASE WHEN json_type(${alias}.json, '$.display.${field}') = 'object' THEN json_extract(${alias}.json, '$.display.${field}') ELSE '{}' END`;
+  const value = "lower(CAST(display_value.value AS TEXT))";
+  const predicate = mode === "exact" ? `${value} = ?`
+    : mode === "prefix" ? `instr(${value}, ?) = 1`
+    : `instr(${value}, ?) > 0`;
+  return `EXISTS (SELECT 1 FROM json_each(${object}) AS display_value WHERE display_value.type = 'text' AND ${predicate})`;
+}
+
+function searchRank(
+  alias: string,
+  identityFields: string[],
+  visibleFields: string[],
+  needle: string,
+): {sql: string; bindings: string[]} {
+  const exact = [`lower(${alias}.id) = ?`, `lower(${alias}.native_id) = ?`, ...identityFields.map(field => displayFieldCondition(alias, field, "exact"))];
+  const prefix = [`instr(lower(${alias}.id), ?) = 1`, `instr(lower(${alias}.native_id), ?) = 1`, ...identityFields.map(field => displayFieldCondition(alias, field, "prefix"))];
+  const visible = visibleFields.map(field => displayFieldCondition(alias, field, "contains"));
+  return {
+    sql: `CASE WHEN ${exact.join(" OR ")} THEN 0 WHEN ${prefix.join(" OR ")} THEN 1 WHEN ${visible.join(" OR ")} THEN 2 ELSE 3 END, ${alias}.id`,
+    bindings: [
+      ...Array(exact.length).fill(needle),
+      ...Array(prefix.length).fill(needle),
+      ...Array(visible.length).fill(needle),
+    ],
+  };
+}
+
 async function knowledgeSearchD1Unchecked(
   db: D1Database,
   options: { query: string; sources: string[] | null; kindIds: string[]; predicateIds: string[]; offset: number; limit: number },
@@ -553,18 +581,21 @@ async function knowledgeSearchD1Unchecked(
     ...(options.predicateIds.length ? [{ sql: "r.predicate_id IN (SELECT value FROM json_each(?))", bindings: [JSON.stringify(options.predicateIds)] }] : []),
     ...(needle ? [{ sql: "instr(r.search_text, ?) > 0", bindings: [needle] }] : []),
   ]);
+  const nodeTitle = ["title"];
+  const nodeVisible = ["title", "kind_label", "summary"];
+  const relationLabel = ["label"];
+  const relationVisible = ["label", "inverse_label", "statement", "explanation"];
   const nodeRank = needle
-    ? "CASE WHEN lower(n.id) = ? OR lower(n.native_id) = ? OR n.title_text = ? THEN 0 WHEN instr(lower(n.id), ?) = 1 OR instr(lower(n.native_id), ?) = 1 OR instr(n.title_text, ?) = 1 THEN 1 ELSE 2 END, n.id"
-    : "n.id";
+    ? searchRank("n", nodeTitle, nodeVisible, needle)
+    : {sql: "n.id", bindings: [] as string[]};
   const relationRank = needle
-    ? "CASE WHEN lower(r.id) = ? OR lower(r.native_id) = ? OR r.label_text = ? THEN 0 WHEN instr(lower(r.id), ?) = 1 OR instr(lower(r.native_id), ?) = 1 OR instr(r.label_text, ?) = 1 THEN 1 ELSE 2 END, r.id"
-    : "r.id";
-  const rankBindings = needle ? [needle, needle, needle, needle, needle, needle] : [];
+    ? searchRank("r", relationLabel, relationVisible, needle)
+    : {sql: "r.id", bindings: [] as string[]};
   const [nodeCount, relationCount, nodeRows, relationRows, knowledgeTop] = await Promise.all([
     count(db, "knowledge_nodes n", nodeWhere),
     count(db, "knowledge_relations r", relationWhere),
-    jsonRows(db, `SELECT n.json FROM knowledge_nodes n WHERE ${nodeWhere.sql} ORDER BY ${nodeRank} LIMIT ? OFFSET ?`, ...nodeWhere.bindings, ...rankBindings, limit, offset),
-    jsonRows(db, `SELECT r.json FROM knowledge_relations r WHERE ${relationWhere.sql} ORDER BY ${relationRank} LIMIT ? OFFSET ?`, ...relationWhere.bindings, ...rankBindings, limit, offset),
+    jsonRows(db, `SELECT n.json FROM knowledge_nodes n WHERE ${nodeWhere.sql} ORDER BY ${nodeRank.sql} LIMIT ? OFFSET ?`, ...nodeWhere.bindings, ...nodeRank.bindings, limit, offset),
+    jsonRows(db, `SELECT r.json FROM knowledge_relations r WHERE ${relationWhere.sql} ORDER BY ${relationRank.sql} LIMIT ? OFFSET ?`, ...relationWhere.bindings, ...relationRank.bindings, limit, offset),
     meta<Item>(db, "knowledge_top"),
   ]);
   return {
