@@ -351,7 +351,7 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/record-version-view.schema.json", "ToS/contracts/source-claim-record.schema.json"],
-      "reads": ["bounded public Claim catalog, current flat metadata package and complete shared retained correction chain", "exact original stream, manifest/blob/package fixity, source visibility and catalog identity/version/digest/line; invocation-local snapshots rechecked before return/publication"],
+      "reads": ["bounded public Claim catalog, current flat metadata package and complete shared retained correction chain", "exact original stream, manifest/blob/package fixity, source visibility and catalog identity/version/digest/line; selected publication token and catalog byte bindings rechecked on available and unavailable returns"],
       "writes": [],
       "side_effects": "pure public exact-version reader; no command config, journal, models, private payloads, assessment, admission or source writes; explicit unavailable statuses never substitute the latest record",
       "validation_lane": "mechanics_local",
@@ -365,7 +365,7 @@
       "organ_lane": "mechanics/part-owned",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
       "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/record-version-view.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/entity-types.v1.json"],
-      "reads": ["bounded public native Agent/Place/Organization/Work or declared-profile catalog, exact current metadata and selected retained record blobs", "local profile/schema contracts, complete continuous retained record transitions and manifest bindings; invocation snapshot rechecked before return/publication"],
+      "reads": ["bounded public native Agent/Place/Organization/Work/Expression or declared-profile catalog, exact current metadata and selected retained record blobs", "local profile/schema contracts, complete continuous retained record transitions and v1/v2 archive bindings; original logical-path/raw-digest return through committed record history", "selected publication control and catalog token/file hashes; invocation snapshot rechecked before successful or unavailable return/publication"],
       "writes": [],
       "side_effects": "pure exact metadata/history reader, no command config, private inventory, unselected companion bytes, current forms, model, assessment, grant or source writes; manifest bindings do not certify unread package bytes; explicit gaps never substitute current records",
       "validation_lane": "mechanics_local",
@@ -395,10 +395,52 @@
       "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/historical-record.schema.json", "ToS/contracts/corpus-record.schema.json", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json"],
       "reads": ["explicit separately delegated historical, declared-profile or native Corpus subject flat package and exact retained source-version archive", "bounded revision request, record and form contracts, implementation dependency bytes; native correction preserves typed ID, external IDs, Claim endpoints, archived bytes/forms and old permission boundaries", "profile correction: protected native semantic identity closure fingerprint, without exporting native packet paths or rewriting historical receipts"],
       "writes": ["tracked exact prior-package blob archive and manifest under source-witnesses/.record-revisions", "atomic current record/form/history package through source-root writer lock and staging outside source scanners"],
-      "side_effects": "protected local-account metadata writes, bounded fsync/archive verification and Linux directory exchange; removes only own unpublished staging or verified duplicate old staging; does not revise claims, grant admission, publish, invoke models or delete committed history",
+      "side_effects": "protected local-account metadata writes, bounded fsync/archive verification and unchanged v1 Linux directory exchange; explicit v2 selected units dispatch to source_selected_revisions.py without widening old grants; removes only own unpublished staging or verified duplicate old staging; does not revise claims, grant admission, publish, invoke models or delete committed history",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/growth-cycle/tests/test_source_revisions.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/corpus-record.schema.json", "ToS/contracts/human-form-set.schema.json", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"],
+      "reads": ["explicit protected native v2 correction or recovery grant, exact record/form/history unit and immutable selected predecessor archive", "bounded request, current schemas and implementation dependencies, original publication token and verified retained transaction before/after bytes"],
+      "writes": ["explicit v2 selected predecessor archive and continuous source revision history", "exact current record/form/history through common-lock selected transport; retained authority and renewed recovery evidence"],
+      "side_effects": "separately delegated descriptive record.revise and exact pending record.recover; preserves original v1 scope and all descendants/unselected companions; no implicit recovery, arbitrary paths, source equivalence, Claim writes, assessment, current-use grant, payload access or deployment",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_selected_revisions.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"],
+      "reads": ["separate exact Work/Expression/Claim/provenance/form delegation, selected parent metadata and catalog-bound existing topology", "current source grammar and implementation bindings, exact retained compound plans and parent/Expression version lineage; no descendant discovery"],
+      "writes": ["one selected parent Work successor and explicit form rebindings with retained predecessor archive", "one new provisional Expression, distinct observed metadata-link Claim, forms and unsigned serialization capture through the common-lock selected metadata transaction"],
+      "side_effects": "work.expression.create and explicitly delegated pending recovery preserve existing children and all unrelated parent fields; committed transport and source-copy forms do not establish bibliographic truth, equivalence, assessment, rights, publication or canon",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_expression_commands.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md",
+      "source_truth": ["mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md", "ToS/doctrine/CORPUS_FOUNDATION.md"],
+      "reads": ["caller-validated bounded exact metadata byte plan, current authority callback and ready publication snapshot under caller-held corpus lock", "exact immutable transaction manifest/blobs, selected current before/after bytes and protected pinned parent identities; no descendant discovery"],
+      "writes": ["immutable transaction manifest/blobs and completion evidence under source-witnesses/.metadata-transactions", "atomic durable pending/ready publication control and only explicitly selected metadata files/new directories; exact authorized pending resume or rollback"],
+      "side_effects": "bounded fsync/rename/no-replace or selected unlink/rmdir; fresh tokens on both commit and rollback; third-state/authority drift retains pending; no arbitrary-write CLI, recursive deletion, orphan adoption/cleanup, independent scope approval, semantic admission or current-source replacement by an archive",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_metadata_transactions.py",
       "disposition": "keep"
     },
     {
@@ -598,10 +640,11 @@
         "ToS/contracts/source-witness-catalog.schema.json"
       ],
       "reads": [
-        "tracked source-witness corpus identity and bibliographic claim records; native artifacts/**/artifact-witness.json under the exact artifact v1/v2 schemas"
+        "tracked source-witness corpus identity and bibliographic claim records; native artifacts/**/artifact-witness.json under the exact artifact v1/v2 schemas",
+        "full-operation selected metadata publication snapshot; token and exact generated catalog-file bindings"
       ],
       "writes": [
-        "ToS/source-witnesses/catalog/*.jsonl and catalog.manifest.json unless --check is used"
+        "ToS/source-witnesses/catalog/*.jsonl and catalog.manifest.json unless --check is used; individual atomic files with digest-bound manifest published last"
       ],
       "side_effects": "tracked generated source-witness navigation catalog",
       "validation_lane": "source_witness_foundation",
@@ -654,7 +697,8 @@
         "ToS/contracts/source-witness-bibliographic-graph.schema.json"
       ],
       "reads": [
-        "public-safe source-witness object/claim catalog and the exact claim, evidence, anchor, and provenance records to which it returns; optional explicit protected assessment input through source_witness_human_forms for a local candidate only"
+        "public-safe source-witness object/claim catalog and the exact claim, evidence, anchor, and provenance records to which it returns; optional explicit protected assessment input through source_witness_human_forms for a local candidate only",
+        "whole-build selected publication snapshot and exact catalog token/file hashes, with final verification after check or output write"
       ],
       "writes": [
         "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json unless --check is used; explicit assessed mode instead atomically creates one separate new mode-0600 local candidate"
@@ -677,6 +721,34 @@
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_source_text_unit_proposal.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/source_metadata_snapshot.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md",
+      "source_truth": ["mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"],
+      "reads": ["one fixed protected source-witnesses/.metadata-publication.json control record and owner path metadata; bounded duplicate-key/digest/state checks"],
+      "writes": [],
+      "side_effects": "read-only whole-operation ready snapshot and pending/changed refusal; absence is legacy baseline, not permission to initialize or recover; no locks, source discovery, source resolver, journal mutation or authority grant",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_metadata_publication_readers.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "scripts/source_bibliographic_topology.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/corpus-record.schema.json", "ToS/doctrine/semantic-interchange/relation-types.v1.json"],
+      "reads": ["supplied already verified current corpus records/topology Claims and independently verified Item-to-Edition links", "one supplied append-only existing Work/new Expression/has_expression delta and exact source locators"],
+      "writes": [],
+      "side_effects": "pure bounded issue reporting and exact outgoing/inverse topology closure; no filesystem access, source discovery, schema admission, transport provenance verification, write grants, textual equivalence or semantic assessment",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "tests/test_source_bibliographic_topology.py",
       "disposition": "keep"
     },
     {
@@ -794,7 +866,8 @@
         "ToS/source-witnesses/**/historical-claims.jsonl"
       ],
       "reads": [
-        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets; v2 provenance schema and existing source-foundation cross-field checks; optional caller-selected assessed snapshot through the owner command"
+        "source-witness catalog plus exact claim, identity, evidence, anchor, provenance, review surfaces and adjacent human-form sets; v2 provenance schema and existing source-foundation cross-field checks; optional caller-selected assessed snapshot through the owner command",
+        "selected source publication snapshot, catalog manifest and exact file hash closure before and after actual consumption"
       ],
       "writes": [],
       "side_effects": "library only",
@@ -2405,7 +2478,8 @@
       "reads": [
         "ToS/source_home.manifest.json",
         "ToS/**",
-        "optional caller-selected assessed snapshot through the protected source/journal command"
+        "optional caller-selected assessed snapshot through the protected source/journal command",
+        "whole-build selected source publication snapshot; source navigation verifies bound catalog manifest and exact file hashes before and after consumption"
       ],
       "writes": [],
       "side_effects": "library only",

@@ -878,6 +878,13 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     else:
         source_root = Path(config['source_root']) if source_bound else None
         native_config = config
+    source_publication = None
+    if source_bound:
+        scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        from source_metadata_snapshot import PublicationSnapshot
+        source_publication = PublicationSnapshot(source_root)
     sourced, regular_sourced, form_sets, identity_snapshots = [], [], {}, {}
     public_claim_dependencies = {}
     native_summaries, native_resolvers, native_contracts, native_records = [], [], {}, []
@@ -1044,6 +1051,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     def source_snapshot_guard():
         # Recheck after waiting for a lock, at the commit edge, and before any
         # source-bound current read returns. Unpublished blobs stay outside history.
+        source_publication.verify_current()
         with os.fdopen(_owned_path(owner_config), 'rb') as stream:
             current_config = stream.read(len(encoded) + 1)
         if current_config != encoded:
@@ -1066,6 +1074,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 or any(identity_snapshots.get(key) != value for key, value in current_identities.items())
                 or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots'}):
             raise JournalConflict('assessment supporting source snapshot changed')
+        source_publication.verify_current()
 
     now = datetime.now(timezone.utc).isoformat()
     if operation == 'materialize-form':

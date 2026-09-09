@@ -4198,7 +4198,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_metadata_adapter_refuses_missing_context_stale_source_and_freeform(self):
         source, forms = self.metadata_forms_fixture()
-        del forms['forms'][0]['bindings']['identity_status']
+        # Slot names are opaque; a later source-owner rebind may rename them
+        # without weakening the required identity-status context.
+        bindings = forms['forms'][0]['bindings']
+        status_slot = next(slot for slot, binding in bindings.items()
+                           if binding['pointer'] == '/identity_status')
+        del bindings[status_slot]
         self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'invalid')
         forms['forms'][0]['content'] = {'kind': 'freeform', 'text': 'An unaudited summary.'}
         self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'unavailable')
@@ -4225,7 +4230,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertTrue(all(r['state'] == 'restricted' and r['display_text'] is None for r in results))
         old = copy.deepcopy(forms['forms'][0])
         from knowledge_assessment import Record
-        forms['forms'][0]['form_version'] = 2
+        forms['forms'][0]['form_version'] = old['form_version'] + 1
         forms['forms'][0]['revises'] = Record.from_payload(old['form_id'], old['form_version'], old).ref
         self.assertEqual(materialize_metadata_forms(source, forms, access_allowed=True)[0]['state'], 'unavailable')
         forms['prior_forms'].append(old)

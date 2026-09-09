@@ -21,6 +21,8 @@ from referencing.exceptions import Unresolvable
 from claim_version_reader import _ReadSnapshot, _Unavailable
 import source_commands as source
 import source_revisions as revisions
+from source_metadata_snapshot import (PublicationSnapshot, PublicationStateError, PublicationPending, PublicationChanged)
+from build_source_witness_catalog import verify_catalog_publication, CatalogBuildError
 from source_record_profiles import (
     SourceRecordProfiles, REGISTRY_REF, CONTRACT_REF, CORPUS_REF,
 )
@@ -32,7 +34,8 @@ MAX_TOTAL_BYTES = 64 * 1024 * 1024
 MAX_CONTRACTS = 128
 MAX_SAFE_VERSION = 9_007_199_254_740_991
 NATIVE_CATALOGS = {'agent': 'agents.jsonl', 'place': 'places.jsonl',
-                   'organization': 'organizations.jsonl', 'work': 'works.jsonl'}
+                   'organization': 'organizations.jsonl', 'work': 'works.jsonl',
+                   'expression': 'expressions.jsonl'}
 PUBLIC = {'public', 'public_metadata_only'}
 FORBIDDEN = {'catalog', 'payload', 'private', 'local-content', 'owner-local'}
 IDENTITY = re.compile(r'tos\.([a-z][a-z0-9-]*)\.[a-z0-9]+(?:[.-][a-z0-9]+)*')
@@ -104,9 +107,21 @@ class MetadataVersionReader:
         self._catalogs = {}
         self._records = {}
         self._native_validator = None
+        self._publication_error = None
+        try:
+            self._publication = PublicationSnapshot(self.root)
+        except PublicationStateError as error:
+            self._publication_error = error
+        self._catalog_manifest = None
 
     def verify_current(self):
+        self._verify_publication()
         self._snapshot.verify()
+
+    def _verify_publication(self):
+        if self._publication_error is not None:
+            raise self._publication_error
+        self._publication.verify_current()
 
     def _contract(self, ref):
         if ref not in {REGISTRY_REF, CONTRACT_REF} and not SCHEMA_REF.fullmatch(ref):
@@ -141,6 +156,7 @@ class MetadataVersionReader:
         return self._profiles
 
     def _route(self, kind):
+        self._verify_publication()
         if kind in NATIVE_CATALOGS:
             return {'record_type': kind, 'id_prefix': 'tos.' + kind + '.',
                     'source_basename': kind + '.json', 'catalog_filename': NATIVE_CATALOGS[kind],
@@ -169,16 +185,25 @@ class MetadataVersionReader:
                 _source_path(source_ref, route['source_basename'])
         except _Unavailable as error:
             if error.status == 'access-restricted':
+                self.verify_current()
                 return False
             raise
         self.verify_current()
         return True
 
     def _catalog(self, route):
+        self.verify_current()
         ref = CATALOG_ROOT + route['catalog_filename']
         if ref in self._catalogs:
             return self._catalogs[ref]
         raw = self._snapshot.read(self.root / ref, MAX_CATALOG_BYTES, 'catalog-byte-budget')
+        if self._publication.token is not None or os.path.lexists(self.root / CATALOG_ROOT / 'catalog.manifest.json'):
+            if self._catalog_manifest is None:
+                self._catalog_manifest = source._json_object(self._snapshot.read(
+                    self.root / CATALOG_ROOT / 'catalog.manifest.json', source.MAX_COMMAND_BYTES,
+                    'catalog-manifest-byte-budget'))
+            verify_catalog_publication(self._catalog_manifest, self._publication.token,
+                                       {ref: source._digest(raw)[7:]})
         entries = {}
         for line, encoded in enumerate(raw.splitlines(), start=1):
             if not encoded.strip():
@@ -252,12 +277,18 @@ class MetadataVersionReader:
             raw_manifest = self._snapshot.read(directory / 'manifest.json', source.MAX_SET_BYTES,
                                                'archive-manifest-byte-budget')
             manifest = source._json_object(raw_manifest)
-            source._keys(manifest, {'schema_version', 'source_path', 'source', 'revision', 'files'})
-            if (manifest['schema_version'] != 'tos_source_package_archive_v1'
+            selected_scope = manifest.get('schema_version') == 'tos_source_package_archive_v2'
+            source._keys(manifest, {'schema_version', 'source_path', 'source', 'revision', 'files'}
+                         | ({'publication_protocol'} if selected_scope else set()))
+            if (manifest['schema_version'] not in {'tos_source_package_archive_v1', 'tos_source_package_archive_v2'}
+                    or selected_scope and manifest['publication_protocol'] != revisions.SELECTED_PROTOCOL
                     or manifest['source_path'] != relative.as_posix() or not _ref(manifest['source'])
                     or manifest['source'] != before or manifest['revision'] != revision
                     or not isinstance(manifest['files'], dict) or not manifest['files']):
                 raise source.JournalCorruption('archive manifest does not bind this metadata revision')
+            if selected_scope and (not set(manifest['files']) <= set(revisions._selected_names(relative))
+                                   or relative.name not in manifest['files']):
+                raise source.JournalCorruption('archive exceeds the selected metadata scope')
             if len(manifest['files']) > revisions.MAX_FILES:
                 raise _Unavailable('over-budget', 'archive-file-binding-count-budget')
             bindings, total = {}, 0
@@ -329,12 +360,24 @@ class MetadataVersionReader:
         allowed_fields = source.CORPUS_REVISION_FIELDS if route['adapter'] == 'native-corpus' else source.REVISION_FIELDS
         for receipt in history['receipts']:
             request = receipt['request']
-            source._keys(request, {'schema_version', 'operation', 'fields', 'forms', 'reason', 'command_id',
-                                  'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies'})
-            if (request['schema_version'] != 'tos_local_source_command_v1' or request['operation'] != 'record.revise'
+            selected = 'publication' in receipt
+            compound = request.get('operation') == 'work.expression.create'
+            if compound:
+                from source_expression_commands import validate_parent_receipt
+                validate_parent_receipt(receipt)
+                if route['record_type'] != 'work':
+                    raise source.JournalCorruption('compound history must belong to its existing Work')
+            else:
+                source._keys(request, {'schema_version', 'operation', 'fields', 'forms', 'reason', 'command_id',
+                                  'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies'}
+                         | ({'expected_publication'} if selected else set()))
+            if selected and receipt['publication']['selected_files'] != sorted(revisions._selected_names(relative)):
+                raise source.JournalCorruption('retained publication selected another metadata unit')
+            if (not compound and (request['schema_version'] != 'tos_local_source_command_v1'
+                                  or request['operation'] != 'record.revise')
                     or not _ref(receipt['source']) or not _ref(request['expected_source'])
                     or not isinstance(request['fields'], dict) or not request['fields']
-                    or not set(request['fields']) <= allowed_fields):
+                    or not set(request['fields']) <= ({'expression_claim_refs'} if compound else allowed_fields)):
                 raise source.JournalCorruption('retained request is not a metadata correction')
             previous, binding = self._archive_record(relative, route, receipt, record['schema_version'])
             revised = {**previous, **request['fields'], 'record_version': previous['record_version'] + 1}
@@ -368,12 +411,22 @@ class MetadataVersionReader:
         return result
 
     def _error(self, error):
+        # An unavailable result is still a statement about this read epoch.
+        # A newly added subject must not be reported absent from an old catalog.
+        try:
+            self.verify_current()
+        except (_Unavailable, OSError, ValueError) as changed:
+            error = changed
         if isinstance(error, _Unavailable):
             return error.status, error.reason
         if isinstance(error, FileNotFoundError):
             return 'missing', 'metadata-input-file-missing'
         if isinstance(error, source.JournalConflict):
             return 'stale', 'source-changed-during-read'
+        if isinstance(error, PublicationPending):
+            return 'stale', 'source-publication-pending'
+        if isinstance(error, PublicationChanged):
+            return 'stale', 'source-publication-changed'
         if isinstance(error, PermissionError):
             return 'access-restricted', 'metadata-path-restricted'
         if isinstance(error, OSError):
@@ -400,7 +453,7 @@ class MetadataVersionReader:
                     'version_status': selected['version_status'], 'record': copy.deepcopy(selected['record']),
                     'record_digest': exact_ref['digest'], 'provenance': copy.deepcopy({**package['provenance'],
                         'source': selected['source'], 'transition': selected['transition']})}
-        except (_Unavailable, OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError,
+        except (_Unavailable, OSError, ValueError, CatalogBuildError, TypeError, KeyError, AttributeError, RecursionError,
                 Unresolvable, SchemaError, ValidationError) as error:
             status, reason = self._error(error)
             return {**result, 'status': status, 'reason': reason}
@@ -418,7 +471,50 @@ class MetadataVersionReader:
                     'current_ref': copy.deepcopy(package['current']['ref']),
                     'refs': [copy.deepcopy(value['ref']) for value in package['versions'].values()],
                     'provenance': copy.deepcopy(package['provenance'])}
-        except (_Unavailable, OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError,
+        except (_Unavailable, OSError, ValueError, CatalogBuildError, TypeError, KeyError, AttributeError, RecursionError,
+                Unresolvable, SchemaError, ValidationError) as error:
+            status, reason = self._error(error)
+            return {**result, 'status': status, 'reason': reason}
+
+    def resolve_source_bytes(self, original_source_path, raw_sha256):
+        """Verify exact current/retained bytes at their original logical source.
+
+        This is a source-provenance join, not a blob search. Only the supported
+        public typed metadata route and its committed record lineage may
+        resolve the raw digest. Returned JSON contains the verified record and
+        its byte provenance, not arbitrary file contents or a latest fallback.
+        """
+        if (not isinstance(original_source_path, str) or not isinstance(raw_sha256, str)
+                or not re.fullmatch(r'[a-f0-9]{64}', raw_sha256)):
+            raise ValueError('exact logical metadata path and raw SHA-256 are required')
+        result = {'status': None, 'reason': None, 'source_path': original_source_path,
+                  'requested_sha256': raw_sha256, 'exact_ref': None, 'record': None,
+                  'provenance': None, 'grants_current_use': False,
+                  'performs_assessment': False, 'writes_to_source': False}
+        try:
+            relative = Path(original_source_path)
+            route = self._route(relative.stem)
+            _source_path(original_source_path, route['source_basename'])
+            entries, _, _ = self._catalog(route)
+            identities = [identity for identity, (entry, _) in entries.items()
+                          if entry.get('source_record_ref') == original_source_path]
+            if len(identities) != 1:
+                raise _Unavailable('missing' if not identities else 'corrupt', 'logical-source-not-unique-in-catalog')
+            package = self._load(identities[0])
+            candidates = [value for value in package['versions'].values()
+                          if value['source']['source_ref'] == original_source_path
+                          and value['source']['record_sha256'] == 'sha256:' + raw_sha256]
+            self.verify_current()
+            if not candidates:
+                raise _Unavailable('missing', 'exact-source-bytes-not-retained')
+            if len(candidates) != 1:
+                raise source.JournalCorruption('one raw source digest has conflicting retained identities')
+            selected = candidates[0]
+            return {**result, 'status': 'available', 'reason': 'exact-' + selected['version_status'] + '-source-bytes',
+                    'exact_ref': copy.deepcopy(selected['ref']), 'record': copy.deepcopy(selected['record']),
+                    'provenance': copy.deepcopy({**package['provenance'], 'source': selected['source'],
+                                                'transition': selected['transition']})}
+        except (_Unavailable, OSError, ValueError, CatalogBuildError, TypeError, KeyError, AttributeError, RecursionError,
                 Unresolvable, SchemaError, ValidationError) as error:
             status, reason = self._error(error)
             return {**result, 'status': status, 'reason': reason}

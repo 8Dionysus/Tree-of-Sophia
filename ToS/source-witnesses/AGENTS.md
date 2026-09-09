@@ -75,9 +75,12 @@ evidence.
 - Keep the declared identity ladder and its outgoing claim refs in exact
   closure: Work `expression_claim_refs`, Expression
   `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to
-  the three owned files under `relations/` and agree with `work_ref`,
-  `embodies_expression_refs`, and item-manifest `embodiment_ref`. Never infer
-  textual equivalence from this bibliographic topology.
+  the retained three legacy streams under `relations/` or a declared native
+  `has_expression` Claim with its verified compound publication evidence.
+  Their union must agree with `work_ref`, `embodies_expression_refs`, and
+  item-manifest `embodiment_ref`. Read support does not grant standalone Claim
+  writes or retroactive changes to a legacy batch. Never infer textual
+  equivalence from this bibliographic topology.
 - Keep only item `payload/` content gitignored. Track manifest, SHA-256,
   provenance, rights, forensic report, and catalog entry.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and

@@ -88,6 +88,21 @@
       }
     },
     "catalog_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "selected_metadata_publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "token", "files"],
+      "properties": {
+        "protocol": {"const": "tos_selected_source_metadata_v1"},
+        "token": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "files": {
+          "type": "object", "minProperties": 1,
+          "propertyNames": {"pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
+          "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      },
+      "description": "Generated exact-file commit binding for participating selected-metadata source transactions; not semantic authority or universal currentness for manual/legacy writes."
+    },
     "authority_boundary": {"const": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"}
   },
   "$defs": {

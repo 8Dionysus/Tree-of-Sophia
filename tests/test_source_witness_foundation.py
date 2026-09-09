@@ -3403,7 +3403,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             },
             {
                 predicate: sum(
-                    entry["predicate"] == predicate for entry in claim_entries
+                    entry["predicate"] == predicate
+                    and entry["source_claim_file_ref"] in {
+                        *(route[0].as_posix() for route in foundation.BIBLIOGRAPHIC_TOPOLOGY_ROUTES),
+                        foundation.EXPRESSION_DERIVATION_CLAIMS.as_posix(),
+                    }
+                    for entry in claim_entries
                 )
                 for predicate in {
                     "has_expression",
@@ -8221,7 +8226,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 for result in results.values()
             )
         )
-        self.assertEqual(5, work["record_version"])
+        # This route was present by v5. Later source-owner changes preserve
+        # its evidence without freezing the Work's current record version.
+        self.assertGreaterEqual(work["record_version"], 5)
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "jenseits-authorial-witness-route.2026-07-30.v1.json",

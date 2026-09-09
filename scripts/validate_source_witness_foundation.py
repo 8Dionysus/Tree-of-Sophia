@@ -39,10 +39,15 @@ from build_source_witness_catalog import (
     collect_records,
     render_outputs,
 )
-from source_record_profiles import SourceRecordProfiles, SourceProfileError
+from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError, OWNER_LOCAL_HOME
+from source_bibliographic_topology import BibliographicTopologyError, validate_current_topology
+from source_metadata_snapshot import PublicationSnapshot
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+GROWTH_SCRIPTS = REPO_ROOT / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts"
+if str(GROWTH_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(GROWTH_SCRIPTS))
 CONTRACT_ROOT = Path("ToS/contracts")
 
 CORPUS_SCHEMA = CONTRACT_ROOT / "corpus-record.schema.json"
@@ -483,6 +488,83 @@ def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object
         return archived
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
+
+
+def _topology_evidence_matches(repo_root, evidence_ref, event_inputs, metadata_reader):
+    """Bind a legacy batch input to current or committed retained exact bytes.
+
+    Only supported Work/Expression metadata may use its retained lineage. No
+    current-version substitution, arbitrary blob search or Git fallback is
+    allowed. The caller reuses the reader and verifies its snapshot at the end.
+    """
+    if not isinstance(evidence_ref, str) or not isinstance(event_inputs, list):
+        return False
+    matches = [entry for entry in event_inputs if isinstance(entry, dict)
+               and entry.get('ref') == evidence_ref]
+    if len(matches) != 1:
+        return False
+    digest = matches[0].get('sha256')
+    if not isinstance(digest, str) or re.fullmatch(r'[a-f0-9]{64}', digest) is None:
+        return False
+    current = _recorded_provenance_input_path(repo_root, evidence_ref, digest)
+    if current is not None:
+        return True
+    if Path(evidence_ref).name not in {'work.json', 'expression.json'}:
+        return False
+    result = metadata_reader.resolve_source_bytes(evidence_ref, digest)
+    if not isinstance(result, dict) or result.get('status') != 'available':
+        return False
+    provenance = result.get('provenance')
+    source = provenance.get('source') if isinstance(provenance, dict) else None
+    record, exact = result.get('record'), result.get('exact_ref')
+    return (result.get('source_path') == evidence_ref and result.get('requested_sha256') == digest
+            and isinstance(source, dict) and source.get('source_ref') == evidence_ref
+            and source.get('record_sha256') == 'sha256:' + digest
+            and isinstance(record, dict) and isinstance(exact, dict)
+            and exact.get('id') == record.get('record_id')
+            and type(exact.get('version')) is int and exact['version'] == record.get('record_version'))
+
+
+def _legacy_topology_configuration(claims):
+    """An immutable batch describes itself, not the subsequently grown tree."""
+    counts = Counter(claim.get('predicate') for claim in claims
+                     if isinstance(claim.get('predicate'), str))
+    return {
+        'work_expression_claims_materialized': counts['has_expression'],
+        'expression_edition_claims_materialized': counts['embodied_by'],
+        'edition_item_claims_materialized': counts['exemplified_by'],
+        'topology_claims_reviewed': 0,
+        'source_text_admitted': False,
+        'human_review_performed': False,
+        'textual_equivalence_claims_created': 0,
+        'semantic_claims_created': 0,
+        'canon_promotion_performed': False,
+    }
+
+
+def _native_topology_claims(repo_root, issues):
+    """Admit a current carrier only through its exact committed compound plan."""
+    from source_expression_commands import verify_compound
+    profiles = SourceClaimProfiles(repo_root)
+    accepted = []
+    for path in sorted((repo_root / SOURCE_ROOT).rglob('source-claims.jsonl')):
+        relative = path.relative_to(repo_root)
+        if relative.is_relative_to(OWNER_LOCAL_HOME):
+            continue
+        try:
+            for line, claim in profiles.read_rows(relative.as_posix()):
+                if claim.get('predicate') != 'has_expression':
+                    continue
+                location = f'{relative.as_posix()}:{line}'
+                try:
+                    verified = verify_compound(repo_root, relative.as_posix(), claim)
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    issues.append((location, f'native topology requires exact committed compound evidence: {error}'))
+                    continue
+                accepted.append((location, claim, verified['event']))
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            issues.append((relative.as_posix(), f'declared source Claim reader: {error}'))
+    return accepted
 
 
 def _validate_required_provenance_output_digests(
@@ -7256,6 +7338,20 @@ def _record_paths(repo_root: Path) -> Iterable[Path]:
 
 
 def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
+    """One participating publication snapshot covers the complete validation."""
+    try:
+        snapshot = PublicationSnapshot(repo_root.resolve())
+    except (OSError, ValueError) as error:
+        return [(SOURCE_ROOT.as_posix(), f'source metadata publication is unavailable: {error}')]
+    issues = _validate_foundation(repo_root, require_local_payloads=require_local_payloads)
+    try:
+        snapshot.verify_current()
+    except (OSError, ValueError) as error:
+        issues.append((SOURCE_ROOT.as_posix(), f'source metadata publication changed during validation: {error}'))
+    return issues
+
+
+def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
     repo_root = repo_root.resolve()
     issues: list[Issue] = []
 
@@ -13774,55 +13870,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if event_id == BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF:
             topology_event = event
 
-    expected_topology_objects: dict[str, dict[str, set[str]]] = {
-        "has_expression": {
-            record_id: set()
-            for record_id, (payload, _) in records_by_id.items()
-            if payload.get("record_type") == "work"
-        },
-        "embodied_by": {
-            record_id: set()
-            for record_id, (payload, _) in records_by_id.items()
-            if payload.get("record_type") == "expression"
-        },
-        "exemplified_by": {
-            record_id: set()
-            for record_id, (payload, _) in records_by_id.items()
-            if payload.get("record_type") == "edition"
-        },
-    }
-    for expression_id, (expression, _) in records_by_id.items():
-        if expression.get("record_type") != "expression":
-            continue
-        work_ref = expression.get("work_ref")
-        if isinstance(work_ref, str):
-            expected_topology_objects["has_expression"].setdefault(
-                work_ref,
-                set(),
-            ).add(expression_id)
-    for edition_id, (edition, _) in records_by_id.items():
-        if edition.get("record_type") != "edition":
-            continue
-        for expression_ref in edition.get("embodies_expression_refs", []):
-            if isinstance(expression_ref, str):
-                expected_topology_objects["embodied_by"].setdefault(
-                    expression_ref,
-                    set(),
-                ).add(edition_id)
-    for item_id, edition_ref in item_edition_by_id.items():
-        expected_topology_objects["exemplified_by"].setdefault(
-            edition_ref,
-            set(),
-        ).add(item_id)
-
-    topology_claims_by_predicate_subject: dict[
-        str,
-        dict[str, dict[str, str]],
-    ] = {
-        predicate: {}
-        for _, predicate, _, _, _, _ in BIBLIOGRAPHIC_TOPOLOGY_ROUTES
-    }
-    seen_topology_pairs: set[tuple[str, str, str]] = set()
+    # The retained materialization batch remains exact and separately checked.
+    # Current closure is checked over all verified carriers below, not inferred
+    # from the historic event's count or retconned by a subsequent source edit.
+    from metadata_version_reader import MetadataVersionReader
+    topology_metadata_reader = MetadataVersionReader(repo_root)
+    legacy_topology_claims = []
 
     for (
         claim_relative,
@@ -13865,6 +13918,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             start=1,
         ):
             location = f"{claim_file_ref}:{index}"
+            legacy_topology_claims.append(claim)
             _validate_payload(claim, claim_validator, location, issues)
             claim_id = claim.get("claim_id")
             subject_ref = claim.get("subject_ref")
@@ -13915,27 +13969,6 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
 
-            if isinstance(subject_ref, str) and isinstance(object_ref, str):
-                pair = (predicate, subject_ref, object_ref)
-                if pair in seen_topology_pairs:
-                    issues.append((location, f"duplicate bibliographic topology pair: {pair}"))
-                seen_topology_pairs.add(pair)
-                if isinstance(claim_id, str):
-                    topology_claims_by_predicate_subject[predicate].setdefault(
-                        subject_ref,
-                        {},
-                    )[claim_id] = object_ref
-                if object_ref not in expected_topology_objects[predicate].get(
-                    subject_ref,
-                    set(),
-                ):
-                    issues.append(
-                        (
-                            location,
-                            "claim is not backed by the declared corpus-record topology",
-                        )
-                    )
-
             expected_evidence: set[str] = set()
             for ref in (subject_ref, object_ref):
                 record = records_by_id.get(str(ref))
@@ -13956,17 +13989,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
             if topology_event is not None:
-                event_inputs = {
-                    (entry.get("ref"), entry.get("sha256"))
-                    for entry in topology_event.get("inputs", [])
-                    if isinstance(entry, dict)
-                }
                 for evidence_ref in expected_evidence:
-                    evidence_path = repo_root / evidence_ref
-                    if evidence_path.is_file() and (
-                        evidence_ref,
-                        _sha256(evidence_path),
-                    ) not in event_inputs:
+                    if not _topology_evidence_matches(
+                        repo_root, evidence_ref, topology_event.get('inputs', []),
+                        topology_metadata_reader,
+                    ):
                         issues.append(
                             (
                                 location,
@@ -13975,71 +14002,40 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             )
                         )
 
-    for (
-        _claim_relative,
-        predicate,
-        subject_type,
-        _object_type,
-        claim_ref_field,
-        _output_role,
-    ) in BIBLIOGRAPHIC_TOPOLOGY_ROUTES:
-        for subject_ref, (subject, subject_path) in records_by_id.items():
-            if subject.get("record_type") != subject_type:
-                continue
-            location = _relative(subject_path, repo_root)
-            claims_for_subject = topology_claims_by_predicate_subject[predicate].get(
-                subject_ref,
-                {},
-            )
-            actual_claim_refs = set(subject.get(claim_ref_field, []))
-            expected_claim_refs = set(claims_for_subject)
-            if actual_claim_refs != expected_claim_refs:
-                issues.append(
-                    (
-                        location,
-                        f"{claim_ref_field} does not close over exact {predicate} claims",
-                    )
-                )
-            actual_objects = set(claims_for_subject.values())
-            expected_objects = expected_topology_objects[predicate].get(
-                subject_ref,
-                set(),
-            )
-            if actual_objects != expected_objects:
-                issues.append(
-                    (
-                        location,
-                        f"{predicate} claims do not close over declared corpus-record links",
-                    )
-                )
+    current_topology_claims = list(legacy_topology_claims)
+    for location, claim, event in _native_topology_claims(repo_root, issues):
+        if claim['claim_id'] in claim_ids:
+            issues.append((location, f"duplicate claim_id: {claim['claim_id']}"))
+        claim_ids.add(claim['claim_id'])
+        if event['event_id'] in event_ids:
+            issues.append((location, f"duplicate event_id: {event['event_id']}"))
+        event_ids.add(event['event_id'])
+        events_by_id[event['event_id']] = event
+        current_topology_claims.append(claim)
+    try:
+        validate_current_topology(
+            {identity: record for identity, (record, _) in records_by_id.items()},
+            current_topology_claims, item_edition_by_id=item_edition_by_id,
+        )
+    except BibliographicTopologyError as error:
+        for identity, message in error.issues:
+            record = records_by_id.get(identity)
+            location = _relative(record[1], repo_root) if record else identity
+            issues.append((location, message))
+    try:
+        topology_metadata_reader.verify_current()
+    except (OSError, ValueError) as error:
+        issues.append((BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
+                       f'legacy topology retained input snapshot changed: {type(error).__name__}'))
 
     if topology_event is not None:
         configuration = topology_event.get("method", {}).get("configuration", {})
-        expected_counts = {
-            "work_expression_claims_materialized": sum(
-                len(values)
-                for values in expected_topology_objects["has_expression"].values()
-            ),
-            "expression_edition_claims_materialized": sum(
-                len(values)
-                for values in expected_topology_objects["embodied_by"].values()
-            ),
-            "edition_item_claims_materialized": sum(
-                len(values)
-                for values in expected_topology_objects["exemplified_by"].values()
-            ),
-            "topology_claims_reviewed": 0,
-            "source_text_admitted": False,
-            "human_review_performed": False,
-            "textual_equivalence_claims_created": 0,
-            "semantic_claims_created": 0,
-            "canon_promotion_performed": False,
-        }
+        expected_counts = _legacy_topology_configuration(legacy_topology_claims)
         if configuration != expected_counts:
             issues.append(
                 (
                     BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
-                    "bibliographic topology provenance configuration differs from exact closure counts and authority limits",
+                    "bibliographic topology provenance configuration differs from exact legacy batch counts and authority limits",
                 )
             )
 

@@ -204,6 +204,8 @@ def creation_source_files(files, config, *, archive_reader=None):
 def _scope(config, request, record, *, profiles=None):
     if OPERATION not in config['allowed_operations']:
         raise PermissionError('Claim correction is not delegated')
+    if record.get('predicate') == 'has_expression':
+        raise PermissionError('has_expression requires the compound bibliographic operation')
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):
         raise PermissionError('Claim correction fields exceed the delegated scope')

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from source_metadata_snapshot import PublicationSnapshot
 
 from source_witness_bibliographic_graph_common import (
     GRAPH_PATH,
@@ -23,19 +24,23 @@ def main() -> int:
     )
     add_assessed_build_arguments(parser)
     args = parser.parse_args()
+    publication = PublicationSnapshot(REPO_ROOT)
     try:
         assessed, target = assessed_build_input(args, REPO_ROOT, GRAPH_PATH)
     except ValueError as exc:
         parser.error(str(exc))
     rendered = render_payload(build_payload(assessed_forms=assessed))
+    publication.verify_current()
     if assessed is not None:
         if args.check:
             assessed.verify_current()
             if target.read_text(encoding='utf-8') != rendered:
                 raise SystemExit('local assessed graph differs from current source/journal inputs')
+            publication.verify_current()
             print('[ok] local assessed graph matches current source/journal inputs; no publication clearance')
         else:
             write_assessed_candidate(target, rendered, assessed)
+            publication.verify_current()
             print(f'[ok] wrote local assessed graph candidate: {target}')
         return 0
     if args.check:
@@ -49,10 +54,12 @@ def main() -> int:
             raise SystemExit(
                 "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json is out of date"
             )
+        publication.verify_current()
         print("[ok] source-witness bibliographic claim graph matches authored inputs")
         return 0
     GRAPH_PATH.parent.mkdir(parents=True, exist_ok=True)
     GRAPH_PATH.write_text(rendered, encoding="utf-8")
+    publication.verify_current()
     print("[ok] wrote source-witness bibliographic claim graph")
     return 0
 

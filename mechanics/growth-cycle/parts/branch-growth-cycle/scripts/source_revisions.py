@@ -18,10 +18,15 @@ HISTORY = 'source-revision-history.json'
 MAX_PACKAGE_BYTES = 8 * 1024 * 1024
 MAX_FILES = 64
 MAX_REVISIONS = 128
+SELECTED_PROTOCOL = 'tos_selected_source_metadata_v1'
 
 
 def _encode(value):
     return (json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + '\n').encode()
+
+
+def _selected(config):
+    return config.get('schema_version') == source.CORPUS_SELECTED_REVISION_CONFIG
 
 
 def _package(directory, *, archive=False):
@@ -50,6 +55,39 @@ def _file_refs(files):
     return {name: {'sha256': source._digest(raw), 'bytes': len(raw)} for name, raw in files.items()}
 
 
+def _selected_names(path):
+    """A v2 publication unit, never an implicit redefinition of a v1 package."""
+    return (path.name, path.stem + '.human-forms.json', HISTORY)
+
+
+def _selected_package(path):
+    """Read only the exact record/form/history files; do not enumerate children."""
+    descriptor = source._owned_path(path.parent, directory=True)
+    try:
+        before = os.fstat(descriptor)
+        files = {}
+        for name in _selected_names(path):
+            target = path.parent / name
+            try:
+                raw = source._read(target, source.MAX_SET_BYTES)
+            except FileNotFoundError:
+                if name == path.name:
+                    raise
+                continue
+            files[name] = raw
+        after = os.fstat(descriptor)
+        current = path.parent.stat()
+        if ((before.st_dev, before.st_ino, before.st_mtime_ns, before.st_ctime_ns)
+                != (after.st_dev, after.st_ino, after.st_mtime_ns, after.st_ctime_ns)
+                or (after.st_dev, after.st_ino) != (current.st_dev, current.st_ino)):
+            raise source.JournalConflict('selected metadata parent changed during inspection')
+        if sum(map(len, files.values())) > MAX_PACKAGE_BYTES:
+            raise ValueError('selected source metadata exceeds its byte budget')
+        return files
+    finally:
+        os.close(descriptor)
+
+
 def _revision(files):
     return source._digest(source._canonical(_file_refs(files)))
 
@@ -58,15 +96,33 @@ def _history(files, record):
     history = source._json_object(files[HISTORY]) if HISTORY in files else {
         'schema_version': 'tos_source_revision_history_v1', 'record_id': record['record_id'], 'receipts': []}
     source._keys(history, {'schema_version', 'record_id', 'receipts'})
-    if (history['schema_version'] != 'tos_source_revision_history_v1' or history['record_id'] != record['record_id']
+    if (history['schema_version'] not in {'tos_source_revision_history_v1', 'tos_source_revision_history_v2'}
+            or history['record_id'] != record['record_id']
             or not isinstance(history['receipts'], list) or len(history['receipts']) > MAX_REVISIONS):
         raise source.JournalCorruption('invalid source revision history')
     previous, commands = None, set()
     for receipt in history['receipts']:
+        selected = 'publication' in receipt
+        if selected and history['schema_version'] != 'tos_source_revision_history_v2':
+            raise source.JournalCorruption('selected metadata needs explicit v2 retained history')
         source._keys(receipt, {'command_id', 'request_digest', 'principal_id', 'authority_ref',
             'owner_configuration', 'recorded_at', 'reason', 'previous_source', 'source',
-            'previous_revision', 'archive_path', 'dependencies', 'changed_fields', 'forms', 'grants_admission', 'request'})
+            'previous_revision', 'archive_path', 'dependencies', 'changed_fields', 'forms', 'grants_admission', 'request'}
+            | ({'publication'} if selected else set()))
+        if selected:
+            publication = receipt['publication']
+            source._keys(publication, {'protocol', 'transaction_id', 'selected_files'})
+            names = publication['selected_files']
+            if (publication['protocol'] != SELECTED_PROTOCOL
+                    or not isinstance(publication['transaction_id'], str)
+                    or not isinstance(names, list) or len(names) != 3
+                    or any(not isinstance(name, str) or Path(name).name != name for name in names)
+                    or len(set(names)) != 3 or HISTORY not in names):
+                raise source.JournalCorruption('invalid selected metadata publication binding')
         source._instant(receipt['recorded_at'])
+        if receipt['request'].get('operation') == 'work.expression.create':
+            from source_expression_commands import validate_parent_receipt
+            validate_parent_receipt(receipt)
         if (not isinstance(receipt['command_id'], str) or receipt['command_id'] in commands
                 or source._digest(source._canonical(receipt['request'])) != receipt['request_digest']
                 or receipt['command_id'] != receipt['request']['command_id']
@@ -91,7 +147,7 @@ def _history(files, record):
 
 def _validate_record(config, record):
     root = Path(config['source_root'])
-    if config['schema_version'] == source.CORPUS_REVISION_CONFIG:
+    if config['schema_version'] in {source.CORPUS_REVISION_CONFIG, source.CORPUS_SELECTED_REVISION_CONFIG}:
         profile = source._configured_corpus_profile(config)
         schema_raw = source._read(root / profile['schema_ref'], source.MAX_COMMAND_BYTES)
         schema = source._json_object(schema_raw)
@@ -124,11 +180,16 @@ def _dependencies(config, record):
                  'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
                  'ToS/contracts/human-form-template.schema.json'):
         inputs[path] = source._digest(source._read(source.ROOT / path, source.MAX_SET_BYTES))
+    if _selected(config):
+        for path in ('scripts/source_metadata_snapshot.py',
+                     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py',
+                     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py'):
+            inputs[path] = source._digest(source._read(source.ROOT / path, source.MAX_SET_BYTES))
     return source._digest(source._canonical(inputs))
 
 
-def _scope(config, request):
-    if 'record.revise' not in config['allowed_operations']:
+def _scope(config, request, *, operation='record.revise'):
+    if operation not in config['allowed_operations']:
         raise PermissionError('record revision is not delegated')
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):
@@ -148,8 +209,8 @@ def _scope(config, request):
         raise ValueError('revision requires a bounded authored reason')
 
 
-def _proposal(config, path, files, record, request):
-    _scope(config, request)
+def _proposal(config, path, files, record, request, *, scope_operation='record.revise'):
+    _scope(config, request, operation=scope_operation)
     revised = {**record, **request['fields'], 'record_version': record['record_version'] + 1}
     _validate_record(config, revised)
     subject = source.Record.from_payload(revised['record_id'], revised['record_version'], revised)
@@ -183,8 +244,12 @@ def _read_archive_files(root, config, receipt):
     directory = root / relative
     contents = _package(directory, archive=True)
     manifest = source._json_object(contents.pop('manifest.json'))
-    source._keys(manifest, {'schema_version', 'source_path', 'source', 'revision', 'files'})
-    if (manifest['schema_version'] != 'tos_source_package_archive_v1' or manifest['source_path'] != config['source_path']
+    selected = manifest.get('schema_version') == 'tos_source_package_archive_v2'
+    source._keys(manifest, {'schema_version', 'source_path', 'source', 'revision', 'files'}
+                 | ({'publication_protocol'} if selected else set()))
+    if (manifest['schema_version'] not in {'tos_source_package_archive_v1', 'tos_source_package_archive_v2'}
+            or selected and manifest['publication_protocol'] != SELECTED_PROTOCOL
+            or manifest['source_path'] != config['source_path']
             or manifest['source'] != receipt['previous_source'] or manifest['revision'] != receipt['previous_revision']
             or not isinstance(manifest['files'], dict)):
         raise source.JournalCorruption('archive metadata does not bind the requested revision')
@@ -199,6 +264,9 @@ def _read_archive_files(root, config, receipt):
             raise source.JournalCorruption('archive byte binding is invalid')
         restored[name] = contents[blob]
         locations[name] = {'archive_path': (relative / blob).as_posix(), 'sha256': binding['sha256'], 'bytes': binding['bytes']}
+    if selected and (not set(restored) <= set(_selected_names(Path(config['source_path'])))
+                     or Path(config['source_path']).name not in restored):
+        raise source.JournalCorruption('selected archive exceeds its exact metadata scope')
     if _revision(restored) != receipt['previous_revision']:
         raise source.JournalCorruption('archive package digest is invalid')
     if set(contents) != {binding['blob'] for binding in manifest['files'].values()}:
@@ -253,8 +321,10 @@ def _archive(root, config, files, subject, revision, *, reader=None):
     refs = {name: {**binding, 'blob': binding['sha256'].removeprefix('sha256:') + '.blob'}
             for name, binding in _file_refs(files).items()}
     archived = {refs[name]['blob']: raw for name, raw in files.items()}
-    archived['manifest.json'] = _encode({'schema_version': 'tos_source_package_archive_v1',
-        'source_path': config['source_path'], 'source': subject.ref, 'revision': revision, 'files': refs})
+    archived['manifest.json'] = _encode({
+        'schema_version': 'tos_source_package_archive_v2' if _selected(config) else 'tos_source_package_archive_v1',
+        'source_path': config['source_path'], 'source': subject.ref, 'revision': revision, 'files': refs,
+        **({'publication_protocol': SELECTED_PROTOCOL} if _selected(config) else {})})
     staging = _stage(root, archived, '.source-archive-')
     try:
         source._publish_new_directory(staging, target)
@@ -282,6 +352,9 @@ def _exchange(staging, target):
 
 
 def run_revision(owner, config, configuration, path, request):
+    if _selected(config):
+        from source_selected_revisions import run_selected_revision
+        return run_selected_revision(owner, config, configuration, path, request)
     root = Path(config['source_root'])
     operation = request.get('operation')
     fields = {'schema_version', 'operation'}

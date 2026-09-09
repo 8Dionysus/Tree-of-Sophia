@@ -117,6 +117,16 @@ The bounded Nietzsche source home's stronger authorship and chronology closure
 remains outside standalone Work creation. The executable operation and limits
 live in the [source-owner creation contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-standalone-identities).
 
+An existing native Work can gain one separately identified provisional
+Expression through the explicitly delegated
+[compound source command](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md).
+The Work's appended ref and the distinct `has_expression` Claim describe the
+same declared metadata link; neither accepts historical attribution or textual
+equivalence. Selected parent history and existing descendants are preserved.
+Participating readers require committed publication evidence and a matching
+catalog before combining the legacy and native topology carriers. Transport
+completion does not perform bibliographic, textual or rights assessment.
+
 Source-near semantic descriptions use the explicit
 [concept/conception profile](semantic-interchange/README.md#concepts-situated-conceptions-and-transformations),
 not the bibliographic identity family. Their declared research scope and

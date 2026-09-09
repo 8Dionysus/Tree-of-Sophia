@@ -509,15 +509,50 @@ class MetadataVersionReaderTests(unittest.TestCase):
         instance = reader.MetadataVersionReader(self.root)
         with (patch.object(SourceRecordProfiles, 'native_semantic_identities', side_effect=AssertionError('no inventory')),
               patch.object(Path, 'rglob', side_effect=AssertionError('no source tree scan'))):
-            for kind in ('agent', 'work', 'letter', 'historical-state', 'sign'):
+            for kind in ('agent', 'work', 'expression', 'letter', 'historical-state', 'sign'):
                 self.assertTrue(instance.supports(kind), kind)
-            for kind in ('artifact', 'expression', 'item', 'link', 'claim', 'unknown-test-kind'):
+            for kind in ('artifact', 'item', 'link', 'claim', 'unknown-test-kind'):
                 self.assertFalse(instance.supports(kind), kind)
             self.assertFalse(instance.supports('agent', source_ref='ToS/source-witnesses/public/test/place.json'))
         registry = self.root / reader.REGISTRY_REF
         registry.write_bytes(registry.read_bytes() + b'\n')
         with self.assertRaises(source.JournalConflict):
             instance.verify_current()
+
+    def test_raw_source_provenance_resolves_current_then_committed_predecessor_without_latest_fallback(self):
+        raw = self.path.read_bytes()
+        digest = source._digest(raw)[7:]
+        current = reader.MetadataVersionReader(self.root).resolve_source_bytes(self.fixture.relative, digest)
+        self.assertEqual(current['status'], 'available', current)
+        self.assertEqual(current['record'], self.record)
+        self.assertIsNone(current['provenance']['source']['archive_blob_ref'])
+        self.correct()
+        retained = reader.MetadataVersionReader(self.root).resolve_source_bytes(self.fixture.relative, digest)
+        self.assertEqual(retained['status'], 'available', retained)
+        self.assertEqual(retained['record'], self.record)
+        binding = retained['provenance']['source']
+        self.assertEqual(binding['source_ref'], self.fixture.relative)
+        self.assertEqual(binding['record_sha256'], 'sha256:' + digest)
+        self.assertEqual((self.root / binding['archive_blob_ref']).read_bytes(), raw)
+        missing = reader.MetadataVersionReader(self.root).resolve_source_bytes(self.fixture.relative, '0' * 64)
+        self.assertEqual(missing['status'], 'missing', missing)
+        self.assertIsNone(missing['record'])
+        self.assertIsNone(missing['exact_ref'])
+        self.assertIsNone(missing['provenance'])
+
+    def test_raw_source_provenance_does_not_search_other_paths_or_uncommitted_blobs(self):
+        digest = source._digest(self.path.read_bytes())[7:]
+        other = str(Path(self.fixture.relative).parent.with_name('another-subject') / self.path.name)
+        missing = reader.MetadataVersionReader(self.root).resolve_source_bytes(other, digest)
+        self.assertEqual(missing['status'], 'missing', missing)
+        self.correct()
+        resolved = reader.MetadataVersionReader(self.root).resolve_source_bytes(self.fixture.relative, digest)
+        archived = self.root / resolved['provenance']['source']['archive_blob_ref']
+        archived.write_bytes(b'corrupt retained synthetic metadata')
+        corrupt = reader.MetadataVersionReader(self.root).resolve_source_bytes(self.fixture.relative, digest)
+        self.assertEqual(corrupt['status'], 'corrupt', corrupt)
+        self.assertIsNone(corrupt['record'])
+        self.assertIsNone(corrupt['provenance'])
 
 
 if __name__ == '__main__':

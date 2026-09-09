@@ -122,7 +122,7 @@ are not supplied by this bounded Claim reader.
 `exact_refs(record_id)`, `supports(record_type, source_ref=...)` and
 `verify_current()`. It uses the same exact-ref/status envelope, with no command
 configuration or current-use authority. Supported routes are native Corpus
-Agent, Place, Organization and Work, plus the registry's declared metadata
+Agent, Place, Organization, Work and Expression, plus the registry's declared metadata
 profiles and schema routes. Pass the locator to `supports` when a catalog also
 contains a different native representation, such as scholarly Composites.
 
@@ -146,8 +146,26 @@ Work is bounded to 8 MiB/8,192 rows per catalog, 128 selected contracts, 128
 corrections, existing package-manifest bounds and 64 MiB cumulative read work per
 instance, including profile shape-reader rechecks. Reuse within one build and
 verify before export; exceeding a bound refuses the record/history without
-partial output. Native Expression/Edition/Item/File/Link and native
+partial output. Native Edition/Item/File/Link and native
 Artifact/Composite representations are not supported by this reader yet.
+
+`resolve_source_bytes(original_source_path, raw_sha256)` joins a provenance
+input to the exact current or retained metadata bytes at its original logical
+source path. `raw_sha256` is the bare 64-hex digest, not the canonical record
+digest. The catalog must uniquely locate that logical source, and the current
+record or committed retained chain must bind the requested raw bytes. The reply
+contains the exact record/ref and byte provenance, not arbitrary file contents.
+It never searches Git, orphan archives or a private store, and never substitutes
+the latest version. This lets an immutable provenance input survive a later
+descriptive correction without rewriting its old digest.
+
+Both exact readers also hold a
+[selected-metadata publication snapshot](docs/SELECTED_METADATA_TRANSACTIONS.md)
+from construction through success **or unavailable** results. Pending or changed
+source publication returns an explicit stale result; a catalog bound to another
+publication cannot hide a newly created subject behind an old membership list.
+The token does not replace the readers' independent exact-file/schema checks
+and does not certify arbitrary manual or legacy writes.
 
 Access quotes only each available record's own notes (Claim: its own statement),
 preserving its explicit language even when a requested translation is missing.
@@ -1608,6 +1626,83 @@ migrating every existing reader. The accepted cost is bounded package copying
 and Linux-specific exchange, not global corpus copying or an indexed writer.
 General multi-subject changes, correction of other native record families and
 automatic retirement of abandoned staging remain separate Growth work.
+
+### Selected native correction and explicit recovery
+
+`tos_local_corpus_revision_owner_v2` is an explicit new delegation over the same
+native Corpus description fields. It supports Agent, Place, Organization, Work
+and Expression. Its configuration has the v1 Corpus correction fields, with
+`allowed_operations` limited to `record.revise` and `record.recover`. Neither a
+v1 correction grant nor a form/creation grant gains these capabilities.
+The current record's ID, type, schema, identity/equivalence posture, external
+identifiers and relation refs remain outside descriptive correction scope.
+
+The v2 revision unit is exactly the selected `<type>.json`, adjacent
+`<type>.human-forms.json`, and `source-revision-history.json`. An initial form
+set or history may be absent. Every successor has all three files. This route
+does not enumerate, copy or exchange the parent directory: existing Expressions,
+Editions, Items, payloads, unknown siblings and creation provenance stay outside
+the selected unit. A request cannot supply extra paths or a larger file set.
+The earlier v1 flat-directory package digest and archive semantics are unchanged.
+
+Use the ordinary `describe`, `prepare-revise`, `record.revise` and
+`inspect-version` requests. V2 result envelopes identify
+`tos_local_source_revision_result_v2`, `publication_protocol`, `selected_files`
+and the current `publication_snapshot`. Preparation also returns
+`expected_publication`; copy it into the revision request alongside the existing
+configuration/source/revision/dependency bindings. Source-copy form successors
+must explicitly cover every current form. Existing limitations on authored
+freeform or template rebinding remain visible rather than silently converting
+those forms or carrying admission to a different source.
+
+The predecessor archive has explicit `tos_source_package_archive_v2` scope.
+`tos_source_revision_history_v2` retains earlier v1 receipts unchanged and adds
+a publication binding to each selected transition. The original archive retains
+its original scope: a v1 full-package archive never becomes a selected one.
+Historical creation replay checks exact creation files and initial forms even
+after a v2 correction and later descendants; it performs no new creation or
+descendant inspection. An uncommitted archive alone is not an addressable version.
+
+Byte movement uses the internal
+[selected-metadata transport](docs/SELECTED_METADATA_TRANSACTIONS.md), under the
+existing corpus writer lock. Official readers and other common-lock writers
+refuse a pending transaction. This is a cooperative publication barrier, not
+filesystem-wide atomic visibility for arbitrary raw readers. Catalog and graph
+rebuilds remain separate derived operations; their failure does not undo source.
+
+While pending, the exact original command may resume only under its unchanged
+current delegation. Explicit recovery uses `schema_version:
+tos_local_source_command_v1`, `operation: record.recover`, the exact
+`transaction_id`, `decision: resume|rollback`, and current
+`expected_configuration`. A renewed recovery-only grant must still select the
+same principal, authority, source path, typed identity, fields and form IDs and
+pass current schema/dependency checks. It authorizes recovery of the fully
+reconstructed retained before/after plan, not arbitrary writes or new revisions.
+Its evidence accompanies terminal publication without overwriting the original
+authority binding. A third file state, revoked scope or changed dependency leaves
+pending evidence intact. Rollback restores exact selected bytes but advances the
+publication token, so a reader spanning the interrupted interval must restart.
+
+The focused command checks live in
+`mechanics/growth-cycle/tests/test_source_selected_revisions.py`; transport and
+reader-boundary checks are separate. Existing 8 MiB selected-package, 128-history
+and source/form byte limits refuse rather than truncate. Readiness here grants
+no semantic assessment, current use, rights, canon, release or deployment.
+
+### Native Work / Expression growth
+
+The separate `tos_local_work_expression_owner_v1` delegates one exact existing
+Work, one new Expression and one distinct `has_expression` Claim, together with
+their selected form identities. `source_commands.py` dispatches
+`work.expression.create` and explicit pending recovery through the
+[native compound owner contract](docs/NATIVE_WORK_EXPRESSION_GROWTH.md).
+The parent gains only a version increment and the appended Claim reference;
+existing descendants and all other Work fields stay outside the change.
+New source-copy forms, exact predecessor history and serialization provenance
+travel together through the selected-metadata protocol. A committed metadata
+link is not bibliographic or textual admission, an Edition/Item, a responsibility
+assertion or publication permission. Standalone Claim grants cannot write or
+revise this topology predicate merely because a read profile understands it.
 
 ### Declared source Claim creation
 

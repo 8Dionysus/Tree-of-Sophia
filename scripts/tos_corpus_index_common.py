@@ -11,9 +11,11 @@ import subprocess
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from source_metadata_snapshot import PublicationSnapshot, PublicationChanged
 from build_source_witness_catalog import (artifact_catalog_entry, artifact_display_fields,
                                          load_artifact_record, canonical_json, RECORD_FILES, ADAPTED_RECORD_FILES,
-                                         composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA)
+                                         composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
+                                         verify_catalog_publication)
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
 from source_record_profiles import SourceRecordProfiles
 
@@ -639,6 +641,13 @@ def _nearest_branch_parents(branch_paths: list[str]) -> dict[str, str]:
 
 def build_source_navigation(diagnostics: list[dict[str, str]], *,
                             assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+    snapshot = PublicationSnapshot(REPO_ROOT)
+    result = _build_source_navigation(diagnostics, assessed_forms=assessed_forms, publication=snapshot)
+    snapshot.verify_current()
+    return result
+
+
+def _build_source_navigation(diagnostics, *, assessed_forms, publication):
     """Join authored topology and source records into a read-only descent graph."""
 
     nodes: dict[str, dict[str, Any]] = {}
@@ -646,6 +655,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
     rights: list[dict[str, Any]] = []
     version_reader = None
     metadata_reader = None
+    catalog_digests = None
 
     def add_node(
         node_id: str,
@@ -761,14 +771,28 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
 
     catalog_root = TOS_ROOT / "source-witnesses" / "catalog"
     catalog_manifest_path = catalog_root / "catalog.manifest.json"
+    if publication.token is not None and not catalog_manifest_path.is_file():
+        raise PublicationChanged('initialized source publication requires its catalog manifest')
     if catalog_manifest_path.is_file():
         from metadata_version_reader import MetadataVersionReader
         metadata_reader = MetadataVersionReader(REPO_ROOT)
-        catalog_manifest = load_json(catalog_manifest_path)
+        catalog_manifest_raw = catalog_manifest_path.read_bytes()
+        catalog_manifest = json.loads(catalog_manifest_raw)
         artifact_validators = {}
         profiles = SourceRecordProfiles(REPO_ROOT)
         corpus_validator = Draft202012Validator(load_json(REPO_ROOT / 'ToS/contracts/corpus-record.schema.json'))
         allowed_files = {**RECORD_FILES, **profiles.catalog_files, **ADAPTED_RECORD_FILES}
+        # Validate the closure before opening any path supplied by a manifest.
+        for record_type, file_ref in catalog_manifest.get('record_files', {}).items():
+            if (record_type not in allowed_files
+                    or file_ref != 'ToS/source-witnesses/catalog/' + allowed_files[record_type]):
+                raise ValueError('catalog family has no exact understood source-profile path')
+        if publication.token is not None or 'selected_metadata_publication' in catalog_manifest:
+            if catalog_manifest.get('claim_file') != 'ToS/source-witnesses/catalog/claims.jsonl':
+                raise ValueError('catalog has no exact understood claim path')
+            catalog_digests = {ref: sha256(REPO_ROOT / ref) for ref in
+                              [*catalog_manifest.get('record_files', {}).values(), catalog_manifest['claim_file']]}
+            verify_catalog_publication(catalog_manifest, publication.token, catalog_digests)
         for record_type, file_ref in sorted(catalog_manifest.get("record_files", {}).items()):
             if (record_type not in allowed_files
                     or file_ref != 'ToS/source-witnesses/catalog/' + allowed_files[record_type]):
@@ -1053,6 +1077,10 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
         version_reader.verify_current()
     if metadata_reader is not None:
         metadata_reader.verify_current()
+    if catalog_digests is not None and (
+            catalog_manifest_path.read_bytes() != catalog_manifest_raw
+            or any(sha256(REPO_ROOT / ref) != digest for ref, digest in catalog_digests.items())):
+        raise PublicationChanged('catalog bytes changed during corpus source navigation')
     return {
         "schema_version": "tos_source_navigation_v1",
         "authority_boundary": (
@@ -1082,6 +1110,13 @@ def validate_payload_schema(payload: dict[str, Any]) -> None:
 
 
 def build_payload(*, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+    snapshot = PublicationSnapshot(REPO_ROOT)
+    payload = _build_payload(assessed_forms=assessed_forms)
+    snapshot.verify_current()
+    return payload
+
+
+def _build_payload(*, assessed_forms) -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
     tracked_paths = tracked_tos_paths()
     source_home = load_json(TOS_ROOT / "source_home.manifest.json")

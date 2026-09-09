@@ -99,6 +99,12 @@ def _scope(config, claims, *, profiles=None):
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
     seen = set()
     for claim in claims:
+        if isinstance(claim, dict) and claim.get('predicate') == 'has_expression':
+            # A readable Claim profile is not a standalone writer grant. This
+            # predicate changes the Work's exact outgoing closure and belongs
+            # to the separately authorized compound bibliographic operation.
+            # Owner-local forwarding deliberately receives the same refusal.
+            raise PermissionError('has_expression requires the compound bibliographic operation')
         if (not isinstance(claim, dict) or not isinstance(claim.get('claim_id'), str)
                 or claim['claim_id'] not in config['allowed_claim_ids']
                 or claim.get('subject_ref') not in config['allowed_subject_refs']

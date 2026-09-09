@@ -19,6 +19,8 @@ import source_commands as source
 import source_revisions as packages
 from source_record_profiles import SOURCE_CLAIM_BASENAME
 from source_owner_context import OWNER_LOCAL_HOME
+from source_metadata_snapshot import PublicationSnapshot, PublicationStateError, PublicationPending, PublicationChanged
+from build_source_witness_catalog import verify_catalog_publication, CatalogBuildError
 
 CATALOG_REF = 'ToS/source-witnesses/catalog/claims.jsonl'
 MAX_CATALOG_BYTES = 8 * 1024 * 1024
@@ -204,8 +206,16 @@ class ClaimVersionReader:
         self._catalog_entries = None
         self._catalog_digest = None
         self._packages = {}
+        self._publication_error = None
+        try:
+            self._publication = PublicationSnapshot(self.root)
+        except PublicationStateError as error:
+            self._publication_error = error
 
     def verify_current(self):
+        if self._publication_error is not None:
+            raise self._publication_error
+        self._publication.verify_current()
         self._snapshot.verify()
 
     def _package(self, relative):
@@ -292,9 +302,16 @@ class ClaimVersionReader:
                   'grants_current_use': False, 'performs_assessment': False, 'writes_to_source': False}
         stage = 'catalog'
         try:
+            self.verify_current()
             if self._catalog_entries is None:
                 os.close(source._owned_path(self.root, directory=True))
                 self._catalog_entries, self._catalog_digest = _catalog(self._snapshot, self.root)
+                if self._publication.token is not None or os.path.lexists(self.root / 'ToS/source-witnesses/catalog/catalog.manifest.json'):
+                    manifest = source._json_object(self._snapshot.read(self.root /
+                        'ToS/source-witnesses/catalog/catalog.manifest.json', source.MAX_COMMAND_BYTES,
+                        'catalog-manifest-byte-budget'))
+                    verify_catalog_publication(manifest, self._publication.token,
+                                               {CATALOG_REF: self._catalog_digest[7:]})
             if exact_ref['id'] not in self._catalog_entries:
                 raise _Unavailable('missing', 'claim-not-in-public-catalog')
             entry, catalog_line = self._catalog_entries[exact_ref['id']]
@@ -329,19 +346,39 @@ class ClaimVersionReader:
                     'version_status': selected['version_status'], 'record': copy.deepcopy(selected['record']),
                     'record_digest': exact_ref['digest'], 'provenance': copy.deepcopy(provenance)}
         except _Unavailable as error:
-            return {**result, 'status': error.status, 'reason': error.reason}
+            return self._unavailable(result, error.status, error.reason)
         except FileNotFoundError:
-            return {**result, 'status': 'missing', 'reason': stage + '-file-missing'}
+            return self._unavailable(result, 'missing', stage + '-file-missing')
         except source.JournalConflict:
-            return {**result, 'status': 'stale', 'reason': 'source-changed-during-read'}
+            return self._unavailable(result, 'stale', 'source-changed-during-read')
+        except PublicationPending:
+            return self._unavailable(result, 'stale', 'source-publication-pending')
+        except PublicationChanged:
+            return self._unavailable(result, 'stale', 'source-publication-changed')
         except PermissionError:
-            return {**result, 'status': 'access-restricted', 'reason': stage + '-path-restricted'}
+            return self._unavailable(result, 'access-restricted', stage + '-path-restricted')
         except OSError as error:
             restricted = error.errno in {errno.ELOOP, errno.ENOTDIR, errno.EACCES, errno.EPERM}
-            return {**result, 'status': 'access-restricted' if restricted else 'corrupt',
-                    'reason': stage + ('-path-restricted' if restricted else '-io-error')}
-        except (ValueError, TypeError, KeyError, AttributeError, RecursionError, StopIteration):
-            return {**result, 'status': 'corrupt', 'reason': stage + '-integrity-failed'}
+            return self._unavailable(result, 'access-restricted' if restricted else 'corrupt',
+                                     stage + ('-path-restricted' if restricted else '-io-error'))
+        except (ValueError, CatalogBuildError, TypeError, KeyError, AttributeError, RecursionError, StopIteration):
+            return self._unavailable(result, 'corrupt', stage + '-integrity-failed')
+
+    def _unavailable(self, result, status, reason):
+        """Absence/error also belongs to the original bounded read snapshot."""
+        try:
+            self.verify_current()
+        except PublicationPending:
+            status, reason = 'stale', 'source-publication-pending'
+        except PublicationChanged:
+            status, reason = 'stale', 'source-publication-changed'
+        except source.JournalConflict:
+            status, reason = 'stale', 'source-changed-during-read'
+        except PermissionError:
+            status, reason = 'access-restricted', 'snapshot-path-restricted'
+        except (OSError, ValueError):
+            status, reason = 'corrupt', 'snapshot-integrity-failed'
+        return {**result, 'status': status, 'reason': reason}
 
 
 def resolve_claim_version(root, exact_ref):

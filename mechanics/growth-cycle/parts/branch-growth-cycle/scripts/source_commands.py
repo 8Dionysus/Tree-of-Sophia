@@ -45,6 +45,7 @@ SIGN_CONFIG = 'tos_local_sign_promote_owner_v1'
 PROFILE_CREATION_CONFIGS = {PROFILE_CONFIG, SIGN_CONFIG}
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 CORPUS_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v1'
+CORPUS_SELECTED_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v2'
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
@@ -86,6 +87,9 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
+    if config.get('schema_version') == 'tos_local_work_expression_owner_v1':
+        from source_expression_commands import configuration
+        return configuration(config, owner_config=path)
     if config.get('schema_version') in {OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
         from source_owner_claim_commands import configuration
         return configuration(config, owner_config=path)
@@ -105,9 +109,10 @@ def _configuration(path):
     profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
     corpus_creation = config.get('schema_version') == CORPUS_CONFIG
-    corpus_revision = config.get('schema_version') == CORPUS_REVISION_CONFIG
+    corpus_revision = config.get('schema_version') in {CORPUS_REVISION_CONFIG, CORPUS_SELECTED_REVISION_CONFIG}
     profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
-    revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG}
+    revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
+                                               CORPUS_SELECTED_REVISION_CONFIG}
     claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
     captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
@@ -121,13 +126,15 @@ def _configuration(path):
           | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, CORPUS_SELECTED_REVISION_CONFIG, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
             or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
         raise PermissionError('source-command delegation is invalid or expired')
-    operations = ('sign.promote',) if sign_promotion else ('source.create',) if profile_creation or corpus_creation else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS
+    operations = (('record.revise', 'record.recover') if config['schema_version'] == CORPUS_SELECTED_REVISION_CONFIG
+                  else ('sign.promote',) if sign_promotion else ('source.create',) if profile_creation or corpus_creation
+                  else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS)
     for key, allowed in (('allowed_operations', operations), ('allowed_form_ids', None)):
         values = config[key]
         if (not isinstance(values, list) or len(values) > 32
@@ -218,7 +225,10 @@ def _configured_corpus_profile(config):
     created by this metadata transaction.
     """
     kind = config.get('record_type')
-    if not isinstance(kind, str) or kind not in {'agent', 'place', 'organization', 'work'}:
+    allowed = {'agent', 'place', 'organization', 'work'}
+    if config.get('schema_version') == CORPUS_SELECTED_REVISION_CONFIG:
+        allowed.add('expression')
+    if not isinstance(kind, str) or kind not in allowed:
         raise PermissionError('native metadata writing requires Agent, Place, Organization or Work')
     return {'record_type': kind, 'id_prefix': f'tos.{kind}.', 'source_basename': kind + '.json',
             'schema_ref': 'ToS/contracts/corpus-record.schema.json', 'schema_version': 'tos_corpus_record_v1',
@@ -390,7 +400,7 @@ def _snapshot(source_path, root=None, claim_id=None):
 
 
 @contextmanager
-def _locked(target, timeout=5.0):
+def _locked(target, timeout=5.0, *, allow_pending=False):
     # Stable sibling lock survives atomic replacement of the actual source set.
     os.close(_owned_path(target.parent, directory=True))
     lock_path = target.with_name('.' + target.name + '.writer.lock')
@@ -409,6 +419,12 @@ def _locked(target, timeout=5.0):
                     raise JournalBusy('source-command writer is busy') from None
                 time.sleep(0.01)
         try:
+            if (not allow_pending and target.name == 'historical-create'
+                    and target.parent.name == 'source-witnesses' and target.parent.parent.name == 'ToS'):
+                # Check after acquiring the shared writer lock, not before
+                # waiting for a possibly interrupted selected-file writer.
+                from source_metadata_snapshot import PublicationSnapshot
+                PublicationSnapshot(target.parents[2])
             yield
         finally:
             fcntl.flock(lock, fcntl.LOCK_UN)
@@ -985,7 +1001,7 @@ def _creation_replay(config, source_path, request, receipt):
     This is historical byte/lineage evidence, not current admission. The
     existing revision owner reads archives; no new history format is invented.
     """
-    from source_revisions import _package, _history, _read_archive, HISTORY, _encode
+    from source_revisions import _package, _selected_package, _selected_names, _history, _read_archive, HISTORY, _encode
     fields = {'schema_version', 'command_id', 'request_digest', 'principal_id', 'authority_ref',
               'owner_configuration', 'recorded_at', 'source_path', 'source', 'dependencies', 'files', 'grants_admission'}
     schema = ('tos_local_historical_create_receipt_v1' if config['schema_version'] in CREATION_CONFIGS
@@ -999,7 +1015,6 @@ def _creation_replay(config, source_path, request, receipt):
             or receipt['source'] != original.ref or receipt['grants_admission'] is not False):
         raise JournalCorruption('creation receipt no longer binds its original request')
     _instant(receipt['recorded_at'])
-    files = _package(source_path.parent)
     formname = source_path.stem + '.human-forms.json'
     expected_files = {source_path.name, formname}
     if config['schema_version'] in CREATION_CONFIGS:
@@ -1008,6 +1023,19 @@ def _creation_replay(config, source_path, request, receipt):
         expected_files.update({'source-create-request.json', 'source-create-environment.json', 'source-create-provenance.jsonl'})
     if not isinstance(receipt['files'], dict) or set(receipt['files']) != expected_files:
         raise JournalCorruption('creation receipt file closure changed')
+    history_path = source_path.parent / HISTORY
+    selected_history = (os.path.lexists(history_path)
+        and _json_object(_read(history_path, MAX_SET_BYTES)).get('schema_version') == 'tos_source_revision_history_v2')
+    if selected_history:
+        # Later explicitly selected corrections may coexist with descendants.
+        # Rechecking a historical creation reads only its exact original files;
+        # it does not retrospectively widen the old creation write grant.
+        files = _selected_package(source_path)
+        for name in sorted(expected_files | {'source-create-receipt.json'}):
+            if name not in files:
+                files[name] = _read(source_path.parent / name, MAX_SET_BYTES)
+    else:
+        files = _package(source_path.parent)
     extras = set(files) - expected_files - {'source-create-receipt.json'}
     lockname = '.' + formname + '.writer.lock'
     if extras - {HISTORY, lockname} or files.get(lockname, b''):
@@ -1019,7 +1047,12 @@ def _creation_replay(config, source_path, request, receipt):
     original_files = files
     for index, revision in enumerate(history['receipts']):
         archived, _ = _read_archive(Path(config['source_root']), config, revision)
-        if archived.get('source-create-receipt.json') != files['source-create-receipt.json']:
+        selected_revision = 'publication' in revision
+        if selected_revision and (
+                revision['publication']['selected_files'] != sorted(_selected_names(source_path))
+                or not set(archived) <= set(_selected_names(source_path))):
+            raise JournalCorruption('retained correction exceeds its selected metadata scope')
+        if not selected_revision and archived.get('source-create-receipt.json') != files['source-create-receipt.json']:
             raise JournalCorruption('creation receipt changed across source history')
         if index == 0:
             if revision['previous_source'] != original.ref:
@@ -1177,6 +1210,21 @@ def run_local_command(owner_config: Path, request: dict):
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
     config, configuration, source_path = _configuration(owner_config)
+    if config['schema_version'] == 'tos_local_work_expression_owner_v1':
+        from source_expression_commands import run_expression_command
+        return run_expression_command(owner_config, config, configuration, source_path, request)
+    if config['schema_version'] == CORPUS_SELECTED_REVISION_CONFIG:
+        from source_revisions import run_revision
+        return run_revision(owner_config, config, configuration, source_path, request)
+    from source_metadata_snapshot import PublicationSnapshot
+    snapshot = PublicationSnapshot(Path(config['source_root'])) if 'source_root' in config else None
+    result = _run_configured_command(owner_config, config, configuration, source_path, request)
+    if snapshot is not None:
+        snapshot.verify_current()
+    return result
+
+
+def _run_configured_command(owner_config, config, configuration, source_path, request):
     if config['schema_version'] in {OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
         from source_owner_claim_commands import run_command
         return run_command(owner_config, config, configuration, source_path, request)
@@ -1194,7 +1242,8 @@ def run_local_command(owner_config: Path, request: dict):
         return run_command(owner_config, config, configuration, source_path, request)
     if config['schema_version'] in {*CREATION_CONFIGS, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}:
         return _create_source(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG}:
+    if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
+                                    CORPUS_SELECTED_REVISION_CONFIG}:
         from source_revisions import run_revision
         return run_revision(owner_config, config, configuration, source_path, request)
     claim_id = config['claim_id'] if config['schema_version'] == CLAIM_FORM_CONFIG else None

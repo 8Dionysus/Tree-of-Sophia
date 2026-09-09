@@ -11,6 +11,7 @@ from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
+from source_metadata_snapshot import PublicationSnapshot, PublicationChanged
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms, load_claim_forms
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
                                     SOURCE_CLAIM_BASENAME, CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF,
@@ -18,7 +19,8 @@ from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, S
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record,
                                          artifact_display_fields, composite_catalog_entry,
-                                         load_composite_record, composite_display_fields, COMPOSITE_SCHEMA)
+                                         load_composite_record, composite_display_fields, COMPOSITE_SCHEMA,
+                                         verify_catalog_publication)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -1141,7 +1143,15 @@ def _projection_fingerprint(payload: dict[str, Any]) -> str:
 
 
 def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
-    manifest = load_json(repo_root / CATALOG_MANIFEST_REF)
+    snapshot = PublicationSnapshot(repo_root)
+    payload = _build_payload(repo_root, assessed_forms=assessed_forms, publication=snapshot)
+    snapshot.verify_current()
+    return payload
+
+
+def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str, Any]:
+    manifest_raw = (repo_root / CATALOG_MANIFEST_REF).read_bytes()
+    manifest = json.loads(manifest_raw)
     if manifest.get("schema_version") != "tos_source_witness_catalog_v3":
         raise BibliographicGraphBuildError(
             f"{CATALOG_MANIFEST_REF}: source-witness catalog v3 is required"
@@ -1154,6 +1164,11 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
     profiles = SourceRecordProfiles(repo_root)
     navigation_registry = load_claim_navigation_registry(repo_root)
     input_digests = _catalog_input_digests(repo_root, profiles)
+    if input_digests[CATALOG_MANIFEST_REF] != hashlib.sha256(manifest_raw).hexdigest():
+        raise PublicationChanged('catalog manifest changed before source loading')
+    catalog_digests = dict(input_digests)
+    verify_catalog_publication(manifest, publication.token, {
+        ref: digest for ref, digest in input_digests.items() if ref != CATALOG_MANIFEST_REF})
     for ref in (CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF):
         input_digests[ref] = file_digest(repo_root / ref)
     objects = _load_object_catalog(repo_root, profiles)
@@ -1524,6 +1539,8 @@ def build_payload(repo_root: Path = REPO_ROOT, *, assessed_forms: AssessedFormSn
     payload["projection_fingerprint"] = _projection_fingerprint(payload)
     validate_payload_schema(payload, repo_root)
     _validate_cross_references(payload)
+    if _catalog_input_digests(repo_root, profiles) != catalog_digests:
+        raise PublicationChanged('catalog bytes changed during bibliographic projection')
     return payload
 
 

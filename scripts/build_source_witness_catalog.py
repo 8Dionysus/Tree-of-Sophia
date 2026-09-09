@@ -8,10 +8,12 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from source_owner_context import OWNER_LOCAL_HOME
+from source_metadata_snapshot import PublicationSnapshot, PublicationChanged, PublicationStateError
 
 from jsonschema import Draft202012Validator, FormatChecker
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
@@ -69,6 +71,28 @@ LINK_FIELDS = METADATA_LINK_FIELDS
 
 class CatalogBuildError(RuntimeError):
     pass
+
+
+def verify_catalog_publication(manifest, publication_token, file_digests):
+    """Check only the selected catalog bytes against their publication binding.
+
+    This token covers participating selected-metadata transactions, not every
+    editor or legacy writer. Source/schema and selected-record checks remain
+    independently required. Missing new objects cannot hide behind old rows.
+    """
+    binding = manifest.get('selected_metadata_publication')
+    if binding is None and publication_token is None:
+        return
+    if (not isinstance(binding, dict) or set(binding) != {'protocol', 'token', 'files'}
+            or binding['protocol'] != 'tos_selected_source_metadata_v1'
+            or binding['token'] != publication_token or not isinstance(binding['files'], dict)):
+        raise PublicationChanged('catalog does not bind the current selected-metadata publication')
+    expected_files = set(manifest.get('record_files', {}).values()) | {manifest.get('claim_file')}
+    if set(binding['files']) != expected_files:
+        raise CatalogBuildError('catalog publication file closure differs from its manifest')
+    for ref, digest in file_digests.items():
+        if binding['files'].get(str(ref)) != digest:
+            raise PublicationChanged('selected catalog file differs from its committed manifest')
 
 
 def native_witness_contract(payload: dict, relative: str) -> tuple[str, str, str]:
@@ -242,7 +266,10 @@ def composite_display_fields(payload: dict) -> dict:
 
 def collect_records(repo_root: Path = REPO_ROOT, *, profiles: SourceRecordProfiles | None = None) -> dict[str, list[dict[str, Any]]]:
     try:
-        return _collect_records(repo_root, profiles=profiles)
+        publication = PublicationSnapshot(repo_root)
+        result = _collect_records(repo_root, profiles=profiles)
+        publication.verify_current()
+        return result
     except SourceProfileError as exc:
         raise CatalogBuildError(str(exc)) from exc
 
@@ -328,7 +355,10 @@ def _collect_records(repo_root: Path, *, profiles: SourceRecordProfiles | None) 
 
 def collect_claims(repo_root: Path = REPO_ROOT, *, input_digests=None) -> list[dict[str, Any]]:
     try:
-        return _collect_claims(repo_root, input_digests=input_digests)
+        publication = PublicationSnapshot(repo_root)
+        result = _collect_claims(repo_root, input_digests=input_digests)
+        publication.verify_current()
+        return result
     except SourceProfileError as error:
         raise CatalogBuildError(str(error)) from error
 
@@ -434,6 +464,7 @@ def _collect_claims(repo_root: Path, *, input_digests=None) -> list[dict[str, An
 
 
 def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
+    publication = PublicationSnapshot(repo_root)
     profiles = SourceRecordProfiles(repo_root)
     records = collect_records(repo_root, profiles=profiles)
     claims = collect_claims(repo_root)
@@ -479,20 +510,51 @@ def render_outputs(repo_root: Path = REPO_ROOT) -> dict[Path, str]:
         "claim_file": CLAIM_CATALOG_PATH.as_posix(),
         "counts": counts,
         "catalog_sha256": hashlib.sha256("".join(digest_parts).encode("utf-8")).hexdigest(),
+        **({'selected_metadata_publication': {
+            'protocol': 'tos_selected_source_metadata_v1', 'token': publication.token,
+            'files': {str(ref): hashlib.sha256(text.encode('utf-8')).hexdigest()
+                      for ref, text in outputs.items()}}} if publication.token is not None else {}),
         "authority_boundary": (
             "generated navigation over tracked object and claim records; not "
             "bibliographic, textual, rights, review, or semantic authority"
         ),
     }
     outputs[MANIFEST_PATH] = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
+    publication.verify_current()
     return outputs
 
 
 def write_outputs(repo_root: Path, outputs: dict[Path, str]) -> None:
-    for relative, expected in outputs.items():
+    publication = PublicationSnapshot(repo_root)
+    manifest = json.loads(outputs[MANIFEST_PATH])
+    verify_catalog_publication(manifest, publication.token,
+        {str(ref): hashlib.sha256(text.encode('utf-8')).hexdigest()
+         for ref, text in outputs.items() if ref != MANIFEST_PATH})
+    # Exact files become durable individually; the digest-bearing manifest is
+    # the generated commit marker and is always replaced last. A concurrent
+    # source transaction leaves an observably stale catalog, never new truth.
+    for relative in sorted(outputs, key=lambda ref: (ref == MANIFEST_PATH, str(ref))):
+        expected = outputs[relative]
         path = repo_root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(expected, encoding="utf-8")
+        if relative == MANIFEST_PATH:
+            publication.verify_current()
+        descriptor, staging = tempfile.mkstemp(prefix='.' + path.name + '.', suffix='.pending', dir=path.parent)
+        try:
+            with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+                stream.write(expected)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(staging, path)
+            parent = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(parent)
+            finally:
+                os.close(parent)
+        finally:
+            if os.path.exists(staging):
+                os.unlink(staging)
+    publication.verify_current()
 
 
 def check_outputs(repo_root: Path, outputs: dict[Path, str]) -> list[str]:
@@ -515,8 +577,9 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        publication = PublicationSnapshot(REPO_ROOT)
         outputs = render_outputs(REPO_ROOT)
-    except (CatalogBuildError, SourceProfileError) as exc:
+    except (CatalogBuildError, SourceProfileError, PublicationStateError) as exc:
         print(f"Source-witness catalog build failed: {exc}", file=sys.stderr)
         return 1
 
@@ -527,10 +590,12 @@ def main() -> int:
             for issue in issues:
                 print(f"- {issue}", file=sys.stderr)
             return 1
+        publication.verify_current()
         print("[ok] source-witness catalog matches authored object and claim records")
         return 0
 
     write_outputs(REPO_ROOT, outputs)
+    publication.verify_current()
     print("[ok] generated source-witness object and claim catalog")
     return 0
 
