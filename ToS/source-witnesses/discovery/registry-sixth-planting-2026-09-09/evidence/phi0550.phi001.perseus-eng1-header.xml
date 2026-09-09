@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.19/tei-epidoc.rng"
+schematypens="http://relaxng.org/ns/structure/1.0"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.19/tei-epidoc.rng"
+schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title>De Rerum Natura</title>
+            <author n="Lucr.">Lucretius</author>
+            <editor>William Ellery Leonard</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+		          <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>David Mimno</name>
+            </respStmt>
+         </titleStmt>
+         <publicationStmt>
+		          <publisher>Trustees of Tufts University</publisher>
+		          <pubPlace>Medford, MA</pubPlace>
+		          <authority>Perseus Project</authority>
+            <date type="release">2004-08-24</date>
+		       </publicationStmt>
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>Lucretius</author>
+                  <title>De Rerum Natura</title>
+                  <editor>William Ellery Leonard</editor>
+                  <imprint>
+                     <publisher>E. P. Dutton</publisher>
+                     <date>1916</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+ 
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])"
+                         n="line">
+                <p>This pointer pattern extracts book and line</p>
+            </cRefPattern>
+            <cRefPattern matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])"
+                         n="book">
+                <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+        </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="line" delim="." match="l" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+ 
+      <profileDesc>
+         <langUsage>
+            <language ident="eng">English</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2015-10-30" who="Thibault Clerice">Moving to epidoc and cts correction</change>
+         <change when="2013-09-13" who="balmas01">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+         <change when="2013-06-30" who="gcrane">file tagging modified to bring it into easier conformance with CTS</change>
+         <change when="2009-12-01" who="rsingh04">moved more xml files around based on copyright status</change>
+         <change when="2006-02-10" who="packel">places/dates now actually tagged</change>
+         <change when="2004-03-19" who="mimno">moved some translation passages around and added a few cards</change>
+         <change when="2004-03-04" who="mimno">finished cardbreaks</change>
+         <change when="2004-03-01" who="mimno">milestones done through book 3</change>
+         <change when="2003-12-05" who="mimno">card breaks not yet aligned</change>
+      </revisionDesc>
+   </teiHeader>

@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title>Cato the Elder: on old age</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor role="translator">William Armistead Falconer</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <author>Cicero: De Senectute De Amicitia De Divinatione</author>
+                  <title>With An English Translation</title>
+                  <editor role="translator">William Armistead Falconer</editor>
+                  <imprint>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Harvard University Press; Cambridge, Mass., London, England</publisher>
+                     <date>1923</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="chapter" delim="." match=".//milestone[@unit='chapter']" use="@n"/>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Ancient Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:latinLit:phi0474.phi051.perseus-eng1">
+         <div xml:lang="eng"
+              type="translation">
+            <pb n="p.9"/>
+            <head >Cato the Elder: on old age</head>
+            <p >
+               <milestone unit="chapter" n="1"/>
+               <milestone unit="section" n="1"/>
+               <quote rend="blockquote">
+                  <l>O Titus, should some aid of mine dispel</l>
+                  <l>The cares that now within thy bosom dwell</l>
+                  <l>And wring thy heart and torture thee with pain,</l>
+                  <l>What then would be the measure of my gain?</l>
+                  <note>Ennius, <hi rend="italics">Annales,</hi> lib. x., words addressed by an
+Epirote shepherd to Titus Quinctius Flamininus, then
+(198 B.C.) engaged in war with Philip of Macedon, and here
+applied by Cicero to his lifelong friend, Titus Pomponius
+Atticus.</note> 
+               </quote>
+
+For, my dear Atticus, I may fitly speak to you in
+these self-same lines in which,
+
+<quote rend="blockquote">
+                  <l part="F">That man</l>
+                  <l>Of little wealth, but rich in loyalty</l>
+               </quote>
+
+speaks to Flamininus. And yet I am perfectly sure
+that it cannot be said of you, as the poet said of
+Flamininus,
+
+<quote rend="blockquote">
+                  <l>You fret and worry, Titus, day and night,</l>
+               </quote>
+
+for I know your self-control and the even temper
+of your mind, and I am aware that you brought home
+from Athens not only a cognomen but culture and
+practical wisdom too. Nevertheless I suspect that
+you, at times, are quite seriously perturbed by
+the same circumstances<note>Referring to the existing political situation. See Introd.
+p. 3.</note> which are troubling me;
+but to find comfort for them is too difficult a task to
+be undertaken now and must be deferred until
+another time.</p>
+            <pb n="p.11"/>
+            <p >However, at the present, I have determined to
+write something on old age to be dedicated to you,<milestone unit="section" n="2"/>
+for I fain would lighten both for you and for me our
+common burden<note>Cicero was then 62, Atticus 65.</note> of old age, which, if not already
+pressing hard upon us, is surely coming on apace;
+and yet I have certain knowledge that you, at all
+events, are bearing and will continue to bear that
+burden, as you do all others, with a calm and
+philosophic mind. But when I resolved to write something on this theme you continually came before my
+mind as worthy of a gift which both of us might enjoy
+together. To me, at any rate, the composition of this
+book has been so delightful that it has not only wiped
+away all the annoyances of old age, but has even
+made it an easy and a happy state. Philosophy, therefore, can never be praised as much as she deserves,
+since she enables the man who is obedient to her
+precepts to pass every season of life free from worry.</p>
+            <p >
+               <milestone unit="section" n="3"/>Now on other subjects I have said much and shall
+often have much to say; this book, which I am
+sending to you, is on old age. But the entire discourse I have attributed, not to Tithonus, as Aristo
+of Ceos did, (for there would be too little authority
+in a myth), but, that I might give it greater weight,
+I have ascribed it to the venerable Marcus Cato;
+and I represent Laelius and Scipio, while at his house,
+expressing wonder that he bears his age so well,
+and Cato replying to them. If it shall appear that
+he argues more learnedly than he was accustomed
+to do in his own books, give the credit to Greek
+literature, of which, as is well known, he was very
+studious in his later years. But why need I say more?
+For from now on the words of Cato himself will
+completely unfold to you my own views on old age.</p>
+            <pb n="p.13"/>
+            <p >
+               <milestone unit="section" n="4"/>
+               <milestone unit="chapter" n="2"/>SCIPIO. When conversing with Gaius Laelius
+here present, I am frequently wont to marvel, Cato,
+both 

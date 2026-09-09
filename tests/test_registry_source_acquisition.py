@@ -70,6 +70,27 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
         named = body.replace(b'type="edition"', ('type="edition" n="' + urn + '"').encode())
         acquisition.inspect_payloads(target, [({"basename": "source.xml"}, named)])
 
+    def test_translation_body_identity_and_section_milestones(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        urn = "urn:cts:latinLit:fixture.eng1"
+        body = prefix + ('<text><body xml:base="' + urn + '"><div type="translation" xml:lang="eng">'
+            '<div type="textpart" subtype="book" n="1"><p><milestone unit="section" n="1"/>'
+            + 'English translation ' * 100 + '</p></div>'
+            '<div type="textpart" subtype="book" n="2"><p><milestone unit="section" n="1"/>text</p></div>'
+            '</div></body></text></TEI>').encode()
+        target = {"slug": "milestones", "language": "en", "expression_role": "translation",
+            "coverage": {"kind": "perseus-tei-translation", "cts_urn": urn, "identity_anchor": "body_xml_base",
+                "citation_scope": "hierarchical_divisions_and_section_milestones", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertEqual(report["files"][0]["division_count"], 4)
+        for changed in (body.replace(b'<p>', b'<p><milestone unit="section" n="1"/>', 1),
+                body.replace(b'unit="section" n="1"', b'unit="section"'),
+                body.replace(b'type="translation"', b'type="translation" n="urn:cts:latinLit:wrong.eng1"'),
+                body.replace(b'xml:base=', b'wrong='),
+                body.replace(b'xml:lang="eng"', b'xml:lang="lat"')):
+            with self.subTest(changed=changed[:250]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
+
     def test_existing_work_extension_preserves_identity_and_prior_assertions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
