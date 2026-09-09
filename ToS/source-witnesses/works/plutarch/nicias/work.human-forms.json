@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.nicias",
+    "version": 1,
+    "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6a65b9ca17420dfd1817b5b9ac5c694f937762a4142a916ef1937a51768c1cfd",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+        "id": "tos.work.plutarch.nicias",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+            "id": "tos.work.plutarch.nicias",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.fb21225cb4a08824ec8103626234086b5780c6448282dec03782f6f0ef862efb",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4",
+        "id": "tos.work.plutarch.nicias",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-tenth-source-forms:020a8e747f6f8287a34a0210ec88555ec6d3d89dbc9580ea1f4a1c97327928c3",
+      "request_digest": "sha256:a696c827434ebf0fda9af153935de7dc556eb8311db36506731b17cef3b57ce2",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "owner_configuration": "sha256:0b32276dadfc7bbb4129a05b05d3c5b675ae03fa50e0849d838688931937cb37",
+      "recorded_at": "2026-09-09T19:06:34.295281+00:00",
+      "source": {
+        "id": "tos.work.plutarch.nicias",
+        "version": 1,
+        "digest": "sha256:5c81b70529ac3213e268386209c3c7b11620909df128b57ac42e892a5b2dedf4"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.6a65b9ca17420dfd1817b5b9ac5c694f937762a4142a916ef1937a51768c1cfd",
+          "version": 1,
+          "digest": "sha256:da2438ff6724b2f89b15ca3f1568bd916d2b65066a941c0c0f1587e7aedfce44"
+        },
+        {
+          "id": "tos.form.metadata.fb21225cb4a08824ec8103626234086b5780c6448282dec03782f6f0ef862efb",
+          "version": 1,
+          "digest": "sha256:666e701e6ead9c3515c8f8381c907492136e6e6b912355dae9fae881783b8d56"
+        }
+      ]
+    }
+  ]
+}

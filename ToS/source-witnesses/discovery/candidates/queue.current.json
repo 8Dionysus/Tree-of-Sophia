@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "093d920a5a01c6783bdc6bca19021da75fb271a84bbf6859da7257a26d2ae20e",
+  "queue_sha256": "c2f4989917e2662be2a4ca0b49d7c03d2fb7f6780913e2e4e1cf9f9183361819",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
-      "catalog_works": 185,
-      "discovery_runs": 357,
+      "catalog_works": 249,
+      "discovery_runs": 421,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "da5c0d991defc85038583cb4c2b9883a74b455b097e377327470265586ddb1d4",
+    "input_sha256": "ee487713125b91d9ac06d75d80eb453d8ba388c25c632a320eb6c484c5a9cc41",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "64e1f1eb2e1e35c2f3735264302d16f1abc8cce39fdcbcbaabe2b809fc19573d"
+        "sha256": "6fcbf7fbbd39d8849948a9e9a2fec6301c5cebde08db1ef46dc666d5faf6a893"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "106409a45e43c5e4916cb98e92e5868c5549c8455813cc76ba4f9cf2990f326f"
+        "sha256": "16415758ae6f6213ff59c08c4d06d54ea8d823a77e2b13e88fa77c51c485add3"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1992,6 +1992,22 @@
         "sha256": "9c29525cfe7ef4ee9834bc1d3793752235235ecdc65c483e368446c1b522c96c"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-aemilius-paulus-greek.2026-09-09.v1.json",
+        "sha256": "6e17c638d81bbeb818f7126cc2032cdc1b2d5a9e69e6f7e4ff7d8223b3ed470d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-agesilaus-greek.2026-09-09.v1.json",
+        "sha256": "67a3adea90fb4ae01ec4c02f793de408d87f47d322ea5b4559db2b12ae426916"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-alcibiades-greek.2026-09-09.v1.json",
+        "sha256": "cb17bc8cc94f41581fd595c1f78fb83446249550e98b9f72d9bdc71bf8861bc0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-alexander-greek.2026-09-09.v1.json",
+        "sha256": "0a8ced8da24ccb441d3a51e60c11c9c0779b89f6e13410207ab1791bd9167660"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-amatorius-english.2026-09-09.v1.json",
         "sha256": "4350b9d8510fa60cac52effe5c6a00df322dcb475d7ecc6dacc9e8ef63f3a3cb"
       },
@@ -2016,16 +2032,136 @@
         "sha256": "1d733d9dab7e55b244469a987b69239c79ea02b438977f52fc7fa0cf11d08625"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-antony-greek.2026-09-09.v1.json",
+        "sha256": "4552d832cf5950e2a2d1f7af3e6bcf82ade64c2b34294634c7a97752544e86a1"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-aquane-an-ignis-sit-utilior-english.2026-09-09.v1.json",
         "sha256": "d11aa09a2c670f77501e42ef7cbb05227ce17405431ff63e242acd1a547c9d2f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-aratus-greek.2026-09-09.v1.json",
+        "sha256": "86a9cbe34a0598d1fc9031701fcd85c479a0883a7e448021ee3c4f69a198ac0a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-aristides-greek.2026-09-09.v1.json",
+        "sha256": "515f96b8fa6f7838c982cd7ca569447db58d839c025526ae61673e4b931dd2d7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-artaxerxes-greek.2026-09-09.v1.json",
+        "sha256": "8ac60479fe25968c9127466f6675339c82e1f17659faeebdbc56327409fabf9c"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-bruta-animalia-ratione-uti-english.2026-09-09.v1.json",
         "sha256": "37978b22f9da014edb7ff1dfe98d0881bac7e812b260612fe7ad5e43c110b07f"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-brutus-greek.2026-09-09.v1.json",
+        "sha256": "f96186a2f9aebb9b89edb394f613855a661e8ab2f7e68e3f9a5adba0ed3eb281"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-caesar-greek.2026-09-09.v1.json",
+        "sha256": "bb06a7a5d82b64ac6268d4441013abf8e0e75fe736d25c75464fb3f92d99e559"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-caius-marcius-coriolanus-greek.2026-09-09.v1.json",
+        "sha256": "2335fb447b0a91e91831439a7971ec59890de92997e59cba2418f1cef3dca5f3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-caius-marius-greek.2026-09-09.v1.json",
+        "sha256": "2db228e5f6fe77b127a0d52bdd6dfa7a35dbd11caf2b570c1b30a41383cd9520"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-camillus-greek.2026-09-09.v1.json",
+        "sha256": "b74cb8e7301a9c23013c216bc1251d0d9fc9695f6dd88c4a3bb9753a0447ebad"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-cato-the-younger-greek.2026-09-09.v1.json",
+        "sha256": "bae04203318dbf9a39213bfc36419e0e5ca0752b17ab445c30af6874ff89b12c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-cicero-greek.2026-09-09.v1.json",
+        "sha256": "130622c495b1ffd355049b212a49e1b02b0d689df3ccebd0be7f339c57185681"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-cimon-greek.2026-09-09.v1.json",
+        "sha256": "5db62f1d1133f399baaa952d946a577bd8f6d956ac97c2a74d3eaaefc29b2508"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparationis-aristophanis-et-menandri-compendium-english.2026-09-09.v1.json",
         "sha256": "80f16118b61d4bcb647d0752282fd87adbbfed7b122823188d87bf7f66258d8d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-agesilaus-and-pompey-greek.2026-09-09.v1.json",
+        "sha256": "f814969e1c50e71b856862a6acd38456e822e812dbaae4630885d18b495d23db"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-agis-and-cleomenes-and-the-gracchi-greek.2026-09-09.v1.json",
+        "sha256": "8c63e430a8be36f39847628fe4e1aa5cc00758f765c4cc9146be864718c0fbb4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-alcibiades-and-coriolanus-greek.2026-09-09.v1.json",
+        "sha256": "50067da4b61274e81965cd483966a06134f37eb945df4a70f0292fadb4c7d976"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-aristides-and-marcus-cato-greek.2026-09-09.v1.json",
+        "sha256": "cbf19dc5ef9ffc34b26e57aeb7d3fb0867147ff05347de0bc4d1a564afa0dbfb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-demetrius-and-antony-greek.2026-09-09.v1.json",
+        "sha256": "ff69600665a41453d0032681eaaba9fb7e05e8888146ab577cd735339535b6ff"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-demosthenes-and-cicero-greek.2026-09-09.v1.json",
+        "sha256": "80ccbf4ffb3a8031af0a2aac2358cfbe62a6e6c1e1cbe5e67352b8969c7da89f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-dion-and-brutus-greek.2026-09-09.v1.json",
+        "sha256": "b7738c714f076edaaf9f2837c233428f13810215582fbe652dc601284c1dd44a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-lucullus-and-cimon-greek.2026-09-09.v1.json",
+        "sha256": "3de33641eb2c7c234a4c087f182e46693b85999a034808cce598c163250b46da"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-lycurgus-and-numa-greek.2026-09-09.v1.json",
+        "sha256": "533c911850f33caea3cb7ea55b8647b31f01e21f34155346ae92ce9868b79e7a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-lysander-and-sulla-greek.2026-09-09.v1.json",
+        "sha256": "2c91ec2bf1b280b1781e4e9b1f96a8df1e653e6f12934076f41c500f9cacc44f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-nicias-and-crassus-greek.2026-09-09.v1.json",
+        "sha256": "ce455153d2afb8d415e4c53a9cd871b5acc12f93bd3712c8b76a9c899b99419a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-pelopidas-and-marcellus-greek.2026-09-09.v1.json",
+        "sha256": "c842841301602c49bbdb5ce0425a553d12b0a44262a217ac794ffafbb946b93b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-pericles-and-fabius-maximus-greek.2026-09-09.v1.json",
+        "sha256": "c076681700a36a50bca4f3425550554437f55dbc96fb11e1900d42ae70462a0f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-philopoemen-and-titus-greek.2026-09-09.v1.json",
+        "sha256": "0675148d44f10385f44128b3232c37ac40444962ba9eeceec1f29841db84f358"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-sertorius-and-eumenes-greek.2026-09-09.v1.json",
+        "sha256": "3af4b8a7083c7d0ddef599c8283ffb8cafb225174feb8c2ffb09bf7a926e6ab9"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-solon-and-publicola-greek.2026-09-09.v1.json",
+        "sha256": "faa2331fdbb50844271317e20787abd4aed4a3a427e252aa046ff6396111f285"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-theseus-and-romulus-greek.2026-09-09.v1.json",
+        "sha256": "82ba871bd492932f449101d941d4b40178403a407f0dfb0ec5a59afa3138495d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-comparison-of-timoleon-and-aemilius-greek.2026-09-09.v1.json",
+        "sha256": "4d09184e907950bc2cd765f6eda343a1372467a7bcf6b1e90d1e6191b9b00355"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-consolatio-ad-apollonium-english.2026-09-09.v1.json",
@@ -2034,6 +2170,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-consolatio-ad-uxorem-english.2026-09-09.v1.json",
         "sha256": "5452013cf72abaa4ac624ad5a8f959b65411d0d9aa93da1eb30ec1631b0987eb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-crassus-greek.2026-09-09.v1.json",
+        "sha256": "125377bbb800ebd66aa99b5d28861c588243bdc578706925716d23679a0334f8"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-de-amicorum-multitudine-english.2026-09-09.v1.json",
@@ -2140,12 +2280,96 @@
         "sha256": "931b6ece3a5e5f502f39b73c120721449dfe394f6b420a6b156d8b068aed724b"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-demetrius-greek.2026-09-09.v1.json",
+        "sha256": "aa5931b0a6ba88189a958412c52dc48be94863e1924f919a88663dfd4541c108"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-demosthenes-greek.2026-09-09.v1.json",
+        "sha256": "2c7abc76c0894beb388c984f77f37b8aa80119666ce74cff38ff55898c8ad930"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-dion-greek.2026-09-09.v1.json",
+        "sha256": "f85f605d9138c2e31d0324fdc909822a5903b4073200f1d54e3a8294978ee041"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-eumenes-greek.2026-09-09.v1.json",
+        "sha256": "5163d2f40674867907f607dd45f8a9366ba65f09f390bdef00b208327393356f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-fabius-maximus-greek.2026-09-09.v1.json",
+        "sha256": "e50a38dc2ce0d908581b1040437448ab779bd3c5e3d130778336c32dfb4d7f65"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-galba-greek.2026-09-09.v1.json",
+        "sha256": "3559076c98dcffe88dae14acd6a9efa99db3cd6f83e8445c45c10d3c05e8c137"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-lucullus-greek.2026-09-09.v1.json",
+        "sha256": "3fefa369c85d7df1221f87f96c32414b6599174c321885f2d36161f3a63569b5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-lycurgus-greek.2026-09-09.v1.json",
+        "sha256": "0ee4d02d081087d2c3aaf9c092741b3ba2e72b798ca0ac961ff511c25901780c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-lysander-greek.2026-09-09.v1.json",
+        "sha256": "1d0544ea73f5d7eff1c78dc27868b73f64e0d8b46e9fb867784cba8513b918f4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-marcellus-greek.2026-09-09.v1.json",
+        "sha256": "2beccb5e4e3e48460524ce93e5c6088cc9be0bdb768788805cd40e5cf672bfeb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-marcus-cato-greek.2026-09-09.v1.json",
+        "sha256": "9c23175e15c0ece15d3e900e4d42c63bdce814ffb395ffaefb3942b48c79c717"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-maxime-cum-principibus-viris-philosopho-esse-disserendum-english.2026-09-09.v1.json",
         "sha256": "f4d7d00ccf24356b9d695122a430ffacbae336211284c4ed050b93a5f062e9ab"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-nicias-greek.2026-09-09.v1.json",
+        "sha256": "b4f64e1cdf036ad6695b3b2409677877745032ca36106fddae2c63ec43bd0b05"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-numa-greek.2026-09-09.v1.json",
+        "sha256": "65605d7c083cfbd197e4dbf1836bd5257e3bb9abb718406c58056062c459cf41"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-otho-greek.2026-09-09.v1.json",
+        "sha256": "071a0c57bf3c095b47ae282259f137cdf074da11f037beaab8182302be119af8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-pelopidas-greek.2026-09-09.v1.json",
+        "sha256": "872c8af3dda1db6764ff8813a2d974ddf1ba6ff9ac795f13b24791c4dd22227b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-pericles-greek.2026-09-09.v1.json",
+        "sha256": "9d0599f159e84367b7e56d693d476acc7d8fd2dacf5eecad28a6956491b9a19a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-philopoemen-greek.2026-09-09.v1.json",
+        "sha256": "91ac5f9543dbcff99a983164c4671dc84eb8482a27bb2ff654d2c4cb01afdd46"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-phocion-greek.2026-09-09.v1.json",
+        "sha256": "2f9639ba904be08c4388686dd96b137aea8af22af24ced83550911a3bf2842c7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-pompey-greek.2026-09-09.v1.json",
+        "sha256": "986645363362bf645bc18e719d0e2eec4f0f1f4295c2de308594e2a98d52a72c"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-praecepta-gerendae-reipublicae-english.2026-09-09.v1.json",
         "sha256": "e12a2784d2f2c53d3ef20993943ee24b89337615b093082e41f9ac8f1c53ada7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-publicola-greek.2026-09-09.v1.json",
+        "sha256": "9c2006c1beadb072e698e6a5d5cdbd6ccec90384412c2796cbfb6388d6dd3ba5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-pyrrhus-greek.2026-09-09.v1.json",
+        "sha256": "e7201075df458f9a45e7b0e7ba68cd1f3981818521e01468ee562ee377d866be"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-quaestiones-naturales-english.2026-09-09.v1.json",
@@ -2164,8 +2388,40 @@
         "sha256": "4e5d412d3317b53786a649b8edfede107a98341f3fb2e391a0bd72e92949862c"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-romulus-greek.2026-09-09.v1.json",
+        "sha256": "32c729f2ffe624819781430e962f43a9e502ecca1995c30c9218669db6e93bc3"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-septem-sapientium-convivium-english.2026-09-09.v1.json",
         "sha256": "6db94ccc520b2908b3a62e814eaed4c3833607d48bc724e7ec348cdc791929c5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-sertorius-greek.2026-09-09.v1.json",
+        "sha256": "76347e815e0b2b842163defb73318fe1441203c44ab1dc991c6de4bdf6dfa7e4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-solon-greek.2026-09-09.v1.json",
+        "sha256": "e75b8256295a9e823c69526fa1a4fa1aca0a1323430c6e0812510f43ced7f823"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-sulla-greek.2026-09-09.v1.json",
+        "sha256": "36376b45c9079740e873d7a802890923fe0fb4ec8521ff0d6abb468958fccaf2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-themistocles-greek.2026-09-09.v1.json",
+        "sha256": "08f83dcacd0f176ad35777823b98f11c5a0845dd75857878d7b8e8a994622482"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-theseus-greek.2026-09-09.v1.json",
+        "sha256": "1807b2cdb2d3b19b8e7a963bcd8ec1bbe95f389e7439f351bc965c3ef1e769bc"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-timoleon-greek.2026-09-09.v1.json",
+        "sha256": "b230963a49de158e453e1ea4d2f6d96ca36ddc9ecf3919730c31dc927b4ef17d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-titus-flamininus-greek.2026-09-09.v1.json",
+        "sha256": "eea5d3ccacd4f5c0db3a3a35249ae2e57f60b5271a23b09cb0c9438e954db012"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-poetics-english.2026-09-09.v1.json",
@@ -2453,7 +2709,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "80383490b62883035288892f2faad01e89fda8519a04db8658d919764e27e0fe"
+        "sha256": "a8428c2331f22b0c300920b9aa3fbdbcf08557850b0b37dce264119e101ec9f4"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -2565,7 +2821,7 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "4a0aeaedb301c943064d0fa6c628e9c60e880e14c4cf064ffb53a8166f731362"
+        "sha256": "d8a3199dfccff0930a59002d1fcda44d4609f6e283e412561820f735cf228924"
       },
       {
         "path": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3248,6 +3504,22 @@
         "sha256": "e9f82ba3a36407614cd0cb115371f97fc3ecd88d0bdbce8d9523737c437848ba"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/aemilius-paulus/expressions/grc-perseus-tlg0007-tlg019/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "9ee2f1342fe240b7f5590971965ac750de91fc8ce109bf4e9d38a80d7e45fdc2"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/agesilaus/expressions/grc-perseus-tlg0007-tlg044/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "d3e8117a90b95c0a1415542b1a4f13a7d58e027c3760a607d56e7692fc119632"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/alcibiades/expressions/grc-perseus-tlg0007-tlg015/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "564f9028e3ec7c350cd78d417ac29ab5f93200d6d712d0cee3928ac69e295524"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/alexander/expressions/grc-perseus-tlg0007-tlg047/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b46a746b6b9a05f6d0f108ad22443b4c234296087b2b8b418b694ec6bafaed5b"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/amatorius/expressions/en-perseus-tlg0007-tlg113-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "6f54717b26d4aa86fb32d291e678a52144aacc66f29f882449696c57c46cd310"
       },
@@ -3296,12 +3568,28 @@
         "sha256": "5489c83fea45c36886ede3b7e2d876922bb8380443d7136240b643cedf271ab9"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/antony/expressions/grc-perseus-tlg0007-tlg058/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "72419833ea57094f0060e0ebb02caaf79df5993b6dc0115f86c466ab94bf1cbc"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/aquane-an-ignis-sit-utilior/expressions/en-perseus-tlg0007-tlg128-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "dc1b66dba4524106190e4e86035bb43feccf5082cf889ba94262d3705a60322d"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/aquane-an-ignis-sit-utilior/expressions/grc-perseus-tlg0007-tlg128/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "693f9459919dd1b8900a7216305412a3267d3dee8162e82831d4f5cd9912094c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/aratus/expressions/grc-perseus-tlg0007-tlg063/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "654beda3e1b283d1dbbc986bd04bb4536407aff1d3a6ba8147ae420afdffc6eb"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/aristides/expressions/grc-perseus-tlg0007-tlg024/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f3d8d02a6ba507820b4fcf104fa1175091a5910dc190a5699a33d82683f1693e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/artaxerxes/expressions/grc-perseus-tlg0007-tlg064/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "51ac5e3927a25a0ca089d76d060ba82187649c5d71e1daff91bee7dc1bd32dbe"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/bruta-animalia-ratione-uti/expressions/en-perseus-tlg0007-tlg130-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3312,12 +3600,116 @@
         "sha256": "6cc9988d8f933cc0269ee2e5890d72d05d45aef7450ed57f647226918bf30d6e"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/brutus/expressions/grc-perseus-tlg0007-tlg061/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "34a2e2500f3b8b29fc21558bedc7ecd85850a42a8408fb7495f0d41297b35a55"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/caesar/expressions/grc-perseus-tlg0007-tlg048/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "af74132c2067f0a8c2b3a95ab9a0f8d23e04e2907651353c05d2fa71cfc0e883"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/caius-marcius-coriolanus/expressions/grc-perseus-tlg0007-tlg016/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a88735975aabc0033456a019347e92fa3ff2f84ccf89c0549f7913fe521a4d98"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/caius-marius/expressions/grc-perseus-tlg0007-tlg031/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "96505554a3874a14e8ddfa3ec0edd1e8a1b961848b600c246cd8c676ad17ea56"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/camillus/expressions/grc-perseus-tlg0007-tlg011/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "4e2149f3012e3dbd464abad8a322b815cd8b1a2447259eb2210de9929cc9df17"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/cato-the-younger/expressions/grc-perseus-tlg0007-tlg050/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "62c701f04502356cf41194de296d0b51d3e8e1e8fb51fe9d0332fde335368caf"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/cicero/expressions/grc-perseus-tlg0007-tlg055/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "7866ee4cb8d4780a28a5cce1900f0c9b9413f4dae8935abf687067da8c1eb021"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/cimon/expressions/grc-perseus-tlg0007-tlg035/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "df03765b5784ddc99b74cd643825a1ae9263faa456fb2010687d86e8d13ef93c"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/comparationis-aristophanis-et-menandri-compendium/expressions/en-perseus-tlg0007-tlg122-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "bced95cf20b11f01e34068349277a9185292a9314f26c4c79fe688d318c2135b"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/comparationis-aristophanis-et-menandri-compendium/expressions/grc-perseus-tlg0007-tlg122/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "533d420a7bb907dad8be9ae9c77f05bf9a215664661cb1fa1c856e66f6cf5d73"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-agesilaus-and-pompey/expressions/grc-perseus-tlg0007-tlg046/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e3144c1031329778a27af01f21ce18f4247ba34917c467864b171f202027ef0b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-agis-and-cleomenes-and-the-gracchi/expressions/grc-perseus-tlg0007-tlg053/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "536bd1ea0cebbd689ca45cc9f26168fdef99a78b15493343217345fe18128280"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-alcibiades-and-coriolanus/expressions/grc-perseus-tlg0007-tlg017/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "aec8978adc60c1d1b2f760381bbfed4e98ebe15d105b99383bcaa85cd91c1631"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-aristides-and-marcus-cato/expressions/grc-perseus-tlg0007-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "ff2c367ad7ca678f8aa8792164462d3f7140cf6aa3dac674fdefaf0cbceb9465"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-demetrius-and-antony/expressions/grc-perseus-tlg0007-tlg059/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c2b6f32e22c2118e8440a452508ae9740c7bdcf4fe5ce322ff3b51938b466c58"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-demosthenes-and-cicero/expressions/grc-perseus-tlg0007-tlg056/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "7457e5bb904f5263ee61696d7042f2b5b73fab1d09a3b660a32c3a709a7c68de"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-dion-and-brutus/expressions/grc-perseus-tlg0007-tlg062/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0335ec5eb461257bc0ca9422a1801e4108a8fa7313332cba5811a0552cff42e4"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-lucullus-and-cimon/expressions/grc-perseus-tlg0007-tlg037/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1b2b29051b51c59d4df19e7685414fa6d1c41edba08d03ebeda88db09a584afb"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-lycurgus-and-numa/expressions/grc-perseus-tlg0007-tlg006/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "423e06e3b6e95af6a0c9cb2a43c8b2b55fbbb68d26095698f4d51cf4966dcf20"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-lysander-and-sulla/expressions/grc-perseus-tlg0007-tlg034/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "136420e4a3ef44f307db428662d6e21106bbe8730ddcd4a2b1ed73c249e1f173"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-nicias-and-crassus/expressions/grc-perseus-tlg0007-tlg040/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f9802601ad2fa8f6bc728718c1b3d532a45e6150a71840693e761342a939660a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-pelopidas-and-marcellus/expressions/grc-perseus-tlg0007-tlg023/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "01883b4b1d64283a5f99adf7faf93af489d07ab0eab9749dcb0b7be77245a568"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-pericles-and-fabius-maximus/expressions/grc-perseus-tlg0007-tlg014/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "70478ddc139aa2e4bee577680203841daaabc90f5c7576d3efc713413cf007f6"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-philopoemen-and-titus/expressions/grc-perseus-tlg0007-tlg029/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "d40dc9105f7299daa3363127377d61ebfae604c9a13d9683d92f80c38c212215"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-sertorius-and-eumenes/expressions/grc-perseus-tlg0007-tlg043/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "641c0e3902760c66ddc546aa4feea9cd977d7379da766f759d6f982bfd77cf28"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-solon-and-publicola/expressions/grc-perseus-tlg0007-tlg009/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "9736e59aa3b29c20c355822ae3b141a2263e19d073c355248d5e628017a5465a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-theseus-and-romulus/expressions/grc-perseus-tlg0007-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "6729e65953bc26b3ac2511a5e5de3fc7a4574715a418854b5bf19dd53a936172"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparison-of-timoleon-and-aemilius/expressions/grc-perseus-tlg0007-tlg020/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "fa34bb2aeb0be1a7553fe6a7a09826c2c5b6cef808d7e447210584647fa6ed07"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/conjugalia-praecepta/expressions/grc-perseus-tlg0007-tlg078/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3338,6 +3730,10 @@
       {
         "path": "ToS/source-witnesses/works/plutarch/consolatio-ad-uxorem/expressions/grc-perseus-tlg0007-tlg111/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "f0733c34c9e2918841c09edbafc9801af3b8ce3645386a830e6740c952a98324"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/crassus/expressions/grc-perseus-tlg0007-tlg039/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "30347666695ccbd8c05abfd1efdf06957ac5fcf5c9c226e253c85c3646679f6c"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-amicorum-multitudine/expressions/en-perseus-tlg0007-tlg073-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3656,8 +4052,52 @@
         "sha256": "1d34eb1cf0534a7be672be3d26da19ae03a5a6bf39e25f9cbbaa09f5746b0fe5"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/demetrius/expressions/grc-perseus-tlg0007-tlg057/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5bdb14d470e0234584b684e1469dbcbefe183f12b8ad9bbec937ea6dbe1abf29"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/demosthenes/expressions/grc-perseus-tlg0007-tlg054/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f25e75446347ca319e7c49b5754d81d1ff4d72cf00e51d688b84c9a2b207852a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/dion/expressions/grc-perseus-tlg0007-tlg060/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c8ccb983c2df0a238f54913e984f6125e24efb99815c34b15bfd5e7b80864d26"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/epitome-libri-de-animae-procreatione-in-timaeo/expressions/grc-perseus-tlg0007-tlg135/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "b54359ca18fbf5b73551ec8a54321b9125206564c3fc09e63eedce78235c5717"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/eumenes/expressions/grc-perseus-tlg0007-tlg041/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "4bf9027e1d87ac40d6d6a8bf385df1b467772f6ffaaad025b215a0b859c51551"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/fabius-maximus/expressions/grc-perseus-tlg0007-tlg013/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "663fedd5c723d820685a6aa70314c65097a0d36c4d0cacc82d8f0a6a6aa75fb6"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/galba/expressions/grc-perseus-tlg0007-tlg065/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "2938e158aacfff00c9c83a892e0cba96b43d98eec3c08d8f5f421cd97c96b5a2"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/lucullus/expressions/grc-perseus-tlg0007-tlg036/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "537a24d60ba797a710c34a7a80c7cad5b99258d9d5bd7f2a1a0b435de4b6b92a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/lycurgus/expressions/grc-perseus-tlg0007-tlg004/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a61bc4fc20e316129cfb357b432bfae9877db0b1411a27ef7a1d079d94dfd02a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/lysander/expressions/grc-perseus-tlg0007-tlg032/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "47e08de2e3aa0e3fa7f8b0c8d54853c38d780ff39d654cb17773f531b09ce173"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/marcellus/expressions/grc-perseus-tlg0007-tlg022/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3508b35795af66237e6d0cbd823e19d35f938577c03ab449f0975533c988dc55"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/marcus-cato/expressions/grc-perseus-tlg0007-tlg025/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0e2cc7a3fafde3b43dc65a9ebf7750e2b7a53668c98bc73a437a64d4270c8e87"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/maxime-cum-principibus-viris-philosopho-esse-disserendum/expressions/en-perseus-tlg0007-tlg115-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3668,12 +4108,40 @@
         "sha256": "52a2e20008a7edfa33c30d41af7b581bea6e8c293dd654a1926c413380cfd3b1"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/nicias/expressions/grc-perseus-tlg0007-tlg038/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "7659d01c9977558d204ceca49387137710ef33f29935875343815841fa8319a7"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "282dc6b8c1a7b57062e864e8e6da77c302118ff2fee24c13711c7aab7b88ff36"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/grc-perseus-tlg0007-tlg139/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "32ecda3bae01ec18eabfdc0a5bdcce910b23f56025ff80f81233d4d3bbc71aba"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/numa/expressions/grc-perseus-tlg0007-tlg005/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "56da32081de1d751a9f7c6721d9578d3c6c27d50c962d1345b9d218917bfd88e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/otho/expressions/grc-perseus-tlg0007-tlg066/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "ceebc71eaa41afcd13f1da923b1632155ba1cf34e42210233ff2f46ab98f80aa"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/pelopidas/expressions/grc-perseus-tlg0007-tlg021/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e68c37e68b9249f990fe97e576b387c0f1cbef4eda54ddb49875fc011c9446f9"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/pericles/expressions/grc-perseus-tlg0007-tlg012/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5e1e3885b7ebe1df5638ded9b0f46a4c22c2aabdc6f103146a4b82a9f52442df"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/philopoemen/expressions/grc-perseus-tlg0007-tlg027/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "8e4c77f81fd5a4486bf62cf9382b981a786b2d04fde929df4523ba9e1129d9a3"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/phocion/expressions/grc-perseus-tlg0007-tlg049/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "7280433e7e4d45215b5a6b350b48c3d182613ac40b889957d4263e8071bd3d12"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/platonicae-quaestiones/expressions/en-perseus-tlg0007-tlg133-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3684,12 +4152,24 @@
         "sha256": "0c94f3433ea4b41f2b7529bbf274a5ab2adbad2b1ab2470f25cccff09700b03a"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/pompey/expressions/grc-perseus-tlg0007-tlg045/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "4cb30ac2a68841d6461c42b971b1e92e51e7c97f167f51b513bfd73cc02f4b4f"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/praecepta-gerendae-reipublicae/expressions/en-perseus-tlg0007-tlg118-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "3298cbf63511d656708701120529b697793320f00014fbf51c3427dbe73173bf"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/praecepta-gerendae-reipublicae/expressions/grc-perseus-tlg0007-tlg118/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "58d2f316efe2e6fec1bba36c3ab3aa51fd472e3a33a5531ae4885193a68da552"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/publicola/expressions/grc-perseus-tlg0007-tlg008/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "eca1d0787fd8b4ea4a3459f9a553cd9d83c362b9d33864f07634f4c40a2fa029"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/pyrrhus/expressions/grc-perseus-tlg0007-tlg030/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "badcc2cce511e9b3e299bf2534365e4feb1990d87360928daa31071dc819f497"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/quaestiones-naturales/expressions/en-perseus-tlg0007-tlg125-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3724,12 +4204,44 @@
         "sha256": "f790ebc7dc5d76685440add6b52230ffbe51e81cf8e63f25f0f9a2ae30c76d7b"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/romulus/expressions/grc-perseus-tlg0007-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "4f1b05dd15acc173514cf679e4b50afc49ebdc1e1da2b2010ae4d33670cdca84"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/septem-sapientium-convivium/expressions/en-perseus-tlg0007-tlg079-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "0e388c90e66417c5048a3a88d4eae9afa0f12c58dd33d658b0903650314da7da"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/septem-sapientium-convivium/expressions/grc-perseus-tlg0007-tlg079/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "54377b10bb78f2550ce2903b7d6ac94694ea2c8478d310ac6249074057b26d19"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/sertorius/expressions/grc-perseus-tlg0007-tlg042/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a22e6b3fd8d5f3a1adfba3668e2982abd18d4b7833d7586c40d99039c82f9f11"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/solon/expressions/grc-perseus-tlg0007-tlg007/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "ed255d8c926fc78116c1afdcad68ab25df9d47396eac2afbaf7dcbfb953e4cb4"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/sulla/expressions/grc-perseus-tlg0007-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3f0b4ae1c5214560e7b1877f80c478cce66238026bbe39d256dcb48f1c72bd60"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/themistocles/expressions/grc-perseus-tlg0007-tlg010/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "030a69adaf4d1104c7a4516a910a85c3ee05cb452c35dc849b98bb55bfd79d62"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/theseus/expressions/grc-perseus-tlg0007-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "30de632e5289e06279400d716100dde18a40b97cb9e3333d5d6c233525ba8c41"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/timoleon/expressions/grc-perseus-tlg0007-tlg018/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "90a15c3a8f907021e0ae0c824f14b8e54a46fb7f94fbd1643d164b95ccba2cbc"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/titus-flamininus/expressions/grc-perseus-tlg0007-tlg028/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f62fc13438621927eb8dc8bd81d2f32d2a6beceb28a6f1b167589ea79bf661ce"
       },
       {
         "path": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",

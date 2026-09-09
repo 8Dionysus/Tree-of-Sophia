@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b569ba79902c6009072f3545374fb48685afedd0d45a567fe11b77c251e3508b",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+        "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+            "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.117636637baad514e53e1124bdfcea01acb90e6e615d1c4496ef250ddccffd9e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6",
+        "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-tenth-source-forms:333a44d7566895ab42e2ee4a3b9e740430320ed09a3c62e8ce4fd139b5f197a7",
+      "request_digest": "sha256:47a9a4da990b2d7cc741a84abe90e3f4080b32051b5995182697b1b76fa3d6cf",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "owner_configuration": "sha256:a1739570e53358bd69b7b2fa2ecddf1a68262f6b94dbac76e26f8f7bbd6388e5",
+      "recorded_at": "2026-09-09T19:06:31.377987+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.numa.grc-perseus-tlg0007-tlg005.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:e5ad07bdc8c06d1df5abd0f073fcee404c89d1bbcdb32418ccfa8b1e059ca8e6"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.b569ba79902c6009072f3545374fb48685afedd0d45a567fe11b77c251e3508b",
+          "version": 1,
+          "digest": "sha256:51b9b98b7d4f9deece0bd1ea981c0f9e0049ea5864821c604f0b39f1b530c08e"
+        },
+        {
+          "id": "tos.form.metadata.117636637baad514e53e1124bdfcea01acb90e6e615d1c4496ef250ddccffd9e",
+          "version": 1,
+          "digest": "sha256:9299e022b60fad8e9d75fca0bfa1f1ecbcc254438b81e5b6782f6e14f8ee3c4b"
+        }
+      ]
+    }
+  ]
+}

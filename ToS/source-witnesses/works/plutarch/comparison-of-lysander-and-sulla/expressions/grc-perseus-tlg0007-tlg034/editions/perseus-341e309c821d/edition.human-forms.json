@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1f86917b184c134e927638a3e1672f851c63f695335a4711e65f1714691a3290",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+        "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+            "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.86ba1e0fe7c03b61c86a407aa2b87c9210fcd4387f3f8275aa96d6ed39954914",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2",
+        "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-tenth-source-forms:9f2c8bf8b87f26bed17febdae336871194c88f33582dd876d59fd81988feba3e",
+      "request_digest": "sha256:0bc011f4e1a47d70c9873f9145d699a6ed26ef9c0291e637a840d5ca892f9793",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "owner_configuration": "sha256:d218d042efb76fd1380b253cba79b2f4814add8a1220c13f9bf61bf272b462af",
+      "recorded_at": "2026-09-09T19:06:33.991203+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.comparison-of-lysander-and-sulla.grc-perseus-tlg0007-tlg034.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:2a3f8670a8840ec689eed82969d6d744740029d15d335aa30b22ffe12dc67be2"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.1f86917b184c134e927638a3e1672f851c63f695335a4711e65f1714691a3290",
+          "version": 1,
+          "digest": "sha256:41805aa48ae891790f7b2b8b98e7f6e05181e0c8c72ead98c8b8bcea1ef1bc64"
+        },
+        {
+          "id": "tos.form.metadata.86ba1e0fe7c03b61c86a407aa2b87c9210fcd4387f3f8275aa96d6ed39954914",
+          "version": 1,
+          "digest": "sha256:c93b6dad0fd5a576ce0cc029ee6536a11eb80647ddccc6e03621ed5d96014afe"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml",
+  "scope_refs": [
+    "tos.item.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml",
+    "tos.file.sha256.213b865ed22f759fb97889cae737d7276d8e1df2e61fc64157ca285d57aeb4d6"
+  ],
+  "assessment_status": "licensed",
+  "rights_statement_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "jurisdictions_reviewed": [
+    "MX"
+  ],
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041-cts.xml",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041.perseus-grc2-header.xml",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "layer_assessments": [
+    {
+      "layer_id": "tos.rights.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml.layer.digital-text",
+      "layer_role": "embedded_text",
+      "scope_refs": [
+        "tos.expression.plutarch.eumenes.grc-perseus-tlg0007-tlg041"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041.perseus-grc2-header.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+        "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+        "https://creativecommons.org/licenses/by-sa/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/PerseusDL/canonical-greekLit"
+      ],
+      "permissions": [
+        "Acquire and retain the exact positively licensed source file locally.",
+        "Process the supplied digital text with the stated attribution and license conditions."
+      ],
+      "restrictions": [
+        "Retain supplied Tufts/Perseus, editor and contributor attribution and all header notices.",
+        "Link CC BY-SA 4.0; identify any future modifications.",
+        "Shared adaptations must retain the applicable share-alike license; impose no additional restrictions.",
+        "Offer any future source modifications to Perseus as requested in its README; this intake changes no source bytes."
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive license; no expiry calculation relied upon.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Supplier scope only."
+      },
+      "uncertainty": "No human legal review or manuscript rights assessment.",
+      "assessed_at": "2026-09-09T19:00:26.808623+00:00",
+      "review_status": "unreviewed",
+      "rationale": "Exact supplied Perseus digital layer under the repository license; no broader ancient authorship or textual acceptance claim."
+    },
+    {
+      "layer_id": "tos.rights.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml.layer.edition",
+      "layer_role": "editing",
+      "scope_refs": [
+        "tos.edition.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041.perseus-grc2-header.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+        "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+        "https://creativecommons.org/licenses/by-sa/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/PerseusDL/canonical-greekLit"
+      ],
+      "permissions": [
+        "Acquire and retain the exact positively licensed source file locally.",
+        "Process the supplied digital text with the stated attribution and license conditions."
+      ],
+      "restrictions": [
+        "Retain supplied Tufts/Perseus, editor and contributor attribution and all header notices.",
+        "Link CC BY-SA 4.0; identify any future modifications.",
+        "Shared adaptations must retain the applicable share-alike license; impose no additional restrictions.",
+        "Offer any future source modifications to Perseus as requested in its README; this intake changes no source bytes."
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive license; no expiry calculation relied upon.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Supplier scope only."
+      },
+      "uncertainty": "No human legal review or manuscript rights assessment.",
+      "assessed_at": "2026-09-09T19:00:26.808623+00:00",
+      "review_status": "unreviewed",
+      "rationale": "Exact supplied Perseus digital layer under the repository license; no broader ancient authorship or textual acceptance claim."
+    },
+    {
+      "layer_id": "tos.rights.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml.layer.encoding",
+      "layer_role": "edition_presentation",
+      "scope_refs": [
+        "tos.item.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041.perseus-grc2-header.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+        "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+        "https://creativecommons.org/licenses/by-sa/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/PerseusDL/canonical-greekLit"
+      ],
+      "permissions": [
+        "Acquire and retain the exact positively licensed source file locally.",
+        "Process the supplied digital text with the stated attribution and license conditions."
+      ],
+      "restrictions": [
+        "Retain supplied Tufts/Perseus, editor and contributor attribution and all header notices.",
+        "Link CC BY-SA 4.0; identify any future modifications.",
+        "Shared adaptations must retain the applicable share-alike license; impose no additional restrictions.",
+        "Offer any future source modifications to Perseus as requested in its README; this intake changes no source bytes."
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive license; no expiry calculation relied upon.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Supplier scope only."
+      },
+      "uncertainty": "No human legal review or manuscript rights assessment.",
+      "assessed_at": "2026-09-09T19:00:26.808623+00:00",
+      "review_status": "unreviewed",
+      "rationale": "Exact supplied Perseus digital layer under the repository license; no broader ancient authorship or textual acceptance claim."
+    },
+    {
+      "layer_id": "tos.rights.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml.layer.metadata",
+      "layer_role": "metadata",
+      "scope_refs": [
+        "tos.item.plutarch.eumenes.grc-perseus-tlg0007-tlg041.perseus-341e309c821d.git-tei-xml"
+      ],
+      "assessment_status": "licensed",
+      "assessment_basis": "license",
+      "rights_statement_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "jurisdictions_reviewed": [
+        "MX"
+      ],
+      "source_refs": [
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/manifest.json",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007.tlg041.perseus-grc2-header.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/tlg0007-cts.xml",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-README.md",
+        "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/evidence/perseus-license.md",
+        "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+        "https://creativecommons.org/licenses/by-sa/4.0/"
+      ],
+      "rights_holder_refs": [
+        "https://github.com/PerseusDL/canonical-greekLit"
+      ],
+      "permissions": [
+        "Acquire and retain the exact positively licensed source file locally.",
+        "Process the supplied digital text with the stated attribution and license conditions."
+      ],
+      "restrictions": [
+        "Retain supplied Tufts/Perseus, editor and contributor attribution and all header notices.",
+        "Link CC BY-SA 4.0; identify any future modifications.",
+        "Shared adaptations must retain the applicable share-alike license; impose no additional restrictions.",
+        "Offer any future source modifications to Perseus as requested in its README; this intake changes no source bytes."
+      ],
+      "redistribution_posture": "authorized_with_conditions",
+      "derivative_posture": "allowed_with_conditions",
+      "server_processing_posture": "authorized_with_conditions",
+      "term": {
+        "calculation_status": "not_applicable",
+        "basis": "Positive license; no expiry calculation relied upon.",
+        "starts_on": null,
+        "ends_on": null,
+        "uncertainty": "Supplier scope only."
+      },
+      "uncertainty": "No human legal review or manuscript rights assessment.",
+      "assessed_at": "2026-09-09T19:00:26.808623+00:00",
+      "review_status": "unreviewed",
+      "rationale": "Exact supplied Perseus digital layer under the repository license; no broader ancient authorship or textual acceptance claim."
+    }
+  ],
+  "permissions": [
+    "Acquire and retain the exact positively licensed source file locally.",
+    "Process the supplied digital text with the stated attribution and license conditions."
+  ],
+  "restrictions": [
+    "Retain supplied Tufts/Perseus, editor and contributor attribution and all header notices.",
+    "Link CC BY-SA 4.0; identify any future modifications.",
+    "Shared adaptations must retain the applicable share-alike license; impose no additional restrictions.",
+    "Offer any future source modifications to Perseus as requested in its README; this intake changes no source bytes."
+  ],
+  "visibility": "local_only",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "model:codex"
+  },
+  "assessed_at": "2026-09-09T19:00:26.808623+00:00",
+  "rationale": "Positive provider CC BY-SA 4.0 grant, together with the separately read exact header and CTS metadata. No conflicting exception observed. Supplier authority and local operation only; no copyright-term inference or source-text acceptance.",
+  "review_status": "unreviewed",
+  "review_refs": [
+    "ToS/source-witnesses/discovery/registry-tenth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md"
+  ],
+  "access_request_ref": null,
+  "record_version": 1,
+  "supersedes_rights_ref": null
+}
