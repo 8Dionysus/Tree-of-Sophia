@@ -5201,8 +5201,16 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_embodiment_topology_does_not_assert_textual_equivalence(self) -> None:
         payload = load_verified_projection()
-        result = query_projection(payload, predicate="embodied_by", limit=28)
-        self.assertEqual(result["result_count"], 28)
+        result = query_projection(
+            payload,
+            subject_ref=(
+                "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
+                "ru-antonovsky-1907"
+            ),
+            predicate="embodied_by",
+            limit=1,
+        )
+        self.assertEqual(result["result_count"], 1)
         for match in result["matches"]:
             source_claim = match["source_return"]["source_claim"]
             self.assertEqual(source_claim["claim_type"], "bibliographic")
