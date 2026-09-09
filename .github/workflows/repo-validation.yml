@@ -6,6 +6,7 @@ on:
       - main
   # Keep the required repository gate explicit for pull-request events.
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: repo-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
