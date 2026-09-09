@@ -29,12 +29,12 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 16584,
+    "tracked_surface_count": 16776,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 4578,
+    "excluded_tracked_path_count": 4579,
     "human_scope": {
       "bytes": 10009884,
       "count": 2227,
@@ -121,10 +121,10 @@
     "surface_kind_counts": {
       "executable": 359,
       "human": 2227,
-      "structured": 13998
+      "structured": 14190
     },
-    "tracked_path_count": 21162,
-    "tracked_surface_count": 16584,
+    "tracked_path_count": 21355,
+    "tracked_surface_count": 16776,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -165,10 +165,10 @@
       "surface_kind_counts": {
         "executable": 96,
         "human": 1935,
-        "structured": 13921
+        "structured": 14113
       },
-      "tracked_surface_bytes": 775963542,
-      "tracked_surface_count": 15952
+      "tracked_surface_bytes": 782692512,
+      "tracked_surface_count": 16144
     },
     {
       "family_id": "access",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "0f2af839264c0493f1daabba1c0f72c4b4a33874710bd159ab7fa7e9407b99c0",
+  "tracked_surface_digest": "ca14e0b67b4cf927d272f87efd95cdf36aae2a0e05c3508b5fa223aa5bd54ab0",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -3119,11 +3119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 92227841,
+      "bytes": 92300187,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "452728eafbd291816436f57e1f6fd6f2b98bb0903dea6f1920299fa926e62af7",
+      "sha256": "a720d7a66d678f1c1edef3237f7159058fa2c6a3c9d8542be259cd2aa89b73a1",
       "surface_kind": "structured"
     },
     {
@@ -23668,6 +23668,14 @@
       "family_id": "tos",
       "path": "ToS/philosophy/source-planting-preparation/thirteenth-pali-wave-20260909.json",
       "sha256": "6d6988b5fc9760072a64541ccae58d5a72c9a851a1af87ad62ad49c42348b830",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 775927,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/thirteenth-translations-wave-20260909.json",
+      "sha256": "732d0bb7b8fd39b8ed8bb634df958d29d07889bcd0c5ad1ca24b5606664a3fc6",
       "surface_kind": "structured"
     },
     {
@@ -51629,6 +51637,1534 @@
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/execution/report_stage.py",
       "sha256": "8198d2734083ef22b3026e0f97e1916b3c26e9ab807b2da0dffcd6cf029ee007",
       "surface_kind": "executable"
+    },
+    {
+      "bytes": 102820,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/local-presence.preparation.json",
+      "sha256": "52c0949cf15ba61729f20126f32bfcf0bb67d1e56e3abc9eea9ffce7636a5372",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1695910,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/manifest.json",
+      "sha256": "646a8c0236b0b88e614db62f852d37083ada1ad5667c0478659c8ec86b3d48e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1926698,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/queue.preparation.v1.json",
+      "sha256": "459ebf5a17f3a2f5110032062e4f26ee5499091d47b005b23af29e9dac1cd694",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1478490,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/readiness.preparation.v1.json",
+      "sha256": "1ec50950d81f5563fcb3b1e63ff9ea80a78d20fe3dc5eafa8181889b92958c80",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 64783,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/selection-review.json",
+      "sha256": "12229a1d7210720cd7f00eec0229bead867855f801cb48fdd080b1b91b930cf5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/0168f85e313b1376a0f109160458c8def3951c20eea57170448722bd2a4c5ef5.json",
+      "sha256": "0168f85e313b1376a0f109160458c8def3951c20eea57170448722bd2a4c5ef5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/028455b5b012eac8d404fea4e72189cf735bfb060db0a208c8c43ff41478d34e.json",
+      "sha256": "028455b5b012eac8d404fea4e72189cf735bfb060db0a208c8c43ff41478d34e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/031ffb6ee8407e8c497f30411b10d19506940e4920fa614510e050d0388b31f0.json",
+      "sha256": "031ffb6ee8407e8c497f30411b10d19506940e4920fa614510e050d0388b31f0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/0807e45f3d8d408b7a1abdef300b6872961f44389826a1b521664456c7e36175.json",
+      "sha256": "0807e45f3d8d408b7a1abdef300b6872961f44389826a1b521664456c7e36175",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/09d1f9d04bfc854b988e0e6631cbcef9da7331f9d7971d21ef23da3712438305.json",
+      "sha256": "09d1f9d04bfc854b988e0e6631cbcef9da7331f9d7971d21ef23da3712438305",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/09f6001ace1736d712f729709c5cd35ce0c58da6b04dae58cae8d845a6f551b2.json",
+      "sha256": "09f6001ace1736d712f729709c5cd35ce0c58da6b04dae58cae8d845a6f551b2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3324,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/0aa06d1d613a4957d42469f973b82eedda614de1a8c5cad3eaedd7701e55e2bc.json",
+      "sha256": "0aa06d1d613a4957d42469f973b82eedda614de1a8c5cad3eaedd7701e55e2bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/0e1b5f4b59ba7e4e5e6b1991244de9e8aedb30b2645d4bef4fd140e5a1672bbd.json",
+      "sha256": "0e1b5f4b59ba7e4e5e6b1991244de9e8aedb30b2645d4bef4fd140e5a1672bbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/104317326844c2e83c315dea4e802bd29ad4dad3f78b2c48c759296750b9b2ea.json",
+      "sha256": "104317326844c2e83c315dea4e802bd29ad4dad3f78b2c48c759296750b9b2ea",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3303,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/11579150871fb7980611a8d604685f76d6db6b0e1c5cfae063436682dd8daa65.json",
+      "sha256": "11579150871fb7980611a8d604685f76d6db6b0e1c5cfae063436682dd8daa65",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1937,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/13064a12bdd91380b4213ee8db07e2d9bd0aaa669274d645dbdf980b9afa07ef.json",
+      "sha256": "13064a12bdd91380b4213ee8db07e2d9bd0aaa669274d645dbdf980b9afa07ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/145de794abf1876d127393ac76b4ce413267b812616aeee25003ddd33371e6fa.json",
+      "sha256": "145de794abf1876d127393ac76b4ce413267b812616aeee25003ddd33371e6fa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/157df51ddd8aaf9171d24aa3400abc4bd6cef3dfaa3978bcfbd4484f967b16f2.json",
+      "sha256": "157df51ddd8aaf9171d24aa3400abc4bd6cef3dfaa3978bcfbd4484f967b16f2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/15958c24993d59808dd3bab04e675116feed1d668bc72c6cb8df0286afc1b048.json",
+      "sha256": "15958c24993d59808dd3bab04e675116feed1d668bc72c6cb8df0286afc1b048",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/182ece719189de4a18cf63eae0ba445a933073c47b706c569c78505476ff14d6.json",
+      "sha256": "182ece719189de4a18cf63eae0ba445a933073c47b706c569c78505476ff14d6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/18608d9ea978680ca5bedfc943504ff573b86c67dfb98718503d27bed71f995f.json",
+      "sha256": "18608d9ea978680ca5bedfc943504ff573b86c67dfb98718503d27bed71f995f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/1b9267f576e4e3457cec81c9adc81f3895fb31cb82f0073865190066fdb095d1.json",
+      "sha256": "1b9267f576e4e3457cec81c9adc81f3895fb31cb82f0073865190066fdb095d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/1d2b6809cb52c6c88fa05ddde73fbe164e4b1b5435e9c518c789d9ffa1cdb556.json",
+      "sha256": "1d2b6809cb52c6c88fa05ddde73fbe164e4b1b5435e9c518c789d9ffa1cdb556",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/1f351d43090344cc7e0044bc3d157813689d542a4f68afcda8860f27844f4e7c.json",
+      "sha256": "1f351d43090344cc7e0044bc3d157813689d542a4f68afcda8860f27844f4e7c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/1ffd0ddc985fe25492d8a9b34ff3dbe2bc43bd22b19d56baf97b2e7d353168db.json",
+      "sha256": "1ffd0ddc985fe25492d8a9b34ff3dbe2bc43bd22b19d56baf97b2e7d353168db",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/22f0217483c746064342d7909ef863ad944a9386df0db304a58c80137fab67f5.json",
+      "sha256": "22f0217483c746064342d7909ef863ad944a9386df0db304a58c80137fab67f5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/243a51b2b769729eeed751d8751e001507d5e05393f454100144359f8039f4a0.json",
+      "sha256": "243a51b2b769729eeed751d8751e001507d5e05393f454100144359f8039f4a0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/24a639dfea98e9aa908605917af718ec665413b584841ee5cabafd5dfed384fe.json",
+      "sha256": "24a639dfea98e9aa908605917af718ec665413b584841ee5cabafd5dfed384fe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/267dad7f7f6ec51ffbd49401f75dc56a33c72ca18212a99a9439fb2028614985.json",
+      "sha256": "267dad7f7f6ec51ffbd49401f75dc56a33c72ca18212a99a9439fb2028614985",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/26b372b46d3bcecc8125cf30dcfbb7d6356f7852002527e3329f5303cc657594.json",
+      "sha256": "26b372b46d3bcecc8125cf30dcfbb7d6356f7852002527e3329f5303cc657594",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/271ffa383cb1f2c919edea43388d7413d06555b1d187efc38086568e8ce192ce.json",
+      "sha256": "271ffa383cb1f2c919edea43388d7413d06555b1d187efc38086568e8ce192ce",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/2784f5f45d71ca8db422f612c573ec28aba73467bf94033f093febc47e814bf8.json",
+      "sha256": "2784f5f45d71ca8db422f612c573ec28aba73467bf94033f093febc47e814bf8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/29143d41ab6ec903f29be041a570ec11690dcf8b01bfec907e76b0d3431e1e04.json",
+      "sha256": "29143d41ab6ec903f29be041a570ec11690dcf8b01bfec907e76b0d3431e1e04",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/2aa66187c77ad4e50b2c1b7d6220562a633362dd37b9f8670fe74ef4affd5553.json",
+      "sha256": "2aa66187c77ad4e50b2c1b7d6220562a633362dd37b9f8670fe74ef4affd5553",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/2c6b864bb87ba6cbea3ee6522afb14aa101304baf444a0f48fbd956c2c2f0c4b.json",
+      "sha256": "2c6b864bb87ba6cbea3ee6522afb14aa101304baf444a0f48fbd956c2c2f0c4b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/2fd7db5a2c30b3c47c398c6863ebd357da622a3bc16dc4a81978ae8f4c8084cd.json",
+      "sha256": "2fd7db5a2c30b3c47c398c6863ebd357da622a3bc16dc4a81978ae8f4c8084cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/3140166ed3d4e94bbcf979e80b66337e45d32cf34c0170fe80c1e9f0c3e55dc4.json",
+      "sha256": "3140166ed3d4e94bbcf979e80b66337e45d32cf34c0170fe80c1e9f0c3e55dc4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/31f06e49c08327c9b0f3d35acae343497415a055c2bb080499351ae482c902b0.json",
+      "sha256": "31f06e49c08327c9b0f3d35acae343497415a055c2bb080499351ae482c902b0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/3435f309da60a68d8d4f49a7f98ced51541201831ee290139c0b76af267636b2.json",
+      "sha256": "3435f309da60a68d8d4f49a7f98ced51541201831ee290139c0b76af267636b2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/349069b7008f79ff36edb965ffb4be3001745c8f7b98c89071cbafe8029d4c90.json",
+      "sha256": "349069b7008f79ff36edb965ffb4be3001745c8f7b98c89071cbafe8029d4c90",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/3a1914f04153a5afea92ac0a7e36279621fb35ab64723c38a367afac04261222.json",
+      "sha256": "3a1914f04153a5afea92ac0a7e36279621fb35ab64723c38a367afac04261222",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/3a5afdb98ddc7602006e557003b9b4d915674c5c52c70670f80f808a2cff7af5.json",
+      "sha256": "3a5afdb98ddc7602006e557003b9b4d915674c5c52c70670f80f808a2cff7af5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/3bab6d9f5d7a4a7029ac10b8af4a5218284486da31aa071983121e4d53b6c3a2.json",
+      "sha256": "3bab6d9f5d7a4a7029ac10b8af4a5218284486da31aa071983121e4d53b6c3a2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/402397d6b6a1f9524b509411adf888b17db7bd5f99e24521d293347972172c77.json",
+      "sha256": "402397d6b6a1f9524b509411adf888b17db7bd5f99e24521d293347972172c77",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4044a82bb77ac76912a4ffd289a5f992fccee2ed2579566f8d7bef38cf70bef8.json",
+      "sha256": "4044a82bb77ac76912a4ffd289a5f992fccee2ed2579566f8d7bef38cf70bef8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/404fdbf097400d4ea84fc968205e059647924f0ae68c35fc09fbcb08a6174645.json",
+      "sha256": "404fdbf097400d4ea84fc968205e059647924f0ae68c35fc09fbcb08a6174645",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/409b034c0d2c87196cc0f80a4dda917d34a8818d4117c318462ab0b41fd8aede.json",
+      "sha256": "409b034c0d2c87196cc0f80a4dda917d34a8818d4117c318462ab0b41fd8aede",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/441d35b9f326ef88b82eeec60b99097f49f1fd4675e97326f4b87406e2afdc7a.json",
+      "sha256": "441d35b9f326ef88b82eeec60b99097f49f1fd4675e97326f4b87406e2afdc7a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4441e1e283d247b055320ed616d718a2430d2675b526d635a68fa6711bc2abbd.json",
+      "sha256": "4441e1e283d247b055320ed616d718a2430d2675b526d635a68fa6711bc2abbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4544ad4469cb99c25685cb4f3282a905e9041ff4f72103db2b55e6599fad7db1.json",
+      "sha256": "4544ad4469cb99c25685cb4f3282a905e9041ff4f72103db2b55e6599fad7db1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/46d0a791319ade7965b071a5205d564a544016ac11a4c50c7eeb397ab1491667.json",
+      "sha256": "46d0a791319ade7965b071a5205d564a544016ac11a4c50c7eeb397ab1491667",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/46f4bfd2d17179609ae84b03e9856b35e150ba06789a3333f657b072658879c6.json",
+      "sha256": "46f4bfd2d17179609ae84b03e9856b35e150ba06789a3333f657b072658879c6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4721f378d21480ff1e09ce38a924249c910e6688c42a2558a5466c5c86d3c615.json",
+      "sha256": "4721f378d21480ff1e09ce38a924249c910e6688c42a2558a5466c5c86d3c615",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/48d329ad4fe14b4b2de3feea6b97873ea74e5c5ed547e1808f8be16feb6f0fd6.json",
+      "sha256": "48d329ad4fe14b4b2de3feea6b97873ea74e5c5ed547e1808f8be16feb6f0fd6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/49b2100a4b09ea2e4f033c481c68699cdb232f454e66cf162534331a3e1c4df2.json",
+      "sha256": "49b2100a4b09ea2e4f033c481c68699cdb232f454e66cf162534331a3e1c4df2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4b4b73e55590e91b43ace620eb018e52cc0b487efd4d7ffc2aa7b7fdc034bd9d.json",
+      "sha256": "4b4b73e55590e91b43ace620eb018e52cc0b487efd4d7ffc2aa7b7fdc034bd9d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4bc0d5ef2040fc4efcd64641b27c83c0754896f589cf9d5bc4249a3d3d7cfb89.json",
+      "sha256": "4bc0d5ef2040fc4efcd64641b27c83c0754896f589cf9d5bc4249a3d3d7cfb89",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4c7a7c0561a646afe546e357dd1e595e73b6544021f0b7493a259f043aae7334.json",
+      "sha256": "4c7a7c0561a646afe546e357dd1e595e73b6544021f0b7493a259f043aae7334",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4d210ddecd9187bf93ecd5ef804b8ff79b36a993f59d2714b98a378be7fdaea1.json",
+      "sha256": "4d210ddecd9187bf93ecd5ef804b8ff79b36a993f59d2714b98a378be7fdaea1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4d643ebd9a2b84239156ec00a4ce467c10021eacc6cc67ca8e53a65235928669.json",
+      "sha256": "4d643ebd9a2b84239156ec00a4ce467c10021eacc6cc67ca8e53a65235928669",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4ea33022b0086a96e8f977745f847f9ccf087684189532336c5d5150af92b6e4.json",
+      "sha256": "4ea33022b0086a96e8f977745f847f9ccf087684189532336c5d5150af92b6e4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4f6c486aff027f147843c0129b65f5949a015e937a520618f474d21d94e2994a.json",
+      "sha256": "4f6c486aff027f147843c0129b65f5949a015e937a520618f474d21d94e2994a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/4f927b202e0cb8f3de9f600f8bc1bd240fff0fc6963502d6bbb20aa0709ff15a.json",
+      "sha256": "4f927b202e0cb8f3de9f600f8bc1bd240fff0fc6963502d6bbb20aa0709ff15a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/50ef80d65273429bb68dea35ec85441150de7bea41fbeae9d8549669224f2eba.json",
+      "sha256": "50ef80d65273429bb68dea35ec85441150de7bea41fbeae9d8549669224f2eba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/514d8120adb00f01caeaa6cbca679711557e0ab21bea0e7c53c8ecff59878a60.json",
+      "sha256": "514d8120adb00f01caeaa6cbca679711557e0ab21bea0e7c53c8ecff59878a60",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/518ea97c2211b76805258fc3a772af6cc2d84ad01450498efe69678e3a44f010.json",
+      "sha256": "518ea97c2211b76805258fc3a772af6cc2d84ad01450498efe69678e3a44f010",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/5196e480b21237771c349033c9417f8099bb767bfd0a4c214a68158d6a2613b4.json",
+      "sha256": "5196e480b21237771c349033c9417f8099bb767bfd0a4c214a68158d6a2613b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/58d04e5bd93e8c4f9c58dcdf1a5c65a115922c40520dc9c4c60e304665a61f2f.json",
+      "sha256": "58d04e5bd93e8c4f9c58dcdf1a5c65a115922c40520dc9c4c60e304665a61f2f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3300,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/58d922df097e41be09b5a6fba74164864d637fc34bec57c46585a85307c6efe0.json",
+      "sha256": "58d922df097e41be09b5a6fba74164864d637fc34bec57c46585a85307c6efe0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/5928165881e063c3d0ad78e2a0e1e9ddd2d7c1ea07b099648cd30d30fa0de0e5.json",
+      "sha256": "5928165881e063c3d0ad78e2a0e1e9ddd2d7c1ea07b099648cd30d30fa0de0e5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/5c11ce394db001e520aabc511954b9c5532bc42202f3b6143d09856476bca8e6.json",
+      "sha256": "5c11ce394db001e520aabc511954b9c5532bc42202f3b6143d09856476bca8e6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/5f59c842050a38b69caa0b1d67af7815e9629b1289800be2d403fafd9dc02e9a.json",
+      "sha256": "5f59c842050a38b69caa0b1d67af7815e9629b1289800be2d403fafd9dc02e9a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/5fa1e548b7f93bc7b369ffd5708cf8f4e9fb8e46f6dd4298243c5e5c05b009ed.json",
+      "sha256": "5fa1e548b7f93bc7b369ffd5708cf8f4e9fb8e46f6dd4298243c5e5c05b009ed",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/60bdc4258822e686853326234347f6bb8f9f763aed95fe3a0c955f7c72d217cd.json",
+      "sha256": "60bdc4258822e686853326234347f6bb8f9f763aed95fe3a0c955f7c72d217cd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/628cc5ed7c8734002470d219c0f13da8de5d1a8ec83bb10798d9aa825fb0bee5.json",
+      "sha256": "628cc5ed7c8734002470d219c0f13da8de5d1a8ec83bb10798d9aa825fb0bee5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/6a81ab80b4752f04e418b314ed1c5753f128ea5f68b54835b01b2b18e6d0fd99.json",
+      "sha256": "6a81ab80b4752f04e418b314ed1c5753f128ea5f68b54835b01b2b18e6d0fd99",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/6b0d4dbe426fbb29919b43162808760a17e197d2bd1fc9f8f966f01e63530614.json",
+      "sha256": "6b0d4dbe426fbb29919b43162808760a17e197d2bd1fc9f8f966f01e63530614",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/6ba854b50dfba488234933be83c4d147b3a3bc430d87a6553c8f807d9f3cf11b.json",
+      "sha256": "6ba854b50dfba488234933be83c4d147b3a3bc430d87a6553c8f807d9f3cf11b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/6d9422a69cf745ccd79363c9b3bfd6a41bc57c58b23dba6969d4c6452b86c238.json",
+      "sha256": "6d9422a69cf745ccd79363c9b3bfd6a41bc57c58b23dba6969d4c6452b86c238",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3301,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/6ed6966e7b7cf17814b73f33bfa272d69588c30568f3d4f48b0c833cea89953d.json",
+      "sha256": "6ed6966e7b7cf17814b73f33bfa272d69588c30568f3d4f48b0c833cea89953d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/6edbb2e2b7de55755b68fabaad83ab19527b62f459052c6a12ca87dd1db8011f.json",
+      "sha256": "6edbb2e2b7de55755b68fabaad83ab19527b62f459052c6a12ca87dd1db8011f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/7038777a64ac8467e307ed341a87dc50083ec949d7b7d303b8eafe8cfac8a0a3.json",
+      "sha256": "7038777a64ac8467e307ed341a87dc50083ec949d7b7d303b8eafe8cfac8a0a3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/71296624c203eb80a1bd690888a9fd892c7b76402d9ea7912936ba419b384562.json",
+      "sha256": "71296624c203eb80a1bd690888a9fd892c7b76402d9ea7912936ba419b384562",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/712bb8e41ed3e76e1439c30869d8d89a91780a18e36701f6c78a39a59cb4facc.json",
+      "sha256": "712bb8e41ed3e76e1439c30869d8d89a91780a18e36701f6c78a39a59cb4facc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/71c0c867228a99cea198fbfb615380ad35a744dbde1087f54f0a4bdab6816236.json",
+      "sha256": "71c0c867228a99cea198fbfb615380ad35a744dbde1087f54f0a4bdab6816236",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3329,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/746b0a91e81179536274750622c8d597303e6951f4bca5171150c13cf2f8e574.json",
+      "sha256": "746b0a91e81179536274750622c8d597303e6951f4bca5171150c13cf2f8e574",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/752c62a8071f7b5589d098c7e290198406f1c5088ab76baf38b951a0708aac3d.json",
+      "sha256": "752c62a8071f7b5589d098c7e290198406f1c5088ab76baf38b951a0708aac3d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/761f3229bee1f624ce0381cb11a4c8e2b1f97493154c835c2e981a57465b24bc.json",
+      "sha256": "761f3229bee1f624ce0381cb11a4c8e2b1f97493154c835c2e981a57465b24bc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/7728bea77d17e15b1fae6d76d9c8bbcec67eeca28cb795c677cda0cd418f9a3a.json",
+      "sha256": "7728bea77d17e15b1fae6d76d9c8bbcec67eeca28cb795c677cda0cd418f9a3a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/78492081143eba26804d639e81add225e4dc7fcc024b945c13e573c03bd8d499.json",
+      "sha256": "78492081143eba26804d639e81add225e4dc7fcc024b945c13e573c03bd8d499",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/7ce12e5e1004b468a4832c5923f8c51e870c052c12624e13da56843d1dbb9f31.json",
+      "sha256": "7ce12e5e1004b468a4832c5923f8c51e870c052c12624e13da56843d1dbb9f31",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/7e23fcf88a890ac98375a6c02a45ec8ee7d367eac5bcca66b6b2edc55aa28e8e.json",
+      "sha256": "7e23fcf88a890ac98375a6c02a45ec8ee7d367eac5bcca66b6b2edc55aa28e8e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/7e4db687fdae8fc54b1bc3065fc4e349ec38f9f5204c5bae253391bf0882d662.json",
+      "sha256": "7e4db687fdae8fc54b1bc3065fc4e349ec38f9f5204c5bae253391bf0882d662",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/7ed7e0090def5cec29b81575629abea49d3c77467c2647c313d2f6d41441d98d.json",
+      "sha256": "7ed7e0090def5cec29b81575629abea49d3c77467c2647c313d2f6d41441d98d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/80eb6972f46b29d6a4d8fc2f31461ca939381fa2352ca967b4d33b59f7e6faa8.json",
+      "sha256": "80eb6972f46b29d6a4d8fc2f31461ca939381fa2352ca967b4d33b59f7e6faa8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/80f0c381d3737cc6d0c84e5d8bd4c572260c2f2ad4f0313358a7c6694ad03b6a.json",
+      "sha256": "80f0c381d3737cc6d0c84e5d8bd4c572260c2f2ad4f0313358a7c6694ad03b6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3305,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/82390c60f4c4fd528a7759666582f789440305dfb2fb9a6b2fd8bf788da84511.json",
+      "sha256": "82390c60f4c4fd528a7759666582f789440305dfb2fb9a6b2fd8bf788da84511",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/8570c101b51c20c74f67c284142f4c02081821992688805f1a4658a8ed510bc7.json",
+      "sha256": "8570c101b51c20c74f67c284142f4c02081821992688805f1a4658a8ed510bc7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/8602930ad4f3029bdecd44eb0c54835ad6a6571f6c7494e13339370f7ebf175a.json",
+      "sha256": "8602930ad4f3029bdecd44eb0c54835ad6a6571f6c7494e13339370f7ebf175a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/8749f89715ae0454e46f1b7cad1b1c1cc39213d93a9cc6e0292e401a8b12a61c.json",
+      "sha256": "8749f89715ae0454e46f1b7cad1b1c1cc39213d93a9cc6e0292e401a8b12a61c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/879e840ae4ac68ebb01853f834d2834a3d514a4e136dd84ad6f20c4bcd381f12.json",
+      "sha256": "879e840ae4ac68ebb01853f834d2834a3d514a4e136dd84ad6f20c4bcd381f12",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/8988bcb9f966406d152abbf649346671153812f364cabfc098a4b00eafcd8ec7.json",
+      "sha256": "8988bcb9f966406d152abbf649346671153812f364cabfc098a4b00eafcd8ec7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/8dc30cdf6646bb5e9e469fde4378ce6c44cddf75ba3dbe3b4f1eafa2f6bf808a.json",
+      "sha256": "8dc30cdf6646bb5e9e469fde4378ce6c44cddf75ba3dbe3b4f1eafa2f6bf808a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/8f98b5c2457f7cabe35ebb4781042b82a1f87ca33f3cf473a3a5a4a9a9ca46b2.json",
+      "sha256": "8f98b5c2457f7cabe35ebb4781042b82a1f87ca33f3cf473a3a5a4a9a9ca46b2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9123d1ee7461c494f842d7d3f9deaf47cb0b5b52abb82d7c549a2d69b3c1292e.json",
+      "sha256": "9123d1ee7461c494f842d7d3f9deaf47cb0b5b52abb82d7c549a2d69b3c1292e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9172fb4bd2cc715e9943c3331a7fa1933a2f5e49015e886e247fbd53d620eb1b.json",
+      "sha256": "9172fb4bd2cc715e9943c3331a7fa1933a2f5e49015e886e247fbd53d620eb1b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9176ef02eeeae0c62b3705aa2383b64a0e5f459277ac954f25ee62f7509218b2.json",
+      "sha256": "9176ef02eeeae0c62b3705aa2383b64a0e5f459277ac954f25ee62f7509218b2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/930f240659d6062a0470848750012239d867ad238ad8f8b3b39b887e109df7c0.json",
+      "sha256": "930f240659d6062a0470848750012239d867ad238ad8f8b3b39b887e109df7c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/93eb3e8c64b1461faf0247f5b779b8fc9d97ec409992a219ee586d51b108510c.json",
+      "sha256": "93eb3e8c64b1461faf0247f5b779b8fc9d97ec409992a219ee586d51b108510c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/954e37c24871f28c242a2828c95c76567d5377a1a071fa0556babb95ead97971.json",
+      "sha256": "954e37c24871f28c242a2828c95c76567d5377a1a071fa0556babb95ead97971",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/95cd24eccff66049039c3915698153c9bbf4a7e9f3792c4b3bb1acfbd45f2fe6.json",
+      "sha256": "95cd24eccff66049039c3915698153c9bbf4a7e9f3792c4b3bb1acfbd45f2fe6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/971550f0c114b299cc90a0068eea5c3e9102a94a680cbe218ade5cd4332599e2.json",
+      "sha256": "971550f0c114b299cc90a0068eea5c3e9102a94a680cbe218ade5cd4332599e2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/98cc43334d1b5423388b845ddbbcdcf2eaa48cad6a1dbd0efc252d09d271a773.json",
+      "sha256": "98cc43334d1b5423388b845ddbbcdcf2eaa48cad6a1dbd0efc252d09d271a773",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9a4560608123cae1d57c436c3c0b4405b2d19c8b73fcfef7240c2c4181014b69.json",
+      "sha256": "9a4560608123cae1d57c436c3c0b4405b2d19c8b73fcfef7240c2c4181014b69",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9a5cc0ee898e9d4157f650c1117c927c40e5829e36499f585873e51fdd1db0b9.json",
+      "sha256": "9a5cc0ee898e9d4157f650c1117c927c40e5829e36499f585873e51fdd1db0b9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9bba9f90bcca76f427dfeab40ad5f47c2d5a262e8e93648d2bbd32078e9f5674.json",
+      "sha256": "9bba9f90bcca76f427dfeab40ad5f47c2d5a262e8e93648d2bbd32078e9f5674",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9bf6836cb24dbccdc45325fa967d4996f997e0028d8abb8ede9d7f9ea709a04b.json",
+      "sha256": "9bf6836cb24dbccdc45325fa967d4996f997e0028d8abb8ede9d7f9ea709a04b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9c0a31dd9832d835a9f5e55608e12473ed67a3eebf6a6dd01f6b7b91efa7ab78.json",
+      "sha256": "9c0a31dd9832d835a9f5e55608e12473ed67a3eebf6a6dd01f6b7b91efa7ab78",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9e10114c91e119257963e90d01cffe7996b6c454ace8190e93ba08c994b91f09.json",
+      "sha256": "9e10114c91e119257963e90d01cffe7996b6c454ace8190e93ba08c994b91f09",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/9ecda05e5ce86b343e61032782c559d0e43167472bb487fa6a4e5c741aa235ee.json",
+      "sha256": "9ecda05e5ce86b343e61032782c559d0e43167472bb487fa6a4e5c741aa235ee",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a002051a5cc05ccd4d9f31a2fcb3a0a84321f151f500c08da4581bc171447319.json",
+      "sha256": "a002051a5cc05ccd4d9f31a2fcb3a0a84321f151f500c08da4581bc171447319",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a17725a68d63ac14a99934688b7629c374ee1cf2f5cfec1e3da931de755fc74f.json",
+      "sha256": "a17725a68d63ac14a99934688b7629c374ee1cf2f5cfec1e3da931de755fc74f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a371a740e86041d3a908f0c950efb32503dfee39c75d789f96cf1325a77a4625.json",
+      "sha256": "a371a740e86041d3a908f0c950efb32503dfee39c75d789f96cf1325a77a4625",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1855,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a50e4e0004d2b30cf5b3bdf9b2e939daff38a2bdd99e38ab1546283262ed8042.json",
+      "sha256": "a50e4e0004d2b30cf5b3bdf9b2e939daff38a2bdd99e38ab1546283262ed8042",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a51573ff7bd988dd070c2bb0ace3ee40a5a1d28cad8a434ec73284a8a87d7286.json",
+      "sha256": "a51573ff7bd988dd070c2bb0ace3ee40a5a1d28cad8a434ec73284a8a87d7286",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a62c702074a7470e9e9f4f09f8279bfc6bc32007dde88795e35dd9b74eb51c03.json",
+      "sha256": "a62c702074a7470e9e9f4f09f8279bfc6bc32007dde88795e35dd9b74eb51c03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a96caeb7dc05abfa9c99b70a94eefa4be31463920124788a1bec5f44b4c4827f.json",
+      "sha256": "a96caeb7dc05abfa9c99b70a94eefa4be31463920124788a1bec5f44b4c4827f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/a9af12949510a79024c0cf86313ff9f1be743e4758e280ef92f1aeaf8a35f2d1.json",
+      "sha256": "a9af12949510a79024c0cf86313ff9f1be743e4758e280ef92f1aeaf8a35f2d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ad652bd6c109e1a61bc1b6f8b627bddd854093b0e47c1837a6818028831d8fc1.json",
+      "sha256": "ad652bd6c109e1a61bc1b6f8b627bddd854093b0e47c1837a6818028831d8fc1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b2d06e703a4049136979654e20ee60d7310a10e196fef4d5bb6c358c15a92df3.json",
+      "sha256": "b2d06e703a4049136979654e20ee60d7310a10e196fef4d5bb6c358c15a92df3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b5af768ac7d32def0ef472e7da6b3e663278db0ad4e985a22f5bdab2a75e768d.json",
+      "sha256": "b5af768ac7d32def0ef472e7da6b3e663278db0ad4e985a22f5bdab2a75e768d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b5cf8f1dd2b816a91a5276cab16cde4a67dcd76c4c8b1b8c8dfc88a69cee5ca8.json",
+      "sha256": "b5cf8f1dd2b816a91a5276cab16cde4a67dcd76c4c8b1b8c8dfc88a69cee5ca8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b5f49ca27e551b1604f8bdcd323dc327aa5c938640cc78c76ddbf9ea63a59a7b.json",
+      "sha256": "b5f49ca27e551b1604f8bdcd323dc327aa5c938640cc78c76ddbf9ea63a59a7b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b8aec50e5b0b9584634706474cfeac65888188d535982cfe3a5704b3e1790358.json",
+      "sha256": "b8aec50e5b0b9584634706474cfeac65888188d535982cfe3a5704b3e1790358",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b8c22ce16ea4d03992c8f008f4ec591dc72b70c66221cc365ed2030501627002.json",
+      "sha256": "b8c22ce16ea4d03992c8f008f4ec591dc72b70c66221cc365ed2030501627002",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/b9ab6759cac4a61ebdbabc6be081f62b95f5e029b53b0bce4d70047f94c6e392.json",
+      "sha256": "b9ab6759cac4a61ebdbabc6be081f62b95f5e029b53b0bce4d70047f94c6e392",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3332,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ba19b8b3c7514e79cbbddb305b8b98b5043194e12bcb275fc0d280227d94dfe9.json",
+      "sha256": "ba19b8b3c7514e79cbbddb305b8b98b5043194e12bcb275fc0d280227d94dfe9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3324,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/bb7c0d82745c1f6033e5097fd9aa018e21521ee84879023b8def636e5d93af17.json",
+      "sha256": "bb7c0d82745c1f6033e5097fd9aa018e21521ee84879023b8def636e5d93af17",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/bbac2a97bbf33a785f27e9ade00cad04a934d30d25858c2d55f909d6ac67a71e.json",
+      "sha256": "bbac2a97bbf33a785f27e9ade00cad04a934d30d25858c2d55f909d6ac67a71e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/bf5465d2be8b86c388b49051c8abc2997a49561f4cbcade09339785ea769316c.json",
+      "sha256": "bf5465d2be8b86c388b49051c8abc2997a49561f4cbcade09339785ea769316c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3321,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/bfa4ccbc63641088843adabae09d1df70fc0730351b84390964740bb8d6c55ab.json",
+      "sha256": "bfa4ccbc63641088843adabae09d1df70fc0730351b84390964740bb8d6c55ab",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/c19489d80916ff65b471ea2e2fa805a42be70116ede9e1232adb0dd0e0c0472c.json",
+      "sha256": "c19489d80916ff65b471ea2e2fa805a42be70116ede9e1232adb0dd0e0c0472c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/c1e4204cc289773c67e811a45d337259b69d4928a83b7216ec72bf92f9610caa.json",
+      "sha256": "c1e4204cc289773c67e811a45d337259b69d4928a83b7216ec72bf92f9610caa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/c7100987f1ea4ebb5e230afda6bdd1d0b9d1b44a495708eab377dfe6a8f29cdb.json",
+      "sha256": "c7100987f1ea4ebb5e230afda6bdd1d0b9d1b44a495708eab377dfe6a8f29cdb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3312,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/c89c40b6ecf72c9c12dd9574b945a9adeef7d4ea6ebbadd97a6dd67669669316.json",
+      "sha256": "c89c40b6ecf72c9c12dd9574b945a9adeef7d4ea6ebbadd97a6dd67669669316",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/c8e67fb3a49f20c51d748322e78ec0e73068862709494b015e194c8afb247770.json",
+      "sha256": "c8e67fb3a49f20c51d748322e78ec0e73068862709494b015e194c8afb247770",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ca4f42239743272e7ff7310a3be32d19cc22865560b9beeded33543ed5f285fa.json",
+      "sha256": "ca4f42239743272e7ff7310a3be32d19cc22865560b9beeded33543ed5f285fa",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/cb0466ab6e18c5ca4226ae91a7aab63cc4d21dea32ae2d27cf2fa308e371ee42.json",
+      "sha256": "cb0466ab6e18c5ca4226ae91a7aab63cc4d21dea32ae2d27cf2fa308e371ee42",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/cc3b0cfcb6d05af375ef924044bd8a789815d922f54770aabeaddaa0b8fde183.json",
+      "sha256": "cc3b0cfcb6d05af375ef924044bd8a789815d922f54770aabeaddaa0b8fde183",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ccbb9d48f2cc098ad8f7cbe7b74385829d4a00cf342d0ef6b94840df9765773d.json",
+      "sha256": "ccbb9d48f2cc098ad8f7cbe7b74385829d4a00cf342d0ef6b94840df9765773d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3324,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ccddfc7131d5a85f195d28b096a39bbccf318161f10ae80cbacc428fef8754d4.json",
+      "sha256": "ccddfc7131d5a85f195d28b096a39bbccf318161f10ae80cbacc428fef8754d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3324,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/cd6aacd63a6be2401eb227a07bc1c9176453cd0bffd6330e33266660f71ae9e2.json",
+      "sha256": "cd6aacd63a6be2401eb227a07bc1c9176453cd0bffd6330e33266660f71ae9e2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1877,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/cf23fb6c1c255e56f195cd1a83c232a3135420ebca5ec09939c39b9dca0964bf.json",
+      "sha256": "cf23fb6c1c255e56f195cd1a83c232a3135420ebca5ec09939c39b9dca0964bf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/d27d2107b16edadb90065e0055514b375bfbf297fb11bedf8e76dac70eef81cb.json",
+      "sha256": "d27d2107b16edadb90065e0055514b375bfbf297fb11bedf8e76dac70eef81cb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/d3d0c72b1f7068fb88e9584f401eaa6b43bbf9134864ed6e725f954480c21bf3.json",
+      "sha256": "d3d0c72b1f7068fb88e9584f401eaa6b43bbf9134864ed6e725f954480c21bf3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/d5513ab555ecd0e993f7bc60d553c278f8831d988a0e9601aac564bbfee2dcc9.json",
+      "sha256": "d5513ab555ecd0e993f7bc60d553c278f8831d988a0e9601aac564bbfee2dcc9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/d641379ed2ffe0dc267d038676edc1b793adacdc5ccd983d70515c1242903865.json",
+      "sha256": "d641379ed2ffe0dc267d038676edc1b793adacdc5ccd983d70515c1242903865",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3326,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/d777ad4f5433ac8afd344e6a9005a24a1802e529d300e4d32909e91f85abda4e.json",
+      "sha256": "d777ad4f5433ac8afd344e6a9005a24a1802e529d300e4d32909e91f85abda4e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/d78556e8a34395ffdd2cf055e3934d90e3c73619a77cbc494451f0be611e87ba.json",
+      "sha256": "d78556e8a34395ffdd2cf055e3934d90e3c73619a77cbc494451f0be611e87ba",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/da55cf0c22054180c4b126d140d44c281e53af06111d1f3d959b8caca68619cc.json",
+      "sha256": "da55cf0c22054180c4b126d140d44c281e53af06111d1f3d959b8caca68619cc",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3315,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/da726dff0102bf07f3e1eeeba386ba6c5ae4906376a9c12b5e39f8feceab29e9.json",
+      "sha256": "da726dff0102bf07f3e1eeeba386ba6c5ae4906376a9c12b5e39f8feceab29e9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/dbd54b27cb7e3a1f3a2d3cd947a39e6f251cc27a6c41b945dc97567648cdf0b4.json",
+      "sha256": "dbd54b27cb7e3a1f3a2d3cd947a39e6f251cc27a6c41b945dc97567648cdf0b4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3327,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/dcdab8c20c03a8cd0e5b5b081e78741302b0ecec8c3de8f006cab9e2b776a01b.json",
+      "sha256": "dcdab8c20c03a8cd0e5b5b081e78741302b0ecec8c3de8f006cab9e2b776a01b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/de09256fe579ec4cd3eebdb7d82ba857479b9ad606767dbe0bc98b71b8e83171.json",
+      "sha256": "de09256fe579ec4cd3eebdb7d82ba857479b9ad606767dbe0bc98b71b8e83171",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/dfd51780d7834c3dac82e893bc719c6fe6537eaa239b649270c91cb62aed1871.json",
+      "sha256": "dfd51780d7834c3dac82e893bc719c6fe6537eaa239b649270c91cb62aed1871",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3330,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e0868e75ce11e4895993671cb5130dcdd4aea57c02c8fa7262eed031aa3f7bf0.json",
+      "sha256": "e0868e75ce11e4895993671cb5130dcdd4aea57c02c8fa7262eed031aa3f7bf0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e4592f370e8f362589ab3624b4f8b4264708ca0f314fe9ac6c04fe401f84692f.json",
+      "sha256": "e4592f370e8f362589ab3624b4f8b4264708ca0f314fe9ac6c04fe401f84692f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3310,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e5d8e3f1faafe18c7503945282743e270b8a459fef6cf1285b971e2a5c5b4d9b.json",
+      "sha256": "e5d8e3f1faafe18c7503945282743e270b8a459fef6cf1285b971e2a5c5b4d9b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e6da7476b606dec7be2dcef053bd041e3419e5e495b56da6a9043cbce7fcc2c6.json",
+      "sha256": "e6da7476b606dec7be2dcef053bd041e3419e5e495b56da6a9043cbce7fcc2c6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e6dfa483f0cb69cb320bd8dc7c6b0fdf6cb3c1beb3da76d9b253e214715e82c0.json",
+      "sha256": "e6dfa483f0cb69cb320bd8dc7c6b0fdf6cb3c1beb3da76d9b253e214715e82c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3318,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e7f0989be8811e3f8037ce9156c36a697d1550bbb860c2bfbd99a688f11b9337.json",
+      "sha256": "e7f0989be8811e3f8037ce9156c36a697d1550bbb860c2bfbd99a688f11b9337",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/e84e30f507c4ef1fe63ab2d69e367c338935f14ed9d39d0886bb6b87916c6ea5.json",
+      "sha256": "e84e30f507c4ef1fe63ab2d69e367c338935f14ed9d39d0886bb6b87916c6ea5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ea6b8ad6743113553e61ad47e068d8bf90f3b96a527beffdad088eb3c5c64a5a.json",
+      "sha256": "ea6b8ad6743113553e61ad47e068d8bf90f3b96a527beffdad088eb3c5c64a5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/eb30c06eb30916320a8a5ca620e79094dc9b9ff44e265c29b5ec9d19645f203f.json",
+      "sha256": "eb30c06eb30916320a8a5ca620e79094dc9b9ff44e265c29b5ec9d19645f203f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3307,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ec8efcd4c1fe6ce610f9877a9128d54a529ef7c829178bd69e85c1d004df5026.json",
+      "sha256": "ec8efcd4c1fe6ce610f9877a9128d54a529ef7c829178bd69e85c1d004df5026",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ed21953add98f5d0ad2dcd2d49c73f3191643509d8cee60aca1436794ef4d2c4.json",
+      "sha256": "ed21953add98f5d0ad2dcd2d49c73f3191643509d8cee60aca1436794ef4d2c4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/ed88f69b5c7d96801abf7e88f5733f744a7ec39c8bc7169e82ec5a5de2d5c383.json",
+      "sha256": "ed88f69b5c7d96801abf7e88f5733f744a7ec39c8bc7169e82ec5a5de2d5c383",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3323,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/edaab2c34855876594e767b5eea95981ca766a3e199d1690dcb92c336aa740ad.json",
+      "sha256": "edaab2c34855876594e767b5eea95981ca766a3e199d1690dcb92c336aa740ad",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f04d80a1407d783973c1389fce742b3e1607554633311a2e5826141876fc3eb5.json",
+      "sha256": "f04d80a1407d783973c1389fce742b3e1607554633311a2e5826141876fc3eb5",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3317,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f056d5acd728a68f9a67c338fd1a5944a185551c50909f67a9f56d03b1b5f52c.json",
+      "sha256": "f056d5acd728a68f9a67c338fd1a5944a185551c50909f67a9f56d03b1b5f52c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3320,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f0b560a294093c42903065e9337dc6b37953b94df4500c7573ccfbeb43947346.json",
+      "sha256": "f0b560a294093c42903065e9337dc6b37953b94df4500c7573ccfbeb43947346",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3302,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f1164a5ba827b64197eba1bf12290b41132ebf8635ac8b0c9cc1649eabf98a23.json",
+      "sha256": "f1164a5ba827b64197eba1bf12290b41132ebf8635ac8b0c9cc1649eabf98a23",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f5293fa6273a10005caa35249788ac02883db0104e09003f0ab44e6e99a629d4.json",
+      "sha256": "f5293fa6273a10005caa35249788ac02883db0104e09003f0ab44e6e99a629d4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f558739ac341184537ff7c7c98078c565f3afce12b71cb3605f9af8904d14b03.json",
+      "sha256": "f558739ac341184537ff7c7c98078c565f3afce12b71cb3605f9af8904d14b03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f5622dba7f3620a30a0f2d559b9b653a1181654cfb30f9dd93b1f4691aab6dfd.json",
+      "sha256": "f5622dba7f3620a30a0f2d559b9b653a1181654cfb30f9dd93b1f4691aab6dfd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3308,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f7405dcb233df86009f5d9ad3b3aacaac39d92ac91df495e0ec67d32b70bb282.json",
+      "sha256": "f7405dcb233df86009f5d9ad3b3aacaac39d92ac91df495e0ec67d32b70bb282",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3319,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f7460badc94d1e262aed67a2c938ebf318a228b8e969d92484eabb59d77aaa0e.json",
+      "sha256": "f7460badc94d1e262aed67a2c938ebf318a228b8e969d92484eabb59d77aaa0e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f97c05b181403628f5a22a9c6a909031855fd5edea41a60a697e6d61b2417e15.json",
+      "sha256": "f97c05b181403628f5a22a9c6a909031855fd5edea41a60a697e6d61b2417e15",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3311,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/f9e05245ac21060047ef924650c26a66c8f0266465e2dd98179fe22aeb52aedb.json",
+      "sha256": "f9e05245ac21060047ef924650c26a66c8f0266465e2dd98179fe22aeb52aedb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3322,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/fb516941a5b723535c22d861e64f3aeb67065546fe154746c14165986c5e2013.json",
+      "sha256": "fb516941a5b723535c22d861e64f3aeb67065546fe154746c14165986c5e2013",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3316,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/work-before/fc41c8a5a96d62db086515af8b3cc049bde2ba71fd5d08249a786aa0c9d7ad9d.json",
+      "sha256": "fc41c8a5a96d62db086515af8b3cc049bde2ba71fd5d08249a786aa0c9d7ad9d",
+      "surface_kind": "structured"
     },
     {
       "bytes": 247,
