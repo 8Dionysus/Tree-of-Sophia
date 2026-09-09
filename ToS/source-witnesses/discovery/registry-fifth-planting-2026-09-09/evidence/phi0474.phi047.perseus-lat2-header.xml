@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Paradoxa Stoicorum ad M. Brutum</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Johann Georg Baiter</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi047.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Opera Quae Supersunt Omnia, Vol. 7</title>
+                  <title xml:lang="lat" type="subtitle">Opera Philosopha et Politica</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Johann Georg Baiter</editor>
+                  <editor n="series">Carl Ludwig Kayser</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Tauchnitz</publisher>
+                     <date>1864</date>
+                     <biblScope unit="volume">2</biblScope>
+                  </imprint>   
+               </monogr>
+               <series xml:lang="lat">Opera Quae Supersunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=hvd.hxjvih&amp;seq=472">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+           <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+ <change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added more cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-05-06">small mods</change>
+<change who="gcrane" when="2006-04-29">replaced italics with angle brackets to mark supplements; fixed OCR errors by comparing this to another on-line edition: stray period "latr.aret"; "e" for "c": hue-to ;huc, area to arca; the latter is tough, since "area" is a real word. There may have been one or two other fixes I didn't check places where there was just a difference of a comma here or there. there are c. 30K of raw characters in this (30017 by one scan). at 99.95% accuracy, that would allow for 15 errors. It looks like we are better than that *before* the text comparison.</change>
+<change who="gcrane" when="2006-04-29">tagged quotes as QUOTE</change>
+<change who="gcrane" when="2006-04-29">added to repository</change>
+</revisionDesc>
+   </teiHeader>

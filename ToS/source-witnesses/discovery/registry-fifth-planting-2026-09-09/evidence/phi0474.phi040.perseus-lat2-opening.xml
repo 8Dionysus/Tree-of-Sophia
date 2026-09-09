@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Orator</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-04-14">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi040.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno02ciceuoft/page/110/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+        
+      <encodingDesc>
+         <refsDecl n="CTS">
+           <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." n="chunk" unit="chapter"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+     <body> 
+
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi040.perseus-lat2"> 
+<head rend="align(center)">M. TVLLI CICERONIS ORATOR AD M. BRVTVM</head> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi040.perseus-lat2" n="1"> <p rend="align(indent)"> <milestone n="1" unit="chapter"/>Utrum difficilius aut maius esset negare tibi saepius idem roganti an efficere id quod rogares diu multumque, Brute, dubitavi. Nam et negare ei quem unice diligerem cuique me carissimum esse sentirem, praesertim et iusta petenti et praeclara cupienti, durum admodum mihi videbatur, et suscipere tantam rem, quantam non modo facultate consequi difficile esset sed etiam cogitatione complecti, vix arbitrabar esse eius qui vereretur reprehensionem doctorum atque prudentium. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi040.perseus-lat2" n="2"> <p> <reg>quid</reg> enim est maius quam, cum tanta sit inter oratores bonos dissimilitudo, iudicare quae sit optima species et quasi figura dicendi? <reg>quod</reg> quoniam me saepius rogas, aggrediar non tam perficiendi spe quam experiendi voluntate; malo enim, cum studio tuo sim obsecutus, desiderari a te prudentiam meam quam, si id non fecerim, benevolentiam.</p> <p /> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi040.perseus-lat2" n="3"> <p rend="align(indent)"> <reg>quaeris</reg> igitur idque iam saepius quod eloquentiae genus probem maxime et quale mihi videatur illud, quo<note>quo <hi rend="italic">L</hi>: cui <hi rend="italic">codd. dell.</hi> </note> nihil addi possit, quod ego summum et perfectissimum iudicem. In quo vereor ne, si id quod vis effecero eumque oratorem quem quaeris expressero, tardem studia multorum, qui desperatione debilitati experiri id nolent<note>nolent <hi rend="italic">FPM</hi>: <hi rend="italic">et Columella R. R.</hi> i. <hi rend="italic">praef.</hi> 28: nollent <hi rend="italic">O</hi> </note> quod se assequi posse diffidant<note>diffidant <hi rend="italic">FPO</hi>: diffident <hi rend="italic">Columella</hi> </note>. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi040.perseus-lat2" n="4"> <p> <reg>sed</reg> par est omnis omnia experiri, qui res magnas et magno opere expetendas concupiverunt. <pb n="p.2003"/> <reg>quod</reg> si quem aut natura sua <del>aut<note>natura sua aut <hi rend="italic">delevit Sauppe</hi>: aut <hi rend="italic">secl. Madvig. <q rend="single">post  <emph>sua</emph> intercidisse aliquid videtur</q> Heerdegen</hi> </note> </del> illa praestantis ingeni vis forte deficiet aut minus instructus erit magnarum artium disciplinis, teneat tamen eum cursum quem poterit; prima enim sequentem honestum est in secundis tertiisque consistere. Nam<note>nam <hi rend="italic">vulg.</hi>: an <hi rend="italic">L</hi> <hi rend="italic">et Colum.</hi> </note> in poetis non Homero soli locus est, ut de Graecis loquar, aut Archilocho aut Sophocli aut Pindaro, sed horum vel secundis vel etiam infra secundos; </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi040.perseus-lat2" n="5"> <p>nec vero Aristotelem in philosophia deterruit a scribendo amplitudo Platonis, nec ipse Aristoteles admirabili quadam scientia et copia ceterorum studia restinxit. <milestone n="2" unit="chapter"/> <reg>nec</reg> solum ab optimis studiis excellentes viri deterriti non sunt, sed ne opifices quidem se <emph rend="italic">ab</emph> <note>ab <hi rend="italic">add. Lambinus</hi> </note> artibus suis removerunt, qui aut Ialysi, quem Rhodi vidimus, non potuerunt aut Coae Veneris pulchritudinem imitari, nec simulacro Iovis Olympii aut doryphori statua<note>statua <hi rend="italic">vulg.</hi>: statuae <hi rend="italic">L</hi> </note> deterriti reliqui minus experti sunt quid efficere aut quo progredi possent; quorum tanta multitudo fuit, tanta in suo cuiusque genere laus, ut, cum summa miraremur, inferiora tamen probaremus<note>miraremur... probaremus <hi rend

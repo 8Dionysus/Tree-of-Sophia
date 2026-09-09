@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+ <teiHeader xml:lang="eng">
+  <fileDesc>
+   <titleStmt>
+    <title xml:lang="lat">De Beneficiis</title>
+    <author xml:lang="lat">Seneca, Lucius Annaeus</author>
+     <editor>John William Basore</editor>
+     <sponsor>Perseus Project, Tufts University</sponsor>
+     <principal>Gregory Crane</principal>
+     <respStmt>
+       <resp>Prepared under the supervision of</resp>
+       <name>Bridget Almas</name>
+       <name>Lisa Cerrato</name>
+       <name>David Mimno</name>
+       <name>Rashmi Singhal</name>
+     </respStmt>
+     <funder n="org:NEH">The National Endowment for the Humanities</funder>
+   </titleStmt>
+    <extent>About 100Kb</extent>
+    <publicationStmt>
+      <publisher>Trustees of Tufts University</publisher>
+      <pubPlace>Medford, MA</pubPlace>
+      <authority>Perseus Project</authority>
+      <date type="release">2009-10-07</date>
+    </publicationStmt>
+   <sourceDesc>
+     <biblStruct>
+       <monogr>
+         <author xml:lang="lat">L. Annaeus Seneca</author>
+         <title>Moral Essays</title>
+         <editor>John William Basore</editor>
+         <imprint>
+           <pubPlace>London</pubPlace>
+           <pubPlace>New York</pubPlace>
+           <publisher>G. P. Putnam's Sons</publisher>
+           <publisher>William Heinemann</publisher>
+           <date type="printing">1935</date>
+         </imprint>
+         <biblScope unit="volume">3</biblScope>
+       </monogr>
+       <series>
+         <title>Loeb Classical Library</title>
+       </series>
+     </biblStruct>
+   </sourceDesc>
+  </fileDesc>
+  <encodingDesc>
+   <refsDecl n="CTS">
+    <cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)"
+     replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+     <p>This pointer pattern extracts book, chapter and section</p>
+    </cRefPattern>
+    <cRefPattern n="chapter" matchPattern="(\w+).(\w+)"
+     replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+     <p>This pointer pattern extracts book and chapter</p>
+    </cRefPattern>
+    <cRefPattern n="book" matchPattern="(\w+)"
+     replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+     <p>This pointer pattern extracts book</p>
+    </cRefPattern>
+   </refsDecl>
+   <refsDecl n="TEI.2">
+    <refState unit="book"/>
+    <refState unit="chapter" n="chunk"/>
+    <refState unit="section"/>
+   </refsDecl>
+    <refsDecl xml:id="CTS">
+      <citeStructure match="/TEI/text/body" use="@xml:base">
+        <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+          <citeStructure unit="chapter" delim="." match="div[@subtype='chapter']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n"/>
+          </citeStructure>
+        </citeStructure>
+      </citeStructure>
+    </refsDecl>
+</encodingDesc>
+  <profileDesc>
+   <langUsage>
+    <language ident="lat">Latin</language>
+    <language ident="grc">Greek</language>
+   </langUsage>
+  </profileDesc>
+  <revisionDesc>
+    <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+   <change when="2009-01-01" who="gcrane">Tagging</change>
+   <change when="2015-11-12" who="Thibault Clerice">New URN, Epidoc and CTS</change>
+   <change when="2018-05-07" who="Thibault Clerice">Removed hyphenation (pb are now after the complete word)</change>
+  </revisionDesc>
+ </teiHeader>
+ <text xml:lang="lat">
+  <body xml:base="urn:cts:latinLit:phi1017.phi013.perseus-lat2">
+   <div type="edition" xml:lang="lat">
+    <pb xml:id="p.2"/>
+    <div type="textpart" subtype="book" n="1">
+     <head>L. Annaei Senecae ad Aebutium Liberalem: de Beneficiis</head> 
+      <head>Liber I</head>
+
+     <div type="textpart" subtype="chapter" n="1">
+
+      <div type="textpart" subtype="section" n="1">
+       <p> Inter multos ac varios errores temere inconsulteque viventium nihil propemodum
+         indignius,<note> indignius commonly supplied ; diffusius dixerim quam quod Bourgery ;
+         discerni haec duo dixerim quod Préchac. </note> vir optime Liberalis, dixerim, quam
+         quod<note> quam quod MG2: quod N, Hosius after a lacuna. </note> beneficia nec dare scimus
+        nec accipere. Sequitur enim, ut male collocata male debeantur ; de quibus non redditis sero
+        querimur ; ista enim perierunt, cum darentur. Nec mirum est inter plurima maximaque vitia
+        nullum esse frequentius quam ingrati animi. </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="2">
+       <p> Id evenire ex causis pluribus video. Prima illa est, quod non eligimus dignos, quibus
+        tribuamus. Sed nomina facturi diligenter in patrimonium et vitam debitoris inquirimus,
+        semina in solum effetum et sterile non spargimus ; beneficia sine ullo dilectu magis
+        proicimus quam damus. </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="3">
+       <p> Nec facile dixerim, utrum turpius sit infitiari an repetere beneficium ; id enim genus
+        huius crediti <pb xml:id="p.4"/> est, ex quo tantum recipiendum sit, quantum ultro refertur.
+        Decoquere vero foedissimum ob hoc ipsum, quia non opus est ad liberandam fidem facultatibus
+        sed animo ; reddit enim beneficium, qui debet. Sed cum sit in ipsis crimen, qui ne
+        confessione quidem grati sunt, in nobis quoque est. </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="4">
+       <p> Multos experimur ingratos, plures facimus, quia alias graves exprobratores exactoresque
+        sumus, alias leves et quos paulo post muneris sui paeniteat, alias queruli et minima momenta
+        calumniantes. Gratiam omnem corrumpimus non tantum postquam dedimus beneficia, sed dum
+        damus. </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="5">
+       <p> Quis nostrum contentus fuit aut leviter rogari aut semel ? Quis non, cum aliquid a se
+        peti suspicatus est, frontem adduxit, vultum avertit, occupationes simulavit, longis
+        sermonibus et de industria non invenientibus exitum occasionem petendi abstulit et variis
+        artibus necessitates properantes elusit ; </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="6">
+       <p> in angusto vero comprensus aut distulit, id est timide negavit, aut promisit, sed
+        difficulter, sed subductis superciliis, sed malignis et vix exeuntibus verbis ? </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="7">
+       <p> Nemo autem libenter debet, quod non accepit, sed expressit. Gratus adversus eum esse
+        quisquam potest, qui beneficium aut superbe abiecit aut iratus impegit aut fatigatus, ut
+        molestia careret, dedit ? Errat, si quis sperat responsurum sibi, quem dilatione lassavit,
+        expectatione torsit. </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="8">
+       <p> Eodem animo <pb xml:id="p.6"/> beneficium debetur, quo datur, et ideo non est neclegenter
+        dandum ; sibi enim quisque debet, quod a nesciente accepit ; ne tarde quidem, quia, cum omni
+        in officio magni aestimetur dantis voluntas, qui tarde fecit, diu noluit ; utique non
+        contumeliose ; nam eum ita natura comparatum sit, ut altius iniuriae quam merita descendant
+        et illa cito defluant, has tenax memoria custodiat, quid expectat, qui offendit, dum obligat
+        ? Satis adversus illum gratus est, si quis beneficio eius ignoscit. </p>
+      </div>
+
+      <div type="textpart" subtype="section" n="9">
+       

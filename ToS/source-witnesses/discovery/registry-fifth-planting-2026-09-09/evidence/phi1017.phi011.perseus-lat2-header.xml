@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader xml:lang="eng">
+        <fileDesc>
+            <titleStmt>
+                <title>Apocolocyntosis</title>                
+                <author xml:lang="lat">Seneca, Lucius Annaeus</author>
+                <editor>William Henry Denham Rouse</editor>               
+                <principal>Gregory Crane</principal>
+                <respStmt>
+                    <resp>Prepared under the supervision of</resp>
+                    <name>Bridget Almas</name>
+                    <name>Lisa Cerrato</name>
+                    <name>David Mimno</name>
+                    <name>Rashmi Singhal</name>
+                </respStmt>
+                <funder n="org:Tufts">Tufts University</funder>
+            </titleStmt>
+            <extent>About 100Kb</extent>
+            <publicationStmt>
+                <publisher>Trustees of Tufts University</publisher>
+                <pubPlace>Medford, MA</pubPlace>
+                <authority>Perseus Project</authority>
+                <date type="release">2009-10-07</date>
+            </publicationStmt>
+            <sourceDesc>
+                <biblStruct>
+                    <monogr>
+                        <author xml:lang="lat">Seneca, Lucius Annaeus</author>
+                        <title xml:lang="lat">Petronius. Seneca Apocolocyntosis.</title>
+                        <editor>Michael Heseltine</editor>     
+                        <editor>William Henry Denham Rouse</editor>                        
+                        <imprint>
+                            <pubPlace>London</pubPlace>
+                            <publisher>William Heinemann</publisher>
+                            <pubPlace>New York</pubPlace>
+                            <publisher>G.P. Putnam's Sons</publisher>
+                            <date>1913</date>
+                        </imprint>
+                    </monogr>
+                    <series>Loeb Classical Library</series>
+                    <ref target="https://archive.org/details/petronius00petruoft/page/370/mode/2up">Internet Archive</ref>
+                </biblStruct>
+            </sourceDesc>
+        </fileDesc>
+        <encodingDesc>
+            <refsDecl n="CTS">
+                <cRefPattern n="section" matchPattern="(\w+)"
+                 replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+                 <p>This pointer pattern extracts section</p>
+                </cRefPattern>
+           </refsDecl>
+            <refsDecl n="TEI.2">
+                <refState unit="section"/>
+            </refsDecl>
+                <refsDecl xml:id="CTS">
+                  <citeStructure match="/TEI/text/body" use="@xml:base">
+                    <citeStructure use="@n" match="div/div[@subtype='section']" n="chunk" unit="section"/>
+                  </citeStructure>
+                </refsDecl>
+</encodingDesc>
+        <profileDesc>
+            <langUsage>
+                <language ident="lat">Latin</language>
+                <language ident="grc">Greek</language>
+            </langUsage>
+        </profileDesc>
+        <revisionDesc>
+          <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+            <change when="2007-01-01" who="gcrane">Tagging</change>
+            <change when="2015-11-12" who="Thibault Clerice">New URN, Epidoc and CTS</change>
+        </revisionDesc>
+    </teiHeader>

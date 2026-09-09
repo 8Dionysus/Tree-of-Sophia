@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Tusculanae Disputationes</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Max Pohlenz</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi049.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Scripta Quae Manserunt Omnia, Fasc. 44</title>
+                  <title xml:lang="lat" type="subtitle">Tusculanae Disputationes</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Max Pohlenz</editor>
+                  
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1918</date>
+                     <biblScope/>
+                  </imprint>   
+               </monogr>
+               <series xml:lang="lat">Scripta Quae Manserunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=ufl.31262040316167&amp;seq=28">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <editorialDecl><p>The footnotes appear to be highly suspect, often in the wrong place with incorrect beta code which may  or may not have been correctly converted, many oddities in presentation that were not initially captured, and incorrect line assignments. Many unusal things were labeled as figures. Milestones were not encoded.</p></editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+            <language ident="fre">French</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN. Removed front and back matter for clarity.</change>
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-07-19">typo fixed</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added more cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-04-27">added to the repository</change>
+<change who="gcrane" when="2006-04-26">added to repository</change>
+ </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      <body>
+       <div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi049.perseus-lat2">
+         
+           
+            <pb n="p.217"/>
+            
+
+ <div type="textpart" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi049.perseus-lat2" n="1"> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi049.perseus-lat2:1" n="1"> 
+<p> Cum<note> <hi rend="italic">1 et 5 extr. imit. Paschasius Radb. Expos. in ps. 44 l. I praef. in.</hi> </note> defensionum laboribus senatoriisque muneribus aut omnino aut magna ex parte essem aliquando liberatus, rettuli<note>rettuli <foreign xml:lang="grc">ς</foreign> retuli X <hi rend="italic">Pasch. cf. p. 344, 24</hi> </note> me, Brute, te hortante maxime ad ea studia, quae retenta animo, remissa temporibus, longo intervallo intermissa revocavi, et cum omnium artium, quae ad rectam vivendi viam pertinerent, ratio et disciplina studio sapientiae, quae philosophia dicitur, contineretur, hoc mihi Latinis<note> <hi rend="italic">cf. Lact. inst. 3,14, 13 </hi> </note> litteris<note> <w>litteris</w> at libris V<hi rend="sup">2</hi> </note> inlustrandum putavi, non quia philosophia Graecis et litteris et doctoribus percipi non posset, sed meum semper<note>hoc <hi rend="italic">supra </hi>semper <hi rend="italic">add.</hi> V<hi rend="sup">2</hi> </note> iudicium fuit omnia nostros aut invenisse per se sapientius quam Graecos aut accepta ab illis fecisse meliora, quae quidem digna statuissent, in quibus elaborarent. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi049.perseus-lat2:1" n="2"> 
+<p>Nam mores et instituta vitae resque domesticas ac familiaris nos profecto et melius tuemur et lautius,<note>latius R<hi rend="sup">1</hi> </note> rem vero publicam nostri maiores certe melioribus temperaverunt et institutis et legibus. quid loquar de re militari? <pb n="p.218"/> in qua cum virtute nostri multum valuerunt, tum plus etiam disciplina. iam illa, quae natura, non litteris adsecuti<note>assec. KRH</note> sunt, neque cum Graecia neque ulla cum gente<note>cum ulla gente K</note> sunt conferenda. quae enim tanta gravitas, quae tanta constantia, magnitudo animi,<note>animi magnitudo K</note> probitas, fides, quae tam excellens in omni genere virtus in ullis fuit, ut sit cum maioribus nostris comparanda? </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi049.perseus-lat2:1" n="3"> 
+<p>Doctrina Graecia nos<note>nos Graecia K</note> et omni litterarum genere superabat; in quo erat facile vincere non repugnantes. nam cum apud Graecos antiquissimum e doctis genus sit poëtarum, siquidem Homerus fuit et Hesiodus ante Romam conditam, Archilochus<note>archilocus G<hi rend="sup">1</hi>H archilogus V(g <hi rend="italic">scr.</hi> <hi rend="sup">c</hi>)</note> regnante Romulo, serius poëticam nos accepimus. annis<note>enim <hi rend="italic">post</hi> annis <hi rend="italic">add.</hi> V<hi rend="sup">c</hi> <foreign xml:lang="grc">ς</foreign> </note> fere <num rend="smallcaps">cccccx</num> <note>CCCCX X (<hi rend="italic">etiam</hi> K, CCCCX<figure/>tis G<hi rend="sup">1</hi> V<hi rend="sup">2</hi>) at quingentis <hi rend="italic">in mg.</hi> V<hi rend="sup">c</hi> </note> post Romam conditam Livius fabulam dedit C. Claudio, Caeci filio, M. Tuditano<note>gaio X marco G (R <hi rend="italic">laesus</hi>)</note> cos.<note>cõs. X (<hi rend="italic">in</hi> K <figure/> <hi rend="italic">add.</hi> <hi rend="sup">c</hi>)</note> anno ante natum Ennium. qui<note> <w>qui</w> <hi rend="italic">sc. Livius cf. Vahlen Enn. p. V</hi> </note> fuit maior<note> <w>maior</w> al<figure/> minor V<hi rend="sup">c</hi> </note> natu quam Plautus et Naevius. sero igitur a nostris poëtae vel cogniti<note>Cato <hi rend="italic">fr. 118 cf. Val. Max. 2,1,10</hi> </note> vel recepti. quamquam est in Originibus solitos esse in epulis canere convivas ad tibicinem de clarorum hominum virtutibus; honorem tamen huic generi non fuisse declarat oratio Catonis, in qua obiecit ut probrum M. 

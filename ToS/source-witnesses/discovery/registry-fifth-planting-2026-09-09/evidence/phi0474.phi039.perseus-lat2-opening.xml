@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Brutus</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-04-14">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi039.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno02ciceuoft/page/n15/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+        
+      <encodingDesc>
+         <refsDecl n="CTS">
+          <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         
+         <refsDecl n="TEI.2">
+            <refState delim="." n="chunk" unit="chapter"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+   <body> 
+
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi039.perseus-lat2"> 
+   <head rend="align(center)"> <abbr>M.<expan> <ex>Marci</ex> </expan> </abbr> Tvlli Ciceronis Brvtvs</head>
+   <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi039.perseus-lat2" n="sigla" >
+      <head rend="align(center)">SIGLA</head>
+      <p> <hi rend="italic">F </hi>= codex Florentinus Magliabecchianus</p> 
+      <p> <hi rend="italic">B</hi> = cod. Ottobonianus 1592</p> 
+      <p> <hi rend="italic">O</hi> = cod. Ottobonianus 2057 <hi rend="italic">O</hi>2 = vetus corrector</p> 
+      <p> <hi rend="italic">G</hi> = cod. Neapolitanus iv B 43</p> 
+      <p> <hi rend="italic">H </hi>= cod. Neapolitanus iv B 36</p> 
+      <p> <hi rend="italic">M</hi> = cod. Mutinensis vi D 6</p> 
+      <p> <hi rend="italic">L </hi>= consensus codicum <hi rend="italic">FBOGHM</hi> </p> 
+      <p> <hi rend="italic">N </hi>= Venetus prior (Ellendt) Nannianus</p> 
+      <p> <hi rend="italic">D </hi>= Parisinus 7704</p> 
+      <p> <hi rend="italic">codd. dett. </hi>=codices inferioris notae, sive omnes sive plures</p>
+      <p> <hi rend="italic">vulg. </hi>= vulgata lectio</p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi039.perseus-lat2" n="1"> <p rend="align(indent)"> <milestone n="1" unit="chapter"/>Cum e Cilicia decedens Rhodum venissem et eo mihi de Q. Hortensi morte esset adlatum, opinione omnium maiorem animo cepi dolorem. Nam et amico amisso cum consuetudine iucunda tum multorum officiorum coniunctione me privatum videbam et interitu talis auguris dignitatem nostri conlegi deminutam dolebam; qua in cogitatione et cooptatum me ab eo in conlegium recordabar, in quo iuratus iudicium dignitatis meae fecerat, et inauguratum ab eodem, ex quo augurum institutis in parentis eum loco colere debebam. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi039.perseus-lat2" n="2"> <p> <reg>augebat</reg> <note>augebat <hi rend="italic">ivulg.</hi>: augebam <hi rend="italic">L</hi> </note> etiam molestiam quod magna sapientium civium bonorumque penuria vir egregius coniunctissimusque mecum consiliorum omnium societate alienissimo rei publicae tempore exstinctus et auctoritatis et prudentiae suae triste nobis desiderium reliquerat, dolebamque quod non, ut plerique putabant, adversarium aut obtrectatorem laudum mearum sed socium potius et consortem gloriosi laboris amiseram. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi039.perseus-lat2" n="3"> <p> <reg>etenim</reg> si in leviorum artium studio memoriae proditum est poetas nobilis poetarum aequalium morte<note>morte <hi rend="italic">L</hi>: mortem <hi rend="italic">Lambinus</hi> </note> doluisse, quo<note>quo <hi rend="italic">L</hi>: quo ego <hi rend="italic">Stangl</hi> </note> tandem animo eius interitum ferre debui, cum quo certare erat gloriosius quam omnino adversarium non habere? cum praesertim non modo numquam sit aut illius a me cursus impeditus aut <pb n="p.1003"/> ab illo meus, sed contra semper alter ab altero adiutus et communicando et monendo et favendo. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi039.perseus-lat2" n="4"> <p> <reg>sed</reg> quoniam perpetua quadam felicitate usus ille excessit<note>excessit <hi rend="italic">Bake</hi>: cessit <hi rend="italic">L</hi> </note> e vita suo magis quam suorum civium tempore et tum occidit cum lugere facilius rem publicam posset, si viveret, quam iuvare, vixit que tam diu quam licuit in civitate bene beateque vivere: nostro incommodo detrimentoque, si est ita necesse, doleamus, illius vero mortis opportunitatem benevolentia potius quam misericordia prosequamur, ut, quotienscumque de clarissimo et beatissimo viro cogitemus, ilium potius quam nosmet ipsos diligere videamur. </p> </div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi039.perseus-lat2" n="5"> <p> <reg>nam</reg> si id dolemus, quod e

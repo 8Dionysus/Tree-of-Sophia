@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="lat">Partitiones Oratoriae</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Google">Google Digital Humanities Awards Program</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-04-14">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi038.perseus-lat2.xml</idno>
+            <availability>
+            <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">2</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno02ciceuoft/page/200/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." n="chunk" unit="chapter"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>

@@ -44,6 +44,32 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             acquisition.inspect_payloads({**target, "expression_role": "source_language"}, [({"basename": "source.xml"}, body)])
 
+    def test_latin_profile_binds_reviewed_identity_carrier_and_source_language(self) -> None:
+        prefix = b'<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc/></teiHeader>'
+        urn = "urn:cts:latinLit:fixture.lat1"
+        body = prefix + ('<text><body xml:base="' + urn + '"><div type="edition" xml:lang="lat">'
+            '<div type="textpart" subtype="book" n="1">' + 'ratio et natura ' * 100 + '</div>'
+            '</div></body></text></TEI>').encode()
+        target = {"slug": "fixture-latin", "language": "la", "expression_role": "source_language",
+            "coverage": {"kind": "perseus-tei-latin-work", "citation_scope": "hierarchical_divisions",
+                "cts_urn": urn, "identity_anchor": "body_xml_base", "header_prefix_sha256": acquisition.sha256(prefix)}}
+        report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        self.assertGreater(report["files"][0]["latin_letter_count"], 1000)
+        for changed in (body.replace(b'fixture.lat1', b'fixture.lat2'),
+                body.replace(b'type="edition"', b'type="translation"'),
+                body.replace(b'xml:lang="lat"', b'xml:lang="eng"'),
+                body.replace(b'type="edition"', b'type="edition" n="urn:cts:latinLit:other.lat1"')):
+            with self.subTest(changed=changed[-100:]), self.assertRaises(ValueError):
+                acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
+        for changes in ({"language": "en"}, {"expression_role": "translation"}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                acquisition.inspect_payloads({**target, **changes}, [({"basename": "source.xml"}, body)])
+        target["coverage"]["identity_anchor"] = "edition_n"
+        with self.assertRaises(ValueError):
+            acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
+        named = body.replace(b'type="edition"', ('type="edition" n="' + urn + '"').encode())
+        acquisition.inspect_payloads(target, [({"basename": "source.xml"}, named)])
+
     def test_existing_work_extension_preserves_identity_and_prior_assertions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
