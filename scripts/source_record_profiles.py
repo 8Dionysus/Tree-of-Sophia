@@ -17,6 +17,7 @@ from referencing import Registry, Resource
 from referencing.exceptions import Unresolvable
 
 from source_owner_context import OWNER_LOCAL_HOME
+import source_identity_proposals as identity_proposals
 
 REGISTRY_REF = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
 CONTRACT_REF = 'ToS/contracts/semantic-entity-type-registry.schema.json'
@@ -35,7 +36,7 @@ CLAIM_BASE_REF = 'ToS/contracts/source-claim-record.schema.json'
 TEMPORAL_VALUE_REF = 'ToS/contracts/historical-claim.schema.json'
 STRUCTURED_VALUE_REF = 'ToS/contracts/source-structured-value.schema.json'
 REFERENCE_VALUE_READER = 'structured-reference-value-v1'
-STRUCTURED_VALUE_READERS = {'structured-value-v1', REFERENCE_VALUE_READER}
+STRUCTURED_VALUE_READERS = {'structured-value-v1', REFERENCE_VALUE_READER, identity_proposals.READER}
 CLAIM_SHARED_REFS = ('ToS/contracts/claim-packet.schema.json',
                      'ToS/contracts/knowledge-assessment.schema.json', CLAIM_BASE_REF)
 MAX_CLAIM_FILE_BYTES = 16_777_216
@@ -458,6 +459,11 @@ class SourceClaimProfiles:
             semantic_endpoint = False
             for endpoint, type_id in ((endpoint, type_id) for endpoint in ('domain_type_ids', 'range_type_ids')
                                       for type_id in entry[endpoint]):
+                if profile['reader'] == identity_proposals.READER and endpoint == 'domain_type_ids':
+                    if (entry[endpoint] != ['tos.entity.identity'] or predicate != identity_proposals.PREDICATE
+                            or profile['assertion_layers'] != ['identity_assertion']):
+                        raise SourceProfileError('identity proposal requires its exact capability-bound domain')
+                    continue  # Mandatory concrete source-role validation below; never ancestry fallback.
                 if type_id in {'tos.entity.thing', 'tos.entity.identity', 'tos.entity.semantic-object',
                                'tos.entity.unmapped', 'tos.entity.unresolved-endpoint'}:
                     raise SourceProfileError('source relation profile requires a specific domain and range')
@@ -513,6 +519,8 @@ class SourceClaimProfiles:
     def reference_members(self, claim):
         """Only the declared fixed slot is interpreted; arbitrary JSON stays inert."""
         profile = self.profiles[claim['predicate']]
+        if profile['reader'] == identity_proposals.READER:
+            return tuple(ref['id'] for ref in identity_proposals.participants(claim))
         if profile['reader'] != REFERENCE_VALUE_READER:
             return ()
         constraint = profile['object_reference_set']
@@ -584,6 +592,13 @@ class SourceClaimProfiles:
         members = self.reference_members(claim)
         if objects is not None:
             relation = self.relations[predicate]
+            if self.profiles[predicate]['reader'] == identity_proposals.READER:
+                for identity in self.reference_members(claim):
+                    record = objects.get(identity)
+                    kind = self.mappings.get(record['record_type']) if record else None
+                    if not identity_proposals.eligible_type(self.entities, kind):
+                        raise SourceProfileError('identity proposal participant lacks a concrete source identity role')
+                return
             endpoints = [('subject_ref', claim['subject_ref'], relation['domain_type_ids'])]
             if members:
                 endpoints.extend(('value member', identity,

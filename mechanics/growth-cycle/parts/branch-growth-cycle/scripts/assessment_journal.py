@@ -605,6 +605,19 @@ def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                 claim_profiles.validate(item['payload'], objects)
                 declared_dependencies[item['id']] = [selected_records[identifier].ref
                     for identifier in sorted(claim_profiles.identity_refs(item['payload']))]
+                from source_identity_proposals import PREDICATE, participants, related_claims
+                if item['payload']['predicate'] == PREDICATE:
+                    exact = (*participants(item['payload']), *related_claims(item['payload']))
+                    for ref in exact:
+                        if ref['id'] not in selected_records or selected_records[ref['id']].ref != ref:
+                            raise JournalConflict('identity proposal assessment requires every frozen exact source and related Claim')
+                    previous = item['payload']['object']['supersedes_proposal']
+                    if previous is not None:
+                        predecessor = selected_records[previous['id']].payload
+                        if predecessor.get('predicate') != PREDICATE:
+                            raise JournalConflict('identity proposal predecessor is not an identity proposal')
+                        claim_profiles.validate(predecessor, objects)
+                    declared_dependencies[item['id']] = list(exact)
     source_claim_ids = frozenset(declared_dependencies)
     for item in resolved:
         body = item['payload']
@@ -795,6 +808,8 @@ def _form_parent_claim_context(form_context, subjects, records, sourced, private
             or scope['assertion_layer'] != body['assertion_layer']
             or scope['maker_id'] != body.get('maker', {}).get('agent_ref')):
         raise PermissionError('parent Claim scope disagrees with its source, use or access')
+    from source_identity_proposals import validate_assessment_scope
+    validate_assessment_scope(body, scope)
     if (not isinstance(scope['languages'], list) or not scope['languages']
             or any(not isinstance(language, str) or not language for language in scope['languages'])
             or any(not isinstance(scope[key], str) or not scope[key]
@@ -1249,6 +1264,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             if (scope['assertion_layer'] != body.get('assertion_layer')
                     or not isinstance(maker, dict) or scope['maker_id'] != maker.get('agent_ref')):
                 raise PermissionError('configured scope disagrees with source-owned claim layer or maker')
+            from source_identity_proposals import validate_assessment_scope
+            validate_assessment_scope(body, scope)
         elif body['schema_version'] == 'tos_human_form_v1':
             if scope['assertion_layer'] != 'human_projection' or scope['maker_id'] != body.get('creator_id'):
                 raise PermissionError('configured scope disagrees with source-owned form layer or maker')

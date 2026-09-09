@@ -10,6 +10,7 @@ import re
 
 import source_commands as source
 import source_command_contracts as contract
+import source_identity_proposals as identity_proposals
 import source_revisions as packages
 from source_record_profiles import SourceClaimProfiles, SOURCE_CLAIM_BASENAME
 
@@ -30,16 +31,17 @@ def _layer_transition(value):
 
 def configuration(config):
     values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG,
-        source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG}
+        source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, identity_proposals.REVISION_CONFIG}
     layer_allowed = config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG
     allowed_fields = {'assertion_layer'} if layer_allowed else FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
         'authority_ref', 'expires_at', 'claim_id', 'allowed_operations', 'allowed_fields',
         'allowed_evidence_refs', 'allowed_form_ids'}
         | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set())
+        | ({'allowed_related_claim_refs'} if config['schema_version'] == identity_proposals.REVISION_CONFIG else set())
         | ({'allowed_layer_transitions'} if layer_allowed else set()))
     if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
-            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG}
+            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG, identity_proposals.REVISION_CONFIG}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -58,6 +60,9 @@ def configuration(config):
     if values_allowed:
         from source_claim_commands import validate_value_scope
         validate_value_scope(config)
+    if config['schema_version'] == identity_proposals.REVISION_CONFIG:
+        from source_claim_commands import validate_identity_scope
+        validate_identity_scope(config)
     if layer_allowed:
         transitions = config['allowed_layer_transitions']
         if not isinstance(transitions, list) or len(transitions) > 32:
@@ -112,6 +117,8 @@ def _advance(record, fields, layer_transition=None):
             raise ValueError('qualifier correction must be an explicit field patch')
         changes['qualifiers'] = {**record.get('qualifiers', {}), **changes['qualifiers']}
     revised = {**record, **changes}
+    if record.get('predicate') == identity_proposals.PREDICATE:
+        identity_proposals.preserve_topology(record, revised)
     if revised == record:
         raise ValueError('Claim correction must change source content')
     revised['claim_version'] = record['claim_version'] + 1
@@ -227,7 +234,9 @@ def _scope(config, request, record, *, profiles=None):
         # to _advance, using the archived predecessor for a retained request.
     from source_claim_commands import value_is_delegated, _value_scope
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
-    if profiles.profiles[record['predicate']]['reader'] == 'structured-reference-value-v1':
+    if config['schema_version'] == identity_proposals.REVISION_CONFIG and record.get('predicate') != identity_proposals.PREDICATE:
+        raise PermissionError('identity proposal correction cannot revise another Claim family')
+    if profiles.profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', identity_proposals.READER}:
         # Wording-only changes and retries must not bypass this new reader's
         # permission boundary. Both present and proposed member roles remain
         # separately in scope; only the proposed exact value is writable.
@@ -322,6 +331,7 @@ def run_command(owner, config, configuration_digest, path, request):
                if 'allowed_object_values' in config else {}),
             **({'allowed_layer_transitions': config['allowed_layer_transitions']}
                if 'allowed_layer_transitions' in config else {}),
+            **({'allowed_related_claim_refs': config['allowed_related_claim_refs']} if 'allowed_related_claim_refs' in config else {}),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False,
             'materializations': source.materialize_claim_forms(record, payload, access_allowed=True) if payload else []}
 
@@ -357,7 +367,7 @@ def run_command(owner, config, configuration_digest, path, request):
                     raise source.JournalConflict('Claim correction command identity was reused')
                 from source_claim_commands import reference_replay_snapshot
                 replay_records = [record]
-                if SourceClaimProfiles(root).profiles[record['predicate']]['reader'] == 'structured-reference-value-v1':
+                if SourceClaimProfiles(root).profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', identity_proposals.READER}:
                     archived, _ = _read_archive(root, config, receipt)
                     previous = _claims(archived[path.name])[config['claim_id']]
                     retained = _advance(previous, request['fields'], request.get('layer_transition'))
@@ -416,6 +426,7 @@ def command_handlers():
             ('v2', source.CLAIM_VALUE_REVISION_CONFIG, 'descriptive fields and separately allowlisted temporal value replacement'),
             ('v3', source.CLAIM_STRUCTURED_REVISION_CONFIG, 'descriptive fields and separately allowlisted structured value replacement'),
             ('v4', source.CLAIM_REFERENCE_REVISION_CONFIG, 'descriptive fields and separately allowlisted reference-bearing value replacement'),
+            ('identity-v1', identity_proposals.REVISION_CONFIG, 'identity proposal descriptions only; exact participants, mapping and predecessor proposal remain frozen'),
             ('layer-v1', source.CLAIM_LAYER_REVISION_CONFIG, 'only an explicitly allowlisted assertion-layer transition')):
         proposal = {'fields', 'forms', 'reason'} | ({'layer_transition'} if schema == source.CLAIM_LAYER_REVISION_CONFIG else set())
         result.append(contract.Handler('public-claim-revision-' + version, (schema,), (contract.describe(),
@@ -424,7 +435,8 @@ def command_handlers():
                 definition='Revise one Claim while retaining its exact prior package and independent assertion identity.', mutation='claim_successor', grants=(OPERATION,)),
             contract.inspect_version()), run_command, 'Correct one declared public Claim: ' + scope + '.',
             configure=lambda config, owner_config: configuration(config),
-            typed_handles=(*contract.CLAIM_HANDLES, *contract.FORM_HANDLES, 'ToS/contracts/source-structured-value.schema.json'),
+            typed_handles=(*contract.CLAIM_HANDLES, *contract.FORM_HANDLES, 'ToS/contracts/source-structured-value.schema.json',
+                           *([identity_proposals.SCHEMA_REF] if schema == identity_proposals.REVISION_CONFIG else [])),
             profile_selection='The current Claim predicate and exact source_claim_profile remain unchanged; ' + scope + '.',
             preconditions=('Requires an existing exact Claim, continuous history, selected fields/forms and newly cited evidence allowlists.',
                            'Native translated_by corrections additionally preserve verified compound origin and explicit attribution_scope.')))

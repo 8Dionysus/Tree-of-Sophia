@@ -2149,3 +2149,48 @@ current Claim catalog or a cache to discard. This implementation still scans
 source metadata for grounding and can inspect up to 128 bounded archives. It
 does not prove an indexed writer, constant-cost history access, an incremental
 graph rebuild or global cross-subject transaction support.
+
+### Separately delegated identity proposals
+
+`tos_local_identity_proposal_create_owner_v1` reuses the bounded public Claim
+package transaction (`describe`, `prepare-create`, `claims.create`) exclusively
+for `identity_transition_proposal`. Its configuration has the public v4 creation
+fields plus `allowed_related_claim_refs`: at most 33 distinct exact Claim refs
+for predecessor proposals and unresolved links. `allowed_object_values` grants
+the entire exact plan, while `allowed_object_refs` separately grants every
+participant role, including the focal subject. No other predicate is writable
+under this configuration. Command discovery exposes this handler and its exact
+source schema without granting its operations.
+
+`tos_local_identity_proposal_revision_owner_v1` similarly reuses `describe`,
+`prepare-revise`, `claim.revise` and `inspect-version`. It has the v4 correction
+fields plus the same related-Claim allowlist. The current and proposed whole
+values and each participant must remain in scope, even on wording-only changes
+or exact retries. Descriptive correction can change grounds, counterreading,
+scope, unresolved-link questions, evidence and qualified statement. It cannot
+change operation, participant IDs or exact versions, mapping, predecessor
+proposal, focal subject, layer, maker or admission. A changed plan gets a new
+Claim with an exact predecessor proposal, not a rewritten subject identity.
+
+Preparation and publication resolve each participant through
+`MetadataVersionReader.resolve_typed(exact_ref)` and related Claims through
+`ClaimVersionReader.resolve(exact_ref)`. Missing, stale, corrupt, restricted or
+over-budget returns fail closed; no current-version fallback is performed.
+Both snapshots are checked for drift and their source provenance and descriptor
+bindings survive in the receipt. This is metadata/history reading, not payload
+reading. Existing source locks, no-replace publication, exact package archives,
+form rebinding, configuration rechecks and retry validation remain the common
+transaction engine rather than a second identity command store.
+
+Proposal history and source-copy statement forms retain the complete plan.
+The [source law](../../../../ToS/doctrine/semantic-interchange/README.md#identity-transition-proposals)
+keeps proposed subject transitions, proposal succession, current research
+assessment and actual identity changes separate. This implementation performs
+only the first two kinds of source recordkeeping. It does not merge, split,
+redirect, mint successor subjects, rewrite links or copy an old admission.
+
+The current public assessment selector still selects current source records,
+not arbitrary historical versions. If a participant advances, the frozen plan
+remains readable through exact history but cannot be assessed by substituting
+the later record. Historical assessment selection requires its own bounded
+owner route; neither this proposal grant nor an old assessment grants it.

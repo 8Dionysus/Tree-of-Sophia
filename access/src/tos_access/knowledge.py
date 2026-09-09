@@ -1135,7 +1135,7 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
         return node_kind
     if source_profile and source_profile.get('reader') == 'historical-temporal-v1':
         return 'temporal-assertion'
-    if source_profile and source_profile.get('reader') in {'structured-value-v1', 'structured-reference-value-v1'}:
+    if source_profile and source_profile.get('reader') in {'structured-value-v1', 'structured-reference-value-v1', 'identity-transition-v1'}:
         return source_profile['value_kind']
     value = properties.get("value")
     if claim_predicate == "provision_activity" or (
@@ -2006,15 +2006,19 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
         selected = traces.get(_string(raw.get('node_id')), [])
         predicates = [source.get('predicate'), properties.get('predicate'), *[row.get('predicate') for row in selected]]
         profiles = [profile(predicate) for predicate in predicates]
-        if not any(row.get('reader') == 'structured-reference-value-v1' for row in profiles):
+        reference_readers = {'structured-reference-value-v1', 'identity-transition-v1'}
+        if not any(row.get('reader') in reference_readers for row in profiles):
             continue
         error = 'incomplete or inconsistent reference-value Claim carriers'
         if (raw.get('node_kind') != 'claim' or len(selected) != 1
                 or not isinstance(source.get('claim_id'), str)
                 or any(predicate != source.get('predicate') for predicate in predicates)
-                or profiles[0].get('reader') != 'structured-reference-value-v1'):
+                or profiles[0].get('reader') not in reference_readers):
             raise ValueError(error)
-        trace, source_id, rules = selected[0], source['claim_id'], profiles[0]['object_reference_set']
+        identity_plan = profiles[0].get('reader') == 'identity-transition-v1'
+        trace, source_id = selected[0], source['claim_id']
+        rules = ({'min_items': 3, 'max_items': 9, 'subject_is_member': True, 'member_type_ids': ['tos.entity.identity']}
+                 if identity_plan else profiles[0]['object_reference_set'])
         value = source.get('object')
         members = value.get('members') if isinstance(value, dict) else None
         if (not isinstance(members, list) or not rules['min_items'] <= len(members) <= rules['max_items']
@@ -2023,6 +2027,29 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
                 or rules['subject_is_member'] and source.get('subject_ref') not in members):
             raise ValueError(error)
         expected = {'identity:' + member for member in members}
+        if identity_plan:
+            # Portable structural validation only. Full exact source/history
+            # reading remains with the stronger source owner; never redirect IDs.
+            predecessor_refs, successor_refs = value.get('predecessors'), value.get('successors')
+            if (value.get('kind') != 'identity-transition-proposal' or source.get('assertion_layer') != 'identity_assertion'
+                    or any(not isinstance(refs, list) or not 1 <= len(refs) <= 8
+                    or any(not isinstance(ref, dict) or set(ref) != {'id', 'version', 'digest'}
+                           or not isinstance(ref['id'], str) or type(ref['version']) is not int
+                           or not 1 <= ref['version'] <= 9_007_199_254_740_991 or not isinstance(ref['digest'], str)
+                           or not re.fullmatch(r'sha256:[a-f0-9]{64}', ref['digest']) for ref in refs)
+                    for refs in (predecessor_refs, successor_refs))):
+                raise ValueError(error)
+            left, right = [ref['id'] for ref in predecessor_refs], [ref['id'] for ref in successor_refs]
+            mapping = value.get('mapping')
+            if (len(set(left + right)) != len(left + right) or set(left + right) != set(members)
+                    or source['subject_ref'] not in left
+                    or not ((value.get('operation') == 'merge' and len(left) >= 2 and len(right) == 1)
+                            or (value.get('operation') == 'split' and len(left) == 1 and len(right) >= 2))
+                    or not isinstance(mapping, list) or len(mapping) != len(left) * len(right)
+                    or any(not isinstance(edge, dict) or set(edge) != {'predecessor', 'successor'}
+                           or any(not isinstance(ref, str) for ref in edge.values()) for edge in mapping)
+                    or {(edge['predecessor'], edge['successor']) for edge in mapping} != {(old, new) for old in left for new in right}):
+                raise ValueError(error)
         declared = trace.get('value_member_node_ids')
         literal = by_native.get(_string(trace.get('object_node_id')), {})
         literal_properties = literal.get('properties') if isinstance(literal.get('properties'), dict) else {}
@@ -2051,6 +2078,10 @@ def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
             if (carrier.get('node_kind') != 'identity' or attributes.get('identity_ref') != member
                     or not _type_is_a(normalized.get('type_id'), rules['member_type_ids'], entity_entries)):
                 raise ValueError(error)
+            if identity_plan:
+                entry = entity_entries.get(normalized.get('type_id'), {})
+                if entry.get('abstract') is not False or entry.get('object_role') != 'identity':
+                    raise ValueError(error)
 
 
 def _claim_navigation_endpoint(node: dict[str, Any], identity_ref: Any) -> dict[str, Any] | None:

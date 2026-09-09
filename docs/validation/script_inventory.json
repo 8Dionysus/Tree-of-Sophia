@@ -23,6 +23,7 @@
     "Command sequences live in docs/validation/validation_lanes.json."
   ],
   "script_surfaces": [
+    {"path":"scripts/source_identity_proposals.py","family":"source_validator","organ_lane":"shared-library","owner_surface":"ToS/doctrine/semantic-interchange/README.md","source_truth":["ToS/contracts/source-identity-transition-claim.schema.json","ToS/doctrine/semantic-interchange/entity-types.v1.json"],"reads":["fixed exact proposal participant and related-Claim slots; source-owned type capabilities; owner exact metadata and Claim reader envelopes"],"writes":[],"side_effects":"none; validates a proposed plan and frozen correction topology, never rewrites IDs, redirects, migrates links, executes a transition or grants admission","validation_lane":"mechanics_local","ci_inclusion":"release","test_target":"mechanics/growth-cycle/tests/test_identity_proposals.py","disposition":"keep"},
     {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_native_metadata_commands.py",
       "family": "source_growth_commands",

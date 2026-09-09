@@ -1609,3 +1609,44 @@ public release. The existing real lexical descriptions remain provisional;
 their private source returns are not replaced with fabricated public packets.
 Private authored occurrence storage, real admitted linguistic analysis, native
 writer operations and UI consumption remain explicit foundation work.
+
+### Identity transition proposals
+
+The [identity-transition Claim](../../contracts/source-identity-transition-claim.schema.json)
+records a **proposed**, not performed, merge (two to eight predecessors to one
+successor) or split (one predecessor to two to eight successors). Every endpoint
+already has an independently created source identity and is frozen as an exact
+`{id, version, digest}` reference. The complete mapping, grounds, counterreading,
+scope and unresolved related Claims are mandatory parts of the proposal.
+Choosing a focal predecessor supplies an entry point; it does not privilege
+that record as the surviving identity or reduce the plan to a first pair.
+
+`identity-transition-v1` is a distinct reader. The relation's polymorphic domain
+is narrowed to a concrete source-mapped `object_role: identity` whose exact
+metadata version is available through the owner's typed reader. A bare Identity
+ancestor, an ID prefix, a submitted type or an unavailable adapter does not
+qualify. Ordinary structured-value and reference-value grants do not authorize
+this reader. The subject creation route remains separate from proposal creation.
+
+Corrections retain the proposal Claim ID, but freeze operation, membership,
+exact endpoint versions, mapping and predecessor proposal. Changed participants
+or topology require a new Claim and an exact `supersedes_proposal`. Its legacy
+`supersedes_claim_ref` is only an ID navigation companion and must match that
+exact reference. This is **proposal succession**, distinct from the proposed
+predecessor/successor subjects. An unresolved link is an exact referenced Claim
+and an authored question, never permission to migrate that Claim's endpoints.
+
+The existing high-risk `identity` assessment profile remains unchanged: research
+use requires two reviewers, two independence groups, two supporting origins,
+counterevidence search and no self-review. Current assessment must see all
+frozen exact subjects and related Claims selected by its independent owner
+configuration. A later source version cannot stand in for a frozen version.
+Assessment admits a bounded research reading of the proposal, not execution.
+Source-copy forms keep the complete qualified Claim as required context and
+are not standalone endorsements; prior assessments do not transfer on revision.
+
+Old subject IDs still resolve to their original source records. Member and
+supersession edges are explicit returns to a reified proposal, not redirects,
+aliases, equivalence, accepted membership or rewritten identity status. No
+`same-as`, link migration, actual merge/split, source deletion, source-ID reuse,
+publication or canon operation is implemented by this proposal route.

@@ -13,6 +13,7 @@ import time
 
 import source_commands as source
 import source_command_contracts as contract
+import source_identity_proposals as identity_proposals
 from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles, SOURCE_CLAIM_BASENAME
 
 OPERATION = 'claims.create'
@@ -23,13 +24,14 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
 
 def configuration(config):
     values_allowed = config['schema_version'] in {
-        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG}
+        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG}
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
         'source_path', 'authority_ref', 'expires_at', 'provenance_event_id', 'allowed_operations',
         'allowed_claim_ids', 'allowed_subject_refs', 'allowed_object_refs', 'allowed_predicates',
-        'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set()))
+        'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set())
+        | ({'allowed_related_claim_refs'} if config['schema_version'] == identity_proposals.CREATE_CONFIG else set()))
     if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG,
-            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG} or type(config['uid']) is not int
+            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -45,6 +47,8 @@ def configuration(config):
             raise ValueError('claim delegation scope must be a bounded list of unique identifiers')
     if values_allowed:
         validate_value_scope(config)
+    if config['schema_version'] == identity_proposals.CREATE_CONFIG:
+        validate_identity_scope(config)
     if (set(config['allowed_operations']) - {OPERATION}
             or any(not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', value)
                    for value in config['allowed_claim_ids'])
@@ -63,6 +67,8 @@ def configuration(config):
     profiles = SourceClaimProfiles(root)
     if set(config['allowed_predicates']) - profiles.profiles.keys():
         raise PermissionError('claim creation can delegate only declared source predicates')
+    if config['schema_version'] == identity_proposals.CREATE_CONFIG and config['allowed_predicates'] != [identity_proposals.PREDICATE]:
+        raise PermissionError('identity proposal delegation cannot create other predicates')
     return config, source._digest(source._canonical(config)), root / relative
 
 
@@ -73,18 +79,26 @@ def validate_value_scope(config):
         raise ValueError('value delegation requires at most 32 distinct exact JSON objects')
 
 
+def validate_identity_scope(config):
+    refs = config['allowed_related_claim_refs']
+    if (not isinstance(refs, list) or len(refs) > 33
+            or any(not identity_proposals.exact_ref(ref, claim=True) for ref in refs)
+            or len({source._canonical(ref) for ref in refs}) != len(refs)):
+        raise ValueError('proposal delegation requires a bounded exact related-Claim allowlist')
+
+
 def value_is_delegated(config, value):
     """Exact data allowlist, not executable matching expressions or entity scope."""
     if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
                                        source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
                                        source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
-                                       source.OWNER_CLAIM_REFERENCE_CONFIG}
+                                       source.OWNER_CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG, identity_proposals.REVISION_CONFIG}
             or not isinstance(value, dict)
             or source._canonical(value) not in {source._canonical(v) for v in config['allowed_object_values']}):
         return False
     if config['schema_version'] in {source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
                                    source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
-                                   source.OWNER_CLAIM_REFERENCE_CONFIG}:
+                                   source.OWNER_CLAIM_REFERENCE_CONFIG, identity_proposals.CREATE_CONFIG, identity_proposals.REVISION_CONFIG}:
         return True  # Exact bytes only; _value_scope checks declared identity dependencies.
     relative = value.get('relative')
     return (relative is None or isinstance(relative, dict)
@@ -131,6 +145,14 @@ def _scope(config, claims, *, profiles=None):
 def _value_scope(config, claim, profiles):
     """Check declared value scope before new writes and exact replays alike."""
     reader = profiles.profiles[claim['predicate']]['reader']
+    if reader == identity_proposals.READER:
+        if config['schema_version'] not in {identity_proposals.CREATE_CONFIG, identity_proposals.REVISION_CONFIG}:
+            raise PermissionError('identity proposals require a separate exact plan delegation')
+        if (not value_is_delegated(config, claim['object'])
+                or any(identity not in config['allowed_object_refs'] for identity in profiles.reference_members(claim))):
+            raise PermissionError('identity proposal whole plan and each participant must be separately delegated')
+        if any(ref not in config['allowed_related_claim_refs'] for ref in identity_proposals.related_claims(claim)):
+            raise PermissionError('proposal predecessor and unresolved Claims must be separately delegated')
     if reader == 'structured-reference-value-v1':
         if config['schema_version'] not in {source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
                                             source.OWNER_CLAIM_REFERENCE_CONFIG}:
@@ -163,7 +185,7 @@ def reference_replay_snapshot(config, records):
     """
     profiles = SourceClaimProfiles(Path(config['source_root']))
     selected = [record for record in records
-                if profiles.profiles[record['predicate']]['reader'] == 'structured-reference-value-v1']
+                if profiles.profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', identity_proposals.READER}]
     if not selected:
         return None
     return source._digest(source._canonical([
@@ -195,7 +217,8 @@ def _ground_claims(config, claims, *, initial):
         profiles.validate(claim, objects)
         _value_scope(config, claim, profiles)
         if initial and (claim['claim_version'] != 1 or claim.get('assessment_refs')
-                or claim.get('supersedes_claim_ref') is not None):
+                or claim.get('supersedes_claim_ref') is not None and
+                   profiles.profiles[claim['predicate']]['reader'] != identity_proposals.READER):
             raise PermissionError('initial claim creation does not revise or assess claims')
         if initial and claim['claim_id'] in identifiers:
             raise source.JournalConflict('claim identity already exists')
@@ -227,6 +250,13 @@ def _ground_claims(config, claims, *, initial):
     if len(raw) > source.MAX_COMMAND_BYTES:
         raise ValueError('initial claim stream exceeds its bounded byte budget')
     source_bindings = {'objects': {}, 'evidence': {}}
+    proposals = [claim for claim in claims if profiles.profiles[claim['predicate']]['reader'] == identity_proposals.READER]
+    if proposals:
+        from metadata_version_reader import MetadataVersionReader
+        from claim_version_reader import ClaimVersionReader
+        metadata_reader, claim_reader = MetadataVersionReader(root), ClaimVersionReader(root)
+        source_bindings['identity_proposals'] = {claim['claim_id']: identity_proposals.ground(
+            claim, profiles, metadata_reader, claim_reader) for claim in proposals}
     for identity in sorted({identity for claim in claims for identity in profiles.identity_refs(claim)}):
         entry = objects[identity]
         source_raw = source._read(root / entry['source_record_ref'], source.MAX_SET_BYTES)
@@ -257,7 +287,10 @@ def _ground_claims(config, claims, *, initial):
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-             'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
+             'scripts/source_record_profiles.py', identity_proposals.MODULE_REF,
+             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py',
+             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py',
+             'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
              'scripts/build_source_witness_catalog.py',
              'scripts/source_witness_bibliographic_graph_common.py')}}))
     return {SOURCE_CLAIM_BASENAME: raw}, dependencies, source_bindings
@@ -340,6 +373,7 @@ def run_command(owner_config, config, configuration_digest, path, request):
             'allowed_claim_ids': config['allowed_claim_ids'], 'allowed_subject_refs': config['allowed_subject_refs'],
             'allowed_object_refs': config['allowed_object_refs'], 'allowed_evidence_refs': config['allowed_evidence_refs'],
             **({'allowed_object_values': config['allowed_object_values']} if 'allowed_object_values' in config else {}),
+            **({'allowed_related_claim_refs': config['allowed_related_claim_refs']} if 'allowed_related_claim_refs' in config else {}),
             'source_claim_profiles': {predicate: profiles.profiles[predicate] for predicate in config['allowed_predicates']},
             'expected_revision': None, 'creation_provenance_event_id': config['provenance_event_id'],
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False}
@@ -406,7 +440,8 @@ def command_handlers():
             definition='Publish a new flat source Claim package with exact grounded inputs.', mutation='new_claim_package', grants=(OPERATION,)))
     return tuple(contract.Handler('public-claim-create-' + version, (schema,), operations, run_command,
         'Create declared public Claims; ' + values + '.', configure=lambda config, owner_config: configuration(config),
-        typed_handles=(*contract.CLAIM_HANDLES, 'ToS/contracts/source-structured-value.schema.json', 'ToS/contracts/historical-claim.schema.json'),
+        typed_handles=(*contract.CLAIM_HANDLES, 'ToS/contracts/source-structured-value.schema.json', 'ToS/contracts/historical-claim.schema.json',
+                       *([identity_proposals.SCHEMA_REF] if schema == identity_proposals.CREATE_CONFIG else [])),
         profile_selection='Exact predicate selects source_claim_profile in relation-types.v1.json; ' + values + '.',
         preconditions=('Requires an absent relation home, explicit Claim/endpoints/evidence and maker allowlists.',
                        'has_expression, embodied_by, exemplified_by and translated_by creation require their separately delegated native compound handlers.'))
@@ -414,4 +449,5 @@ def command_handlers():
             ('v1', source.CLAIM_CONFIG, 'identity objects only, no typed-value grant'),
             ('v2', source.CLAIM_VALUE_CONFIG, 'separately allowlisted temporal values'),
             ('v3', source.CLAIM_STRUCTURED_CONFIG, 'separately allowlisted structured values, not reference-bearing values'),
-            ('v4', source.CLAIM_REFERENCE_CONFIG, 'separately allowlisted structured reference values and exact identity dependencies')))
+            ('v4', source.CLAIM_REFERENCE_CONFIG, 'separately allowlisted structured reference values and exact identity dependencies'),
+            ('identity-v1', identity_proposals.CREATE_CONFIG, 'identity-transition-v1 proposals only; no subject ID changes or inherited admission')))
