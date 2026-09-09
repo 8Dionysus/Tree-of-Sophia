@@ -4,6 +4,30 @@
   "publication_posture": "allowlist-only",
   "subjects": [
     {
+      "subject_id": "tos-exploration-request-contract-v2",
+      "source_path": "access/contracts/exploration-request.v2.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
+      "subject_id": "tos-exploration-result-contract-v2",
+      "source_path": "access/contracts/exploration-result.v2.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
+      "subject_id": "tos-exploration-request-contract",
+      "source_path": "access/contracts/exploration-request.v1.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
+      "subject_id": "tos-exploration-result-contract",
+      "source_path": "access/contracts/exploration-result.v1.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "http-reader", "native-mcp"]
+    },
+    {
       "subject_id": "tos-public-access-request-1",
       "source_path": "ToS/source-witnesses/access-requests/public-ledger/antonovsky-1900-lnb-research-copy.access-request.json",
       "required": true,
@@ -102,6 +126,36 @@
     {
       "subject_id": "tos-philosophy-graph",
       "source_path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-source-witness-bibliographic-claim-graph",
+      "source_path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-semantic-entity-type-registry",
+      "source_path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-semantic-relation-type-registry",
+      "source_path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-semantic-entity-type-registry-schema",
+      "source_path": "ToS/contracts/semantic-entity-type-registry.schema.json",
+      "required": true,
+      "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
+    },
+    {
+      "subject_id": "tos-semantic-relation-type-registry-schema",
+      "source_path": "ToS/contracts/semantic-relation-type-registry.schema.json",
       "required": true,
       "consumer_roles": ["query-core", "native-mcp", "http-reader", "web-app", "webmcp"]
     },

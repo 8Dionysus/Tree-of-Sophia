@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/human-form.schema.json",
+  "title": "Source-owned human form, distinct from its subject",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "form_id", "form_version", "subject", "role", "language", "script", "creator_id", "bindings", "content", "revises"],
+  "properties": {
+    "schema_version": {"const": "tos_human_form_v1"},
+    "form_id": {"type": "string", "pattern": "^tos\\.form\\.[a-z0-9][a-z0-9._-]*$"},
+    "form_version": {"type": "integer", "minimum": 1},
+    "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+    "role": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
+    "language": {"type": ["string", "null"], "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+    "script": {"type": ["string", "null"], "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"},
+    "language_context": {"$ref": "#/$defs/binding", "description": "Exact source-owned language and linguistic-derivation metadata; must match the source adapter scope and remain a bound dependency."},
+    "creator_id": {"type": "string", "minLength": 1},
+    "bindings": {
+      "type": "object", "maxProperties": 256,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_-]{0,63}$(?![\\s\\S])"},
+      "additionalProperties": {"$ref": "#/$defs/binding"}
+    },
+    "content": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["kind", "slot"],
+         "properties": {"kind": {"const": "source-copy"}, "slot": {"type": "string", "minLength": 1}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "template"],
+         "properties": {"kind": {"const": "template"}, "template": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}}},
+        {"type": "object", "additionalProperties": false, "required": ["kind", "text"],
+         "properties": {"kind": {"const": "freeform"}, "text": {"type": "string", "minLength": 1, "maxLength": 16384}}}
+      ]
+    },
+    "revises": {"oneOf": [{"type": "null"}, {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}]}
+  },
+  "$defs": {
+    "languageContext": {
+      "type": "object", "required": ["language", "script", "relation", "source"],
+      "properties": {
+        "language": {"type": ["string", "null"], "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"},
+        "script": {"type": ["string", "null"], "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"},
+        "relation": {"enum": ["unknown", "original", "translation", "transliteration", "adaptation"]},
+        "source": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/binding"}]}
+      },
+      "allOf": [{"if": {"properties": {"relation": {"enum": ["translation", "transliteration", "adaptation"]}}},
+        "then": {"properties": {"source": {"$ref": "#/$defs/binding"}}},
+        "else": {"properties": {"source": {"type": "null"}}}}],
+      "description": "Source-declared linguistic context, not an assessment or historical originality verdict. Additional source qualifications are preserved intact. Original is relative to the stated subject and source-owner scope."
+    },
+    "boundLanguageContext": {
+      "type": "object", "additionalProperties": false, "required": ["binding", "value"],
+      "properties": {"binding": {"$ref": "#/$defs/binding"}, "value": {"$ref": "#/$defs/languageContext"}}
+    },
+    "materialization": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "form", "subject", "state", "display_text", "context", "issues", "admission", "performs_semantic_assessment"],
+      "properties": {
+        "schema_version": {"const": "tos_human_form_materialization_v1"},
+        "form": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "state": {"enum": ["ready", "invalid", "unavailable", "stale", "restricted", "needs-assessment", "over-budget"]},
+        "display_text": {"type": ["string", "null"]},
+        "context": {"type": "array", "maxItems": 256, "items": {
+          "type": "object", "additionalProperties": false, "required": ["slot", "binding", "value"],
+          "properties": {"slot": {"type": "string"}, "binding": {"$ref": "#/$defs/binding"}, "value": {}}
+        }},
+        "issues": {"type": "array", "items": {"type": "string"}},
+        "admission": {"type": ["object", "null"]},
+        "subject_assessment": {"$ref": "#/$defs/subjectAssessment"},
+        "assessment_snapshot": {"$ref": "#/$defs/assessmentSnapshot"},
+        "performs_semantic_assessment": {"const": false},
+        "role": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
+        "language": {"type": ["string", "null"]}, "script": {"type": ["string", "null"]},
+        "language_context": {"$ref": "#/$defs/boundLanguageContext"},
+        "derivation": {"enum": ["source-copy", "template", "freeform"]},
+        "dependencies": {"type": "array", "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
+        "standalone_reading": {"type": "boolean"}
+      },
+      "allOf": [{
+        "if": {"properties": {"state": {"const": "ready"}}},
+        "then": {
+          "required": ["role", "language", "script", "derivation", "dependencies", "standalone_reading"],
+          "properties": {"display_text": {"type": "string", "minLength": 1}, "issues": {"maxItems": 0}},
+          "allOf": [{"if": {"properties": {"context": {"minItems": 1}}}, "then": {"properties": {"standalone_reading": {"const": false}}}},
+            {"if": {"required": ["subject_assessment"]}, "then": {"properties": {"standalone_reading": {"const": false}}}}]
+        },
+        "else": {"properties": {"display_text": {"type": "null"}, "context": {"maxItems": 0}, "issues": {"minItems": 1}}}
+      }, {
+        "if": {"required": ["assessment_snapshot"], "properties": {"assessment_snapshot": {"required": ["subject_assessment_required"]}}},
+        "then": {"required": ["subject_assessment"]}
+      }, {
+        "if": {"required": ["assessment_snapshot", "subject_assessment"]},
+        "then": {"properties": {"assessment_snapshot": {"required": ["subject_assessment_required"]}}}
+      }]
+    },
+    "subjectAssessment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "subject", "admission", "journal_revision", "journal_batches", "historical_withdrawals", "form_admission_is_parent_endorsement"],
+      "properties": {
+        "schema_version": {"const": "tos_human_form_subject_assessment_v1"},
+        "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "admission": {
+          "type": "object",
+          "required": ["schema_version", "subject", "policy", "use", "status", "can_use", "limits", "is_semantic_evaluation"],
+          "properties": {
+            "schema_version": {"const": "tos_knowledge_admission_v1"},
+            "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+            "policy": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+            "use": {"type": "string", "minLength": 1},
+            "status": {"enum": ["admitted", "admitted-with-limits", "disputed", "rejected", "deferred", "unreviewed"]},
+            "can_use": {"type": "boolean"},
+            "limits": {"type": "array", "items": {"type": "string"}},
+            "is_semantic_evaluation": {"const": false}
+          }
+        },
+        "journal_revision": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$(?![\\s\\S])"},
+        "journal_batches": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "historical_withdrawals": {"type": "array", "maxItems": 256, "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
+        "form_admission_is_parent_endorsement": {"const": false}
+      },
+      "allOf": [{"if": {"properties": {"journal_batches": {"const": 0}}},
+        "then": {"properties": {"journal_revision": {"type": "null"}, "historical_withdrawals": {"maxItems": 0}}},
+        "else": {"properties": {"journal_revision": {"type": "string"}}}}],
+      "description": "Owner-derived current parent Claim assessment in the same source/use snapshot. It is mandatory reading context, not admission of the parent by the form. Historical withdrawals remain visible even when a later assessment or revoked grant changes current status. No source or form is rewritten."
+    },
+    "assessmentSnapshot": {
+      "type": "object",
+      "required": ["owner_snapshot", "journal_revision", "journal_batches", "publication_authorized", "current_runtime_grant"],
+      "properties": {
+        "owner_snapshot": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"},
+        "journal_revision": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$(?![\\s\\S])"},
+        "journal_batches": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "publication_authorized": {"const": false},
+        "current_runtime_grant": {"const": false},
+        "subject_assessment_required": {"const": true}
+      },
+      "allOf": [{"if": {"properties": {"journal_batches": {"const": 0}}},
+        "then": {"properties": {"journal_revision": {"type": "null"}}},
+        "else": {"properties": {"journal_revision": {"type": "string"}}}}],
+      "description": "Observed source/configuration and committed journal binding for a local research candidate; not publication clearance, model authentication or a current runtime grant. Unknown observation metadata is retained, not interpreted."
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false, "required": ["record", "pointer"],
+      "properties": {
+        "record": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "pointer": {"type": "string", "maxLength": 2048, "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"}
+      }
+    }
+  }
+}

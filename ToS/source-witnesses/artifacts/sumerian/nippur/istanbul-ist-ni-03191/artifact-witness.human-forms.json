@@ -1,0 +1,206 @@
+{
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/custody",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/layer_separation",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/authority",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/rights_ref",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-name",
+      "form_version": 2,
+      "language": null,
+      "revises": {
+        "digest": "sha256:0b34cc2882f3174de22b075ae68cc3ebed54608550311863debdd1afb0f292fe",
+        "id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-name",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+        "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/path_identity/note",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-note",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+        "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+        "version": 1
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "command_id": "native-forms:20260907:artifact.sumerian.nippur.istanbul-ist-ni-03191",
+      "owner_configuration": "sha256:51ad4535e13750cdc855bec7ca905df0070ac051b20362f7ca845b68975b8fa8",
+      "previous_revision": null,
+      "principal_id": "agent:codex-tos-foundation",
+      "recorded_at": "2026-09-07T21:29:10.137543+00:00",
+      "request_digest": "sha256:09ac19b2048add3a363467c83c6b62d82b966c6b88be0ef5c42001083be4a075",
+      "results": [
+        {
+          "digest": "sha256:0b34cc2882f3174de22b075ae68cc3ebed54608550311863debdd1afb0f292fe",
+          "id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-name",
+          "version": 1
+        },
+        {
+          "digest": "sha256:66f50c80d8d15475dd1642889837e936901d9a85ad7d3c6ce0a06435975553b0",
+          "id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-note",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+        "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      }
+    },
+    {
+      "command_id": "native-forms:20260907:qualified-name:artifact.sumerian.nippur.istanbul-ist-ni-03191",
+      "request_digest": "sha256:051f7571c98476567d65846506129a8cd9a5cbd1c8007908c81ae23e560a47cb",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:51ad4535e13750cdc855bec7ca905df0070ac051b20362f7ca845b68975b8fa8",
+      "recorded_at": "2026-09-07T21:40:10.848852+00:00",
+      "source_contracts": {
+        "ToS/contracts/artifact-source-witness.schema.json": "sha256:1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f"
+      },
+      "source": {
+        "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+        "version": 1,
+        "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644"
+      },
+      "previous_revision": "sha256:08b59e88d346ab7cefc10ebc6b33d76be2f86459f8bf0b92cae23a157ca67acf",
+      "results": [
+        {
+          "id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-name",
+          "version": 2,
+          "digest": "sha256:a0786d73da7d6be297b1b1428abd7a1e3d6668c74de9339d3847de89db1805e5"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/custody/inventory_numbers/0",
+          "record": {
+            "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+            "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.artifact.sumerian.nippur.istanbul-ist-ni-03191.source-name",
+      "form_version": 1,
+      "language": null,
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": null,
+      "subject": {
+        "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644",
+        "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.sumerian.nippur.istanbul-ist-ni-03191",
+    "version": 1,
+    "digest": "sha256:4444512243bde4084aa5fc33ed6ec01106246ec3a11ec718bd6390be4a9e5644"
+  }
+}

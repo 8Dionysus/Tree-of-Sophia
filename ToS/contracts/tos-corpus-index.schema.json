@@ -245,7 +245,7 @@
     "node": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["node_id", "node_type", "label", "owner_branch", "authority_layer", "source_path", "source_sha256"],
+      "required": ["node_id", "node_type", "label", "owner_branch", "authority_layer", "source_path", "source_sha256", "properties"],
       "properties": {
         "node_id": {
           "type": "string",
@@ -278,6 +278,9 @@
         },
         "route_hint": {
           "type": ["string", "null"]
+        },
+        "properties": {
+          "type": "object"
         }
       }
     },

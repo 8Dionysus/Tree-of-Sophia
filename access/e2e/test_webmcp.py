@@ -186,9 +186,9 @@ def test_real_browser_webmcp_loop_and_stale_deixis(webmcp_page: Page) -> None:
     })
     assert len(proposal_result["content"][0]["text"]) < 1500
     proposal = command_value(proposal_result)
-    assert proposal["proposal"]["status"] == "pending_human_review"
+    assert proposal["proposal"]["status"] == "pending_review"
     assert proposal["authority"] == {"source": False, "reviewed": False, "canon": False}
-    assert "pending_human_review" in (page.locator("#research-workspace-body").text_content() or "")
+    assert "pending_review" in (page.locator("#research-workspace-body").text_content() or "")
 
     old_context_tool = page.evaluate("window.__TOS_E2E.invokeFirst('tos.page.context')")
     assert command_value(old_context_tool["value"])["selected"]["id"] == edge_id
@@ -236,7 +236,7 @@ def test_real_browser_source_gap_research_stages_reviewable_route(webmcp_page: P
         "statement": "Verify a lawful current institutional route to the relevant Nietzsche-Wörterbuch article before source use.",
         "confidence": "unknown",
     }))
-    assert staged["proposal"]["status"] == "pending_human_review"
+    assert staged["proposal"]["status"] == "pending_review"
     assert staged["authority"] == {"source": False, "reviewed": False, "canon": False}
 
 

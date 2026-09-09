@@ -1,0 +1,117 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+    "version": 1,
+    "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.name-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+        "version": 1,
+        "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.source-note-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+        "version": 1,
+        "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "version": 1,
+            "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

@@ -896,11 +896,31 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertIn("command target repo_root path_digest does not match canonical owner root", messages)
         self.assertIn("command target repo_root path_digest does not match action input repo-root", messages)
 
-    def test_current_receipt_requires_portable_command_targets(self) -> None:
+    def test_current_receipt_requires_family_command_targets(self) -> None:
+        family_mode = (
+            "segmented"
+            if self._current_receipt_case()[0].get("schema_version")
+            == validator.KAG_SEGMENTED_FAMILY_SCHEMA
+            else "portable"
+        )
         for field, value, expected in (
-            ("family_mode", "tiered", "budget receipt producer command target family_mode must be 'portable'"),
-            ("artifact_root", {"path": "unrelated"}, "budget receipt producer command target artifact_root must be null for portable family"),
-            ("externalized", True, "budget receipt producer command target externalized must be false for portable family"),
+            (
+                "family_mode",
+                "tiered",
+                f"budget receipt producer command target family_mode must be {family_mode!r}",
+            ),
+            (
+                "artifact_root",
+                {"path": "unrelated"},
+                "budget receipt producer command target artifact_root must be null "
+                f"for {family_mode} family",
+            ),
+            (
+                "externalized",
+                True,
+                "budget receipt producer command target externalized must be false "
+                f"for {family_mode} family",
+            ),
         ):
             with self.subTest(field=field):
                 family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
@@ -1524,7 +1544,10 @@ class AgentSurfaceTests(unittest.TestCase):
 
     def test_current_receipt_rejects_generated_shard_outside_repository(self) -> None:
         family_manifest, receipt, digest, receipt_path = self._current_receipt_case()
-        family_manifest["shards"][0]["path"] = "/dev/zero"
+        descriptors = family_manifest.get("segments")
+        if not isinstance(descriptors, list):
+            descriptors = family_manifest["shards"]
+        descriptors[0]["path"] = "/dev/zero"
 
         issues = validator.budget_receipt_contract_issues(
             ROOT,
@@ -1952,7 +1975,9 @@ class AgentSurfaceTests(unittest.TestCase):
             manifest_path = root / family["manifest"]
             manifest_path.parent.mkdir(parents=True)
             manifest_path.write_text(json.dumps(family_manifest), encoding="utf-8")
-            (root / family["shards"]).mkdir(parents=True)
+            carrier = family.get("segments", family.get("shards"))
+            assert isinstance(carrier, str)
+            (root / carrier).mkdir(parents=True)
             receipt_path = root / family["receipt_root"] / f"{digest}.json"
             receipt_path.parent.mkdir(parents=True)
             receipt_path.write_text(
@@ -1986,7 +2011,9 @@ class AgentSurfaceTests(unittest.TestCase):
             manifest_path = root / family["manifest"]
             manifest_path.parent.mkdir(parents=True)
             manifest_path.write_text(json.dumps(family_manifest), encoding="utf-8")
-            (root / family["shards"]).mkdir(parents=True)
+            carrier = family.get("segments", family.get("shards"))
+            assert isinstance(carrier, str)
+            (root / carrier).mkdir(parents=True)
             receipt_path = root / family["receipt_root"] / f"{digest}.json"
             receipt_path.parent.mkdir(parents=True)
             receipt_path.write_text(json.dumps(receipt), encoding="utf-8")

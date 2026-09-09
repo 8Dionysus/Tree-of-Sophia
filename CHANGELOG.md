@@ -81,6 +81,15 @@ Tracking starts with the community-docs baseline for this repository.
   cross-geography, cross-chronology khipu/rongorongo guardrail into an era or
   tradition. A44–A48 retain explicit manual-review posture, and all planted
   material remains research-derived and pre-canon.
+- Rebinds the bounded segmented KAG consumer and hosted owner-family action to
+  the landed public `aoa-kag` revision
+  `1a0342087b18d0a1f5630036937a548b6526e0e9` after provider PR #234. The
+  published `aoa-kag@v0.5.0` identity remains distinct from this current
+  source/CI pin, and the generated ToS family remains a derived carrier.
+- Adds an explicit `workflow_dispatch` entry to `Repo Validation` so an owner
+  can rerun the exact hosted required gate when GitHub delivers a branch push
+  but omits the corresponding pull-request workflow event; this is a trigger
+  route, not a bypass or a substitute for the required check.
 - Makes the separate KAG action ABI explicit in current source: the published
   `aoa-kag@v0.5.0` provider remains pinned to immutable
   `f46f146cc79a26fa81ad0f400b9c5774df293e57`, while the current provider

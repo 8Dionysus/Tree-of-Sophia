@@ -57,7 +57,9 @@
         },
         "object_catalog_refs": {
           "type": "object",
-          "additionalProperties": false,
+          "description": "Additional families require an exact source_record_profile binding in the entity registry; the reader verifies this beyond schema validation.",
+          "additionalProperties": {"type": "string", "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
+          "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
           "required": [
             "agent",
             "place",
@@ -92,7 +94,11 @@
             },
             "item": {
               "const": "ToS/source-witnesses/catalog/items.jsonl"
-            }
+            },
+            "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
+            "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
+            "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"},
+            "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"}
           }
         }
       }
@@ -108,9 +114,9 @@
       }
     },
     "graph_layers": {
-      "const": [
-        "bibliographic"
-      ]
+      "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true,
+      "prefixItems": [{"const": "bibliographic"}],
+      "items": {"enum": ["historical", "source-profile", "physical-artifact", "scholarly-composite"]}
     },
     "relation_model": {
       "type": "object",
@@ -152,19 +158,19 @@
       "properties": {
         "source_claims": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "nodes": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "edges": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "claim_traces": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "direct_subject_object_edges": {
           "const": 0
@@ -185,21 +191,21 @@
     },
     "nodes": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "$ref": "#/$defs/node"
       }
     },
     "edges": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "$ref": "#/$defs/edge"
       }
     },
     "claim_traces": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "$ref": "#/$defs/claimTrace"
       }
@@ -339,6 +345,8 @@
             "reviewed_by",
             "has_normalized_place",
             "has_normalized_agent",
+            "has_historical_date_anchor",
+            "has_value_member",
             "alternative_to",
             "supersedes"
           ]
@@ -450,7 +458,13 @@
         "assertion_layer": {
           "enum": [
             "bibliographic_assertion",
-            "scholarly_report"
+            "scholarly_report",
+            "textual_observation",
+            "forensic_observation",
+            "semantic_interpretation",
+            "linguistic_analysis",
+            "translation_alignment",
+            "translation_judgment"
           ]
         },
         "epistemic_status": {
@@ -519,6 +533,11 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "value_member_node_ids": {
+          "description": "Complete member set of an explicitly declared structured-reference value. These are structural Claim returns, not independently accepted memberships.",
+          "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
         },
         "review_status": {
           "enum": [

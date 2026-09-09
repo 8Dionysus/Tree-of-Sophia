@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/knowledge-assessment-competence.schema.json",
+  "title": "Owner-admitted competence evidence, not a model self-rating",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "competence_id", "competence_version", "actor_id", "assertion_layers", "languages", "profile_ids", "execution_profiles", "state", "valid_from", "valid_until", "evidence_refs", "issuer_ref"],
+  "properties": {
+    "schema_version": {"const": "tos_knowledge_assessment_competence_v1"},
+    "competence_id": {"type": "string", "minLength": 1},
+    "competence_version": {"type": "integer", "minimum": 1},
+    "actor_id": {"type": "string", "minLength": 1},
+    "assertion_layers": {"$ref": "#/$defs/strings"},
+    "languages": {"$ref": "#/$defs/strings"},
+    "profile_ids": {"$ref": "#/$defs/strings"},
+    "execution_profiles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
+    "state": {"enum": ["verified", "revoked", "unverified"]},
+    "valid_from": {"type": "string", "format": "date-time"},
+    "valid_until": {"type": "string", "format": "date-time"},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
+    "issuer_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {"strings": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+  "receipts": [
+    {
+      "command_id": "foundation-collection-explicit-field-languages-20260909-v1",
+      "request_digest": "sha256:49144ff71b73f351013ca1cb8b004a656edd08cec06f5dc15f3f573ac43c9aa3",
+      "principal_id": "agent:tos.foundation.completion-owner",
+      "authority_ref": "operator:tos-foundation-v1:exact-collection-language-correction:20260909",
+      "owner_configuration": "sha256:65c857388dba67e3abdcb1087f1f7c05ac3d5191399daeffc1817e26769381b5",
+      "recorded_at": "2026-09-09T20:25:22.756931+00:00",
+      "reason": "Source-visible language declaration only: the existing complete preferred_label is Russian/Cyrillic and notes are English/Latin. Preserve every wording, identity, membership, bibliographic source and historical verification posture; rebind both existing source-copy forms without translation, new content admission or payload access. See ToS/review-ledger/2026-09-09-native-corpus-descriptive-revision-review.md.",
+      "previous_source": {
+        "id": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+        "version": 3,
+        "digest": "sha256:3c54b5e74076dee7bae4bb061798e56e5186960f37cc8ec6a3e8e8d4dea2dc9b"
+      },
+      "source": {
+        "id": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+        "version": 4,
+        "digest": "sha256:f14299bd238043c88f48b33e7116a12724d0e1285d5bb0861c69c78e1e3ace80"
+      },
+      "previous_revision": "sha256:fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2",
+      "dependencies": "sha256:fa2e9628f8d526dd0d8bf142acb5bad852024a905c1d0391db3f98db9eebfa34",
+      "changed_fields": [
+        "field_languages"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.97f08560108a80d1b4a244d83319ac0996c85739f6687d9c8ba0f92d92241d6f",
+          "version": 2,
+          "digest": "sha256:4e5a804b7303f9f34fc54511042d0111ba28381234cf2851de76b140987289bb"
+        },
+        {
+          "id": "tos.form.metadata.9a333272136a01acd20ab7465f0749316c15e05657c0868d5d919c9bc6351162",
+          "version": 2,
+          "digest": "sha256:b4006af29569b607a072226cdcc6fb2ecb84b8c90e2833432fe2d1a4676dd2ee"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "foundation-collection-explicit-field-languages-20260909-v1",
+        "expected_configuration": "sha256:65c857388dba67e3abdcb1087f1f7c05ac3d5191399daeffc1817e26769381b5",
+        "expected_dependencies": "sha256:fa2e9628f8d526dd0d8bf142acb5bad852024a905c1d0391db3f98db9eebfa34",
+        "expected_publication": "sha256:e1d892ef034a8814f6b7517bb90391d8631a285dfb53751adc3489e202e19ef3",
+        "expected_revision": "sha256:fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2",
+        "expected_source": {
+          "digest": "sha256:3c54b5e74076dee7bae4bb061798e56e5186960f37cc8ec6a3e8e8d4dea2dc9b",
+          "id": "tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996",
+          "version": 3
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "en",
+              "script": "Latn"
+            },
+            "preferred_label": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.97f08560108a80d1b4a244d83319ac0996c85739f6687d9c8ba0f92d92241d6f"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.9a333272136a01acd20ab7465f0749316c15e05657c0868d5d919c9bc6351162"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Source-visible language declaration only: the existing complete preferred_label is Russian/Cyrillic and notes are English/Latin. Preserve every wording, identity, membership, bibliographic source and historical verification posture; rebind both existing source-copy forms without translation, new content admission or payload access. See ToS/review-ledger/2026-09-09-native-corpus-descriptive-revision-review.md.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583",
+        "selected_files": [
+          "collection.human-forms.json",
+          "collection.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

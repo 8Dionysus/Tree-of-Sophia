@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+    "version": 1,
+    "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.a90ab021b05dfa5aae4dae4ab3fb2f8ecaeb808b9803adc8f9fc213986f9fabe",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+        "version": 1,
+        "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+            "version": 1,
+            "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+            "version": 1,
+            "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+            "version": 1,
+            "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.806badeff8356856bc35db600a0abcda999fa4d1dc5baf74770de48a58da8f3a",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+        "version": 1,
+        "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+            "version": 1,
+            "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+            "version": 1,
+            "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+            "version": 1,
+            "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+      "request_digest": "sha256:7c38e008169db0c04d54052f330fc94405b1083c02ccf97675c685fdf6898ff3",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:d1bc77fc3ddb0d63b7f238de2faad22b36d49f694b970c0a7f73e4612c7d9f41",
+      "recorded_at": "2026-09-07T03:13:25.072306+00:00",
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.laws-of-lipit-ishtar-wilcke-encyclopedia-entry",
+        "version": 1,
+        "digest": "sha256:8a2825c7270f6e6abb14a1732bdbb50e07af84a68853ef4beed54243b442eb82"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.a90ab021b05dfa5aae4dae4ab3fb2f8ecaeb808b9803adc8f9fc213986f9fabe",
+          "version": 1,
+          "digest": "sha256:15faf46bf8f93726dd7642532c28edc225729d6680e6e6e26be72acfdbf8ae82"
+        },
+        {
+          "id": "tos.form.metadata.806badeff8356856bc35db600a0abcda999fa4d1dc5baf74770de48a58da8f3a",
+          "version": 1,
+          "digest": "sha256:4f1f0f9670ca9ac4fbbc06b30e91dc4e4049154cbc10d9b186b0e756c7ef00cd"
+        }
+      ]
+    }
+  ]
+}

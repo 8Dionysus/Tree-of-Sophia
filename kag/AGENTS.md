@@ -23,11 +23,14 @@ tree.
 | next route | source surface -> derived export validator -> `aoa-kag` registry/composition |
 | validation | local KAG provider validator, derived KAG seam validator, and repo release check |
 
-The portable family follows current tracked ToS sources. Regenerate it through
-the pinned `aoa-kag` builder after source changes, then validate source refs,
-content hashes, shard integrity and canonical parity. TOS-D-0044 ends the
-temporary freeze; no automatic refreeze or stale-source exception remains.
-Regeneration does not activate any downstream service or grant semantic authority.
+The provider follows current tracked ToS sources through the exact pin in
+[`provider_pin.json`](provider_pin.json). Regenerate the bounded segmented
+family through that pinned `aoa-kag` builder after source changes, then run the
+source-ref, segment-integrity, canonical-parity, and bounded-reader checks.
+`v3`/`v4` family readers remain rollback-only and fail closed; they must not
+silently assemble the `v5` segmented family. TOS-D-0044 ends the temporary
+freeze; no automatic refreeze or stale-source exception remains. Regeneration
+does not activate any downstream service or grant semantic authority.
 
 ## Source Routes
 
@@ -35,13 +38,16 @@ Regeneration does not activate any downstream service or grant semantic authorit
 - `ToS/derived-exports/philosophy_graph_projection.min.json`
 - `ToS/derived-exports/README.md`
 - `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
+- `kag/provider_pin.json`
 
 ## Validation
 
 Select the full local KAG provider, `public_entry`, or release route in
 [`kag/VALIDATION.md`](VALIDATION.md) after the source export and intended claim
 are known. `local_kag_provider` is a blocking source-currentness and integrity
-guard. KAG export regeneration remains with
+guard; the segmented provider adapter additionally requires a clean checkout
+at the exact `aoa-kag` revision named by `kag/provider_pin.json` and probes one
+bounded segment without full materialization. KAG export regeneration remains with
 `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md` and its
 source builder; local provider procedure stays in the district validation
 route.

@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+    "version": 4,
+    "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.d53cdea2a52eaf335e613ddf75dd6ba654f33fda3e42f662dd25f577232c69ab",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+        "version": 4,
+        "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+            "version": 4,
+            "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+            "version": 4,
+            "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+            "version": 4,
+            "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.5dcd84d2466c18f9f7989907d6b4eca07210c332c405947a4af1b78d073eee8b",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+        "version": 4,
+        "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+            "version": 4,
+            "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+            "version": 4,
+            "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+            "version": 4,
+            "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+      "request_digest": "sha256:5a65f6743657728962d55a3122cc8f4f6cf341efe33454ffff130790692bacd3",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:42597ed203fd1f8076734570eb2b802e2c1d91dfb8c71947ee909b3ae9a72df4",
+      "recorded_at": "2026-09-07T03:13:29.177893+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.works-in-two-volumes.moscow-mysl-1996-volume-2",
+        "version": 4,
+        "digest": "sha256:bc845075dca3367f039c28a8875575b80ad447e3747ee4799ee58d6ddcaa9143"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d53cdea2a52eaf335e613ddf75dd6ba654f33fda3e42f662dd25f577232c69ab",
+          "version": 1,
+          "digest": "sha256:0aadaa8a7701b6946d995559d9125b90323667bab0f0b00183c83a91b397f281"
+        },
+        {
+          "id": "tos.form.metadata.5dcd84d2466c18f9f7989907d6b4eca07210c332c405947a4af1b78d073eee8b",
+          "version": 1,
+          "digest": "sha256:84d3aa59dfc2d06acb1f0c7f748f99cfed25445c48a26765637d87af5c4c9a45"
+        }
+      ]
+    }
+  ]
+}

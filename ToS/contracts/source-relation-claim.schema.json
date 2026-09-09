@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-relation-claim.schema.json",
+  "title": "Declared identity-to-identity source relation claim",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"properties": {
+      "schema_version": {"const": "tos_source_relation_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "object": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+    }}
+  ],
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,123 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/server-import-contract.schema.json",
+  "schema_version": "tos_server_import_contract_v1",
+  "server_import_id": "tos.server-import.jenseits-gutenberg-4363-local-epub3-20260909",
+  "item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+  "manifest": {
+    "ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.manifest.json",
+    "sha256": "37bd2e2eba9160834b4c35d494c2f07d923561ad428c3ee995b477c114d783db",
+    "verified": true
+  },
+  "payload_files": [
+    {
+      "file_ref": "tos.file.sha256.9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+      "relative_path": "payload/pg4363-images-3.epub",
+      "byte_size": 238143,
+      "sha256": "9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+      "verified": true
+    }
+  ],
+  "rights_policy": {
+    "rights_record_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/rights.json",
+    "rights_record_sha256": "b20b88c02e1600d95a8e128fe76020103c26ac224290b9dcade2cd483ecfd2b6",
+    "assessment_status": "rights-unknown",
+    "review_status": "unreviewed",
+    "jurisdictions_reviewed": [],
+    "permission_or_license_refs": [],
+    "expires_at": null,
+    "recheck_before_transfer": true
+  },
+  "access_class": "metadata-only",
+  "allowed_derivatives": {
+    "ocr": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "transcription": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "page_images": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "snippets": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "lexical_index": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "embeddings": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "alignments": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "translations": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "annotations": {
+      "state": "prohibited",
+      "conditions": [
+        "This future-server plan permits no payload transfer or content-bearing processing/publication. Separate local research rights do not authorize server use."
+      ]
+    },
+    "search_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Reviewed public-safe bibliographic identity, fixity, rights posture and provenance metadata only; no source text, images, private paths, recoverable text spans or content-bearing derivatives."
+      ]
+    },
+    "graph_projection": {
+      "state": "conditional",
+      "conditions": [
+        "Reviewed public-safe bibliographic identity, fixity, rights posture and provenance metadata only; no source text, images, private paths, recoverable text spans or content-bearing derivatives."
+      ]
+    }
+  },
+  "payload_transfer_authorized": false,
+  "operator_transfer_approval": {
+    "approved": false,
+    "approved_by_real_human": false,
+    "approved_at": null,
+    "approval_ref": null
+  },
+  "server_import_status": "blocked-rights",
+  "publication_status": "metadata-only",
+  "server_receipt_refs": [],
+  "takedown": {
+    "public_contact_url": "https://github.com/8Dionysus/Tree-of-Sophia/issues",
+    "procedure_ref": "ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md",
+    "disable_supported": true,
+    "delete_supported": true,
+    "last_reviewed_at": "2026-09-09T07:26:47Z"
+  },
+  "provenance_event_refs": [
+    "tos.event.server-import-plan.jenseits-gutenberg-4363.local-epub3-20260909"
+  ],
+  "server_copy_is_authority": false,
+  "automatic_checkout_payload_discovery_allowed": false,
+  "contract_version": 2,
+  "supersedes_server_import_ref": null
+}

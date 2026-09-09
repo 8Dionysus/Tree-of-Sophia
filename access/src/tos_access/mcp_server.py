@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from .core import ToSAccessCore
@@ -40,14 +41,45 @@ def build_server(
         raise SystemExit("Missing dependency 'mcp'. Install with: python -m pip install -e .") from exc
 
     mcp = FastMCP("tree-of-sophia", json_response=True)
+    state_lock = Lock()
+    cached_state: ToSAccessCore | None = None
 
     def current_state() -> ToSAccessCore:
-        return ToSAccessCore.discover(
+        nonlocal cached_state
+        resolved = ToSAccessCore.discover(
             tos_root=tos_root,
             index_path=index_path,
             philosophy_graph_projection_path=philosophy_graph_projection_path,
             philosophy_post_planting_audit_path=philosophy_post_planting_audit_path,
         )
+        # Discover path changes on every call, but keep the shared graph/index
+        # for unchanged paths. Core readers still observe current file versions.
+        # Equality excludes disposable indexes/checkpoints and compares paths.
+        with state_lock:
+            if cached_state is None or cached_state != resolved:
+                cached_state = resolved
+            return cached_state
+
+    # Tools rediscover source paths on each call. Exploration keeps
+    # its disposable checkpoints for the lifetime of this MCP server only.
+    from .exploration import ExplorationService
+    exploration = ExplorationService(lambda: current_state().knowledge_graph())
+
+    @mcp.tool()
+    def tos_knowledge_explore(request: dict[str, Any]) -> dict[str, Any]:
+        """Start a read-only neighborhood or continue with cursor only; expires after 15 minutes.
+
+        Discover schemas: legacy focus_node_id or v2 exact node/relation origin
+        pinned by source/content revision. Fixed query/page sizes; no authored
+        writes. Upsert context nodes and the repeated origin relation by ID.
+        Snapshot conflict or expired checkpoint requires restarting from focus.
+        """
+        return exploration.explore(request)
+
+    @mcp.tool()
+    def tos_knowledge_exploration_contracts() -> dict[str, Any]:
+        """Read exploration capabilities and request/result schemas; local/native only."""
+        return current_state().knowledge_exploration_contracts()
 
     @mcp.tool()
     def tos_corpus_status() -> dict[str, Any]:
@@ -65,13 +97,90 @@ def build_server(
         return current_state().search(query=query, limit=limit, resource_kind=resource_kind)
 
     @mcp.tool()
+    def tos_knowledge_catalog() -> dict[str, Any]:
+        """Return node kinds, predicates, fields, limits, and stored LensSpec definitions for the generic backend."""
+        return current_state().knowledge_catalog()
+
+    @mcp.tool()
+    def tos_knowledge_contracts() -> dict[str, Any]:
+        """Return the versioned API operation map and JSON Schemas used by human and agent constructors."""
+        return current_state().knowledge_contracts()
+
+    @mcp.tool()
+    def tos_knowledge_search(
+        query: str = "",
+        sources: list[str] | None = None,
+        kind_ids: list[str] | None = None,
+        predicate_ids: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 40,
+    ) -> dict[str, Any]:
+        """Search the unified display-complete graph without choosing a philosophy/corpus legacy mode."""
+        return current_state().knowledge_search(
+            query,
+            sources=sources,
+            kind_ids=kind_ids,
+            predicate_ids=predicate_ids,
+            offset=offset,
+            limit=limit,
+        )
+
+    @mcp.tool()
+    def tos_knowledge_node(node_id: str, relation_limit: int = 200) -> dict[str, Any]:
+        """Inspect a normalized knowledge node and its human-readable related relations."""
+        return current_state().knowledge_node(node_id, relation_limit)
+
+    @mcp.tool()
+    def tos_knowledge_relation(relation_id: str) -> dict[str, Any]:
+        """Inspect a normalized relation together with its display-complete endpoints."""
+        return current_state().knowledge_relation(relation_id)
+
+    @mcp.tool()
+    def tos_knowledge_temporal_compare(request: dict[str, Any]) -> dict[str, Any]:
+        """Compare two exact Claim date envelopes, not event truth. Discover the request schema with tos_knowledge_contracts."""
+        return current_state().knowledge_temporal_compare(request)
+
+    @mcp.tool()
+    def tos_knowledge_focus(
+        node_id: str,
+        sources: list[str] | None = None,
+        depth: int = 1,
+        direction: str = "either",
+        predicate_ids: list[str] | None = None,
+        node_limit: int = 200,
+        relation_limit: int = 400,
+        profile: str = "overview",
+    ) -> dict[str, Any]:
+        """Center a bounded radial lens on an exact or uniquely resolved node identity."""
+        return current_state().knowledge_focus(
+            node_id,
+            sources=sources,
+            depth=depth,
+            direction=direction,
+            predicate_ids=predicate_ids,
+            node_limit=node_limit,
+            relation_limit=relation_limit,
+            profile=profile,
+        )
+
+    @mcp.tool()
+    def tos_knowledge_lens_compile(spec: dict[str, Any]) -> dict[str, Any]:
+        """Validate and execute an arbitrary bounded, read-only tos_lens_spec_v1 construction."""
+        return current_state().compile_knowledge_lens(spec)
+
+    @mcp.tool()
+    def tos_knowledge_lens_open(lens_id: str) -> dict[str, Any]:
+        """Execute a stored LensSpec through the same generic backend used for arbitrary constructions."""
+        return current_state().stored_knowledge_lens(lens_id)
+
+    @mcp.tool()
     def tos_source_descend(node_id: str, max_depth: int = 8, limit: int = 300) -> dict[str, Any]:
         """Walk from an era, region, tradition, planting, or source object down the source-navigation graph."""
         return current_state().source_descend(node_id=node_id, max_depth=max_depth, limit=limit)
 
     @mcp.tool()
     def tos_dossier_inspect(object_id: str, limit: int = 300) -> dict[str, Any]:
-        """Return a compact dossier for one Work or Link without converting availability into a rights conclusion."""
+        """Return a compact dossier for one bibliographic carrier or Link without converting availability into a rights conclusion."""
         return current_state().source_dossier(object_id=object_id, limit=limit)
 
     @mcp.tool()

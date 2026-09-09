@@ -23,6 +23,17 @@
         "test assertions"
       ]
     },
+    "semantic_registry_transition": {
+      "label": "semantic registry transition",
+      "layer": "source-contract",
+      "mode": "blocking",
+      "owner_surface": "ToS/doctrine/semantic-interchange/README.md",
+      "purpose": "Compare current authored registries with an explicitly supplied immutable pre-change commit; require version advances and retained historical identity/reader/schema routes.",
+      "command_sequence": "semantic_registry_transition",
+      "required_environment": ["TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT"],
+      "failure_route": "ToS/doctrine/semantic-interchange/README.md",
+      "does_not_own": ["baseline selection", "semantic compatibility judgment", "reference migration acceptance", "runtime graph reads"]
+    },
     "source_home": {
       "label": "source home",
       "layer": "source-home",
@@ -224,7 +235,7 @@
       "layer": "local-kag-provider",
       "mode": "blocking",
       "owner_surface": "kag/AGENTS.md",
-      "purpose": "Protect the complete ToS KAG provider, source ownership, current source hashes, shard integrity, record counts and family binding.",
+      "purpose": "Protect the complete ToS KAG provider, source ownership, current source hashes, segmented-family integrity, bounded record reads and family binding.",
       "command_sequence": "local_kag_provider",
       "failure_route": "kag/AGENTS.md",
       "does_not_own": [
@@ -328,6 +339,7 @@
       "entrypoint": "scripts/release_check.py",
       "covers_lanes": [
         "validation_authority",
+        "semantic_registry_transition",
         "source_home",
         "source_witness_foundation",
         "philosophy_topology",
@@ -361,6 +373,12 @@
       {
         "label": "validate validation lane manifest",
         "command": ["python", "scripts/validation_lanes.py", "--check"]
+      }
+    ],
+    "semantic_registry_transition": [
+      {
+        "label": "validate semantic registry transition against explicit baseline",
+        "command": ["python", "scripts/validate_semantic_registry_transition.py"]
       }
     ],
     "source_home": [
@@ -661,6 +679,10 @@
       {
         "label": "validate validation lane manifest",
         "command": ["python", "scripts/validation_lanes.py", "--check"]
+      },
+      {
+        "label": "validate semantic registry transition against explicit baseline",
+        "command": ["python", "scripts/validate_semantic_registry_transition.py"]
       },
       {
         "label": "validate ToS source home",

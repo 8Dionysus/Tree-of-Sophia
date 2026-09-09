@@ -15,7 +15,7 @@
     "build:ci": "npm run ci:python && npm run ci:web && npm run build",
     "types": "wrangler types",
     "typecheck": "tsc --noEmit",
-    "load:local": "wrangler d1 execute DB --local --file=runtime/read-model.sql --yes",
+    "load:local": "node scripts/deploy_edge.mjs --local --data-only",
     "dev": "npm run build && npm run load:local && wrangler dev",
     "test": "node --experimental-strip-types --test test/*.test.ts test/*.test.mjs",
     "verify:local": "python scripts/verify_local_runtime.py",

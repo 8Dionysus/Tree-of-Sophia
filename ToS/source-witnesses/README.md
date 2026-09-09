@@ -28,6 +28,10 @@ source-witnesses/
 │   └── <place>/place.json
 ├── organizations/
 │   └── <historical-organization>/organization.json
+├── social-bodies/                          # source-described groups, communities, institutions
+│   └── <kind>-<subject>/<kind>.json         # separate membership and activity Claims
+├── intellectual-formations/               # schools, traditions and movements, not atlas categories
+│   └── <kind>-<subject>/<kind>.json         # source-described continuity, separate association Claims
 ├── links/                                  # first-class observed web/API/file routes
 │   └── <provider>/<object>/<route>/link.json
 ├── discovery/                              # reviewed candidate queue + ordered query/result evidence
@@ -48,6 +52,7 @@ source-witnesses/
 │   ├── collections.jsonl
 │   ├── items.jsonl
 │   ├── links.jsonl
+│   ├── artifacts.jsonl                    # native physical IDs; no book-ladder coercion
 │   └── claims.jsonl                       # generated source-returnable relation index
 ├── relations/                             # corpus-wide identity-ladder assertions
 │   ├── work-expression/
@@ -117,6 +122,19 @@ claim. Anonymous, disputed, collective, and tradition-owned works receive
 speaking routes and explicit responsibility claims in the catalog.
 
 ## Identity and path boundary
+
+Historical people and collective descriptions use the
+[social profile and relationship contract](../doctrine/semantic-interchange/README.md#social-bodies-and-source-attributed-relationships).
+The source-described body, its place, an intellectual formation and an atlas
+navigation category are not interchangeable. Adjacent native Corpus and
+declared-profile human forms reach both source graph carriers with their exact
+bindings and quality gaps; catalog presence does not admit their content.
+
+Source-described reception, legacy, historical canon formation, forgetting and
+rediscovery use the [reception profiles](../doctrine/semantic-interchange/README.md#reception-historical-recognition-and-later-life).
+Their historical scope and receiving context remain content. Claims separately
+identify targets, carriers, participants and dates; a historical canon is not a
+ToS admission, and catalog absence is not evidence of forgetting.
 
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
@@ -206,6 +224,16 @@ that both surfaces happen to exist. These relations remain bibliographic:
 `embodied_by` never implies textual identity, critical equivalence, accepted
 source text, translation quality, or semantics.
 
+Native growth retains those legacy streams unchanged. The separate
+[local Item adoption command](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md)
+can retain one already obtained file at the canonical local payload root,
+create its provisional Item and distinct `exemplified_by` Claim, and append
+only the existing Edition's exact backlink. The source-safe metadata package
+and private byte-copy continuation are separate; their receipts preserve the
+compound history. This operation does not fetch a URL, clear rights, establish
+textual equivalence, or publish the local file. Generic Claim correction cannot
+rewrite that compound topology independently.
+
 Expression derivation is a separate evidence-bearing claim family rather than
 a fourth structural rung. Its directed `is_derivative_of` packets identify a
 reported source Expression, derivation kind, directness, statement basis, and
@@ -214,7 +242,7 @@ and no-equivalence: chronology, edition numbering, a shared translator label,
 or a generated graph cannot fill a missing historical edge.
 
 Work, Expression, and Edition records may close over evidence-bearing
-`responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
+legacy `responsibility-claims.jsonl` rows through `responsibility_claim_refs`.
 The initial typed predicates are `authored_by` and `contributed_by` on a Work,
 `translated_by` on an Expression, and `edited_by`, `afterword_by`, or
 `designed_by` on an Edition. Every object resolves to an Agent. Every claim is
@@ -223,6 +251,14 @@ provenance event, and unreferenced or cross-subject claims fail validation. A
 role statement remains a versioned claim: it does not collapse author,
 contributor, translator, copyist, editor, paratext author, designer, publisher,
 or rights holder into one generic “creator”.
+
+The [native translator attachment](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md)
+adds a separately scoped Expression-to-existing-Agent Claim in a new
+`relations/<slug>/source-claims.jsonl` home. The foundation joins only its exact
+committed, continuously retained evidence with the unchanged legacy carriers.
+Competing translator reports are not collapsed by endpoint equality. External
+URLs remain attribution citations, with local citing-Claim source return and
+no implied remote reading; endpoint metadata bindings are not extra witnesses.
 
 In the current bounded corpus, all seven Nietzsche Work records close over one
 `authored_by` claim to the GND-backed Friedrich Nietzsche Agent. Each claim

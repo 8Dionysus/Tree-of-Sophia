@@ -1,0 +1,92 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+  "receipts": [
+    {
+      "command_id": "tos:historical-record-revision:jenseits-1886-commission:2026-09-07:letter705-and-language-v2",
+      "request_digest": "sha256:0783193e18044e609c45a2e8e68bef6f38f17de366422940d48dc92e4b1d2e74",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1-goal/source-research-and-versioned-correction/01a06cc7-0452-77f2-b89a-fb77fb86c3bf",
+      "owner_configuration": "sha256:38e9c3ce088c86dec5a68aad0101a3fbeca29d83cede6565c1e90375acc40a4d",
+      "recorded_at": "2026-09-07T05:53:29.665099+00:00",
+      "reason": "Уточнить описание по отдельному чтению критического текста и архивного носителя письма 705, сохранив первоначальные сообщение Зоммера, Claim, provenance и байты пакета; явно задать русский язык и кириллическую письменность собственных описательных полей без утверждения, что это перевод письма.",
+      "previous_source": {
+        "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "version": 1,
+        "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e"
+      },
+      "source": {
+        "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+        "version": 2,
+        "digest": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f"
+      },
+      "previous_revision": "sha256:faec2c379d51938d44a4ea73fea63797a6e029997d976ad4ecefd7e93cc1a717",
+      "archive_path": "ToS/source-witnesses/.record-revisions/ac9cc78d41d05c3e41695ff972cc9885ba985a7dc0499cd58d9ff5b5efc5c3ca-faec2c379d51938d44a4ea73fea63797a6e029997d976ad4ecefd7e93cc1a717",
+      "dependencies": "sha256:fbfe9db7d7bebb685684db042f03a7d9ce525ba44ec27757ec2ee65af8c4ced1",
+      "changed_fields": [
+        "field_languages",
+        "notes",
+        "preferred_label",
+        "source_refs"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jenseits-1886-commission.name-ru",
+          "version": 2,
+          "digest": "sha256:044e9429074644b794779565a6267ef530b78a791c31b052097a02721ddebde3"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.hover-ru",
+          "version": 2,
+          "digest": "sha256:13f603676b19774342b11ffe77773b22710f7863ae30f984ac584a3afbfb6901"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos:historical-record-revision:jenseits-1886-commission:2026-09-07:letter705-and-language-v2",
+        "expected_configuration": "sha256:38e9c3ce088c86dec5a68aad0101a3fbeca29d83cede6565c1e90375acc40a4d",
+        "expected_dependencies": "sha256:fbfe9db7d7bebb685684db042f03a7d9ce525ba44ec27757ec2ee65af8c4ced1",
+        "expected_revision": "sha256:faec2c379d51938d44a4ea73fea63797a6e029997d976ad4ecefd7e93cc1a717",
+        "expected_source": {
+          "digest": "sha256:745dba82c441f213fa7b1b858f583faff99cf34b91aa056f80aa5300c5fac14e",
+          "id": "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission",
+          "version": 1
+        },
+        "fields": {
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            },
+            "preferred_label": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "notes": "По сообщению Андреаса Урса Зоммера (2016, с. 6), 3 июня 1886 года Ницше принял предложение Наумана и поручил немедленно начать работу над изданием «По ту сторону добра и зла». Это атрибутированное исследовательское описание, а не буквальная формулировка письма. В отдельно прочитанном критическом тексте eKGWB, письмо № 705, Ницше соглашается на бумагу и просит ускорить печать; название книги в прочитанном тексте не указано. Связь с книгой и характеристика начала работы остаются сообщением Зоммера. Архивная запись 4752 связывает письмо с GSA 71/BW 291,1, лист 8; обе цифровые стороны просмотрены, но полная независимая палеографическая сверка не выполнена. Критический текст, архивное описание и изображения не являются независимыми письмами-свидетельствами. Первоначальные Claim сохраняют прежний статус; эта версия описания не даёт содержательного допуска. Дата заказа не означает дату выхода книги; письмо, его носитель, участники, место и среда ещё требуют самостоятельных адресуемых записей и утверждений.",
+          "preferred_label": "Сообщаемый заказ Ницше по «По ту сторону добра и зла», 3 июня 1886",
+          "source_refs": [
+            "https://digi.hadw-bw.de/view/nietzsche_kom5_1/0026",
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+            "https://www.nietzschesource.org/texts/eKGWB/BVN-1886",
+            "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752",
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md"
+          ]
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.jenseits-1886-commission.name-ru"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.jenseits-1886-commission.hover-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Уточнить описание по отдельному чтению критического текста и архивного носителя письма 705, сохранив первоначальные сообщение Зоммера, Claim, provenance и байты пакета; явно задать русский язык и кириллическую письменность собственных описательных полей без утверждения, что это перевод письма.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

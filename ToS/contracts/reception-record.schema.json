@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/reception-record.schema.json",
+  "title": "Source-described reception, historical canon formation, forgetting, rediscovery and legacy",
+  "description": "Historical processes, episodes and states retain separate identities. Receiving context and evidential limits are mandatory; targets, participants, carriers and dates remain separate Claims. No historical canon confers ToS admission.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_reception_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "reception-process",
+            "historical-canonization",
+            "historical-forgetting",
+            "rediscovery-episode",
+            "intellectual-legacy"
+          ]
+        },
+        "semantic_content": {
+          "required": [
+            "reception_account",
+            "receiving_context"
+          ],
+          "properties": {
+            "reception_account": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "A source-attributed account of reception or its historical change, not an evaluation by ToS."
+            },
+            "receiving_context": {
+              "type": "string",
+              "pattern": "\\S",
+              "description": "The particular people, community, practices and limits for which this historical account is made; not universal recognition or absence."
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "reception-process"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.reception-process\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.reception-process\\."
+          },
+          "semantic_content": {
+            "required": [
+              "engagement_basis"
+            ],
+            "properties": {
+              "engagement_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The documented practices of reading, response or transmission distinguishing the process; similarity alone does not establish influence."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-canonization"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-canonization\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.historical-canonization\\."
+          },
+          "semantic_content": {
+            "required": [
+              "engagement_basis",
+              "selection_basis",
+              "authority_scope"
+            ],
+            "properties": {
+              "engagement_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The documented practices of reading, response or transmission distinguishing the process; similarity alone does not establish influence."
+              },
+              "selection_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The criteria and practices by which the historical community distinguishes an authoritative or exemplary repertoire."
+              },
+              "authority_scope": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Whose authority and which field this historical canon concerns; no ToS admission, correctness or universal consensus is implied."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-forgetting"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-forgetting\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.historical-forgetting\\."
+          },
+          "semantic_content": {
+            "required": [
+              "evidence_boundary"
+            ],
+            "properties": {
+              "evidence_boundary": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What supports a decline or interruption in this receiving context, including surviving counterexamples and limits; database absence alone is not evidence."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "rediscovery-episode"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.rediscovery-episode\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.rediscovery-episode\\."
+          },
+          "semantic_content": {
+            "required": [
+              "prior_access_boundary"
+            ],
+            "properties": {
+              "prior_access_boundary": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "For whom access or attention was renewed and what remained known or transmitted elsewhere; not the first discovery by anyone."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "intellectual-legacy"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.intellectual-legacy\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.intellectual-legacy\\."
+          },
+          "semantic_content": {
+            "required": [
+              "transmission_basis"
+            ],
+            "properties": {
+              "transmission_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The source-described continuity, transformations and gaps supporting this legacy; resemblance does not establish a direct causal chain."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

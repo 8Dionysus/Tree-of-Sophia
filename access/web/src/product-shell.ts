@@ -32,7 +32,7 @@ export const PRODUCT_DEMO_PROMPTS: Record<ProductLanguage, ProductDemoPrompt[]> 
     {
       id: "hypothesis",
       title: "Stage a proposal",
-      prompt: "Compare the readings, preserve this interpretation as a local hypothesis, then stage a traceable interpretation proposal pending human review. Do not change source or canon.",
+      prompt: "Compare the readings, preserve this interpretation as a local hypothesis, then stage a traceable interpretation proposal pending scoped review. Do not change source or canon.",
     },
   ],
   ru: [

@@ -30,25 +30,25 @@
       "aoa-tdd-slice"
     ]
   },
-  "manifest_sha256": "53d4059c376f3effda42f7bbde29bce7a249bba26c934a741bb221306417e7a8",
+  "manifest_sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
   "owner_ports": [
     {
       "id": "eval_port",
       "inputs": [
         {
-          "bytes": 1460,
+          "bytes": 1451,
           "path": "evals/AGENTS.md",
-          "sha256": "eecd37f6f76be01c82e98ef36a8ad5bada7dbb6dc06d01ba89f720f42490dd10"
+          "sha256": "35f86a352d50f2ce639ac4cfa4d67753451d3c83583a3f33f84cc8c85ae7385b"
         },
         {
-          "bytes": 290,
+          "bytes": 288,
           "path": "evals/PORT.yaml",
-          "sha256": "aee850f7f77b536b1fe5b0a81d9c6829a3b96f2a538338307dbb0e6ebcde45c9"
+          "sha256": "22b2c1d4d6aee339250857b96e9388ed4c6cdd1e3834bd182bb7e8820498d893"
         },
         {
-          "bytes": 868,
+          "bytes": 1000,
           "path": "evals/README.md",
-          "sha256": "fa76fd721c8af352999eb5768da002948aed05e6773184ca5ae1de80fcf0a4a8"
+          "sha256": "92897a1065dce8e8ba59b0b163a7250b106df730bc33b171e7426833db012905"
         },
         {
           "bytes": 355,
@@ -56,9 +56,9 @@
           "sha256": "272a564ba4b3c2a0abcc962be9b84e8a8dc67dd12d4940bc8fd8d432c360947c"
         },
         {
-          "bytes": 345,
+          "bytes": 786,
           "path": "evals/suites/README.md",
-          "sha256": "887c567bf75d474e022befa59cf035fc5cc5ae7dfb1195b0b6d0bb05fec02d82"
+          "sha256": "26f88bcaeb2e0ec2f595fb3cfd000c737e15b07b13fbaf0b50f95059782b2c16"
         },
         {
           "bytes": 292,
@@ -72,19 +72,34 @@
       "id": "kag_provider",
       "inputs": [
         {
-          "bytes": 2114,
+          "bytes": 2552,
           "path": "kag/AGENTS.md",
-          "sha256": "0e0f806defdee433cfdf9ef4d4ade12c00a3e86590e73ba34382c98dfe75c5d1"
+          "sha256": "54b1f5ae337baef90f1d1e7bee10ae43cb580cbe6ec66f394691d7a7c89d1483"
         },
         {
-          "bytes": 1735,
+          "bytes": 1778,
           "path": "kag/manifest.json",
-          "sha256": "2e2225bde027a625886adb4f555a0a39fc2b75582665feeb3220aeae05f2e150"
+          "sha256": "1a8ad98aefbf1cd3202470ae5b3c1789274047dcc839ae91ce3d8a4983f5f081"
         },
         {
-          "bytes": 1154,
+          "bytes": 1151,
+          "path": "kag/provider_pin.json",
+          "sha256": "744acf941940f70c85ebea0748c733c7c774d5b2981ce77bf8ce9aeec07d7bb5"
+        },
+        {
+          "bytes": 1727,
           "path": "kag/README.md",
-          "sha256": "54c451bdcdfeb87816e998936d95ab1b8553c5cba4301d99aca9d26684680c9c"
+          "sha256": "c9e44f9f1fabbac82a0d85239753ff717cdf5eae52ef72fd73fc57be490436dd"
+        },
+        {
+          "bytes": 14967,
+          "path": "scripts/validate_local_kag_provider.py",
+          "sha256": "d4dcd1458e627aa7897870c59c428446d5309881f4bb841a975ce36589b73817"
+        },
+        {
+          "bytes": 9674,
+          "path": "scripts/validate_local_segmented_kag_provider.py",
+          "sha256": "1e10870882b1e6f9de1758e10e73c8bf654a792194f2de84b6c83fa8810d1395"
         },
         {
           "bytes": 1436,

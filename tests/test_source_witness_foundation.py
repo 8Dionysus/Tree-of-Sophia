@@ -1723,6 +1723,58 @@ def _synthetic_discovery_record() -> dict:
 
 
 class SourceWitnessFoundationTests(unittest.TestCase):
+    def test_recorded_provenance_input_resolves_exact_current_or_retained_contract_bytes(self):
+        ref = 'ToS/contracts/example.schema.json'
+        payload = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
+                   '$id': 'https://tree-of-sophia.local/' + ref, 'type': 'object'}
+        raw = (json.dumps(payload) + '\n').encode()
+        digest = hashlib.sha256(raw).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            current = root / ref
+            current.parent.mkdir(parents=True)
+            current.write_bytes(raw)
+            archive = root / 'ToS/contracts/history' / (digest + '.json')
+            archive.parent.mkdir()
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ref, digest), current)
+            current.write_text(json.dumps({**payload, 'description': 'A later source contract.'}))
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.write_bytes(raw)
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ref, digest), archive)
+            self.assertNotEqual(hashlib.sha256(current.read_bytes()).hexdigest(), digest)
+            archive.write_bytes(raw + b' ')
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.unlink()
+            other = root / 'other.json'
+            other.write_bytes(raw)
+            archive.symlink_to(other)
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.unlink()
+            archive.write_bytes(raw)
+            # An archive for one schema cannot supply another path or source metadata.
+            for other_ref in ('ToS/contracts/other.schema.json', 'ToS/source-witnesses/agents/example/agent.json',
+                              '../outside.json', '/absolute.json', 'https://example.invalid/input'):
+                if other_ref.startswith('ToS/'):
+                    candidate = root / other_ref
+                    candidate.parent.mkdir(parents=True, exist_ok=True)
+                    candidate.write_bytes(b'{}')
+                self.assertIsNone(foundation._recorded_provenance_input_path(root, other_ref, digest))
+            ordinary_ref = 'ToS/source-witnesses/agents/example/agent.json'
+            (root / ordinary_ref).write_bytes(raw)
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ordinary_ref, digest), root / ordinary_ref)
+            for bad_raw in (json.dumps({**payload, '$id': 'https://example.invalid/other'}).encode(),
+                            json.dumps({**payload, 'description': 'x' * 1_048_576}).encode(), b'not JSON'):
+                bad_digest = hashlib.sha256(bad_raw).hexdigest()
+                (archive.parent / (bad_digest + '.json')).write_bytes(bad_raw)
+                self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, bad_digest))
+            for invalid_digest in ('../../outside', 'SHA256:' + digest, '0' * 64, None):
+                self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, invalid_digest))
+            current.unlink()
+            # Retained history never repairs a missing active source contract.
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            current.symlink_to(other)
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+
     def test_source_anchor_v2_synthetic_abc_resolves_real_segments(self) -> None:
         issues, report = foundation.validate_source_anchor_v2_lab(REPO_ROOT)
 
@@ -2648,6 +2700,59 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertEqual(before, label_renamed["entities"][2]["entity_id"])
         self.assertFalse(list(validator.iter_errors(label_renamed)))
 
+    def test_semantic_annotation_v2_sign_promotion_requires_accepting_decision(self) -> None:
+        """Synthetic legacy review shapes, not real human acts or admitted Signs."""
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/semantic-annotation-packet-v2.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator = validator_for(schema)(schema, format_checker=FormatChecker())
+        packet = json.loads(
+            (REPO_ROOT / "ToS/research-packets/foundation-laboratory-2026-07/"
+             "semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        review = {
+            "review_id": "tos.review.sid-11111111111111111111111111111111",
+            "reviewer_kind": "human",
+            "reviewer_ref": "human:synthetic-unit-test-not-an-actual-review",
+            "review_kind": "sign_promotion",
+            "competence": [
+                {"scope": scope, "status": "evidence_attested", "evidence_refs": ["synthetic:competence-control"]}
+                for scope in ("source_reading", "semantic_interpretation")
+            ],
+            "review_mode": "source_visible_unassisted",
+            "decision": "accept",
+            "rationale": "Synthetic review-shaped control only; no human review or promotion occurred.",
+            "reviewed_at": "2026-08-11T12:00:00Z",
+            "unassisted_baseline": {
+                "required": True,
+                "status": "frozen",
+                "frozen_before_model_suggestions": True,
+                "evidence_ref": "synthetic:baseline-control-not-an-actual-reading",
+            },
+        }
+        for status in ("accepted", "accepted_with_limits"):
+            for decision in ("accept", "accept_with_limits", "reject", "defer", "disputed", "supersede"):
+                with self.subTest(admission_status=status, decision=decision):
+                    candidate = copy.deepcopy(packet)
+                    sign = next(entity for entity in candidate["entities"] if entity["entity_kind"] == "sign")
+                    sign["admission_status"] = status
+                    sign["admission_review_refs"] = [review["review_id"]]
+                    candidate["reviews"] = [{**copy.deepcopy(review), "decision": decision}]
+                    # Every case has the same complete, schema-valid legacy baseline and competence.
+                    self.assertFalse(list(validator.iter_errors(candidate)))
+                    issues = foundation._semantic_annotation_v2_issues(candidate)
+                    if decision in {"accept", "accept_with_limits"}:
+                        self.assertEqual([], issues)
+                    else:
+                        self.assertEqual(
+                            [f"accepted sign lacks an accepting sign-promotion review: {sign['entity_id']}"],
+                            issues,
+                        )
+
     def test_translation_alignment_v1_synthetic_abc_preserves_competing_maps(
         self,
     ) -> None:
@@ -3162,15 +3267,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         }
         object_ids = {
             entry["record_id"]
-            for filename in catalog_builder.RECORD_FILES.values()
-            for line in (catalog_root / filename)
+            for filename in manifest['record_files'].values()
+            for line in (REPO_ROOT / filename)
             .read_text(encoding="utf-8")
             .splitlines()
             if line.strip()
             for entry in (json.loads(line),)
         }
         source_claims: dict[str, tuple[str, int, dict, str]] = {}
-        for basename in catalog_builder.CLAIM_SOURCE_BASENAMES:
+        for basename in (*catalog_builder.CLAIM_SOURCE_BASENAMES, catalog_builder.SOURCE_CLAIM_BASENAME):
             for path in sorted(
                 (REPO_ROOT / catalog_builder.SOURCE_ROOT).rglob(basename)
             ):
@@ -3197,14 +3302,18 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             "ToS/source-witnesses/catalog/claims.jsonl",
             manifest["claim_file"],
         )
-        self.assertEqual(176, manifest["counts"]["object_total"])
-        self.assertEqual(198, manifest["counts"]["claim"])
-        self.assertEqual(374, manifest["counts"]["total"])
+        self.assertEqual(len(object_ids), manifest["counts"]["object_total"])
+        self.assertEqual(len(source_claims), manifest["counts"]["claim"])
+        self.assertEqual(len(object_ids) + len(source_claims), manifest["counts"]["total"])
         self.assertEqual(5, manifest["counts"]["link"])
-        self.assertEqual(198, len(claim_entries))
+        self.assertEqual(len(source_claims), len(claim_entries))
         self.assertEqual(set(source_claims), {entry["claim_id"] for entry in claim_entries})
 
+        catalog_schema = json.loads((REPO_ROOT / 'ToS/contracts/source-witness-catalog.schema.json').read_bytes())
+        entry_schema = {**catalog_schema['$defs']['claim_entry'], '$defs': {'tosId': catalog_schema['$defs']['tosId']}}
+        entry_validator = validator_for(entry_schema)(entry_schema, format_checker=FormatChecker())
         for entry in claim_entries:
+            entry_validator.validate(entry)
             relative, line_number, claim, claim_digest = source_claims[
                 entry["claim_id"]
             ]
@@ -3226,7 +3335,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ):
                 self.assertEqual(claim[field], entry[field])
             self.assertEqual(
-                [review["review_id"] for review in claim["reviews"]],
+                [review["review_id"] for review in claim.get("reviews", [])],
                 entry["review_refs"],
             )
             self.assertEqual(claim.get("qualifiers"), entry.get("qualifiers"))
@@ -3237,12 +3346,15 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             ):
                 self.assertIn(entry["object"], object_ids)
 
+        declared = next(entry for entry in claim_entries if entry['source_claim_file_ref'].endswith('/source-claims.jsonl'))
+        for path in ('ToS/source-witnesses/relations/example/undeclared-claims.jsonl',
+                     'ToS/source-witnesses/relations/example/source-claims.json'):
+            self.assertFalse(entry_validator.is_valid({**declared, 'source_claim_file_ref': path}))
+        self.assertFalse(entry_validator.is_valid({key: value for key, value in declared.items() if key != 'source_schema_ref'}))
+
         self.assertEqual(
-            {
-                "bibliographic_assertion": 176,
-                "forensic_observation": 5,
-                "scholarly_report": 17,
-            },
+            {layer: sum(claim['assertion_layer'] == layer for _, _, claim, _ in source_claims.values())
+             for layer in {claim['assertion_layer'] for _, _, claim, _ in source_claims.values()}},
             {
                 layer: sum(
                     entry["assertion_layer"] == layer for entry in claim_entries
@@ -3255,8 +3367,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         self.assertTrue(
             all(
                 entry["claim_type"] in {"bibliographic", "relation"}
-                and entry["review_status"] == "unreviewed"
-                and entry["visibility"] == "public_metadata_only"
+                and entry["visibility"] in {"public_metadata_only", "public"}
                 for entry in claim_entries
             )
         )
@@ -3292,7 +3403,12 @@ class SourceWitnessFoundationTests(unittest.TestCase):
             },
             {
                 predicate: sum(
-                    entry["predicate"] == predicate for entry in claim_entries
+                    entry["predicate"] == predicate
+                    and entry["source_claim_file_ref"] in {
+                        *(route[0].as_posix() for route in foundation.BIBLIOGRAPHIC_TOPOLOGY_ROUTES),
+                        foundation.EXPRESSION_DERIVATION_CLAIMS.as_posix(),
+                    }
+                    for entry in claim_entries
                 )
                 for predicate in {
                     "has_expression",
@@ -3326,7 +3442,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         authorship_claims = [
             entry for entry in claim_entries if entry["predicate"] == "authored_by"
         ]
-        self.assertEqual(33, len(authorship_claims))
+        # Exact source-ID/line/digest/field parity is checked above. The whole
+        # corpus may gain authorship Claims without changing the seven-work
+        # Nietzsche closure or the distinct contributor roles checked below.
         nietzsche_authorship_claims = [
             entry
             for entry in authorship_claims
@@ -8108,7 +8226,9 @@ class SourceWitnessFoundationTests(unittest.TestCase):
                 for result in results.values()
             )
         )
-        self.assertEqual(5, work["record_version"])
+        # This route was present by v5. Later source-owner changes preserve
+        # its evidence without freezing the Work's current record version.
+        self.assertGreaterEqual(work["record_version"], 5)
         self.assertIn(
             "ToS/source-witnesses/discovery/runs/"
             "jenseits-authorial-witness-route.2026-07-30.v1.json",

@@ -113,6 +113,76 @@ class MechanicsRouteDocsTests(unittest.TestCase):
 
         self.assertTrue(any("broken local documentation route" in message for _, message in issues))
 
+    def test_fenced_examples_are_not_links_but_prose_routes_remain_checked(self) -> None:
+        for fence in ("```", "~~~"):
+            with self.subTest(fence=fence), tempfile.TemporaryDirectory() as tmpdir:
+                repo_root = Path(tmpdir) / "Tree-of-Sophia"
+                relative = "mechanics/agon/README.md"
+                source = repo_root / relative
+                write_text(repo_root / "docs/validation/script_inventory.json", '{"script_surfaces": []}\n')
+                write_text(repo_root / "mechanics/agon/target.md", "# Present\n")
+                text = (
+                    "[guide][route]\n[route]: target.md#present\n\n"
+                    f"{fence}python\n"
+                    "plan['authorization']['schema_version']\n"
+                    "plan['authorization']['scope']\n"
+                    "[example](missing-example.md)\n"
+                    "[example]: missing-example-definition.md\n"
+                    "[fenced-only]: target.md\n"
+                    f"{fence}\n"
+                )
+                write_text(source, text)
+                issues: list[tuple[str, str]] = []
+                validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+                self.assertEqual([], issues)
+
+                write_text(
+                    source,
+                    text + "\n[hidden definition][fenced-only]\n[undefined][]\n"
+                    "[broken][broken-route]\n[broken-route]: missing-prose.md\n",
+                )
+                issues = []
+                validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+                self.assertEqual(
+                    {
+                        (relative, "unresolved reference-style documentation route: fenced-only"),
+                        (relative, "unresolved reference-style documentation route: undefined"),
+                        (relative, "broken local documentation route: missing-prose.md"),
+                    },
+                    set(issues),
+                )
+
+    def test_fenced_executable_reference_remains_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "Tree-of-Sophia"
+            write_text(repo_root / "docs/validation/script_inventory.json", '{"script_surfaces": []}\n')
+            write_text(repo_root / "mechanics/agon/README.md", "```sh\npython scripts/missing.py\n```\n")
+            issues: list[tuple[str, str]] = []
+            validate_mechanics_topology.validate_documentation_references(repo_root, issues)
+        self.assertEqual(
+            [("mechanics/agon/README.md", "stale executable reference: scripts/missing.py")],
+            issues,
+        )
+
+    def test_mechanics_test_reference_uses_test_owner_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = 'mechanics/growth-cycle/tests/test_forms.py'
+            write_text(root / target, '# bounded test fixture\n')
+            write_text(root / 'mechanics/growth-cycle/README.md', f'Check `{target}`.\n')
+            # A script-inventory entry cannot replace the actual test owner.
+            write_text(root / 'docs/validation/script_inventory.json',
+                       json.dumps({'script_surfaces': [{'path': target}]}))
+            write_text(root / 'tests/test_inventory.json', json.dumps({'tests': []}))
+            issues = []
+            validate_mechanics_topology.validate_documentation_references(root, issues)
+            self.assertTrue(any('absent from test inventory' in message for _, message in issues))
+            write_text(root / 'tests/test_inventory.json', json.dumps({'tests': [{'path': target}]}))
+            write_text(root / 'docs/validation/script_inventory.json', json.dumps({'script_surfaces': []}))
+            issues = []
+            validate_mechanics_topology.validate_documentation_references(root, issues)
+            self.assertEqual(issues, [])
+
     def test_external_route_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_root = Path(tmpdir)

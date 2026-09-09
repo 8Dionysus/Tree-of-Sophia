@@ -44,7 +44,8 @@ does not pretend that bibliographic order is already semantic understanding.
 
 The Zarathustra golden kernel makes one full path unusually legible: source
 witness -> address -> observation -> semantic proposal -> relation and context
--> human review -> canon -> derived graph or retrieval view.
+-> source-visible review -> scoped admission, canon or explicit deferral
+-> derived graph or retrieval view.
 
 The kernel teaches agents how to move through that path, including how to
 reject, defer, and preserve ambiguity. It does not teach them to impose
@@ -58,7 +59,7 @@ Nietzsche's ontology on the rest of the tree.
 | golden source | `ToS/source-witnesses/` | exact witness, provenance, language role, and stable address remain inspectable |
 | observation and proposal | `ToS/candidate-intake/` under doctrine and contract law | source-near observation remains distinct from interpretive proposal |
 | review | `ToS/review-ledger/` through review mechanics | acceptance, rejection, ambiguity, counter-reading, and reviewer rationale remain visible |
-| authored promotion | `ToS/canon/` | humans own the stronger judgment and every object returns to source |
+| authored promotion | `ToS/canon/` | canon retains its actual owner decision; research admission is separate and every object returns to source |
 | derived learning surfaces | `ToS/derived-exports/`, bounded local evals, and stronger downstream owners | graph, retrieval, training, and evaluation views remain projections rather than ToS authority |
 | standalone delivery | `access/core` with CLI, HTTP, native MCP, web, and WebMCP adapters | every adapter shares projection semantics, preserves source refs, and remains read-only |
 
@@ -74,7 +75,7 @@ work -> expression -> edition -> item -> immutable file
   -> passage/region anchor
     -> observation
       -> versioned claim
-        -> human review event
+        -> human or authorized-agent assessment
           -> derived index or graph
 ```
 
@@ -82,7 +83,11 @@ The acquired bytes, digest, identity record, and review history form a durable
 spine. Claims about authorship, edition, structure, lemma, etymology,
 translation, sense, concept, and relation remain evidence-bearing and
 revisable. Stable identity protects their lineage; it does not make their
-content infallible.
+content infallible. [Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md)
+owns competence-scoped review and research admission. Operator direction,
+personal consent, rights, publication and canon are not delegated merely by
+admitting research use. Legacy human-only records keep their historical
+meaning; an explicit adapter, not relabeling, connects new agent assessments.
 
 The bibliographic ladder is not universal. Physical artifacts use a parallel
 `tos.artifact.*` spine; modern critical, documentary, or synoptic composites
@@ -116,7 +121,7 @@ At the address layer, the anchor identity, immutable File target, selected
 representation digest, and selector expression remain distinct. Text
 positions are Unicode-code-point half-open spans; byte positions are another
 type; alternative selectors and ordered refinements are explicit; mechanical
-resolution never becomes human verification. A tracked nonpublic record may
+resolution never becomes substantive verification. A tracked nonpublic record may
 retain a locator or withheld-selector receipt, but not copied source text.
 `tos_source_anchor_v2` is additive laboratory soil, not a migration of current
 v1 anchors.
@@ -126,7 +131,7 @@ diplomatic transcription, reviewed source text, and normalized text receive
 separate identities and immutable content digests. A successor names its exact
 predecessor record and content, records every code-point edit or a governed
 withheld-operations receipt, and declares the editorial policy that permits
-the transformation. Mechanical replay, human source review, language
+the transformation. Mechanical replay, source-visible review, language
 competence, accepted downstream use, and publication authority are independent
 gates; rights records and any publication authority remain separately
 digest-bound rather than compressed into a boolean. A normalization successor
@@ -182,10 +187,12 @@ translation correspondence, or relation remains a separately identified and
 revisable proposal. Their opaque IDs do not encode the current label or
 translation. Every semantic claim names its maker, time, method, evidence
 direction, source anchors, certainty meaning, alternatives, status, and review
-refs. A sign becomes accepted only through a rare source-visible real-human
-promotion checkpoint with declared competence and an unassisted baseline
-frozen before model suggestions. A graph edge is downstream of an accepted
-relation and accepted supporting claim; it is never a shortcut around them.
+refs. Existing semantic-annotation packet v2 encodes a source-visible real-human
+promotion checkpoint with declared competence and an unassisted baseline;
+that historical format is not silently reinterpreted as an agent act. New
+research assessment follows Knowledge Assessment through an explicit adapter.
+A stronger graph projection requires its scoped relation and claim admission;
+an inspectable proposal is not thereby an accepted fact.
 The public synthetic semantic-annotation v2 laboratory proves these closure
 and rejection mechanics without creating any accepted semantic object.
 
@@ -218,8 +225,10 @@ segmentation and tokenization identities, and ordered source/target anchors.
 Stable alignment and claim IDs survive changes to explanations and mapping
 interpretation. Cardinality, direction, order, technique, confidence, maker,
 competition, supersession, review, and rights posture remain independent.
-Software/model/imported mappings cannot accept themselves; a real-human
-source-and-target-visible competence review is a separate event. Any TEI,
+Software/model/imported mappings cannot accept themselves. The existing v1
+packet's real-human source-and-target-visible review remains historical;
+new competence-scoped agent assessment needs its explicit adapter and cannot
+fabricate that embedded review. Any TEI,
 Web Annotation, XLIFF, TMX, or graph form is a reproducible projection of an
 accepted owner claim and inherits the most restrictive visibility boundary.
 The public-synthetic A/B/C proves only these closure and rejection mechanics.

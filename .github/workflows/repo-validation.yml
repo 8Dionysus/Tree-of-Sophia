@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
+  # Keep the required repository gate explicit for pull-request events.
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: repo-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -14,6 +16,8 @@ jobs:
   kag_owner_family:
     name: KAG Owner Family
     runs-on: ubuntu-latest
+    env:
+      AOA_KAG_REVISION: 1a0342087b18d0a1f5630036937a548b6526e0e9
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -25,8 +29,23 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Fetch pinned aoa-kag provider imports
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+        run: |
+          git init --quiet "$AOA_KAG_ROOT"
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 https://github.com/8Dionysus/aoa-kag.git "$AOA_KAG_REVISION"
+          git -C "$AOA_KAG_ROOT" checkout --quiet --detach FETCH_HEAD
+          test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
+
       - name: Check current canonical KAG owner family
-        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@14ee1e33e43749d23c557b3ef526eca7edb36196
+        uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1a0342087b18d0a1f5630036937a548b6526e0e9
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+          # The pinned composite action executes provider scripts by absolute path;
+          # expose the matching checkout so segmented-family imports cannot resolve
+          # accidentally against the consumer repository's ``scripts`` package.
+          PYTHONPATH: ${{ runner.temp }}/aoa-kag
         with:
           history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
           event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
@@ -36,6 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_STATS_REVISION: 88ff38b1b38eef939f2c5b4541cbe8363a05fc8d
+      AOA_KAG_REVISION: 1a0342087b18d0a1f5630036937a548b6526e0e9
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -61,9 +81,26 @@ jobs:
           git -C "$AOA_STATS_ROOT" checkout --quiet --detach FETCH_HEAD
           test "$(git -C "$AOA_STATS_ROOT" rev-parse HEAD)" = "$AOA_STATS_REVISION"
 
+      - name: Fetch pinned aoa-kag provider owner
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+        run: |
+          git init --quiet "$AOA_KAG_ROOT"
+          git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 https://github.com/8Dionysus/aoa-kag.git "$AOA_KAG_REVISION"
+          git -C "$AOA_KAG_ROOT" checkout --quiet --detach FETCH_HEAD
+          test "$(git -C "$AOA_KAG_ROOT" rev-parse HEAD)" = "$AOA_KAG_REVISION"
+
       - name: Run release audit
         env:
           AOA_STATS_ROOT: ${{ runner.temp }}/aoa-stats
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+          AOA_KAG_REVISION: ${{ env.AOA_KAG_REVISION }}
+          # Exact event baseline only. Missing/zero/non-commit inputs fail closed;
+          # the owner gate never chooses HEAD^, a branch, or a remote fallback.
+          TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # Permit a first introduction only when all four baseline objects
+          # and any earlier declared-profile reader are genuinely absent.
+          TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION: "1"
         run: python scripts/release_check.py --phase checks
 
   repository_tests:

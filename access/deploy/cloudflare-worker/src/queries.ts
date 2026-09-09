@@ -1028,7 +1028,27 @@ export async function philosophyPacket(db: D1Database, query: string, viewId: st
 }
 
 export async function buildHealth(db: D1Database): Promise<Item> {
-  const revision = await meta<{ sha256: string }>(db, "data_revision");
+  const [revision, knowledge] = await Promise.all([
+    meta<{ sha256: string }>(db, "data_revision"),
+    meta<Item>(db, "knowledge_top"),
+  ]);
+  if (knowledge.schema !== "tos_knowledge_graph_v1") throw new Error("knowledge read model schema is not current");
+  const counts = knowledge.counts && typeof knowledge.counts === "object" && !Array.isArray(knowledge.counts)
+    ? knowledge.counts as Item
+    : {};
+  const coverage = counts.display_coverage && typeof counts.display_coverage === "object" && !Array.isArray(counts.display_coverage)
+    ? counts.display_coverage as Item
+    : {};
+  const expectedCoverage: Record<string, unknown> = {
+    node_titles: counts.nodes,
+    node_summaries: counts.nodes,
+    relation_labels: counts.relations,
+    relation_statements: counts.relations,
+    relation_explanations: counts.relations,
+  };
+  if (Object.entries(expectedCoverage).some(([key, value]) => typeof value !== "number" || coverage[key] !== value)) {
+    throw new Error("knowledge read model display coverage is incomplete");
+  }
   return {
     service: "tree-of-sophia-access",
     ok: true,
@@ -1036,5 +1056,7 @@ export async function buildHealth(db: D1Database): Promise<Item> {
     errors: [],
     runtime: "cloudflare-worker",
     data_revision: revision.sha256,
+    knowledge_schema: knowledge.schema,
+    knowledge_counts: counts,
   };
 }

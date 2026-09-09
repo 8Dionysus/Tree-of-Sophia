@@ -32,16 +32,22 @@ from build_source_witness_catalog import (
     CATALOG_ROOT,
     CLAIM_CATALOG_PATH,
     RECORD_FILES,
-    SOURCE_BASENAMES,
+    ADAPTED_RECORD_FILES,
     SOURCE_ROOT,
     CatalogBuildError,
     check_outputs,
     collect_records,
     render_outputs,
 )
+from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError, OWNER_LOCAL_HOME
+from source_bibliographic_topology import BibliographicTopologyError, validate_current_topology
+from source_metadata_snapshot import PublicationSnapshot
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+GROWTH_SCRIPTS = REPO_ROOT / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts"
+if str(GROWTH_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(GROWTH_SCRIPTS))
 CONTRACT_ROOT = Path("ToS/contracts")
 
 CORPUS_SCHEMA = CONTRACT_ROOT / "corpus-record.schema.json"
@@ -443,6 +449,135 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object) -> Path | None:
+    """Resolve recorded input bytes without treating history as current law.
+
+    Only a named active ToS schema may use the bounded, content-addressed
+    historical-contract lane. Ordinary source/evidence inputs still require
+    their current exact bytes. No Git history, network or fallback search runs.
+    """
+    if (not isinstance(ref, str) or not isinstance(digest, str)
+            or re.fullmatch(r'[a-f0-9]{64}', digest) is None):
+        return None
+    relative = Path(ref)
+    if (relative.as_posix() != ref or relative.is_absolute() or '..' in relative.parts
+            or not relative.parts or relative.parts[0] != 'ToS'
+            or any((repo_root / Path(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1))):
+        return None
+    current = repo_root / relative
+    try:
+        if not current.is_file():
+            return None
+        if _sha256(current) == digest:
+            return current
+        if re.fullmatch(r'ToS/contracts/[a-z][a-z0-9-]*\.schema\.json', ref) is None:
+            return None
+        history = repo_root / 'ToS/contracts/history'
+        archived = history / (digest + '.json')
+        if history.is_symlink() or archived.is_symlink() or not archived.is_file():
+            return None
+        with archived.open('rb') as stream:
+            raw = stream.read(1_048_577)
+        if len(raw) > 1_048_576 or hashlib.sha256(raw).hexdigest() != digest:
+            return None
+        schema = json.loads(raw)
+        if not isinstance(schema, dict) or schema.get('$id') != 'https://tree-of-sophia.local/' + ref:
+            return None
+        return archived
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+
+def _topology_evidence_matches(repo_root, evidence_ref, event_inputs, metadata_reader):
+    """Bind a legacy batch input to current or committed retained exact bytes.
+
+    Only supported Work/Expression metadata may use its retained lineage. No
+    current-version substitution, arbitrary blob search or Git fallback is
+    allowed. The caller reuses the reader and verifies its snapshot at the end.
+    """
+    if not isinstance(evidence_ref, str) or not isinstance(event_inputs, list):
+        return False
+    matches = [entry for entry in event_inputs if isinstance(entry, dict)
+               and entry.get('ref') == evidence_ref]
+    if len(matches) != 1:
+        return False
+    digest = matches[0].get('sha256')
+    if not isinstance(digest, str) or re.fullmatch(r'[a-f0-9]{64}', digest) is None:
+        return False
+    current = _recorded_provenance_input_path(repo_root, evidence_ref, digest)
+    if current is not None:
+        return True
+    if Path(evidence_ref).name not in {'work.json', 'expression.json'}:
+        return False
+    result = metadata_reader.resolve_source_bytes(evidence_ref, digest)
+    if not isinstance(result, dict) or result.get('status') != 'available':
+        return False
+    provenance = result.get('provenance')
+    source = provenance.get('source') if isinstance(provenance, dict) else None
+    record, exact = result.get('record'), result.get('exact_ref')
+    return (result.get('source_path') == evidence_ref and result.get('requested_sha256') == digest
+            and isinstance(source, dict) and source.get('source_ref') == evidence_ref
+            and source.get('record_sha256') == 'sha256:' + digest
+            and isinstance(record, dict) and isinstance(exact, dict)
+            and exact.get('id') == record.get('record_id')
+            and type(exact.get('version')) is int and exact['version'] == record.get('record_version'))
+
+
+def _legacy_topology_configuration(claims):
+    """An immutable batch describes itself, not the subsequently grown tree."""
+    counts = Counter(claim.get('predicate') for claim in claims
+                     if isinstance(claim.get('predicate'), str))
+    return {
+        'work_expression_claims_materialized': counts['has_expression'],
+        'expression_edition_claims_materialized': counts['embodied_by'],
+        'edition_item_claims_materialized': counts['exemplified_by'],
+        'topology_claims_reviewed': 0,
+        'source_text_admitted': False,
+        'human_review_performed': False,
+        'textual_equivalence_claims_created': 0,
+        'semantic_claims_created': 0,
+        'canon_promotion_performed': False,
+    }
+
+
+def _native_compound_claims(repo_root, issues, predicate, verify_compound):
+    """Admit a current carrier only through its exact committed compound plan."""
+    profiles = SourceClaimProfiles(repo_root)
+    accepted = []
+    for path in sorted((repo_root / SOURCE_ROOT).rglob('source-claims.jsonl')):
+        relative = path.relative_to(repo_root)
+        if relative.is_relative_to(OWNER_LOCAL_HOME):
+            continue
+        try:
+            for line, claim in profiles.read_rows(relative.as_posix()):
+                if claim.get('predicate') != predicate:
+                    continue
+                location = f'{relative.as_posix()}:{line}'
+                try:
+                    verified = verify_compound(repo_root, relative.as_posix(), claim)
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    issues.append((location, f'native {predicate} requires exact committed compound evidence: {error}'))
+                    continue
+                accepted.append((location, claim, verified['event']))
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            issues.append((relative.as_posix(), f'declared source Claim reader: {error}'))
+    return accepted
+
+
+def _native_topology_claims(repo_root, issues):
+    from source_expression_commands import verify_compound
+    from source_edition_commands import verify_compound as verify_embodiment
+    from source_item_commands import verify_compound as verify_exemplar
+    return [*_native_compound_claims(repo_root, issues, 'has_expression', verify_compound),
+            *_native_compound_claims(repo_root, issues, 'embodied_by', verify_embodiment),
+            *_native_compound_claims(repo_root, issues, 'exemplified_by', verify_exemplar)]
+
+
+def _native_responsibility_claims(repo_root, issues):
+    from source_responsibility_commands import verify_compound
+    return _native_compound_claims(repo_root, issues, 'translated_by', verify_compound)
 
 
 def _validate_required_provenance_output_digests(
@@ -2114,10 +2249,12 @@ def _semantic_annotation_v2_issues(packet: dict[str, Any]) -> list[str]:
             promotion_reviews = [
                 review_by_id[ref]
                 for ref in entity.get("admission_review_refs", [])
-                if ref in review_by_id and review_by_id[ref].get("review_kind") == "sign_promotion"
+                if ref in review_by_id
+                and review_by_id[ref].get("review_kind") == "sign_promotion"
+                and review_by_id[ref].get("decision") in accepting_decisions
             ]
             if not promotion_reviews:
-                messages.append(f"accepted {entity_kind} lacks a sign-promotion review: {entity_id}")
+                messages.append(f"accepted {entity_kind} lacks an accepting sign-promotion review: {entity_id}")
             for review in promotion_reviews:
                 baseline = review.get("unassisted_baseline", {})
                 if not (
@@ -7202,7 +7339,9 @@ def validate_zarathustra_authored_canon_evidence_bridge(
 
 def _record_paths(repo_root: Path) -> Iterable[Path]:
     source_root = repo_root / SOURCE_ROOT
-    for record_type, basename in SOURCE_BASENAMES.items():
+    basenames = {**{kind: kind + '.json' for kind in RECORD_FILES},
+                 **SourceRecordProfiles(repo_root).source_basenames}
+    for record_type, basename in basenames.items():
         if record_type == "link":
             continue
         for path in sorted(source_root.rglob(basename)):
@@ -7212,6 +7351,20 @@ def _record_paths(repo_root: Path) -> Iterable[Path]:
 
 
 def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
+    """One participating publication snapshot covers the complete validation."""
+    try:
+        snapshot = PublicationSnapshot(repo_root.resolve())
+    except (OSError, ValueError) as error:
+        return [(SOURCE_ROOT.as_posix(), f'source metadata publication is unavailable: {error}')]
+    issues = _validate_foundation(repo_root, require_local_payloads=require_local_payloads)
+    try:
+        snapshot.verify_current()
+    except (OSError, ValueError) as error:
+        issues.append((SOURCE_ROOT.as_posix(), f'source metadata publication changed during validation: {error}'))
+    return issues
+
+
+def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = False) -> list[Issue]:
     repo_root = repo_root.resolve()
     issues: list[Issue] = []
 
@@ -7638,12 +7791,19 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
 
     records_by_id: dict[str, tuple[dict[str, Any], Path]] = {}
     item_records: dict[str, tuple[dict[str, Any], Path]] = {}
+    profiles = SourceRecordProfiles(repo_root)
     for path in _record_paths(repo_root):
         payload = _load_json(path, repo_root, issues)
         if payload is None:
             continue
         location = _relative(path, repo_root)
-        _validate_payload(payload, corpus_validator, location, issues)
+        if payload.get('record_type') in profiles.profiles:
+            try:
+                profiles.validate(payload['record_type'], payload)
+            except SourceProfileError as exc:
+                issues.append((location, str(exc)))
+        else:
+            _validate_payload(payload, corpus_validator, location, issues)
         _validate_source_refs(repo_root, payload, location, issues)
         record_id = payload.get("record_id")
         if isinstance(record_id, str):
@@ -13723,55 +13883,12 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         if event_id == BIBLIOGRAPHIC_TOPOLOGY_EVENT_REF:
             topology_event = event
 
-    expected_topology_objects: dict[str, dict[str, set[str]]] = {
-        "has_expression": {
-            record_id: set()
-            for record_id, (payload, _) in records_by_id.items()
-            if payload.get("record_type") == "work"
-        },
-        "embodied_by": {
-            record_id: set()
-            for record_id, (payload, _) in records_by_id.items()
-            if payload.get("record_type") == "expression"
-        },
-        "exemplified_by": {
-            record_id: set()
-            for record_id, (payload, _) in records_by_id.items()
-            if payload.get("record_type") == "edition"
-        },
-    }
-    for expression_id, (expression, _) in records_by_id.items():
-        if expression.get("record_type") != "expression":
-            continue
-        work_ref = expression.get("work_ref")
-        if isinstance(work_ref, str):
-            expected_topology_objects["has_expression"].setdefault(
-                work_ref,
-                set(),
-            ).add(expression_id)
-    for edition_id, (edition, _) in records_by_id.items():
-        if edition.get("record_type") != "edition":
-            continue
-        for expression_ref in edition.get("embodies_expression_refs", []):
-            if isinstance(expression_ref, str):
-                expected_topology_objects["embodied_by"].setdefault(
-                    expression_ref,
-                    set(),
-                ).add(edition_id)
-    for item_id, edition_ref in item_edition_by_id.items():
-        expected_topology_objects["exemplified_by"].setdefault(
-            edition_ref,
-            set(),
-        ).add(item_id)
-
-    topology_claims_by_predicate_subject: dict[
-        str,
-        dict[str, dict[str, str]],
-    ] = {
-        predicate: {}
-        for _, predicate, _, _, _, _ in BIBLIOGRAPHIC_TOPOLOGY_ROUTES
-    }
-    seen_topology_pairs: set[tuple[str, str, str]] = set()
+    # The retained materialization batch remains exact and separately checked.
+    # Current closure is checked over all verified carriers below, not inferred
+    # from the historic event's count or retconned by a subsequent source edit.
+    from metadata_version_reader import MetadataVersionReader
+    topology_metadata_reader = MetadataVersionReader(repo_root)
+    legacy_topology_claims = []
 
     for (
         claim_relative,
@@ -13814,6 +13931,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
             start=1,
         ):
             location = f"{claim_file_ref}:{index}"
+            legacy_topology_claims.append(claim)
             _validate_payload(claim, claim_validator, location, issues)
             claim_id = claim.get("claim_id")
             subject_ref = claim.get("subject_ref")
@@ -13864,27 +13982,6 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
 
-            if isinstance(subject_ref, str) and isinstance(object_ref, str):
-                pair = (predicate, subject_ref, object_ref)
-                if pair in seen_topology_pairs:
-                    issues.append((location, f"duplicate bibliographic topology pair: {pair}"))
-                seen_topology_pairs.add(pair)
-                if isinstance(claim_id, str):
-                    topology_claims_by_predicate_subject[predicate].setdefault(
-                        subject_ref,
-                        {},
-                    )[claim_id] = object_ref
-                if object_ref not in expected_topology_objects[predicate].get(
-                    subject_ref,
-                    set(),
-                ):
-                    issues.append(
-                        (
-                            location,
-                            "claim is not backed by the declared corpus-record topology",
-                        )
-                    )
-
             expected_evidence: set[str] = set()
             for ref in (subject_ref, object_ref):
                 record = records_by_id.get(str(ref))
@@ -13905,17 +14002,11 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                     )
                 )
             if topology_event is not None:
-                event_inputs = {
-                    (entry.get("ref"), entry.get("sha256"))
-                    for entry in topology_event.get("inputs", [])
-                    if isinstance(entry, dict)
-                }
                 for evidence_ref in expected_evidence:
-                    evidence_path = repo_root / evidence_ref
-                    if evidence_path.is_file() and (
-                        evidence_ref,
-                        _sha256(evidence_path),
-                    ) not in event_inputs:
+                    if not _topology_evidence_matches(
+                        repo_root, evidence_ref, topology_event.get('inputs', []),
+                        topology_metadata_reader,
+                    ):
                         issues.append(
                             (
                                 location,
@@ -13924,71 +14015,40 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             )
                         )
 
-    for (
-        _claim_relative,
-        predicate,
-        subject_type,
-        _object_type,
-        claim_ref_field,
-        _output_role,
-    ) in BIBLIOGRAPHIC_TOPOLOGY_ROUTES:
-        for subject_ref, (subject, subject_path) in records_by_id.items():
-            if subject.get("record_type") != subject_type:
-                continue
-            location = _relative(subject_path, repo_root)
-            claims_for_subject = topology_claims_by_predicate_subject[predicate].get(
-                subject_ref,
-                {},
-            )
-            actual_claim_refs = set(subject.get(claim_ref_field, []))
-            expected_claim_refs = set(claims_for_subject)
-            if actual_claim_refs != expected_claim_refs:
-                issues.append(
-                    (
-                        location,
-                        f"{claim_ref_field} does not close over exact {predicate} claims",
-                    )
-                )
-            actual_objects = set(claims_for_subject.values())
-            expected_objects = expected_topology_objects[predicate].get(
-                subject_ref,
-                set(),
-            )
-            if actual_objects != expected_objects:
-                issues.append(
-                    (
-                        location,
-                        f"{predicate} claims do not close over declared corpus-record links",
-                    )
-                )
+    current_topology_claims = list(legacy_topology_claims)
+    for location, claim, event in _native_topology_claims(repo_root, issues):
+        if claim['claim_id'] in claim_ids:
+            issues.append((location, f"duplicate claim_id: {claim['claim_id']}"))
+        claim_ids.add(claim['claim_id'])
+        if event['event_id'] in event_ids:
+            issues.append((location, f"duplicate event_id: {event['event_id']}"))
+        event_ids.add(event['event_id'])
+        events_by_id[event['event_id']] = event
+        current_topology_claims.append(claim)
+    try:
+        validate_current_topology(
+            {identity: record for identity, (record, _) in records_by_id.items()},
+            current_topology_claims, item_edition_by_id=item_edition_by_id,
+        )
+    except BibliographicTopologyError as error:
+        for identity, message in error.issues:
+            record = records_by_id.get(identity)
+            location = _relative(record[1], repo_root) if record else identity
+            issues.append((location, message))
+    try:
+        topology_metadata_reader.verify_current()
+    except (OSError, ValueError) as error:
+        issues.append((BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
+                       f'legacy topology retained input snapshot changed: {type(error).__name__}'))
 
     if topology_event is not None:
         configuration = topology_event.get("method", {}).get("configuration", {})
-        expected_counts = {
-            "work_expression_claims_materialized": sum(
-                len(values)
-                for values in expected_topology_objects["has_expression"].values()
-            ),
-            "expression_edition_claims_materialized": sum(
-                len(values)
-                for values in expected_topology_objects["embodied_by"].values()
-            ),
-            "edition_item_claims_materialized": sum(
-                len(values)
-                for values in expected_topology_objects["exemplified_by"].values()
-            ),
-            "topology_claims_reviewed": 0,
-            "source_text_admitted": False,
-            "human_review_performed": False,
-            "textual_equivalence_claims_created": 0,
-            "semantic_claims_created": 0,
-            "canon_promotion_performed": False,
-        }
+        expected_counts = _legacy_topology_configuration(legacy_topology_claims)
         if configuration != expected_counts:
             issues.append(
                 (
                     BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
-                    "bibliographic topology provenance configuration differs from exact closure counts and authority limits",
+                    "bibliographic topology provenance configuration differs from exact legacy batch counts and authority limits",
                 )
             )
 
@@ -14218,8 +14278,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                 )
             )
         for input_ref, input_digest in actual_inputs.items():
-            input_path = repo_root / str(input_ref)
-            if not input_path.is_file() or _sha256(input_path) != input_digest:
+            if _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                 issues.append(
                     (
                         EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
@@ -14473,7 +14532,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                                         f"input is missing: {input_ref}",
                                     )
                                 )
-                            elif _sha256(input_path) != input_digest:
+                            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                                 issues.append(
                                     (
                                         location,
@@ -14506,6 +14565,26 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                             f"{evidence_ref}",
                         )
                     )
+
+    for location, claim, event in _native_responsibility_claims(repo_root, issues):
+        identity = claim['claim_id']
+        if identity in claim_ids:
+            issues.append((location, f'duplicate claim_id: {identity}'))
+        claim_ids.add(identity)
+        responsibility_claim_ids.add(identity)
+        responsibility_claim_subjects[identity] = claim['subject_ref']
+        responsibility_claim_predicates[identity] = claim['predicate']
+        responsibility_claim_objects[identity] = claim['object']
+        require_record(claim['subject_ref'], 'expression', location)
+        require_record(claim['object'], 'agent', location)
+        if event['event_id'] in event_ids:
+            issues.append((location, f'duplicate native responsibility provenance identity: {event["event_id"]}'))
+        event_ids.add(event['event_id'])
+        for evidence_ref in claim.get('evidence_refs', []):
+            if evidence_ref.startswith('tos.anchor.') and evidence_ref not in evidence_anchor_ids:
+                issues.append((location, f'unresolved source evidence anchor: {evidence_ref}'))
+            elif evidence_ref.startswith('ToS/') and not (repo_root / evidence_ref).is_file():
+                issues.append((location, f'unresolved repository evidence ref: {evidence_ref}'))
 
     validated_publication_event_refs: set[str] = set()
     for claim_path in sorted((repo_root / SOURCE_ROOT).rglob("publication-claims.jsonl")):
@@ -15035,7 +15114,7 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
                         f"work chronology provenance input is missing: {input_ref}",
                     )
                 )
-            elif _sha256(input_path) != input_digest:
+            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
                 issues.append(
                     (
                         WORK_CHRONOLOGY_PROVENANCE.as_posix(),
@@ -15337,8 +15416,20 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         expected_outputs = render_outputs(repo_root)
         for message in check_outputs(repo_root, expected_outputs):
             issues.append((CATALOG_ROOT.as_posix(), message))
-    except CatalogBuildError as exc:
+    except (CatalogBuildError, SourceProfileError) as exc:
         issues.append((CATALOG_ROOT.as_posix(), str(exc)))
+
+    if (any(payload.get('record_type') in profiles.profiles for payload, _ in records_by_id.values())
+            or next((repo_root / SOURCE_ROOT).rglob('historical-claims.jsonl'), None) is not None
+            or next((repo_root / SOURCE_ROOT).rglob('source-claims.jsonl'), None) is not None):
+        # Reuse the source-returnable graph boundary: source schemas, actual
+        # registry domains, exact catalogs, evidence, and provenance resolution.
+        # This is read-only and does not authorize the historical assertions.
+        from source_witness_bibliographic_graph_common import BibliographicGraphBuildError, build_payload
+        try:
+            build_payload(repo_root)
+        except (BibliographicGraphBuildError, SourceProfileError) as exc:
+            issues.append((SOURCE_ROOT.as_posix(), f'declared source profile: {exc}'))
 
     catalog_manifest_path = repo_root / CATALOG_ROOT / "catalog.manifest.json"
     catalog_manifest = _load_json(catalog_manifest_path, repo_root, issues)
@@ -15354,7 +15445,10 @@ def validate_foundation(repo_root: Path, *, require_local_payloads: bool = False
         entry_class = validator_for(entry_schema)
         entry_class.check_schema(entry_schema)
         entry_validator = entry_class(entry_schema, format_checker=FormatChecker())
-        for filename in RECORD_FILES.values():
+        record_files = {**RECORD_FILES, **{kind: filename for kind, filename in
+                                         {**profiles.catalog_files, **ADAPTED_RECORD_FILES}.items()
+                                         if kind in (catalog_manifest or {}).get('record_files', {})}}
+        for filename in record_files.values():
             catalog_path = repo_root / CATALOG_ROOT / filename
             for index, entry in enumerate(_load_jsonl(catalog_path, repo_root, issues), start=1):
                 _validate_payload(
@@ -15508,7 +15602,7 @@ def main(argv: list[str] | None = None) -> int:
 
     payload_posture = "required and fixity-checked" if args.require_local_payloads else "optional; present bytes fixity-checked"
     print(f"[ok] validated source-witness evidence spine ({payload_posture})")
-    print("[boundary] mechanics only: bibliographic, textual, rights, translation, semantic, and review truth remain human-evidence questions")
+    print("[boundary] mechanics only: source-visible assessment remains with authorized competent humans or agents; rights, consent, canon and publication retain their owners")
     return 0
 
 

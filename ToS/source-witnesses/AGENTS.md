@@ -75,9 +75,13 @@ evidence.
 - Keep the declared identity ladder and its outgoing claim refs in exact
   closure: Work `expression_claim_refs`, Expression
   `embodiment_claim_refs`, and Edition `exemplar_claim_refs` must resolve to
-  the three owned files under `relations/` and agree with `work_ref`,
-  `embodies_expression_refs`, and item-manifest `embodiment_ref`. Never infer
-  textual equivalence from this bibliographic topology.
+  the retained three legacy streams under `relations/` or a declared native
+  `has_expression`, `embodied_by`, or `exemplified_by` Claim with its verified
+  compound publication evidence.
+  Their union must agree with `work_ref`, `embodies_expression_refs`, and
+  item-manifest `embodiment_ref`. Read support does not grant standalone Claim
+  writes or retroactive changes to a legacy batch. Never infer textual
+  equivalence from this bibliographic topology.
 - Keep only item `payload/` content gitignored. Track manifest, SHA-256,
   provenance, rights, forensic report, and catalog entry.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and
@@ -89,6 +93,10 @@ evidence.
 - Keep canonical-source, working-translation, and bridge-translation posture
   explicit.
 - Preserve translator, editor, donor, and uncertainty notes where they matter.
+- Responsibility references close over unchanged legacy carriers and explicitly
+  verified native attachments. Native `translated_by` uses a separate Claim home
+  and exact Expression append, never the immutable `has_expression` stream.
+  Endpoint metadata bindings do not manufacture attribution evidence or review.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
 - Route extraction runtimes, model caches, benchmarks, and large working

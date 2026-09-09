@@ -1,0 +1,47 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "Предлагаемая номинальная лексическая единица для разбора форм Wille и Willen в немецком тексте JGB 19. Это не отдельное употребление, не универсальное значение воли и не тождество философских трактовок; принадлежность форм оформлена отдельными утверждениями.",
+  "preferred_label": "Wille — немецкая лексема",
+  "record_id": "tos.lexeme.german-wille",
+  "record_type": "lexeme",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_lexical_description_record_v1",
+  "semantic_content": {
+    "grammatical_account": "Предварительный именной разбор по немецкому контексту. Падеж и функция каждого употребления требуют собственного точного адреса и анализа; полная парадигма здесь не заявлена.",
+    "language": "ru",
+    "lexical_account": "Лексическое объединение исследуемых написаний под обозначением Wille; номинализованное Wollen и другие родственные выражения автоматически сюда не включаются.",
+    "script": "Cyrl"
+  },
+  "semantic_scope": {
+    "identity_criterion": "Исправления описания того же лексического объединения сохраняют ID; иной лексический предмет или разделение омонимов требуют явного перехода.",
+    "language": "ru",
+    "scope_note": "Исследовательская идентичность немецкой лексемы, обозначаемой Wille; выделена для JGB 19 без ограничения всей её истории одним разделом.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+    "http://www.nietzschesource.org/eKGWB/JGB-19"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+      "status": "unverified",
+      "value": "Wille — German lexeme"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

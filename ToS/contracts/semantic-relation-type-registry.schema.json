@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/semantic-relation-type-registry.schema.json",
+  "title": "Tree of Sophia semantic relation type registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "registry_version",
+    "entity_registry_ref",
+    "source_refs",
+    "fallback_relation_type_id",
+    "relations"
+  ],
+  "properties": {
+    "schema_version": {"const": "tos_semantic_relation_type_registry_v1"},
+    "registry_id": {"const": "tos.semantic.relation-types"},
+    "registry_version": {"type": "integer", "minimum": 1},
+    "entity_registry_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/nonEmptyString"}
+    },
+    "fallback_relation_type_id": {"$ref": "#/$defs/relationTypeId"},
+    "claim_navigation_template": {"$ref": "#/$defs/claimNavigationTemplate"},
+    "relations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/relationEntry"}
+    }
+  },
+  "$defs": {
+    "navigationLanguageMap": {
+      "type": "object", "minProperties": 1, "maxProperties": 16,
+      "propertyNames": {"maxLength": 64},
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "claimNavigationTemplate": {
+      "type": "object", "additionalProperties": false,
+      "description": "Owner-reviewed finite navigation syntax, not a HumanForm, standalone assertion, source title, assessment or use grant. Every rendering names all six fixed slots exactly once; no JSONPath, expressions, code or source-text instructions execute.",
+      "required": ["template_id", "template_version", "reader", "purpose", "owner_ref", "default_language", "max_output_bytes", "marker", "status_labels", "renderings"],
+      "properties": {
+        "template_id": {"type": "string", "pattern": "^tos\\.navigation-template\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"},
+        "template_version": {"type": "integer", "minimum": 1},
+        "reader": {"const": "claim-navigation-v1"},
+        "purpose": {"const": "claim-navigation-only"},
+        "owner_ref": {"const": "ToS/doctrine/HUMAN_FORMS.md"},
+        "default_language": {"type": "string", "minLength": 2, "maxLength": 64},
+        "max_output_bytes": {"type": "integer", "minimum": 128, "maximum": 16384},
+        "marker": {"$ref": "#/$defs/navigationLanguageMap"},
+        "status_labels": {
+          "type": "object", "additionalProperties": false, "required": ["epistemic_status", "review_status"],
+          "properties": {
+            "epistemic_status": {
+              "type": "object", "additionalProperties": false,
+              "required": ["observed", "inferred", "reported", "interpreted", "uncertain", "disputed"],
+              "properties": {
+                "observed": {"$ref": "#/$defs/navigationLanguageMap"}, "inferred": {"$ref": "#/$defs/navigationLanguageMap"},
+                "reported": {"$ref": "#/$defs/navigationLanguageMap"}, "interpreted": {"$ref": "#/$defs/navigationLanguageMap"},
+                "uncertain": {"$ref": "#/$defs/navigationLanguageMap"}, "disputed": {"$ref": "#/$defs/navigationLanguageMap"}
+              }
+            },
+            "review_status": {
+              "type": "object", "additionalProperties": false,
+              "required": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"],
+              "properties": {
+                "unreviewed": {"$ref": "#/$defs/navigationLanguageMap"}, "accepted": {"$ref": "#/$defs/navigationLanguageMap"},
+                "accepted_with_limits": {"$ref": "#/$defs/navigationLanguageMap"}, "rejected": {"$ref": "#/$defs/navigationLanguageMap"},
+                "ambiguous": {"$ref": "#/$defs/navigationLanguageMap"}, "deferred": {"$ref": "#/$defs/navigationLanguageMap"},
+                "superseded": {"$ref": "#/$defs/navigationLanguageMap"}
+              }
+            }
+          }
+        },
+        "renderings": {
+          "type": "object", "minProperties": 1, "maxProperties": 16, "additionalProperties": false,
+          "propertyNames": {"maxLength": 64},
+          "patternProperties": {
+            "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {
+              "type": "array", "minItems": 6, "maxItems": 32,
+              "items": {"oneOf": [
+                {"type": "object", "additionalProperties": false, "required": ["literal"], "properties": {"literal": {"type": "string", "minLength": 1, "maxLength": 256}}},
+                {"type": "object", "additionalProperties": false, "required": ["slot"], "properties": {"slot": {"enum": ["claim-marker", "subject-label", "predicate-label", "object-label", "declared-epistemic-status", "declared-review-status"]}}}
+              ]}
+            }
+          }
+        }
+      }
+    },
+    "sourceClaimProfile": {
+      "type": "object", "additionalProperties": false,
+      "description": "Read contract for source-claims.jsonl. Predicate and concrete endpoint meaning come from this relation entry; no write or assessment authority is granted.",
+      "required": ["profile_version", "reader", "assertion_layers", "schemas"],
+      "properties": {
+        "profile_version": {"type": "integer", "minimum": 1},
+        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "structured-value-v1", "structured-reference-value-v1"]},
+        "object_reference_set": {
+          "type": "object", "additionalProperties": false,
+          "description": "Explicit interpretation of the single fixed /object/members slot. No other field is scanned for references. Every member is a mandatory Claim dependency, not an independently accepted membership assertion.",
+          "required": ["member_type_ids", "min_items", "max_items", "subject_is_member"],
+          "properties": {
+            "member_type_ids": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/typeId"}},
+            "min_items": {"type": "integer", "minimum": 1, "maximum": 8},
+            "max_items": {"type": "integer", "minimum": 1, "maximum": 8},
+            "subject_is_member": {"type": "boolean"}
+          }
+        },
+        "value_kind": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "description": "Exact source-claims mapping of one concrete literal subtype; neither an identity nor executable reference extraction."},
+        "assertion_layers": {"type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment"]}},
+        "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
+          "items": {"type": "object", "additionalProperties": false,
+            "required": ["schema_version", "schema_ref", "schema_dependencies"],
+            "properties": {
+              "schema_version": {"type": "string", "minLength": 1},
+              "schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
+              "schema_dependencies": {"type": "array", "maxItems": 16, "uniqueItems": true,
+                "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
+            }}}
+      },
+      "allOf": [{"if": {"properties": {"reader": {"enum": ["structured-value-v1", "structured-reference-value-v1"]}}},
+        "then": {"required": ["value_kind"]}, "else": {"not": {"required": ["value_kind"]}}},
+        {"if": {"properties": {"reader": {"const": "structured-reference-value-v1"}}},
+        "then": {"required": ["object_reference_set"]}, "else": {"not": {"required": ["object_reference_set"]}}}]
+    },
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "typeId": {
+      "type": "string",
+      "pattern": "^tos\\.entity\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+    },
+    "relationTypeId": {
+      "type": "string",
+      "pattern": "^tos\\.relation\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
+    },
+    "localizedLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": ["string", "null"], "minLength": 1}
+      },
+      "required": ["default", "ru", "en"],
+      "properties": {
+        "default": {"$ref": "#/$defs/nonEmptyString"},
+        "ru": {"type": ["string", "null"], "minLength": 1},
+        "en": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "sourceMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_graph", "source_predicate_id", "scope"],
+      "properties": {
+        "source_graph": {"$ref": "#/$defs/nonEmptyString"},
+        "source_predicate_id": {"$ref": "#/$defs/nonEmptyString"},
+        "labels": {"$ref": "#/$defs/localizedLabel"},
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "scope": {"enum": ["edge", "claim-predicate"]}
+      }
+    },
+    "cardinality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["per_subject_min", "per_subject_max", "per_object_min", "per_object_max"],
+      "properties": {
+        "per_subject_min": {"type": ["integer", "null"], "minimum": 0},
+        "per_subject_max": {"type": ["integer", "null"], "minimum": 0},
+        "per_object_min": {"type": ["integer", "null"], "minimum": 0},
+        "per_object_max": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "relationEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation_type_id",
+        "parent_relation_type_ids",
+        "abstract",
+        "labels",
+        "inverse_labels",
+        "definition",
+        "lifecycle",
+        "owner_ref",
+        "domain_type_ids",
+        "range_type_ids",
+        "directionality",
+        "transitive",
+        "inverse_relation_type_id",
+        "cardinality",
+        "assertion_mode",
+        "evidence_required",
+        "review_requirement",
+        "source_mappings",
+        "supersedes_relation_type_id"
+      ],
+      "properties": {
+        "relation_type_id": {"$ref": "#/$defs/relationTypeId"},
+        "source_claim_profile": {"$ref": "#/$defs/sourceClaimProfile"},
+        "parent_relation_type_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/relationTypeId"}
+        },
+        "abstract": {"type": "boolean"},
+        "labels": {"$ref": "#/$defs/localizedLabel"},
+        "inverse_labels": {
+          "anyOf": [{"$ref": "#/$defs/localizedLabel"}, {"type": "null"}]
+        },
+        "definition": {"$ref": "#/$defs/nonEmptyString"},
+        "lifecycle": {"enum": ["stable", "candidate", "deprecated"]},
+        "owner_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "domain_type_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/typeId"}
+        },
+        "range_type_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/typeId"}
+        },
+        "directionality": {"enum": ["directed", "symmetric"]},
+        "transitive": {"type": "boolean"},
+        "inverse_relation_type_id": {
+          "anyOf": [{"$ref": "#/$defs/relationTypeId"}, {"type": "null"}]
+        },
+        "cardinality": {"$ref": "#/$defs/cardinality"},
+        "assertion_mode": {
+          "enum": ["structural", "direct", "reified-claim", "derived-projection", "unmapped"]
+        },
+        "evidence_required": {"type": "boolean"},
+        "review_requirement": {"enum": ["none", "recorded", "accepted"]},
+        "source_mappings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sourceMapping"}
+        },
+        "supersedes_relation_type_id": {
+          "anyOf": [{"$ref": "#/$defs/relationTypeId"}, {"type": "null"}]
+        }
+      }
+    }
+  }
+}

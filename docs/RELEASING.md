@@ -41,16 +41,37 @@ complementary `checks` and `tests` phases in parallel, while the default command
 continues to run the complete ordered sequence for local and official release
 use.
 
+The checks phase (and the default full gate) requires an explicitly selected
+pre-change `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT=FULL_COMMIT_OID` in the caller's
+environment. The commit must be present locally; evolution also requires its
+registry/contract objects. Export that exact input before `python scripts/release_check.py` or the
+official release helper; no previous commit or floating branch is selected
+automatically. Repo Validation provides the exact PR-base or push-before SHA
+from its event. The tests-only phase and current-snapshot readers need no Git
+baseline. See the [semantic registry transition
+contract](../ToS/doctrine/semantic-interchange/README.md) for the focused lane
+and the limits of this mechanical change check. A genuinely first introduction
+also needs the explicit `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`
+permission; absent/partial or deleted history never silently becomes a valid
+previous registry.
+
 The current bounded route battery covers validation authority, source-home and
 mechanics topology, Experience contracts, generated parity, graph exports,
 canon contracts, intake contracts, public entry, questbook surface, route-card
 structure, decision records, and repo-local tests. Keep the exact command order
 in the lane manifest, then run it through `python scripts/release_check.py`.
 
-Repo-local KAG index-family parity remains an explicit GitHub gate. When a
-release changes tracked source surfaces, regenerate the seven canonical
-indexes with the workflow-pinned `aoa-kag` action revision and verify full,
-incremental, and family-contract parity before the final PR commit.
+Repo-local KAG index-family parity is an explicit GitHub gate. TOS-D-0044
+ended the temporary freeze; the blocking `local_kag_provider` lane checks
+source currentness and integrity under [`kag/AGENTS.md`](../kag/AGENTS.md).
+The current ToS carrier is the v5 bounded segmented family, selected only by
+the exact `kag/provider_pin.json` checkout. When tracked sources change,
+regenerate its segments with the pinned `aoa-kag` revision and verify full,
+incremental, family-contract, bounded-provider, and compatibility checks before
+the final PR commit. v3/v4 readers remain explicit rollback carriers and are
+never a silent fallback. Follow [`kag/VALIDATION.md`](../kag/VALIDATION.md);
+regeneration does not activate a downstream runtime or grant semantic or
+artifact authority.
 
 After all `Repo Validation` gates pass, the workflow also builds and validates
 the standalone access product and uploads `tree-of-sophia-standalone.zip` with
@@ -71,7 +92,7 @@ task-local reconciliation ledger.
 | Edge | Published provider identity | Current source/CI identity | Exactness rule |
 | --- | --- | --- | --- |
 | `aoa-stats` → `Tree-of-Sophia` | `aoa-stats@v0.2.0`, commit `88ff38b1b38eef939f2c5b4541cbe8363a05fc8d` | `.github/workflows/repo-validation.yml` `AOA_STATS_REVISION` | The fetched provider `HEAD` must equal the published commit; an ancestor is not sufficient. |
-| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider source snapshot `14ee1e33e43749d23c557b3ef526eca7edb36196`; workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@14ee1e33e43749d23c557b3ef526eca7edb36196` | Keep the published provider body, current source snapshot, and workflow action explicit and distinct; `14ee1e33` is an unreleased/current source pin, not a retagged `v0.5.0`. |
+| `aoa-kag` → `Tree-of-Sophia` | `aoa-kag@v0.5.0`, commit `f46f146cc79a26fa81ad0f400b9c5774df293e57` | current provider/action source snapshot `1a0342087b18d0a1f5630036937a548b6526e0e9`; `kag/provider_pin.json` and workflow action `8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1a0342087b18d0a1f5630036937a548b6526e0e9` | Keep the published provider body, current source/action pin, and segmented consumer adapter explicit and distinct; `1a034208` is the landed successor pin, not a retagged `v0.5.0`. |
 
 These are source and CI release identities, not claims about runtime health,
 KAG freshness, semantic acceptance, or artifact trust. A production consumer

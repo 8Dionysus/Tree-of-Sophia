@@ -78,9 +78,11 @@ and focused test target; it is not command authority.
 
 Generated indexes, catalogs, graph packets, public mirrors, and route
 currentness are read models subordinate to their authored source. A green
-validator is evidence for its named contract only. Manual source-visible
-review owns bibliographic, textual, translation, semantic, rights, canon, and
-public-meaning judgments.
+validator is evidence for its named contract only. Source-visible assessment
+by authorized, competent humans or agents owns bibliographic, textual,
+translation and semantic judgments under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`.
+Rights, personal consent, canon and publication retain their actual owner
+authority; an assessment does not acquire those permissions by implication.
 
 ## Boundary routes
 

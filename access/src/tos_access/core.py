@@ -5,18 +5,58 @@ import json
 import os
 import sys
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
+from threading import Lock
 from pathlib import Path
 from typing import Any
+
+from .knowledge import (
+    KnowledgeGraphIndex,
+    KnowledgeSearchIndex,
+    build_knowledge_graph,
+    execute_knowledge_lens,
+    focus_knowledge_node,
+    inspect_knowledge_node,
+    inspect_knowledge_relation,
+    knowledge_catalog as build_knowledge_catalog,
+    search_knowledge_graph,
+)
+from .exploration import ExplorationService, exploration_capabilities
+from .temporal_comparison import compare_temporal_claims
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
 PHILOSOPHY_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/philosophy_graph_projection.min.json")
+BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH = Path(
+    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json"
+)
+ENTITY_TYPE_REGISTRY_RELATIVE_PATH = Path(
+    "ToS/doctrine/semantic-interchange/entity-types.v1.json"
+)
+RELATION_TYPE_REGISTRY_RELATIVE_PATH = Path(
+    "ToS/doctrine/semantic-interchange/relation-types.v1.json"
+)
 PHILOSOPHY_AUDIT_RELATIVE_PATH = Path("ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json")
 EVIDENCE_PROJECTION_RELATIVE_PATH = Path("ToS/derived-exports/epistemic_evidence_projection.min.json")
 WORD_ANALYSIS_PROVIDER_RELATIVE_PATH = Path("scripts/prepare_zarathustra_word_analysis_v1.py")
 SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/public-ledger")
+KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
+    "api": Path("access/contracts/knowledge-api.v1.json"),
+    "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
+    "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
+    "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
+    "temporal_comparison_request": Path("access/contracts/temporal-comparison-request.v1.schema.json"),
+    "temporal_comparison_result": Path("access/contracts/temporal-comparison-result.v1.schema.json"),
+    "entity_type_registry_schema": Path(
+        "ToS/contracts/semantic-entity-type-registry.schema.json"
+    ),
+    "relation_type_registry_schema": Path(
+        "ToS/contracts/semantic-relation-type-registry.schema.json"
+    ),
+    "entity_type_registry": ENTITY_TYPE_REGISTRY_RELATIVE_PATH,
+    "relation_type_registry": RELATION_TYPE_REGISTRY_RELATIVE_PATH,
+}
 SUPPORTED_CORPUS_VIEW_IDS = {
     "corpus-topology",
     "route-graph",
@@ -63,6 +103,106 @@ def _read_json_version(path_text: str, mtime_ns: int, size: int) -> dict[str, An
 def _read_json(path: Path) -> dict[str, Any]:
     stat = path.stat()
     return _read_json_version(path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=8)
+def _knowledge_graph_version(
+    index_path_text: str,
+    index_mtime_ns: int,
+    index_size: int,
+    philosophy_path_text: str,
+    philosophy_mtime_ns: int,
+    philosophy_size: int,
+    bibliographic_path_text: str,
+    bibliographic_mtime_ns: int,
+    bibliographic_size: int,
+    entity_registry_path_text: str,
+    entity_registry_mtime_ns: int,
+    entity_registry_size: int,
+    relation_registry_path_text: str,
+    relation_registry_mtime_ns: int,
+    relation_registry_size: int,
+) -> dict[str, Any]:
+    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
+    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    bibliographic = _read_json_version(
+        bibliographic_path_text,
+        bibliographic_mtime_ns,
+        bibliographic_size,
+    )
+    entity_registry = _read_json_version(
+        entity_registry_path_text,
+        entity_registry_mtime_ns,
+        entity_registry_size,
+    )
+    relation_registry = _read_json_version(
+        relation_registry_path_text,
+        relation_registry_mtime_ns,
+        relation_registry_size,
+    )
+    return build_knowledge_graph(
+        corpus,
+        philosophy,
+        bibliographic,
+        entity_registry,
+        relation_registry,
+    )
+
+
+@lru_cache(maxsize=8)
+def _knowledge_catalog_version(
+    index_path_text: str,
+    index_mtime_ns: int,
+    index_size: int,
+    philosophy_path_text: str,
+    philosophy_mtime_ns: int,
+    philosophy_size: int,
+    bibliographic_path_text: str,
+    bibliographic_mtime_ns: int,
+    bibliographic_size: int,
+    entity_registry_path_text: str,
+    entity_registry_mtime_ns: int,
+    entity_registry_size: int,
+    relation_registry_path_text: str,
+    relation_registry_mtime_ns: int,
+    relation_registry_size: int,
+) -> dict[str, Any]:
+    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
+    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    entity_registry = _read_json_version(
+        entity_registry_path_text,
+        entity_registry_mtime_ns,
+        entity_registry_size,
+    )
+    relation_registry = _read_json_version(
+        relation_registry_path_text,
+        relation_registry_mtime_ns,
+        relation_registry_size,
+    )
+    graph = _knowledge_graph_version(
+        index_path_text,
+        index_mtime_ns,
+        index_size,
+        philosophy_path_text,
+        philosophy_mtime_ns,
+        philosophy_size,
+        bibliographic_path_text,
+        bibliographic_mtime_ns,
+        bibliographic_size,
+        entity_registry_path_text,
+        entity_registry_mtime_ns,
+        entity_registry_size,
+        relation_registry_path_text,
+        relation_registry_mtime_ns,
+        relation_registry_size,
+    )
+    return build_knowledge_catalog(
+        graph,
+        corpus,
+        philosophy,
+        entity_registry,
+        relation_registry,
+    )
 
 
 def _contains(value: Any, needle: str) -> bool:
@@ -293,8 +433,31 @@ class ToSAccessCore:
     tos_root: Path
     index_path: Path
     philosophy_graph_projection_path: Path
+    bibliographic_graph_path: Path
+    entity_type_registry_path: Path
+    relation_type_registry_path: Path
     philosophy_post_planting_audit_path: Path
     evidence_projection_path: Path
+    _exploration: ExplorationService = field(init=False, repr=False, compare=False)
+    _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
+    _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
+    _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        self._exploration = ExplorationService(self.knowledge_graph)
+
+    def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
+        return self._exploration.explore(request)
+
+    def knowledge_exploration_contracts(self) -> dict[str, Any]:
+        return {
+            "capabilities": exploration_capabilities(),
+            "request": _read_json(self.tos_root / "access/contracts/exploration-request.v1.schema.json"),
+            "result": _read_json(self.tos_root / "access/contracts/exploration-result.v1.schema.json"),
+            "request_v2": _read_json(self.tos_root / "access/contracts/exploration-request.v2.schema.json"),
+            "result_v2": _read_json(self.tos_root / "access/contracts/exploration-result.v2.schema.json"),
+        }
 
     @classmethod
     def discover(
@@ -302,6 +465,9 @@ class ToSAccessCore:
         tos_root: str | Path | None = None,
         index_path: str | Path | None = None,
         philosophy_graph_projection_path: str | Path | None = None,
+        bibliographic_graph_path: str | Path | None = None,
+        entity_type_registry_path: str | Path | None = None,
+        relation_type_registry_path: str | Path | None = None,
         philosophy_post_planting_audit_path: str | Path | None = None,
         evidence_projection_path: str | Path | None = None,
     ) -> "ToSAccessCore":
@@ -320,6 +486,27 @@ class ToSAccessCore:
         ).expanduser()
         if not philosophy_projection.is_absolute():
             philosophy_projection = root / philosophy_projection
+        bibliographic_graph = Path(
+            bibliographic_graph_path
+            or os.environ.get("TOS_BIBLIOGRAPHIC_GRAPH_PATH")
+            or root / BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH
+        ).expanduser()
+        if not bibliographic_graph.is_absolute():
+            bibliographic_graph = root / bibliographic_graph
+        entity_registry = Path(
+            entity_type_registry_path
+            or os.environ.get("TOS_ENTITY_TYPE_REGISTRY_PATH")
+            or root / ENTITY_TYPE_REGISTRY_RELATIVE_PATH
+        ).expanduser()
+        if not entity_registry.is_absolute():
+            entity_registry = root / entity_registry
+        relation_registry = Path(
+            relation_type_registry_path
+            or os.environ.get("TOS_RELATION_TYPE_REGISTRY_PATH")
+            or root / RELATION_TYPE_REGISTRY_RELATIVE_PATH
+        ).expanduser()
+        if not relation_registry.is_absolute():
+            relation_registry = root / relation_registry
         philosophy_audit = Path(
             philosophy_post_planting_audit_path
             or os.environ.get("TOS_PHILOSOPHY_POST_PLANTING_AUDIT_PATH")
@@ -338,6 +525,9 @@ class ToSAccessCore:
             tos_root=root,
             index_path=index.resolve(),
             philosophy_graph_projection_path=philosophy_projection.resolve(),
+            bibliographic_graph_path=bibliographic_graph.resolve(),
+            entity_type_registry_path=entity_registry.resolve(),
+            relation_type_registry_path=relation_registry.resolve(),
             philosophy_post_planting_audit_path=philosophy_audit.resolve(),
             evidence_projection_path=evidence_projection.resolve(),
         )
@@ -348,13 +538,21 @@ class ToSAccessCore:
     def index(self) -> dict[str, Any]:
         return _read_json(self.index_path)
 
-    def source_navigation(self) -> dict[str, Any]:
+    def source_navigation(self, *, bibliographic_only: bool = False) -> dict[str, Any]:
         navigation = self.index().get("source_navigation")
         if not isinstance(navigation, dict):
             raise RuntimeError("ToS corpus index has no source_navigation surface")
         if navigation.get("schema_version") != "tos_source_navigation_v1":
             raise RuntimeError("ToS source_navigation schema_version must be tos_source_navigation_v1")
-        return navigation
+        if not bibliographic_only:
+            return navigation
+        # Legacy source descent/dossiers browse bibliographic identity. Dense
+        # versioned text packet members use indexed knowledge routes instead.
+        nodes = [n for n in navigation.get('nodes', []) if not (n.get('properties') or {}).get('packet_id')]
+        ids = {n['node_id'] for n in nodes}
+        edges = [e for e in navigation.get('edges', []) if e['from_id'] in ids and e['to_id'] in ids]
+        return {**navigation, 'nodes': nodes, 'edges': edges,
+                'counts': {**navigation.get('counts', {}), 'nodes': len(nodes), 'edges': len(edges)}}
 
     def source_descend(
         self,
@@ -364,7 +562,7 @@ class ToSAccessCore:
     ) -> dict[str, Any]:
         """Walk downward through the authored source-navigation projection."""
 
-        navigation = self.source_navigation()
+        navigation = self.source_navigation(bibliographic_only=True)
         bounded_depth = _bounded_int(max_depth, 8, 1, 8)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
         nodes_by_id = {
@@ -419,9 +617,9 @@ class ToSAccessCore:
         }
 
     def source_dossier(self, object_id: str, limit: int = 300) -> dict[str, Any]:
-        """Return compact human and agent-facing context for one Work or Link."""
+        """Return compact human and agent-facing context for one bibliographic object or Link."""
 
-        navigation = self.source_navigation()
+        navigation = self.source_navigation(bibliographic_only=True)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
         nodes_by_id = {
             str(node.get("node_id")): node
@@ -431,8 +629,8 @@ class ToSAccessCore:
         selected = nodes_by_id.get(object_id)
         if selected is None:
             raise KeyError(f"unknown ToS dossier object: {object_id}")
-        if selected.get("node_kind") not in {"work", "link"}:
-            raise ValueError("dossiers are currently available for Work and Link objects")
+        if selected.get("node_kind") not in {"work", "expression", "edition", "item", "file", "link"}:
+            raise ValueError("dossiers are available for Work, Expression, Edition, Item, File, and Link objects")
 
         all_edges = sorted(
             [edge for edge in navigation.get("edges", []) if isinstance(edge, dict)],
@@ -474,7 +672,7 @@ class ToSAccessCore:
         # to the owning Work. A Work dossier already has its root and never
         # walks backward through a shared Item into neighboring Works.
         forward_roots = {object_id} if selected.get("node_kind") == "work" else set()
-        if selected.get("node_kind") == "link":
+        if selected.get("node_kind") != "work":
             lineage_queue: deque[str] = deque([object_id])
             visited_lineage: set[str] = set()
             while lineage_queue:
@@ -488,7 +686,8 @@ class ToSAccessCore:
                     continue
                 allowed_predicates = link_predicates if current_kind == "link" else bibliographic_predicates
                 for edge in incoming.get(current, []):
-                    if (
+                    structural_file_parent = current_kind == "file" and edge.get("edge_kind") == "authored_item_manifest"
+                    if not structural_file_parent and (
                         edge.get("edge_kind") != "evidence_claim"
                         or edge.get("predicate_id") not in allowed_predicates
                     ):
@@ -610,7 +809,7 @@ class ToSAccessCore:
             if set(_string_list(record.get("scope_refs"))) & decision_scope_ids
         ]
 
-        dossier_links = grouped_chain["link"] if selected.get("node_kind") == "work" else [selected]
+        dossier_links = [selected] if selected.get("node_kind") == "link" else grouped_chain["link"]
         link_statuses = {
             str(node.get("properties", {}).get("access_status") or "unknown")
             for node in dossier_links
@@ -708,6 +907,33 @@ class ToSAccessCore:
             )
         return payload
 
+    def bibliographic_graph(self) -> dict[str, Any]:
+        payload = _read_json(self.bibliographic_graph_path)
+        if payload.get("schema_version") != "tos_source_witness_bibliographic_graph_v1":
+            raise RuntimeError(
+                "ToS bibliographic claim graph schema_version must be "
+                "tos_source_witness_bibliographic_graph_v1"
+            )
+        return payload
+
+    def entity_type_registry(self) -> dict[str, Any]:
+        payload = _read_json(self.entity_type_registry_path)
+        if payload.get("schema_version") != "tos_semantic_entity_type_registry_v1":
+            raise RuntimeError(
+                "ToS entity type registry schema_version must be "
+                "tos_semantic_entity_type_registry_v1"
+            )
+        return payload
+
+    def relation_type_registry(self) -> dict[str, Any]:
+        payload = _read_json(self.relation_type_registry_path)
+        if payload.get("schema_version") != "tos_semantic_relation_type_registry_v1":
+            raise RuntimeError(
+                "ToS relation type registry schema_version must be "
+                "tos_semantic_relation_type_registry_v1"
+            )
+        return payload
+
     def philosophy_audit_exists(self) -> bool:
         return self.philosophy_post_planting_audit_path.is_file()
 
@@ -728,6 +954,165 @@ class ToSAccessCore:
                 "tos_epistemic_evidence_projection_v1"
             )
         return payload
+
+    def knowledge_graph(self) -> dict[str, Any]:
+        """Return a public read model with display fields, not a content-completeness verdict."""
+        index_stat = self.index_path.stat()
+        philosophy_stat = self.philosophy_graph_projection_path.stat()
+        bibliographic_stat = self.bibliographic_graph_path.stat()
+        entity_registry_stat = self.entity_type_registry_path.stat()
+        relation_registry_stat = self.relation_type_registry_path.stat()
+        return _knowledge_graph_version(
+            self.index_path.resolve().as_posix(),
+            index_stat.st_mtime_ns,
+            index_stat.st_size,
+            self.philosophy_graph_projection_path.resolve().as_posix(),
+            philosophy_stat.st_mtime_ns,
+            philosophy_stat.st_size,
+            self.bibliographic_graph_path.resolve().as_posix(),
+            bibliographic_stat.st_mtime_ns,
+            bibliographic_stat.st_size,
+            self.entity_type_registry_path.resolve().as_posix(),
+            entity_registry_stat.st_mtime_ns,
+            entity_registry_stat.st_size,
+            self.relation_type_registry_path.resolve().as_posix(),
+            relation_registry_stat.st_mtime_ns,
+            relation_registry_stat.st_size,
+        )
+
+    def knowledge_catalog(self) -> dict[str, Any]:
+        """Describe the compositional grammar, vocabulary, and stored lens specs."""
+        index_stat = self.index_path.stat()
+        philosophy_stat = self.philosophy_graph_projection_path.stat()
+        bibliographic_stat = self.bibliographic_graph_path.stat()
+        entity_registry_stat = self.entity_type_registry_path.stat()
+        relation_registry_stat = self.relation_type_registry_path.stat()
+        return _knowledge_catalog_version(
+            self.index_path.resolve().as_posix(),
+            index_stat.st_mtime_ns,
+            index_stat.st_size,
+            self.philosophy_graph_projection_path.resolve().as_posix(),
+            philosophy_stat.st_mtime_ns,
+            philosophy_stat.st_size,
+            self.bibliographic_graph_path.resolve().as_posix(),
+            bibliographic_stat.st_mtime_ns,
+            bibliographic_stat.st_size,
+            self.entity_type_registry_path.resolve().as_posix(),
+            entity_registry_stat.st_mtime_ns,
+            entity_registry_stat.st_size,
+            self.relation_type_registry_path.resolve().as_posix(),
+            relation_registry_stat.st_mtime_ns,
+            relation_registry_stat.st_size,
+        )
+
+    def knowledge_contracts(self) -> dict[str, Any]:
+        """Return the executable API map and JSON Schemas through one public read route."""
+        contracts = {
+            contract_id: _read_json(self.tos_root / relative_path)
+            for contract_id, relative_path in KNOWLEDGE_CONTRACT_RELATIVE_PATHS.items()
+        }
+        return {
+            "schema": "tos_knowledge_contract_bundle_v1",
+            "contracts": contracts,
+            "source_refs": [
+                relative_path.as_posix()
+                for relative_path in KNOWLEDGE_CONTRACT_RELATIVE_PATHS.values()
+            ],
+            "authority_boundary": {
+                "is_source": False,
+                "writes_to_tree": False,
+                "source_owner": "Tree-of-Sophia/access/contracts",
+                "note": "This packet transports versioned access contracts; it does not author ToS meaning.",
+            },
+        }
+
+    def knowledge_search(
+        self,
+        query: str = "",
+        *,
+        sources: list[str] | None = None,
+        kind_ids: list[str] | None = None,
+        predicate_ids: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 40,
+    ) -> dict[str, Any]:
+        """Search the normalized human/agent knowledge surface without choosing a legacy mode."""
+        graph = self.knowledge_graph()
+        with self._search_lock:
+            if self._search_index is None or self._search_index.graph is not graph:
+                self._search_index = KnowledgeSearchIndex(graph)
+            index = self._search_index
+        return search_knowledge_graph(
+            graph,
+            query,
+            sources=sources,
+            kind_ids=kind_ids,
+            predicate_ids=predicate_ids,
+            offset=offset,
+            limit=limit,
+            search_index=index,
+        )
+
+    def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
+        """Inspect one normalized node (or all namespaced matches for a native ID)."""
+        graph = self.knowledge_graph()
+        return inspect_knowledge_node(graph, node_id, relation_limit, graph_index=self._current_graph_index(graph))
+
+    def knowledge_relation(self, relation_id: str) -> dict[str, Any]:
+        """Inspect one normalized relation and its display-complete endpoints."""
+        graph = self.knowledge_graph()
+        return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
+
+    def knowledge_temporal_compare(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Compare the date envelopes of two exact Claims, without adjudication."""
+        graph = self.knowledge_graph()
+        return compare_temporal_claims(graph, request, graph_index=self._current_graph_index(graph))
+
+    def _current_graph_index(self, graph: dict[str, Any]) -> KnowledgeGraphIndex:
+        with self._graph_index_lock:
+            if self._graph_index is None or self._graph_index.graph is not graph:
+                self._graph_index = KnowledgeGraphIndex(graph)
+            return self._graph_index
+
+    def knowledge_focus(
+        self,
+        node_id: str,
+        *,
+        sources: list[str] | None = None,
+        depth: int = 1,
+        direction: str = "either",
+        predicate_ids: list[str] | None = None,
+        node_limit: int = 200,
+        relation_limit: int = 400,
+        profile: str = "overview",
+    ) -> dict[str, Any]:
+        """Construct a bounded radial lens around one exact or unambiguous node identity."""
+        return focus_knowledge_node(
+            self.knowledge_graph(),
+            node_id,
+            sources=sources,
+            depth=depth,
+            direction=direction,
+            predicate_ids=predicate_ids,
+            node_limit=node_limit,
+            relation_limit=relation_limit,
+            profile=profile,
+        )
+
+    def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict[str, Any]:
+        """Compile and execute a bounded read-only lens supplied by a human or agent."""
+        return execute_knowledge_lens(self.knowledge_graph(), spec)
+
+    def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
+        """Compile one source-backed stored lens through the same generic engine."""
+        catalog = self.knowledge_catalog()
+        spec = next(
+            (item for item in catalog.get("lenses", []) if isinstance(item, dict) and item.get("lens_id") == lens_id),
+            None,
+        )
+        if spec is None:
+            raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
+        return self.compile_knowledge_lens(spec)
 
     def status(self) -> dict[str, Any]:
         exists = self.index_exists()

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/record-version-view.schema.json",
+  "title": "Read-only exact source record version view",
+  "description": "A derived address for one exact historical or current public Claim or metadata record. It neither rewrites the source nor assigns its enduring identity to the version view, and unavailable bytes never fall back to another version.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_ref", "record_kind", "status", "reason", "version_status", "record", "provenance", "grants_current_use", "performs_assessment"],
+  "properties": {
+    "schema_version": {"const": "tos_record_version_view_v1"},
+    "record_ref": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"},
+    "record_kind": {"enum": ["claim", "metadata"]},
+    "status": {"enum": ["available", "missing", "stale", "corrupt", "access-restricted", "over-budget"]},
+    "reason": {"type": "string", "minLength": 1, "maxLength": 256},
+    "version_status": {"enum": [null, "current", "historical"]},
+    "record": {"type": ["object", "null"], "description": "The complete selected source object only. Its canonical digest and claim_id/claim_version or record_id/record_version must equal record_ref. Raw byte fixity is separate provenance. Unknown fields remain intact; no current substitution or neighboring records."},
+    "provenance": {"type": "object", "description": "Bounded source-reader evidence: exact public catalog binding and selected record bytes/history. Metadata's record-only archive verification does not verify unread companion bytes. This is not authority configuration, a use grant, or the complete source package."},
+    "grants_current_use": {"const": false},
+    "performs_assessment": {"const": false}
+  },
+  "$defs": {
+    "metadataHistory": {
+      "description": "Bounded public source-owner listing. It establishes exact navigable record refs, not current use, verified companion bytes, or metadata versions before the retained baseline.",
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "status", "reason", "record_id", "current_ref", "refs", "provenance", "grants_current_use", "performs_assessment", "writes_to_source"],
+      "properties": {
+        "schema_version": {"const": "tos_metadata_record_history_v1"},
+        "status": {"enum": ["available", "missing", "stale", "corrupt", "access-restricted", "over-budget"]},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 256},
+        "record_id": {"type": "string", "pattern": "^tos\\.(?!claim\\.)[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"},
+        "current_ref": {"anyOf": [{"$ref": "#/properties/record_ref"}, {"type": "null"}]},
+        "refs": {"type": "array", "maxItems": 129, "uniqueItems": true, "items": {"$ref": "#/properties/record_ref"}},
+        "provenance": {"type": ["object", "null"]},
+        "grants_current_use": {"const": false}, "performs_assessment": {"const": false}, "writes_to_source": {"const": false}
+      },
+      "allOf": [{"if": {"properties": {"status": {"const": "available"}}},
+        "then": {"properties": {"current_ref": {"type": "object"}, "refs": {"minItems": 1}, "provenance": {"type": "object", "minProperties": 1}}},
+        "else": {"properties": {"current_ref": {"type": "null"}, "refs": {"maxItems": 0}, "provenance": {"type": "null"}}}}]
+    },
+    "navigationNode": {
+      "description": "Closed source-navigation carrier: all original fields belong inside the exact-digest-bound record, never in generic display, authority or Claim convenience fields.",
+      "type": "object", "additionalProperties": false,
+      "required": ["node_id", "node_kind", "source_ref", "properties"],
+      "properties": {
+        "node_id": {"type": "string", "pattern": "^record-version:[a-f0-9]{64}$(?![\\s\\S])"},
+        "node_kind": {"const": "record-version"},
+        "label": {"const": "Exact record version"},
+        "identity_status": {"const": "not_applicable"},
+        "source_ref": {"type": "string", "pattern": "\\S"},
+        "properties": {"type": "object", "additionalProperties": false,
+          "required": ["record_version_view"], "properties": {"record_version_view": {"$ref": "#"}}}
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"record_kind": {"const": "claim"}}},
+      "then": {"properties": {"record_ref": {"properties": {"id": {"pattern": "^tos\\.claim\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"}}}}},
+      "else": {"properties": {"record_ref": {"properties": {"id": {"pattern": "^tos\\.(?!claim\\.)[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"}}}}}},
+    {"if": {"properties": {"status": {"const": "available"}}},
+      "then": {"properties": {"record": {"type": "object"}, "version_status": {"enum": ["current", "historical"]}, "provenance": {"minProperties": 1}}},
+      "else": {"properties": {"record": {"type": "null"}, "version_status": {"type": "null"}, "provenance": {"maxProperties": 0}}}}
+  ]
+}

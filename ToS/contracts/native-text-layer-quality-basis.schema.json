@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/native-text-layer-quality-basis.schema.json",
+  "title": "Derived current-use basis of one exactly assessed native TextLayer",
+  "description": "Trusted journal resolution for dependent use. The journal head guards concurrency but is deliberately absent from the semantic basis. This view is not an authored source version or a new review act.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "basis_id", "basis_version", "layer", "comparison", "use", "scope", "policy", "assessment_refs", "status", "can_use", "limits", "visibility", "publication_authorized", "performs_semantic_assessment"],
+  "properties": {
+    "schema_version": {"const": "tos_native_text_layer_quality_basis_v1"},
+    "basis_id": {"type": "string", "pattern": "^tos\\.quality-basis\\.sha256\\.[a-f0-9]{64}$"},
+    "basis_version": {"const": 1},
+    "layer": {"$ref": "#/$defs/exactRef"},
+    "comparison": {"oneOf": [{"$ref": "#/$defs/exactRef"}, {"type": "null"}]},
+    "use": {"enum": ["text-layer:citation", "text-layer:linguistic-analysis", "text-layer:semantic-analysis", "text-layer:search-projection"]},
+    "scope": {"type": "object", "additionalProperties": false, "required": ["content_file_id", "content_sha256", "text_scope"], "properties": {
+      "content_file_id": {"type": "string", "minLength": 1}, "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+      "text_scope": {"type": "object", "additionalProperties": false, "required": ["position_unit", "interval", "start", "end"], "properties": {
+        "position_unit": {"const": "unicode_code_point"}, "interval": {"const": "half_open"}, "start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 1}
+      }}
+    }},
+    "policy": {"$ref": "#/$defs/exactRef"},
+    "assessment_refs": {"type": "array", "uniqueItems": true, "maxItems": 1024, "items": {"$ref": "#/$defs/exactRef"}},
+    "status": {"enum": ["admitted", "admitted-with-limits", "disputed", "rejected", "deferred", "unreviewed"]},
+    "can_use": {"type": "boolean"},
+    "limits": {"type": "array", "uniqueItems": true, "maxItems": 1024, "items": {"type": "string", "minLength": 1}},
+    "visibility": {"const": "local_only"},
+    "publication_authorized": {"const": false},
+    "performs_semantic_assessment": {"const": false}
+  },
+  "$defs": {
+    "exactRef": {"type": "object", "additionalProperties": false, "required": ["id", "version", "digest"], "properties": {
+      "id": {"type": "string", "minLength": 1}, "version": {"type": "integer", "minimum": 1},
+      "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+    }}
+  }
+}

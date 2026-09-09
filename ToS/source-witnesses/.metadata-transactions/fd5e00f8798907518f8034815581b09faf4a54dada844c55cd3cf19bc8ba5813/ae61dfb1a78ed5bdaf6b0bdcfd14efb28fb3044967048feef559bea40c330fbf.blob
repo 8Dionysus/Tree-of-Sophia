@@ -1,0 +1,183 @@
+{
+  "schema_version": "tos_edition_item_receipt_v1",
+  "operation": "item.adopt",
+  "transaction_id": "sha256:fd5e00f8798907518f8034815581b09faf4a54dada844c55cd3cf19bc8ba5813",
+  "command_id": "tos.foundation.native-item-adoption.gutenberg-4363.20260909.v1",
+  "request_digest": "sha256:cf8f1ea95a24d011d683f67ed75995010976373cf7806fd81e28e4351e3b9020",
+  "principal_id": "model:foundation-native-growth-source-review",
+  "authority_ref": "operator:tos-foundation-v1:native-item-metadata-adoption:2026-09-09",
+  "owner_configuration": "sha256:a8e12ae9e174ebac7a8d229a991e8edae0739c33949c95838a8f777ec74eae76",
+  "recorded_at": "2026-09-09T07:21:59.761443+00:00",
+  "scope": {
+    "acquisition_event_id": "tos.event.acquisition.jenseits-gutenberg-4363.local-copy.2026-09-09",
+    "allowed_claim_form_ids": [
+      "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.exemplar-statement-ru"
+    ],
+    "allowed_edition_form_ids": [
+      "tos.form.jenseits-project-gutenberg-4363-edition.name-ru",
+      "tos.form.jenseits-project-gutenberg-4363-edition.name-en",
+      "tos.form.jenseits-project-gutenberg-4363-edition.source-note"
+    ],
+    "allowed_item_form_ids": [
+      "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.name-ru",
+      "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.source-note-ru"
+    ],
+    "byte_size": 238143,
+    "claim_id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+    "edition_id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+    "edition_source_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/edition.json",
+    "file_id": "tos.file.sha256.9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+    "inventory_event_id": "tos.event.forensic.jenseits-gutenberg-4363.epub-inventory.2026-09-09",
+    "item_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+    "item_source_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.json",
+    "media_type": "application/epub+zip",
+    "original_basename": "pg4363-images-3.epub",
+    "payload_basename": "pg4363-images-3.epub",
+    "provenance_event_id": "tos.event.annotation.jenseits-gutenberg-4363.item-metadata-link.2026-09-09",
+    "rights_id": "tos.rights.jenseits-gutenberg-4363.local-epub3-20260909",
+    "sha256": "9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1"
+  },
+  "dependencies": "sha256:906cb847d9b3f9e58e07ec615c30c2946352ec367fd7fa1a57493b3d2739d4dc",
+  "parent_before": {
+    "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+    "version": 1,
+    "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+  },
+  "parent_after": {
+    "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+    "version": 2,
+    "digest": "sha256:83b08f31df0fe87469a1471ea688b12bd78e7197d6a959a48bc574c26f3582ac"
+  },
+  "parent_revision": "sha256:e504036a8fbc15b97fecfcf825d418ec3491108d566e4fcfb06933ed572fe393",
+  "parent_archive_ref": "ToS/source-witnesses/.record-revisions/6ffc4b042ef91edda6ec650d345743debaf6ba45b216325fcabcfc879e462424-e504036a8fbc15b97fecfcf825d418ec3491108d566e4fcfb06933ed572fe393",
+  "parent_transition_sha256": "sha256:f9cbb610aef03e83d4783025185c5cb4cb839657bc0b13cde55ba9cf8919b09f",
+  "parent_before_files": {
+    "edition.json": {
+      "sha256": "sha256:91603007ba2aa483637c214e22f7a24d8e5a8e8b9f13b21c5edbbcd40139f95f",
+      "bytes": 2702
+    },
+    "edition.human-forms.json": {
+      "sha256": "sha256:cd3ee3896d12b6894b68ae191d1c1fe0298ab327e37d640c1556c123b7a85bc7",
+      "bytes": 7395
+    }
+  },
+  "item": {
+    "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+    "version": 1,
+    "digest": "sha256:d42cf015697a100a356e14404f083882c604b2ba270828b4a0200634df51b189"
+  },
+  "claim": {
+    "id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+    "version": 1,
+    "digest": "sha256:44293bb3a686cc77104d46252b25089a2fb308989f417227850980708ddb8b0b"
+  },
+  "forms": {
+    "edition": [
+      {
+        "id": "tos.form.jenseits-project-gutenberg-4363-edition.name-ru",
+        "version": 2,
+        "digest": "sha256:ff8f2c25c8e60c66acda67d748c150ab6ea97fbfce72f33436f796ae64f31a92"
+      },
+      {
+        "id": "tos.form.jenseits-project-gutenberg-4363-edition.name-en",
+        "version": 2,
+        "digest": "sha256:ac5e7c46cb34522c28d4244c238261a37b6e67b3f28d850991bf1e5b64dae363"
+      },
+      {
+        "id": "tos.form.jenseits-project-gutenberg-4363-edition.source-note",
+        "version": 2,
+        "digest": "sha256:53a41e88801f47b0cff8f262eb35532b7b1715e185b45bb6f28f03cf90ee1928"
+      }
+    ],
+    "item": [
+      {
+        "id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.name-ru",
+        "version": 1,
+        "digest": "sha256:7af270baa421d96e89b714edf4104ba9603295617b08b1717fa10cea1cad1e4d"
+      },
+      {
+        "id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.source-note-ru",
+        "version": 1,
+        "digest": "sha256:e85b40edd4abcfee3ca2a3d9a84de001b52be3bf9b448c6e81e3624570468568"
+      }
+    ],
+    "claim": [
+      {
+        "id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.exemplar-statement-ru",
+        "version": 1,
+        "digest": "sha256:bd598ee52139c26edc5153b5726bf0f8978a2bc33168f51b5da865fd64bdfdaa"
+      }
+    ]
+  },
+  "files": {
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/edition.json": {
+      "sha256": "sha256:3dddc73192c9631083ccf1d16c27ba1fc23bcce5e4c3470e5e36deba6407a2ae",
+      "bytes": 2803
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/edition.human-forms.json": {
+      "sha256": "sha256:61440446d16a8b05e48f1260b481941dc032b3a69f5e4ceefa09a82b4ee34af6",
+      "bytes": 15068
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/source-revision-history.json": {
+      "sha256": "sha256:8c698aae354d89733ce16342b561300139fe12f9720cbe6c8282778ab31324aa",
+      "bytes": 24435
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.json": {
+      "sha256": "sha256:9829fc80fbd88fe8f2a20be008a14052b5b81dfe42fa69968240f184d4fdc9f9",
+      "bytes": 3955
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.human-forms.json": {
+      "sha256": "sha256:fbfe43654d9dfa83bce6f50b75b49d6d6fa798a6dde0af00108df5a52af75989",
+      "bytes": 4584
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/source-claims.jsonl": {
+      "sha256": "sha256:35f21288874acc0013b4895119c16040f6adb63e861760d217bd80a14716dae6",
+      "bytes": 2051
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/source-claims.879ade23138260512c2566d3a7f7f701b3c11eb0f357f1cc946a382507429696.human-forms.json": {
+      "sha256": "sha256:92e94386f91da225640f39e995aea8555f952f430ea94cc9348cd3506e11fcd4",
+      "bytes": 1700
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.manifest.json": {
+      "sha256": "sha256:37bd2e2eba9160834b4c35d494c2f07d923561ad428c3ee995b477c114d783db",
+      "bytes": 1838
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/rights.json": {
+      "sha256": "sha256:b20b88c02e1600d95a8e128fe76020103c26ac224290b9dcade2cd483ecfd2b6",
+      "bytes": 2430
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/resource-inventory.json": {
+      "sha256": "sha256:ae747ece75a28200944ac74d6f6adf535e1e1fc216d6b21ee4a265f6e25f21ee",
+      "bytes": 9575
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/fixity.sha256": {
+      "sha256": "sha256:98da0625ad225b91b126b4a9290bf47dd80d320c9cf575e4469d5e6462e34f8f",
+      "bytes": 95
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/forensic-report.md": {
+      "sha256": "sha256:8564c461a3261216bad0612e2ca7a155d7f85d5edda970a08d4c13323fda2c0f",
+      "bytes": 551
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/provenance.jsonl": {
+      "sha256": "sha256:68ec08b930539364197932c50374d994ccd4e8eb3a7f9e388dab1ff1670ea8ce",
+      "bytes": 3525
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item-deposit-receipt.json": {
+      "sha256": "sha256:f53a83213510d2ff58701255e52b09af8d6cc137e1f2c572fe2e6a485cefcde6",
+      "bytes": 1084
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/source-create-request.json": {
+      "sha256": "sha256:cf6a1209f95b3306fa9e00391f1d8852a5e4f1675405c75b1521beff09ebd45e",
+      "bytes": 16099
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/source-create-environment.json": {
+      "sha256": "sha256:476e5a54a3b55b2e0e533189fd132d5924fda206327c0ffae4583866e5434628",
+      "bytes": 325
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/source-create-provenance.jsonl": {
+      "sha256": "sha256:85516d991c97a484f55802cb2e5063dd48dab5a999aa9361caab4c08dcd69a1a",
+      "bytes": 23830
+    }
+  },
+  "grants_admission": false
+}

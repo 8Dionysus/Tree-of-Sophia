@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/native-text-layer-binding.schema.json",
+  "title": "Exact native text-layer construction input",
+  "description": "A layer-only return for explicit first segmentation. It names no predecessor packet, grants no reading, assessment, publication or segmentation permission, and preserves the existing v1 layer as an immutable dependency.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "text_layer", "source_record_refs"],
+  "properties": {
+    "schema_version": {"const": "tos_native_text_layer_binding_v1"},
+    "text_layer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["record_ref", "record_sha256", "layer_id", "layer_version"],
+      "properties": {
+        "record_ref": {"$ref": "#/$defs/metadataRef"},
+        "record_sha256": {"$ref": "#/$defs/sha256"},
+        "layer_id": {"type": "string", "pattern": "^tos\\.text-layer\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+        "layer_version": {"type": "integer", "minimum": 1}
+      }
+    },
+    "source_record_refs": {
+      "type": "object", "additionalProperties": false,
+      "required": ["work", "expression", "edition", "item"],
+      "properties": {
+        "work": {"$ref": "#/$defs/metadataRef"},
+        "expression": {"$ref": "#/$defs/metadataRef"},
+        "edition": {"$ref": "#/$defs/metadataRef"},
+        "item": {"$ref": "#/$defs/metadataRef"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "metadataRef": {
+      "type": "string", "minLength": 1,
+      "pattern": "^ToS/source-witnesses/(?!.*(?:^|/)(?:\\.\\.?|payload|local-content|catalog)(?:/|$))[^\\u0000\\\\]+\\.json$"
+    }
+  }
+}

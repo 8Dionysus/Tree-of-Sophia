@@ -6,4 +6,11 @@ ToS-owned source, doctrine, relation, or export contracts.
 Suites here do not own central verdict, scoring, regression, or proof doctrine.
 Route portable proof bundles to `aoa-evals`.
 
-This directory is empty until a concrete local suite is accepted.
+The reviewed [source-observation RU/EN design](source-observation-ru-en-v1.suite.md)
+preserves manual cases and source-availability limits. It has no executable
+sidecar and must not be presented as a completed calibration.
+
+The reviewed [metadata human-form RU/EN design](metadata-human-form-ru-en-v1.suite.md)
+separates summary fidelity from historical truth and retains complete-record,
+dated-coverage and insufficient-source controls. It likewise has no executable
+sidecar or inherited competence grant.

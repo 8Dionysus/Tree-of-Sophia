@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+    "version": 1,
+    "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.315f71858a75289c1eec57fba8c9d26629b73a704000b658eb90894440c243be",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+        "version": 1,
+        "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+            "version": 1,
+            "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+            "version": 1,
+            "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+            "version": 1,
+            "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.00f45bf29b0712614e641ba8d4ea87e35a9d993a9f024f6657423e945efceb6d",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+        "version": 1,
+        "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+            "version": 1,
+            "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+            "version": 1,
+            "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+            "version": 1,
+            "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+      "request_digest": "sha256:057a491a1a8d0dcc90d3f737cbfbf31dae76cece2d9897fb69044d1f2a0371e3",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:8c17aecf1c564a3d04afed7e570612f5f0eade9e7f1c3c86c74bb0db61e238bc",
+      "recorded_at": "2026-09-07T03:13:30.099405+00:00",
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf",
+        "version": 1,
+        "digest": "sha256:08797865de62337ddfa16d3ed675dce393139591e091e0c16634daf57d25dd47"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.315f71858a75289c1eec57fba8c9d26629b73a704000b658eb90894440c243be",
+          "version": 1,
+          "digest": "sha256:e15443b3da9c7e8add64399cf77ae02746d51d2d6cf91535cbf451094fc035ed"
+        },
+        {
+          "id": "tos.form.metadata.00f45bf29b0712614e641ba8d4ea87e35a9d993a9f024f6657423e945efceb6d",
+          "version": 1,
+          "digest": "sha256:2c9f54216598ec3910772dc38d1d1abff0a3dd141750b6b45e2c4c91e365e8bf"
+        }
+      ]
+    }
+  ]
+}

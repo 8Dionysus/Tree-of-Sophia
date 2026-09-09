@@ -1,0 +1,585 @@
+{
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+      "form_version": 3,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 3,
+        "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+        "version": 2,
+        "digest": "sha256:facd1c2c8c9b30756f7347ba0b21b320e622f1eab8583700524a7df8788bcf76"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+      "form_version": 3,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 3,
+        "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+      },
+      "role": "name",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+        "version": 2,
+        "digest": "sha256:d3864abcf22cdbb0a16f8424c810a8f10d03d83cfa60aba1846498a9ffc70632"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/variant_labels/0/script"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-5": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+      "form_version": 3,
+      "subject": {
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 3,
+        "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+      },
+      "role": "hover",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "model:foundation-native-growth-source-review",
+      "revises": {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+        "version": 2,
+        "digest": "sha256:95c9e59f17f3763998b099152a56513dec011a4d3a2fc59a40e8b95c9b000afc"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 3,
+            "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:foundation-native-growth-source-review",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:foundation-native-growth-source-review",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:foundation-native-growth-source-review",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854",
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:foundation-native-growth-source-review",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+      "form_version": 2,
+      "language": "ru",
+      "revises": {
+        "digest": "sha256:1ab45e7f610cee4af5b2900ffe4c445fb72f79b6bfa38b35f75c006d064efcf1",
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-3": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:foundation-native-growth-source-review",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:68ac255ae9250ddd73d26e63f0e3e874119aa1c3c683c1eb0cc8a7d17b017d14",
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+            "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:foundation-native-growth-source-review",
+      "form_id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:90daa4c3a83dc4fd6d4185aca7c8af7c2d6b84d2760c4d5e24f85922fb27197d",
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1",
+        "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+        "version": 2
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+    "version": 3,
+    "digest": "sha256:64c1b6b6d67fadf403d0f03ffd04fd11b4f50e3e020681df171859b21f3129fa"
+  }
+}

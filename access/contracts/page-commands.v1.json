@@ -8,7 +8,7 @@
     "deep_link_fields": ["mode", "view", "graph", "focus"],
     "research_workspace_field": "research_workspace is a bounded summary of local-only, non-authoritative session state",
     "selection_semantics": "selected exposes a stable ID plus semantic kind, source references, and available authority, review, canon, and confidence posture",
-    "proposal_rule": "A staged proposal is local, traceable to a hypothesis, source/evidence refs, context revisions, and a projection fingerprint; it remains pending human review and can never become canon through this command surface."
+    "proposal_rule": "A staged proposal is local, traceable to a hypothesis, source/evidence refs, context revisions, and a projection fingerprint; it remains pending scoped review by a competent authorized human or agent and can never become canon through this command surface."
   },
   "commands": [
     {"command_id": "tos.page.context", "availability": "always", "effect": "return the current page context"},
@@ -27,7 +27,7 @@
     {"command_id": "tos.page.research-workspace", "availability": "always", "effect": "return the local research session packet without advancing page revision"},
     {"command_id": "tos.page.add-research-note", "availability": "always; selection binding requires explicit target_id and matching context revision", "effect": "append one bounded local note and journal event"},
     {"command_id": "tos.page.add-session-hypothesis", "availability": "selected non-aggregate edge", "effect": "add a visually distinct local hypothesis explicitly marked not source, not reviewed, and not canon"},
-    {"command_id": "tos.page.stage-proposal", "availability": "any selected object with explicit source and evidence routes", "effect": "stage a fingerprinted local proposal pending human review; never write source, candidate intake, review, rights, or canon"},
+    {"command_id": "tos.page.stage-proposal", "availability": "any selected object with explicit source and evidence routes", "effect": "stage a fingerprinted local proposal pending scoped review by a competent authorized human or agent; never write source, candidate intake, review, rights, or canon"},
     {"command_id": "tos.page.exclude-selected-edge", "availability": "selected non-aggregate edge", "effect": "exclude the edge from the local research view and record the exclusion"},
     {"command_id": "tos.page.save-route-comparison", "availability": "selected edge or visible path packet", "effect": "save a bounded route snapshot for local comparison"},
     {"command_id": "tos.page.workspace-undo", "availability": "workspace undo history", "effect": "undo one local workspace edit"},

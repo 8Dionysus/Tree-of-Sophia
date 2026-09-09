@@ -54,6 +54,17 @@ EXPECTED_PAGE_COMMANDS = {
     "tos.page.clear-focus",
     "tos.page.cancel",
 }
+EXPECTED_KNOWLEDGE_OPERATIONS = {
+    "tos.knowledge.catalog",
+    "tos.knowledge.contracts",
+    "tos.knowledge.search",
+    "tos.knowledge.node.inspect",
+    "tos.knowledge.relation.inspect",
+    "tos.knowledge.temporal.compare",
+    "tos.knowledge.focus",
+    "tos.lens.open",
+    "tos.lens.compile",
+}
 
 
 def sha256_file(path: Path) -> str:
@@ -64,6 +75,161 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_knowledge_contracts(repo_root: Path) -> None:
+    try:
+        from jsonschema import Draft202012Validator
+        from referencing import Registry, Resource
+    except ImportError as exc:
+        raise RuntimeError(
+            "standalone source validation requires requirements-dev.txt"
+        ) from exc
+
+    contract_root = repo_root / "access/contracts"
+    schema_names = (
+        "knowledge-graph.v1.schema.json",
+        "lens-spec.v1.schema.json",
+        "lens-result.v1.schema.json",
+        "temporal-comparison-request.v1.schema.json",
+        "temporal-comparison-result.v1.schema.json",
+        "exploration-request.v1.schema.json",
+        "exploration-result.v1.schema.json",
+        "exploration-request.v2.schema.json",
+        "exploration-result.v2.schema.json",
+    )
+    schemas = {
+        name: json.loads((contract_root / name).read_text(encoding="utf-8"))
+        for name in schema_names
+    }
+    for name, schema in schemas.items():
+        try:
+            Draft202012Validator.check_schema(schema)
+        except Exception as exc:
+            raise RuntimeError(f"invalid knowledge contract schema {name}: {exc}") from exc
+    registry = Registry().with_resources(
+        (schema["$id"], Resource.from_contents(schema))
+        for schema in schemas.values()
+    )
+
+    api = json.loads((contract_root / "knowledge-api.v1.json").read_text(encoding="utf-8"))
+    operations = {item.get("operation_id"): item for item in api.get("operations", [])}
+    if set(operations) != EXPECTED_KNOWLEDGE_OPERATIONS:
+        raise RuntimeError(f"knowledge operation contract drift: {sorted(operations)}")
+    compile_operation = operations["tos.lens.compile"]
+    if compile_operation.get("http", {}).get("method") != "POST" or "creates no server state" not in str(
+        compile_operation.get("post_semantics")
+    ):
+        raise RuntimeError("knowledge lens compile must remain a read-only structured query")
+
+    access_src = (repo_root / "access/src").as_posix()
+    if access_src not in sys.path:
+        sys.path.insert(0, access_src)
+    from tos_access.core import ToSAccessCore
+    from tos_access.knowledge import _content_revision
+
+    core = ToSAccessCore.discover(tos_root=repo_root)
+    graph = core.knowledge_graph()
+    Draft202012Validator(
+        schemas["knowledge-graph.v1.schema.json"], registry=registry
+    ).validate(graph)
+    nodes = graph.get("nodes", [])
+    relations = graph.get("relations", [])
+    node_ids = {item.get("id") for item in nodes}
+    relation_ids = {item.get("id") for item in relations}
+    if len(node_ids) != len(nodes) or len(relation_ids) != len(relations):
+        raise RuntimeError("normalized knowledge graph IDs must be unique")
+    if any(item.get("content_revision") != _content_revision(item) for item in [*nodes, *relations]):
+        raise RuntimeError("normalized knowledge item content revisions are stale")
+    dangling = [
+        item.get("id")
+        for item in relations
+        if item.get("from_id") not in node_ids or item.get("to_id") not in node_ids
+    ]
+    if dangling:
+        raise RuntimeError(f"normalized knowledge graph has dangling relations: {dangling[:5]}")
+    counts = graph.get("counts", {})
+    semantic_mapping = counts.get("semantic_mapping", {})
+    semantic_validation = counts.get("semantic_validation", {})
+    if semantic_mapping.get("unmapped_nodes") != 0 or semantic_mapping.get("unmapped_relations") != 0:
+        raise RuntimeError("normalized knowledge graph contains unmapped production vocabulary")
+    if semantic_validation.get("valid") is not True or semantic_validation.get("violations"):
+        raise RuntimeError("normalized knowledge graph semantic registry invariants failed")
+    coverage = counts.get("display_coverage", {})
+    expected_coverage = {
+        "node_titles": counts.get("nodes"),
+        "node_summaries": counts.get("nodes"),
+        "relation_labels": counts.get("relations"),
+        "relation_statements": counts.get("relations"),
+        "relation_explanations": counts.get("relations"),
+    }
+    if any(coverage.get(key) != value for key, value in expected_coverage.items()):
+        raise RuntimeError("normalized knowledge graph display coverage is incomplete")
+
+    catalog = core.knowledge_catalog()
+    contract_bundle = core.knowledge_contracts()
+    if contract_bundle.get("schema") != "tos_knowledge_contract_bundle_v1":
+        raise RuntimeError("knowledge contract bundle is not current")
+    if set(contract_bundle.get("contracts", {})) != {
+        "api",
+        "knowledge_graph",
+        "lens_spec",
+        "lens_result",
+        "temporal_comparison_request",
+        "temporal_comparison_result",
+        "entity_type_registry_schema",
+        "relation_type_registry_schema",
+        "entity_type_registry",
+        "relation_type_registry",
+    }:
+        raise RuntimeError("knowledge contract bundle is incomplete")
+    bundled_contracts = contract_bundle["contracts"]
+    Draft202012Validator(
+        bundled_contracts["entity_type_registry_schema"]
+    ).validate(bundled_contracts["entity_type_registry"])
+    Draft202012Validator(
+        bundled_contracts["relation_type_registry_schema"]
+    ).validate(bundled_contracts["relation_type_registry"])
+    lens_validator = Draft202012Validator(schemas["lens-spec.v1.schema.json"])
+    for lens in catalog.get("lenses", []):
+        lens_validator.validate(lens)
+    result = core.compile_knowledge_lens(
+        {
+            "schema_version": "tos_lens_spec_v1",
+            "lens_id": "standalone-validation-smoke",
+            "sources": ["philosophy"],
+            "node_query": {
+                "filters": [{"field": "source_graph", "op": "eq", "value": "philosophy"}]
+            },
+            "relation_query": {"enabled": False},
+            "limits": {"nodes": 2, "relations": 0, "groups": 2},
+        }
+    )
+    Draft202012Validator(
+        schemas["lens-result.v1.schema.json"], registry=registry
+    ).validate(result)
+    exploration_contracts = core.knowledge_exploration_contracts()
+    if exploration_contracts["capabilities"]["runtime"] != "local" or exploration_contracts["capabilities"]["restart_survival"] is not False:
+        raise RuntimeError("local exploration must describe its own process-local storage")
+    page = core.knowledge_explore({"focus_node_id": graph["nodes"][0]["id"], "page_nodes": 1})
+    Draft202012Validator(schemas["exploration-result.v1.schema.json"], registry=registry).validate(page)
+    if page["page"]["next_cursor"]:
+        page = core.knowledge_explore({"cursor": page["page"]["next_cursor"]})
+        Draft202012Validator(schemas["exploration-result.v1.schema.json"], registry=registry).validate(page)
+    for kind, carriers in (("node", graph["nodes"]), ("relation", graph["relations"])):
+        if not carriers:
+            continue
+        origin = carriers[0]
+        request = {
+            "schema_version": "tos_exploration_request_v2", "source_revision": graph["source_revision"],
+            "origin": {"kind": kind, "id": origin["id"], "content_revision": origin["content_revision"]},
+            "max_depth": 0,
+        }
+        Draft202012Validator(schemas["exploration-request.v2.schema.json"], registry=registry).validate(request)
+        page = core.knowledge_explore(request)
+        Draft202012Validator(schemas["exploration-result.v2.schema.json"], registry=registry).validate(page)
+        if page["status"] != "complete" or page["page"]["primary_node_ids"] or page["page"]["primary_relation_ids"]:
+            raise RuntimeError("zero-depth typed exploration must return origin context only")
+
+
 def _validate_contracts(repo_root: Path) -> None:
     contract_root = repo_root / "access/contracts"
     runtime = json.loads((contract_root / "runtime-manifest.v1.json").read_text(encoding="utf-8"))
@@ -72,6 +238,10 @@ def _validate_contracts(repo_root: Path) -> None:
     profiles = {item.get("profile_id"): item for item in runtime.get("runtime_profiles", [])}
     if profiles.get("standalone", {}).get("requires_abyssos") is not False:
         raise RuntimeError("standalone profile must not require AbyssOS")
+    components = {item.get("component_id"): item for item in runtime.get("components", [])}
+    lens_component = components.get("knowledge-lens-engine", {})
+    if lens_component.get("required") is not True or lens_component.get("posture") != "read-only-derived-composition":
+        raise RuntimeError("runtime manifest must require the read-only knowledge lens engine")
     posture = runtime.get("integration_posture")
     if posture != {
         "state": "paused",
@@ -132,10 +302,22 @@ def _validate_contracts(repo_root: Path) -> None:
         raise RuntimeError("research hypotheses must remain explicitly outside ToS authority")
     allowlist = json.loads((contract_root / "runtime-data.v1.json").read_text(encoding="utf-8"))
     paths = {item.get("source_path") for item in allowlist.get("subjects", [])}
-    if "ToS/derived-exports/epistemic_evidence_projection.min.json" not in paths:
-        raise RuntimeError("runtime allowlist must include the Evidence Lens projection")
+    required_projection_paths = {
+        "ToS/derived-exports/epistemic_evidence_projection.min.json",
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+    }
+    missing_projection_paths = sorted(required_projection_paths - paths)
+    if missing_projection_paths:
+        raise RuntimeError(
+            f"runtime allowlist is missing constructor inputs: {missing_projection_paths}"
+        )
     if any("lexical-search" in str(path) or "/payload/" in str(path) for path in paths):
         raise RuntimeError("runtime allowlist admits an explicitly excluded subject")
+    _validate_knowledge_contracts(repo_root)
 
 
 def _scan_source(access_root: Path) -> None:
@@ -252,6 +434,39 @@ packet = core.philosophy_view(view_id)
 assert packet["node_count"] > 0 and packet["edge_count"] > 0
 evidence = core.evidence_projection()
 assert len(evidence["scenes"]) >= 2
+catalog = core.knowledge_catalog()
+contracts = core.knowledge_contracts()
+assert contracts["schema"] == "tos_knowledge_contract_bundle_v1"
+assert set(contracts["contracts"]) == {
+    "api", "knowledge_graph", "lens_spec", "lens_result",
+    "temporal_comparison_request", "temporal_comparison_result",
+    "entity_type_registry_schema", "relation_type_registry_schema",
+    "entity_type_registry", "relation_type_registry",
+}
+counts = catalog["counts"]
+coverage = counts["display_coverage"]
+assert coverage["node_titles"] == counts["nodes"]
+assert coverage["node_summaries"] == counts["nodes"]
+assert coverage["relation_labels"] == counts["relations"]
+assert coverage["relation_statements"] == counts["relations"]
+assert coverage["relation_explanations"] == counts["relations"]
+lens = core.compile_knowledge_lens({
+    "schema_version": "tos_lens_spec_v1",
+    "lens_id": "archive-smoke",
+    "sources": ["philosophy"],
+    "node_query": {"filters": [{"field": "source_graph", "op": "eq", "value": "philosophy"}]},
+    "relation_query": {"enabled": False},
+    "limits": {"nodes": 2, "relations": 0, "groups": 2},
+})
+assert lens["schema"] == "tos_lens_result_v1" and lens["nodes"]
+assert lens["source_revision"] == catalog["source_revision"]
+focused = core.knowledge_focus(lens["nodes"][0]["id"], depth=0)
+assert focused["focus"]["node_id"] == lens["nodes"][0]["id"]
+assert focused["agent_summary"]["focus_node_id"] == lens["nodes"][0]["id"]
+author_id = "source-navigation:tos.agent.friedrich-nietzsche"
+author_focus = core.knowledge_focus(author_id, sources=["source-navigation"], depth=1)
+assert author_focus["focus"]["node_id"] == author_id
+assert author_focus["facets"]["predicates"].get("authored_by") == 7
 server = make_server(core, port=0)
 thread = threading.Thread(target=server.serve_forever, daemon=True)
 thread.start()

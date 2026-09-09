@@ -1,0 +1,658 @@
+"""Private Claim growth over synthetic sources; no real grant or admission."""
+from __future__ import annotations
+
+import copy
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path[:0] = [str(ROOT), str(ROOT / 'scripts'), str(ROOT / 'mechanics/growth-cycle/tests'),
+               str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
+from tests.test_source_owner_claim_profiles import OwnerLocalClaimFixture, CLAIM_REF, RELATION_TYPE_ID
+from test_occurrence_growth import copy_contracts
+import source_commands as source
+import source_owner_claim_commands as private
+
+
+class PrivateClaimCommandTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='tos-private-claim-growth-')
+        self.addCleanup(temporary.cleanup)
+        self.local = OwnerLocalClaimFixture(Path(temporary.name))
+        copy_contracts(self.local.public)
+        # Existing reader input remains a separate source; creation uses a new
+        # identity and a new, absent package in the same protected store.
+        self.claim = copy.deepcopy(self.local.claim)
+        self.claim['claim_id'] = 'tos.claim.synthetic.created-private-form'
+        self.claim['provenance_event_ref'] = 'tos.event.synthetic.private-claim-creation'
+        self.source_ref = str(Path(CLAIM_REF).parent.parent / 'new-growth' / 'source-claims.jsonl')
+        self.path = self.local.private / self.source_ref
+        self.form_id = 'tos.form.synthetic.private-created-statement'
+        selected = self.local.claim_selection(exact=True)
+        for key in ('path', 'form_ids'):
+            selected.pop(key)
+        selected['claim_id'] = self.claim['claim_id']
+        self.config = {'schema_version': private.CONFIG, 'uid': os.getuid(),
+            'principal_id': self.claim['maker']['agent_ref'], 'maker_type': 'model',
+            'authority_ref': 'operator:synthetic-private-claim-growth', 'expires_at': '2099-01-01T00:00:00Z',
+            'source_context_ref': str(self.local.config_path), 'source_path': self.source_ref,
+            'provenance_event_id': self.claim['provenance_event_ref'],
+            'allowed_operations': list(private.OPERATIONS), 'allowed_claim_ids': [self.claim['claim_id']],
+            'allowed_subject_refs': [self.claim['subject_ref']], 'allowed_object_refs': [self.claim['object']],
+            'allowed_predicates': [self.claim['predicate']], 'allowed_evidence_refs': self.claim['evidence_refs'],
+            'allowed_form_ids': [self.form_id], 'allowed_fields': ['qualifiers', 'epistemic_status'],
+            'claim_selections': [selected]}
+        self.forms = [{'claim_id': self.claim['claim_id'], 'form_id': self.form_id, 'field_id': 'claim.statement'}]
+        self.owner = self.local.base / 'owner.json'
+        self.write_owner()
+
+    def write_owner(self):
+        self.owner.write_bytes(self.local.encode(self.config))
+        self.owner.chmod(0o600)
+
+    def run_command(self, request):
+        return source.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1', **request})
+
+    def add_sibling(self):
+        sibling = copy.deepcopy(self.claim)
+        sibling['claim_id'] += '.sibling'
+        sibling_form = self.form_id + '.sibling'
+        selection = copy.deepcopy(self.config['claim_selections'][0])
+        selection['claim_id'] = sibling['claim_id']
+        self.config['allowed_claim_ids'].append(sibling['claim_id'])
+        self.config['claim_selections'].append(selection)
+        self.config['allowed_form_ids'].append(sibling_form)
+        self.forms.append({'claim_id': sibling['claim_id'], 'form_id': sibling_form, 'field_id': 'claim.statement'})
+        self.write_owner()
+        return sibling
+
+    def prepare_create(self, records=None):
+        records = [self.claim] if records is None else records
+        prepared = self.run_command({'operation': 'prepare-create', 'claims': records, 'forms': self.forms})
+        self.creation = {'operation': 'claims.create', 'command_id': 'synthetic-create',
+            'claims': records, 'forms': self.forms, 'expected_configuration': prepared['owner_configuration'],
+            'expected_source': None, 'expected_revision': None, 'expected_dependencies': prepared['expected_dependencies'],
+            'expected_inputs': prepared['source_bindings']}
+        return prepared
+
+    def create(self, records=None):
+        self.prepare_create(records)
+        return self.run_command(self.creation)
+
+    def revise(self, *, apply=True):
+        proposal = {'claim_id': self.claim['claim_id'],
+            'fields': {'qualifiers': {'statement': 'Исправленная синтетическая возможность; не установленный разбор.'}},
+            'forms': [{key: value for key, value in self.forms[0].items() if key != 'claim_id'}],
+            'reason': 'Synthetic description correction without a new relation identity.'}
+        prepared = self.run_command({'operation': 'prepare-revise', **proposal})
+        self.revision = {'operation': 'claim.revise', 'command_id': 'synthetic-revise', **proposal,
+            'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+            'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+            'expected_inputs': prepared['source_bindings']}
+        return self.run_command(self.revision) if apply else prepared
+
+    def prepare_form(self, *, claim_id=None, form_id=None, command_id='synthetic-form'):
+        claim_id, form_id = claim_id or self.claim['claim_id'], form_id or self.form_id
+        prepared = self.run_command({'operation': 'prepare', 'claim_id': claim_id,
+            'form_id': form_id, 'field_id': 'claim.statement'})
+        self.form_request = {'operation': 'apply', 'claim_id': claim_id, 'command_id': command_id,
+            'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
+            'expected_configuration': prepared['owner_configuration'],
+            'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings'],
+            'changes': [prepared['prepared_change']]}
+        return prepared
+
+    def files(self):
+        return {path.name: path.read_bytes() for path in self.path.parent.iterdir()}
+
+    def test_later_claim_relation_mismatch_is_rejected_before_any_private_source_read(self):
+        from source_owner_context import OwnerLocalSourceContext
+        from source_record_profiles import SourceProfileError
+        sibling = self.add_sibling()
+        self.config['claim_selections'][-1]['relation_type_id'] = 'tos.relation.occurrence-has-sense'
+        self.write_owner()
+        observed = []
+        original = OwnerLocalSourceContext.read_bytes
+        def read(context, path, *args, **kwargs):
+            observed.append(path)
+            return original(context, path, *args, **kwargs)
+        with patch.object(OwnerLocalSourceContext, 'read_bytes', read):
+            with self.assertRaises((PermissionError, SourceProfileError)):
+                self.prepare_create([self.claim, sibling])
+        self.assertEqual([path for path in observed if path.is_relative_to(self.local.private)], [])
+        self.assertNotIn(self.local.public / self.local.native.content_ref, observed)
+        self.assertFalse(self.path.parent.exists())
+
+    def test_native_expression_endpoint_creation_replay_and_currentness(self):
+        claim, sources = self.local.conception_claim(exact=True)
+        for field in ('subject_ref', 'object', 'predicate', 'assertion_layer', 'evidence_refs'):
+            self.claim[field] = claim[field]
+        self.config.update(allowed_subject_refs=[self.claim['subject_ref']],
+            allowed_object_refs=[self.claim['object']], allowed_predicates=[self.claim['predicate']],
+            allowed_evidence_refs=self.claim['evidence_refs'])
+        self.config['claim_selections'][0].update(
+            relation_type_id='tos.relation.conception-expressed-in', source_records=sources)
+        self.write_owner()
+        prepared = self.prepare_create()
+        required = {row['id'] for row in prepared['source_bindings'][0]['required_sources']}
+        self.assertTrue({selector['record_id'] for selector in sources} <= required)
+        expression_path = self.local.public / sources[1]['path']
+        original = expression_path.read_bytes()
+        expression_path.write_bytes(original + b'\n')
+        with self.assertRaises(source.JournalConflict):
+            self.run_command(self.creation)
+        self.assertFalse(self.path.parent.exists())
+        expression_path.write_bytes(original)
+        created = self.create()
+        before = self.files()
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+        self.assertEqual(self.files(), before)
+        self.assertEqual(json.loads(self.path.read_bytes()), self.claim)
+        self.assertFalse(created['grants_admission'])
+        self.assertFalse(created['publication_authorized'])
+        self.assertEqual(created['materializations'][0]['context'][0]['value'], self.claim)
+        self.config['claim_selections'][0]['source_records'][1]['source_access']['access_allowed'] = False
+        self.write_owner()
+        with self.assertRaises((PermissionError, ValueError)):
+            self.run_command(self.creation)
+        self.assertEqual(self.files(), before)
+
+    def test_corrupt_creation_receipt_refuses_describe_and_prepare_revise(self):
+        self.create()
+        target = self.path.parent / private.transport.RECEIPT_FILE
+        original = target.read_bytes()
+        damaged = json.loads(original)
+        damaged['files'][self.path.name]['sha256'] = 'sha256:' + '0' * 64
+        target.write_bytes(self.local.encode(damaged))
+        try:
+            for operation in ('describe', 'prepare-revise'):
+                with self.subTest(operation=operation), self.assertRaises(source.JournalCorruption):
+                    if operation == 'describe':
+                        self.run_command({'operation': operation})
+                    else:
+                        self.revise(apply=False)
+        finally:
+            target.write_bytes(original)
+
+    def test_retained_configuration_bytes_cannot_change_outside_creation(self):
+        self.create()
+        target = self.path.parent / private.transport.CONFIG_FILE
+        original = target.read_bytes()
+        target.write_bytes(original + b'\n')
+        try:
+            for operation in ('describe', 'prepare-revise'):
+                with self.subTest(operation=operation), self.assertRaises(source.JournalCorruption):
+                    if operation == 'describe':
+                        self.run_command({'operation': operation})
+                    else:
+                        self.revise(apply=False)
+        finally:
+            target.write_bytes(original)
+
+    def test_current_initial_claim_and_matching_forms_cannot_replace_created_bytes(self):
+        self.create()
+        changed = copy.deepcopy(self.claim)
+        changed['qualifiers']['statement'] = 'Synthetically replaced outside the source command history.'
+        context = private.OwnerLocalSourceContext.load(self.local.config_path)
+        change = source.prepare_claim_change(changed, None, self.config['principal_id'], self.form_id, 'claim.statement')
+        forms = source._apply(None, private.revisions._subject(changed), [change],
+                              validator=private.transport._form_grammar(context)[0])
+        self.path.write_bytes(source._canonical(changed) + b'\n')
+        source.claim_forms_path(self.path, changed['claim_id']).write_bytes(self.local.encode(forms))
+        for operation in ('describe', 'prepare-revise'):
+            with self.subTest(operation=operation), self.assertRaises(source.JournalCorruption):
+                if operation == 'describe':
+                    self.run_command({'operation': operation})
+                else:
+                    self.revise(apply=False)
+
+    def test_two_claim_batch_preserves_sibling_rows_forms_and_all_replays(self):
+        sibling = self.add_sibling()
+        created = self.create([self.claim, sibling])
+        original = self.files()
+        sibling_form = source.claim_forms_path(self.path, sibling['claim_id'])
+        sibling_row = self.path.read_bytes().splitlines(keepends=True)[1]
+        revised = self.revise()
+        self.assertEqual(self.path.read_bytes().splitlines(keepends=True)[1], sibling_row)
+        self.assertEqual(sibling_form.read_bytes(), original[sibling_form.name])
+        first_form = source.claim_forms_path(self.path, self.claim['claim_id'])
+        first_form_bytes, revised_stream = first_form.read_bytes(), self.path.read_bytes()
+        self.prepare_form(claim_id=sibling['claim_id'], form_id=self.forms[1]['form_id'])
+        formed = self.run_command(self.form_request)
+        self.assertEqual(formed['source']['id'], sibling['claim_id'])
+        self.assertEqual(self.path.read_bytes(), revised_stream)
+        self.assertEqual(first_form.read_bytes(), first_form_bytes)
+        self.assertEqual(json.loads(sibling_form.read_bytes())['forms'][0]['form_version'], 2)
+        before = self.files()
+        for request, receipt in ((self.creation, created['receipt']), (self.revision, revised['receipt']),
+                                  (self.form_request, formed['receipt'])):
+            replay = self.run_command(request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], receipt)
+            self.assertEqual(before, self.files())
+        self.assertEqual({row['id']: row['version'] for row in replay['sources']},
+                         {self.claim['claim_id']: 2, sibling['claim_id']: 1})
+
+    def test_duplicate_batch_and_neighbor_owned_claim_identities_refuse_creation(self):
+        sibling = self.add_sibling()
+        with self.assertRaises(source.JournalConflict):
+            self.prepare_create([self.claim, self.claim])
+        forms = copy.deepcopy(self.forms)
+        self.forms[1]['form_id'] = self.form_id
+        with self.assertRaises(PermissionError):
+            self.prepare_create([self.claim, sibling])
+        self.forms = forms
+        self.local.write_claims(self.local.claim, self.claim)
+        with self.assertRaises(source.JournalConflict):
+            self.prepare_create([self.claim, sibling])
+        self.assertFalse(self.path.parent.exists())
+
+    def test_corrupt_retained_archive_blocks_creation_and_revision_replay(self):
+        self.create()
+        revised = self.revise()
+        archive = self.local.private / revised['receipt']['archive_path']
+        manifest = json.loads((archive / 'manifest.json').read_bytes())
+        blob = archive / manifest['files'][self.path.name]['blob']
+        original, before = blob.read_bytes(), self.files()
+        blob.write_bytes(b'Corrupted synthetic predecessor bytes.\n')
+        try:
+            for request in (self.creation, self.revision):
+                with self.subTest(operation=request['operation']), self.assertRaises(source.JournalCorruption):
+                    self.run_command(request)
+            self.assertEqual(self.files(), before)
+        finally:
+            blob.write_bytes(original)
+        self.assertTrue(self.run_command(self.revision)['replayed'])
+
+    def test_command_identity_cannot_cross_creation_form_and_claim_revision(self):
+        self.create()
+        self.prepare_form()
+        for command_id in (self.creation['command_id'],):
+            with self.assertRaises(source.JournalConflict):
+                self.run_command({**self.form_request, 'command_id': command_id})
+        formed = self.run_command(self.form_request)
+        self.revise(apply=False)
+        for command_id in (self.creation['command_id'], formed['receipt']['command_id']):
+            with self.subTest(command_id=command_id), self.assertRaises(source.JournalConflict):
+                self.run_command({**self.revision, 'command_id': command_id})
+        revised = self.run_command(self.revision)
+        self.prepare_form(command_id=revised['receipt']['command_id'])
+        before = self.files()
+        with self.assertRaises(source.JournalConflict):
+            self.run_command(self.form_request)
+        self.assertEqual(self.files(), before)
+
+    def test_new_correction_owner_preserves_maker_and_initial_form_authorship(self):
+        created = self.create()
+        creator = self.config['principal_id']
+        self.config.update(principal_id='agent:synthetic-private-claim-corrector',
+            authority_ref='operator:synthetic-correction-only', allowed_operations=['claim.revise'])
+        self.write_owner()
+        revised = self.revise()
+        current = json.loads(self.path.read_bytes())
+        self.assertEqual(current['maker'], self.claim['maker'])
+        self.assertEqual(current['provenance_event_ref'], self.claim['provenance_event_ref'])
+        self.assertEqual(revised['receipt']['principal_id'], self.config['principal_id'])
+        forms = json.loads(source.claim_forms_path(self.path, self.claim['claim_id']).read_bytes())
+        self.assertEqual(forms['forms'][0]['creator_id'], self.config['principal_id'])
+        self.assertEqual(forms['prior_forms'][0]['creator_id'], creator)
+        self.assertEqual(forms['prior_forms'][0]['subject'], created['sources'][0])
+        self.assertTrue(self.run_command(self.revision)['replayed'])
+        with self.assertRaises(PermissionError):
+            self.run_command(self.creation)
+
+    def test_every_replay_rechecks_late_owner_and_context_revocation(self):
+        self.create()
+        self.revise()
+        self.prepare_form()
+        self.run_command(self.form_request)
+        before, owner_bytes = self.files(), self.owner.read_bytes()
+        original = private._result
+        for request in (self.creation, self.revision, self.form_request):
+            for revoke in ('owner', 'context'):
+                changed = []
+                def response(*args, **kwargs):
+                    value = original(*args, **kwargs)
+                    if kwargs.get('replayed'):
+                        changed.append(revoke)
+                        if revoke == 'owner':
+                            denied = json.loads(owner_bytes)
+                            denied['expires_at'] = '2000-01-01T00:00:00Z'
+                            self.owner.write_bytes(self.local.encode(denied))
+                        else:
+                            self.local.config_path.chmod(0o644)
+                    return value
+                try:
+                    with self.subTest(operation=request['operation'], revoke=revoke), \
+                            patch.object(private, '_result', side_effect=response), \
+                            self.assertRaises((ValueError, PermissionError, source.JournalConflict)):
+                        self.run_command(request)
+                    self.assertEqual(changed, [revoke])
+                    self.assertEqual(self.files(), before)
+                finally:
+                    self.owner.write_bytes(owner_bytes)
+                    self.local.config_path.chmod(0o600)
+
+    def test_process_loss_before_and_after_exchange_preserves_retry_history(self):
+        self.create()
+        self.revise(apply=False)
+        before = self.files()
+        script = '''import json, os, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+sys.path[:0] = [str(root / 'scripts'), str(root / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
+import source_commands, source_revisions
+exchange = source_revisions._exchange
+def lose_process(staging, target):
+    if sys.argv[3] == 'after':
+        exchange(staging, target)
+    os._exit(73)
+source_revisions._exchange = lose_process
+source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+'''
+        request = json.dumps({'schema_version': 'tos_local_source_command_v1', **self.revision})
+        for stage, version in (('before', 1), ('after', 2)):
+            with self.subTest(stage=stage):
+                child = subprocess.run([sys.executable, '-c', script, str(ROOT), str(self.owner), stage],
+                    input=request, text=True, capture_output=True, timeout=60)
+                self.assertEqual(child.returncode, 73, child.stderr)
+                self.assertEqual(json.loads(self.path.read_bytes())['claim_version'], version)
+                if stage == 'before':
+                    self.assertEqual(self.files(), before)
+        replay = self.run_command(self.revision)
+        self.assertTrue(replay['replayed'])
+        history = json.loads((self.path.parent / private.revisions.HISTORY).read_bytes())
+        self.assertEqual(len(history['receipts']), 1)
+        self.assertEqual(history['receipts'][0]['command_id'], self.revision['command_id'])
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+
+    def test_create_forms_provenance_and_exact_replay_are_private_and_unadmitted(self):
+        prepared = self.prepare_create()
+        self.assertFalse(self.path.parent.exists())
+        result = self.run_command(self.creation)
+        self.assertEqual(json.loads(self.path.read_bytes()), self.claim)
+        self.assertEqual(result['sources'], prepared['prepared_sources'])
+        self.assertFalse(result['publication_authorized'])
+        self.assertFalse(result['grants_admission'])
+        self.assertEqual(result['materializations'][0]['display_text'], self.claim['qualifiers']['statement'])
+        self.assertTrue(all(view['admission'] is None for view in result['materializations']))
+        private_forms = json.loads(source.claim_forms_path(self.path, self.claim['claim_id']).read_bytes())
+        public_views = source.materialize_claim_forms(self.claim, private_forms, access_allowed=True)
+        self.assertTrue(all(view['state'] == 'restricted' for view in public_views))
+        self.assertEqual(self.path.parent.stat().st_mode & 0o777, 0o700)
+        self.assertTrue(all(path.stat().st_mode & 0o777 == 0o600 for path in self.path.parent.iterdir()))
+        event = json.loads((self.path.parent / 'source-create-provenance.jsonl').read_bytes())
+        self.assertEqual(event['activity']['event_type'], 'annotation')
+        self.assertEqual(event['rights_and_visibility']['content_visibility'], 'local_only')
+        self.assertIn('mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_claim_commands.py',
+                      [component['artifact_ref'] for component in event['method']['software_components']])
+        before = self.files()
+        replay = self.run_command(self.creation)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['receipt'], result['receipt'])
+        self.assertEqual(before, self.files())
+
+    def test_revision_preserves_original_unknowns_forms_and_creation_replay(self):
+        initial = self.create()
+        result = self.revise()
+        current = json.loads(self.path.read_bytes())
+        self.assertEqual(current['claim_version'], 2)
+        self.assertEqual(current['extensions'], self.claim['extensions'])
+        self.assertEqual(current['qualifiers']['unknown'], self.claim['qualifiers']['unknown'])
+        self.assertEqual(current['subject_ref'], self.claim['subject_ref'])
+        old = self.run_command({'operation': 'inspect-version', 'claim_id': self.claim['claim_id'],
+                                'source': initial['sources'][0]})
+        self.assertEqual(old['record'], self.claim)
+        self.assertTrue(self.run_command(self.revision)['replayed'])
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+        self.assertEqual(result['source']['version'], 2)
+        form_set = json.loads(source.claim_forms_path(self.path, self.claim['claim_id']).read_bytes())
+        self.assertEqual(form_set['forms'][0]['form_version'], 2)
+        self.assertEqual(form_set['prior_forms'][0]['subject'], initial['sources'][0])
+
+    def test_stale_source_and_revoked_exact_grant_refuse_without_publication(self):
+        self.prepare_create()
+        self.config['claim_selections'][0]['source_records'][0]['source_access']['access_allowed'] = False
+        self.write_owner()
+        with self.assertRaises((ValueError, PermissionError)):
+            self.run_command(self.creation)
+        self.assertFalse(self.path.parent.exists())
+
+    def test_public_claim_reader_rejects_private_path_before_context_read(self):
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        profiles = SourceClaimProfiles(self.local.public)
+        with patch('source_owner_context.OwnerLocalSourceContext.load', side_effect=AssertionError('private I/O')):
+            with self.assertRaises(SourceProfileError):
+                list(profiles.read_rows(self.source_ref))
+
+    def test_quote_anchor_needs_independent_grant_before_private_source_reads(self):
+        from source_owner_context import OwnerLocalSourceContext
+        self.claim['supporting_quotes'] = [{'anchor_ref': self.local.binding['ordered_anchor_refs'][0],
+                                           'exact': 'Synthetic authored quote, not authenticated wording.'}]
+        observed = []
+        original = OwnerLocalSourceContext.read_bytes
+        def read(context, path, *args, **kwargs):
+            if path.is_relative_to(self.local.private):
+                observed.append(path)
+            return original(context, path, *args, **kwargs)
+        with patch.object(OwnerLocalSourceContext, 'read_bytes', read):
+            with self.assertRaises(PermissionError):
+                self.prepare_create()
+        self.assertEqual(observed, [])
+        self.assertFalse(self.path.parent.exists())
+
+    def test_prepared_claim_refuses_changed_endpoint_then_replay_allows_neighbor_growth(self):
+        self.prepare_create()
+        self.local.form['notes'] = 'Same identity, changed synthetic source description.'
+        self.local.native.write_json('ToS/source-witnesses/lexical-descriptions/synthetic/lexical-form.json', self.local.form)
+        with self.assertRaises(source.JournalConflict):
+            self.run_command(self.creation)
+        self.assertFalse(self.path.parent.exists())
+        created = self.create()
+        neighbor = copy.deepcopy(self.local.claim)
+        neighbor['claim_id'] = 'tos.claim.synthetic.unrelated-neighbor'
+        self.local.write_claims(self.local.claim, neighbor)
+        replayed = self.run_command(self.creation)
+        self.assertEqual(replayed['receipt'], created['receipt'])
+        self.assertTrue(replayed['replayed'])
+
+
+class PrivateReferenceClaimCommandTests(unittest.TestCase):
+    """V2 finite selector grants over distinct, entirely synthetic native uses."""
+
+    write_owner = PrivateClaimCommandTests.write_owner
+    run_command = PrivateClaimCommandTests.run_command
+    prepare_create = PrivateClaimCommandTests.prepare_create
+    create = PrivateClaimCommandTests.create
+    files = PrivateClaimCommandTests.files
+
+    def setUp(self):
+        from test_source_claim_commands import reference_native_units, motif_proposal_value
+        from tests.test_source_owner_record_profiles import SOURCE_REF, PREFIX, occurrence
+        PrivateClaimCommandTests.setUp(self)
+        reference_native_units(self.local.native)
+        self.local.sync_native()
+        self.members, self.member_paths, selections = [], [], []
+        for index, unit in enumerate(self.local.native.packet['units']):
+            binding = {**copy.deepcopy(self.local.binding), 'unit_id': unit['unit_id'],
+                       'ordered_anchor_refs': unit['ordered_anchor_refs']}
+            record = occurrence(binding)
+            if index == 0:
+                ref, record['record_id'] = SOURCE_REF, self.local.source['record_id']
+                self.local.source = record
+            else:
+                ref = PREFIX + f'semantic/reference-member-{index}/occurrence.json'
+                record['record_id'] = f'tos.occurrence.synthetic.private-reference-{index}'
+            record['preferred_label'] = f'Synthetic distinct member {index}'
+            self.member_paths.append(self.local.write_private(ref, self.local.encode(record)))
+            self.members.append(record['record_id'])
+            selections.append({'path': ref, 'record_id': record['record_id'], 'profile_type_id': 'tos.entity.occurrence',
+                'origin_id': 'origin:synthetic-native', 'source_access': self.local.access(True), 'source_binding': binding})
+        self.values = [motif_proposal_value(self.members[:3]), motif_proposal_value(self.members[:2]),
+                       motif_proposal_value([*self.members[:2], self.members[3]])]
+        self.claim.update(schema_version='tos_source_occurrence_motif_claim_v1',
+            predicate='occurrence_motif_proposal', assertion_layer='semantic_interpretation', object=self.values[0],
+            evidence_refs=[SOURCE_REF], qualifiers={'statement': 'Synthetic qualified grouping, not a Sign.',
+                'statement_language': 'en', 'statement_script': 'Latn'})
+        self.config.update(schema_version=private.REFERENCE_CONFIG, allowed_object_refs=list(self.members),
+            allowed_object_values=copy.deepcopy(self.values), allowed_predicates=[self.claim['predicate']],
+            allowed_evidence_refs=self.claim['evidence_refs'], allowed_fields=['object', 'qualifiers', 'epistemic_status'])
+        self.config['claim_selections'][0].update(relation_type_id='tos.relation.occurrence-motif-proposal',
+                                                 source_records=selections)
+        self.write_owner()
+
+    def correction(self, value, command_id, *, apply=True):
+        proposal = {'claim_id': self.claim['claim_id'], 'fields': {'object': value},
+            'forms': [{key: item for key, item in self.forms[0].items() if key != 'claim_id'}],
+            'reason': 'Correct this finite synthetic set without accepting a motif.'}
+        preview = self.run_command({'operation': 'prepare-revise', **proposal})
+        request = {'operation': 'claim.revise', 'command_id': command_id, **proposal,
+            'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+            'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+            'expected_inputs': preview['source_bindings']}
+        return (self.run_command(request) if apply else preview), request
+
+    def test_private_reference_create_binds_third_native_member_and_keeps_complete_context(self):
+        prepared = self.prepare_create()
+        bindings = prepared['source_bindings'][0]
+        required = {ref['id'] for ref in bindings['required_sources']}
+        self.assertTrue(set(self.members[:3]) <= required)
+        self.assertNotIn(self.members[3], required)
+        self.assertEqual(len(bindings['native_sources']), 3)
+        self.assertEqual({row['unit_id'] for row in bindings['native_sources']},
+                         {unit['unit_id'] for unit in self.local.native.packet['units'][:3]})
+        self.assertTrue(all(row['content_verified'] for row in bindings['native_sources']))
+        created = self.run_command(self.creation)
+        before = self.files()
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+        self.assertEqual(before, self.files())
+        packet = created['materializations'][0]
+        self.assertEqual(packet['context'][0]['value'], self.claim)
+        self.assertFalse(packet['standalone_reading'])
+        self.assertFalse(created['grants_admission'])
+        self.assertFalse(created['publication_authorized'])
+        self.assertFalse((self.local.public / self.local.native.original_ref).exists())
+        profiles = private.SourceClaimProfiles(self.local.public)
+        readers = private._readers(self.config, self.local.context, records=[self.claim], profiles=profiles)
+        reader = readers[self.claim['claim_id']]
+        reader.prepare_candidate(self.claim, origin_id=self.config['claim_selections'][0]['origin_id'],
+                                 relation_type_id='tos.relation.occurrence-motif-proposal')
+        self.assertIn('ru', reader.required_languages(self.claim['claim_id']))
+
+    def test_private_reference_member_grants_and_old_config_refuse_before_source_reads(self):
+        from source_owner_context import OwnerLocalSourceContext
+        from source_record_profiles import SourceProfileError
+        original_config = copy.deepcopy(self.config)
+        cases = []
+        for missing in (self.members[0], self.members[2]):
+            cases.append({**copy.deepcopy(original_config),
+                'allowed_object_refs': [member for member in self.members if member != missing]})
+        old = {**copy.deepcopy(original_config), 'schema_version': private.CONFIG, 'allowed_fields': ['qualifiers']}
+        old.pop('allowed_object_values')
+        cases.extend((old, {**copy.deepcopy(original_config), 'allowed_object_values': []}))
+        for index, config in enumerate(cases):
+            self.config = config
+            self.write_owner()
+            observed = []
+            original_read = OwnerLocalSourceContext.read_bytes
+            def read(context, path, *args, **kwargs):
+                observed.append(path)
+                return original_read(context, path, *args, **kwargs)
+            with self.subTest(index=index), patch.object(OwnerLocalSourceContext, 'read_bytes', read):
+                with self.assertRaises((PermissionError, SourceProfileError)):
+                    self.prepare_create()
+            self.assertEqual([path for path in observed if path.is_relative_to(self.local.private)], [])
+            self.assertNotIn(self.local.public / self.local.native.content_ref, observed)
+            self.assertFalse(self.path.parent.exists())
+
+    def test_private_reference_missing_source_or_native_binding_fails_closed(self):
+        from source_record_profiles import SourceProfileError
+        selection = copy.deepcopy(self.config['claim_selections'][0])
+        self.config['claim_selections'][0]['source_records'].pop(2)
+        self.write_owner()
+        with self.assertRaises(SourceProfileError):
+            self.prepare_create()
+        self.config['claim_selections'][0] = copy.deepcopy(selection)
+        # The metadata grant alone cannot stand in for its exact native binding.
+        third = self.config['claim_selections'][0]['source_records'][2]
+        third['source_binding'] = None
+        third['source_access'] = self.local.access()
+        self.write_owner()
+        with self.assertRaises(SourceProfileError):
+            self.prepare_create()
+        self.assertFalse(self.path.parent.exists())
+        self.config['claim_selections'][0] = selection
+        self.write_owner()
+        self.create()
+        before, original = self.files(), self.member_paths[2].read_bytes()
+        self.member_paths[2].unlink()
+        with self.assertRaises((SourceProfileError, FileNotFoundError)):
+            self.run_command(self.creation)
+        self.member_paths[2].write_bytes(original)
+        self.member_paths[2].chmod(0o600)
+        self.assertEqual(before, self.files())
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+
+    def test_private_reference_allowlist_is_preflighted_but_unrelated_source_is_not_grounded(self):
+        from tests.test_source_owner_record_profiles import PREFIX
+        from source_owner_context import OwnerLocalSourceContext
+        from source_record_profiles import SourceProfileError
+        unused = {'path': PREFIX + 'semantic/unselected/lexeme.json', 'record_id': 'tos.lexeme.synthetic.unselected',
+            'profile_type_id': 'tos.entity.lexeme', 'origin_id': 'origin:synthetic-unselected',
+            'source_access': self.local.access(), 'source_binding': None}
+        self.config['claim_selections'][0]['source_records'].append(unused)
+        self.write_owner()
+        observed, original = [], OwnerLocalSourceContext.read_bytes
+        def read(context, path, *args, **kwargs):
+            observed.append(path)
+            return original(context, path, *args, **kwargs)
+        with patch.object(OwnerLocalSourceContext, 'read_bytes', read):
+            prepared = self.prepare_create()
+        self.assertNotIn(self.local.private / unused['path'], observed)
+        self.assertNotIn(unused['record_id'], {row['id'] for row in prepared['source_bindings'][0]['required_sources']})
+        self.assertFalse((self.local.private / unused['path']).exists())
+        # Unused does not mean unvalidated: an invalid grant still blocks the
+        # command before filtering or opening any private source representation.
+        unused['source_access']['access_allowed'] = False
+        self.write_owner()
+        observed.clear()
+        with patch.object(OwnerLocalSourceContext, 'read_bytes', read), self.assertRaises(SourceProfileError):
+            self.prepare_create()
+        self.assertEqual([path for path in observed if path.is_relative_to(self.local.private)], [])
+        self.assertNotIn(self.local.public / self.local.native.content_ref, observed)
+
+    def test_private_reference_revision_add_remove_preserves_identity_and_replay_scope(self):
+        created = self.create()
+        removed, removal = self.correction(self.values[1], 'synthetic:remove-member')
+        added, addition = self.correction(self.values[2], 'synthetic:add-member')
+        self.assertEqual(removed['source']['version'], 2)
+        self.assertEqual(added['source']['version'], 3)
+        self.assertEqual(added['source']['id'], self.claim['claim_id'])
+        for result, members in ((removed, self.values[1]['members']), (added, self.values[2]['members'])):
+            bound = result['source_bindings'][0]
+            source_members = {row['id'] for row in bound['required_sources'] if row['id'].startswith('tos.occurrence.')}
+            self.assertEqual(source_members, set(members))
+            self.assertEqual(len(bound['native_sources']), len(members))
+            self.assertEqual(result['materializations'][0]['context'][0]['value']['object']['members'], members)
+        before = self.files()
+        for request, receipt in ((self.creation, created['receipt']), (removal, removed['receipt']), (addition, added['receipt'])):
+            replay = self.run_command(request)
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['receipt'], receipt)
+            self.assertEqual(before, self.files())
+        self.config['allowed_object_refs'] = self.members[:3]
+        self.write_owner()
+        for request in (removal, addition, self.creation):
+            with self.subTest(operation=request['operation']), self.assertRaises(PermissionError):
+                self.run_command(request)
+        self.assertEqual(before, self.files())
+
+
+if __name__ == '__main__':
+    unittest.main()

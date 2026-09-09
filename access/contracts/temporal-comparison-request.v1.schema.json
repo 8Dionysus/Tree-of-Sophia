@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/temporal-comparison-request.v1.schema.json",
+  "title": "Compare two exact source Claim date envelopes in one knowledge snapshot",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "source_revision", "left", "right"],
+  "properties": {
+    "schema_version": {"const": "tos_temporal_comparison_request_v1"},
+    "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "left": {"$ref": "#/$defs/selection"},
+    "right": {"$ref": "#/$defs/selection"}
+  },
+  "$defs": {
+    "selection": {
+      "type": "object", "additionalProperties": false, "required": ["node_id", "content_revision"],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^\\S(?:[\\s\\S]*\\S)?$", "description": "Exact normalized node ID from search/inspection; no alias, native ID or entity priority resolution."},
+        "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

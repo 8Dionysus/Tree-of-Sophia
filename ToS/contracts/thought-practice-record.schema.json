@@ -1,0 +1,488 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/thought-practice-record.schema.json",
+  "title": "Source-described practices, hypothetical scenarios and expressive or evaluative thought",
+  "description": "Methods, intellectual actions, hypothetical scenarios, figures, values and commitments remain distinct source-described subjects. Recording content never selects executable code, creates tool authority, asserts hypothetical actuality or imposes a normative or ontological stance on ToS.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_thought_practice_record_v1"
+        },
+        "record_type": {
+          "enum": [
+            "thought-method",
+            "thought-operation",
+            "thought-move",
+            "thought-experiment",
+            "thought-image",
+            "rhetorical-figure",
+            "metaphor",
+            "value",
+            "ideal",
+            "ontological-commitment"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "thought-method"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.thought-method\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.thought-method\\."
+          },
+          "semantic_content": {
+            "required": [
+              "method_account",
+              "applicability_conditions"
+            ],
+            "properties": {
+              "method_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What inquiry this method conducts and how; its description does not prove that it succeeds."
+              },
+              "applicability_conditions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "description": "Declared conditions for applying the method. An empty list records no known conditions, not unconditional applicability."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "thought-operation"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.thought-operation\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.thought-operation\\."
+          },
+          "semantic_content": {
+            "required": [
+              "operation_account",
+              "prerequisites"
+            ],
+            "properties": {
+              "operation_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What is done conceptually and what is not implied by doing it; no executable is selected."
+              },
+              "prerequisites": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "description": "Source-described prerequisites; an empty list means none recorded, not proof that none exist."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "thought-move"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.thought-move\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.thought-move\\."
+          },
+          "semantic_content": {
+            "required": [
+              "movement_account",
+              "context_requirement"
+            ],
+            "properties": {
+              "movement_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The conceptual movement or reframing, with its intended effect and limits."
+              },
+              "context_requirement": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The situation in which this movement is proposed to make sense; not universal applicability."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "thought-experiment"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.thought-experiment\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.thought-experiment\\."
+          },
+          "semantic_content": {
+            "required": [
+              "scenario_account",
+              "assumptions",
+              "assumption_coverage",
+              "examined_consequence"
+            ],
+            "properties": {
+              "scenario_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What is supposed for the inquiry; this is not a claim that the scenario occurred."
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "description": "Conditions granted for examining the scenario, not accepted propositions; empty means none recorded."
+              },
+              "assumption_coverage": {
+                "type": "string",
+                "pattern": "\\S",
+                "enum": [
+                  "explicit_only",
+                  "reconstructed_partial",
+                  "claimed_complete",
+                  "unknown"
+                ],
+                "description": "Declared coverage of recorded assumptions; claimed completeness is not mechanically established."
+              },
+              "examined_consequence": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What consequence or possibility is examined under the stated assumptions; it is not an unconditional conclusion."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "thought-image"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.thought-image\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.thought-image\\."
+          },
+          "semantic_content": {
+            "required": [
+              "image_account",
+              "image_mode"
+            ],
+            "properties": {
+              "image_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What is presented imaginatively or figuratively and its stated scope."
+              },
+              "image_mode": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The source account's characterization of the image, without imposing one aesthetic taxonomy."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "rhetorical-figure"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.rhetorical-figure\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.rhetorical-figure\\."
+          },
+          "semantic_content": {
+            "required": [
+              "figure_account"
+            ],
+            "properties": {
+              "figure_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The identified rhetorical arrangement and its role in the source, not a historical person or automatic interpretation."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "metaphor"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.metaphor\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.metaphor\\."
+          },
+          "semantic_content": {
+            "required": [
+              "figure_account",
+              "source_domain",
+              "target_domain",
+              "mapping_basis"
+            ],
+            "properties": {
+              "figure_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The identified rhetorical arrangement and its role in the source, not a historical person or automatic interpretation."
+              },
+              "source_domain": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The domain supplying the figurative presentation, not a bibliographic source locator."
+              },
+              "target_domain": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What is interpreted through the figurative presentation; distinct from a software target or identity assertion."
+              },
+              "mapping_basis": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Which aspects are proposed to carry across domains and which do not; this is an interpretation requiring assessment."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "value"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.value\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.value\\."
+          },
+          "semantic_content": {
+            "required": [
+              "value_account",
+              "valuation_context"
+            ],
+            "properties": {
+              "value_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What is valued or used as a criterion of valuation, and in what sense."
+              },
+              "valuation_context": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Whose or which discourse's valuation is described; recording it does not adopt it."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "ideal"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.ideal\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.ideal\\."
+          },
+          "semantic_content": {
+            "required": [
+              "ideal_account",
+              "realization_posture"
+            ],
+            "properties": {
+              "ideal_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The model or desired form and its limits; neither realization nor endorsement is implied."
+              },
+              "realization_posture": {
+                "type": "string",
+                "pattern": "\\S",
+                "enum": [
+                  "normative_model",
+                  "proposed_realization",
+                  "claimed_realized",
+                  "unknown"
+                ],
+                "description": "How this account treats realization of the ideal, distinct from whether the description has been assessed."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "ontological-commitment"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.ontological-commitment\\."
+          },
+          "supersedes_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^tos\\.ontological-commitment\\."
+          },
+          "semantic_content": {
+            "required": [
+              "commitment_account",
+              "commitment_force"
+            ],
+            "properties": {
+              "commitment_account": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "What ontological commitment is described and under what substantive limits."
+              },
+              "commitment_force": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "The source-described force, including conditional or suspended commitment; separate from assessment and admission."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

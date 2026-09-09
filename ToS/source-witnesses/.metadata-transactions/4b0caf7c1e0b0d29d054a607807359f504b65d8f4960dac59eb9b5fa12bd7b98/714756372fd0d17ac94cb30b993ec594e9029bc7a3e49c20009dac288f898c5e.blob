@@ -1,0 +1,139 @@
+{
+  "schema_version": "tos_expression_responsibility_receipt_v1",
+  "operation": "expression.responsibility.attach",
+  "transaction_id": "sha256:4b0caf7c1e0b0d29d054a607807359f504b65d8f4960dac59eb9b5fa12bd7b98",
+  "command_id": "foundation-native-responsibility:jenseits-zimmern-attribution:20260909:v1",
+  "request_digest": "sha256:97f8b444059dd80d53f05db4760622e243b0876990856a3f32efe8314ba2cf63",
+  "principal_id": "model:foundation-native-growth-source-review",
+  "authority_ref": "operator:tos-foundation-v1/native-responsibility-growth",
+  "owner_configuration": "sha256:c36aa3bfe8785ae52871232ca12dbc93013b0410df9e5a1e53aa001bbff4231c",
+  "recorded_at": "2026-09-09T03:31:21.117045+00:00",
+  "scope": {
+    "agent_id": "tos.agent.helen-zimmern",
+    "agent_source_path": "ToS/source-witnesses/agents/helen-zimmern/agent.json",
+    "allowed_claim_form_ids": [
+      "tos.form.jenseits-zimmern-gutenberg-4363.translator-attribution.statement"
+    ],
+    "allowed_evidence_refs": [
+      "https://www.gutenberg.org/ebooks/4363",
+      "https://www.gutenberg.org/ebooks/author/1466",
+      "https://www.gutenberg.org/cache/epub/4363/pg4363-images.html"
+    ],
+    "allowed_expression_form_ids": [
+      "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+      "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+      "tos.form.jenseits-zimmern-gutenberg-4363.source-note"
+    ],
+    "claim_id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+    "claim_source_path": "ToS/source-witnesses/relations/jenseits-zimmern-gutenberg-4363-translator-attribution/source-claims.jsonl",
+    "expression_id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+    "expression_source_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/expression.json",
+    "predicate": "translated_by",
+    "provenance_event_id": "tos.event.annotation.jenseits-zimmern-gutenberg-4363.translator-attribution.2026-09-09"
+  },
+  "dependencies": "sha256:5923c51b53e372b696d2c971b9bf98a1d5918a3b123f8d716f882a7c19df76ed",
+  "parent_before": {
+    "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+    "version": 1,
+    "digest": "sha256:082e7e73fd68072426698a28f6fb2e69eb308318bf6545ad505b0de2a9576854"
+  },
+  "parent_after": {
+    "id": "tos.expression.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363",
+    "version": 2,
+    "digest": "sha256:6f62382d6cd8c95b41af7006598ac0eebb623157bd7aedc10bf6af94005216d1"
+  },
+  "parent_revision": "sha256:4a03360d24df6db1fa66bafb3e774381469f255a8dab97a6e0c204b08084a82d",
+  "parent_archive_ref": "ToS/source-witnesses/.record-revisions/3ded92aa964c420196a2daa85b3794d31705985b4eb4ca1fb280a522fc53c82a-4a03360d24df6db1fa66bafb3e774381469f255a8dab97a6e0c204b08084a82d",
+  "parent_transition_sha256": "sha256:a26f94465ec3d23e0c3c5cb67dbb6f3d64b9b8d10d8f7456b78d704b7165baca",
+  "parent_before_files": {
+    "expression.json": {
+      "sha256": "sha256:1747a3226c8f83ef47313900d212197bdee5dc25aa792b695c7c030af17fdfd4",
+      "bytes": 1990
+    },
+    "expression.human-forms.json": {
+      "sha256": "sha256:9a2cbaa8a589c756a0a01878f8beff2ece1fef11eb41b3274954e61a8e396308",
+      "bytes": 7485
+    }
+  },
+  "agent": {
+    "id": "tos.agent.helen-zimmern",
+    "version": 1,
+    "digest": "sha256:ac8695fc9929ec3bcf793c1747bef271725d0851da996e2873a81b7ecee956f1"
+  },
+  "agent_source_binding": {
+    "source_path": "ToS/source-witnesses/agents/helen-zimmern/agent.json",
+    "source": {
+      "id": "tos.agent.helen-zimmern",
+      "version": 1,
+      "digest": "sha256:ac8695fc9929ec3bcf793c1747bef271725d0851da996e2873a81b7ecee956f1"
+    },
+    "source_sha256": "sha256:56bffecfa07e1934bb8b5c8ae6e52bcfe39ffc3fe6a73f936fa353fd8553ce3a",
+    "source_bytes": 2285
+  },
+  "claim": {
+    "id": "tos.claim.responsibility.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.translated-by-helen-zimmern",
+    "version": 1,
+    "digest": "sha256:ef5120dd2e3fc38d953cec4281a415480f88d8a24df22d0a870372a900a593ff"
+  },
+  "forms": {
+    "expression": [
+      {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-ru",
+        "version": 2,
+        "digest": "sha256:facd1c2c8c9b30756f7347ba0b21b320e622f1eab8583700524a7df8788bcf76"
+      },
+      {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.name-en",
+        "version": 2,
+        "digest": "sha256:d3864abcf22cdbb0a16f8424c810a8f10d03d83cfa60aba1846498a9ffc70632"
+      },
+      {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.source-note",
+        "version": 2,
+        "digest": "sha256:95c9e59f17f3763998b099152a56513dec011a4d3a2fc59a40e8b95c9b000afc"
+      }
+    ],
+    "claim": [
+      {
+        "id": "tos.form.jenseits-zimmern-gutenberg-4363.translator-attribution.statement",
+        "version": 1,
+        "digest": "sha256:51e58e7687a4f4410564cde4549835d52e9e1a1ccc51a557db0c4b999139cca5"
+      }
+    ]
+  },
+  "files": {
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/expression.json": {
+      "sha256": "sha256:6edc7cd37545864e06770472c7ceae06941d7fdf0fb93df63d537c1242e3cb84",
+      "bytes": 2105
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/expression.human-forms.json": {
+      "sha256": "sha256:e6283f894566515272b41e2dd79546997827a0a8859971244166578c37de2da5",
+      "bytes": 15218
+    },
+    "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/source-revision-history.json": {
+      "sha256": "sha256:da4f13aeeb0af564ec3790325443c85a01d7d35f058cd13b7965380252079ac8",
+      "bytes": 11102
+    },
+    "ToS/source-witnesses/relations/jenseits-zimmern-gutenberg-4363-translator-attribution/source-claims.jsonl": {
+      "sha256": "sha256:ca6b075e67819020fdb5ec63b6b7c80787b76cf083d8654981b0dd29b1154538",
+      "bytes": 2813
+    },
+    "ToS/source-witnesses/relations/jenseits-zimmern-gutenberg-4363-translator-attribution/source-claims.78a9e7821c67e5187a178883cfac6d3ec71b9930bcf094d2085adc8954963f9a.human-forms.json": {
+      "sha256": "sha256:3b81048c7e6ad8f64a704648d78dd86e9579a816e1b4b83040f499ca3976546b",
+      "bytes": 1754
+    },
+    "ToS/source-witnesses/relations/jenseits-zimmern-gutenberg-4363-translator-attribution/source-create-request.json": {
+      "sha256": "sha256:e1eecac7e8040f7ba8c20f4a8132af5845b207cd9697eddbd1278959677a6182",
+      "bytes": 6644
+    },
+    "ToS/source-witnesses/relations/jenseits-zimmern-gutenberg-4363-translator-attribution/source-create-environment.json": {
+      "sha256": "sha256:69c94fd285ed9eaae03b0a03db1486e01eb0e9e535f7fa369375f41f034a3488",
+      "bytes": 325
+    },
+    "ToS/source-witnesses/relations/jenseits-zimmern-gutenberg-4363-translator-attribution/source-create-provenance.jsonl": {
+      "sha256": "sha256:08e1746441f2ef764eeb9fccef311e555b26c004889e7504b02cc4d2c2fc0d14",
+      "bytes": 11790
+    }
+  },
+  "grants_admission": false
+}

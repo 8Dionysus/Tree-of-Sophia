@@ -44,3 +44,12 @@ test("sourceDossier joins tree route, evidence links, and reviewed rights", () =
   assert.deepEqual((packet.tree_paths as Array<Record<string, unknown>>)[0].node_ids, ["era", "planting", "work"]);
   assert.deepEqual((packet.relations as Array<Record<string, unknown>>).map((edge) => edge.edge_id), ["e1", "e2", "e3", "e4"]);
 });
+
+test("sourceDossier accepts every bibliographic carrier and preserves the selected route", () => {
+  for (const [objectId, kind] of [["work", "work"], ["expression", "expression"], ["link", "link"]] as const) {
+    const packet = sourceDossier(navigation, objectId, 300);
+    assert.equal((packet.object as Record<string, unknown>).node_kind, kind);
+    assert.equal((packet.tree_paths as Array<Record<string, unknown>>)[0]!.node_ids instanceof Array, true);
+    assert.equal((packet.tree_paths as Array<Record<string, unknown>>)[0]!.node_ids.slice(-1)[0], objectId);
+  }
+});

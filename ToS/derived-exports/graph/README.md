@@ -45,6 +45,13 @@ timeline facet or turn a date into an identity.
 
 ## Read-only query route
 
+An explicit [local assessed build](../../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#local-assessed-graph-builds)
+can carry current source-journal form results into the existing common reader.
+It writes a separate private research candidate, never this tracked public
+projection. Public-safety clearance, artifact admission and runtime publication
+remain separate; the source-parity query route below still reads the ordinary
+metadata-only projection.
+
 `scripts/query_source_witness_bibliographic_graph.py` is the repository-local
 stdout query route. Before returning a result it validates the tracked graph,
 checks its projection fingerprint, rebuilds it from the exact source-owned

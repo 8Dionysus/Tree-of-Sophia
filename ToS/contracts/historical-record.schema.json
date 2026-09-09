@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/historical-record.schema.json",
+  "title": "Tree of Sophia source historical identity record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_id",
+    "preferred_label",
+    "identity_status",
+    "source_refs",
+    "external_identifiers",
+    "same_as_posture",
+    "record_version",
+    "visibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_historical_record_v1"
+    },
+    "record_type": {
+      "enum": [
+        "historical-event",
+        "historical-process",
+        "historical-state"
+      ]
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^tos\\.(historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "preferred_label": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/preferred_label"
+    },
+    "variant_labels": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/variant_labels"
+    },
+    "field_languages": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/field_languages"
+    },
+    "identity_status": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/identity_status"
+    },
+    "source_refs": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/source_refs"
+    },
+    "external_identifiers": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/external_identifiers"
+    },
+    "same_as_posture": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/same_as_posture"
+    },
+    "record_version": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/record_version"
+    },
+    "notes": {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/properties/notes"
+    },
+    "supersedes_ref": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^tos\\.(historical-event|historical-process|historical-state)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "visibility": {
+      "enum": [
+        "local_only",
+        "research_group",
+        "permission_requested",
+        "public_metadata_only",
+        "public"
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Uninterpreted source-owned fields retained losslessly; no semantic mapping or admission is implied."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-event"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-event\\."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-process"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-process\\."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "historical-state"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "record_id": {
+            "pattern": "^tos\\.historical-state\\."
+          }
+        }
+      }
+    }
+  ]
+}

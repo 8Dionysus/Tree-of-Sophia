@@ -20,6 +20,15 @@ RECORD_DIRS = {
     "projections": "projection",
     "receipts": "receipt",
 }
+GENERATED_INDEX_NAMES = {
+    "source_surface_index.json",
+    "repo_artifact_index.json",
+    "repo_anchor_index.json",
+    "repo_entity_index.json",
+    "repo_event_index.json",
+    "repo_assertion_index.json",
+    "repo_relation_index.json",
+}
 REQUIRED_RECORD_FIELDS = {
     "schema_version",
     "repo",
@@ -40,6 +49,9 @@ REQUIRED_RECORD_FIELDS = {
 }
 REPO_LOCAL_FAMILY_MANIFEST = Path("kag/indexes/index_family.manifest.json")
 REPO_LOCAL_BUDGET_RECEIPT_ROOT = Path("kag/receipts/index_family_budget")
+REPO_LOCAL_PROVIDER_PIN = Path("kag/provider_pin.json")
+SEGMENTED_FAMILY_SCHEMA = "aoa-repo-local-kag-segmented-family-v1"
+SEGMENTED_SCHEMA_REF = "aoa-kag:schemas/repo-local-kag-segmented-family.schema.json"
 
 
 class ValidationError(RuntimeError):
@@ -133,6 +145,9 @@ def validate_manifest() -> dict[str, Any]:
         fail("kag/manifest.json repo is invalid")
     if manifest.get("owner_surface") != "kag/AGENTS.md":
         fail("kag/manifest.json owner_surface must be kag/AGENTS.md")
+    provider_pin = manifest.get("provider_pin")
+    if provider_pin != REPO_LOCAL_PROVIDER_PIN.as_posix():
+        fail("kag/manifest.json must name the explicit aoa-kag provider pin")
     if set(manifest.get("record_classes", [])) != REQUIRED_RECORD_CLASSES:
         fail("kag/manifest.json must name every local KAG record class")
     routes = {
@@ -162,6 +177,10 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
             if (
                 relative == REPO_LOCAL_FAMILY_MANIFEST
                 or REPO_LOCAL_BUDGET_RECEIPT_ROOT in relative.parents
+                or (
+                    relative.parent == Path("kag/indexes")
+                    and relative.name in GENERATED_INDEX_NAMES
+                )
             ):
                 continue
             record = read_json(path)
@@ -187,6 +206,13 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
 def validate_repo_local_family() -> None:
     payload = read_json(REPO_ROOT / REPO_LOCAL_FAMILY_MANIFEST)
     label = REPO_LOCAL_FAMILY_MANIFEST.as_posix()
+    if payload.get("schema_version") == SEGMENTED_FAMILY_SCHEMA:
+        # The external owner adapter performs the authoritative v5 validation;
+        # keep this route fail-closed so a v3/v4 validator cannot silently
+        # admit the new family or assemble it without a bounded reader.
+        fail(
+            f"{label} is v5 segmented; use scripts/validate_local_segmented_kag_provider.py"
+        )
     if payload.get("schema_version") != "aoa-repo-local-kag-family-manifest-v3":
         fail(f"{label} schema_version is invalid")
     repo = payload.get("repo")
@@ -294,7 +320,27 @@ def main(argv: list[str] | None = None) -> int:
         validate_manifest()
         groups = validate_records()
         validate_links(groups)
-        validate_repo_local_family()
+        family = read_json(REPO_ROOT / REPO_LOCAL_FAMILY_MANIFEST)
+        if family.get("schema_version") == SEGMENTED_FAMILY_SCHEMA:
+            try:
+                from scripts.validate_local_segmented_kag_provider import (
+                    validate_pinned_segmented_family,
+                )
+            except ImportError:  # direct script execution
+                from validate_local_segmented_kag_provider import (  # type: ignore
+                    validate_pinned_segmented_family,
+                )
+
+            result = validate_pinned_segmented_family(REPO_ROOT)
+            print(
+                "[ok] validated Tree-of-Sophia segmented KAG provider "
+                f"revision={result['provider_revision']} "
+                f"family={result['family_digest']} "
+                f"segments={result['segments']} records={result['records']} "
+                f"bytes={result['bytes']}"
+            )
+        else:
+            validate_repo_local_family()
     except ValidationError as exc:
         print(f"[error] {exc}")
         return 1
