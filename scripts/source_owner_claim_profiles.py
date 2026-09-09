@@ -11,6 +11,11 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import SchemaError
+from referencing import Registry
+from referencing.exceptions import Unresolvable
+
 from native_text_binding import (
     BINDING_SCHEMA, NativeTextBindingError, NativeTextBindingResolver,
     check_local_research_rights,
@@ -23,7 +28,7 @@ from source_owner_record_profiles import (
     _canonical, _hash, _object,
 )
 from source_record_profiles import (
-    MAX_CLAIM_FILE_BYTES, MAX_RECORD_BYTES, SOURCE_CLAIM_BASENAME,
+    CORPUS_REF, MAX_CLAIM_FILE_BYTES, MAX_RECORD_BYTES, SOURCE_CLAIM_BASENAME, SOURCE_ROOT,
     SourceClaimProfiles, SourceProfileError, SourceRecordProfiles,
 )
 
@@ -34,6 +39,11 @@ MAX_EVIDENCE_REFS = 64
 MAX_CLAIM_ROWS = 1024
 SOURCE_KEYS = {'path', 'record_id', 'profile_type_id', 'origin_id', 'source_access', 'source_binding'}
 NATIVE_KEYS = {'binding', 'origin_id', 'source_access'}
+# Existing native Corpus carriers, not new source-record profiles. A schema
+# expansion needs an explicit adapter change; arbitrary registry types do not
+# acquire this path merely by dropping their source_record_profile.
+NATIVE_CORPUS_KINDS = frozenset({'agent', 'place', 'organization', 'work',
+                              'expression', 'edition', 'collection', 'item'})
 
 
 def _text(value):
@@ -62,8 +72,10 @@ def _ref(record):
 class OwnerLocalSourceClaimProfiles:
     """A frozen one-Claim reader; exact mode is not an upgrade of metadata.
 
-    ``source_records`` selects existing profile type IDs and exact paths, not
-    source bodies. ``native_bindings`` selects only additional native evidence;
+    ``source_records`` selects existing profile or native Corpus type IDs and
+    exact metadata paths, not source bodies. Native Corpus endpoints are public
+    metadata only, independently selected from any native text binding.
+    ``native_bindings`` selects only additional native evidence;
     a selected Occurrence contributes its independently supplied binding.
     Native envelopes are supporting evidence, never independently authorized
     native assessment targets. All selection access is checked before source
@@ -122,18 +134,42 @@ class OwnerLocalSourceClaimProfiles:
         self._mode, self._candidate_digest = None, None
         self._records, self._summaries, self._languages = {}, [], ()
         self._source_kinds = {}
+        self._corpus_validator, self._corpus_digests = None, {}
         for row in sources:
             entity = self._claims.entities.get(row['profile_type_id'], {})
             profile = entity.get('source_record_profile')
-            if profile is None or profile['record_type'] not in self._public.profiles:
+            native_kind = row['profile_type_id'].removeprefix('tos.entity.')
+            native = (row['profile_type_id'] == 'tos.entity.' + native_kind
+                      and native_kind in NATIVE_CORPUS_KINDS)
+            if native:
+                if (profile is not None or entity.get('abstract') is not False
+                        or entity.get('object_role') != 'identity'
+                        or self._claims.mappings.get(native_kind) != row['profile_type_id']
+                        or 'tos.entity.identity' not in self._claims.ancestry(row['profile_type_id'])):
+                    raise SourceProfileError('native Corpus endpoint has no exact existing identity mapping')
+                kind = native_kind
+            elif profile is None or profile['record_type'] not in self._public.profiles:
                 raise SourceProfileError('Claim endpoint type has no understood source record profile')
-            kind = profile['record_type']
+            else:
+                kind = profile['record_type']
             self._source_kinds[row['profile_type_id']] = kind
             try:
                 private = context.role(row['path']) == 'owner-local-root'
             except SourceOwnerContextError as error:
                 raise SourceProfileError('Claim source selection leaves its exact owner transport') from error
-            if private:
+            if native:
+                path = Path(row['path'])
+                if (private or row['source_access']['read_scope'] != 'metadata_only'
+                        or row['source_binding'] is not None
+                        or not path.is_relative_to(SOURCE_ROOT)
+                        or len(path.parts) < len(SOURCE_ROOT.parts) + 2
+                        or path.name != kind + '.json'
+                        or any(part.startswith('.') or part in {'catalog', 'payload', 'local-content'}
+                               for part in path.parts)
+                        or not row['record_id'].startswith('tos.' + kind + '.')):
+                    raise SourceProfileError('native Corpus Claim endpoint needs exact public metadata selection')
+                self._native_corpus_schema()
+            elif private:
                 reader = OwnerLocalSourceRecordProfiles(context, row['source_access'],
                     row['source_binding'], source_reader)
                 reader.validate_path(kind, row['path'])
@@ -146,6 +182,39 @@ class OwnerLocalSourceClaimProfiles:
         for row in natives:
             self._add_native(row['binding'], row['origin_id'], row['source_access'])
         self.snapshot()
+
+    def _native_corpus_schema(self):
+        if self._corpus_validator is None:
+            raw = self._read(CORPUS_REF, MAX_RECORD_BYTES)
+            schema = _object(raw)
+            if schema.get('$id') != 'https://tree-of-sophia.local/' + CORPUS_REF:
+                raise SourceProfileError('native Corpus schema identity differs from its owner path')
+            try:
+                Draft202012Validator.check_schema(schema)
+            except SchemaError as error:
+                raise SourceProfileError('native Corpus schema is unsupported') from error
+            self._corpus_validator = Draft202012Validator(schema, registry=Registry(),
+                                                          format_checker=FormatChecker())
+            self._corpus_digests[CORPUS_REF] = _hash(raw)
+        return self._corpus_validator
+
+    def _native_corpus_source(self, kind, raw):
+        source = _object(raw)
+        try:
+            valid = self._native_corpus_schema().is_valid(source)
+        except Unresolvable as error:
+            raise SourceProfileError('native Corpus schema has an undeclared dependency') from error
+        # Corpus metadata has no visibility override or inline text binding.
+        # The selected public metadata transport never authorizes its payload,
+        # Item manifest, bibliography neighbors, or linked source refs.
+        if (not valid or source.get('schema_version') != 'tos_corpus_record_v1'
+                or source.get('record_type') != kind
+                or not isinstance(source.get('record_id'), str)
+                or not source['record_id'].startswith('tos.' + kind + '.')
+                or type(source.get('record_version')) is not int or source['record_version'] < 1
+                or 'visibility' in source or 'native_text_binding' in source):
+            raise SourceProfileError('Claim endpoint violates its native Corpus type, identity or schema')
+        return source
 
     def _context_snapshot(self):
         try:
@@ -191,7 +260,7 @@ class OwnerLocalSourceClaimProfiles:
 
     def _grammar(self):
         result = {CONTEXT_SCHEMA_REF: self._context.contract_digest}
-        inputs = [self._claims.input_digests, self._public.input_digests,
+        inputs = [self._claims.input_digests, self._public.input_digests, self._corpus_digests,
                   *(reader.input_digests for reader in self._private_readers.values()),
                   *(row['resolver'].schema_digests for row in self._native.values())]
         for mapping in inputs:
@@ -394,8 +463,11 @@ class OwnerLocalSourceClaimProfiles:
             if ref in self._source_inputs and self._source_inputs[ref] != digest:
                 raise SourceProfileError('Claim source changed between duplicate selections')
             self._source_inputs[ref] = digest
-            reader = self._private_readers.get(ref, self._public)
-            source = reader.load(kind, ref)
+            if kind in NATIVE_CORPUS_KINDS:
+                source = self._native_corpus_source(kind, source_raw)
+            else:
+                reader = self._private_readers.get(ref, self._public)
+                source = reader.load(kind, ref)
             if _canonical(source) != _canonical(_object(source_raw)) or _hash(self._read(ref, MAX_RECORD_BYTES)) != digest:
                 raise SourceProfileError('Claim source changed while its real profile reader resolved it')
             if source['record_id'] != identity or source.get('native_text_binding') != selection['source_binding']:
@@ -458,6 +530,10 @@ class OwnerLocalSourceClaimProfiles:
         if self._claims.profiles[predicate]['reader'] == 'structured-reference-value-v1':
             add(selected['object']['source_wording']['language'])
         for source in objects.values():
+            if source['record_type'] in NATIVE_CORPUS_KINDS:
+                add(source.get('language'))
+                for label in source.get('variant_labels', ()):
+                    add(label['language'])
             fields = source.get('field_languages')
             for value in fields.values() if isinstance(fields, dict) else ():
                 if isinstance(value, dict):

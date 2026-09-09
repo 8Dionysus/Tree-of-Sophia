@@ -129,6 +129,40 @@ class PrivateClaimCommandTests(unittest.TestCase):
         self.assertNotIn(self.local.public / self.local.native.content_ref, observed)
         self.assertFalse(self.path.parent.exists())
 
+    def test_native_expression_endpoint_creation_replay_and_currentness(self):
+        claim, sources = self.local.conception_claim(exact=True)
+        for field in ('subject_ref', 'object', 'predicate', 'assertion_layer', 'evidence_refs'):
+            self.claim[field] = claim[field]
+        self.config.update(allowed_subject_refs=[self.claim['subject_ref']],
+            allowed_object_refs=[self.claim['object']], allowed_predicates=[self.claim['predicate']],
+            allowed_evidence_refs=self.claim['evidence_refs'])
+        self.config['claim_selections'][0].update(
+            relation_type_id='tos.relation.conception-expressed-in', source_records=sources)
+        self.write_owner()
+        prepared = self.prepare_create()
+        required = {row['id'] for row in prepared['source_bindings'][0]['required_sources']}
+        self.assertTrue({selector['record_id'] for selector in sources} <= required)
+        expression_path = self.local.public / sources[1]['path']
+        original = expression_path.read_bytes()
+        expression_path.write_bytes(original + b'\n')
+        with self.assertRaises(source.JournalConflict):
+            self.run_command(self.creation)
+        self.assertFalse(self.path.parent.exists())
+        expression_path.write_bytes(original)
+        created = self.create()
+        before = self.files()
+        self.assertTrue(self.run_command(self.creation)['replayed'])
+        self.assertEqual(self.files(), before)
+        self.assertEqual(json.loads(self.path.read_bytes()), self.claim)
+        self.assertFalse(created['grants_admission'])
+        self.assertFalse(created['publication_authorized'])
+        self.assertEqual(created['materializations'][0]['context'][0]['value'], self.claim)
+        self.config['claim_selections'][0]['source_records'][1]['source_access']['access_allowed'] = False
+        self.write_owner()
+        with self.assertRaises((PermissionError, ValueError)):
+            self.run_command(self.creation)
+        self.assertEqual(self.files(), before)
+
     def test_corrupt_creation_receipt_refuses_describe_and_prepare_revise(self):
         self.create()
         target = self.path.parent / private.transport.RECEIPT_FILE

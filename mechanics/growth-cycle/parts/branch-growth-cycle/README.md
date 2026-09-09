@@ -873,6 +873,19 @@ The exact configuration fields are:
   typed selectors used by the private Claim reader and v4 assessment below;
   no inline endpoint body or inferred type is accepted.
 
+An explicit `source_records` selector may also name a native Corpus metadata
+endpoint with `profile_type_id: tos.entity.<kind>` for Agent, Place,
+Organization, Work, Expression, Edition, Collection or Item. This uses the
+existing `tos_corpus_record_v1` grammar and identity mapping, not a new profile.
+The exact public metadata path must end in `<kind>.json`; `record_id` must
+match its actual typed identity, `source_binding` must be null and access must
+be `metadata_only`. Private Corpus aliases and visibility overrides are
+refused. Full metadata, its version and freshly read schema enter the frozen
+dependency closure; declared Corpus language, variant-label languages and
+field languages enter assessment language scope. Linked records, Item
+manifests and payloads are not followed. A TextUnit's native binding does not
+implicitly select its Work or Expression as a Claim endpoint.
+
 Claim and form scopes contain at most 32 identities; subject, object and
 evidence scopes at most 128. The selected relation must have an understood
 `semantic-relation-v1` or `identity-relation-v1` source profile. Temporal and

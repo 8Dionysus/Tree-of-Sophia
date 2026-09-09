@@ -17,9 +17,9 @@ from tests.test_source_owner_record_profiles import (
     PACKET_REF, PREFIX, PROFILE_SCHEMAS, SOURCE_REF, STORE_ID, lexeme, occurrence,
 )
 from source_owner_context import CONTEXT_SCHEMA_REF, OWNER_LOCAL_HOME, OwnerLocalSourceContext
-from source_owner_claim_profiles import OwnerLocalSourceClaimProfiles
+from source_owner_claim_profiles import NATIVE_CORPUS_KINDS, OwnerLocalSourceClaimProfiles
 from source_record_profiles import (
-    CLAIM_CONTRACT_REF, CLAIM_REGISTRY_REF, CONTRACT_REF, REGISTRY_REF,
+    CLAIM_CONTRACT_REF, CLAIM_REGISTRY_REF, CONTRACT_REF, CORPUS_REF, REGISTRY_REF,
     SourceClaimProfiles, SourceProfileError,
 )
 
@@ -132,6 +132,39 @@ class OwnerLocalClaimFixture:
             'source_records': self.source_selections(exact), 'native_bindings': [],
             'verify_content': exact, 'form_ids': list(form_ids)}
 
+    def corpus_selection(self, kind='expression'):
+        if kind in self.native.refs:
+            ref, identity = self.native.refs[kind], self.native.ids[kind]
+        else:
+            ref = 'ToS/source-witnesses/synthetic-corpus/' + kind + '.json'
+            identity = 'tos.' + kind + '.synthetic.claim'
+            body = {'schema_version': 'tos_corpus_record_v1', 'record_type': kind,
+                'record_id': identity, 'record_version': 1, 'preferred_label': 'Synthetic metadata only.',
+                'identity_status': 'provisional', 'source_refs': [self.native.policy_ref],
+                'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim'}
+            if kind == 'collection':
+                body['membership_claim_refs'] = []
+            self.native.write_json(ref, body)
+        return {'path': ref, 'record_id': identity, 'profile_type_id': 'tos.entity.' + kind,
+            'origin_id': 'origin:synthetic-corpus-' + kind, 'source_access': self.access(),
+            'source_binding': None}
+
+    def conception_claim(self, exact=False):
+        conception = lexeme()
+        conception.pop('semantic_content')  # Conception prose is owned by notes, not a lexical slot.
+        conception.update(schema_version='tos_semantic_description_record_v1', record_type='conception',
+            record_id='tos.conception.synthetic.native-claim', visibility='public_metadata_only')
+        ref = 'ToS/source-witnesses/semantic-descriptions/synthetic/conception.json'
+        self.native.write_json(ref, conception)
+        claim = {**copy.deepcopy(self.claim), 'predicate': 'conception_expressed_in',
+            'assertion_layer': 'semantic_interpretation', 'subject_ref': conception['record_id'],
+            'object': self.native.ids['expression'], 'evidence_refs': [SOURCE_REF]}
+        sources = [{'path': ref, 'record_id': conception['record_id'],
+            'profile_type_id': 'tos.entity.conception', 'origin_id': 'origin:synthetic-conception',
+            'source_access': self.access(), 'source_binding': None},
+            self.corpus_selection(), self.source_selections(exact)[0]]
+        return claim, sources
+
     def reader(self, exact=False, **overrides):
         kwargs = {'source_access': self.access(exact), 'source_records': self.source_selections(exact),
                   'verify_content': exact, **overrides}
@@ -147,6 +180,134 @@ class OwnerLocalSourceClaimProfilesTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix='tos-owner-claim-profile-')
         self.addCleanup(temporary.cleanup)
         self.fixture = OwnerLocalClaimFixture(Path(temporary.name))
+
+    def test_native_corpus_kinds_keep_exact_metadata_and_do_not_follow_refs(self):
+        f, seen = self.fixture, []
+        conception_claim, endpoints = f.conception_claim()
+        def read(path, limit):
+            seen.append(path)
+            return path.read_bytes()
+        for kind in sorted(NATIVE_CORPUS_KINDS):
+            selector = f.corpus_selection(kind)
+            claim = {**conception_claim, 'evidence_refs': [selector['path']]}
+            reader = f.reader(source_records=[*endpoints[:2], selector], source_reader=read)
+            with self.subTest(kind=kind):
+                reader.prepare_candidate(claim, origin_id='origin:synthetic-claim')
+                record = next(row for row in reader.records if row['id'] == selector['record_id'])
+                self.assertEqual(record['payload'], json.loads((f.public / selector['path']).read_bytes()))
+                self.assertEqual(record['origin_id'], selector['origin_id'])
+                self.assertIn(CORPUS_REF, reader.contract_digests)
+                self.assertNotIn(f.public / f.native.content_ref, seen)
+                self.assertNotIn(f.public / f.native.original_ref, seen)
+                self.assertNotIn(f.public / f.native.manifest_ref, seen)
+                self.assertNotIn(f.public / f.native.policy_ref, seen)
+                self.assertEqual(reader.native_summaries, ())
+
+    def test_conception_expression_requires_explicit_endpoint_and_language_closure(self):
+        f = self.fixture
+        claim, sources = f.conception_claim(exact=True)
+        path = f.public / f.native.refs['expression']
+        body = json.loads(path.read_bytes())
+        body.update(language='fr', field_languages={'notes': {'language': 'de', 'script': 'Latn'}},
+            variant_labels=[{'value': 'Synthetic label', 'language': 'it',
+                             'source_ref': f.native.policy_ref, 'status': 'unverified'}])
+        f.native.write_json(f.native.refs['expression'], body)
+        reader = f.reader(exact=True, source_records=sources)
+        candidate = reader.prepare_candidate(claim, origin_id='origin:synthetic-claim',
+            relation_type_id='tos.relation.conception-expressed-in')
+        self.assertEqual(reader.required_languages(candidate['id']), ('de', 'en', 'fr', 'it', 'ru', 'und'))
+        self.assertEqual(next(row for row in reader.records if row['id'] == body['record_id'])['payload'], body)
+        self.assertTrue(reader.native_summaries[0]['content_verified'])
+        f.write_claims(claim)
+        stored = f.reader(exact=True, source_records=sources)
+        self.assertEqual(stored.load(CLAIM_REF, claim['claim_id'], origin_id='origin:synthetic-claim'), candidate)
+        self.assertEqual(stored.dependency_refs(candidate['id']), reader.dependency_refs(candidate['id']))
+        with self.assertRaises(SourceProfileError):
+            f.reader(exact=True, source_records=[sources[0], sources[2]]).prepare_candidate(
+                claim, origin_id='origin:synthetic-claim')
+        edition = f.corpus_selection('edition')
+        with self.assertRaises(SourceProfileError):
+            f.reader(source_records=[sources[0], edition, f.source_selections()[0]]).prepare_candidate(
+                {**claim, 'object': edition['record_id']}, origin_id='origin:synthetic-claim')
+
+    def test_native_corpus_selector_guards_precede_private_io(self):
+        f, seen = self.fixture, []
+        selector = f.corpus_selection()
+        def read(path, limit):
+            seen.append(path)
+            return path.read_bytes()
+        private_ref = PREFIX + 'corpus/synthetic/expression.json'
+        f.write_private(private_ref, (f.public / selector['path']).read_bytes())
+        for change in ({'path': private_ref}, {'path': str(f.public / selector['path'])},
+                {'path': 'ToS/doctrine/expression.json'},
+                {'path': 'ToS/source-witnesses/catalog/expression.json'},
+                {'path': 'ToS/source-witnesses/payload/expression.json'},
+                {'path': 'ToS/source-witnesses/local-content/expression.json'},
+                {'path': 'ToS/source-witnesses/.hidden/expression.json'},
+                {'path': selector['path'].replace('expression.json', 'work.json')},
+                {'path': selector['path'].replace('/expression.json', '/../expression.json')},
+                {'profile_type_id': 'tos.entity.identity'}, {'record_id': 'tos.work.wrong-type'},
+                {'source_access': f.access(True)}, {'source_binding': f.binding},
+                {'source_access': {**f.access(), 'access_allowed': False}}, {'payload': {}}):
+            with self.subTest(change=change), self.assertRaises(SourceProfileError):
+                f.reader(source_records=[*f.source_selections(), {**selector, **change}], source_reader=read)
+            self.assertFalse(any(path.is_relative_to(f.private) for path in seen))
+            self.assertNotIn(f.public / f.native.content_ref, seen)
+
+    def test_native_corpus_identity_schema_visibility_and_alias_fail_closed(self):
+        f = self.fixture
+        claim, sources = f.conception_claim()
+        path = f.public / sources[1]['path']
+        original = path.read_bytes()
+        body = json.loads(original)
+        for change in ({'record_id': 'tos.expression.synthetic.wrong'}, {'record_id': 'tos.work.wrong'},
+                {'record_version': True}, {'record_version': 0}, {'schema_version': 'tos_corpus_record_v2'},
+                {'record_type': 'work'}, {'visibility': 'local_only'}, {'visibility': 'public'},
+                {'native_text_binding': f.binding}, {'language': None}):
+            f.native.write_json(sources[1]['path'], {**body, **change})
+            with self.subTest(change=change), self.assertRaises(SourceProfileError):
+                f.reader(source_records=sources).prepare_candidate(claim, origin_id='origin:synthetic-claim')
+        for missing in ('record_id', 'record_version', 'record_type', 'schema_version', 'work_ref'):
+            f.native.write_json(sources[1]['path'], {key: value for key, value in body.items() if key != missing})
+            with self.subTest(missing=missing), self.assertRaises(SourceProfileError):
+                f.reader(source_records=sources).prepare_candidate(claim, origin_id='origin:synthetic-claim')
+        path.write_bytes(original)
+        reader = f.reader(source_records=sources)
+        private_ref = PREFIX + 'corpus/synthetic/expression.json'
+        f.write_private(private_ref, original)
+        path.unlink()
+        path.symlink_to(f.private / private_ref)
+        seen = []
+        def read(target, limit):
+            seen.append(target)
+            return target.read_bytes()
+        with self.assertRaises(SourceProfileError):
+            f.reader(source_records=sources, source_reader=read).prepare_candidate(
+                claim, origin_id='origin:synthetic-claim')
+        self.assertNotIn(path, seen)
+        with self.assertRaises(SourceProfileError):
+            reader.prepare_candidate(claim, origin_id='origin:synthetic-claim')
+
+    def test_native_corpus_source_and_fresh_schema_are_frozen_not_global(self):
+        f = self.fixture
+        claim, sources = f.conception_claim()
+        for ref in (sources[1]['path'], CORPUS_REF):
+            path = f.public / ref
+            original = path.read_bytes()
+            reader = f.reader(source_records=sources)
+            reader.prepare_candidate(claim, origin_id='origin:synthetic-claim')
+            path.write_bytes(original + b'\n')
+            try:
+                with self.subTest(ref=ref), self.assertRaises(SourceProfileError):
+                    reader.snapshot()
+            finally:
+                path.write_bytes(original)
+        schema_path = f.public / CORPUS_REF
+        schema = json.loads(schema_path.read_bytes())
+        schema['required'].append('synthetic_new_requirement')
+        f.native.write_json(CORPUS_REF, schema)
+        with self.assertRaises(SourceProfileError):
+            f.reader(source_records=sources).prepare_candidate(claim, origin_id='origin:synthetic-claim')
 
     def test_candidate_without_source_package_uses_real_selected_dependencies(self):
         f, seen = self.fixture, []
