@@ -540,6 +540,37 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(identity['epistemic']['authority_layer'], 'source-witness')
         self.assertIsNone(identity['epistemic']['canon_status'])
 
+    def test_source_dossier_ref_reuses_only_declared_bibliographic_identity(self):
+        corpus, philosophy = self.fixture()
+        corpus['source_navigation'] = {'nodes': [
+            {'node_id': 'tos.work.fixture', 'node_kind': 'work',
+             'properties': {'record_id': 'tos.work.fixture', 'record_type': 'work'}},
+            {'node_id': 'navigation:work-alias', 'node_kind': 'work',
+             'properties': {'identity_ref': 'tos.work.fixture', 'record_type': 'work'}},
+            {'node_id': 'tos.agent.fixture', 'node_kind': 'agent',
+             'properties': {'record_id': 'tos.agent.fixture', 'record_type': 'agent'}},
+        ], 'edges': []}
+        claims = {'nodes': [
+            {'node_id': 'identity:tos.work.fixture', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.work.fixture', 'identity_type': 'work'}},
+            {'node_id': 'identity:tos.agent.fixture', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.agent.fixture', 'identity_type': 'agent'}},
+            {'node_id': 'identity:tos.work.unknown', 'node_kind': 'identity',
+             'properties': {'identity_ref': 'tos.work.unknown', 'identity_type': 'work'}},
+        ], 'edges': []}
+        graph = build_knowledge_graph(corpus, philosophy, claims,
+                                      self.entity_type_registry, self.relation_type_registry)
+        navigation = {node['native_id']: node for node in graph['nodes']
+                      if node['source_graph'] == 'source-navigation'}
+        self.assertEqual(navigation['tos.work.fixture']['source_dossier_ref'], 'tos.work.fixture')
+        self.assertNotIn('source_dossier_ref', navigation['navigation:work-alias'])
+        self.assertNotIn('source_dossier_ref', navigation['tos.agent.fixture'])
+        source_claims = {node['native_id']: node for node in graph['nodes']
+                         if node['source_graph'] == 'source-claims'}
+        self.assertEqual(source_claims['identity:tos.work.fixture']['source_dossier_ref'], 'tos.work.fixture')
+        self.assertNotIn('source_dossier_ref', source_claims['identity:tos.agent.fixture'])
+        self.assertNotIn('source_dossier_ref', source_claims['identity:tos.work.unknown'])
+
     def property_validation_fixture(self, count):
         """Repeated instances of one type; their values remain independently checked."""
         entities = copy.deepcopy(self.entity_type_registry)

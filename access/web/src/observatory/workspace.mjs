@@ -98,12 +98,16 @@ export function createTools(root,scene,{data:{queries},selected,panels,onChange}
     for(const [label,value]of [[ui("Слой"),source.epistemic?.authority_layer],[ui("Рассмотрение"),source.epistemic?.review_posture],[ui("Канон"),source.epistemic?.canon_status]])uiChildren(provenance, "append", el('p',label+': '+(value&&value!=='not-recorded'?value:ui("не указан")),'sc-muted'));
     for(const ref of source.source_refs)uiChildren(provenance, "append", link(ref));uiChildren(body, "append", provenance);
     if(sourceKind==='relation')return;
-    const nativeId=source.native_id; // Explicit owner identity; never split or guess an opaque knowledge ID.
-    if(!nativeId)return;
+    // The access packet advertises the exact source-navigation owner handle.
+    // A transport-native id (for example identity:tos.expression...) is not a
+    // dossier route and must never be repaired in the browser by stripping a
+    // prefix or guessing from the entity id.
+    const dossierRef=source.source_dossier_ref;
+    if(!dossierRef)return;
     const result=el('div');uiChildren(body, "append", result);uiChildren(result, "append", el('p',ui("Получаю досье источников…"),'sc-muted'));
     uiAttribute(body, 'aria-busy', 'true');
     try{
-      const response=await requests.run('source',signal=>queries.invoke('tos.dossier.inspect',{object_id:nativeId,limit:40},{signal}));if(!response.current||panel.hidden||active!=='sources')return;
+      const response=await requests.run('source',signal=>queries.invoke('tos.dossier.inspect',{object_id:dossierRef,limit:40},{signal}));if(!response.current||panel.hidden||active!=='sources')return;
       uiChildren(result, "replaceChildren");const packet=response.value;
       for(const [key,title]of [['work',ui("Произведение")],['expression',ui("Редакции и переводы")],['edition',ui("Издания")],['file',ui("Файлы")],['item',ui("Экземпляры")],['link',ui("Ссылки")]]){
         const items=packet.chain?.[key]||[];if(!items.length)continue;const group=el('details');uiChildren(group, "append", el('summary',title+' · '+items.length));for(const item of items)uiChildren(group, "append", sourceRecord(item));uiChildren(result, "append", group);

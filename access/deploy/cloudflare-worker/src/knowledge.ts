@@ -177,6 +177,7 @@ export type KnowledgeNode = {
   id: string;
   entity_id: string;
   native_id: string;
+  source_dossier_ref?: string;
   source_graph: string;
   kind_id: string;
   type_id: string;
@@ -286,7 +287,7 @@ const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const ATTRIBUTE_FIELD = /^(?:attributes|semantics)\.[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
 const UNSAFE_PATH_SEGMENTS = new Set(["__proto__", "prototype", "constructor"]);
 const NODE_FIELDS = new Set([
-  "id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "type_mapping.status", "type_mapping.source_kind_id", "display.title.default", "display.title.ru", "display.title.en",
+  "id", "entity_id", "native_id", "source_dossier_ref", "source_graph", "kind_id", "type_id", "type_mapping.status", "type_mapping.source_kind_id", "display.title.default", "display.title.ru", "display.title.en",
   "display.kind_label.default", "display.summary.default", "display.summary.ru", "display.summary.en", "display.summary_state",
   "epistemic.authority_layer", "epistemic.canon_status", "epistemic.review_posture", "epistemic.confidence",
   "graph_layers", "view_ids", "source_refs",

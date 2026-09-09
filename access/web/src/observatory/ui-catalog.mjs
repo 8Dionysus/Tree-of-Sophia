@@ -3460,6 +3460,78 @@ export const UI_CATALOG={
     "en": "Context for reading the claim",
     "es": "Contexto para leer la afirmación"
   },
+  "Поле источника: {0}": {
+    "en": "Source field: {0}",
+    "es": "Campo de la fuente: {0}"
+  },
+  "корень": {
+    "en": "root",
+    "es": "raíz"
+  },
+  "Точная запись контекста": {
+    "en": "Exact context record",
+    "es": "Registro exacto del contexto"
+  },
+  "Язык: {0} · связь: {1}": {
+    "en": "Language: {0} · relation: {1}",
+    "es": "Idioma: {0} · relación: {1}"
+  },
+  "Точная запись языкового контекста": {
+    "en": "Exact linguistic-context record",
+    "es": "Registro exacto del contexto lingüístico"
+  },
+  "Тип чтения: {0}": {
+    "en": "Reading type: {0}",
+    "es": "Tipo de lectura: {0}"
+  },
+  "Контексты утверждения": {
+    "en": "Claim contexts",
+    "es": "Contextos de la afirmación"
+  },
+  "Контекст {0}": {
+    "en": "Context {0}",
+    "es": "Contexto {0}"
+  },
+  "Поля контекста не предоставлены.": {
+    "en": "No context fields were delivered.",
+    "es": "No se entregaron campos de contexto."
+  },
+  "Конфликты: {0}": {
+    "en": "Conflicts: {0}",
+    "es": "Conflictos: {0}"
+  },
+  "Точная запись контекста утверждения": {
+    "en": "Exact claim-context record",
+    "es": "Registro exacto del contexto de la afirmación"
+  },
+  "Связи обязательного контекста": {
+    "en": "Required-context relations",
+    "es": "Relaciones del contexto obligatorio"
+  },
+  "Связь без типа": {
+    "en": "Untyped relation",
+    "es": "Relación sin tipo"
+  },
+  "Точная запись связи": {
+    "en": "Exact relation record",
+    "es": "Registro exacto de la relación"
+  },
+  "Точные данные чтения": {
+    "en": "Exact reading data",
+    "es": "Datos exactos de lectura"
+  },
+  "Точная запись обязательного контекста": {
+    "en": "Exact required-context record",
+    "es": "Registro exacto del contexto obligatorio"
+  },
+  "Досье источника": {
+    "en": "Source dossier",
+    "es": "Dossier de la fuente"
+  },
+  "Вложенное значение доступно в точной записи.": {
+    "en": "The nested value is available in the exact record.",
+    "es": "El valor anidado está disponible en el registro exacto."
+  },
   "Формы и обязательный контекст — в карточке.": {
     "en": "Forms and required context are in the card.",
     "es": "Las formas y el contexto obligatorio están en la ficha."

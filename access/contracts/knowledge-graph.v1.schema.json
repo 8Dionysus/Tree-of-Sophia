@@ -329,6 +329,7 @@
         "type_id": {"$ref": "#/$defs/nonEmptyString"},
         "type_mapping": {"$ref": "#/$defs/semanticMapping"},
         "content_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_dossier_ref": {"type": "string", "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$", "description": "Exact owner-provided source-navigation dossier handle. Consumers must pass this value unchanged; absence means no dossier route was advertised."},
         "display": {"$ref": "#/$defs/nodeDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
         "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},

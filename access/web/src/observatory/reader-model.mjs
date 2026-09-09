@@ -31,7 +31,7 @@ export function readingLanguages(snapshot){
 function readerRecord(raw){
   // This is a bounded browser reading copy, not a lossless corpus export.
   // Opaque IDs are never merged by title or entity_id.
-  const fields=['id','entity_id','kind_id','from_id','to_id','predicate_id','source_graph','native_id','content_revision','display','epistemic','semantics','source_refs','human_form_selection','display_selection'];
+  const fields=['id','entity_id','kind_id','from_id','to_id','predicate_id','source_graph','native_id','source_dossier_ref','content_revision','display','epistemic','semantics','source_refs','human_form_selection','display_selection'];
   return Object.fromEntries(fields.filter(key=>raw[key]!==undefined).map(key=>[key,structuredClone(raw[key])]));
 }
 export function readingSnapshot({packet,match,endpoints:materialEndpoints,path},kind){

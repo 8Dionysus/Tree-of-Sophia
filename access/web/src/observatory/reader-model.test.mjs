@@ -135,6 +135,12 @@ test('reading preserves exact qualifications, provenance and missing description
   assert.equal(readingDocument(readingSnapshot(answer(missing),'node')).blocks[0].form,null);
 });
 
+test('reading keeps the owner dossier handle for the Sources handoff',()=>{
+  const raw=node();raw.source_dossier_ref='tos.work.fixture';
+  const snapshot=readingSnapshot(answer(raw),'node');
+  assert.equal(snapshot.raw.source_dossier_ref,'tos.work.fixture');
+});
+
 test('actual language selection is explicit and never labels an unknown-language default as Russian',()=>{
   const text={default:'Quelle',original:'λόγος',en:'word','ar':'لفظ'};
   assert.deepEqual(readingForm(text),{text:'Quelle',key:'default',lang:null,fallback:true});

@@ -24,6 +24,12 @@ KNOWLEDGE_SOURCES = (
     "semantic-interchange",
     "repository",
 )
+
+# Bibliographic source-navigation is the only owner route that accepts a
+# dossier object id.  Knowledge carriers may preserve the same declared
+# identity with a transport-native id such as ``identity:tos.expression...``;
+# consumers must not reconstruct the owner handle by stripping that prefix.
+SOURCE_DOSSIER_KINDS = frozenset({"work", "expression", "edition", "item", "file", "link"})
 FILTER_OPERATORS = ("eq", "neq", "in", "contains", "prefix", "exists", "gt", "gte", "lt", "lte")
 LAYOUTS = (
     "auto",
@@ -45,6 +51,7 @@ MAX_GROUP_LIMIT = 200
 OVERVIEW_EXCLUDED_PREDICATES = {"has_text_unit", "has_anchor", "anchored_in", "annotation_member"}
 OVERVIEW_EXCLUDED_RELATION_TYPES = {"tos.relation.made-by", "tos.relation.generated-by"}
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_SOURCE_DOSSIER_REF = re.compile(r"^tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 _ATTRIBUTE_FIELD = re.compile(r"^(?:attributes|semantics)\.[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 _UNSAFE_PATH_SEGMENTS = {"__proto__", "prototype", "constructor"}
 
@@ -52,6 +59,7 @@ NODE_FIELDS = {
     "id",
     "entity_id",
     "native_id",
+    "source_dossier_ref",
     "source_graph",
     "kind_id",
     "type_id",
@@ -1097,6 +1105,53 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
     return "literal"
 
 
+def _source_dossier_candidate(item: dict[str, Any], source_graph: str) -> str | None:
+    """Return a declared owner dossier handle, if this carrier can expose one.
+
+    The source-navigation owner accepts its canonical bibliographic ``node_id``.
+    Source-claims identity carriers instead use ``identity_ref`` or their
+    source-record identity while retaining a transport id such as
+    ``identity:tos.expression...``.  This helper only reads those declared
+    fields; it never strips a native prefix or infers a route from display
+    text.
+    """
+    if source_graph not in {"source-navigation", "source-claims"}:
+        return None
+    properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
+    node_kind = _string(item.get("node_kind"))
+    if node_kind == "identity":
+        # Source-claims identity carriers use ``identity_type`` in the
+        # bibliographic projection, while older/native carriers may expose
+        # ``identity_kind`` or only the nested source-record type.  These are
+        # declarations from the owner; none is inferred from an opaque id.
+        node_kind = (
+            _string(properties.get("identity_kind"))
+            or _string(properties.get("identity_type"))
+            or _string(properties.get("record_type"))
+        )
+        if node_kind is None and isinstance(properties.get("source_record"), dict):
+            node_kind = _string(properties["source_record"].get("record_type"))
+    if node_kind not in SOURCE_DOSSIER_KINDS:
+        return None
+    source_record = properties.get("source_record")
+    candidates: list[Any] = []
+    if source_graph == "source-navigation":
+        # Dossier lookup keys are source-navigation node IDs.  Do not fall
+        # back to a metadata identity alias: an alias can look like a valid
+        # ToS handle while still addressing no node in the owner route.
+        candidates.append(item.get("node_id"))
+    else:
+        candidates.append(properties.get("identity_ref"))
+        if isinstance(source_record, dict):
+            candidates.extend((source_record.get("record_id"), source_record.get("composite_id"),
+                               source_record.get("artifact_id")))
+    for candidate in candidates:
+        value = _string(candidate)
+        if value and _SOURCE_DOSSIER_REF.fullmatch(value):
+            return value
+    return None
+
+
 def _semantic_entity_id(
     item: dict[str, Any],
     source_graph: str,
@@ -1526,6 +1581,7 @@ def _normalize_node(
     identity_id: str | None = None,
     kind_id: str | None = None,
     source_kind_id: str | None = None,
+    source_dossier_ref: str | None = None,
     entity_type_entries: dict[str, dict[str, Any]] | None = None,
     entity_type_mappings: dict[tuple[str, str], str] | None = None,
     fallback_type_id: str = "tos.entity.unmapped",
@@ -1547,9 +1603,11 @@ def _normalize_node(
         identifier = f'{source_graph}:{identity_id or native}'
         return cache.normalize('node', identifier,
             [source_graph, native, identity_id, semantic_kind, type_id, fallback_type_id],
-            [Input('source-node:' + identifier, item), Input('entity-type:' + type_id, [type_entry, sorted(ancestors)])],
+            [Input('source-node:' + identifier, item), Input('entity-type:' + type_id, [type_entry, sorted(ancestors)]),
+             Input('source-dossier-ref:' + identifier, source_dossier_ref)],
             lambda: _normalize_node(item, source_graph, native_id=native_id, identity_id=identity_id,
-                kind_id=kind_id, source_kind_id=source_kind_id, entity_type_entries=entity_type_entries,
+                kind_id=kind_id, source_kind_id=source_kind_id, source_dossier_ref=source_dossier_ref,
+                entity_type_entries=entity_type_entries,
                 entity_type_mappings=entity_type_mappings, fallback_type_id=fallback_type_id))
     for mapping in (type_entry or {}).get("source_mappings", []):
         if mapping.get("source_graph") == source_graph and mapping.get("source_kind_id") == semantic_kind and mapping.get("labels"):
@@ -1593,6 +1651,8 @@ def _normalize_node(
         "semantics": _node_semantics(item, source_graph, semantic_kind),
         "source_record": _source_record(item, attributes),
     }
+    if source_dossier_ref is not None:
+        normalized["source_dossier_ref"] = source_dossier_ref
     normalized["semantics"]["type_ancestors"] = sorted(ancestors)
     if version_view is not None:
         _apply_record_version_view(normalized, version_view)
@@ -2138,11 +2198,23 @@ def build_knowledge_graph(
             )
         )
     navigation = corpus.get("source_navigation") if isinstance(corpus.get("source_navigation"), dict) else {}
-    for item in _objects(navigation.get("nodes")):
+    navigation_nodes = _objects(navigation.get("nodes"))
+    source_dossier_refs = {
+        ref
+        for item in navigation_nodes
+        for ref in (_source_dossier_candidate(item, "source-navigation"),)
+        if ref is not None
+    }
+    for item in navigation_nodes:
         nodes.append(
             _normalize_node(
                 item,
                 "source-navigation",
+                source_dossier_ref=(
+                    _source_dossier_candidate(item, "source-navigation")
+                    if _source_dossier_candidate(item, "source-navigation") in source_dossier_refs
+                    else None
+                ),
                 entity_type_entries=entity_entries,
                 entity_type_mappings=entity_mappings,
                 fallback_type_id=fallback_type_id,
@@ -2180,6 +2252,11 @@ def build_knowledge_graph(
                 material,
                 "source-claims",
                 source_kind_id=source_kind_id,
+                source_dossier_ref=(
+                    _source_dossier_candidate(item, "source-claims")
+                    if _source_dossier_candidate(item, "source-claims") in source_dossier_refs
+                    else None
+                ),
                 entity_type_entries=entity_entries,
                 entity_type_mappings=entity_mappings,
                 fallback_type_id=fallback_type_id,

@@ -8,5 +8,16 @@
 .sc-form-inspect:hover,.sc-form-inspect:focus-visible{border-color:currentColor}
 .sc-form-json{font-family:inherit;font-size:.86em;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;margin:6px 0}
 .sc-form-context{margin:8px 0;padding-left:9px;border-left:1px solid var(--sc-border,rgba(150,170,210,.22))}
+.sc-form-context-slot,.sc-form-value-key{font-size:.85em;opacity:.78;margin:4px 0}
+.sc-form-values{margin:5px 0;padding-left:16px}
+.sc-form-values>div{margin:5px 0}
+.sc-form-values>div>dt{font-weight:600}
+.sc-form-values>div>dd{margin:2px 0 0 10px}
+.sc-form-values>li{margin:3px 0}
+.sc-form-value{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.5}
+.sc-form-exact{font-size:.85em;margin:8px 0}
+.sc-form-exact summary{cursor:pointer}
+.sc-assertion-context{margin:8px 0;padding:7px 9px;border:1px solid var(--sc-border,rgba(150,170,210,.16));border-radius:3px}
+.sc-assertion-context .sc-form-values{padding-left:0}
 .sc-form-metadata{font-size:.85em;margin:8px 0}
 .sc-form-metadata summary{cursor:pointer}
