@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_KAG_REVISION: 1a0342087b18d0a1f5630036937a548b6526e0e9
-      AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+      AOA_KAG_ROOT: ${{ github.workspace }}/.deps/aoa-kag
       # The pinned composite action executes provider scripts by absolute path;
       # expose the matching checkout so segmented-family imports cannot resolve
       # accidentally against the consumer repository's ``scripts`` package.
-      PYTHONPATH: ${{ runner.temp }}/aoa-kag
+      PYTHONPATH: ${{ github.workspace }}/.deps/aoa-kag
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
