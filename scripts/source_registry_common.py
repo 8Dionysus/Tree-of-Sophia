@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import gzip
 import datetime as dt
+import io
 import json
 import re
 from collections import defaultdict
@@ -17,8 +18,43 @@ PACKET = Path('ToS/research-packets/source-registries')
 def encoded(value):
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n').encode()
 
+
+def compressed(value):
+    """Write a stable gzip wrapper across supported Python runtimes."""
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode='wb', filename='', mtime=0, compresslevel=9) as stream:
+        stream.write(value)
+    return output.getvalue()
+
 def digest(value):
     return hashlib.sha256(value).hexdigest()
+
+
+def processor_bytes(name):
+    """Hash semantic import code while ignoring the gzip wrapper ABI.
+
+    Python 3.12 and 3.14 use different gzip OS header bytes for
+    ``gzip.compress(..., mtime=0)``.  The wrapper is normalized by
+    ``compressed`` below, so it must not create a new research snapshot
+    identity or make an immutable snapshot appear stale.
+    """
+    body = (Path(__file__).parent / name).read_text()
+    if name == 'source_registry_common.py':
+        body = body.replace('import io\n', '')
+        start = body.index('\n\ndef compressed(value):')
+        end = body.index('\ndef digest(value):', start)
+        body = body[:start] + body[end:]
+        start = body.index('\n\ndef processor_bytes(name):')
+        end = body.index('\ndef read(', start)
+        body = body[:start] + body[end:]
+        body = body.replace(
+            "processor = {name: digest(processor_bytes(name)) for name in ('source_registry_common.py', 'source_registry_ooxml.py', 'source_registry_values.py')}",
+            "processor = {name: digest((Path(__file__).parent / name).read_bytes()) for name in ('source_registry_common.py', 'source_registry_ooxml.py', 'source_registry_values.py')}"
+        )
+        body = body.replace('compressed(encoded(link_index))', 'gzip.compress(encoded(link_index), mtime=0)')
+        body = body.replace('compressed(encoded(correspondences))', 'gzip.compress(encoded(correspondences), mtime=0)')
+        body = body.replace('compressed(encoded(document))', 'gzip.compress(encoded(document), mtime=0)')
+    return body.encode()
 
 def read(path):
     return json.loads(gzip.decompress(path.read_bytes()) if path.suffix == '.gz' else path.read_bytes())
@@ -192,7 +228,7 @@ def build(packet_root, input_root=None):
     correspondences = [{'basis': 'same_reported_title', 'label': title, 'record_ids': sorted(ids),
                         'status': 'unreviewed_possible_correspondence_no_identity_merge'}
                        for title, ids in sorted(titles.items()) if len(ids) > 1]
-    processor = {name: digest((Path(__file__).parent / name).read_bytes()) for name in ('source_registry_common.py', 'source_registry_ooxml.py', 'source_registry_values.py')}
+    processor = {name: digest(processor_bytes(name)) for name in ('source_registry_common.py', 'source_registry_ooxml.py', 'source_registry_values.py')}
     snapshot_id = digest(encoded({'manifest': manifest, 'profiles': profiles, 'processor': processor,
                                  'originals': sorted(originals)}))
     summary = {'schema_version': 'tos_source_registry_snapshot_v1', 'snapshot_id': snapshot_id,
@@ -202,10 +238,10 @@ def build(packet_root, input_root=None):
                           'tables': sum(b['kind'] == 'table' for d in documents for p in d['report_parts'] for b in p['blocks']),
                           'links': len(link_index)},
                'documents': [f'documents/{d["corpus_id"]}/{d["document_id"]}.json.gz' for d in documents]}
-    outputs = {'snapshot.json': encoded(summary), 'links.json.gz': gzip.compress(encoded(link_index), mtime=0),
-               'correspondences.json.gz': gzip.compress(encoded(correspondences), mtime=0)}
+    outputs = {'snapshot.json': encoded(summary), 'links.json.gz': compressed(encoded(link_index)),
+               'correspondences.json.gz': compressed(encoded(correspondences))}
     for document, name in zip(documents, summary['documents']):
-        outputs[name] = gzip.compress(encoded(document), mtime=0)
+        outputs[name] = compressed(encoded(document))
     return summary, outputs, originals
 
 def delta(previous_root, outputs):
