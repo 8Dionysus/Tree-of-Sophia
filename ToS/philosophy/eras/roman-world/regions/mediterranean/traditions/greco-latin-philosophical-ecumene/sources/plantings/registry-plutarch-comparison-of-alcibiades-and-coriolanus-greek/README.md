@@ -28,3 +28,7 @@ Exact Comparison of Alcibiades and Coriolanus Greek edition within the reviewed 
 - Lives, narratorial judgments and separately identified comparisons remain transmitted literary and historical testimony, not accepted biography or philosophical doctrine; distinct CTS comparisons are not merged into their paired Lives.
 - The supplied CTS title and language are retained literally; title normalization and person-name equivalence remain unreviewed.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-comparison-of-alcibiades-and-coriolanus-english
+
+[English version and source file](../registry-plutarch-comparison-of-alcibiades-and-coriolanus-english/README.md). Shared Work identity does not establish edition dependence or alignment.

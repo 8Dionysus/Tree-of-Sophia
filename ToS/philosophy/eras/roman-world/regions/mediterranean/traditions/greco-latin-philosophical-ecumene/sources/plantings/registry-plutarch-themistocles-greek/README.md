@@ -28,3 +28,7 @@ Exact Themistocles Greek edition within the reviewed Плутарх source need;
 - Lives, narratorial judgments and separately identified comparisons remain transmitted literary and historical testimony, not accepted biography or philosophical doctrine; distinct CTS comparisons are not merged into their paired Lives.
 - The supplied CTS title and language are retained literally; title normalization and person-name equivalence remain unreviewed.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-themistocles-english
+
+[English version and source file](../registry-plutarch-themistocles-english/README.md). Shared Work identity does not establish edition dependence or alignment.

@@ -1,3 +1,5 @@
 # Eleventh registry planting
 
-Preparing 64 English versions alongside tenth-wave Greek Lives and comparisons. No complete file custody yet.
+[English and Greek reading routes](RESULTS.md). [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md). [Version selection](selection-review.json).
+
+Prepared readiness and observed acquisition remain separate evidence.

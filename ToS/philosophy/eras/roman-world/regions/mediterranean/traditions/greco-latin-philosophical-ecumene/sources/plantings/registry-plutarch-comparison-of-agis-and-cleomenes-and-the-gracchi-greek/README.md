@@ -29,3 +29,7 @@ Exact Comparison of Agis and Cleomenes and the Gracchi Greek edition within the 
 - The supplied CTS title and language are retained literally; title normalization and person-name equivalence remain unreviewed.
 - This separately identified comparison is not either combined Life carrier; no membership or pair relation to deferred tlg051/tlg052 is asserted by this intake.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-comparison-of-agis-and-cleomenes-and-the-gracchi-english
+
+[English version and source file](../registry-plutarch-comparison-of-agis-and-cleomenes-and-the-gracchi-english/README.md). Shared Work identity does not establish edition dependence or alignment.

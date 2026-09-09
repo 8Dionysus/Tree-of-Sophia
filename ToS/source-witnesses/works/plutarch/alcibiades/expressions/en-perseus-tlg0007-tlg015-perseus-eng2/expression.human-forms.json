@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.a625cadc36d7784cdcaeb6dd9e1cfaf615e12aac77cb5b67cf38aa8c05e6254f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+        "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+            "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.11aaedae006f66fa2c08abec5bb4664415d7f8f9530fee09d96bda746e53dc6f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23",
+        "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eleventh-source-forms:bd2771b7c1cc526705e40cc0e279a4a8bcdcaaad490185e234694d9cc6e8290f",
+      "request_digest": "sha256:50724ad0959257fbca42513d20bdcc6f922d9d180b44584f5f4f821c38e2a64a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:354e75e484ba46d51f2309f017a17366f16cfbdb6a63bcd1c7b403e271b84800",
+      "recorded_at": "2026-09-09T19:35:38.786441+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.alcibiades.en-perseus-tlg0007-tlg015-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:6117e62520c7d8f082c6fbcb5e36e3dba3500883f053115d61e0ae1492d4ed23"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.a625cadc36d7784cdcaeb6dd9e1cfaf615e12aac77cb5b67cf38aa8c05e6254f",
+          "version": 1,
+          "digest": "sha256:a27ee5fa71e9da224ac09803f8fd6ccaa00016ce4ae213cbf63feb054583169b"
+        },
+        {
+          "id": "tos.form.metadata.11aaedae006f66fa2c08abec5bb4664415d7f8f9530fee09d96bda746e53dc6f",
+          "version": 1,
+          "digest": "sha256:91c16a1e5069a998d44a07705ff2d396c90d42b5b1e914cd9ab06c10420c885a"
+        }
+      ]
+    }
+  ]
+}

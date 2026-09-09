@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
-    "version": 1,
-    "digest": "sha256:404ba0c89d9373e3c680f44d02827c7aaec623008cd84c7c850a8348da24c17d"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7bcfbb32319a0f6bcfd5b33aae2a46564001243fa7297a47700f763b53e253dc",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:25e07604d3f25796f236d5951599ce595636e81009b92d47803dc6459f2e682e",
+        "id": "tos.form.metadata.7bcfbb32319a0f6bcfd5b33aae2a46564001243fa7297a47700f763b53e253dc",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+        "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+            "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d8ef5ae828f9f2a56ebe57f9749a7da4e69bb974a2f82850c54198dfa75548ae",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:5bd7175965897abd22bd5e9800cd985a2d88b585b2b8be2efb49100e8441f5db",
+        "id": "tos.form.metadata.d8ef5ae828f9f2a56ebe57f9749a7da4e69bb974a2f82850c54198dfa75548ae",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1",
+        "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:894c252461bf34007aa4d784c5972a44ddf1f9b403f70e7fba6e05a0c5a7e80e",
+      "owner_configuration": "sha256:c9a0e609f52d84a51cb496504b227998b708fafdc1af7e9c5692a9969345c8dc",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:33.240905+00:00",
+      "request_digest": "sha256:bb2e132a5f6858cc562d9c7c66e43ac4f50c456f2e0411e338e3b2cd7bd1b6c2",
+      "results": [
+        {
+          "digest": "sha256:25e07604d3f25796f236d5951599ce595636e81009b92d47803dc6459f2e682e",
+          "id": "tos.form.metadata.7bcfbb32319a0f6bcfd5b33aae2a46564001243fa7297a47700f763b53e253dc",
+          "version": 1
+        },
+        {
+          "digest": "sha256:5bd7175965897abd22bd5e9800cd985a2d88b585b2b8be2efb49100e8441f5db",
+          "id": "tos.form.metadata.d8ef5ae828f9f2a56ebe57f9749a7da4e69bb974a2f82850c54198dfa75548ae",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:404ba0c89d9373e3c680f44d02827c7aaec623008cd84c7c850a8348da24c17d",
+        "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:894c252461bf34007aa4d784c5972a44ddf1f9b403f70e7fba6e05a0c5a7e80e",
+      "request_digest": "sha256:24f70d8ea311da5e4ff2b32dec1ff2b0db67938bf9d0d0b30a2d263186f98e15",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:f84d0f443b255b17feb7d8caa9fe08c559a624900557d57ea34e390048a75936",
+      "recorded_at": "2026-09-09T19:35:40.157126+00:00",
+      "source": {
+        "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+        "version": 2,
+        "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1"
+      },
+      "previous_revision": "sha256:471a1baeb1f85dff0d5187adbec91468baa458357728263c554ae61040e515e6",
+      "results": [
+        {
+          "id": "tos.form.metadata.7bcfbb32319a0f6bcfd5b33aae2a46564001243fa7297a47700f763b53e253dc",
+          "version": 2,
+          "digest": "sha256:510198b73b6dfefb0b9c99de593db6617c7e9d9688fbc6687858626ba6d22a1f"
+        },
+        {
+          "id": "tos.form.metadata.d8ef5ae828f9f2a56ebe57f9749a7da4e69bb974a2f82850c54198dfa75548ae",
+          "version": 2,
+          "digest": "sha256:882335880d442e6aa05510f88ae0530bac49d1622a6375f09d0bd806dc1b6f9e"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-tenth-source-forms:894c252461bf34007aa4d784c5972a44ddf1f9b403f70e7fba6e05a0c5a7e80e",
-      "request_digest": "sha256:bb2e132a5f6858cc562d9c7c66e43ac4f50c456f2e0411e338e3b2cd7bd1b6c2",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
-      "owner_configuration": "sha256:c9a0e609f52d84a51cb496504b227998b708fafdc1af7e9c5692a9969345c8dc",
-      "recorded_at": "2026-09-09T19:06:33.240905+00:00",
-      "source": {
-        "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
-        "version": 1,
-        "digest": "sha256:404ba0c89d9373e3c680f44d02827c7aaec623008cd84c7c850a8348da24c17d"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.7bcfbb32319a0f6bcfd5b33aae2a46564001243fa7297a47700f763b53e253dc",
-          "version": 1,
-          "digest": "sha256:25e07604d3f25796f236d5951599ce595636e81009b92d47803dc6459f2e682e"
-        },
-        {
-          "id": "tos.form.metadata.d8ef5ae828f9f2a56ebe57f9749a7da4e69bb974a2f82850c54198dfa75548ae",
-          "version": 1,
-          "digest": "sha256:5bd7175965897abd22bd5e9800cd985a2d88b585b2b8be2efb49100e8441f5db"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.comparison-of-aristides-and-marcus-cato",
+    "version": 2,
+    "digest": "sha256:0d655f97fb7fdc19cf1c33f5958cdbdcd0d4a0fca55d0733023e9cc19bb60dc1"
+  }
 }

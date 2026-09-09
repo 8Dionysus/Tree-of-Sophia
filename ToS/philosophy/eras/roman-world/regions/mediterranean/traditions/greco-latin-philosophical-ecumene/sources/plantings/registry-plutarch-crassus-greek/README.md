@@ -29,3 +29,7 @@ Exact Crassus Greek edition within the reviewed Плутарх source need; the 
 - The supplied CTS title and language are retained literally; title normalization and person-name equivalence remain unreviewed.
 - Unresolved supplied printing-date discrepancy: CTS edition description states 1914, TEI sourceDesc states 1916, both volume III/3. Exact CTS and Git identity is retained without adjudicating the print date.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-crassus-english
+
+[English version and source file](../registry-plutarch-crassus-english/README.md). Shared Work identity does not establish edition dependence or alignment.

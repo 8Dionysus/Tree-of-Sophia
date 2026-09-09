@@ -29,3 +29,7 @@ Exact Comparison of Sertorius and Eumenes Greek edition within the reviewed Пл
 - The supplied CTS title and language are retained literally; title normalization and person-name equivalence remain unreviewed.
 - Contributor presence differs across metadata carriers: sourceDesc omits a Perrin name. Retain exact titleStmt and CTS responsibility statements separately; do not fill missing bibliographic fields by series-wide inference.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## Additional English version: plutarch-comparison-of-sertorius-and-eumenes-english
+
+[English version and source file](../registry-plutarch-comparison-of-sertorius-and-eumenes-english/README.md). Shared Work identity does not establish edition dependence or alignment.

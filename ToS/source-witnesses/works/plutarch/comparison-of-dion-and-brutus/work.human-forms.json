@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
-    "version": 1,
-    "digest": "sha256:6566a40070512e6bcc9868dba7ac88973eb9ffb927c62a107e6d76ebd264b947"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.9af39d68a6fb56dfa8da6772c8751b539cdc9ce6edd7c1d094e0dc181e2a44a4",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:c686f99fc1a8dbb95ba497222d9cc400c7dddbece41f79596cef63c931bdf877",
+        "id": "tos.form.metadata.9af39d68a6fb56dfa8da6772c8751b539cdc9ce6edd7c1d094e0dc181e2a44a4",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+        "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+            "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e2872db9c0c0883bfd95ade8c462a7597fd9f1a356b8bb2337142f3d80df064b",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:5d8665f548b6d9a4f481afb4edc1b62718cfcc95f2d042a8adba74ac25ae8d1f",
+        "id": "tos.form.metadata.e2872db9c0c0883bfd95ade8c462a7597fd9f1a356b8bb2337142f3d80df064b",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7",
+        "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:aa26725a0883ace3601d316aa691a4029628e8e71a58fc0729040677f86ad649",
+      "owner_configuration": "sha256:bf76235c9963e22b8378199249ef601e2a59614be06b282d18386cfeb084cbc0",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:36.386548+00:00",
+      "request_digest": "sha256:a052ad9b1e2ef4dcedeb66d980af64056517448c2e23d36a946d37d921e95e8d",
+      "results": [
+        {
+          "digest": "sha256:c686f99fc1a8dbb95ba497222d9cc400c7dddbece41f79596cef63c931bdf877",
+          "id": "tos.form.metadata.9af39d68a6fb56dfa8da6772c8751b539cdc9ce6edd7c1d094e0dc181e2a44a4",
+          "version": 1
+        },
+        {
+          "digest": "sha256:5d8665f548b6d9a4f481afb4edc1b62718cfcc95f2d042a8adba74ac25ae8d1f",
+          "id": "tos.form.metadata.e2872db9c0c0883bfd95ade8c462a7597fd9f1a356b8bb2337142f3d80df064b",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:6566a40070512e6bcc9868dba7ac88973eb9ffb927c62a107e6d76ebd264b947",
+        "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:aa26725a0883ace3601d316aa691a4029628e8e71a58fc0729040677f86ad649",
+      "request_digest": "sha256:1b58e3105460d7a5811c4e98853a175157acae4ceb5a654b365ca64cd3d58ec6",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:e416e3ea4e2eff495cd58a950a67d6ba5acae0fb27db6e8a7b8c8d03826fb24c",
+      "recorded_at": "2026-09-09T19:35:44.285083+00:00",
+      "source": {
+        "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+        "version": 2,
+        "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7"
+      },
+      "previous_revision": "sha256:c69063dde973d1fe4dd4d7d93fc728706c9b9bfd3f3a525e89c6adf4a5d9735e",
+      "results": [
+        {
+          "id": "tos.form.metadata.9af39d68a6fb56dfa8da6772c8751b539cdc9ce6edd7c1d094e0dc181e2a44a4",
+          "version": 2,
+          "digest": "sha256:51fb68e2336aa56a49de8011503ae1756bf2996aa8c7e853e08ac0516dbc5143"
+        },
+        {
+          "id": "tos.form.metadata.e2872db9c0c0883bfd95ade8c462a7597fd9f1a356b8bb2337142f3d80df064b",
+          "version": 2,
+          "digest": "sha256:513b2d7c4ecfb82fc51a7963c42ab07baea3429bb7a34d56d869c7663fb967f9"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-tenth-source-forms:aa26725a0883ace3601d316aa691a4029628e8e71a58fc0729040677f86ad649",
-      "request_digest": "sha256:a052ad9b1e2ef4dcedeb66d980af64056517448c2e23d36a946d37d921e95e8d",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
-      "owner_configuration": "sha256:bf76235c9963e22b8378199249ef601e2a59614be06b282d18386cfeb084cbc0",
-      "recorded_at": "2026-09-09T19:06:36.386548+00:00",
-      "source": {
-        "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
-        "version": 1,
-        "digest": "sha256:6566a40070512e6bcc9868dba7ac88973eb9ffb927c62a107e6d76ebd264b947"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.9af39d68a6fb56dfa8da6772c8751b539cdc9ce6edd7c1d094e0dc181e2a44a4",
-          "version": 1,
-          "digest": "sha256:c686f99fc1a8dbb95ba497222d9cc400c7dddbece41f79596cef63c931bdf877"
-        },
-        {
-          "id": "tos.form.metadata.e2872db9c0c0883bfd95ade8c462a7597fd9f1a356b8bb2337142f3d80df064b",
-          "version": 1,
-          "digest": "sha256:5d8665f548b6d9a4f481afb4edc1b62718cfcc95f2d042a8adba74ac25ae8d1f"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.comparison-of-dion-and-brutus",
+    "version": 2,
+    "digest": "sha256:4bb2316c000db15b71b3403b4a515963c60164dc836b738d7741fe62e9d42bf7"
+  }
 }

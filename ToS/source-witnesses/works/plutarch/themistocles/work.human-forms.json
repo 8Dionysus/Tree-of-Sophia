@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.themistocles",
-    "version": 1,
-    "digest": "sha256:79f6ab1b4c5b3d35f1f6ce94f94ff115532519c629b79dd1d5308f0a4a286b00"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5d260dce0532bb0d3bfcbdcf001c4fafc6749cc2e6e881aa09bb7663005f56ba",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:9a72c3b254add863ad2eef91a9d7283b2d511d6e4500535744cab504959f5429",
+        "id": "tos.form.metadata.5d260dce0532bb0d3bfcbdcf001c4fafc6749cc2e6e881aa09bb7663005f56ba",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+        "id": "tos.work.plutarch.themistocles",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+            "id": "tos.work.plutarch.themistocles",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d7a42ea7028256e1a33978c60be94c4bcfb1f0b7736c57b73ebedeaccf9d8c26",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:402c855130b9cec821ced1454ac6bec6fec6bc4917c73296c41945c34f67c89b",
+        "id": "tos.form.metadata.d7a42ea7028256e1a33978c60be94c4bcfb1f0b7736c57b73ebedeaccf9d8c26",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0",
+        "id": "tos.work.plutarch.themistocles",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:8eb86c352bfddfca64c0930bf8f3556cbde928d3027d7413e856a87e974d0ddc",
+      "owner_configuration": "sha256:9b9ddb5afd82d1df9c10f672d312de623a06e4a1efffcc99e48e6187088e7f1d",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:31.803450+00:00",
+      "request_digest": "sha256:52bef2e9679af10873989cfc5218c3c4d95a9c2b00141c3f3602506b1b3dfe5a",
+      "results": [
+        {
+          "digest": "sha256:9a72c3b254add863ad2eef91a9d7283b2d511d6e4500535744cab504959f5429",
+          "id": "tos.form.metadata.5d260dce0532bb0d3bfcbdcf001c4fafc6749cc2e6e881aa09bb7663005f56ba",
+          "version": 1
+        },
+        {
+          "digest": "sha256:402c855130b9cec821ced1454ac6bec6fec6bc4917c73296c41945c34f67c89b",
+          "id": "tos.form.metadata.d7a42ea7028256e1a33978c60be94c4bcfb1f0b7736c57b73ebedeaccf9d8c26",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:79f6ab1b4c5b3d35f1f6ce94f94ff115532519c629b79dd1d5308f0a4a286b00",
+        "id": "tos.work.plutarch.themistocles",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:8eb86c352bfddfca64c0930bf8f3556cbde928d3027d7413e856a87e974d0ddc",
+      "request_digest": "sha256:4e19a16b75d21438ee46cbbbd34a392fbd0c7a7c7a7ba21831b175505f5a6f8c",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:83cfdaa450b7f35774d0551f39ed8ad38ebf55430bde291ac3df8b86748ee2e9",
+      "recorded_at": "2026-09-09T19:35:38.137536+00:00",
+      "source": {
+        "id": "tos.work.plutarch.themistocles",
+        "version": 2,
+        "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0"
+      },
+      "previous_revision": "sha256:41580a6330e25a180b320bc6e4251ea12ec3f13ad13a8e4922eda9e215fd9105",
+      "results": [
+        {
+          "id": "tos.form.metadata.5d260dce0532bb0d3bfcbdcf001c4fafc6749cc2e6e881aa09bb7663005f56ba",
+          "version": 2,
+          "digest": "sha256:4c74f950c9ba682e4179aab89e59ca8f029baeb1507fbe4e1169afc80dfc9e12"
+        },
+        {
+          "id": "tos.form.metadata.d7a42ea7028256e1a33978c60be94c4bcfb1f0b7736c57b73ebedeaccf9d8c26",
+          "version": 2,
+          "digest": "sha256:3710a7b8d713b99a6fb67e36de59073770d62bf72eb71fe58e7f9a3c83dfd7a4"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-tenth-source-forms:8eb86c352bfddfca64c0930bf8f3556cbde928d3027d7413e856a87e974d0ddc",
-      "request_digest": "sha256:52bef2e9679af10873989cfc5218c3c4d95a9c2b00141c3f3602506b1b3dfe5a",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
-      "owner_configuration": "sha256:9b9ddb5afd82d1df9c10f672d312de623a06e4a1efffcc99e48e6187088e7f1d",
-      "recorded_at": "2026-09-09T19:06:31.803450+00:00",
-      "source": {
-        "id": "tos.work.plutarch.themistocles",
-        "version": 1,
-        "digest": "sha256:79f6ab1b4c5b3d35f1f6ce94f94ff115532519c629b79dd1d5308f0a4a286b00"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.5d260dce0532bb0d3bfcbdcf001c4fafc6749cc2e6e881aa09bb7663005f56ba",
-          "version": 1,
-          "digest": "sha256:9a72c3b254add863ad2eef91a9d7283b2d511d6e4500535744cab504959f5429"
-        },
-        {
-          "id": "tos.form.metadata.d7a42ea7028256e1a33978c60be94c4bcfb1f0b7736c57b73ebedeaccf9d8c26",
-          "version": 1,
-          "digest": "sha256:402c855130b9cec821ced1454ac6bec6fec6bc4917c73296c41945c34f67c89b"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.themistocles",
+    "version": 2,
+    "digest": "sha256:e66cce565ce9cb0673de876bfba0a90dcfc7361384d01bb0b9e2efe23bd6c7b0"
+  }
 }

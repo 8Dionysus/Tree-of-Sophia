@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
-    "version": 1,
-    "digest": "sha256:a16945aa75db39b6901876718dac90b7713818ed0f59d79b7d142fb23e051c3e"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8aeebe3b14184556d567669799bdc535b50ad463f9f4731c9ce40fda5169139f",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:29a5c6f63530c820483f832bb49e94adcec188b0684fab4312ff701965345682",
+        "id": "tos.form.metadata.8aeebe3b14184556d567669799bdc535b50ad463f9f4731c9ce40fda5169139f",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+        "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+        "version": 2
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+            "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.420fc188d738b77ae456b2d0829d199387a7fe21477418b86899fe2c21a058ae",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:886cd08d15ead931d414b7257c493986c057b3f5a46d402af43e993d9c4d9748",
+        "id": "tos.form.metadata.420fc188d738b77ae456b2d0829d199387a7fe21477418b86899fe2c21a058ae",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a",
+        "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+        "version": 2
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
+      "command_id": "registry-tenth-source-forms:e7d77ce6fbec4170f7acd85883938270de471bab78f0347e35f13017bf69b2ff",
+      "owner_configuration": "sha256:7144309fb8d34f5e5dfc61ee06bb5f07a477c16f6d62af867fe56d7acca6111c",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T19:06:35.812244+00:00",
+      "request_digest": "sha256:c91d2a32c2e1a483150d5e71022cd9daf08315129aa6e59b69d9acc120f17c06",
+      "results": [
+        {
+          "digest": "sha256:29a5c6f63530c820483f832bb49e94adcec188b0684fab4312ff701965345682",
+          "id": "tos.form.metadata.8aeebe3b14184556d567669799bdc535b50ad463f9f4731c9ce40fda5169139f",
+          "version": 1
+        },
+        {
+          "digest": "sha256:886cd08d15ead931d414b7257c493986c057b3f5a46d402af43e993d9c4d9748",
+          "id": "tos.form.metadata.420fc188d738b77ae456b2d0829d199387a7fe21477418b86899fe2c21a058ae",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:a16945aa75db39b6901876718dac90b7713818ed0f59d79b7d142fb23e051c3e",
+        "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+        "version": 1
+      }
+    },
+    {
+      "command_id": "registry-eleventh-source-forms:e7d77ce6fbec4170f7acd85883938270de471bab78f0347e35f13017bf69b2ff",
+      "request_digest": "sha256:c26923a9d75d1c5945b376fc74e2259378d20dc0cfc2e7111d98c9e782527614",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eleventh-planting",
+      "owner_configuration": "sha256:a161d8a1a2ce1b5f53b2327c166ba67f9bdd899d9d0ff72aac26c1773ad3f573",
+      "recorded_at": "2026-09-09T19:35:43.539924+00:00",
+      "source": {
+        "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+        "version": 2,
+        "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a"
+      },
+      "previous_revision": "sha256:94011ddec8324d1220b4546fdc41d3df5d28af340c186abd673fb75aba0a7a23",
+      "results": [
+        {
+          "id": "tos.form.metadata.8aeebe3b14184556d567669799bdc535b50ad463f9f4731c9ce40fda5169139f",
+          "version": 2,
+          "digest": "sha256:725d61ce34d8daf5b349131c302f4b158b04658755a9758e81552e7c59b9e1e5"
+        },
+        {
+          "id": "tos.form.metadata.420fc188d738b77ae456b2d0829d199387a7fe21477418b86899fe2c21a058ae",
+          "version": 2,
+          "digest": "sha256:a74a9ef7be084b52b446b77da2c64331045ee188d5fd39e89cd0ec9a1e02b904"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "registry-tenth-source-forms:e7d77ce6fbec4170f7acd85883938270de471bab78f0347e35f13017bf69b2ff",
-      "request_digest": "sha256:c91d2a32c2e1a483150d5e71022cd9daf08315129aa6e59b69d9acc120f17c06",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-tenth-planting",
-      "owner_configuration": "sha256:7144309fb8d34f5e5dfc61ee06bb5f07a477c16f6d62af867fe56d7acca6111c",
-      "recorded_at": "2026-09-09T19:06:35.812244+00:00",
-      "source": {
-        "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
-        "version": 1,
-        "digest": "sha256:a16945aa75db39b6901876718dac90b7713818ed0f59d79b7d142fb23e051c3e"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.8aeebe3b14184556d567669799bdc535b50ad463f9f4731c9ce40fda5169139f",
-          "version": 1,
-          "digest": "sha256:29a5c6f63530c820483f832bb49e94adcec188b0684fab4312ff701965345682"
-        },
-        {
-          "id": "tos.form.metadata.420fc188d738b77ae456b2d0829d199387a7fe21477418b86899fe2c21a058ae",
-          "version": 1,
-          "digest": "sha256:886cd08d15ead931d414b7257c493986c057b3f5a46d402af43e993d9c4d9748"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.comparison-of-demosthenes-and-cicero",
+    "version": 2,
+    "digest": "sha256:088d73f34bc2545491c12e16d1ea302edb4f90cb821a667220a8d48849ddc90a"
+  }
 }
