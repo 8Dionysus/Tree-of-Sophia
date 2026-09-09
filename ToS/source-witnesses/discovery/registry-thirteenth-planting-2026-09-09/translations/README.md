@@ -1,3 +1,3 @@
-# English translation stage
+# Thirteenth English stage
 
-[Whole-batch review](../SOURCE_AND_RIGHTS_REVIEW.md). Preparation awaits complete Pali identity closure.
+[Reading routes and result](RESULTS.md). [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md).

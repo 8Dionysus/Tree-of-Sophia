@@ -28,3 +28,7 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 ## Registry planting: thirteenth Pali stage (2026-09-09)
 
 183 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/PALI_RESULTS.md).
+
+## Registry planting: thirteenth English stage (2026-09-09)
+
+186 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/RESULTS.md).
