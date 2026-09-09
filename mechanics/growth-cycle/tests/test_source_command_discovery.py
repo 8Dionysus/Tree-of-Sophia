@@ -35,7 +35,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
             source.CLAIM_LAYER_REVISION_CONFIG, source.TEXT_UNIT_CONFIG, source.OWNER_PROFILE_CONFIG,
             source.OWNER_CLAIM_CONFIG, source.OWNER_CLAIM_REFERENCE_CONFIG,
             'tos_local_work_expression_owner_v1', 'tos_local_expression_responsibility_owner_v1',
-            'tos_local_expression_edition_owner_v1'})
+            'tos_local_expression_edition_owner_v1', 'tos_local_item_adoption_owner_v1'})
         self.assertEqual(len(schemas), sum(len(handler.owner_schemas) for handler in handlers))
         for handler in handlers:
             with self.subTest(handler=handler.handler_id):

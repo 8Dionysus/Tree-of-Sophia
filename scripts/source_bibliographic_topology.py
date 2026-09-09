@@ -194,6 +194,80 @@ def validate_expression_edition_delta(expression_before, expression_after, editi
     _fail(issues)
 
 
+def validate_edition_item_delta(edition_before, edition_after, item, claim, *,
+                                edition_source_ref, item_source_ref):
+    """One acquired Item metadata declaration and exact Edition append.
+
+    The caller additionally proves a separate durable local byte deposit,
+    manifest, rights boundary and resource inventory. This is no generic ladder.
+    """
+    issues = []
+    if not all(isinstance(value, dict) for value in (edition_before, edition_after, item, claim)):
+        raise BibliographicTopologyError([('delta', 'four source objects are required')])
+    edition_id, item_id, claim_id = (edition_before.get('record_id'),
+                                          item.get('record_id'), claim.get('claim_id'))
+    if (edition_before.get('record_type') != 'edition'
+            or edition_after.get('record_type') != 'edition'
+            or not isinstance(edition_id, str) or edition_after.get('record_id') != edition_id):
+        issues.append(('edition', 'the same existing Edition identity must be preserved'))
+    version = edition_before.get('record_version')
+    if (type(version) is not int or version < 1 or type(edition_after.get('record_version')) is not int
+            or edition_after['record_version'] != version + 1):
+        issues.append(('edition', 'record_version must advance exactly once'))
+    prior_refs = edition_before.get('exemplar_claim_refs')
+    if (not _refs(prior_refs) or not isinstance(claim_id, str) or not claim_id or claim_id in prior_refs
+            or edition_after.get('exemplar_claim_refs') != prior_refs + [claim_id]):
+        issues.append(('edition', 'exemplar_claim_refs must append exactly the new Claim'))
+    excluded = {'record_version', 'exemplar_claim_refs'}
+    if (json.dumps({key: value for key, value in edition_before.items() if key not in excluded}, sort_keys=True)
+            != json.dumps({key: value for key, value in edition_after.items() if key not in excluded}, sort_keys=True)):
+        issues.append(('edition', 'all other Edition fields must remain unchanged'))
+    allowed = {'schema_version', 'record_type', 'record_id', 'record_version', 'preferred_label',
+        'field_languages', 'variant_labels', 'identity_status', 'source_refs', 'external_identifiers',
+        'same_as_posture', 'notes', 'supersedes_ref', 'item_manifest_ref'}
+    manifest_ref = (str(PurePosixPath(item_source_ref).with_name('item.manifest.json'))
+                    if isinstance(item_source_ref, str) and item_source_ref else None)
+    if (set(item) - allowed or item.get('schema_version') != 'tos_corpus_record_v1'
+            or item.get('record_type') != 'item' or not isinstance(item_id, str)
+            or item.get('item_manifest_ref') != manifest_ref
+            or type(item.get('record_version')) is not int or item['record_version'] != 1
+            or item.get('identity_status') != 'provisional'
+            or item.get('same_as_posture') != 'no_equivalence_claim' or item.get('supersedes_ref') is not None):
+        issues.append(('item', 'one new provisional acquired local Item must remain within this operation scope'))
+    for field in ('variant_labels', 'external_identifiers'):
+        values = item.get(field)
+        if (not isinstance(values, list) or any(not isinstance(value, dict)
+                or value.get('status') != 'unverified' for value in values)):
+            issues.append(('item', f'{field} require explicitly unverified identity assertions'))
+    if (claim.get('schema_version') != 'tos_source_relation_claim_v1' or claim.get('claim_type') != 'relation'
+            or claim.get('assertion_layer') != 'bibliographic_assertion' or claim.get('predicate') != 'exemplified_by'
+            or claim.get('subject_ref') != edition_id or claim.get('object') != item_id
+            or type(claim.get('claim_version')) is not int or claim['claim_version'] != 1
+            or claim.get('epistemic_status') != 'observed' or claim.get('polarity') != 'positive'
+            or claim.get('confidence') is not None or claim.get('review_status') != 'unreviewed'
+            or claim.get('assessment_refs', []) != [] or claim.get('supersedes_claim_ref') is not None
+            or claim.get('visibility') != 'public_metadata_only'):
+        issues.append(('claim', 'one new unreviewed public bibliographic relation must bind the exact endpoints'))
+    evidence = claim.get('evidence_refs')
+    if (not isinstance(edition_source_ref, str) or not isinstance(item_source_ref, str)
+            or not _refs(evidence) or set(evidence) != {edition_source_ref, item_source_ref}):
+        issues.append(('claim', 'evidence must be exactly the two linked metadata paths'))
+    if not isinstance(edition_source_ref, str) or not isinstance(item_source_ref, str):
+        issues.append(('delta', 'canonical source paths are required'))
+    else:
+        edition_path, item_path = PurePosixPath(edition_source_ref), PurePosixPath(item_source_ref)
+        if (edition_path.is_absolute() or '..' in edition_path.parts
+                or edition_path.as_posix() != edition_source_ref or edition_path.name != 'edition.json'
+                or edition_path.parts[:2] != ('ToS', 'source-witnesses')
+                or 'editions' not in edition_path.parts
+                or item_path.as_posix() != item_source_ref
+                or item_path.parent.parent != edition_path.parent / 'items'
+                or item_path.name != 'item.json'
+                or not re.fullmatch(r'[a-z0-9]+(?:[.-][a-z0-9]+)*', item_path.parent.name)):
+            issues.append(('delta', 'Item must occupy one new canonical child of the exact Edition home'))
+    _fail(issues)
+
+
 def validate_current_topology(records_by_id, claims, *, item_edition_by_id=None):
     """Check exact outgoing refs and inverse record links across all carriers.
 

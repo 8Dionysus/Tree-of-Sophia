@@ -205,7 +205,7 @@ def creation_source_files(files, config, *, archive_reader=None):
 def _scope(config, request, record, *, profiles=None):
     if OPERATION not in config['allowed_operations']:
         raise PermissionError('Claim correction is not delegated')
-    if record.get('predicate') in {'has_expression', 'embodied_by'}:
+    if record.get('predicate') in {'has_expression', 'embodied_by', 'exemplified_by'}:
         raise PermissionError('this topology relation requires the compound bibliographic operation')
     fields = request['fields']
     if not isinstance(fields, dict) or not fields or not set(fields) <= set(config['allowed_fields']):

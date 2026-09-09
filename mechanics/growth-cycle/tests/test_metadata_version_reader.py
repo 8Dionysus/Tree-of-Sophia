@@ -530,9 +530,9 @@ class MetadataVersionReaderTests(unittest.TestCase):
         instance = reader.MetadataVersionReader(self.root)
         with (patch.object(SourceRecordProfiles, 'native_semantic_identities', side_effect=AssertionError('no inventory')),
               patch.object(Path, 'rglob', side_effect=AssertionError('no source tree scan'))):
-            for kind in ('agent', 'work', 'expression', 'letter', 'historical-state', 'sign'):
+            for kind in ('agent', 'work', 'expression', 'item', 'letter', 'historical-state', 'sign'):
                 self.assertTrue(instance.supports(kind), kind)
-            for kind in ('artifact', 'item', 'link', 'claim', 'unknown-test-kind'):
+            for kind in ('artifact', 'link', 'claim', 'unknown-test-kind'):
                 self.assertFalse(instance.supports(kind), kind)
             self.assertFalse(instance.supports('agent', source_ref='ToS/source-witnesses/public/test/place.json'))
         registry = self.root / reader.REGISTRY_REF

@@ -130,6 +130,9 @@ def _history(files, record):
         if receipt['request'].get('operation') == 'expression.edition.create':
             from source_edition_commands import validate_parent_receipt
             validate_parent_receipt(receipt)
+        if receipt['request'].get('operation') == 'item.adopt':
+            from source_item_commands import validate_parent_receipt
+            validate_parent_receipt(receipt)
         if (not isinstance(receipt['command_id'], str) or receipt['command_id'] in commands
                 or source._digest(source._canonical(receipt['request'])) != receipt['request_digest']
                 or receipt['command_id'] != receipt['request']['command_id']

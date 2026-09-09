@@ -569,8 +569,10 @@ def _native_compound_claims(repo_root, issues, predicate, verify_compound):
 def _native_topology_claims(repo_root, issues):
     from source_expression_commands import verify_compound
     from source_edition_commands import verify_compound as verify_embodiment
+    from source_item_commands import verify_compound as verify_exemplar
     return [*_native_compound_claims(repo_root, issues, 'has_expression', verify_compound),
-            *_native_compound_claims(repo_root, issues, 'embodied_by', verify_embodiment)]
+            *_native_compound_claims(repo_root, issues, 'embodied_by', verify_embodiment),
+            *_native_compound_claims(repo_root, issues, 'exemplified_by', verify_exemplar)]
 
 
 def _native_responsibility_claims(repo_root, issues):

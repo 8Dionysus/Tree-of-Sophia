@@ -101,6 +101,35 @@ Authorization bindings must be public-safe compact evidence, normally digests an
 opaque authority/command handles, never credentials or confidential owner configs.
 The manifest retains them unchanged.
 
+An Item-adoption adapter may add this **versioned, additive** plan profile:
+
+```python
+plan['path_profile'] = {
+    'schema_version': 'tos_item_metadata_paths_v1',
+    'item_source_path': 'ToS/source-witnesses/works/example/editions/example/items/example/item.json',
+}
+plan['authorization']['schema_version'] = 'tos_item_adoption_authorization_v1'
+plan['authorization']['scope'] = {
+    'item_source_path': plan['path_profile']['item_source_path'],
+}
+```
+
+The profile permits only `fixity.sha256` and `forensic-report.md` immediately
+beside that exact `items/<item>/item.json`. It is not a general `.sha256`/`.md`
+grant, a recursive Item-home grant, a payload permission or source acceptance.
+The canonical Item path and exact matching authorization scope are mandatory.
+Normal JSON/JSONL paths remain available for explicitly selected companions such
+as the owning Edition record; the adapter still validates its entire narrower
+file, directory, identity and topology scope, and the current guard still decides
+whether that exact transaction is authorized.
+
+Profile presence selects `tos_selected_metadata_transaction_v2`; its exact
+`path_profile` survives freezing, guard summaries, pending inspection, historical
+inspection and recovery. Omitting it preserves the original three-field plan
+and `tos_selected_metadata_transaction_v1` manifest, with JSON/JSONL-only paths.
+A retained v1 manifest cannot carry a profile, and a v2 manifest cannot omit it.
+Neither recovery nor a newer reader broadens an old manifest's path grammar.
+
 `guard(original_authorization, plan_summary)` must return **exactly `True`** only
 while the caller's current authenticated delegation, explicit scope and dependency
 checks authorize that entire retained transaction. Exceptions and every other
@@ -124,6 +153,7 @@ lost-response replay. Reusing an ID for a different bound plan is a conflict.
 - At most 64 selected regular files, with 8 MiB aggregate before bytes and 8 MiB
   aggregate after bytes; at most 64 explicitly declared new directories.
 - Only canonical relative JSON/JSONL metadata paths under `ToS/source-witnesses/`,
+  plus the two exact Item companions when the explicit profile above is present;
   at most 1,024 UTF-8 bytes and 24 path components. No absolute paths, backslashes,
   dot components, hidden/control/history-store paths or ancestor file collisions.
 - `payload`, `private`, `local-content`, `owner-local` and `catalog` components are
@@ -155,6 +185,13 @@ Retained evidence lives in the exact
 `.blob` files. The manifest binds the plan, exact original bytes, predecessor
 publication and existing parent identities. Publication proceeds:
 
+These source-owned carriers are not private runtime storage. The native Item
+adapter keeps raw input paths, private grants and copy-inode/ancestor pins only
+in an explicitly protected external `recovery_root` companion keyed by the same
+transaction ID. Selected metadata receives a bounded source-safe deposit
+receipt and its opaque private-stage digest, never the private continuation.
+See [native Item adoption](NATIVE_ITEM_ADOPTION.md).
+
 1. Validate current authorization and the exact before snapshot; make all before
    and after blobs plus the immutable manifest durable.
 2. Atomically publish and fsync a `pending` control, with a new generation and
@@ -180,6 +217,14 @@ with verified exact selected bytes **only** when the control currently selects
 that manifest. It returns `None` for no pending transaction. It never adopts an
 orphan directory as recovery authority. This route lets the adapter run current
 scope/schema/dependency checks before its ordinary current-record inspection.
+
+An adapter may explicitly revalidate and resubmit an exact retained orphan
+plan against its unchanged before snapshot. `apply_transaction` accepts a
+bounded `recovery_authorization` only for that already-retained orphan, not a
+new or terminated transaction, and preserves it in terminal publication
+evidence. The Item adapter reconstructs the retained plan instead of creating
+new timestamps or bytes for the same command identity. No orphan is enumerated
+or adopted implicitly.
 
 Resume and rollback are distinct explicit calls. They do not interpret timeout,
 dead process, lock release, old timestamp or expired reservation as permission.
@@ -218,6 +263,9 @@ authority drift; actual child-process interruption around selected writes and
 control publication; fresh-process rollforward/rollback; ready-before-completion
 loss; preserved completion before a later head; rollback ABA; renewed recovery
 evidence; corrupted/missing evidence; and refusal to overwrite a third state.
+The Item-profile cases also cover exact-home/authorization refusal, unchanged
+payload bytes, v1/v2 grammar separation, retained profile copying and fresh-process
+resume/rollback of the two extra companion types.
 
 These are transport invariants, not source acceptance or a filesystem-wide
 atomicity claim. Arbitrary raw readers can observe intermediate selected files.

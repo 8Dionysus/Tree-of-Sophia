@@ -224,6 +224,16 @@ that both surfaces happen to exist. These relations remain bibliographic:
 `embodied_by` never implies textual identity, critical equivalence, accepted
 source text, translation quality, or semantics.
 
+Native growth retains those legacy streams unchanged. The separate
+[local Item adoption command](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md)
+can retain one already obtained file at the canonical local payload root,
+create its provisional Item and distinct `exemplified_by` Claim, and append
+only the existing Edition's exact backlink. The source-safe metadata package
+and private byte-copy continuation are separate; their receipts preserve the
+compound history. This operation does not fetch a URL, clear rights, establish
+textual equivalence, or publish the local file. Generic Claim correction cannot
+rewrite that compound topology independently.
+
 Expression derivation is a separate evidence-bearing claim family rather than
 a fourth structural rung. Its directed `is_derivative_of` packets identify a
 reported source Expression, derivation kind, directness, statement basis, and

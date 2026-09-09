@@ -34,6 +34,9 @@ MAX_SIDE_BYTES = 8 * 1024 * 1024
 MAX_AUTHORIZATION_BYTES = 64 * 1024
 MAX_MANIFEST_BYTES = 512 * 1024
 MANIFEST_SCHEMA = 'tos_selected_metadata_transaction_v1'
+PROFILED_MANIFEST_SCHEMA = 'tos_selected_metadata_transaction_v2'
+ITEM_PATH_PROFILE_SCHEMA = 'tos_item_metadata_paths_v1'
+ITEM_AUTHORIZATION_SCHEMA = 'tos_item_adoption_authorization_v1'
 COMPLETION_SCHEMA = 'tos_selected_metadata_completion_v1'
 FORBIDDEN = {'payload', 'private', 'local-content', 'owner-local', 'catalog'}
 
@@ -52,16 +55,36 @@ def _identifier(value):
     return value
 
 
-def _path(value, *, directory=False):
+def _path(value, *, directory=False, companions=()):
     if not isinstance(value, str) or not value or len(value.encode('utf-8')) > 1024:
         raise PermissionError('selected metadata path exceeds its explicit path contract')
     path = Path(value)
     if (path.is_absolute() or path.as_posix() != value or '\\' in value or '\x00' in value
             or path.parts[:2] != SOURCE_HOME.parts or not 3 <= len(path.parts) <= 24
             or any(part in FORBIDDEN or part.startswith('.') for part in path.parts)
-            or not directory and (len(path.parts) < 4 or path.suffix not in {'.json', '.jsonl'})):
+            or not directory and (len(path.parts) < 4
+                                  or path.suffix not in {'.json', '.jsonl'} and path not in companions)):
         raise PermissionError('selected path is outside explicit public source metadata')
     return path
+
+
+def _profile_companions(plan):
+    """Validate a versioned additive exception, never a general suffix grant."""
+    if 'path_profile' not in plan:
+        return ()
+    profile, authorization = plan['path_profile'], plan['authorization']
+    if (not isinstance(profile, dict) or set(profile) != {'schema_version', 'item_source_path'}
+            or profile['schema_version'] != ITEM_PATH_PROFILE_SCHEMA):
+        raise ValueError('invalid selected Item metadata path profile')
+    item_path = _path(profile['item_source_path'])
+    if item_path.name != 'item.json' or item_path.parent.parent.name != 'items':
+        raise PermissionError('Item metadata profile must name one exact items home record')
+    if (not isinstance(authorization, dict)
+            or authorization.get('schema_version') != ITEM_AUTHORIZATION_SCHEMA
+            or not isinstance(authorization.get('scope'), dict)
+            or authorization['scope'].get('item_source_path') != profile['item_source_path']):
+        raise PermissionError('Item metadata profile differs from its exact adoption authorization scope')
+    return (item_path.with_name('fixity.sha256'), item_path.with_name('forensic-report.md'))
 
 
 def _binding(raw):
@@ -69,7 +92,9 @@ def _binding(raw):
 
 
 def _validate_summary(summary):
-    if (not isinstance(summary, dict) or set(summary) != {'authorization', 'files', 'new_directories'}
+    if (not isinstance(summary, dict)
+            or set(summary) not in ({'authorization', 'files', 'new_directories'},
+                                    {'authorization', 'files', 'new_directories', 'path_profile'})
             or not isinstance(summary['authorization'], dict)
             or not isinstance(summary['files'], list) or not 1 <= len(summary['files']) <= MAX_FILES
             or not isinstance(summary['new_directories'], list)
@@ -77,6 +102,7 @@ def _validate_summary(summary):
         raise ValueError('invalid bounded selected-metadata plan')
     if len(_canonical(summary['authorization'])) > MAX_AUTHORIZATION_BYTES:
         raise ValueError('transaction authorization bindings exceed their byte budget')
+    companions = _profile_companions(summary)
     directories = [_path(value, directory=True) for value in summary['new_directories']]
     if len(set(directories)) != len(directories):
         raise ValueError('duplicate declared new directory')
@@ -85,7 +111,7 @@ def _validate_summary(summary):
     for item in summary['files']:
         if not isinstance(item, dict) or set(item) != {'path', 'before', 'after'}:
             raise ValueError('invalid selected-file binding')
-        paths.append(_path(item['path']))
+        paths.append(_path(item['path'], companions=companions))
         if item['before'] is None and item['after'] is None:
             raise ValueError('an absent-to-absent path is not a selected file')
         changed |= item['before'] != item['after']
@@ -115,15 +141,23 @@ def _validate_summary(summary):
 
 
 def _freeze_plan(plan):
-    if not isinstance(plan, dict) or set(plan) != {'authorization', 'files', 'new_directories'}:
+    if (not isinstance(plan, dict)
+            or set(plan) not in ({'authorization', 'files', 'new_directories'},
+                                {'authorization', 'files', 'new_directories', 'path_profile'})):
         raise ValueError('plan fields do not match the selected-metadata protocol')
     if not isinstance(plan['files'], list) or not 1 <= len(plan['files']) <= MAX_FILES:
         raise ValueError('selected-file count exceeds its bounded contract')
+    # Freeze caller-owned evidence, including the profile, before using its scope.
+    authorization = _json(_canonical(plan['authorization']))
+    summary = {'authorization': authorization}
+    if 'path_profile' in plan:
+        summary['path_profile'] = _json(_canonical(plan['path_profile']))
+    companions = _profile_companions(summary)
     blobs, files = {}, []
     for item in plan['files']:
         if not isinstance(item, dict) or set(item) != {'path', 'before', 'after'}:
             raise ValueError('invalid selected-file proposal')
-        _path(item['path'])
+        _path(item['path'], companions=companions)
         result = {'path': item['path']}
         for side in ('before', 'after'):
             raw = item[side]
@@ -133,14 +167,12 @@ def _freeze_plan(plan):
             if raw is not None:
                 blobs[_digest(raw)] = raw
         files.append(result)
-    # Freeze the caller-owned authorization; it is evidence, never executable.
-    authorization = _json(_canonical(plan['authorization']))
     if not isinstance(plan['new_directories'], list):
         raise ValueError('new directories must be explicitly listed')
     for ref in plan['new_directories']:
         _path(ref, directory=True)
-    summary = {'authorization': authorization, 'files': sorted(files, key=lambda item: item['path']),
-               'new_directories': sorted(plan['new_directories'], key=lambda ref: (len(Path(ref).parts), ref))}
+    summary.update(files=sorted(files, key=lambda item: item['path']),
+                   new_directories=sorted(plan['new_directories'], key=lambda ref: (len(Path(ref).parts), ref)))
     _validate_summary(summary)
     return summary, blobs
 
@@ -374,8 +406,10 @@ def _retain(root, manifest, blobs):
 
 
 def _validate_manifest(manifest, transaction_id):
-    if (set(manifest) != {'schema_version', 'transaction_id', 'base_publication', 'plan', 'parents'}
-            or manifest['schema_version'] != MANIFEST_SCHEMA or manifest['transaction_id'] != transaction_id):
+    if (not isinstance(manifest, dict)
+            or set(manifest) != {'schema_version', 'transaction_id', 'base_publication', 'plan', 'parents'}
+            or manifest['schema_version'] not in (MANIFEST_SCHEMA, PROFILED_MANIFEST_SCHEMA)
+            or manifest['transaction_id'] != transaction_id):
         raise TransactionCorruption('invalid selected-metadata transaction manifest')
     base = manifest['base_publication']
     if (not isinstance(base, dict) or set(base) != {'token', 'generation'}
@@ -385,6 +419,9 @@ def _validate_manifest(manifest, transaction_id):
     if base['token'] is not None:
         _identifier(base['token'])
     _validate_summary(manifest['plan'])
+    expected_schema = PROFILED_MANIFEST_SCHEMA if 'path_profile' in manifest['plan'] else MANIFEST_SCHEMA
+    if manifest['schema_version'] != expected_schema:
+        raise TransactionCorruption('transaction manifest version differs from its path profile grammar')
     parents = manifest['parents']
     if not isinstance(parents, dict) or set(parents) != set(_parent_refs(manifest['plan'])):
         raise TransactionCorruption('transaction parent-directory closure differs')
@@ -657,7 +694,8 @@ def _move(root, manifest, digest, blobs, pending, guard, *, rollback=False, reco
             'current_selected_bytes_verified': True, 'grants_admission': False}
 
 
-def apply_transaction(root, plan, *, expected_snapshot, authorization_guard, transaction_id=None):
+def apply_transaction(root, plan, *, expected_snapshot, authorization_guard, transaction_id=None,
+                      recovery_authorization=None):
     """Apply an exact plan under the caller-held corpus lock; no broad authority.
 
     A stable caller-supplied transaction ID may be derived from command identity,
@@ -676,6 +714,12 @@ def apply_transaction(root, plan, *, expected_snapshot, authorization_guard, tra
         retained = inspect_transaction(root, transaction_id)
     except FileNotFoundError:
         retained = None
+    if recovery_authorization is not None:
+        if retained is None or retained['status'] != 'orphan':
+            raise PermissionError('pre-publication recovery authorization requires this exact retained orphan plan')
+        recovery_authorization = _json(_canonical(recovery_authorization))
+        if len(_canonical(recovery_authorization)) > MAX_RECOVERY_AUTHORIZATION_BYTES:
+            raise ValueError('recovery authorization exceeds its 4 KiB binding budget')
     if retained is not None:
         manifest = retained['manifest']
         if manifest['plan'] != summary or manifest['base_publication'] != base:
@@ -703,7 +747,8 @@ def apply_transaction(root, plan, *, expected_snapshot, authorization_guard, tra
             raise TransactionCorruption('current ready publication has no exact retained manifest')
         _record_completion(root, current)
     manifest = (retained['manifest'] if retained is not None else {
-        'schema_version': MANIFEST_SCHEMA, 'transaction_id': transaction_id, 'base_publication': base,
+        'schema_version': PROFILED_MANIFEST_SCHEMA if 'path_profile' in summary else MANIFEST_SCHEMA,
+        'transaction_id': transaction_id, 'base_publication': base,
         'plan': summary, 'parents': _capture_parents(root, summary)})
     _validate_manifest(manifest, transaction_id)
     with _Parents(root, manifest) as parents:
@@ -719,7 +764,8 @@ def apply_transaction(root, plan, *, expected_snapshot, authorization_guard, tra
         _check_files(parents, side='before')
         pending = _new_state(manifest, digest, 'pending')
         _publish_state(root, pending, current)
-    return _move(root, manifest, digest, blobs, pending, authorization_guard)
+    return _move(root, manifest, digest, blobs, pending, authorization_guard,
+                 recovery_authorization=recovery_authorization)
 
 
 def _recover(root, authorization_guard, transaction_id, *, rollback, recovery_authorization):

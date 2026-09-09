@@ -58,6 +58,31 @@ def fixture(root):
         'new_directories': [WORK + '/expressions', WORK + '/expressions/fixture']}
 
 
+def item_fixture(root):
+    """A deposited Item payload is outside this selected metadata transaction."""
+    edition = WORK + '/editions/synthetic'
+    item = edition + '/items/synthetic'
+    payload = root / item / 'payload/original.bin'
+    payload.parent.mkdir(parents=True)
+    payload.write_bytes(b'synthetic deposited bytes outside metadata authority')
+    before = b'{"item_ids":[]}\n'
+    (root / edition / 'edition.json').write_bytes(before)
+    authorization = {**copy.deepcopy(AUTHORIZATION),
+        'schema_version': 'tos_item_adoption_authorization_v1',
+        'scope': {'item_source_path': item + '/item.json'}}
+    return {'authorization': authorization,
+        'path_profile': {'schema_version': 'tos_item_metadata_paths_v1',
+                         'item_source_path': item + '/item.json'},
+        'files': [
+            {'path': edition + '/edition.json', 'before': before,
+             'after': b'{"item_ids":["synthetic:item"]}\n'},
+            {'path': item + '/item.json', 'before': None, 'after': b'{"id":"synthetic:item"}\n'},
+            {'path': item + '/fixity.sha256', 'before': None, 'after': b'synthetic fixity metadata\n'},
+            {'path': item + '/forensic-report.md', 'before': None, 'after': b'# Synthetic forensic evidence\n'},
+            {'path': item + '/provenance.jsonl', 'before': None, 'after': b'{"event":"synthetic"}\n'}],
+        'new_directories': []}
+
+
 CHILD = r'''
 import base64, fcntl, json, os, stat, sys
 from pathlib import Path
@@ -141,7 +166,7 @@ class SelectedMetadataTransactionTests(unittest.TestCase):
             for side in ('before', 'after'):
                 if item[side] is not None:
                     item[side] = base64.b64encode(item[side]).decode()
-        request = {'plan': encoded, 'transaction_id': identifier, 'authorization': AUTHORIZATION}
+        request = {'plan': encoded, 'transaction_id': identifier, 'authorization': plan['authorization']}
         return subprocess.run([sys.executable, '-c', CHILD, str(MECHANIC), str(ROOT / 'scripts'),
                                str(root), operation, edge], input=json.dumps(request), text=True,
                               capture_output=True, timeout=15)
@@ -177,6 +202,8 @@ class SelectedMetadataTransactionTests(unittest.TestCase):
         self.assertEqual(result['publication']['generation'], 2)
         retained = transactions.inspect_transaction(self.root, IDENTIFIER)
         self.assertEqual(retained['plan']['files'], sorted(self.plan['files'], key=lambda item: item['path']))
+        self.assertEqual(retained['manifest']['schema_version'], 'tos_selected_metadata_transaction_v1')
+        self.assertEqual(set(retained['plan']), {'authorization', 'files', 'new_directories'})
         self.assertEqual(retained['manifest']['plan']['authorization'], AUTHORIZATION)
         self.assertFalse(retained['writes_to_source'])
         self.assertIsNone(transactions.read_pending_transaction(self.root))
@@ -191,6 +218,8 @@ class SelectedMetadataTransactionTests(unittest.TestCase):
                   'ToS/source-witnesses/works/local-content/a.json', 'ToS/source-witnesses/.record-revisions/a.json',
                   'ToS/source-witnesses/.metadata-publication.json', '/tmp/arbitrary.json',
                   'ToS/source-witnesses/works/../a.json', 'ToS/source-witnesses/works/a.txt',
+                  WORK + '/editions/synthetic/items/synthetic/fixity.sha256',
+                  WORK + '/editions/synthetic/items/synthetic/forensic-report.md',
                   'ToS\\source-witnesses\\works\\a.json']
         for ref in denied:
             plan = copy.deepcopy(self.plan)
@@ -207,6 +236,127 @@ class SelectedMetadataTransactionTests(unittest.TestCase):
             with self.assertRaises((ValueError, PermissionError)):
                 self.apply(plan)
         self.assert_side(self.root, self.plan, 'before')
+
+    def test_item_path_profile_is_retained_and_does_not_touch_deposited_payload(self):
+        plan = item_fixture(self.root)
+        item = Path(plan['path_profile']['item_source_path']).parent
+        payload = self.root / item / 'payload/original.bin'
+        before = payload.stat()
+        frozen, _ = transactions._freeze_plan(plan)
+        frozen_profile = copy.deepcopy(frozen['path_profile'])
+        plan['path_profile']['item_source_path'] = 'changed caller-owned input'
+        self.assertEqual(frozen['path_profile'], frozen_profile)
+        plan['path_profile'] = frozen_profile
+        def guard(authority, summary):
+            self.assertEqual(authority, plan['authorization'])
+            self.assertEqual(summary['path_profile'], plan['path_profile'])
+            summary['path_profile'].clear()  # Callback mutation must not alter retained scope.
+            return True
+        result = self.apply(plan, guard=guard)
+        self.assertEqual(result['status'], 'committed')
+        self.assert_side(self.root, plan, 'after')
+        retained = transactions.inspect_transaction(self.root, IDENTIFIER)
+        self.assertEqual(retained['manifest']['schema_version'], 'tos_selected_metadata_transaction_v2')
+        self.assertEqual(retained['plan']['path_profile'], plan['path_profile'])
+        self.assertEqual(retained['plan']['files'], sorted(plan['files'], key=lambda entry: entry['path']))
+        self.assertEqual((payload.stat().st_ino, payload.stat().st_mtime_ns),
+                         (before.st_ino, before.st_mtime_ns))
+        self.assertEqual(payload.read_bytes(), b'synthetic deposited bytes outside metadata authority')
+        self.assertTrue(self.apply(plan, guard=guard)['replayed'])
+
+    def test_item_profile_requires_exact_version_and_matching_adoption_authority(self):
+        original = item_fixture(self.root)
+        invalid_profiles = [None, {}, {'schema_version': 'tos_item_metadata_paths_v0',
+                                      'item_source_path': original['path_profile']['item_source_path']},
+                            {**original['path_profile'], 'additional_suffix': '.md'}]
+        for profile in invalid_profiles:
+            plan = copy.deepcopy(original)
+            plan['path_profile'] = profile
+            with self.subTest(profile=profile), self.assertRaises((ValueError, PermissionError)):
+                self.apply(plan, guard=lambda *args: True)
+        for change in (lambda p: p.pop('path_profile'),
+                       lambda p: p['authorization'].pop('schema_version'),
+                       lambda p: p['authorization'].update(schema_version='tos_item_adoption_authorization_v2'),
+                       lambda p: p['authorization'].pop('scope'),
+                       lambda p: p['authorization'].update(scope=None),
+                       lambda p: p['authorization']['scope'].update(item_source_path=WORK + '/item.json')):
+            plan = copy.deepcopy(original)
+            change(plan)
+            with self.assertRaises((ValueError, PermissionError)):
+                self.apply(plan, guard=lambda *args: True)
+        self.assertIsNone(publication.read_publication_state(self.root))
+        self.assertFalse((self.root / publication.TRANSACTIONS_REF).exists())
+        self.assert_side(self.root, original, 'before')
+
+    def test_item_profile_does_not_grant_other_homes_suffixes_or_forbidden_paths(self):
+        original = item_fixture(self.root)
+        item = Path(original['path_profile']['item_source_path']).parent.as_posix()
+        denied = [item + '/notes.md', item + '/other.sha256',
+                  item + '/child/forensic-report.md', str(Path(item).with_name('other')) + '/fixity.sha256',
+                  WORK + '/forensic-report.md', item + '/payload/fixity.sha256',
+                  item + '/private/forensic-report.md', item + '/owner-local/forensic-report.md',
+                  item + '/local-content/forensic-report.md', item + '/catalog/fixity.sha256',
+                  item + '/.hidden/forensic-report.md', item + '/../synthetic/fixity.sha256',
+                  '/' + item + '/fixity.sha256', item + '//fixity.sha256']
+        for ref in denied:
+            plan = copy.deepcopy(original)
+            plan['files'][3]['path'] = ref
+            with self.subTest(path=ref), self.assertRaises((ValueError, PermissionError)):
+                self.apply(plan, guard=lambda *args: True)
+        for ref in (WORK + '/item.json', item + '/other.json', item + '/payload/item.json',
+                    item + '/private/items/another/item.json'):
+            plan = copy.deepcopy(original)
+            plan['path_profile']['item_source_path'] = ref
+            plan['authorization']['scope']['item_source_path'] = ref
+            with self.subTest(profile_path=ref), self.assertRaises((ValueError, PermissionError)):
+                self.apply(plan, guard=lambda *args: True)
+        self.assertIsNone(publication.read_publication_state(self.root))
+        self.assertFalse((self.root / publication.TRANSACTIONS_REF).exists())
+
+    def test_item_profile_survives_fresh_process_resume_and_rollback(self):
+        for operation in ('resume', 'rollback'):
+            with self.subTest(operation=operation):
+                root = self.root / operation
+                plan = item_fixture(root)
+                interrupted = self.child(root, plan, edge='after-file-3')
+                self.assertEqual(interrupted.returncode, 86, interrupted.stdout + interrupted.stderr)
+                pending = transactions.read_pending_transaction(root)
+                self.assertEqual(pending['manifest']['schema_version'], 'tos_selected_metadata_transaction_v2')
+                self.assertEqual(pending['plan']['path_profile'], plan['path_profile'])
+                recovered = self.child(root, plan, operation=operation)
+                self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+                retained = transactions.inspect_transaction(root, IDENTIFIER)
+                self.assertEqual(retained['plan']['path_profile'], plan['path_profile'])
+                self.assertEqual(retained['status'], 'committed' if operation == 'resume' else 'rolled-back')
+                self.assert_side(root, plan, 'after' if operation == 'resume' else 'before')
+                item = Path(plan['path_profile']['item_source_path']).parent
+                self.assertEqual((root / item / 'payload/original.bin').read_bytes(),
+                                 b'synthetic deposited bytes outside metadata authority')
+
+    def test_manifest_versions_cannot_reinterpret_each_others_path_grammar(self):
+        plan = item_fixture(self.root)
+        interrupted = self.child(self.root, plan, edge='after-file-3')
+        self.assertEqual(interrupted.returncode, 86, interrupted.stdout + interrupted.stderr)
+        retained = transactions.read_pending_transaction(self.root)
+        manifest = retained['manifest']
+        downgraded = copy.deepcopy(manifest)
+        downgraded['schema_version'] = 'tos_selected_metadata_transaction_v1'
+        with self.assertRaises(transactions.TransactionCorruption):
+            transactions._validate_manifest(downgraded, IDENTIFIER)
+        for schema in ('tos_selected_metadata_transaction_v1', 'tos_selected_metadata_transaction_v2'):
+            unprofiled = copy.deepcopy(manifest)
+            unprofiled['schema_version'] = schema
+            unprofiled['plan'].pop('path_profile')
+            with self.assertRaises((ValueError, PermissionError)):
+                transactions._validate_manifest(unprofiled, IDENTIFIER)
+        # Even an all-JSON plan has one explicit interpretation, not a v2 fallback.
+        legacy_root = self.root / 'legacy'
+        legacy_plan = fixture(legacy_root)
+        self.assertEqual(self.child(legacy_root, legacy_plan, edge='after-pending').returncode, 86)
+        legacy = transactions.read_pending_transaction(legacy_root)['manifest']
+        legacy['schema_version'] = 'tos_selected_metadata_transaction_v2'
+        with self.assertRaises(transactions.TransactionCorruption):
+            transactions._validate_manifest(legacy, IDENTIFIER)
 
     def test_byte_file_and_authorization_budgets_are_checked_before_staging(self):
         invalid = copy.deepcopy(self.plan)

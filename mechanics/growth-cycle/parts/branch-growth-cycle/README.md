@@ -13,6 +13,12 @@ and access adapters remain read-only.
 adds one separately delegated provisional Edition and exact `embodied_by`
 Claim without creating an Item/File or changing global bibliographic cardinality.
 
+[Native local Item adoption](docs/NATIVE_ITEM_ADOPTION.md) separately retains
+one already obtained File under an exact canonical payload grant, then publishes
+an acquired Item and `exemplified_by` Claim with one Edition append. Private
+byte recovery and public metadata evidence are distinct; no download, source
+reading, rights clearance or publication authority is implied.
+
 ## Operating Card
 
 | Field | Route |

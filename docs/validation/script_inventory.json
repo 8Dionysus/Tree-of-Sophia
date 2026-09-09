@@ -472,6 +472,53 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md",
+      "source_truth": [
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SELECTED_METADATA_TRANSACTIONS.md"
+      ],
+      "reads": [
+        "exact separate metadata, canonical local File retention and private recovery delegation; current Edition and catalog-bound Item manifests",
+        "retained older compound lineage, source-safe byte receipt, explicit resource inventory, rights and source-copy forms"
+      ],
+      "writes": [
+        "one unchanged acquired File through separate private continuation, then one Item v1 package and distinct exemplified_by Claim",
+        "one exact Edition successor and explicit metadata-only transaction; private continuation is not tracked source metadata"
+      ],
+      "side_effects": "bounded native item.adopt and explicit recovery only; no fetch, OCR, model, rights clearance, source admission, public processing or legacy migration; retained incomplete bytes are not acquired Item metadata",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_item_commands.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_deposit.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md",
+      "source_truth": [
+        "ToS/contracts/source-item-manifest.schema.json",
+        "ToS/doctrine/CORPUS_FOUNDATION.md",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md"
+      ],
+      "reads": [
+        "one exact protected local input, canonical payload directory and private transaction companion; bounded EPUB members through existing inventory enumerator"
+      ],
+      "writes": [
+        "one no-replace fsynced payload File and private same-transaction continuation; source-safe deposit receipt only"
+      ],
+      "side_effects": "bounded streaming local copy with stable descriptor and ancestor checks; no source or metadata admission, download, OCR, model call, source deletion, foreign-file adoption or private grant publication",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_item_deposit.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
