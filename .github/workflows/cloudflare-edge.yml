@@ -31,7 +31,10 @@ jobs:
   contract:
     name: Source-to-edge contract
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The source-bound read-model build is a cold normalization pass. The
+    # fourth planting now exceeds the former 15-minute budget before the
+    # import, contract, and deployment-bundle checks can run.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: access/deploy/cloudflare-worker
