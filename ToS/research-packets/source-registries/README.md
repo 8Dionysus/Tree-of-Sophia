@@ -49,8 +49,10 @@ against retained originals and checks exact snapshot parity without writing.
 
 ## Inspection and reconciliation
 
-Document and shared-link carriers use deterministic gzip-compressed JSON. Open
-one scoped record without unpacking the packet:
+Document and shared-link carriers use canonical JSON inside gzip-compressed
+files. The validator compares the canonical payload so zlib wrapper and
+compression differences between supported Python runtimes do not create false
+snapshot drift. Open one scoped record without unpacking the packet:
 
 ```sh
 python3 -B scripts/inspect_source_registry.py --corpus table-i --document A12 --record A12-R018
