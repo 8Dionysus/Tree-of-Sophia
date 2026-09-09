@@ -69,3 +69,23 @@ The remaining owner is the integration master for prerequisite assembly,
 global generated companions, full combined validation and landing. Local
 tests and this source-visible review are not CI, merge, publication, rights
 clearance, real source assessment or canon acceptance.
+
+## Combined foundation follow-up
+
+The integration owner's inputs-only consumer correction
+`762ca0b6a2de3e4acd8538e5f31e7cb8051d9360` was applied here as integration commit
+`1d7d408fec52f99c072776afe125b17e24363c51`, directly after local Artifact
+implementation commit `51e77e0dcb3bd1deceff04436dc73662e78dd085` (source handoff
+`bb4b678c70fc3e33eb9d2ba74294aadc63fde6f8`). Inspection of the exact diff confirmed
+that only provision and publication input consumers now use the existing
+historical resolver. Outputs still require current exact bytes; the Artifact
+native-origin branch is unchanged.
+
+The complete source-witness foundation then passed on this combined candidate:
+`[ok] validated source-witness evidence spine (optional; present bytes fixity-checked)`.
+The existing historical-input negative controls also passed (1 test,
+98 unselected, 0.40 seconds). This resolves the five-failure integration
+limitation recorded above. It does not require or imply real Artifact intake,
+source-visible textual assessment, rights clearance, canon, publication,
+CI or merge. Documentation-family currentness is regenerated from the final
+local owner inputs; the final integration still owns its own generated batch.
