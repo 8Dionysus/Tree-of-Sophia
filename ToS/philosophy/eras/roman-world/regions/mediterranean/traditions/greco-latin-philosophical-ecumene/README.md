@@ -34,3 +34,7 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 ## Registry planting: fifth wave (2026-09-09)
 
 21 exact Latin versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-fifth-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: sixth wave (2026-09-09)
+
+5 English versions alongside existing Latin texts. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-sixth-planting-2026-09-09/RESULTS.md).

@@ -27,3 +27,7 @@ Exact De Rerum Natura Latin edition within De rerum natura; rhetoric belongs to 
 - Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.
 - The Latin header explicitly says Lost information for its print/source bibliography and the CTS edition description is a dash. The underlying print exemplar/editor remain unknown; no modern editor, critical edition or public-domain term is inferred.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-de-rerum-natura-english/README.md). Shared Work identity does not establish edition dependence or alignment.

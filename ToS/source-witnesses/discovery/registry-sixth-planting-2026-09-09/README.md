@@ -1,3 +1,5 @@
-# Sixth registry planting preparation
+# Sixth registry planting
 
-Five English translations of existing Latin Works. [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md). Full acquisition is pending the exact preparation checkpoint.
+[English and Latin reading routes](RESULTS.md). [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md). [Version selection](selection-review.json).
+
+Prepared readiness and post-acquisition completion retain separate exact evidence.

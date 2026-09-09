@@ -1,0 +1,43 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.cicero.de-divinatione.en-perseus-phi0474-phi053-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+  "preferred_label": "De Divinatione, De senectute; De amicitia; De divinatione — exact local git-tei-xml copy",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053-cts.xml",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053.perseus-eng1-header.xml",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053.perseus-eng1-opening.xml",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:latinLit:phi0474.phi053.perseus-eng1",
+      "source_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/evidence/phi0474.phi053-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+  "notes": "The Item identifies one acquired immutable digital file set from the pinned provider version. Its individual Files have content-addressed SHA-256 identities. The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition. Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted. Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata. Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment. Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers. Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon. The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+  "record_version": 1,
+  "supersedes_ref": null
+}
