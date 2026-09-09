@@ -288,10 +288,12 @@ def transfer(root: Path, target: dict, entry: dict, log: Path) -> tuple[bytes, d
 
 
 def tei_division_addresses(edition: ET.Element, milestone_unit: str | None = None,
-                           repeated_milestones: list[dict] | None = None) -> list[str]:
-    """Qualify local division numbers by their source-supplied ancestors."""
+                           repeated_milestones: list[dict] | None = None,
+                           repeated_divisions: list[dict] | None = None) -> list[str]:
+    """Keep strict division IDs, or explicitly inventory physical occurrences."""
     addresses: list[str] = []
     occurrences: dict[tuple[tuple[str, str], ...], int] = {}
+    divisions: dict[tuple[tuple[str, str], ...], int] = {}
     seen: set[tuple[tuple[str, str], ...]] = set()
     def visit(node: ET.Element, parents: tuple[tuple[str, str], ...]) -> None:
         for child in node:
@@ -302,25 +304,30 @@ def tei_division_addresses(edition: ET.Element, milestone_unit: str | None = Non
                 if not label or not number:
                     raise ValueError("Perseus text division lacks a supplied type or number")
                 address += ((label, number),)
-                if address in seen:
-                    raise ValueError("Perseus qualified division address is duplicated")
-                seen.add(address)
+                if repeated_divisions is None:
+                    if address in seen:
+                        raise ValueError("Perseus qualified division address is duplicated")
+                    seen.add(address)
+                else:
+                    # The opt-in observation profile does not assume that the
+                    # supplier's logical labels uniquely identify passages.
+                    divisions[address] = divisions.get(address, 0) + 1
+                    address += (("division_occurrence", str(divisions[address])),)
                 addresses.append(json.dumps(address, ensure_ascii=False, separators=(",", ":")))
             if milestone_unit and child.tag == "{http://www.tei-c.org/ns/1.0}milestone" and child.get("unit") == milestone_unit:
                 number = child.get("n")
                 if not number:
                     raise ValueError("Perseus citation milestone lacks a supplied number")
                 marker = parents + ((milestone_unit, number),)
-                # Milestones are physical markers, not unique passage IDs.
-                # Preserve repeated supplied numbering with an occurrence suffix.
                 occurrences[marker] = occurrences.get(marker, 0) + 1
                 physical = marker + (("marker_occurrence", str(occurrences[marker])),)
                 addresses.append(json.dumps(physical, ensure_ascii=False, separators=(",", ":")))
             visit(child, address)
     visit(edition, ())
-    if repeated_milestones is not None:
-        repeated_milestones.extend({"source_address": list(marker), "occurrences": count}
-                                   for marker, count in occurrences.items() if count > 1)
+    for destination, counts in ((repeated_milestones, occurrences), (repeated_divisions, divisions)):
+        if destination is not None:
+            destination.extend({"source_address": list(marker), "occurrences": count}
+                               for marker, count in counts.items() if count > 1)
     return addresses
 
 
@@ -373,16 +380,19 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
         if coverage.get("citation_scope") in {"hierarchical_divisions", "hierarchical_divisions_and_section_milestones"}:
             milestones = coverage["citation_scope"] == "hierarchical_divisions_and_section_milestones"
             repetitions: list[dict] = []
-            addresses = tei_division_addresses(editions[0], "section" if milestones else None, repetitions)
+            division_repetitions: list[dict] = []
+            addresses = tei_division_addresses(editions[0], "section" if milestones else None, repetitions,
+                                               division_repetitions if milestones else None)
             if not addresses or count < 1000:
                 raise ValueError("Perseus qualified divisions or nonempty language-profile text check failed")
             report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"],
                 "division_count": len(addresses), "first_division": addresses[0], "last_division": addresses[-1],
                 "division_addresses_sha256": sha256(("\n".join(addresses)+"\n").encode()),
-                "address_scope": ("source-supplied division chains and occurrence-qualified section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted" if milestones else "source-supplied division type/number chain; no CTS service resolution asserted"),
+                "address_scope": ("occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted" if milestones else "source-supplied division type/number chain; no CTS service resolution asserted"),
                 count_field: count})
             if milestones:
                 report["files"][-1]["repeated_section_markers"] = repetitions
+                report["files"][-1]["repeated_division_labels"] = division_repetitions
         else:
             if not sections or len(sections) != len(set(sections)) or count < 1000:
                 raise ValueError("Perseus section identity or nonempty language-profile text check failed")

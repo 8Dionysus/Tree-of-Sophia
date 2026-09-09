@@ -16,7 +16,7 @@ for target in manifest['targets']:
  version_description=correction.get('corrected_version_description',target['version_description'])
  extra_limits=correction.get('limits',[])
  observations=json.loads((root/target['paths']['item_root']/'forensic-observations.json').read_text())
- repeated=observations['files'][0].get('repeated_section_markers',[])
+ repeated=observations['files'][0].get('repeated_section_markers',[])+observations['files'][0].get('repeated_division_labels',[])
  if repeated: extra_limits.append('The supplied source repeats logical section numbering: '+json.dumps(repeated,ensure_ascii=False)+'. Occurrence-qualified markers distinguish physical locations without correcting the source or establishing CTS passage identity.')
  plan=plans[target['branch_target_slug']]; anchor=plan['anchor_preparation']; a=anchor['source_backlog_anchor']
  current=prepare_anchor(root,atlas_row_id=anchor['atlas_row_id'],source_table_index=a['source_table_index'],source_row_index=a['source_row_index'],source_label=a['source_label'])

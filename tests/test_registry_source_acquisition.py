@@ -86,7 +86,7 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
         repeated = body.replace(b'<p>', b'<p><milestone unit="section" n="1"/>', 1)
         observed = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, repeated)])["files"][0]
         self.assertEqual(observed["division_count"], 5)
-        self.assertEqual(observed["repeated_section_markers"], [{"source_address": [("book", "1"), ("section", "1")], "occurrences": 2}])
+        self.assertEqual(observed["repeated_section_markers"], [{"source_address": [("book", "1"), ("division_occurrence", "1"), ("section", "1")], "occurrences": 2}])
         self.assertNotEqual(observed["division_addresses_sha256"], report["files"][0]["division_addresses_sha256"])
         for changed in (body.replace(b'unit="section" n="1"', b'unit="section"'),
                 body.replace(b'type="translation"', b'type="translation" n="urn:cts:latinLit:wrong.eng1"'),
@@ -94,6 +94,18 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
                 body.replace(b'xml:lang="eng"', b'xml:lang="lat"')):
             with self.subTest(changed=changed[:250]), self.assertRaises(ValueError):
                 acquisition.inspect_payloads(target, [({"basename": "source.xml"}, changed)])
+
+    def test_occurrence_profile_retains_repeated_division_labels_without_rewriting(self) -> None:
+        import xml.etree.ElementTree as ET
+        text = '<div xmlns="http://www.tei-c.org/ns/1.0"><div type="textpart" subtype="book" n="1">First</div><div type="textpart" subtype="book" n="1">Third</div></div>'
+        edition = ET.fromstring(text)
+        with self.assertRaisesRegex(ValueError, "duplicated"):
+            acquisition.tei_division_addresses(edition)
+        duplicates = []
+        addresses = acquisition.tei_division_addresses(edition, repeated_divisions=duplicates)
+        self.assertEqual(len(set(addresses)), 2)
+        self.assertEqual(duplicates, [{"source_address": [("book", "1")], "occurrences": 2}])
+        self.assertEqual([node.get("n") for node in edition], ["1", "1"])
 
     def test_metadata_elapsed_requires_retained_measurement_or_valid_interval(self) -> None:
         observation = {"started_at": "2026-09-09T07:00:00+00:00", "ended_at": "2026-09-09T07:00:02.5+00:00"}
