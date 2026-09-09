@@ -1,0 +1,42 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.aristotle.constitution-of-the-athenians.grc-perseus-tlg0086-tlg003.perseus-341e309c821d.git-tei-xml",
+  "preferred_label": "Constitution of the Athenians — exact local git-tei-xml copy",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0086.tlg003-cts.xml",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0086.tlg003.perseus-grc2-header.xml",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0086-cts.xml",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:greekLit:tlg0086.tlg003.perseus-grc2",
+      "source_ref": "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0086.tlg003-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+  "notes": "The Item identifies one acquired immutable digital file set from the pinned provider version. Its individual Files have content-addressed SHA-256 identities. The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction. Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted. Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations. Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author. Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

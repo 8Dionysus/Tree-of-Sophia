@@ -28,3 +28,7 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 Twelve selected Ancient Greek Perseus editions now have exact source records,
 local Item files and branch plantings. [Open the complete local source list](sources/README.md).
 The remaining works, other editions and translations stay in the source backlog.
+
+## Registry planting: third wave (2026-09-08)
+
+32 exact Greek versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-third-planting-2026-09-08/RESULTS.md).

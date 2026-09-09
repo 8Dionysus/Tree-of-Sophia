@@ -1,0 +1,28 @@
+# Lesser Hippias
+
+Perseus Ancient Greek TEI edition urn:cts:greekLit:tlg0059.tlg026.perseus-grc2, Git 341e309c821d5eca8c976bebca77c28b10bad58f. Supplied print/source description: Plato Platonis Opera John Burnet Oxford Clarendon Press 1903 3 Internet Archive
+
+Exact Lesser Hippias Greek edition within the reviewed Scaife Viewer / Perseus source need; the broader corpus and other versions stay open.
+
+## Local source files
+
+- [tlg0059.tlg026.perseus-grc2.xml](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg026.perseus-grc2.xml)
+
+## Exact owner records
+
+- [Work](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/work.json)
+- [Expression](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/expression.json)
+- [Edition](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/edition.json)
+- [Item and SHA-256](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json)
+- [Rights](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/rights.json)
+- [Provenance](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl)
+- [Observed coverage](../../../../../../../../../../source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/forensic-observations.json)
+
+## Limits
+
+- The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.
+- Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.
+- Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.
+- Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.
+- Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.
+- Local file custody and branch route do not admit text, translation, semantics or canon.

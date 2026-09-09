@@ -22,3 +22,7 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 | `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |
 
 Global proposed node and relation rows for this branch are aggregated in `ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl` and `ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl`.
+
+## Registry planting: third wave (2026-09-08)
+
+18 exact Greek versions with verified local files. [Batch evidence and limits](../../../../../../../source-witnesses/discovery/registry-third-planting-2026-09-08/RESULTS.md).

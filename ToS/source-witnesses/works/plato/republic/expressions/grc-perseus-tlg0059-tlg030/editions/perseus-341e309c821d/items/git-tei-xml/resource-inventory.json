@@ -1,0 +1,5233 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.plato.republic.grc-perseus-tlg0059-tlg030.perseus-341e309c821d.git-tei-xml",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/plato/republic/expressions/grc-perseus-tlg0059-tlg030/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.5f9f8ad62cdbfb0446223cc93a52215614c10e66c4ffd53a99d497ded855edfd",
+      "file_sha256": "5f9f8ad62cdbfb0446223cc93a52215614c10e66c4ffd53a99d497ded855edfd",
+      "media_type": "application/tei+xml",
+      "profile": "tei_structure_v1",
+      "summary": {
+        "resource_count": 289,
+        "page_break_count": 0,
+        "division_count": 289,
+        "max_division_depth": 3
+      },
+      "resources": [
+        {
+          "resource_id": "tei-div-0001",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]",
+            "tei_depth": 1,
+            "tei_n": "urn:cts:greekLit:tlg0059.tlg030.perseus-grc2",
+            "tei_type": "edition"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "26ea9362f578e336b20ac55379f4c46f594fbabca39df99d112e4eb6c9da99fc",
+            "character_count": 528806
+          }
+        },
+        {
+          "resource_id": "tei-div-0002",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]",
+            "tei_depth": 2,
+            "tei_n": "1",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d98163d7ef3c7e04e0af84c6d04a4c196f21663389e4f66f2613e499cf183d6f",
+            "character_count": 55954
+          }
+        },
+        {
+          "resource_id": "tei-div-0003",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "327",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fc26000cc749fa5e09251724d2c9c75e47129b2ac1057973dc29b52a05bfe1e8",
+            "character_count": 1212
+          }
+        },
+        {
+          "resource_id": "tei-div-0004",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "328",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "511267c2e8b050279182120260b3b4d59544abf4084f3633ea94d85626bfe613",
+            "character_count": 2011
+          }
+        },
+        {
+          "resource_id": "tei-div-0005",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "329",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5de6a55c3432248ecebcf41e1613fc6938a4c7ad39617e776970c82b069ddffc",
+            "character_count": 1939
+          }
+        },
+        {
+          "resource_id": "tei-div-0006",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "330",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8e76b3281830d6e61588312e8c4da236aca5ca0c0f42c3b4bd5d3409d2cb0aad",
+            "character_count": 2071
+          }
+        },
+        {
+          "resource_id": "tei-div-0007",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "331",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3cd9d282f48f27eb26f9b0c37a517784d6dec1b33b7ddd7f2b1d9d906882bc5f",
+            "character_count": 2035
+          }
+        },
+        {
+          "resource_id": "tei-div-0008",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "332",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f7be3e901e0856a843fe362d9e394be4ca62b7c751c7d19088169464738b858a",
+            "character_count": 2391
+          }
+        },
+        {
+          "resource_id": "tei-div-0009",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "333",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8fdc4ad2d1da92866d785176ef69ba1f34e7ed3d9dcd29f7d36881e683e4ab2f",
+            "character_count": 1884
+          }
+        },
+        {
+          "resource_id": "tei-div-0010",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "334",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7ac4b7ff460be58224e4305569834e96c8fbec4974d703da685f1f27ce05220e",
+            "character_count": 2073
+          }
+        },
+        {
+          "resource_id": "tei-div-0011",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "335",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7d9735fba1e0b7460afcd68e69b7978fc611447f1ef726b845ef8cd8b06cb19e",
+            "character_count": 2226
+          }
+        },
+        {
+          "resource_id": "tei-div-0012",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "336",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bce583c23ee1b2547d81927575c1d759424b5587b57a5b251def093725ccf877",
+            "character_count": 2029
+          }
+        },
+        {
+          "resource_id": "tei-div-0013",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "337",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3669c6430293bae7e888fd11364fad894b9f391e85c6ace9b1f9e192effab97d",
+            "character_count": 1896
+          }
+        },
+        {
+          "resource_id": "tei-div-0014",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "338",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1f4a32fcea18c81482a6f1820a6a38dee9eff4d5b51a41b22786462508e6078d",
+            "character_count": 2190
+          }
+        },
+        {
+          "resource_id": "tei-div-0015",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "339",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7d4cd63e3f51d06675b979b1887c48f1a9f7b76e3b1041ba32617da2f964615d",
+            "character_count": 2059
+          }
+        },
+        {
+          "resource_id": "tei-div-0016",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "340",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "16582c283b004e0ad118af2e97982862eb9a92132d276a05a7f95bc29cda45db",
+            "character_count": 2035
+          }
+        },
+        {
+          "resource_id": "tei-div-0017",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "341",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "63ce8a3891d575b34064c9a9c79f278a4536e7035c1c28db583e6b90f1579b53",
+            "character_count": 2204
+          }
+        },
+        {
+          "resource_id": "tei-div-0018",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "342",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c96a97363aed49d492bfcb2aa34ad1c085536fa588c1447df5ad0eecfb2f6033",
+            "character_count": 2106
+          }
+        },
+        {
+          "resource_id": "tei-div-0019",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "343",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0ab427fc7f64d853e4cdbd24375cd6313d008e7fae27a3689ad474a222990def",
+            "character_count": 2072
+          }
+        },
+        {
+          "resource_id": "tei-div-0020",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "344",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ecbee98fe7efed00ea6c3ed3cfc49df6661d514b05e6f95d13ee5b1f42fb90da",
+            "character_count": 1974
+          }
+        },
+        {
+          "resource_id": "tei-div-0021",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "345",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5819312ae3cfab40cf16235f6a7567f04c22b5759cfa09495b914526300e769f",
+            "character_count": 1734
+          }
+        },
+        {
+          "resource_id": "tei-div-0022",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "346",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "02ede2992348d6af69bab2559ef1616616652e662d83c9928d588971287b63f0",
+            "character_count": 2072
+          }
+        },
+        {
+          "resource_id": "tei-div-0023",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "347",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4cf1bde4a2e93586f9fc74fa74f4e9ef689176113cd2d49dccb9fc8b7ddf05f8",
+            "character_count": 2196
+          }
+        },
+        {
+          "resource_id": "tei-div-0024",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "348",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f90aced59ec07f59ae2acd599e8401b22483c26c95c9b10c4b9e809df16d83aa",
+            "character_count": 1799
+          }
+        },
+        {
+          "resource_id": "tei-div-0025",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "349",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ba3283c24f299aacfde8fa9e20b02894a5a23b74746004217af4f65f83a671c9",
+            "character_count": 2380
+          }
+        },
+        {
+          "resource_id": "tei-div-0026",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "350",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1626e0a8433bcad20c331a3c40d1aee571016ab45d2279d2600faa7b6213b4f2",
+            "character_count": 2114
+          }
+        },
+        {
+          "resource_id": "tei-div-0027",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "351",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "cef236ea7b44e4329b6807600d62f6fa2f4c59261f46110b81cd19b3ff352a17",
+            "character_count": 2006
+          }
+        },
+        {
+          "resource_id": "tei-div-0028",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "352",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "56ac3d4b78b40eed792aa205d57b58dbaa758564fdff02ebcb7bb596351cebd0",
+            "character_count": 2091
+          }
+        },
+        {
+          "resource_id": "tei-div-0029",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "353",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b3e98830800854573f805de96ff62cbf846793a624ca5ab4aaade2d9cd24aa24",
+            "character_count": 2028
+          }
+        },
+        {
+          "resource_id": "tei-div-0030",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[1]/div[28]",
+            "tei_depth": 3,
+            "tei_n": "354",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0002"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1f2d9e03554d6096b75fe60ea670a934ad811d6328fdf3de66b9d1694ed895c6",
+            "character_count": 1100
+          }
+        },
+        {
+          "resource_id": "tei-div-0031",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]",
+            "tei_depth": 2,
+            "tei_n": "2",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7c57bcca7e7c8544ef82d1310b6e239d9b7d967e8a2bd6d8f289246e5e9dacec",
+            "character_count": 51827
+          }
+        },
+        {
+          "resource_id": "tei-div-0032",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "357",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a206a0a7b38a57e26c038eef0efc5891d6ce7c94a1621aa2a2d64e990cc4c0a0",
+            "character_count": 1279
+          }
+        },
+        {
+          "resource_id": "tei-div-0033",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "358",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d820be7ff62cbb60e54641e130a2abbe81fe437382842567bc211ba0bd9da0ea",
+            "character_count": 1795
+          }
+        },
+        {
+          "resource_id": "tei-div-0034",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "359",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9405734151bd4f1ee1a94f9f8c8968efd460771235d487af287b5afc8ac60930",
+            "character_count": 2120
+          }
+        },
+        {
+          "resource_id": "tei-div-0035",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "360",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e16da5f38ec5ca5e0395a6f77fa9422aa40b5dadf261977ee1f091f09fff9f73",
+            "character_count": 2129
+          }
+        },
+        {
+          "resource_id": "tei-div-0036",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "361",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "de7237b5759df59888143c1d85e2028d08cb88aea03c4187a6138b96f2d1bdbd",
+            "character_count": 1906
+          }
+        },
+        {
+          "resource_id": "tei-div-0037",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "362",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e2e8798e458b982e0b2d40e2a48c6fa23269f6aa0e40afc4e8dbca8e204ce6b6",
+            "character_count": 1914
+          }
+        },
+        {
+          "resource_id": "tei-div-0038",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "363",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "cad9440dae52a6a6f9916c705a3050b0612e776ac93ebbec22845d79328d8835",
+            "character_count": 1728
+          }
+        },
+        {
+          "resource_id": "tei-div-0039",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "364",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c13694aec6e24a88c6150649bfe27f43f3ff142aac3f628f6e4b5cb6ae72f369",
+            "character_count": 1730
+          }
+        },
+        {
+          "resource_id": "tei-div-0040",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "365",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dcd0ab0734e1b90c3840a19e728010d5ef432b8b35b9cab645777b511b0342aa",
+            "character_count": 2173
+          }
+        },
+        {
+          "resource_id": "tei-div-0041",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "366",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "75f91636a69b5f33cbd63162676d3e0b510feff294f991d964b409d149a2a00f",
+            "character_count": 2091
+          }
+        },
+        {
+          "resource_id": "tei-div-0042",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "367",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "043e44b27f58ee4250d233f9f2fce5855fd4f3c8c31388c8ccf0ad8ab664a3ea",
+            "character_count": 1895
+          }
+        },
+        {
+          "resource_id": "tei-div-0043",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "368",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "40aae46a126ae178d37902044fe741647f61798790c0594ea830da52786448e7",
+            "character_count": 1929
+          }
+        },
+        {
+          "resource_id": "tei-div-0044",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "369",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "53b47d4dd4e45fb51b916d2cae79fb3790f7d47bc314cfefc2f130c5c8d580f7",
+            "character_count": 1692
+          }
+        },
+        {
+          "resource_id": "tei-div-0045",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "370",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "665e81516d8a6efcc5388ab76aa31d22f621edd471afc80b598662ff1fe08813",
+            "character_count": 2265
+          }
+        },
+        {
+          "resource_id": "tei-div-0046",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "371",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23f699bc1de7ccf1fd3206dc36f73a648029b13fcaaade450baf565d6a57d724",
+            "character_count": 2169
+          }
+        },
+        {
+          "resource_id": "tei-div-0047",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "372",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b3fb3c92caced25c17c0f0dfab78a59f96c56cfc0b2e637cbd7c4d3ef9ca357d",
+            "character_count": 2075
+          }
+        },
+        {
+          "resource_id": "tei-div-0048",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "373",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "616b83c036c7bb5cebb577451c380ffa89917b86b153e860df00ce0225cb7f3c",
+            "character_count": 1963
+          }
+        },
+        {
+          "resource_id": "tei-div-0049",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "374",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5a1bbdaed38b55f3aacebdcee4d15670a6f5faae04f38b5a6da6186029271992",
+            "character_count": 2022
+          }
+        },
+        {
+          "resource_id": "tei-div-0050",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "375",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dfa473e45793044aae832c8b5be78cbed034fc69f06c8c48007fbaecffbd396e",
+            "character_count": 2043
+          }
+        },
+        {
+          "resource_id": "tei-div-0051",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "376",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2c6c3295a99569b586d5149d532b7917b3b5d467080c05ed90daf317e28146ec",
+            "character_count": 1974
+          }
+        },
+        {
+          "resource_id": "tei-div-0052",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "377",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "beeff42af6350ef3f4ad4a2532f189c6df9de0be442d5c996d4776278b7bcb42",
+            "character_count": 1879
+          }
+        },
+        {
+          "resource_id": "tei-div-0053",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "378",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "81e8308a8f68f9833cd45508523c6fa774324624fb36e930d55906484de42f5d",
+            "character_count": 2015
+          }
+        },
+        {
+          "resource_id": "tei-div-0054",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "379",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "52b6d1f5f3c99d52d553180b02b8e3871b90e56e668e4201d8b2299942c55ba5",
+            "character_count": 1749
+          }
+        },
+        {
+          "resource_id": "tei-div-0055",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "380",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "76ca528a7f45a774ed159c393f6d89022803f35782284ebac3cd033974bea325",
+            "character_count": 1946
+          }
+        },
+        {
+          "resource_id": "tei-div-0056",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "381",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d2eb214cc537cd8902be32cd2a078cfffece7782351e3367044648817aade45a",
+            "character_count": 2163
+          }
+        },
+        {
+          "resource_id": "tei-div-0057",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "382",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5fb7b1cb2fc3f02e773387ab97a5b1a5238d0883eaec387c16c3aff8d4e78b3c",
+            "character_count": 1890
+          }
+        },
+        {
+          "resource_id": "tei-div-0058",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[2]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "383",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0031"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c07a090d711e40afbeff52cc7a27dedba1712bd1f3a11db47b110b8eaa320845",
+            "character_count": 1267
+          }
+        },
+        {
+          "resource_id": "tei-div-0059",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]",
+            "tei_depth": 2,
+            "tei_n": "3",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e7e6d19fd3e028852756ef9ba32a5e3000ca7b9a80cfc56ba43129e7de5e9a04",
+            "character_count": 60480
+          }
+        },
+        {
+          "resource_id": "tei-div-0060",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "386",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "de615e7df144ff16f9390d75050e115fc0fe2555d74875c43634ce7a14eac453",
+            "character_count": 1456
+          }
+        },
+        {
+          "resource_id": "tei-div-0061",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "387",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "198467319fad46ba2831d5a28c428a4ecba13e987cfe9c7a1dfc05793ed512d5",
+            "character_count": 1734
+          }
+        },
+        {
+          "resource_id": "tei-div-0062",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "388",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "529be4c4a7109bbeac470038b66e5260b6f46461661449ed930431b6ae499ef3",
+            "character_count": 1848
+          }
+        },
+        {
+          "resource_id": "tei-div-0063",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "389",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2cb70d206e0fe9b160ad5059c4fb9bbd50f2ed2a1ce71aa32949eb665e12ff56",
+            "character_count": 1843
+          }
+        },
+        {
+          "resource_id": "tei-div-0064",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "390",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23a3ec3dd44345f3b662c1ed12034685b20a7afe8a3fda5e0ab59b489d4619f3",
+            "character_count": 1804
+          }
+        },
+        {
+          "resource_id": "tei-div-0065",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "391",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c6cd050db2595fac74ea89c1734d7d55cf2da5707d882672cee5be777537d0c8",
+            "character_count": 2055
+          }
+        },
+        {
+          "resource_id": "tei-div-0066",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "392",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "792a04ae71d6dfa2786b3e03e60e9a7b1d83f33b862de2b57a465fbbac6f4948",
+            "character_count": 1782
+          }
+        },
+        {
+          "resource_id": "tei-div-0067",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "393",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "58aa080b3041d432f2fa512f92bc3646caccbcc37c15c789096b9e1dbfe9ea44",
+            "character_count": 1861
+          }
+        },
+        {
+          "resource_id": "tei-div-0068",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "394",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "28c9296f5558eb098869d3ce91d93361816ab0c5261169d230df2c07d2fe6100",
+            "character_count": 2314
+          }
+        },
+        {
+          "resource_id": "tei-div-0069",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "395",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ebd1670983de83b0ddcff105f05e84445130b8adb654cabe10af26a443834ef4",
+            "character_count": 1821
+          }
+        },
+        {
+          "resource_id": "tei-div-0070",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "396",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e5b9457e05d59d4c67faf78f31f5af0909a7302478dc3348dc4cf0d0c35db34e",
+            "character_count": 2199
+          }
+        },
+        {
+          "resource_id": "tei-div-0071",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "397",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a68f3211516cfeeae67eaec0b6b4224d3d6878a5640bff6364c9fef0bf85dcae",
+            "character_count": 1998
+          }
+        },
+        {
+          "resource_id": "tei-div-0072",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "398",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b9bf391a09408dc87b63fb11c1347553026682282bfa6249e931831a08fd24ae",
+            "character_count": 2127
+          }
+        },
+        {
+          "resource_id": "tei-div-0073",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "399",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "3fecc2f5893fb46fc65c6146498743b6f3f1edf11a4048cda62879281a4e68eb",
+            "character_count": 1913
+          }
+        },
+        {
+          "resource_id": "tei-div-0074",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "400",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "13bba692f112edd75ed16944c0fa2fac13660e18e732c927e5a58cba0f814ff9",
+            "character_count": 2128
+          }
+        },
+        {
+          "resource_id": "tei-div-0075",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "401",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "342474ae9c880f3271714fe4258820a6bb8299575a29b5e5eeaf15f702739f29",
+            "character_count": 1748
+          }
+        },
+        {
+          "resource_id": "tei-div-0076",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "402",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "db63082940b87e6383e5135bd66fbaa05d20536876bac36ddea810bc120b0cb6",
+            "character_count": 2163
+          }
+        },
+        {
+          "resource_id": "tei-div-0077",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "403",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6a9f36adbf34bcb9af37cc6a76122e04c4ed6faaa6071fd80ad14a8dab733300",
+            "character_count": 1812
+          }
+        },
+        {
+          "resource_id": "tei-div-0078",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "404",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "348117abe049ebb514f9cc2515525491fed3e2d6a88fdd4bf090ba7577f152c2",
+            "character_count": 1961
+          }
+        },
+        {
+          "resource_id": "tei-div-0079",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "405",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2eeca79a313e4452b75dc3b04baca8a8f611ad0c9c5e7aae1cbfd93e485065c3",
+            "character_count": 1814
+          }
+        },
+        {
+          "resource_id": "tei-div-0080",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "406",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "42ae2b73513fa0c027df9a9cd44f75d60461b5805fd81b21dc03acf9f3e86da4",
+            "character_count": 1720
+          }
+        },
+        {
+          "resource_id": "tei-div-0081",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "407",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d7d47e01a9c391708b39b4b0103ebd94bcb27f706b046399c267ecefe9013a8a",
+            "character_count": 1801
+          }
+        },
+        {
+          "resource_id": "tei-div-0082",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "408",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9b0e969dbe7f9ea8515e3153aaa0338e5d6e58db9c6ea2b47366e444c1553a61",
+            "character_count": 1931
+          }
+        },
+        {
+          "resource_id": "tei-div-0083",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "409",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "70255c5144ffd7c88977051adede2a364a4164db124e3eb32d8edf0158c285bb",
+            "character_count": 1773
+          }
+        },
+        {
+          "resource_id": "tei-div-0084",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "410",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "aff6eda26be252be8c153f02ca835234a487f9db9097012fd774dd1a9e8feca4",
+            "character_count": 2056
+          }
+        },
+        {
+          "resource_id": "tei-div-0085",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "411",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "18ce34a26dc5058196d273277f37bb85e2a0f7fa3c258472c2c24e03e9356a4e",
+            "character_count": 1734
+          }
+        },
+        {
+          "resource_id": "tei-div-0086",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "412",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dce8ecabc2ca51452b4c8e32a97987c7ffb0fa77ddb0f648ffc0875c986d8f36",
+            "character_count": 2210
+          }
+        },
+        {
+          "resource_id": "tei-div-0087",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[28]",
+            "tei_depth": 3,
+            "tei_n": "413",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c37f37fda198b0fc1dd7bfe3d34a07bca55858c579e4c5f85c4dfa48e6550adf",
+            "character_count": 2019
+          }
+        },
+        {
+          "resource_id": "tei-div-0088",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[29]",
+            "tei_depth": 3,
+            "tei_n": "414",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e2ae8db4373eb179fe2e8fefcd13e2dfe95ffbee9693857f097555308605ffd8",
+            "character_count": 1992
+          }
+        },
+        {
+          "resource_id": "tei-div-0089",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[30]",
+            "tei_depth": 3,
+            "tei_n": "415",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "722713902f085ba6c5c8d61db4cd19aa0ba1c8d8773a877dfa9aaaa2cf78e33a",
+            "character_count": 2024
+          }
+        },
+        {
+          "resource_id": "tei-div-0090",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[31]",
+            "tei_depth": 3,
+            "tei_n": "416",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1987d39aec302b7299653e502e2a42a379fc42358e879328db877db9426b6cb6",
+            "character_count": 1727
+          }
+        },
+        {
+          "resource_id": "tei-div-0091",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[3]/div[32]",
+            "tei_depth": 3,
+            "tei_n": "417",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0059"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9c141b13f11362b7835e3d72519cb9d46d610078f7a1fb58c691eb07d2933057",
+            "character_count": 1081
+          }
+        },
+        {
+          "resource_id": "tei-div-0092",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]",
+            "tei_depth": 2,
+            "tei_n": "4",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9e45501df7bdf51784dd62b69640de18d6da52548c26f43c71c760a6a0d0fb6f",
+            "character_count": 52124
+          }
+        },
+        {
+          "resource_id": "tei-div-0093",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "419",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "05d8cb43470e275a9d91abe3399caffff91ef13e4c21cb80faa7f3e7e46fc49f",
+            "character_count": 514
+          }
+        },
+        {
+          "resource_id": "tei-div-0094",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "420",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "217b037e1651cfa7e75ec5ebb0599a2e29768ea35bb0ab54bf88a3bc8b798d70",
+            "character_count": 2000
+          }
+        },
+        {
+          "resource_id": "tei-div-0095",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "421",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "72f1fe0aabde043eeea71a3e53a1072145e40c09fdc578ac3e9e0ad2c567a71f",
+            "character_count": 2044
+          }
+        },
+        {
+          "resource_id": "tei-div-0096",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "422",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "62a6bd2c7e6b2baeb14b94276968735791a6bb157927383eaca0ccb2ce505a74",
+            "character_count": 1919
+          }
+        },
+        {
+          "resource_id": "tei-div-0097",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "423",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8bb79d4156823841a42313d0f97e3945d950fc264303266a8e0998b1f96ca62e",
+            "character_count": 1860
+          }
+        },
+        {
+          "resource_id": "tei-div-0098",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "424",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "851fde6a1ef61da01e04fecfeae5b8a9bcbe3309ddc6caac56fd8398a0a05688",
+            "character_count": 1968
+          }
+        },
+        {
+          "resource_id": "tei-div-0099",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "425",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "631310d70fc026f20df5d3c8acd129ad49b5c1348512f394e200bc9d5f4c0b0d",
+            "character_count": 2166
+          }
+        },
+        {
+          "resource_id": "tei-div-0100",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "426",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fbbad5a402757d0edba47693b9acfec296a58efe0d1e85421cb574cb3d4e54b6",
+            "character_count": 1969
+          }
+        },
+        {
+          "resource_id": "tei-div-0101",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "427",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "61add8bf8f14a6c6ee707fb55bbc75275fa01fb2ecbef247b0c90d0f18a64fd5",
+            "character_count": 1933
+          }
+        },
+        {
+          "resource_id": "tei-div-0102",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "428",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a9e92b328cb2f2b68468ead95a35fc846c1710f8a0280c71689b78e281f8a3c6",
+            "character_count": 1836
+          }
+        },
+        {
+          "resource_id": "tei-div-0103",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "429",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a1708af425848367d3244e17f9ec16be535689efaaed36f8a494d677a37104db",
+            "character_count": 2094
+          }
+        },
+        {
+          "resource_id": "tei-div-0104",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "430",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "79cf7644a5220cdbe3a6b1546c41d6e3bcd0a1cba316c0dea7a6a52937b55ec5",
+            "character_count": 2007
+          }
+        },
+        {
+          "resource_id": "tei-div-0105",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "431",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "929d04bc6404fc6f0136d99152bc0d644734ef8b04211f2b50b3769bbca7d4ed",
+            "character_count": 2070
+          }
+        },
+        {
+          "resource_id": "tei-div-0106",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "432",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c5776455f9caaf7a064087c0b6e935cd143814a1cba604ff6e47c5fb24ceef07",
+            "character_count": 2021
+          }
+        },
+        {
+          "resource_id": "tei-div-0107",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "433",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6c54fb3932144355d35ebcb9c1e0956ea34464b85e570ddd14009a186aae614d",
+            "character_count": 2024
+          }
+        },
+        {
+          "resource_id": "tei-div-0108",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "434",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e12f29f154e931209c1387ec0395b406bf4ea36a1efef502aec870e1a39be85e",
+            "character_count": 1931
+          }
+        },
+        {
+          "resource_id": "tei-div-0109",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "435",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ffd07c52c92c14702e2b819c7b2353c45ef3eecce37181935297d63adddf7fce",
+            "character_count": 1744
+          }
+        },
+        {
+          "resource_id": "tei-div-0110",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "436",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a472ebd5743c762b39a978f3de5c0018db3a41b060c5d724e3c364ad961ae03d",
+            "character_count": 2103
+          }
+        },
+        {
+          "resource_id": "tei-div-0111",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "437",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c92eaa2519ded767218a02c7891679982ef5065892869922833908a85f757f28",
+            "character_count": 2151
+          }
+        },
+        {
+          "resource_id": "tei-div-0112",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "438",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "82fbad736f68a3d033eb7869b2fc3eeaf0135c3ac649751b6ae8c9a0ac778297",
+            "character_count": 2104
+          }
+        },
+        {
+          "resource_id": "tei-div-0113",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "439",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ed9a815d2283a5af1bd71a80d6cf045ff929e5063b0188b133c36c9146990670",
+            "character_count": 1800
+          }
+        },
+        {
+          "resource_id": "tei-div-0114",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "440",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "333633c8c4f851cda00cefb864fa6e3a2f0b9efc0b2ac1b197da8e2b3d096f40",
+            "character_count": 2074
+          }
+        },
+        {
+          "resource_id": "tei-div-0115",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "441",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7890780dd45e32d81a1d80be89639cc9888e98b31733305e5cee21b5a9106b34",
+            "character_count": 2061
+          }
+        },
+        {
+          "resource_id": "tei-div-0116",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "442",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "085b279253977c9654e175a006f8103fb9dffa0128ec287bf8e2e79eb56e399c",
+            "character_count": 1812
+          }
+        },
+        {
+          "resource_id": "tei-div-0117",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "443",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b3195e9015da5fa9e37aefb2c59017495aab1f830a45280ee0c495c5461ae042",
+            "character_count": 2256
+          }
+        },
+        {
+          "resource_id": "tei-div-0118",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "444",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ab638feea3fa30c1cf505f5a50f211a1a25c4bf4d525e6cc0c73e164f2aeb142",
+            "character_count": 1791
+          }
+        },
+        {
+          "resource_id": "tei-div-0119",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[4]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "445",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0092"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9eb402aa36d128214f402041c6a7767a225820ea0c79c5a860144f9b6cc461fc",
+            "character_count": 1846
+          }
+        },
+        {
+          "resource_id": "tei-div-0120",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]",
+            "tei_depth": 2,
+            "tei_n": "5",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a143091adf77a0ae46735b4471e6cfc8c32a1d4ed1d2872d6abe10387225eed9",
+            "character_count": 60559
+          }
+        },
+        {
+          "resource_id": "tei-div-0121",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "449",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "886b3eecb371b9006a3bfdc03dfbc6c22584e1a720140153c340347d97fb2bda",
+            "character_count": 1415
+          }
+        },
+        {
+          "resource_id": "tei-div-0122",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "450",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8190b7a985c180ab48f810e9601fcbd9765caf80952f6c294c0cfc4bc31fba52",
+            "character_count": 1838
+          }
+        },
+        {
+          "resource_id": "tei-div-0123",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "451",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0f65db8c3ec0489b5d37e187d879cf8ffc01c34f2bebd6d03ea80b10b87ee63f",
+            "character_count": 1893
+          }
+        },
+        {
+          "resource_id": "tei-div-0124",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "452",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "99171a5245ebe3bc631af87765c3a1f35071381d43a7c60c9a77125a4b3ee431",
+            "character_count": 1830
+          }
+        },
+        {
+          "resource_id": "tei-div-0125",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "453",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2f8d1edc4b90dde49e3808dd0a765acc26e90748a859ae1e0b540bd6db5cfe38",
+            "character_count": 2059
+          }
+        },
+        {
+          "resource_id": "tei-div-0126",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "454",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5d52300b0d9062c99ffc654db8a1405a4bdee794f1ef184c23571816efa340d1",
+            "character_count": 1924
+          }
+        },
+        {
+          "resource_id": "tei-div-0127",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "455",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "98e1a6c5feee171aabde8b5cafcfd95c2728d2bb9d308610fc1cc7aa4ac8e9de",
+            "character_count": 1887
+          }
+        },
+        {
+          "resource_id": "tei-div-0128",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "456",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b20c63e5ddb421298ed8f071a35bcde98528bae3d219e210ae81ca23ba99bc08",
+            "character_count": 1862
+          }
+        },
+        {
+          "resource_id": "tei-div-0129",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "457",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "aab903789bded10595b5296b9c15bfb99278929a120b92241654190b28cc005c",
+            "character_count": 1980
+          }
+        },
+        {
+          "resource_id": "tei-div-0130",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "458",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "997e6c3b6c08cf749f69289373ed4cf2a831280386941d43b5cd61adb0647532",
+            "character_count": 1965
+          }
+        },
+        {
+          "resource_id": "tei-div-0131",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "459",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fcb0e2a64aeb0ca8f226f5c3eea58d063c07a330faae0a8efa08d36edc940c02",
+            "character_count": 1835
+          }
+        },
+        {
+          "resource_id": "tei-div-0132",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "460",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "230c28850d7b42ac1364aa9f19e450dcd0cd649a6454150249d9d05cabb922ab",
+            "character_count": 2109
+          }
+        },
+        {
+          "resource_id": "tei-div-0133",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "461",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "72a0d9e9c435a4ad761dceba757c13694fdd7d777945f7292091d20a96d8f9a6",
+            "character_count": 2071
+          }
+        },
+        {
+          "resource_id": "tei-div-0134",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "462",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "85ff69f3591757e4312d38e5d984fa7a32169c0d3306ffb240d41d6941d9a16b",
+            "character_count": 1990
+          }
+        },
+        {
+          "resource_id": "tei-div-0135",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "463",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "972038cab8c367534a79cdf3c8af3a08d929e1807be2cb05cc41e6e4381ccf97",
+            "character_count": 1951
+          }
+        },
+        {
+          "resource_id": "tei-div-0136",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "464",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "156521c215c089c48ee196c23939cf3b744f4b3394a28dc5598f4b958c6c4ce3",
+            "character_count": 1971
+          }
+        },
+        {
+          "resource_id": "tei-div-0137",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "465",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "019a0ad292727854d8ad89a598d3ed42c0f42d0fe6fc2bcb81205ed779483e2c",
+            "character_count": 1748
+          }
+        },
+        {
+          "resource_id": "tei-div-0138",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "466",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5a8de97f34b9dc3ceff660dbc6312aaa412bbd7bf156cecbb42e6b739101960c",
+            "character_count": 1996
+          }
+        },
+        {
+          "resource_id": "tei-div-0139",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "467",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fd9c2fbb6d0731654919d546eae6966f368697e2e06da9b1cfd7fd7642e70f0e",
+            "character_count": 1960
+          }
+        },
+        {
+          "resource_id": "tei-div-0140",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "468",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8eb85a6e7d22f3d66e3a215dbd9ae74cf017ada270ab7bd50a944954a9b71322",
+            "character_count": 1971
+          }
+        },
+        {
+          "resource_id": "tei-div-0141",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "469",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8a12ea79e18dadc2e92f2af62811474a8dd51a83cf80d6f05a26dcba2f922762",
+            "character_count": 1813
+          }
+        },
+        {
+          "resource_id": "tei-div-0142",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "470",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dae0daa26564af6b5c0da9346cb6993fd5628763e6e694ea88da78a593e7003b",
+            "character_count": 2116
+          }
+        },
+        {
+          "resource_id": "tei-div-0143",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "471",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8aba821efbe385105b32f5c864b12c55ab846a1f6f4bac5da6ddca8c48b37642",
+            "character_count": 1953
+          }
+        },
+        {
+          "resource_id": "tei-div-0144",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "472",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a15fc916e4c4f51011be1748f81a6870cdc55010a8a5f26594bc2b7525be80f5",
+            "character_count": 2036
+          }
+        },
+        {
+          "resource_id": "tei-div-0145",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "473",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c86d0d4d1633c1c9cf1d4c448a0c887faa3e2a0981f137d07f5ac6e5c1a20f88",
+            "character_count": 1828
+          }
+        },
+        {
+          "resource_id": "tei-div-0146",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "474",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a7e2520a4701f7db40850bf2e54c0c06d75ed62500eeeb7d8dcadcacb9258b84",
+            "character_count": 1956
+          }
+        },
+        {
+          "resource_id": "tei-div-0147",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "475",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2baf14633bc80b6e75a26d6524c2240033ebdac823c7c89b45b74df5d62d2048",
+            "character_count": 2087
+          }
+        },
+        {
+          "resource_id": "tei-div-0148",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[28]",
+            "tei_depth": 3,
+            "tei_n": "476",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1d7c65c7db2c80c6e4dd8381fe4aec4acb8e00871858b4899189a53d829d065a",
+            "character_count": 2046
+          }
+        },
+        {
+          "resource_id": "tei-div-0149",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[29]",
+            "tei_depth": 3,
+            "tei_n": "477",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a36bf030313f549c8786789711ee33c8cc93cbe2d811b968fd346841c4beb5a0",
+            "character_count": 1934
+          }
+        },
+        {
+          "resource_id": "tei-div-0150",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[30]",
+            "tei_depth": 3,
+            "tei_n": "478",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "62d14930197d6205f8f016794cbe3c1dc0c5ac6bd6f261036cd69b3c746deedc",
+            "character_count": 1913
+          }
+        },
+        {
+          "resource_id": "tei-div-0151",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[31]",
+            "tei_depth": 3,
+            "tei_n": "479",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d9c5c09e51cbd8ab6d32676708da10eec97abc881e13f202d416ad0e4edeed16",
+            "character_count": 2040
+          }
+        },
+        {
+          "resource_id": "tei-div-0152",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[5]/div[32]",
+            "tei_depth": 3,
+            "tei_n": "480",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0120"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ef2d81c1095fe763a47b9db838edf753d37231c01aa442ad13a8960b29f6a22f",
+            "character_count": 551
+          }
+        },
+        {
+          "resource_id": "tei-div-0153",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]",
+            "tei_depth": 2,
+            "tei_n": "6",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4a49b1ad5ed9cc34610d67666446ce9d7bf1ce39d25414531f49afd3b8d1b5a5",
+            "character_count": 52820
+          }
+        },
+        {
+          "resource_id": "tei-div-0154",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "484",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ab870e45c0e3536f8c81a74dd32204a29b30d54718c828a887cec16dd0a0e569",
+            "character_count": 1603
+          }
+        },
+        {
+          "resource_id": "tei-div-0155",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "485",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "980c25a2df4477989e57c23a6d1a1707bb35945dd9a49e7db1d6b28ef32f0845",
+            "character_count": 1870
+          }
+        },
+        {
+          "resource_id": "tei-div-0156",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "486",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d208fd5ed502294623405e3feba5067473a158a430bf83d2252f2d6742faa6ce",
+            "character_count": 1818
+          }
+        },
+        {
+          "resource_id": "tei-div-0157",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "487",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "26044511e96b3762d4eda5ae290e7b7fa48c9e5624899a84b2002fe6bf0fb7af",
+            "character_count": 1944
+          }
+        },
+        {
+          "resource_id": "tei-div-0158",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "488",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "84a287102939ff77548f5762c6fdb5d1a41e5a9b7471e1838f576436ed762ce1",
+            "character_count": 1869
+          }
+        },
+        {
+          "resource_id": "tei-div-0159",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "489",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "73108f9f857302ac210f3a23a0dad931c10ec994cd70316e04a74daaf1f09a25",
+            "character_count": 1938
+          }
+        },
+        {
+          "resource_id": "tei-div-0160",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "490",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d83bb0515b4e5363b42f6e38599a407c373163193cda5ec6a05375ed0fbeda44",
+            "character_count": 1672
+          }
+        },
+        {
+          "resource_id": "tei-div-0161",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "491",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "64e848e423f030a30b5297c2cec5151743982d93a7d47d3138c738448a131ea3",
+            "character_count": 2073
+          }
+        },
+        {
+          "resource_id": "tei-div-0162",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "492",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "532724f3add9bb8dd1df7dcdbcc8c85e181b82d15481cfc558917fefecca5f49",
+            "character_count": 1744
+          }
+        },
+        {
+          "resource_id": "tei-div-0163",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "493",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "477f9a89d70ff978e6b0e68fef4046de4cb9c3cfcb9d94dcf8ac9ee041283701",
+            "character_count": 2083
+          }
+        },
+        {
+          "resource_id": "tei-div-0164",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "494",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4ad9a3a1b91cad2ed90612b13989b5bb5e8805ed1b7b2cd82a9f4e52369621b8",
+            "character_count": 2061
+          }
+        },
+        {
+          "resource_id": "tei-div-0165",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "495",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "804f43769f24e992a35b554b0e1a0c523eb8bd8f66056c6ceba8ec27f681f54b",
+            "character_count": 2064
+          }
+        },
+        {
+          "resource_id": "tei-div-0166",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "496",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b176651ca93774e9b22485d82ec7e858c277e62b97e26c006c5a9d7502c32e0e",
+            "character_count": 1849
+          }
+        },
+        {
+          "resource_id": "tei-div-0167",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "497",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "03dce9335aa2b4bdd3b9c0a529ea99306ae4f987b1cc1b802a6ff813bd699903",
+            "character_count": 1943
+          }
+        },
+        {
+          "resource_id": "tei-div-0168",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "498",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "a9622a18901717e6e2954a2b8376c87f13f4d4226436b10e6fbc2d1f6af29078",
+            "character_count": 1799
+          }
+        },
+        {
+          "resource_id": "tei-div-0169",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "499",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "34c360ef0ff0d87523e4bc960805025f06fdb619a03e0ea1adf2934ecb79f4dd",
+            "character_count": 2052
+          }
+        },
+        {
+          "resource_id": "tei-div-0170",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "500",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "94abc2e44e2f8ba50dab2cdbad5e3a4f8619db3ceba9f4c852e017fe250cc743",
+            "character_count": 1772
+          }
+        },
+        {
+          "resource_id": "tei-div-0171",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "501",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "72141352ad934ad4283052ba891e2bf805222bb52d60754d19b27141307b4ec7",
+            "character_count": 1832
+          }
+        },
+        {
+          "resource_id": "tei-div-0172",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "502",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7beda0d3d9d05fceb4d6a5508f4348bf57f7166d1588c72eb1712ce02bd593c5",
+            "character_count": 1792
+          }
+        },
+        {
+          "resource_id": "tei-div-0173",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "503",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "964cd8fa659ac486517e6f253541178fc9c0d64d92415b60dd4f4c3671461119",
+            "character_count": 1995
+          }
+        },
+        {
+          "resource_id": "tei-div-0174",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "504",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5415b71342e54f7bde36988aa7f536812e9682ada693c6add1babf3dc0a32434",
+            "character_count": 1841
+          }
+        },
+        {
+          "resource_id": "tei-div-0175",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "505",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "89384a49922c96d4b6f952fd339a2424a65dd0d13f1b4f320fe2ecf4c200d320",
+            "character_count": 2089
+          }
+        },
+        {
+          "resource_id": "tei-div-0176",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "506",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6c1486bf7e26fe705a03c7eb68d4a2bc8c1d93e0d88dbc40e2441be6b3f647d3",
+            "character_count": 1798
+          }
+        },
+        {
+          "resource_id": "tei-div-0177",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "507",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ef96ac28d743c67fc711d0a474033cab743dbab8180721d13f865e47604ab2d4",
+            "character_count": 1838
+          }
+        },
+        {
+          "resource_id": "tei-div-0178",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "508",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "543aecb1731c2189c901c419cff6ce60483e8fa242bdce672340d5f0cbbc9ea2",
+            "character_count": 2001
+          }
+        },
+        {
+          "resource_id": "tei-div-0179",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "509",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fc4e54cce137715f0158a9f94f4cc76fc5615aca7b9a7885598c857d94998738",
+            "character_count": 1785
+          }
+        },
+        {
+          "resource_id": "tei-div-0180",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "510",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dc0532336a2774174fe708b93f98e6c80bb61a3c0ed7af8691a929970e1179ab",
+            "character_count": 1852
+          }
+        },
+        {
+          "resource_id": "tei-div-0181",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[6]/div[28]",
+            "tei_depth": 3,
+            "tei_n": "511",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0153"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c76286d26ede78a2eb38ecf959ca2924ec2815eebc96cd2ef3887e0783f99dc3",
+            "character_count": 1816
+          }
+        },
+        {
+          "resource_id": "tei-div-0182",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]",
+            "tei_depth": 2,
+            "tei_n": "7",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2bb1391cf8fb5d495af695392fd7c5d6a0f082abc114cb746d3c82e3e450aad9",
+            "character_count": 51207
+          }
+        },
+        {
+          "resource_id": "tei-div-0183",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "514",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e90a1cc9d7cba8678d99721a4fd0b8a427a11dc7a1b81ecd0df2c71cca24e932",
+            "character_count": 899
+          }
+        },
+        {
+          "resource_id": "tei-div-0184",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "515",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "55c2a8bae80611798ce002942abdd12006649dc651e392158d03b939e8514119",
+            "character_count": 1676
+          }
+        },
+        {
+          "resource_id": "tei-div-0185",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "516",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "90439cda392b9d162f925d4a18154cf9e2a2cb064b5d18cfba202f3a57c04c19",
+            "character_count": 2095
+          }
+        },
+        {
+          "resource_id": "tei-div-0186",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "517",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d867192b7c327c453159aab2f2ac9cf61ddb3b0994422076e8c3475da5311920",
+            "character_count": 1995
+          }
+        },
+        {
+          "resource_id": "tei-div-0187",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "518",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7a7f733be62481c55f97279ef270dfa192340108d5f7c3bb231ee4b503343576",
+            "character_count": 1945
+          }
+        },
+        {
+          "resource_id": "tei-div-0188",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "519",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "13a4036da7c5290d4f5289d1ef907600e43e15b906eb3eca6568870e4c71a27b",
+            "character_count": 2082
+          }
+        },
+        {
+          "resource_id": "tei-div-0189",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "520",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "da7d2c70cae5b735c5ce9b1eb969f9b4b5982032b100b1a113478cf6ed34010f",
+            "character_count": 1629
+          }
+        },
+        {
+          "resource_id": "tei-div-0190",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "521",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4e287018b174fd0990cf8b7884ebb4b2bef0d6c3e26fe8d13776fc6c1835ccec",
+            "character_count": 1953
+          }
+        },
+        {
+          "resource_id": "tei-div-0191",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "522",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "52e7c338c8023b780d7b9c21687a050389a12019148542490b542784eb9ac175",
+            "character_count": 1919
+          }
+        },
+        {
+          "resource_id": "tei-div-0192",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "523",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c3339d63811becf83ff0801450b839dc822671c3bcc2f92a521bea5e3137f42d",
+            "character_count": 1911
+          }
+        },
+        {
+          "resource_id": "tei-div-0193",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "524",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ffd638a8ad0f4f47176a8d22d4ac367450db2451d2dd90da75d41fe58edbea48",
+            "character_count": 1809
+          }
+        },
+        {
+          "resource_id": "tei-div-0194",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "525",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d1e3bb05aa958c897e7f13bf179129d2cc685c1dee1bb05606845097f03b905d",
+            "character_count": 2058
+          }
+        },
+        {
+          "resource_id": "tei-div-0195",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "526",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b11d5baa6b715dcafed89e390dcaaa3a8c7220ccfc0635bb7171ed3d0c257f4e",
+            "character_count": 2027
+          }
+        },
+        {
+          "resource_id": "tei-div-0196",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "527",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1c049867f059be3720cbba14a2a69b27422b8a4d6918c6802f379854edf276ff",
+            "character_count": 1971
+          }
+        },
+        {
+          "resource_id": "tei-div-0197",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "528",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4be83db92a1005618d09877c8cbdceb5a1f0b178c6aa37ecf77dcd7d16e8946b",
+            "character_count": 1848
+          }
+        },
+        {
+          "resource_id": "tei-div-0198",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "529",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "44b3a5289a17cd68932718794504e008506e2c4ee1d4622dbbe326fb5b41d88e",
+            "character_count": 1799
+          }
+        },
+        {
+          "resource_id": "tei-div-0199",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "530",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "903d6efe3ed3b126931fb00cbccb166b8bdde3096d677ff30300b81b0bd8ceb2",
+            "character_count": 2059
+          }
+        },
+        {
+          "resource_id": "tei-div-0200",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "531",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "067e98dd3984587e61b128de3cca1686fde205757b2228b2c794b8d02bdc2aa1",
+            "character_count": 1910
+          }
+        },
+        {
+          "resource_id": "tei-div-0201",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "532",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9b5805d2d1a2a89bfbda19dd6ca35eec74c82a4b74784363d8eb7a1c550d4c3e",
+            "character_count": 1752
+          }
+        },
+        {
+          "resource_id": "tei-div-0202",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "533",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2c73e6cba0c87fbdb0adca6878d7ce8cf03d48a1db32150c5c691d5e5cf9b313",
+            "character_count": 1832
+          }
+        },
+        {
+          "resource_id": "tei-div-0203",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "534",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9b40fcd69c3cedc50453928f0843db40018a1d240de9a6492950abdfe6465fb7",
+            "character_count": 1791
+          }
+        },
+        {
+          "resource_id": "tei-div-0204",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "535",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2b8f2869456dec8a9308b107e8be8c477e4f4d99a4f2ceee8d64286d47aac70c",
+            "character_count": 2050
+          }
+        },
+        {
+          "resource_id": "tei-div-0205",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "536",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ee8c6ad911626214634e724602efb399127c19932d13b9eb1b03fb914415361a",
+            "character_count": 1773
+          }
+        },
+        {
+          "resource_id": "tei-div-0206",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "537",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9d81ad214982438907056a8fdbd3cc939bf1582b3eeb4c9e8871e5e8ab7cceec",
+            "character_count": 1974
+          }
+        },
+        {
+          "resource_id": "tei-div-0207",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "538",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "1ea78d6b084f2b4d674c621cb38d273fc1320afc11bd73b7074c74a1cd30181f",
+            "character_count": 1970
+          }
+        },
+        {
+          "resource_id": "tei-div-0208",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "539",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "780aad5d7155ff2a5e4afd765065ecca8b0aec4770b56ba95db39313d91b0b7b",
+            "character_count": 1773
+          }
+        },
+        {
+          "resource_id": "tei-div-0209",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "540",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "04ab4b010afbf7b4e6f1e709dc8b29a69d2ce95e191217afe83c6ebcafe831b0",
+            "character_count": 1969
+          }
+        },
+        {
+          "resource_id": "tei-div-0210",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[7]/div[28]",
+            "tei_depth": 3,
+            "tei_n": "541",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0182"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e591488f5d8331cb640c64b958e4f22afdd51c505eb0cea95ddf71d7a6cb2ef3",
+            "character_count": 711
+          }
+        },
+        {
+          "resource_id": "tei-div-0211",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]",
+            "tei_depth": 2,
+            "tei_n": "8",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "41a6fda84f743b408ba4378f79467457b4eaeee172d0ec419f7000b6b3f35ae5",
+            "character_count": 50570
+          }
+        },
+        {
+          "resource_id": "tei-div-0212",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "543",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0dcfd5a939b3ed13200abe94803ff53847bd9083533dba38a316de6dbe92d16f",
+            "character_count": 1216
+          }
+        },
+        {
+          "resource_id": "tei-div-0213",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "544",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "550afe7311ce890a5b1e9989f9e63aaaffa9c3ffb0ccccac8d976b1cae840bdd",
+            "character_count": 1919
+          }
+        },
+        {
+          "resource_id": "tei-div-0214",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "545",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "20cb513a27825a4cf51a410442675640a7c9aff58c1224effae96929bb53dd69",
+            "character_count": 1748
+          }
+        },
+        {
+          "resource_id": "tei-div-0215",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "546",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e49e4ec856925ed2bbd1c23b4619e898794ea0e5d7e32d5fe16c7150e2315fc4",
+            "character_count": 1770
+          }
+        },
+        {
+          "resource_id": "tei-div-0216",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "547",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "17d1f754ebdb09b1f7f38156b18014a3e98561179648a15e7ca6a3f271be6f43",
+            "character_count": 1934
+          }
+        },
+        {
+          "resource_id": "tei-div-0217",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "548",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e51e4ebd184c8d1f85551f090dce957475bafbf83ef13e521a1650228903013f",
+            "character_count": 1518
+          }
+        },
+        {
+          "resource_id": "tei-div-0218",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "549",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ad3c938b2a3715dd09e052910cabce29eab22d542b9f4b46a2bba75fbd85e4ed",
+            "character_count": 1876
+          }
+        },
+        {
+          "resource_id": "tei-div-0219",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "550",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f8615b8b393de27ef3180ef0739e89b126f2b9b475fe8908380cc5bb1c0e0d72",
+            "character_count": 2315
+          }
+        },
+        {
+          "resource_id": "tei-div-0220",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "551",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e5ff59ae0fa1977975c1193c4fcc4cf48ef8114518cfa9bc072fd511f9eaaf0b",
+            "character_count": 1789
+          }
+        },
+        {
+          "resource_id": "tei-div-0221",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "552",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2dcc1d555574b935f7a3463c69977eecbf0fad09b800f0d882a75349d8d03fa9",
+            "character_count": 2054
+          }
+        },
+        {
+          "resource_id": "tei-div-0222",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "553",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "044c3850fb2c88b94f8b63b8b677d38a080ae3686fe26e97840ed8ae2fc6f393",
+            "character_count": 1793
+          }
+        },
+        {
+          "resource_id": "tei-div-0223",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "554",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0e5eca63827a04810c7d7a7d5be59d9f057ae98e2bcf9e7991b59e9959b0df4b",
+            "character_count": 1828
+          }
+        },
+        {
+          "resource_id": "tei-div-0224",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "555",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "13d57025111b117212ef0ae1ac06165bc95d1e427e83587af6a5a679492f92fc",
+            "character_count": 1726
+          }
+        },
+        {
+          "resource_id": "tei-div-0225",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "556",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d845515aecd81759be7bf31285c1723c274ef8cb691e95d129307ef57b625ca6",
+            "character_count": 2209
+          }
+        },
+        {
+          "resource_id": "tei-div-0226",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "557",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "278c23b0b296bd58f9abcd3b48a5aae6ad0ce26e369faf439afdc747bd40f669",
+            "character_count": 1597
+          }
+        },
+        {
+          "resource_id": "tei-div-0227",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "558",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "22d462d095e1905b5bcf3009d2fceb1fb59967e8f5be5c0d26752a7ad0d68583",
+            "character_count": 2036
+          }
+        },
+        {
+          "resource_id": "tei-div-0228",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "559",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "cddbb719b3e5271913c4ddc6ae4cef2c77effadd1f568e7c5293a6815e68c9a1",
+            "character_count": 1917
+          }
+        },
+        {
+          "resource_id": "tei-div-0229",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "560",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "ad8ab53f2fca891e3c6b019c9bfe081ba2563ac34f7455d099fb876616db6250",
+            "character_count": 2047
+          }
+        },
+        {
+          "resource_id": "tei-div-0230",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "561",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e0a4c84e5a2f012bd81371971e9b26da833bba34ba0a0b58ef478215b5b4d92d",
+            "character_count": 1966
+          }
+        },
+        {
+          "resource_id": "tei-div-0231",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "562",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c1f4592af1fe1b7ba001d2fa080895a7ae5bd5e44a82aa9ad877236a52e72804",
+            "character_count": 1852
+          }
+        },
+        {
+          "resource_id": "tei-div-0232",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "563",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d98c3f0f8b6a71ad874e006fcf6b7ae21551ad1a2e5e9b8bfeb66fa3af494adc",
+            "character_count": 2016
+          }
+        },
+        {
+          "resource_id": "tei-div-0233",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "564",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e6ef871d9ac186b21b518d837309ff19a32e6c5f3f8c81ef46b648fc73ad5fc6",
+            "character_count": 2403
+          }
+        },
+        {
+          "resource_id": "tei-div-0234",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "565",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "820669b04847b8775139cea6b7b8dc9cca1046bf15d56985ac4f68c60f43b95b",
+            "character_count": 1629
+          }
+        },
+        {
+          "resource_id": "tei-div-0235",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "566",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d5c2f9d475c5e1ff8250892b9049f5540f10bb73066e9523fd45376b2b0c17d6",
+            "character_count": 2256
+          }
+        },
+        {
+          "resource_id": "tei-div-0236",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "567",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bfc695ad94fa403aace0e6f806f7df1fc89109a3ccbe66c8eea97642197f1a10",
+            "character_count": 1853
+          }
+        },
+        {
+          "resource_id": "tei-div-0237",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "568",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e428f241e36faaed93af105b33ef4fedf823ac8ff2f776b0e54494603fa9c0a1",
+            "character_count": 1929
+          }
+        },
+        {
+          "resource_id": "tei-div-0238",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[8]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "569",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0211"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e379738fd8e50bdb48db3b01578c8e9576ad8acf0dee59a4133c66f1e91830af",
+            "character_count": 1348
+          }
+        },
+        {
+          "resource_id": "tei-div-0239",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]",
+            "tei_depth": 2,
+            "tei_n": "9",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "02894adc0aa045adc251e04906ae3458063bd4f40c497ff1c193aeb4aa6995d9",
+            "character_count": 41079
+          }
+        },
+        {
+          "resource_id": "tei-div-0240",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "571",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "fb6a830f269697326aaea25cb84e637af8a827d512ae01dd911695fa396c7dd0",
+            "character_count": 1857
+          }
+        },
+        {
+          "resource_id": "tei-div-0241",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "572",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0d53d647e33d477434d964dfcc90d7f9e4c9cfb9e04321ea5def4b0cb2f1a02f",
+            "character_count": 1716
+          }
+        },
+        {
+          "resource_id": "tei-div-0242",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "573",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "df5de4abfd2fefdf2b9d84557595249bdebb4318168f4ccda072e531ed771075",
+            "character_count": 1880
+          }
+        },
+        {
+          "resource_id": "tei-div-0243",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "574",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2630848e649e3990bd2bbd52725a8740575ef3c3a792cc395195bd798790a173",
+            "character_count": 2046
+          }
+        },
+        {
+          "resource_id": "tei-div-0244",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "575",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "16d032e5d3b727befb1a53269ab31255a69fdc478efe9edc4da94141827b14c6",
+            "character_count": 1866
+          }
+        },
+        {
+          "resource_id": "tei-div-0245",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "576",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c42a7df84845b40be2cc37b01e93a689ee8263b369a20a3f8f30cfdf00169521",
+            "character_count": 2007
+          }
+        },
+        {
+          "resource_id": "tei-div-0246",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "577",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "8086d9ed93e28f5fcfc1bc9c1427ca753c1a89b053d4408e8ba85a4684131c80",
+            "character_count": 2009
+          }
+        },
+        {
+          "resource_id": "tei-div-0247",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "578",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "37071872632235744ae25cb20623996735a3fc56e2360c988311e8bded9fa954",
+            "character_count": 2074
+          }
+        },
+        {
+          "resource_id": "tei-div-0248",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "579",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0e97af8304e0e80716cec02018cadcd5aa64caa5ed2dad2a2b6cfb8a8454c6a2",
+            "character_count": 1941
+          }
+        },
+        {
+          "resource_id": "tei-div-0249",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "580",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "23d03f8223362f73085f26bc2cf5c79b000ba637cc7de05eca22df5c6d9fbcf3",
+            "character_count": 1805
+          }
+        },
+        {
+          "resource_id": "tei-div-0250",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "581",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "71abb0a6b7deaefdcabf651ee7366baee50511711cba13ff5fad6a9cdf6df2c7",
+            "character_count": 2004
+          }
+        },
+        {
+          "resource_id": "tei-div-0251",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "582",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "bdf9a06d2e213fbf33747db78d434d8e98bd5001a6b7ae778832c2377c471c8c",
+            "character_count": 2115
+          }
+        },
+        {
+          "resource_id": "tei-div-0252",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "583",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "21cd5131a71b59d6151e6229e99e96fbd14ff0db3f5964652f84eea167019b8b",
+            "character_count": 2025
+          }
+        },
+        {
+          "resource_id": "tei-div-0253",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "584",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "d9544965939add67eade084aec2a1b464a5b0ff079b4e012165aa3a696f58dad",
+            "character_count": 1795
+          }
+        },
+        {
+          "resource_id": "tei-div-0254",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "585",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "db09a6687e8d5884462e8921986ed9df7cef70e3ca4cda47ceca6a27cda26a83",
+            "character_count": 2078
+          }
+        },
+        {
+          "resource_id": "tei-div-0255",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "586",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "170058465913f046ff3fb183d37ff1a96f5792fa0a2f249bd359631119677cf1",
+            "character_count": 1807
+          }
+        },
+        {
+          "resource_id": "tei-div-0256",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "587",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "6f1ed6f020976c4c72581a22240f656335f6a333c7c584fc0fbf997c42d8f186",
+            "character_count": 2060
+          }
+        },
+        {
+          "resource_id": "tei-div-0257",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "588",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "de5bfa502dcd7b4a72192878445c70ed9f621af5a191e77b7fe3ae029a2f0e47",
+            "character_count": 1783
+          }
+        },
+        {
+          "resource_id": "tei-div-0258",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "589",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "32b12ec145b50807401ca6e7cabfde1c4e6bccfc8ec3445abdd274f4d1ba07b2",
+            "character_count": 2051
+          }
+        },
+        {
+          "resource_id": "tei-div-0259",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "590",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f4d2c290ea7b22123401879548c6161121c72e363678544b7adf90f104908e6a",
+            "character_count": 1510
+          }
+        },
+        {
+          "resource_id": "tei-div-0260",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "591",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "02886b8afa11fbf785cfb29bcd9634a6d4eab3ccc273b5de20e206bc587db256",
+            "character_count": 1929
+          }
+        },
+        {
+          "resource_id": "tei-div-0261",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[9]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "592",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0239"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e75d57c9ab2e57c41564b4d56d098c1deaee662947c6371c69a1def07040ab7b",
+            "character_count": 700
+          }
+        },
+        {
+          "resource_id": "tei-div-0262",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]",
+            "tei_depth": 2,
+            "tei_n": "10",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0001"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "464794bc1e84915f4d32ed642cd60cde8910165bb8652eb201cd6563bfd58132",
+            "character_count": 52177
+          }
+        },
+        {
+          "resource_id": "tei-div-0263",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[1]",
+            "tei_depth": 3,
+            "tei_n": "595",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "f816af006061c29400c5ac588953dabb2b96936223b2e051f67a3e95bdb7ff3a",
+            "character_count": 1070
+          }
+        },
+        {
+          "resource_id": "tei-div-0264",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[2]",
+            "tei_depth": 3,
+            "tei_n": "596",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "25f1ee456f6f36b2b0176e9969e1c4afacd36b8408ca20cb8475f8f65507ac0f",
+            "character_count": 2189
+          }
+        },
+        {
+          "resource_id": "tei-div-0265",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[3]",
+            "tei_depth": 3,
+            "tei_n": "597",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "98a3030fd725e9ed1207a1dac738040be77e11d3d356187efb272bd0f11901fb",
+            "character_count": 2080
+          }
+        },
+        {
+          "resource_id": "tei-div-0266",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[4]",
+            "tei_depth": 3,
+            "tei_n": "598",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "9f68d93469cdd8b7c27a381b4ce62638a146ce8176f7d22a79b65af2dd8ece1d",
+            "character_count": 1911
+          }
+        },
+        {
+          "resource_id": "tei-div-0267",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[5]",
+            "tei_depth": 3,
+            "tei_n": "599",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b7540edf5c46c6e795af4c6dc2f436a897b4c0686976de8ae2b24c72d1070411",
+            "character_count": 2007
+          }
+        },
+        {
+          "resource_id": "tei-div-0268",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[6]",
+            "tei_depth": 3,
+            "tei_n": "600",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c4271981a77e0b499faf8315099e9f8020cfea869b8d7c63e4d4bb0e6b1be176",
+            "character_count": 1845
+          }
+        },
+        {
+          "resource_id": "tei-div-0269",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[7]",
+            "tei_depth": 3,
+            "tei_n": "601",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "004ca94395b64df0d7c85c24434117a15fb42b2c6424625aff1d44fcc76f9d70",
+            "character_count": 2157
+          }
+        },
+        {
+          "resource_id": "tei-div-0270",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[8]",
+            "tei_depth": 3,
+            "tei_n": "602",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "0d0e749600119e62e107102cf5b63b61b385fcef328517b265b0e065c3000ada",
+            "character_count": 2186
+          }
+        },
+        {
+          "resource_id": "tei-div-0271",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[9]",
+            "tei_depth": 3,
+            "tei_n": "603",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "4a7e44ac21629ebf9c31183d7e2209c0d608095d9f6582ebbb43f3506474177a",
+            "character_count": 1914
+          }
+        },
+        {
+          "resource_id": "tei-div-0272",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[10]",
+            "tei_depth": 3,
+            "tei_n": "604",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "49192675f846a7b9085fb9930b3109d8891ef66a59d2dce4c82525b8561a8535",
+            "character_count": 2030
+          }
+        },
+        {
+          "resource_id": "tei-div-0273",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[11]",
+            "tei_depth": 3,
+            "tei_n": "605",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5d19a0892ca6bb0f91b986a0b90650a6b0ff78bfaa2aa5c792295e6bf7352235",
+            "character_count": 1993
+          }
+        },
+        {
+          "resource_id": "tei-div-0274",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[12]",
+            "tei_depth": 3,
+            "tei_n": "606",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "235a23577e593118e592e0fdc5120e73ec87c7c58d45794b65d6d02eebeb6740",
+            "character_count": 2146
+          }
+        },
+        {
+          "resource_id": "tei-div-0275",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[13]",
+            "tei_depth": 3,
+            "tei_n": "607",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "c9117525722b244afb3625341456d92ec28618b4ba00e8e424fb0217645658b5",
+            "character_count": 1463
+          }
+        },
+        {
+          "resource_id": "tei-div-0276",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[14]",
+            "tei_depth": 3,
+            "tei_n": "608",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5989399c035430365032eb74caed823ba0632567da5b2e1ebb5c26d5cc73b87a",
+            "character_count": 1980
+          }
+        },
+        {
+          "resource_id": "tei-div-0277",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[15]",
+            "tei_depth": 3,
+            "tei_n": "609",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "43e1d9c68a13c60066f034d845e06d443029f5f4dd0432de0ac8e94defc8945a",
+            "character_count": 1851
+          }
+        },
+        {
+          "resource_id": "tei-div-0278",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[16]",
+            "tei_depth": 3,
+            "tei_n": "610",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "5dcd63c73f9bc6c325e4d72cc68d809381e87d006923fd05939089f3ad4e8bca",
+            "character_count": 2182
+          }
+        },
+        {
+          "resource_id": "tei-div-0279",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[17]",
+            "tei_depth": 3,
+            "tei_n": "611",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "dac5641ca7c87d38f0aeee8a3dca1c3be0870c32f3bf661e84fe86655e439cd7",
+            "character_count": 2106
+          }
+        },
+        {
+          "resource_id": "tei-div-0280",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[18]",
+            "tei_depth": 3,
+            "tei_n": "612",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "7c20bf7d813e120b5be852b9ac3cbe35506cd994ec1a2c6c472d62f80d6e89ea",
+            "character_count": 1759
+          }
+        },
+        {
+          "resource_id": "tei-div-0281",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[19]",
+            "tei_depth": 3,
+            "tei_n": "613",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "689d3c6972b83f45b0f9a9eaeda812ac8d3d30f0fa51814fa3f19d5191b0614d",
+            "character_count": 1979
+          }
+        },
+        {
+          "resource_id": "tei-div-0282",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[20]",
+            "tei_depth": 3,
+            "tei_n": "614",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "df7df6c5e8c06eb5ab6a9f93772f8352595636bd0404664f631bbacf04436189",
+            "character_count": 1974
+          }
+        },
+        {
+          "resource_id": "tei-div-0283",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[21]",
+            "tei_depth": 3,
+            "tei_n": "615",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "b40221e02ac2bc453445e1d19d31b28d5f15327d24212e33c36403267c62156f",
+            "character_count": 1866
+          }
+        },
+        {
+          "resource_id": "tei-div-0284",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[22]",
+            "tei_depth": 3,
+            "tei_n": "616",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "439f6580dc1fad13846d9cdcdb644508bf70f3a09fa3a22f286e987dae83d2fa",
+            "character_count": 2185
+          }
+        },
+        {
+          "resource_id": "tei-div-0285",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[23]",
+            "tei_depth": 3,
+            "tei_n": "617",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "791a10557d0e6c3699a2b3b23a7a836e7fa356426583bfccc44e1461f33b297a",
+            "character_count": 2123
+          }
+        },
+        {
+          "resource_id": "tei-div-0286",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[24]",
+            "tei_depth": 3,
+            "tei_n": "618",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "79303d6751713a1b8feb7a4610e5bf5f528be58daba129fdfd7171a6f5a809f5",
+            "character_count": 1866
+          }
+        },
+        {
+          "resource_id": "tei-div-0287",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[25]",
+            "tei_depth": 3,
+            "tei_n": "619",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "2068b4c6f388e9215234fa01b0e4929f0dd587897e3eaacea602a9e8e678fd62",
+            "character_count": 1916
+          }
+        },
+        {
+          "resource_id": "tei-div-0288",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[26]",
+            "tei_depth": 3,
+            "tei_n": "620",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "e11ed8f018076b4d74037fc8a4679038d3ff2e1b0a8acffab5234bfd4d8b5abd",
+            "character_count": 1971
+          }
+        },
+        {
+          "resource_id": "tei-div-0289",
+          "resource_kind": "tei_division",
+          "locator": {
+            "tei_path": "TEI/text[1]/body[1]/div[1]/div[10]/div[27]",
+            "tei_depth": 3,
+            "tei_n": "621",
+            "tei_type": "textpart",
+            "parent_resource_id": "tei-div-0262"
+          },
+          "structural_role": "division",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-nfc-whitespace-collapse",
+            "sha256": "aa416a40b61ffe57d0ace45daabaf084c181147706caafbd5f4cb3b19b737043",
+            "character_count": 1402
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.plato.republic.grc-perseus-tlg0059-tlg030.perseus-341e309c821d.git-tei-xml.2026-09-08",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-item-manifest.schema.json",
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.plato.minos.grc-perseus-tlg0059-tlg033.perseus-341e309c821d.git-tei-xml",
+  "item_kind": "born_digital",
+  "embodiment_ref": "tos.edition.plato.minos.grc-perseus-tlg0059-tlg033.perseus-341e309c821d",
+  "storage_posture": "local_gitignored_payload",
+  "acquisition_event_ref": "tos.event.acquisition.registry-20260908.minos",
+  "rights_ref": "ToS/source-witnesses/works/plato/minos/expressions/grc-perseus-tlg0059-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/minos/expressions/grc-perseus-tlg0059-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/minos/expressions/grc-perseus-tlg0059-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/minos/expressions/grc-perseus-tlg0059-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/resource-inventory.json",
+  "source_record_refs": [
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/manifest.json",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0059.tlg033-cts.xml",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0059.tlg033.perseus-grc2-header.xml",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/tlg0059-cts.xml",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-third-planting-2026-09-08/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-greekLit/tree/341e309c821d5eca8c976bebca77c28b10bad58f",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "visibility": "local_only",
+  "manifest_version": 1,
+  "supersedes_manifest_ref": null,
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.8f1bc7897ded15b5a6f204e28376c7f754bb1a1cdf692252e56025b7ffba9380",
+      "relative_path": "payload/tlg0059.tlg033.perseus-grc2.xml",
+      "original_basename": "tlg0059.tlg033.perseus-grc2.xml",
+      "media_type": "application/tei+xml",
+      "byte_size": 52114,
+      "sha256": "8f1bc7897ded15b5a6f204e28376c7f754bb1a1cdf692252e56025b7ffba9380",
+      "fixity_verified_at": "2026-09-08T23:49:38.085054+00:00"
+    }
+  ]
+}

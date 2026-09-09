@@ -1,0 +1,1743 @@
+{
+  "schema_version": "tos_registry_first_planting_result_v1",
+  "completed_at": "2026-09-08T23:52:27.087367+00:00",
+  "preparation_commit": "e3803fee781c43e8044dc8b355ad8f5634ad4226",
+  "normalization_snapshot": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "planted": [
+    {
+      "target_slug": "vitae-philosophorum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.diogenes-laertius.vitae-philosophorum.grc-perseus-tlg0004-tlg001.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/diogenes-laertius/vitae-philosophorum/expressions/grc-perseus-tlg0004-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 1660224,
+      "textual_acceptance": false,
+      "title": "Vitae philosophorum",
+      "atlas_row": "A26",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/sources/plantings/registry-vitae-philosophorum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/hellenistic-age/regions/mediterranean/traditions/hellenistic-schools-library-ecology/sources/plantings/registry-vitae-philosophorum/README.md",
+      "observed_coverage": {
+        "basename": "tlg0004.tlg001.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0004.tlg001.perseus-grc2",
+        "division_count": 1304,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"10\"],[\"chapter\",\"1\"],[\"section\",\"154\"]]",
+        "division_addresses_sha256": "80a32d07692669674d7809febd3a00e39efc9a9f54d1090ab7f5d83e1e52ce8c",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 568551
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The entire ten-book supplied edition provides the selected Books 6–10 branch context; individual quotations, letters and school reports are not separately identified or admitted by this intake.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-fortuna",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-fortuna.grc-perseus-tlg0007-tlg074.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 27990,
+      "textual_acceptance": false,
+      "title": "De fortuna",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-fortuna/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg074.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg074.perseus-grc2",
+        "division_count": 6,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"6\"]]",
+        "division_addresses_sha256": "853703a775b7e4204d811bc69197333b6b639c187fc40bc533c8286c96cfe059",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 6918
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-iside-et-osiride",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-iside-et-osiride.grc-perseus-tlg0007-tlg089.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 349343,
+      "textual_acceptance": false,
+      "title": "De Iside et Osiride",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-iside-et-osiride/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg089.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg089.perseus-grc2",
+        "division_count": 80,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"80\"]]",
+        "division_addresses_sha256": "1e699bbb54e44b12a86553d93c31b7507368b5a0fe09c783af7f646260688ab6",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 92421
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-e-apud-delphos",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-e-apud-delphos.grc-perseus-tlg0007-tlg090.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 101970,
+      "textual_acceptance": false,
+      "title": "De E apud Delphos",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-e-apud-delphos/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg090.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg090.perseus-grc2",
+        "division_count": 21,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"21\"]]",
+        "division_addresses_sha256": "ce293a1d2a208413faccfc2f5ae74bf3b10201babc63f0710773393a11786c82",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 26656
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-defectu-oraculorum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-defectu-oraculorum.grc-perseus-tlg0007-tlg092.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 283918,
+      "textual_acceptance": false,
+      "title": "De Defectu Oraculorum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-defectu-oraculorum/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg092.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg092.perseus-grc2",
+        "division_count": 52,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"52\"]]",
+        "division_addresses_sha256": "3706e5a67da7fe0ac84db3f8a017fcb9f3b7c1902c450bbe69d1851c20417981",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 77352
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-virtute-morali",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-virtute-morali.grc-perseus-tlg0007-tlg094.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 108319,
+      "textual_acceptance": false,
+      "title": "De Virtute Morali",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-virtute-morali/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg094.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg094.perseus-grc2",
+        "division_count": 12,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"12\"]]",
+        "division_addresses_sha256": "962235985ff2b35e8214a5b1eaefa43477d1ba63bf658bcb4cd2bcf651a340d7",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 31350
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-curiositate",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-curiositate.grc-perseus-tlg0007-tlg102.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 73092,
+      "textual_acceptance": false,
+      "title": "De curiositate",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-curiositate/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg102.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg102.perseus-grc2",
+        "division_count": 16,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"16\"]]",
+        "division_addresses_sha256": "545fafb95e677d7bcc47f62688709f64332dca6b9257505a32b9aac5bb082f69",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 21265
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-sera-numinis-vindicta",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-sera-numinis-vindicta.grc-perseus-tlg0007-tlg107.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-sera-numinis-vindicta/expressions/grc-perseus-tlg0007-tlg107/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 179253,
+      "textual_acceptance": false,
+      "title": "De Sera Numinis Vindicta",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-sera-numinis-vindicta/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-sera-numinis-vindicta/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg107.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg107.perseus-grc2",
+        "division_count": 33,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"33\"]]",
+        "division_addresses_sha256": "f79c3cc12027f88c8fceb4800b57e3f5156df779662e26c74fb9d1f022b24890",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 52544
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-facie-quae-in-orbe-lunae-apparet",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-facie-quae-in-orbe-lunae-apparet.grc-perseus-tlg0007-tlg126.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 187784,
+      "textual_acceptance": false,
+      "title": "De Facie Quae in orbe Lunae Apparet",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-facie-quae-in-orbe-lunae-apparet/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg126.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg126.perseus-grc2",
+        "division_count": 30,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"30\"]]",
+        "division_addresses_sha256": "b950846dc988ddd8eab15ea764fa53ffd993533c03f5fe107c4060acd5520907",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 64624
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "platonicae-quaestiones",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.platonicae-quaestiones.grc-perseus-tlg0007-tlg133.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/platonicae-quaestiones/expressions/grc-perseus-tlg0007-tlg133/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 97457,
+      "textual_acceptance": false,
+      "title": "Platonicae quaestiones",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-platonicae-quaestiones/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-platonicae-quaestiones/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg133.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg133.perseus-grc2",
+        "division_count": 47,
+        "first_division": "[[\"chapter\",\"1\"]]",
+        "last_division": "[[\"chapter\",\"10\"],[\"section\",\"8\"]]",
+        "division_addresses_sha256": "81771986cf11c838675e8b1823fa6a64632c18df5ffd057c5089d6981f76cf58",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 31691
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-animae-procreatione-in-timaeo",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-animae-procreatione-in-timaeo.grc-perseus-tlg0007-tlg134.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-animae-procreatione-in-timaeo/expressions/grc-perseus-tlg0007-tlg134/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 137653,
+      "textual_acceptance": false,
+      "title": "De animae procreatione in Timaeo",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-animae-procreatione-in-timaeo/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-animae-procreatione-in-timaeo/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg134.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg134.perseus-grc2",
+        "division_count": 33,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"33\"]]",
+        "division_addresses_sha256": "7f3f8f0af99352d33c13d704947a0e47cbf06ceac32c002c5ff5604361fff38d",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 46912
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "epitome-libri-de-animae-procreatione-in-timaeo",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.epitome-libri-de-animae-procreatione-in-timaeo.grc-perseus-tlg0007-tlg135.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/epitome-libri-de-animae-procreatione-in-timaeo/expressions/grc-perseus-tlg0007-tlg135/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 20391,
+      "textual_acceptance": false,
+      "title": "Epitome libri de animae procreatione in Timaeo",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-epitome-libri-de-animae-procreatione-in-timaeo/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-epitome-libri-de-animae-procreatione-in-timaeo/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg135.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg135.perseus-grc2",
+        "division_count": 6,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"6\"]]",
+        "division_addresses_sha256": "853703a775b7e4204d811bc69197333b6b639c187fc40bc533c8286c96cfe059",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 5902
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-stoicorum-repugnantiis",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-stoicorum-repugnantiis.grc-perseus-tlg0007-tlg136.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/grc-perseus-tlg0007-tlg136/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 182545,
+      "textual_acceptance": false,
+      "title": "De Stoicorum repugnantiis",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-stoicorum-repugnantiis/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-stoicorum-repugnantiis/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg136.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg136.perseus-grc2",
+        "division_count": 47,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"47\"]]",
+        "division_addresses_sha256": "98a1e836549a816f6757233c6f851663f0b7fe05cf3628d8e94f9da760d5de14",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 62522
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-communibus-notitiis-adversus-stoicos",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.de-communibus-notitiis-adversus-stoicos.grc-perseus-tlg0007-tlg138.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/de-communibus-notitiis-adversus-stoicos/expressions/grc-perseus-tlg0007-tlg138/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 212230,
+      "textual_acceptance": false,
+      "title": "De communibus notitiis adversus Stoicos",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-communibus-notitiis-adversus-stoicos/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-communibus-notitiis-adversus-stoicos/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg138.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg138.perseus-grc2",
+        "division_count": 50,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"50\"]]",
+        "division_addresses_sha256": "4341f44797f54f4557e776b510b6c64fad5b9cbb558b717c25647257034c3714",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 70651
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "non-posse-suaviter-vivi-secundum-epicurum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.non-posse-suaviter-vivi-secundum-epicurum.grc-perseus-tlg0007-tlg139.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/grc-perseus-tlg0007-tlg139/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 150442,
+      "textual_acceptance": false,
+      "title": "Non Posse Suaviter Vivi Secundum Epicurum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-non-posse-suaviter-vivi-secundum-epicurum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-non-posse-suaviter-vivi-secundum-epicurum/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg139.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg139.perseus-grc2",
+        "division_count": 31,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"31\"]]",
+        "division_addresses_sha256": "3606654b2c936a447af3b0b8d36f3e578737f8623012f255e1a0676de5a80044",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 51272
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "adversus-coloten",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plutarch.adversus-coloten.grc-perseus-tlg0007-tlg140.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plutarch/adversus-coloten/expressions/grc-perseus-tlg0007-tlg140/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 150779,
+      "textual_acceptance": false,
+      "title": "Adversus Coloten",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-adversus-coloten/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-adversus-coloten/README.md",
+      "observed_coverage": {
+        "basename": "tlg0007.tlg140.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0007.tlg140.perseus-grc2",
+        "division_count": 34,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"34\"]]",
+        "division_addresses_sha256": "8eef4a2ebf2bcc4eee3a5966afba8bb270e61d94b047b8bca9327e8d4013332d",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 51679
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "The epitome remains distinct from its longer source work. Reports of other schools are transmitting/polemical testimony, not accepted statements of those schools.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "alcibiades-1",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.alcibiades-1.grc-perseus-tlg0059-tlg013.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/alcibiades-1/expressions/grc-perseus-tlg0059-tlg013/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 232401,
+      "textual_acceptance": false,
+      "title": "Alcibiades 1",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-alcibiades-1/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-alcibiades-1/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg013.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg013.perseus-grc2",
+        "division_count": 33,
+        "first_division": "[[\"section\",\"103\"]]",
+        "last_division": "[[\"section\",\"135\"]]",
+        "division_addresses_sha256": "d1ebfcc356154e12c4e8bddfe7b01069eb1c760a9b4c4d9c80b432426aa3f500",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 49522
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "alcibiades-2",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.alcibiades-2.grc-perseus-tlg0059-tlg014.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/alcibiades-2/expressions/grc-perseus-tlg0059-tlg014/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 73109,
+      "textual_acceptance": false,
+      "title": "Alcibiades 2",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-alcibiades-2/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-alcibiades-2/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg014.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg014.perseus-grc2",
+        "division_count": 14,
+        "first_division": "[[\"section\",\"138\"]]",
+        "last_division": "[[\"section\",\"151\"]]",
+        "division_addresses_sha256": "559c78c93dc3313253ae623595110ccad1434f38316a02194ea167429ca10a5e",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 20811
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "hipparchus",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.hipparchus.grc-perseus-tlg0059-tlg015.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/hipparchus/expressions/grc-perseus-tlg0059-tlg015/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 42876,
+      "textual_acceptance": false,
+      "title": "Hipparchus",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-hipparchus/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-hipparchus/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg015.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg015.perseus-grc2",
+        "division_count": 8,
+        "first_division": "[[\"section\",\"225\"]]",
+        "last_division": "[[\"section\",\"232\"]]",
+        "division_addresses_sha256": "05074f5bb18c293e0cfabceb3c6dcef33e2e4c7860a02ebfc0c4129fbb99ab75",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 11040
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "lovers",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.lovers.grc-perseus-tlg0059-tlg016.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/lovers/expressions/grc-perseus-tlg0059-tlg016/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 39708,
+      "textual_acceptance": false,
+      "title": "Lovers",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-lovers/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-lovers/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg016.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg016.perseus-grc2",
+        "division_count": 8,
+        "first_division": "[[\"section\",\"132\"]]",
+        "last_division": "[[\"section\",\"139\"]]",
+        "division_addresses_sha256": "4584e5ebad76d48db5c26aaaadc7a8059175b99b2734af944268f63d722baa1d",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 11688
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "theages",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.theages.grc-perseus-tlg0059-tlg017.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/theages/expressions/grc-perseus-tlg0059-tlg017/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 56627,
+      "textual_acceptance": false,
+      "title": "Theages",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theages/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-theages/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg017.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg017.perseus-grc2",
+        "division_count": 11,
+        "first_division": "[[\"section\",\"121\"]]",
+        "last_division": "[[\"section\",\"131\"]]",
+        "division_addresses_sha256": "98cf7fecdf11a95363973333cc68ca8c40587e3afd0843fb8ec66d7a348aac47",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 16661
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "charmides",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.charmides.grc-perseus-tlg0059-tlg018.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/charmides/expressions/grc-perseus-tlg0059-tlg018/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 119359,
+      "textual_acceptance": false,
+      "title": "Charmides",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-charmides/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-charmides/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg018.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg018.perseus-grc2",
+        "division_count": 24,
+        "first_division": "[[\"section\",\"153\"]]",
+        "last_division": "[[\"section\",\"176\"]]",
+        "division_addresses_sha256": "d568b990f9c0e952ecba8638d0ee44e6e030ded697361d669cd02633f727c955",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 38036
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "laches",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.laches.grc-perseus-tlg0059-tlg019.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/laches/expressions/grc-perseus-tlg0059-tlg019/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 118312,
+      "textual_acceptance": false,
+      "title": "Laches",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-laches/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-laches/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg019.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg019.perseus-grc2",
+        "division_count": 24,
+        "first_division": "[[\"section\",\"178\"]]",
+        "last_division": "[[\"section\",\"201\"]]",
+        "division_addresses_sha256": "6fe803a8ff711ba503ecfd44a5cd73c8c15908ec0bc9023ae25fafa825f37f53",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 36719
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "lysis",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/lysis/expressions/grc-perseus-tlg0059-tlg020/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 106031,
+      "textual_acceptance": false,
+      "title": "Lysis",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-lysis/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-lysis/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg020.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg020.perseus-grc2",
+        "division_count": 21,
+        "first_division": "[[\"section\",\"203\"]]",
+        "last_division": "[[\"section\",\"223\"]]",
+        "division_addresses_sha256": "23d041788ab5383e7c2ff16581adf57c34f90ebbe2a47ea99bd5d2cafc43e710",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 31153
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "euthydemus",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.euthydemus.grc-perseus-tlg0059-tlg021.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/euthydemus/expressions/grc-perseus-tlg0059-tlg021/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 203790,
+      "textual_acceptance": false,
+      "title": "Euthydemus",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthydemus/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-euthydemus/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg021.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg021.perseus-grc2",
+        "division_count": 37,
+        "first_division": "[[\"section\",\"271\"]]",
+        "last_division": "[[\"section\",\"307\"]]",
+        "division_addresses_sha256": "639ffd7758d64406cf59fc889304ba530bf931e5316e6b5c663b146094c8dc08",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 58170
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "protagoras",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.protagoras.grc-perseus-tlg0059-tlg022.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/grc-perseus-tlg0059-tlg022/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 259176,
+      "textual_acceptance": false,
+      "title": "Protagoras",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-protagoras/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-protagoras/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg022.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg022.perseus-grc2",
+        "division_count": 54,
+        "first_division": "[[\"section\",\"309\"]]",
+        "last_division": "[[\"section\",\"362\"]]",
+        "division_addresses_sha256": "e8e627d98f996df6aeb57c5e430e42198c763581d6a5ef8f4ea85c303a4efb59",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 84227
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "gorgias",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.gorgias.grc-perseus-tlg0059-tlg023.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/grc-perseus-tlg0059-tlg023/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 413833,
+      "textual_acceptance": false,
+      "title": "Gorgias",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-gorgias/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-gorgias/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg023.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg023.perseus-grc2",
+        "division_count": 81,
+        "first_division": "[[\"section\",\"447\"]]",
+        "last_division": "[[\"section\",\"527\"]]",
+        "division_addresses_sha256": "03dc41f770e8aa7136999c7f2a2cad47ecba11bf1a4f7ac6bf52809310d357bf",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 127083
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "meno",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.meno.grc-perseus-tlg0059-tlg024.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/meno/expressions/grc-perseus-tlg0059-tlg024/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 162700,
+      "textual_acceptance": false,
+      "title": "Meno",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-meno/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-meno/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg024.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg024.perseus-grc2",
+        "division_count": 31,
+        "first_division": "[[\"section\",\"70\"]]",
+        "last_division": "[[\"section\",\"100\"]]",
+        "division_addresses_sha256": "4d9eca78cbb63d997bc2e98d74129de2fd521b55fe38fb2ef64b9f9bc25f041a",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 46661
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "greater-hippias",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.greater-hippias.grc-perseus-tlg0059-tlg025.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/greater-hippias/expressions/grc-perseus-tlg0059-tlg025/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 130280,
+      "textual_acceptance": false,
+      "title": "Greater Hippias",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-greater-hippias/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-greater-hippias/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg025.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg025.perseus-grc2",
+        "division_count": 24,
+        "first_division": "[[\"section\",\"281\"]]",
+        "last_division": "[[\"section\",\"304\"]]",
+        "division_addresses_sha256": "1b98f352640305272c2f35c1f69c303594445855d833971acf3ca5c76b6aaf92",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 39065
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "lesser-hippias",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.lesser-hippias.grc-perseus-tlg0059-tlg026.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 72521,
+      "textual_acceptance": false,
+      "title": "Lesser Hippias",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-lesser-hippias/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-lesser-hippias/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg026.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg026.perseus-grc2",
+        "division_count": 14,
+        "first_division": "[[\"section\",\"363\"]]",
+        "last_division": "[[\"section\",\"376\"]]",
+        "division_addresses_sha256": "7a13f2c5de44809cb5801f2ac8178e2cc6fc707596f815434e4aa0ed4fea4bae",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 20156
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "ion",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.ion.grc-perseus-tlg0059-tlg027.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/ion/expressions/grc-perseus-tlg0059-tlg027/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 68052,
+      "textual_acceptance": false,
+      "title": "Ion",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-ion/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-ion/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg027.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg027.perseus-grc2",
+        "division_count": 13,
+        "first_division": "[[\"section\",\"530\"]]",
+        "last_division": "[[\"section\",\"542\"]]",
+        "division_addresses_sha256": "c626d750a1af12748cfab758c8efaf8b1bffc9e074f87349f2a7b9e4c84b7dd0",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 18334
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "menexenus",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.menexenus.grc-perseus-tlg0059-tlg028.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/menexenus/expressions/grc-perseus-tlg0059-tlg028/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 72131,
+      "textual_acceptance": false,
+      "title": "Menexenus",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-menexenus/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-menexenus/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg028.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg028.perseus-grc2",
+        "division_count": 16,
+        "first_division": "[[\"section\",\"234\"]]",
+        "last_division": "[[\"section\",\"249\"]]",
+        "division_addresses_sha256": "ff475cb95172a8be79d7e9f856e4adf9a73faf298b709549c0b5580baa443adb",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 24856
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "cleitophon",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.cleitophon.grc-perseus-tlg0059-tlg029.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/cleitophon/expressions/grc-perseus-tlg0059-tlg029/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 24183,
+      "textual_acceptance": false,
+      "title": "Cleitophon",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cleitophon/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-cleitophon/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg029.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg029.perseus-grc2",
+        "division_count": 5,
+        "first_division": "[[\"section\",\"406\"]]",
+        "last_division": "[[\"section\",\"410\"]]",
+        "division_addresses_sha256": "4cdd328c2c5b8a8a5b92e67e45e9fdf56ee5939807bdfb2435c45a9219b183ab",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 7763
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "republic",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.republic.grc-perseus-tlg0059-tlg030.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/republic/expressions/grc-perseus-tlg0059-tlg030/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 1297564,
+      "textual_acceptance": false,
+      "title": "Republic",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-republic/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-republic/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg030.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg030.perseus-grc2",
+        "division_count": 288,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"10\"],[\"section\",\"621\"]]",
+        "division_addresses_sha256": "3c80e12dc339f42ca245a82356e61e5e20f9b9ac8f02187239d90cc015765c67",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 420637
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "timaeus",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.timaeus.grc-perseus-tlg0059-tlg031.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/grc-perseus-tlg0059-tlg031/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 324830,
+      "textual_acceptance": false,
+      "title": "Timaeus",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-timaeus/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-timaeus/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg031.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg031.perseus-grc2",
+        "division_count": 76,
+        "first_division": "[[\"section\",\"17\"]]",
+        "last_division": "[[\"section\",\"92\"]]",
+        "division_addresses_sha256": "4b46b27aa0554ea2cd388fd471b7454673c73399d42368f200c6cf476b577ba7",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 118421
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "critias",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.critias.grc-perseus-tlg0059-tlg032.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/critias/expressions/grc-perseus-tlg0059-tlg032/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 70733,
+      "textual_acceptance": false,
+      "title": "Critias",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-critias/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-critias/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg032.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg032.perseus-grc2",
+        "division_count": 16,
+        "first_division": "[[\"section\",\"106\"]]",
+        "last_division": "[[\"section\",\"121\"]]",
+        "division_addresses_sha256": "c5f49cbeb4fa469e9cc480b7cc59d3ccffb934f40e0cdb9b066f804add43e9b1",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 24899
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "minos",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.minos.grc-perseus-tlg0059-tlg033.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/minos/expressions/grc-perseus-tlg0059-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 52114,
+      "textual_acceptance": false,
+      "title": "Minos",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-minos/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-minos/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg033.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg033.perseus-grc2",
+        "division_count": 9,
+        "first_division": "[[\"section\",\"313\"]]",
+        "last_division": "[[\"section\",\"321\"]]",
+        "division_addresses_sha256": "5ff2ee84d228fa6089f4af42fa2c093c350a8a0c844d3df3737ec445111d730b",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 13654
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "laws",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.laws.grc-perseus-tlg0059-tlg034.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/laws/expressions/grc-perseus-tlg0059-tlg034/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 1512357,
+      "textual_acceptance": false,
+      "title": "Laws",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-laws/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-laws/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg034.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg034.perseus-grc2",
+        "division_count": 339,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"12\"],[\"section\",\"969\"]]",
+        "division_addresses_sha256": "f89f1342cddccc9002c14f87e6452587ce9da23f5086c54a6725cdf4c3b471ea",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 518738
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "epinomis",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.plato.epinomis.grc-perseus-tlg0059-tlg035.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/plato/epinomis/expressions/grc-perseus-tlg0059-tlg035/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 88800,
+      "textual_acceptance": false,
+      "title": "Epinomis",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-epinomis/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-epinomis/README.md",
+      "observed_coverage": {
+        "basename": "tlg0059.tlg035.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0059.tlg035.perseus-grc2",
+        "division_count": 20,
+        "first_division": "[[\"section\",\"973\"]]",
+        "last_division": "[[\"section\",\"992\"]]",
+        "division_addresses_sha256": "3a23cd9bad077b12540ee208a0e8a6c47d71662002863acd1048e417ec4fb525",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 30898
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Authenticity remains open for disputed/spurious members of the transmitted Platonic corpus, including Alcibiades, Hipparchus, Lovers, Theages, Minos and Epinomis.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "constitution-of-the-athenians",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.constitution-of-the-athenians.grc-perseus-tlg0086-tlg003.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 264047,
+      "textual_acceptance": false,
+      "title": "Constitution of the Athenians",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-constitution-of-the-athenians/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-constitution-of-the-athenians/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg003.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg003.perseus-grc2",
+        "division_count": 380,
+        "first_division": "[[\"section\",\"1\"]]",
+        "last_division": "[[\"section\",\"frag_4\"],[\"subsection\",\"1\"]]",
+        "division_addresses_sha256": "7b0f29c96b6edbdef5937e7e82738df92cfb979a2117c8af239b9768f26f4c2e",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 87201
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "eudemian-ethics",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.eudemian-ethics.grc-perseus-tlg0086-tlg009.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/grc-perseus-tlg0086-tlg009/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 347446,
+      "textual_acceptance": false,
+      "title": "Eudemian Ethics",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-eudemian-ethics/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-eudemian-ethics/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg009.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg009.perseus-grc2",
+        "division_count": 46,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"8\"],[\"section\",\"3\"]]",
+        "division_addresses_sha256": "66356a0ea63c51c58fb870bee46bd4e8213f59bd0fe647958b3b08dc73447163",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 120505
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "nicomachean-ethics",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.nicomachean-ethics.grc-perseus-tlg0086-tlg010.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/grc-perseus-tlg0086-tlg010/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 748234,
+      "textual_acceptance": false,
+      "title": "Nicomachean Ethics",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-nicomachean-ethics/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-nicomachean-ethics/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg010.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg010.perseus-grc2",
+        "division_count": 126,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"10\"],[\"section\",\"9\"]]",
+        "division_addresses_sha256": "228ecff13927bdf1cf0865aff2e279026135aff0fb57a4023f57b369257fd5c8",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 264045
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "metaphysics",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.metaphysics.grc-perseus-tlg0086-tlg025.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/metaphysics/expressions/grc-perseus-tlg0086-tlg025/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 981813,
+      "textual_acceptance": false,
+      "title": "Metaphysics",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-metaphysics/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-metaphysics/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg025.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg025.perseus-grc2",
+        "division_count": 156,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"14\"],[\"section\",\"6\"]]",
+        "division_addresses_sha256": "b337ab3a105b6b7f3848c232013b6fdf90b414ceb66f8210c408b430fe6fd1f7",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 346990
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "economics",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.economics.grc-perseus-tlg0086-tlg029.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/grc-perseus-tlg0086-tlg029/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 103673,
+      "textual_acceptance": false,
+      "title": "Economics",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-economics/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-economics/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg029.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg029.perseus-grc2",
+        "division_count": 85,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"2\"],[\"section\",\"2\"],[\"subsection\",\"41\"]]",
+        "division_addresses_sha256": "e924453e70d8e62975541a1b6bbe0088bd3810972d908a196a9489c8a1012e98",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 32837
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "poetics",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.poetics.grc-perseus-tlg0086-tlg034.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/grc-perseus-tlg0086-tlg034/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 187800,
+      "textual_acceptance": false,
+      "title": "Poetics",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-poetics/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-poetics/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg034.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg034.perseus-grc2",
+        "division_count": 407,
+        "first_division": "[[\"chapter\",\"1\"]]",
+        "last_division": "[[\"chapter\",\"26\"],[\"subchapter\",\"16\"]]",
+        "division_addresses_sha256": "7a7ef85b080deaed0dad27994fa04aee1c589cd0dae2b0ff9e083c40380f5806",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 48578
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "politics",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.politics.grc-perseus-tlg0086-tlg035.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/politics/expressions/grc-perseus-tlg0086-tlg035/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 918960,
+      "textual_acceptance": false,
+      "title": "Politics",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-politics/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-politics/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg035.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg035.perseus-grc2",
+        "division_count": 197,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"8\"],[\"bekker_page\",\"1342b\"]]",
+        "division_addresses_sha256": "f2f62d26c64bfa3d41eb7be42533ec14a7310ff7930bfa34de5e9f161413596e",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 327675
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "rhetoric",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.rhetoric.grc-perseus-tlg0086-tlg038.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/grc-perseus-tlg0086-tlg038/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 712898,
+      "textual_acceptance": false,
+      "title": "Rhetoric",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-rhetoric/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-rhetoric/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg038.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg038.perseus-grc2",
+        "division_count": 945,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"3\"],[\"chapter\",\"19\"],[\"section\",\"6\"]]",
+        "division_addresses_sha256": "2335705df66a38dbc8be291f4daf3db5b95fe542c50a946ca969b80fd56dd49f",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 207821
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "on-virtues-and-vices",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.aristotle.on-virtues-and-vices.grc-perseus-tlg0086-tlg045.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/aristotle/on-virtues-and-vices/expressions/grc-perseus-tlg0086-tlg045/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 24987,
+      "textual_acceptance": false,
+      "title": "On Virtues and Vices",
+      "atlas_row": "A25",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-on-virtues-and-vices/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/axial-age/regions/aegean-world/traditions/classical-athenian-philosophy/sources/plantings/registry-on-virtues-and-vices/README.md",
+      "observed_coverage": {
+        "basename": "tlg0086.tlg045.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0086.tlg045.perseus-grc2",
+        "division_count": 1,
+        "first_division": "[[\"section\",\"1249\"]]",
+        "last_division": "[[\"section\",\"1249\"]]",
+        "division_addresses_sha256": "cebeac577585b3ab20e81b95d967e9c15c3ad499d0e4742de2bbbddd97731e35",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 7695
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Economics and On Virtues and Vices retain traditional/Pseudo-Aristotelian attribution; the provider grouping does not resolve authorship or editorial compilation.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "discourses",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.epictetus.discourses.grc-perseus-tlg0557-tlg001.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 1261622,
+      "textual_acceptance": false,
+      "title": "Discourses",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-discourses/README.md",
+      "observed_coverage": {
+        "basename": "tlg0557.tlg001.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0557.tlg001.perseus-grc2",
+        "division_count": 2742,
+        "first_division": "[[\"book\",\"0\"]]",
+        "last_division": "[[\"book\",\"4\"],[\"chapter\",\"13\"],[\"section\",\"24\"]]",
+        "division_addresses_sha256": "6bca8d3768e21509c2e55bb4b82bf831f217ea69a3616ddc17090df0e497c296",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 371538
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "the-handbook",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.epictetus.the-handbook.grc-perseus-tlg0557-tlg002.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 85469,
+      "textual_acceptance": false,
+      "title": "The Handbook",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-the-handbook/README.md",
+      "observed_coverage": {
+        "basename": "tlg0557.tlg002.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0557.tlg002.perseus-grc2",
+        "division_count": 158,
+        "first_division": "[[\"chapter\",\"1\"]]",
+        "last_division": "[[\"chapter\",\"53\"],[\"section\",\"4\"]]",
+        "division_addresses_sha256": "9c3502767991e5481e4be2dbb66579b89563a3dbb4785cb775b477886911cfa5",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 24434
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Arrian recording/editing/epitomizing and the earlier oral teaching remain distinct transmission layers.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "ad-se-ipsum",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.marcus-aurelius.ad-se-ipsum.grc-perseus-tlg0562-tlg001.perseus-341e309c821d.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/marcus-aurelius/ad-se-ipsum/expressions/grc-perseus-tlg0562-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 493215,
+      "textual_acceptance": false,
+      "title": "Ad Se Ipsum",
+      "atlas_row": "A29",
+      "version": "PerseusDL/canonical-greekLit@341e309c821d5eca8c976bebca77c28b10bad58f",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-ad-se-ipsum/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-ad-se-ipsum/README.md",
+      "observed_coverage": {
+        "basename": "tlg0562.tlg001.perseus-grc2.xml",
+        "cts_urn": "urn:cts:greekLit:tlg0562.tlg001.perseus-grc2",
+        "division_count": 1075,
+        "first_division": "[[\"book\",\"1\"]]",
+        "last_division": "[[\"book\",\"12\"],[\"chapter\",\"36\"],[\"section\",\"1\"]]",
+        "division_addresses_sha256": "3ce972d70c8d568877465f4af3a8be81801880e1d890983b06ad43eeed6c1b56",
+        "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+        "greek_character_count": 146540
+      },
+      "remaining_controls": [
+        "The exact supplied Greek file is a source-language edition, not a manuscript facsimile or ToS critical reconstruction.",
+        "Repository author grouping and header attribution remain supplier assertions; no ancient author, chronology or doctrine is admitted.",
+        "Exact file completeness does not establish critical completeness, correctness of readings or coverage of other editions/translations.",
+        "Narrative, dramatic speakers, reported doctrines and polemical reports are not automatically positions of the named author.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    }
+  ],
+  "deferred": [
+    {
+      "upstream_path": "data/tlg0007/tlg137/tlg0007.tlg137.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer the short Compendium: registry A26-R061 confuses this CTS identifier with De communibus notitiis (tlg138); preserve the conflict for explicit registry correction."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg001/tlg0032.tlg001.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg002/tlg0032.tlg002.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg003/tlg0032.tlg003.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg004/tlg0032.tlg004.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg005/tlg0032.tlg005.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg006/tlg0032.tlg006.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg007/tlg0032.tlg007.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg008/tlg0032.tlg008.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg009/tlg0032.tlg009.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg010/tlg0032.tlg010.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg011/tlg0032.tlg011.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg012/tlg0032.tlg012.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg013/tlg0032.tlg013.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0032/tlg014/tlg0032.tlg014.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Xenophon: prepared metadata only; this pass uses exact existing corpus anchors, and A25 Perseus anchor specifically names Plato/Aristotle. Prepare the appropriate Socratic/political source anchor separately."
+    },
+    {
+      "upstream_path": "data/tlg0059/tlg036/tlg0059.tlg036.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer Letters: prepare the epistolary collection and constituent identities instead of creating one undifferentiated Work."
+    },
+    {
+      "upstream_path": "data/tlg0557/tlg003/tlg0557.tlg003.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer fragment/gnomology packets: define excerpt, transmitting witness and scholarly compilation identities through the existing composite/fragment owner route."
+    },
+    {
+      "upstream_path": "data/tlg0557/tlg004/tlg0557.tlg004.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer fragment/gnomology packets: define excerpt, transmitting witness and scholarly compilation identities through the existing composite/fragment owner route."
+    },
+    {
+      "upstream_path": "data/tlg0557/tlg005/tlg0557.tlg005.perseus-grc2.xml",
+      "decision": "defer",
+      "reason": "Defer fragment/gnomology packets: define excerpt, transmitting witness and scholarly compilation identities through the existing composite/fragment owner route."
+    }
+  ],
+  "blocked": [],
+  "total_files": 51,
+  "total_bytes": 15595041,
+  "scope": "51 selected Greek editions in A25/A26/A29; other versions and broader corpus leads remain open.",
+  "source_text_admitted": false,
+  "payload_visibility": "local_only",
+  "public_or_remote_deployment": false
+}

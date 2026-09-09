@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "4ec6bbf0938280e6db1aa8f7af44a845c201cc0f879de98c5ed00bf0f0ca9eb1",
+  "queue_sha256": "0bf9a9c00213a9abe194fb0be7266760e488dd74228804e95d7eba41b1e5796c",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
-      "catalog_works": 68,
-      "discovery_runs": 123,
+      "catalog_works": 119,
+      "discovery_runs": 174,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "dc9342d3dedb2a52581fe368bde34f93f070f7b2e1ff82411636958f74f1e756",
+    "input_sha256": "cf4435c901485ebb04fb3c4788a308029caab31be2078270e9007e3586c69d88",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "061b26e7ec3ae381922fb37ee900f43f324956477c52b4cb1b8182beb1546dde"
+        "sha256": "10fa0fbb39ac9edd3da1d6d191cbc8af588174ddca7e2af227adc9c48f8d4de5"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "2a63364de6c526aeab2253bda8e13e730befe308aa0852b8704ed202f35994cd"
+        "sha256": "53aeb9587225b7a5001bd1743341e93dcc549ea935c3df0ca4d600c08300974f"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1296,6 +1296,22 @@
         "sha256": "99520d20ad425d5cdc1d6d5165c2843ad4ddd2344cef9bb255215f9f567eb5fe"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-ad-se-ipsum.2026-09-08.v1.json",
+        "sha256": "20ea2db1bad0cad6cb08757e20d3bd36557770ca05da3927e194375aa45328a5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-adversus-coloten.2026-09-08.v1.json",
+        "sha256": "bc7e7afe5abf0a8ee1b5a1943811f01a8038bbaa4e380c7bf49b16709c0b5e67"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-alcibiades-1.2026-09-08.v1.json",
+        "sha256": "0036e349b454b0875c6a8a489ce998c842d07a4ab6ff1884bef541f211258497"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-alcibiades-2.2026-09-08.v1.json",
+        "sha256": "e4b8e9947029c7d5af1e936dcaa67d0eb93ac6c8dba8e69b7f0314d865dd9af0"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-apology.2026-09-08.v1.json",
         "sha256": "909ab9ed9bbdd88a20ea8af8f4a9d55b510928268790300a8822af410997bce4"
       },
@@ -1304,28 +1320,128 @@
         "sha256": "6b97e982bd695d35c9cb39d65037ee0777123fc917279615bb41b03fab953fb5"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-charmides.2026-09-08.v1.json",
+        "sha256": "9463bf9b3b3ac73b81a732b97e30285654cbbb8a6102f77b3e710589ff41d4f7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cleitophon.2026-09-08.v1.json",
+        "sha256": "14b5b87aa8a5d0324f9f0a7fec522a6c8a7894cb2c0c3619570e34074005c9fa"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-constitution-of-the-athenians.2026-09-08.v1.json",
+        "sha256": "45d009fd11d857b1856e3d5ed27b0608e51bc4619944d4611b6ea0b022c9c7fa"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-cratylus.2026-09-08.v1.json",
         "sha256": "68505fe1b4be808798b398f6dab004ed97633859b6cbcfbf93aac99ecd4c46d2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-critias.2026-09-08.v1.json",
+        "sha256": "40b4544d7656700056e6f4e2e6dc69f9fe065fa1d0a3415698d99a55e35da18c"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-crito.2026-09-08.v1.json",
         "sha256": "5afe14c2f56a3997dd83b2404426556a2be3f5e0c5739c6ffbf5bd87c1aa94b5"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-animae-procreatione-in-timaeo.2026-09-08.v1.json",
+        "sha256": "0a7383f2a343acb2ae21e9bd12bb4c7f298ca90bbe385bf95c2c92fafc6b97e2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-communibus-notitiis-adversus-stoicos.2026-09-08.v1.json",
+        "sha256": "f6184ea2a4a460e74f682b77a2803c57e168f1b7f416c9383461cb0989542064"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate.2026-09-08.v1.json",
+        "sha256": "508c0a679956f4727b3c04ed951aa8dbb92eeb5a433ea569b326c47e05836c23"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-defectu-oraculorum.2026-09-08.v1.json",
+        "sha256": "f0b6215df3495f714d316d85738b9aead20f0b508acf5ef75cd03210b273834a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-e-apud-delphos.2026-09-08.v1.json",
+        "sha256": "8655b0fd11a40b9ae6c6d353c9daef6b49bc5dca8e0163a0d1032684431609f0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-facie-quae-in-orbe-lunae-apparet.2026-09-08.v1.json",
+        "sha256": "fe56f3c816a2186acd5456ce2977f9eaf57f7b63ee15988228595581ff9cd252"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-fortuna.2026-09-08.v1.json",
+        "sha256": "9d9854ce095a111c48da8a91fdeb922a94330dfbab1c240d2c755c30d6ee1518"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-iside-et-osiride.2026-09-08.v1.json",
+        "sha256": "20bd1d31d55fd0ce91c320d416d40608fbb597e4e90b4656b21accd42b31ec39"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-sera-numinis-vindicta.2026-09-08.v1.json",
+        "sha256": "1a441d91f06a4143293103693ba38c896748ea6764d45be6815e5a85950867ef"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-stoicorum-repugnantiis.2026-09-08.v1.json",
+        "sha256": "23a4d08761091a20266e1487be0f0f801667b280985423fd92e9c1dd4a924335"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-morali.2026-09-08.v1.json",
+        "sha256": "33385da280e823247027f3f95827de16bf87ce2aa12c9aeadece29d33af618c3"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-dhammapada.2026-09-08.v1.json",
         "sha256": "9473c3f1936cf423fcc84646e1dd588fc464aa5cc6a3acd1e6d18389ceaa95fb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-discourses.2026-09-08.v1.json",
+        "sha256": "eb9d0ef0981426bab83fa9f7ebfebe08aac6ef1c0a57c02c7133fc24447df8fe"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-ecclesiastes.2026-09-08.v1.json",
         "sha256": "8ed58af3f86d8a426ab1dcc406afeb2636167fc1bdb807d04a293fcb2598a4f5"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-economics.2026-09-08.v1.json",
+        "sha256": "b139a2bdc95b27c2521ae3c7822937b9a0ca777c9b9a243171dc68622e758899"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-epinomis.2026-09-08.v1.json",
+        "sha256": "b58b13d63daf55482a57d7e1db84ae67999476fd91d44d02a9dc89d2038fe10c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-epitome-libri-de-animae-procreatione-in-timaeo.2026-09-08.v1.json",
+        "sha256": "2a7fe4f89453eaaab9ba23a176b043db20b92b57a341444c3fd3caf3ad498211"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-eudemian-ethics.2026-09-08.v1.json",
+        "sha256": "4d0927a1af1eae91f438aa2c81ac2900874a51f7072671dc100a19863718c1b1"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-euthydemus.2026-09-08.v1.json",
+        "sha256": "3ca4676324d8cb3ef53d6c6db7bea81927f08edd9ca8a0a92f320408e77d394e"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-euthyphro.2026-09-08.v1.json",
         "sha256": "ce90a657033c51669cbc96a9355fd96772b1f43345e9d8a8bd58b4a7151e868e"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-gorgias.2026-09-08.v1.json",
+        "sha256": "e370c9b5e918a5afff2b86fd2fbf47cd3b43b11b780fd79eab6342f3b8917991"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-greater-hippias.2026-09-08.v1.json",
+        "sha256": "62aa036b79922d979ea8d3dee2f6147749a79342520ab16eee30da2b76315ce0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-hipparchus.2026-09-08.v1.json",
+        "sha256": "9eeb3f944c4d3afa45b3285170ac997438db112e1826cd8a610e0cc0fa7378b3"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-immortality-of-writers.2026-09-08.v1.json",
         "sha256": "48ac1b36c6d6e85590a0f5b82d99e4bb488fa79c199a4fd41c6697ae4860b364"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-ion.2026-09-08.v1.json",
+        "sha256": "c03d507bd0f4b2b5428a9b4e70e0d7fea4c40367b80b15988383f694aaaf7409"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-itivuttaka.2026-09-08.v1.json",
@@ -1338,6 +1454,54 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-khuddakapatha.2026-09-08.v1.json",
         "sha256": "de2eeb51d76db971d21e9f23ea147cd0e6a240b7f9c6583387e5be8ddd3b40c5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-laches.2026-09-08.v1.json",
+        "sha256": "df97ea1eebe699c2a51d40298314fe311a9374baa853db9d0c112af93cf44770"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-laws.2026-09-08.v1.json",
+        "sha256": "46af2c5f520f9f378293ccb7ef97d8557a46a2d4c0276cd1c29d430b97356abe"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-lesser-hippias.2026-09-08.v1.json",
+        "sha256": "3979e1feab20e8a732ea32958ba2704d9c454e856cd5409383422f6234e5cbeb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-lovers.2026-09-08.v1.json",
+        "sha256": "77650c44b885acc7888529b1a3e97ef4f171fc027c6e3dc386f27e165ee30db5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-lysis.2026-09-08.v1.json",
+        "sha256": "06e12603c098c8f573c6bb74bd81bf39658b53f4c938ceb6977a57463c94e32e"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-menexenus.2026-09-08.v1.json",
+        "sha256": "9a2a0ff7531752e17a39f34b4c55e8e8d0a927904d1460b042913439a3718f85"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-meno.2026-09-08.v1.json",
+        "sha256": "770ff339c41149236ac75a802ee733ef166fcb5d5de9221a3f8bcdb48b0b6ba5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-metaphysics.2026-09-08.v1.json",
+        "sha256": "65b93973494c49ef473fb8680b1d1f6dbe219a4c2c1f57deb8ec68d14f6f1dbb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-minos.2026-09-08.v1.json",
+        "sha256": "1cbf228422ad5e378fb05eb43ae3fd071496dd1288a16c95f2e4dab9d73f3772"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-nicomachean-ethics.2026-09-08.v1.json",
+        "sha256": "e3a1c44f8e6ea8b9abdf2f859e22c9838c7b55467d1938867686bdbf6d9fe8da"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-non-posse-suaviter-vivi-secundum-epicurum.2026-09-08.v1.json",
+        "sha256": "490c23b746d7ecc7e0c2fc99c6dc3f8a6a3c5c7d4ff45ff3f2127e7e7c1c4b0b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-on-virtues-and-vices.2026-09-08.v1.json",
+        "sha256": "f58c3d3fc89de28cacd915f157d0c96eb31f9933189d0e44bfea22d142e75a54"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-parmenides.2026-09-08.v1.json",
@@ -1356,8 +1520,32 @@
         "sha256": "6a82e18ab956a0a8f4dd398d27b858f791e25451ea937babc896b656bb038f9a"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-platonicae-quaestiones.2026-09-08.v1.json",
+        "sha256": "5a7f5e0bcbc51ac66769d3d67f2cbb11283529a97a73ca354f518eefde608fa8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-poetics.2026-09-08.v1.json",
+        "sha256": "cfc20435cf3fda49ec94de3cbe90e1e054c2e68de0faf35cf40d01fbcc7d3115"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-politics.2026-09-08.v1.json",
+        "sha256": "b5ef3f4bdef22d250cdab2d5a5abbb6a031b2b4b18db250937b8c289242c4428"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-protagoras.2026-09-08.v1.json",
+        "sha256": "8e3e04c5043f0cbaca14aff80818fab2379ed5e72012936c0c5085175999bafe"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-proverbs.2026-09-08.v1.json",
         "sha256": "4ca9ca64aab644bd6432cd573f88d686f257f74f2db28c8740adbd1a19b6e9b8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-republic.2026-09-08.v1.json",
+        "sha256": "f4f2887d0a45430948ce70f545f23a2cb8bd3cf464f7f4fce804de6a45382298"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-rhetoric.2026-09-08.v1.json",
+        "sha256": "aef85bcdeb694217f164582d86812bd338e66e948233a142a4d75fd3b052b1bd"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-samannaphala-sutta.2026-09-08.v1.json",
@@ -1384,8 +1572,20 @@
         "sha256": "6faa9dbf5538da0cffd4654ba6ac05e659a125fcafecfb75dcc93e9e3f04d753"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-the-handbook.2026-09-08.v1.json",
+        "sha256": "d08dd36147f26bec62962d576ed05db8ed999fc29bda096440fb280f30e9f014"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-theaetetus.2026-09-08.v1.json",
         "sha256": "4b36bbb8e84564c2a3e346f62da360ef918531f260bca4b45a25ddeb875f8b65"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-theages.2026-09-08.v1.json",
+        "sha256": "8c52ccdfda59218c7467e6b002f1bf45b964f2758807a7151abe2959d9e7b358"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-timaeus.2026-09-08.v1.json",
+        "sha256": "e662a44727f630d7eacd1edfa40a21f7761d92173207f53250bf50437abb4279"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-udana.2026-09-08.v1.json",
@@ -1394,6 +1594,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-upali-sutta.2026-09-08.v1.json",
         "sha256": "e0cf90b937b402a2794957e5eef6058a3561ee452e4deeae3a8a81c015904890"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-vitae-philosophorum.2026-09-08.v1.json",
+        "sha256": "f8691e3c10fb2c00bba118a936c8ae13e20e45c39ea9f97fcee57b3a7cad8dba"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/stanford-loeb-tinsley-post-street-metadata.2026-08-11.v2.json",
@@ -1517,7 +1721,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "ad8a58797d22a8f5413ee359f92c92b785c84f08493f84337ec491378400282c"
+        "sha256": "210e93a895a84538dbcedb69c76fb1cf34bf9e588073c33fa6ddae1c35ca7e43"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -1629,11 +1833,51 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "5ec1dad22edf5d94aed4a7bc0e662cfae41c5abe4bc0bbdad0ed4289e6858b69"
+        "sha256": "4982f44e9b3858727fc283b6c3c6b495ea13540f4e1fd7a357ec5abcef3ddb46"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "12ff0022dd5f1f860a95851bcd45a401cb10b22fe08c23b6a287100175dc0633"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/economics/expressions/grc-perseus-tlg0086-tlg029/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a5c576d976b4a624a99d8090d849b04524f12f215c500a2c914c83f05815065e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/grc-perseus-tlg0086-tlg009/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "68fe67edda925f66ce50b1dbc920e94104173e79d2f01d21fb9d4f4ff70123da"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/metaphysics/expressions/grc-perseus-tlg0086-tlg025/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "7604abd6e04f54887dae32b6e42ad71ece1f3d15d64ac711b3d51e5b6daa068e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/grc-perseus-tlg0086-tlg010/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a2a4b3aa374741ebfe785cfa4c8786165c360183865e0622ab73f21222d14900"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/on-virtues-and-vices/expressions/grc-perseus-tlg0086-tlg045/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "869a6a8e4e02ab0db1ebbac27b51278f75a1de9a33d27f11255b0337aca84c7c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/poetics/expressions/grc-perseus-tlg0086-tlg034/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "274668b8b5067545367d228aee7ad6c559683f4e72ba026ff7be6c286e491ed0"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/politics/expressions/grc-perseus-tlg0086-tlg035/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "8d530315e880ee45f270e9023dd3e938b53927c644ef6e2b3df5b9cb85ff51bb"
+      },
+      {
+        "path": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/grc-perseus-tlg0086-tlg038/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c3d9ac679b917e84d7bb03bbdd6c0189dc2f5dfa3539cd5b8cffafdb8af40beb"
       },
       {
         "path": "ToS/source-witnesses/works/digital-cuneiform-corpora/cuneiform-digital-library-initiative/provenance.jsonl",
         "sha256": "065f8ef01e36f8569335999a53c74348fa02a9731d4b064ab90494b89dc1a94f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/diogenes-laertius/vitae-philosophorum/expressions/grc-perseus-tlg0004-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "77eb75db206fb9a0bedb508996e3cd362c9c5511225fcb1fa45d072f6ddf0077"
       },
       {
         "path": "ToS/source-witnesses/works/egyptian-literature/be-a-scribe/expressions/egy-aed-tei-oraec/editions/oraec-b83a0ee5fae2/items/git-annotated-json/provenance.jsonl",
@@ -1654,6 +1898,14 @@
       {
         "path": "ToS/source-witnesses/works/egyptian-scholarship/on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum/expressions/en-goodwin-1874/editions/london-society-of-biblical-archaeology-1874/items/internet-archive-nls-scan-pdf/rights.json",
         "sha256": "1339122262e274692fe1f82c6ff717d3532ed7a15349436063f7f598e28d9ffa"
+      },
+      {
+        "path": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "633fea5bcc941c3dab69b322d79aa166020ecb8dfb88441f226bc347bf6bcf16"
+      },
+      {
+        "path": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/grc-perseus-tlg0557-tlg002/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "9fcd0f28307b012b8dd245ddf85e1e9fc81289a14b23ad3244ac5d5bf6f30227"
       },
       {
         "path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/structure/naumann-1893-dta-parts/provenance.jsonl",
@@ -1776,6 +2028,10 @@
         "sha256": "a5ce595867979bbf6030e407936e43385fa10f09d3656855cf875c6d6244b508"
       },
       {
+        "path": "ToS/source-witnesses/works/marcus-aurelius/ad-se-ipsum/expressions/grc-perseus-tlg0562-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f2f65277784bd4fcea2c2829e42b580a224dd392208e8a64617bb20909832dc2"
+      },
+      {
         "path": "ToS/source-witnesses/works/old-babylonian-scholarship/an-old-babylonian-version-of-the-gilgamesh-epic/expressions/en-jastrow-clay-1920/editions/new-haven-yale-university-press-1920/items/commons-internet-archive-robarts-scan-djvu/item.manifest.json",
         "sha256": "6bef94e7ff0a9dce52e2d11c1335dc623085252265ca90b82739ef611df7436c"
       },
@@ -1820,20 +2076,96 @@
         "sha256": "565867f562afad42bb1f6467f9cf5a08917c4c8a9d8ccb7ee8b33cfbd0b2525b"
       },
       {
+        "path": "ToS/source-witnesses/works/plato/alcibiades-1/expressions/grc-perseus-tlg0059-tlg013/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "4c48f3e66baffdd4b5c25beb0bd9784a54243fa79895a5acc3ff34ce231c2c0b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/alcibiades-2/expressions/grc-perseus-tlg0059-tlg014/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "de7690c63488839b8d0e746d5baf9fa36d9519ef56575300aa096aebe12ec59a"
+      },
+      {
         "path": "ToS/source-witnesses/works/plato/apology/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "e5876e93efc5147f097cef82ca15f705fe9e72624a7a269b67cef608291f39bf"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/charmides/expressions/grc-perseus-tlg0059-tlg018/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "78942fa0dfcc481e209c344c9318ecf7b4d41da34267502a5d29a87f638ed934"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/cleitophon/expressions/grc-perseus-tlg0059-tlg029/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "62953101300ae2767478adc325ab47e11cecfd758d532de4ec02fa91c19fc943"
       },
       {
         "path": "ToS/source-witnesses/works/plato/cratylus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "6bbd47a35c9c9adbdeb9e667e56561e1de6b1079df44ed3f42a0c3f9d64cb79b"
       },
       {
+        "path": "ToS/source-witnesses/works/plato/critias/expressions/grc-perseus-tlg0059-tlg032/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "229813d6782fc96a97ffd8f6aff3174a046448304113c917c2df7bc5239437a0"
+      },
+      {
         "path": "ToS/source-witnesses/works/plato/crito/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "6c52b27fc8cf698ef7292e5659cddef9a096d33ce9195cd66a4dd279cfa329ec"
       },
       {
+        "path": "ToS/source-witnesses/works/plato/epinomis/expressions/grc-perseus-tlg0059-tlg035/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f5471dcb75f8a5d38ca0b3f8dc0f29d18986dc2411ec7ae05456ee4930341dcf"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/euthydemus/expressions/grc-perseus-tlg0059-tlg021/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "2a029643c76290f1c892add2a3e60443ba92a6529684d5066647c5c2d6de9f87"
+      },
+      {
         "path": "ToS/source-witnesses/works/plato/euthyphro/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "1527421e86129d7bf37f7a5a505544a883734e684347cc0520f72c34ff280f61"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/gorgias/expressions/grc-perseus-tlg0059-tlg023/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1050f05804d5b207cf41a6afac910247671ea77f0857f25705781ed4a54dd4d2"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/greater-hippias/expressions/grc-perseus-tlg0059-tlg025/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5272e98466f41bfcddeb7cd4bb7376b9dcf0683c869a3e3f266a5a73c23fccd5"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/hipparchus/expressions/grc-perseus-tlg0059-tlg015/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "9265113e5bfd91f63333004d28d02297f03d8623fcd2199015a1d3298bea4b9b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/ion/expressions/grc-perseus-tlg0059-tlg027/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "2d11073bbe308128b0f5fade2fd8a3a52b476db9bb40f7e534602d3dd237cb28"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/laches/expressions/grc-perseus-tlg0059-tlg019/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5e784160b50a155bc80873f7e941baed0a2cfe54c0ed27b02a66d7f09187b800"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/laws/expressions/grc-perseus-tlg0059-tlg034/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "eb6529f000ad65c80584207fe3e34894f7f4614ee2d5428da04cbe360fe632a6"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/lesser-hippias/expressions/grc-perseus-tlg0059-tlg026/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "533ca13316814f9bff493211cafaca9c1617d1ab9b3f2b0df87ba4c19a4e86a7"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/lovers/expressions/grc-perseus-tlg0059-tlg016/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "21065d33fb443ab9b5949a8c9ecc445e350a2efb55f86c3fbeb7992fcaa90142"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/lysis/expressions/grc-perseus-tlg0059-tlg020/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "8698bd6400a080f3a9f775f589a51fe2a590fd373e22b1d6e4844cd8c3a67a8b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/menexenus/expressions/grc-perseus-tlg0059-tlg028/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1a4afdd9b4b77ccdf8ad7daf5532755cb9f51f07bba541c4f63ad80b4ca996d5"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/meno/expressions/grc-perseus-tlg0059-tlg024/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0b3f8fd070b330866f359fef48eb0e676764cbf4e496f6b41568054768ad7c8c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/minos/expressions/grc-perseus-tlg0059-tlg033/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b26d425b54526a6d69301e1a30b3179c9c13958195c8eb31668cdee14340a34a"
       },
       {
         "path": "ToS/source-witnesses/works/plato/parmenides/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -1852,6 +2184,14 @@
         "sha256": "2590313288147a90f51ce2c445f449b8ec489cf109dd9cea7a9878ea1204a992"
       },
       {
+        "path": "ToS/source-witnesses/works/plato/protagoras/expressions/grc-perseus-tlg0059-tlg022/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "cc3e001ab98102218c9a60c5b937bba42f71f86bfbb2af8f075b4a314f79b129"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/republic/expressions/grc-perseus-tlg0059-tlg030/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "df8201a67fbe203b7044b97aa2f2b96fb7d155522ff223ea2dd250742b14c629"
+      },
+      {
         "path": "ToS/source-witnesses/works/plato/sophist/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "3c39f1a8da03264221a1436bf794bc8cb620d973932098f6b55bf92120d924f6"
       },
@@ -1866,6 +2206,74 @@
       {
         "path": "ToS/source-witnesses/works/plato/theaetetus/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "57a7c83a563d4ef89d2f40ebbee26f6ca542de0dc0cadfc4bc58c50f7172da99"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/theages/expressions/grc-perseus-tlg0059-tlg017/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b560bc86d6da0767b8f0ec0dd7508b2d5f58f931616c9b16165ec3a1a190e704"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plato/timaeus/expressions/grc-perseus-tlg0059-tlg031/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e8bcfedfec828fe611a77c83052764cf280000ba34a8cfa2093dca56c3949bcb"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/adversus-coloten/expressions/grc-perseus-tlg0007-tlg140/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e9f82ba3a36407614cd0cb115371f97fc3ecd88d0bdbce8d9523737c437848ba"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-animae-procreatione-in-timaeo/expressions/grc-perseus-tlg0007-tlg134/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b63e3bf60d56915ebb578e9c049e3d8c6cfa70ebddd15f75b21ba1648c4597a4"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-communibus-notitiis-adversus-stoicos/expressions/grc-perseus-tlg0007-tlg138/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1d7b60dedc57febdba0765848ed043e145105fa1e4efd75a89987cd95049e14c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/grc-perseus-tlg0007-tlg102/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "d337c9fcbc61038553ecf7e83a10aa47b7eab6094cee27bc51357fa85aa4ffd9"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-defectu-oraculorum/expressions/grc-perseus-tlg0007-tlg092/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0cf45b777d8b7fe3e4fa08e485667085d02cada6f5d520ba3419707801a90083"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-e-apud-delphos/expressions/grc-perseus-tlg0007-tlg090/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "893468b76277caf859673f42e41488cd89b19705d432efa8922b9dd34a40b621"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "d681c403c86a8d89eb7e439a0f5de9e83ad5608ac34ab20316faa7963deebffd"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/grc-perseus-tlg0007-tlg074/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "2681a6259c1f5976b614ca3bf38e30a89027afaec8da6222645d7e1cd32d4ede"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/grc-perseus-tlg0007-tlg089/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "cb49ecd0fb29b58a9d4d7db07de608290aa9643fb525c9bc75eccf61ea889e81"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-sera-numinis-vindicta/expressions/grc-perseus-tlg0007-tlg107/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "703a28e7ba0abd7728891bc2f0ce0a6ef6465b10d422ffc9b20327c2851d7689"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/grc-perseus-tlg0007-tlg136/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3bfc5ad7d3b9121cda1153848e452dd95627c85bc20997ebeca92179868f140d"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/grc-perseus-tlg0007-tlg094/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "029bb4dc376ad6c86553e419c41603c332a26335ebcbf5d44bdffa903bcb3e69"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/epitome-libri-de-animae-procreatione-in-timaeo/expressions/grc-perseus-tlg0007-tlg135/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b54359ca18fbf5b73551ec8a54321b9125206564c3fc09e63eedce78235c5717"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/grc-perseus-tlg0007-tlg139/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "32ecda3bae01ec18eabfdc0a5bdcce910b23f56025ff80f81233d4d3bbc71aba"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/platonicae-quaestiones/expressions/grc-perseus-tlg0007-tlg133/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0c94f3433ea4b41f2b7529bbf274a5ab2adbad2b1ab2470f25cccff09700b03a"
       }
     ]
   },
