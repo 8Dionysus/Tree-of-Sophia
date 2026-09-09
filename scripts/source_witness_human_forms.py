@@ -80,7 +80,8 @@ class AssessedFormSnapshot:
         return {**copy.deepcopy(packet), 'assessment_snapshot': {
             'owner_snapshot': snapshot, 'journal_revision': result['revision'],
             'journal_batches': result['batch_count'], 'publication_authorized': False,
-            'current_runtime_grant': False}}
+            'current_runtime_grant': False,
+            **({'subject_assessment_required': True} if 'subject_assessment' in packet else {})}}
 
     def verify_current(self):
         """Fail on observed change; do not silently rebuild only part of a graph."""

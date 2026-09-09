@@ -81,6 +81,11 @@
   [Source-owned навигация Claim](../review-ledger/2026-09-08-claim-navigation-review.md)
   теперь использует точные имена, предикат и статусы записи; это не готовая
   человеческая формулировка. Полная legacy Forms-миграция остаётся отдельной работой.
+  [Проверка assessed consumer](../review-ledger/2026-09-09-assessed-form-consumer-parity-review.md)
+  дополнительно связывает обычные source-copy формы с журналом оценки и
+  Python/Worker reader: полный контекст добавляется при чтении без переписывания
+  формы, отдельная оценка Claim не теряет ограничения и не становится endorsement.
+  Это механическое продолжение A02/V01/V02, не полная миграция V03/M01.
 - **Processing** — `access/src/tos_access/normalization_cache.py`, обработка
   исходных слоёв у Corpus, текущая материализация и чтение Cloudflare/D1.
 - **Consumer** — API/MCP/agent consumer и `access/web/src/observatory/`, с

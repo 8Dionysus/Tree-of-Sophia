@@ -135,6 +135,11 @@ For a source-copy, the copied field, role, language and script must also match
 the actual source-owned field catalogue; assessment cannot authorize an arbitrary
 pointer or inferred language. The separate source-only writer/metadata reader
 continues to return mechanical readiness with `admission: null`.
+For existing source-copy forms the assessed owner supplies additional whole-subject
+context as `owner:subject` when the field's authored context did not already
+include it. This trusted rendering input cannot remove field-specific guards,
+alter the form's stored bindings, change its ID/version, or provide an admission.
+The exact subject remains a dependency and contributes to the output budget.
 Linguistic context, when used, is separately selected by the source owner.
 See the [command contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#assessed-form-materialization).
 This is current local materialization, not automatic admission or publication
@@ -210,6 +215,17 @@ these checks validate transport, not a fresh grant or the substance of a review.
 The optional `assessment_snapshot` field extends the closed materialization
 schema. Consumers using an older copy must update that schema before accepting
 these local packets; silently stripping the annotation is not a migration.
+
+Assessed source-copy and freeform packets use the same snapshot transport.
+When a packet contains the separate parent `subject_assessment`, the observation
+also declares `subject_assessment_required=true`. Losing either side fails the
+reader instead of producing a standalone positive form. Python and Worker check
+the exact parent subject, policy/use agreement, journal shape, withdrawal refs,
+limits and non-endorsement boundary without re-evaluating a policy or treating a
+parent rejection as rejection of its attributed wording. Unknown admission
+details remain intact; an oversized companion yields an inspection reference,
+not truncated limits. This additive observation member requires updated readers;
+it does not open confidential v4/v5 inputs to the public graph builder.
 
 This optional input produces a **local research candidate**, not the standard
 public export. Context and assessment limits still need their own public-safety

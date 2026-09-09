@@ -710,16 +710,62 @@ def _assessment_snapshot_valid(packet: dict[str, Any]) -> bool:
     if ((revision is None) != (snapshot['journal_batches'] == 0)
             or (revision is not None and (not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
         return False
+    if ('subject_assessment_required' in snapshot or 'subject_assessment' in packet):
+        if snapshot.get('subject_assessment_required') is not True or 'subject_assessment' not in packet:
+            return False
     if packet.get('state') != 'ready':
         return True
     admission = packet.get('admission')
-    return (snapshot['journal_batches'] > 0 and packet.get('derivation') == 'freeform' and isinstance(admission, dict)
+    return (snapshot['journal_batches'] > 0 and packet.get('derivation') in ('freeform', 'source-copy') and isinstance(admission, dict)
             and admission.get('schema_version') == 'tos_knowledge_admission_v1'
             and _exact_form_ref(admission.get('subject')) and admission['subject'] == packet.get('form')
             and _exact_form_ref(admission.get('policy'))
             and isinstance(admission.get('status'), str) and admission['status'] in {'admitted', 'admitted-with-limits'}
             and admission.get('can_use') is True and admission.get('is_semantic_evaluation') is False
             and isinstance(admission.get('use'), str) and bool(admission['use']))
+
+
+def _subject_assessment_valid(packet: dict[str, Any]) -> bool:
+    """Check complete parent context without endorsing or re-evaluating it."""
+    if 'subject_assessment' not in packet:
+        return True
+    observed = packet['subject_assessment']
+    if (not isinstance(observed, dict) or set(observed) != {
+            'schema_version', 'subject', 'admission', 'journal_revision', 'journal_batches',
+            'historical_withdrawals', 'form_admission_is_parent_endorsement'}
+            or observed['schema_version'] != 'tos_human_form_subject_assessment_v1'
+            or not _exact_form_ref(observed['subject']) or observed['subject'] != packet.get('subject')
+            or observed['form_admission_is_parent_endorsement'] is not False
+            or type(observed['journal_batches']) is not int
+            or not 0 <= observed['journal_batches'] <= 9_007_199_254_740_991):
+        return False
+    revision, count = observed['journal_revision'], observed['journal_batches']
+    withdrawals = observed['historical_withdrawals']
+    if ((revision is None) != (count == 0)
+            or (revision is not None and (not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{64}', revision)))
+            or not isinstance(withdrawals, list) or len(withdrawals) > 256
+            or any(not _exact_form_ref(ref) for ref in withdrawals) or (count == 0 and withdrawals)):
+        return False
+    admission = observed['admission']
+    if (not isinstance(admission, dict)
+            or admission.get('schema_version') != 'tos_knowledge_admission_v1'
+            or not _exact_form_ref(admission.get('subject')) or admission['subject'] != observed['subject']
+            or not _exact_form_ref(admission.get('policy'))
+            or not isinstance(admission.get('use'), str) or not admission['use']
+            or not isinstance(admission.get('status'), str)
+            or admission['status'] not in {'admitted', 'admitted-with-limits', 'disputed', 'rejected', 'deferred', 'unreviewed'}
+            or type(admission.get('can_use')) is not bool or admission.get('is_semantic_evaluation') is not False
+            or not isinstance(admission.get('limits'), list)
+            or any(not isinstance(limit, str) for limit in admission['limits'])):
+        return False
+    form_admission = packet.get('admission')
+    if form_admission is not None and (not isinstance(form_admission, dict)
+            or form_admission.get('use') != admission['use']
+            or not _exact_form_ref(form_admission.get('policy')) or form_admission['policy'] != admission['policy']):
+        return False
+    return (packet.get('state') != 'ready' or
+            (packet.get('standalone_reading') is False and packet.get('derivation') in ('source-copy', 'freeform')
+             and isinstance(form_admission, dict)))
 
 
 def _require_assessed_carrier_parity(left: dict[str, Any], right: dict[str, Any]) -> None:
@@ -822,6 +868,8 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
             return stop('invalid', 'forms.unknown-materialization-state')
         if not _assessment_snapshot_valid(packet):
             return stop('invalid', 'forms.invalid-assessment-snapshot')
+        if not _subject_assessment_valid(packet):
+            return stop('invalid', 'forms.invalid-subject-assessment')
         if (role is not None and role not in HUMAN_FORM_ROLES) or (actual_language is not None and
                 (not isinstance(actual_language, str) or not _LANGUAGE_KEY.fullmatch(actual_language))):
             return stop('invalid', 'forms.invalid-role-or-language')

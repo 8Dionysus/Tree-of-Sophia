@@ -546,6 +546,75 @@ test('assessed forms preserve snapshot limits and reject malformed authority acr
   assert.ok(results.slice(1).every(result => result.state === 'invalid'));
 });
 
+test('assessed source-copy and separate parent context have lossless bounded Python/Worker delivery', () => {
+  const node = assessedFormNode();
+  const packet = (node.attributes.human_forms as Record<string, unknown>[])[0]!;
+  const formAdmission = packet.admission as Record<string, unknown>;
+  packet.derivation = 'source-copy';
+  packet.standalone_reading = false;
+  (packet.assessment_snapshot as Record<string, unknown>).subject_assessment_required = true;
+  packet.subject_assessment = {schema_version: 'tos_human_form_subject_assessment_v1',
+    subject: structuredClone(packet.subject), journal_revision: 'a'.repeat(64), journal_batches: 2,
+    historical_withdrawals: [{id: 'tos.assessment.synthetic-withdrawal', version: 1, digest: 'sha256:' + 'b'.repeat(64)}],
+    form_admission_is_parent_endorsement: false,
+    admission: {schema_version: 'tos_knowledge_admission_v1', subject: structuredClone(packet.subject),
+      policy: structuredClone(formAdmission.policy), use: 'research', status: 'rejected', can_use: false,
+      limits: ['Synthetic rejected parent remains visible; no historical assessment.'], is_semantic_evaluation: false,
+      retained_unknown_member: {counterevidence: false}}};
+  const cases = [node];
+  for (const derivation of ['freeform', 'source-copy']) for (const status of ['admitted', 'admitted-with-limits', 'disputed', 'rejected', 'deferred', 'unreviewed']) {
+    const candidate = structuredClone(node);
+    const body = (candidate.attributes.human_forms as Record<string, unknown>[])[0]!;
+    body.derivation = derivation;
+    Object.assign((body.subject_assessment as Record<string, unknown>).admission as object,
+      {status, can_use: status.startsWith('admitted')});
+    cases.push(candidate);
+  }
+  const validCount = cases.length;
+  for (const change of ['missing-parent', 'missing-marker', 'false-marker', 'endorsement', 'standalone', 'template',
+    'bad-derivation', 'wrong-subject', 'wrong-admission-subject', 'wrong-use', 'wrong-policy', 'missing-limits',
+    'bad-limits', 'bad-status', 'boolean-count', 'unsafe-count', 'missing-head', 'empty-journal-with-withdrawal', 'bad-withdrawal', 'bad-can-use']) {
+    const candidate = structuredClone(node);
+    const body = (candidate.attributes.human_forms as Record<string, unknown>[])[0]!;
+    const parent = body.subject_assessment as Record<string, unknown>, admission = parent.admission as Record<string, unknown>;
+    if (change === 'missing-parent') delete body.subject_assessment;
+    else if (change === 'missing-marker') delete (body.assessment_snapshot as Record<string, unknown>).subject_assessment_required;
+    else if (change === 'false-marker') (body.assessment_snapshot as Record<string, unknown>).subject_assessment_required = false;
+    else if (change === 'endorsement') parent.form_admission_is_parent_endorsement = true;
+    else if (change === 'standalone') Object.assign(body, {standalone_reading: true, context: []});
+    else if (change === 'template' || change === 'bad-derivation') body.derivation = change === 'template' ? 'template' : ['source-copy'];
+    else if (change === 'wrong-subject') (parent.subject as Record<string, unknown>).id = 'tos.claim.other';
+    else if (change === 'wrong-admission-subject') (admission.subject as Record<string, unknown>).id = 'tos.claim.other';
+    else if (change === 'wrong-use') admission.use = 'publication';
+    else if (change === 'wrong-policy') (admission.policy as Record<string, unknown>).version = 2;
+    else if (change === 'missing-limits') delete admission.limits;
+    else if (change === 'bad-limits') admission.limits = [false];
+    else if (change === 'bad-status') admission.status = ['admitted'];
+    else if (change === 'boolean-count') parent.journal_batches = true;
+    else if (change === 'unsafe-count') parent.journal_batches = 9007199254740992;
+    else if (change === 'missing-head') parent.journal_revision = null;
+    else if (change === 'empty-journal-with-withdrawal') Object.assign(parent, {journal_batches: 0, journal_revision: null});
+    else if (change === 'bad-withdrawal') (parent.historical_withdrawals as Record<string, unknown>[])[0]!.version = true;
+    else admission.can_use = 0;
+    cases.push(candidate);
+  }
+  const large = structuredClone(node);
+  (((large.attributes.human_forms as Record<string, unknown>[])[0]!.subject_assessment as Record<string, unknown>).admission as Record<string, unknown>).limits = ['x'.repeat(20000)];
+  cases.push(large);
+  const before = structuredClone(cases);
+  const python = JSON.parse(execFileSync('python3', ['-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import select_human_forms;print(json.dumps([select_human_forms(n,'ru') for n in json.load(sys.stdin)]))"],
+    {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify(cases), encoding:'utf8', maxBuffer: 4194304}));
+  const results = cases.map(item => selectHumanForms(item, 'ru'));
+  assert.deepEqual(results, python);
+  assert.deepEqual(cases, before);
+  for (let index = 0; index < validCount; index++) assert.deepEqual(results[index]!.roles.hover!.packet,
+    (cases[index]!.attributes.human_forms as Record<string, unknown>[])[0]);
+  assert.ok(results.slice(validCount, -1).every(result => result.state === 'invalid'));
+  assert.equal(results.at(-1)!.roles.hover!.state, 'over-budget');
+  assert.equal(results.at(-1)!.roles.hover!.packet, null);
+});
+
 test('source human forms preserve ambiguity, exact context and bounded delivery across Python and Worker', () => {
   const node = realFormNode();
   const cases: {item: Record<string, unknown>; language: string}[] = ['ru', 'ru-RU', 'auto', 'original', 'fr'].map(language => ({item: node, language}));

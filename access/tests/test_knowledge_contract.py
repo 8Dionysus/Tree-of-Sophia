@@ -1109,6 +1109,71 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(pending['candidates'][0]['state'], 'needs-assessment')
         self.assertIsNone(pending['roles']['statement']['packet'])
 
+    def test_assessed_source_copy_keeps_separate_parent_context_and_refuses_context_loss(self):
+        from tos_access.knowledge import select_human_forms
+        node = self.human_form_node()
+        packet = node['attributes']['human_forms'][0]
+        policy = {'id': 'tos.policy.synthetic', 'version': 1, 'digest': 'sha256:' + 'd' * 64}
+        packet.update(derivation='source-copy', standalone_reading=False,
+            assessment_snapshot={'owner_snapshot': 'sha256:' + 'e' * 64, 'journal_revision': 'f' * 64,
+                'journal_batches': 1, 'publication_authorized': False, 'current_runtime_grant': False,
+                'subject_assessment_required': True},
+            admission={'schema_version': 'tos_knowledge_admission_v1', 'subject': copy.deepcopy(packet['form']),
+                'policy': policy, 'status': 'admitted', 'can_use': True, 'is_semantic_evaluation': False, 'use': 'research'},
+            subject_assessment={'schema_version': 'tos_human_form_subject_assessment_v1',
+                'subject': copy.deepcopy(packet['subject']), 'journal_revision': 'a' * 64, 'journal_batches': 2,
+                'historical_withdrawals': [{'id': 'tos.assessment.synthetic-withdrawal', 'version': 1, 'digest': 'sha256:' + 'b' * 64}],
+                'form_admission_is_parent_endorsement': False,
+                'admission': {'schema_version': 'tos_knowledge_admission_v1', 'subject': copy.deepcopy(packet['subject']),
+                    'policy': policy, 'use': 'research', 'status': 'rejected', 'can_use': False,
+                    'limits': ['Synthetic rejected parent remains readable as attributed context.'],
+                    'is_semantic_evaluation': False, 'retained_unknown_member': {'counterevidence': False}}})
+        before = copy.deepcopy(node)
+        for derivation in ('source-copy', 'freeform'):
+            for status in ('admitted', 'admitted-with-limits', 'disputed', 'rejected', 'deferred', 'unreviewed'):
+                with self.subTest(derivation=derivation, status=status):
+                    candidate = copy.deepcopy(node)
+                    body = candidate['attributes']['human_forms'][0]
+                    body['derivation'] = derivation
+                    body['subject_assessment']['admission'].update(status=status, can_use=status.startswith('admitted'))
+                    self.assertEqual(select_human_forms(candidate, 'fr')['roles']['statement']['packet'], body)
+        changes = ('missing-parent', 'missing-marker', 'false-marker', 'endorsement', 'standalone', 'template',
+                   'bad-derivation', 'wrong-subject', 'wrong-admission-subject', 'wrong-use', 'wrong-policy',
+                   'missing-limits', 'bad-limits', 'bad-status', 'boolean-count', 'unsafe-count', 'missing-head',
+                   'empty-journal-with-withdrawal', 'bad-withdrawal', 'bad-can-use')
+        for change in changes:
+            with self.subTest(change=change):
+                bad = copy.deepcopy(node)
+                body = bad['attributes']['human_forms'][0]
+                parent = body['subject_assessment']
+                admission = parent['admission']
+                if change == 'missing-parent': del body['subject_assessment']
+                elif change == 'missing-marker': del body['assessment_snapshot']['subject_assessment_required']
+                elif change == 'false-marker': body['assessment_snapshot']['subject_assessment_required'] = False
+                elif change == 'endorsement': parent['form_admission_is_parent_endorsement'] = True
+                elif change == 'standalone': body.update(standalone_reading=True, context=[])
+                elif change in ('template', 'bad-derivation'): body['derivation'] = 'template' if change == 'template' else ['source-copy']
+                elif change == 'wrong-subject': parent['subject']['id'] = 'tos.claim.other'
+                elif change == 'wrong-admission-subject': admission['subject']['id'] = 'tos.claim.other'
+                elif change == 'wrong-use': admission['use'] = 'publication'
+                elif change == 'wrong-policy': admission['policy'] = {**policy, 'version': 2}
+                elif change == 'missing-limits': del admission['limits']
+                elif change == 'bad-limits': admission['limits'] = [False]
+                elif change == 'bad-status': admission['status'] = ['admitted']
+                elif change == 'boolean-count': parent['journal_batches'] = True
+                elif change == 'unsafe-count': parent['journal_batches'] = 9_007_199_254_740_992
+                elif change == 'missing-head': parent['journal_revision'] = None
+                elif change == 'empty-journal-with-withdrawal': parent.update(journal_batches=0, journal_revision=None)
+                elif change == 'bad-withdrawal': parent['historical_withdrawals'][0]['version'] = True
+                else: admission['can_use'] = 0
+                self.assertEqual(select_human_forms(bad, 'fr')['state'], 'invalid')
+        large = copy.deepcopy(node)
+        large['attributes']['human_forms'][0]['subject_assessment']['admission']['limits'] = ['x' * 20_000]
+        selected = select_human_forms(large, 'fr')['roles']['statement']
+        self.assertEqual(selected['state'], 'over-budget')
+        self.assertIsNone(selected['packet'])
+        self.assertEqual(node, before)
+
     def test_native_form_selection_requires_exact_schema_identity_and_carrier(self):
         from tos_access.knowledge import select_human_forms
         for schema, identity in [('tos_scholarly_composite_witness_v1', 'composite_id'),
@@ -2884,6 +2949,7 @@ class KnowledgeContractTests(unittest.TestCase):
                 "tos.knowledge.search",
                 "tos.knowledge.node.inspect",
                 "tos.knowledge.relation.inspect",
+                "tos.knowledge.temporal.compare",
                 "tos.knowledge.focus",
                 "tos.lens.open",
                 "tos.lens.compile",

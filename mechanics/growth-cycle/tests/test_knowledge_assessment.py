@@ -400,7 +400,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertEqual(before, [(ROOT / binding['path']).read_bytes() for binding in config['source_records']])
         self.assertFalse(list((path.parent / 'journal').iterdir()))
 
-    def assessed_form_fixture(self):
+    def assessed_form_fixture(self, *, source_copy=False):
         """Synthetic wording over a copied source; no real language calibration."""
         from assessment_journal import _source_records
         path, config, _, records, fixity = self.real_source_command_fixture()
@@ -415,6 +415,10 @@ class AssessmentPolicyTests(unittest.TestCase):
                 'language': 'ru', 'script': 'Cyrl', 'creator_id': 'fixture-writer', 'revises': None,
                 'bindings': {'context': {'record': source.ref, 'pointer': ''}},
                 'content': {'kind': 'freeform', 'text': 'Синтетическая формулировка для проверки механики.'}}
+        if source_copy:
+            from source_commands import prepare_metadata_change
+            form = prepare_metadata_change(source.payload, None, 'fixture-writer', form['form_id'],
+                                           'metadata.source-note')['form']
         form_path = root / config['source_records'][3]['path']
         form_path.write_text(json.dumps({'schema_version': 'tos_human_form_set_v1', 'subject': source.ref,
                                         'forms': [form], 'prior_forms': []}))
@@ -654,7 +658,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         snapshot = AssessedFormSnapshot(path, [self.subject.id])
         pending = snapshot.materialize(nodes)
         self.assertEqual(nodes, before)
-        self.assertEqual(pending[0]['properties']['human_forms'][0]['state'], 'needs-assessment')
+        self.assertEqual(pending[0]['properties']['human_forms'][0]['state'], 'needs-assessment', pending)
         describe = self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1',
                     'operation': 'describe', 'subject_id': self.subject.id})
         self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'append',
@@ -687,6 +691,45 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertEqual(select_human_forms(carrier, 'ru')['roles']['hover']['packet'], packet)
         self.assertNotIn(str(path), json.dumps(ready))
         self.assertNotIn(str(path.parent / 'journal'), json.dumps(ready))
+
+    def test_assessed_source_copy_graph_snapshot_requires_own_current_admission(self):
+        from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms
+        sys.path.insert(0, str(ROOT / 'access/src'))
+        from tos_access.knowledge import select_human_forms
+        path, config, form_path, source = self.assessed_form_fixture(source_copy=True)
+        package = json.loads(form_path.read_text())
+        ordinary = materialize_metadata_forms(source.payload, package, access_allowed=True)
+        self.assertEqual(ordinary[0]['state'], 'ready')
+        self.assertIsNone(ordinary[0]['admission'])
+        nodes = [{'node_id': 'fixture:source-copy', 'source_ref': config['source_records'][0]['path'],
+                  'source_sha256': source.ref['digest'].removeprefix('sha256:'),
+                  'properties': {'source_record': source.payload,
+                    'human_forms_source_ref': config['source_records'][1]['path'], 'human_forms': ordinary}}]
+        pending = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)
+        self.assertEqual(pending[0]['properties']['human_forms'][0]['state'], 'needs-assessment', pending)
+        described = self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1',
+            'operation': 'describe', 'subject_id': self.subject.id})
+        self.run_local(path, {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'append',
+            'subject_id': self.subject.id, 'expected_subject': self.subject.ref,
+            'expected_snapshot': described['owner_snapshot'], 'expected_revision': None,
+            'command_id': 'synthetic-source-copy-assessment', 'assessments': [self.review(profile='interpretation').assessment]})
+        before = form_path.read_bytes()
+        ready = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)[0]['properties']['human_forms'][0]
+        self.assertEqual(ready['derivation'], 'source-copy')
+        self.assertEqual(ready['display_text'], source.payload['notes'])
+        self.assertIn({'slot': 'owner:subject', 'binding': {'record': source.ref, 'pointer': ''},
+                       'value': source.payload}, ready['context'])
+        self.assertTrue(ready['admission']['can_use'])
+        carrier = {'content_revision': 'a' * 64, 'attributes': {**nodes[0]['properties'],
+            'human_forms': [ready], 'source_sha256': source.ref['digest'].removeprefix('sha256:')}}
+        self.assertEqual(select_human_forms(carrier)['roles']['hover']['packet'], ready)
+        self.assertEqual(form_path.read_bytes(), before)
+        self.assertIsNone(nodes[0]['properties']['human_forms'][0]['admission'])
+        config['authorities'][0]['payload']['state'] = 'revoked'
+        path.write_text(json.dumps(config))
+        denied = AssessedFormSnapshot(path, [self.subject.id]).materialize(nodes)[0]['properties']['human_forms'][0]
+        self.assertEqual(denied['state'], 'needs-assessment')
+        self.assertIsNone(denied['display_text'])
 
     def test_assessed_graph_snapshot_rejects_unmatched_inputs_and_never_mutates_on_failure(self):
         from source_witness_human_forms import AssessedFormSnapshot, materialize_metadata_forms

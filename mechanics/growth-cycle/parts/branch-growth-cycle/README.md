@@ -321,6 +321,11 @@ supply missing source dependencies. The complete subject is mandatory context
 for this assessed lane. Source-copy additionally resolves the actual Claim or
 metadata field catalogue: exact whole-field pointer, role and source-declared
 language/script must match, and all field-specific context stays mandatory.
+If that existing source-copy did not author a whole-subject binding, the owner
+adds exact `owner:subject` context only in the assessed materialization. Field
+guards remain required authored bindings; the extra context neither rewrites
+the source form nor replaces any of its previous dependencies. Freeform still
+requires its authored whole-subject binding. The complete packet remains bounded.
 The set's exact retained `prior_forms`, read within the
 same bounded source snapshot, support successor validation without treating
 them as current assessment targets. The source-only writer/metadata reader

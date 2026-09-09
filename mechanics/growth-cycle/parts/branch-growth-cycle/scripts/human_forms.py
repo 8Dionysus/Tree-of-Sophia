@@ -72,6 +72,7 @@ class FormScope:
     required_admissions: tuple[RequiredAdmission, ...] = ()
     require_current_assessment: bool = False
     subject_assessment: dict[str, Any] | None = None
+    owner_subject_context: bool = False
 
 
 @lru_cache(maxsize=8)
@@ -165,6 +166,9 @@ current quality context is owner-resolved, not a rewrite of authored bindings.
         return stop('invalid', 'form.schema')
     if scope.require_current_assessment and payload['content']['kind'] == 'template':
         return stop('invalid', 'form.assessed-template-outside-scope')
+    if (type(scope.owner_subject_context) is not bool or (scope.owner_subject_context
+            and (not scope.require_current_assessment or payload['content']['kind'] != 'source-copy'))):
+        return stop('invalid', 'form.owner-subject-context-outside-assessed-copy')
     if (payload['form_id'] != form.id or payload['form_version'] != form.version
             or payload['subject'] != scope.subject.ref or form.id == scope.subject.id
             or payload['creator_id'] != scope.maker_id):
@@ -261,7 +265,9 @@ current quality context is owner-resolved, not a rewrite of authored bindings.
             required_context.append(SourceBinding(current[source['record']['id']], source['pointer']))
         result['language_context'] = {'binding': scope.language_context.ref, 'value': metadata}
     owner_quality_context = scope.required_admissions if scope.require_current_assessment else ()
-    if len(required_context) + len(owner_quality_context) > 256:
+    owner_subject_context = scope.owner_subject_context and not any(
+        entry.ref == SourceBinding(scope.subject, '').ref for entry in required_context)
+    if len(required_context) + len(owner_quality_context) + int(owner_subject_context) > 256:
         return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
     context_bytes = subject_assessment_bytes
     if context_bytes > MAX_OUTPUT_BYTES:
@@ -275,6 +281,16 @@ current quality context is owner-resolved, not a rewrite of authored bindings.
         if context_bytes > MAX_OUTPUT_BYTES:
             return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
         result['context'].append(entry)
+    if owner_subject_context:
+        # Complete assessed-copy context is supplied by the source owner,
+        # not retroactively inserted into the stored form's binding history.
+        entry = {'slot': 'owner:subject', 'binding': SourceBinding(scope.subject, '').ref,
+                 'value': scope.subject.payload}
+        context_bytes += len(_canonical(entry).encode('utf-8'))
+        if context_bytes > MAX_OUTPUT_BYTES:
+            return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
+        result['context'].append(entry)
+        dependencies.append(scope.subject.ref)
     for index, dependency in enumerate(owner_quality_context):
         # ':' cannot occur in an authored binding slot. This current context
         # is supplied by the authenticated owner, never inserted into the form.

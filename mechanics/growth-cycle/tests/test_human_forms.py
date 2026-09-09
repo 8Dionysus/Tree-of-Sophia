@@ -168,6 +168,19 @@ class HumanFormTests(unittest.TestCase):
                 'limits': ['parent remains uncertain'], 'is_semantic_evaluation': False},
             'journal_revision': None, 'journal_batches': 0, 'historical_withdrawals': [],
             'form_admission_is_parent_endorsement': False}
+        full = self.render(**{**kwargs, 'scope': replace(scope, owner_subject_context=True)}, reviews=[review])
+        self.assertEqual(full['state'], 'ready')
+        self.assertIn({'slot': 'owner:subject', 'binding': SourceBinding(self.subject, '').ref,
+                       'value': self.subject.payload}, full['context'])
+        self.assertEqual(full['dependencies'].count(self.subject.ref), 1)
+        self.assertEqual(self.payload, before)
+        for invalid in (True, 'true', 1):
+            self.assertEqual(self.render(scope=replace(self.scope, owner_subject_context=invalid))['issues'],
+                             ['form.owner-subject-context-outside-assessed-copy'])
+        missing = copy.deepcopy(self.payload)
+        del missing['bindings']['negated']
+        self.assertEqual(self.render(payload=missing, **{**kwargs, 'scope': replace(scope, owner_subject_context=True)})['issues'],
+                         ['context.omitted'])
         qualified = self.render(**{**kwargs, 'scope': replace(scope, subject_assessment=parent)}, reviews=[review])
         self.assertEqual(qualified['state'], 'ready')
         self.assertTrue(qualified['admission']['can_use'])

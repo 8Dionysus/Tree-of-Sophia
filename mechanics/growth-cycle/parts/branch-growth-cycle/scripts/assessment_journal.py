@@ -744,7 +744,7 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
         field = source_copy_field(subject, body, catalog)
         if field is None:
             raise PermissionError('assessed source-copy requires an exact source-owned field and role')
-        required_context.extend(SourceBinding(subject, pointer) for pointer in field['context'] if pointer)
+        required_context = [SourceBinding(subject, pointer) for pointer in field['context']]
         source_languages = ((SourceBinding(subject, field['pointer']), field['language'], field['script']),)
     language = config['subjects'][form.id].get('form_language_context')
     language_binding = None
@@ -762,7 +762,8 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
                       context.languages, context.requested_use, access_allowed=context.access_allowed,
                       language_context=language_binding, required_sources=context.required_sources,
                       required_admissions=context.required_admissions, source_languages=source_languages,
-                      require_current_assessment=True, subject_assessment=subject_assessment)
+                      require_current_assessment=True, subject_assessment=subject_assessment,
+                      owner_subject_context=body['content']['kind'] == 'source-copy')
     return materialize_form(contract_root, form, scope,
                             [engine.records[identity] for identity in selected], prior_forms=prior,
                             engine=engine, trusted_history=history, now=now,
