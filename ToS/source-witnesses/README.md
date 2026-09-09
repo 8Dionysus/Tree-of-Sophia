@@ -148,6 +148,21 @@ reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
 object or claim identity.
 
+For an explicit source-first migration observation, run
+`python scripts/source_witness_projection_coverage.py --rows` from the repository.
+It verifies the public catalog against its current sources, enumerates every
+catalog-owned object and Claim (including carriers filtered out by one graph
+builder), and compares complete retained JSON fields in the ordinary normalized
+reader. Rows distinguish direct/adapted mapping, missing carriers, conflicting
+records and unresolved source return. The final summary alone confirms that
+enumeration completed; an interrupted or stale-input stream is incomplete.
+This is an offline diagnostic, not a query hot path, automatic repair or new
+source registry. It reports no source wording, private native inventory or
+payload. Exact JSON-field retention is separate from source-file byte formatting,
+semantic understanding, form quality and admission. Uncatalogued families and
+the rest of the ToS corpus remain outside this bounded report and require their
+own source routes; a missing carrier does not imply restricted access or falsity.
+
 A `Link` is a first-class observed route with provider, interface kind,
 technical access status, observation timestamp, provenance event, and a stable
 ToS ID independent of the mutable URL. Its association with a Work or another
