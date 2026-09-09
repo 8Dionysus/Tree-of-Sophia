@@ -172,7 +172,7 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     uiText(descriptionNote,descriptionNote.hidden?'':formLanguageNote(description));
     q('.sc-description').hidden=Boolean(selection);forms.replaceChildren(renderHumanForms(raw),renderEssentialContext(essentialContext(raw)));
     const languages=[...new Set(['ru','en','es',...formLanguages(raw),cardLanguage])];
-    language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;option.textContent=formLabel(value);return option;}));language.value=cardLanguage;
+    language.replaceChildren(...languages.map(value=>{const option=document.createElement('option');option.value=value;uiText(option,formLabel(value));return option;}));language.value=cardLanguage;
     uiAttribute(q('.sc-inspector'), 'aria-label', kind==='node'?ui("Выбранный узел"):ui("Выбранное отношение"));
     root.dataset.inspectorKind=kind;root.dataset.inspectorId=raw.id;
     const relationships=kind==='node'?port.neighbors(raw.id):[raw];

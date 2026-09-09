@@ -2,7 +2,7 @@ import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {essentialContext} from './record-context.mjs';
 import {materialDisplayForm} from './knowledge-client.mjs';
-import {readingSnapshot,readingDocument,formLanguageNote} from './reader-model.mjs';
+import {readingSnapshot,readingDocument,formLanguageNote,formLabel} from './reader-model.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const content='b'.repeat(64),revision='a'.repeat(64);
@@ -15,10 +15,12 @@ const raw=()=>({id:'opaque:version:old',kind_id:'arbitrary-future-kind',content_
 
 test('language annotations follow interface switching while the supplied text and actual language remain fixed',()=>{
   const form={text:'Старая запись',key:'default',lang:'ru',fallback:true},before=structuredClone(form);
-  const note=formLanguageNote(form),labels=[];
-  try{for(const language of ['ru','en','es']){setUiLanguage(language);labels.push(String(note));}}
+  const note=formLanguageNote(form),labels=[],headings=[],forms=[],document=readingDocument(readingSnapshot({match:raw(),packet:{source_revision:revision}},'node'),'en'),label=formLabel('original');
+  try{for(const language of ['ru','en','es']){setUiLanguage(language);labels.push(String(note));headings.push(String(document.blocks[0].title));forms.push(String(label));}}
   finally{setUiLanguage('ru');}
   assert.equal(new Set(labels).size,3);assert.match(labels[0],/Выбранная форма/);assert.match(labels[1],/The selected form/);
+  assert.equal(new Set(headings).size,3);assert.equal(new Set(forms).size,3);assert.equal(document.blocks[0].form.text,'Старая запись');
+  assert.equal(String(formLabel('toString')),'toString');assert.equal(String(formLabel('zh-Hant')),'zh-Hant');
   assert.deepEqual(form,before);
 });
 

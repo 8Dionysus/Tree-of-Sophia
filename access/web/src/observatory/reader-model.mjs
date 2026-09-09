@@ -1,4 +1,4 @@
-import {t,uiComputed} from './ui-i18n.mjs';
+import {t,ui,uiComputed} from './ui-i18n.mjs';
 import {ContractError,RequestSlots,RequestError,RevisionError,checkRevision,displayTitleForm,materialDisplayForm,claimMaterialReference,materialVersions} from './knowledge-client.mjs';
 import {essentialContext} from './record-context.mjs';
 import {displayForm as readingForm,displayLanguageKey as languageKey} from './display-language.mjs';
@@ -10,7 +10,10 @@ const FORM_ROLES_WITH_EXACT=selection=>FORM_ROLES.filter(role=>selection.roles[r
   &&selection.roles[role]?.reason==='inspect-exact-form'&&selection.roles[role]?.form);
 export const readingKey=(kind,id)=>JSON.stringify([kind,id]);
 export function formLabel(key){
-  return ({ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")})[key]||key;
+  return uiComputed(()=>{
+    const labels={ru:t("Русский"),en:'English',es:'Español',auto:t('Автоматически'),original:t("Исходная форма"),default:t("Форма по умолчанию")};
+    return Object.hasOwn(labels,key)?labels[key]:String(key??'');
+  });
 }
 export function formLanguageNote(form){
   return uiComputed(()=>(form.fallback?t('Выбранная форма отсутствует. Показана: '):t('Показана: '))
@@ -69,16 +72,37 @@ export function readingDocument(snapshot,language='ru'){
   const blocks=[];
   const humanForms=validateHumanForms(raw);
   if(!humanForms){
-    if(kind==='relation')blocks.push({id:'statement',title:t("Формулировка связи"),form:materialDisplayForm(raw,'statement',language)});
-    blocks.push({id:'description',title:kind==='node'?t("Описание"):t("Пояснение"),state,
+    if(kind==='relation')blocks.push({id:'statement',title:ui("Формулировка связи"),form:materialDisplayForm(raw,'statement',language)});
+    blocks.push({id:'description',title:kind==='node'?ui("Описание"):ui("Пояснение"),state,
       form:state==='missing'?null:materialDisplayForm(raw,kind==='node'?'summary':'explanation',language)});
   }
   return {title:readingTitle(raw,language),claimContextUnavailable:Boolean(snapshot.claimContextUnavailable),
     kind:kind==='node'?materialDisplayForm(raw,'kind_label',language):null,blocks,humanForms,
     essentialContext:snapshot.essentialContext||essentialContext(raw),
-    participants:kind==='relation'?[[t("От"),raw.from_id],[t("К"),raw.to_id]].map(([role,id])=>({id,role,
+    participants:kind==='relation'?[[ui("От"),raw.from_id],[ui("К"),raw.to_id]].map(([role,id])=>({id,role,
       form:readingTitle(snapshot.endpoints.find(node=>node.id===id),language)})):[],
     sourceRefs:[...raw.source_refs],posture:raw.epistemic||{}};
+}
+
+function readingFailure(entry){
+  if(!entry.error)return null;
+  switch(entry.failure){
+    case 'revision':return t("Версия материала изменилась. Обновите материал.");
+    case 'contract':return t("Не удалось подготовить материал для чтения. Обновите материал.");
+    case 'restricted':return t("Доступ к материалу ограничен.");
+    case 'unavailable':return t("Материал пока недоступен.");
+    case 'load':return t("Загрузка не удалась. Повторите попытку.");
+    default:return null;
+  }
+}
+export function readingStatus(entry,sceneRevision){
+  // Local status follows the interface language. An error supplied by the
+  // client stays verbatim, even if it happens to match a translated UI label.
+  const mismatch=Boolean(entry.snapshot&&sceneRevision&&entry.sourceRevision!==sceneRevision);
+  return uiComputed(()=>[entry.loading?t("Обновляю материал…"):null,readingFailure(entry),entry.error,
+    entry.changed?t("Данные изменились: чтение начато с начала актуального материала."):null,
+    mismatch?t("Материал и сцена относятся к разным снимкам."):null,
+    entry.snapshot&&entry.error?t("Показан ранее закреплённый материал."):null].filter(Boolean).join(' '));
 }
 
 // Source copies and graph bookmarks stay in page memory. Durable reading uses
@@ -88,7 +112,7 @@ export function createReadingShelf({client,onChange=()=>{}}){
   const update=(key,patch)=>{if(items.has(key)){items.set(key,{...items.get(key),...patch});onChange();}};
   async function load(key,latest=false){
     const entry=items.get(key);if(!entry)return;
-    update(key,{loading:true,error:null});
+    update(key,{loading:true,error:null,failure:null,retryable:false,retryLatest:latest});
     try{
       const language=entry.preferred==='default'?'auto':entry.preferred||'ru';
       const response=await requests.run(key,signal=>entry.claimReference
@@ -105,7 +129,9 @@ export function createReadingShelf({client,onChange=()=>{}}){
         changed:changed||entry.changed});
     }catch(error){
       const unavailable=error instanceof FormContractError||error instanceof ContractError||error instanceof RevisionError||error instanceof RequestError&&[403,404,410].includes(error.status);
-      update(key,{loading:false,error:error.message||t("Материал не удалось загрузить."),
+      const failure=error instanceof RevisionError?'revision':error instanceof FormContractError||error instanceof ContractError?'contract'
+        :error instanceof RequestError&&error.status===403?'restricted':error instanceof RequestError&&[404,410].includes(error.status)?'unavailable':'load';
+      update(key,{loading:false,error:error.message||uiComputed(()=>t("Материал не удалось загрузить.")),failure,retryable:!unavailable,
         ...(unavailable?{snapshot:null,bookmark:null}:{} )});
     }
   }
@@ -130,6 +156,9 @@ export function createReadingShelf({client,onChange=()=>{}}){
       onChange();void load(key);return {key,existing:Boolean(existing)};
     },
     refresh:key=>load(key,true),
+    // A transient retry preserves the failed request's exact/current intent;
+    // obtaining a newer version still belongs to the explicit refresh action.
+    retry(key){const entry=items.get(key);return entry?.retryable?load(key,entry.retryLatest):Promise.resolve();},
     language(key,preferred){update(key,{preferred});return load(key);},
     restore(references){
       requests.cancelAll();items.clear();
@@ -139,7 +168,7 @@ export function createReadingShelf({client,onChange=()=>{}}){
       onChange();for(const key of items.keys())void load(key,true);
     },
     remove(key){requests.cancel(key);items.delete(key);onChange();},
-    suspend(){requests.cancelAll();for(const [key,entry]of items)if(entry.loading)items.set(key,{...entry,loading:false,error:t("Загрузка прервана. Обновите материал, чтобы продолжить.")});},
+    suspend(){requests.cancelAll();for(const [key,entry]of items)if(entry.loading)items.set(key,{...entry,loading:false,retryable:true,error:uiComputed(()=>t("Загрузка прервана. Обновите материал, чтобы продолжить."))});},
     dispose(){requests.cancelAll();items.clear();},
   };
 }

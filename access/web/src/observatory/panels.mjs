@@ -6,6 +6,14 @@ import {DEFAULT_INTERFACE,INTERFACE_KEY,readInterface,validateInterface} from '.
 // endpoints or actions, and never assign a camera pose.
 export function createPanelHost(root,scene,{onUserAction=()=>{}}={}){
   const panels=new Map(),tools=new Map(),trail=[];let preferences=structuredClone(DEFAULT_INTERFACE),storage=null,storageError='',returning=false;
+  const toolBar=root.querySelector('.sc-header-actions');
+  function revealToolFocus(target=document.activeElement){
+    const control=target?.closest?.('.sc-control');if(!control||!toolBar.contains(control))return;
+    const bar=toolBar.getBoundingClientRect(),box=control.getBoundingClientRect();
+    const left=bar.left+toolBar.clientLeft,right=left+toolBar.clientWidth;
+    toolBar.scrollLeft+=box.left<left?box.left-left:box.right>right?box.right-right:0;
+  }
+  toolBar.addEventListener('focusin',event=>revealToolFocus(event.target));
   try{storage=localStorage;preferences=readInterface(storage);}catch(error){storageError=error.message;}
   const key=()=>JSON.stringify([scene.port.packet?.source_revision,scene.port.packet?.fingerprint,scene.port.selection]);
   const title=id=>id==='inspector'?ui("К карточке"):({evidence:ui("К основаниям"),workspace:ui("К источникам"),navigation:ui("К маршруту"),builder:ui("К линзе"),studio:ui("К рабочему месту"),reader:ui("К чтению"),history:ui("К истории"),settings:ui("К настройкам")})[id]||ui("Назад");
@@ -24,7 +32,7 @@ export function createPanelHost(root,scene,{onUserAction=()=>{}}={}){
   const geometry=createPanelGeometry(root,{preferences:()=>preferences,onUserAction,
     change(delta,persist=true){preferences=validateInterface({...preferences,...delta});if(persist)save();},
     invalidate(){scene.port.cardChanged();scene.invalidate();}});
-  const sizes=new ResizeObserver(()=>{geometry.refresh();});
+  const sizes=new ResizeObserver(()=>{geometry.refresh();revealToolFocus();});sizes.observe(toolBar);
   const styleSize=id=>geometry.apply(id);
   function back(){
     onUserAction();const stamp=key();let previous;while(trail.length){const candidate=trail.pop();if(candidate.key===stamp&&candidate.id!==current()){previous=candidate;break;}}

@@ -32,6 +32,17 @@ must reach the return button, then one activation must reopen both exact pins
 and move focus into reading. Run with the inspector on the left and at a narrow
 viewport. This catches covered controls that a programmatic click alone misses.
 
+The same fixture includes checks for complete readable context across RU/EN/ES,
+keyboard and focus continuity with two loaded pins, and recovery of the exact
+reading position after a temporary access refusal. Use long material and the
+normal connection for recovery. The removal check deliberately removes the
+active **fixture** pin and verifies focus on the remaining one. The header check
+focuses each visible tool and checks three hit points, including tools reached
+by horizontal scrolling. Native keyboard/pointer checks complement these DOM
+checks. `?scenario=context` selects artificial required context; `?stage=1`
+hides the development controls for viewport measurements. Neither is a
+production entry or source-authority claim.
+
 `/static/fixtures/lens.html` also exercises search, capability-bound conditions,
 context and returns to paired reading at either 6 or 40 nodes. Its optional
 ten-minute probe keeps bounded frame/event histograms and at most 121 samples.
@@ -92,6 +103,15 @@ CSP is required.
   Record context follows the inspected response's `essential_context_pointers`
   in both the inspector and pinned reading. Delivered context retains unknown
   fields and explicit nulls; missing pointers produce a visible gap. The
+  reader presents this context as fields, paragraphs and ordered lists. Only
+  recognized field names receive interface labels; supplied values retain
+  their wording and order. Empty values are distinguished, and each context
+  keeps an expandable exact JSON copy. Numeric context-position anchors carry
+  no source wording into durable browser storage. Focus follows the active
+  comparison column through narrow tabs, tool handoffs and removal. A transient
+  retry repeats the failed request's version intent; explicit refresh remains
+  the route to a newer snapshot. Local status messages follow RU/EN/ES while
+  original error details remain verbatim. The
   response's version-bound display selection owns the actual language of each
   selected field, including a known language behind `default` or `original`.
   This compares supplied material side by side; it does not generate semantic

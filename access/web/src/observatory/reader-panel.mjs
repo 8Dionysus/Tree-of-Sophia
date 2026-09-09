@@ -1,6 +1,6 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiNode,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,formLabel,formLanguageNote} from './reader-model.mjs';
+import {createReadingShelf,readingDocument,readingLanguages,readingKey,readingPositionKey,readingStatus,formLabel,formLanguageNote} from './reader-model.mjs';
 import {renderHumanForms,renderClaimContext,renderEssentialContext} from './human-forms-view.mjs';
 import './human-forms.css';
 import {READING_KEY,readReading,emptyReading,validateReading} from './reading-resume.mjs';
@@ -28,6 +28,8 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   // Keep the restored-reading action in the header, outside movable windows.
   uiChildren(root.querySelector('.sc-header-actions'), "prepend", resume);
   const panel=el('section','','sc-panel sc-reader');panel.hidden=true;uiAttribute(panel, 'aria-label', ui("Чтение и сопоставление"));
+  panel.id='sc-reader-'+crypto.randomUUID();
+  for(const control of [opener,resume]){uiAttribute(control, 'aria-controls', panel.id);uiAttribute(control, 'aria-expanded', 'false');}
   uiHTML(panel, '<div class="sc-panel-top"><span class="sc-eyebrow">ЧТЕНИЕ</span><button type="button" class="sc-icon sc-reader-close" aria-label="Закрыть чтение"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="sc-reader-heading"><h3 tabindex="-1">Удержать мысль</h3></div><div class="sc-reader-toolbar"></div><div class="sc-reader-tabs" role="tablist" aria-label="Закреплённые материалы"></div><div class="sc-reader-columns"></div><p class="sc-reader-notice" role="status"></p>');
   uiChildren(root, "append", panel);
   const columns=panel.querySelector('.sc-reader-columns'),tabs=panel.querySelector('.sc-reader-tabs'),status=panel.querySelector('.sc-reader-notice');
@@ -60,12 +62,37 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   }
   function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(persist,500);}
   function restore(){for(const view of views.values())if(!view.article.hidden)view.reading.restore();}
-  panels.register('reader',panel,()=>{capture();uiAttribute(opener, 'aria-expanded', 'false');});
-  panels.configure('reader',{onResume:()=>{uiAttribute(opener, 'aria-expanded', 'true');render();}});
+  function revealReading(view){
+    if(!view||panel.hidden||view.article.hidden||view.article.scrollHeight<=view.article.clientHeight)return;
+    // Short windows may scroll their controls around the reading viewport.
+    // Reveal that viewport without changing its own exact reading position.
+    const article=view.article,box=view.body.getBoundingClientRect();
+    const top=article.getBoundingClientRect().top+article.clientTop,bottom=top+article.clientHeight;
+    const delta=box.top<top?box.top-top:box.bottom>bottom?Math.min(box.top-top,box.bottom-bottom):0;
+    if(delta)article.scrollTop+=delta;
+  }
+  function focusReading(key=activeKey,preferTab=false){
+    const view=views.get(key),target=view&&!view.article.hidden?(preferTab&&!tabs.hidden?view.tab:view.body)
+      :!add.disabled&&!add.closest('[hidden]')?add:panel.querySelector('h3');
+    target?.focus({preventScroll:true});
+    if(target===view?.body)revealReading(view);
+  }
+  const readingFocus=()=>panel.contains(document.activeElement)?document.activeElement:null;
+  function retainFocus(focused){
+    if(focused&&!panel.hidden&&(!focused.isConnected||focused.disabled||focused.closest('[hidden]')))focusReading();
+    else{const view=views.get(activeKey);if(view?.body.contains(focused))revealReading(view);}
+  }
+  function rememberActive(key){
+    if(activeKey===key||!entryFor(key))return;
+    activeKey=key;layout();scheduleSave();
+  }
+  function expanded(value){for(const control of [opener,resume])uiAttribute(control, 'aria-expanded', String(value));}
+  panels.register('reader',panel,()=>{capture();expanded(false);});
+  panels.configure('reader',{onResume:()=>{expanded(true);render();}});
   panels.addTool('reader',{title:ui("Чтение и сопоставление"),opener,launch:()=>show()});
   function show(){
-    onUserAction();returnFocus=document.activeElement;panels.open('reader');uiAttribute(opener, 'aria-expanded', 'true');render();
-    (views.get(activeKey)?.body||panel.querySelector('h3')).focus();
+    onUserAction();returnFocus=document.activeElement;panels.open('reader');expanded(true);render();
+    focusReading();
   }
   function close(){
     onUserAction();panels.close('reader');
@@ -84,10 +111,9 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     show();
   }
   function remove(key){
-    onUserAction();capture();shelf.remove(key);notice=ui("Материал убран из чтения.");render();
-    (views.get(activeKey)?.tab||add).focus();
+    onUserAction();capture();notice=ui("Материал убран из чтения.");shelf.remove(key);focusReading(activeKey,true);
   }
-  function switchTo(key){onUserAction();capture();activeKey=key;layout();restore();scheduleSave();}
+  function switchTo(key){onUserAction();capture();activeKey=key;layout();restore();focusReading(key,true);scheduleSave();}
   function returnTo(key){
     const entry=entryFor(key);if(!entry?.bookmark)return;
     if(entry.bookmark.graph.packet.source_revision!==scene.port.packet?.source_revision){notice=ui("Данные изменились. Откройте актуальный материал в пространстве.");render();return;}
@@ -105,12 +131,14 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
   }
   function makeView(entry){
     const key=entry.key,article=el('article','','sc-reader-article');article.dataset.readingId=entry.id;
+    article.addEventListener('focusin',()=>rememberActive(key));
+    article.addEventListener('pointerdown',()=>rememberActive(key));
     const head=el('div','','sc-reader-item-head'),title=el('h4'),kind=el('p','','sc-reader-kind');
     const removeButton=button(ui("Убрать"),()=>remove(key),'sc-reader-remove');
     uiChildren(head, "append", kind, title, removeButton);
     const controls=el('div','','sc-reader-item-controls'),language=el('select');uiAttribute(language, 'aria-label', ui("Язык или форма материала"));
     const languageLabel=el('label',ui("Форма"));uiChildren(languageLabel, "append", language);
-    const refresh=button(ui("Обновить"),()=>{onUserAction();void shelf.refresh(key);});uiChildren(controls, "append", languageLabel, refresh);
+    const refresh=button(ui("Обновить"),()=>{onUserAction();capture();void(entryFor(key)?.retryable?shelf.retry(key):shelf.refresh(key));});uiChildren(controls, "append", languageLabel, refresh);
     const state=el('p','','sc-reader-state');uiAttribute(state, 'role', 'status');
     const body=el('div','','sc-reader-body');body.tabIndex=0;
     const actions=el('div','','sc-reader-actions');
@@ -120,11 +148,13 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     uiChildren(actions, "append", back, open, evidence, sources);uiChildren(article, "append", head, controls, state, body, actions);
     const tab=button('',()=>switchTo(key));uiAttribute(tab, 'role', 'tab');tab.id='sc-reader-tab-'+crypto.randomUUID();
     article.id='sc-reader-item-'+crypto.randomUUID();uiAttribute(tab, 'aria-controls', article.id);
+    title.id=article.id+'-title';
     tab.addEventListener('keydown',event=>{
       if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
       event.preventDefault();const entries=shelf.entries,index=entries.findIndex(item=>item.key===key);
-      const next=entries[event.key==='Home'?0:event.key==='End'?entries.length-1:(index+1)%entries.length];
-      switchTo(next.key);views.get(next.key).tab.focus();
+      const step=event.key==='ArrowLeft'?-1:1;
+      const next=entries[event.key==='Home'?0:event.key==='End'?entries.length-1:(index+step+entries.length)%entries.length];
+      switchTo(next.key);
     });
     const remembered=restoredViews.get(key);restoredViews.delete(key);
     const view={article,head,title,kind,language,refresh,state,body,back,open,evidence,sources,tab,reading:createReadingMemory(body,{limit:8,onCapture:scheduleSave}),preferred:remembered?.preferred||entry.preferred||'ru',snapshot:null};
@@ -187,37 +217,41 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     uiChildren(technical, "append", details);uiChildren(view.body, "append", technical);view.snapshot=snapshot;
   }
   function layout(){
-    const entries=shelf.entries,twoColumns=wide&&entries.length===2;
+    const focused=readingFocus(),entries=shelf.entries,twoColumns=wide&&entries.length===2;
     panel.dataset.columns=twoColumns?'2':'1';tabs.hidden=entries.length<2||twoColumns;
     for(const entry of entries){const view=views.get(entry.key),selected=entry.key===activeKey;
       view.article.hidden=!twoColumns&&!selected;uiAttribute(view.tab, 'aria-selected', String(selected));view.tab.tabIndex=selected?0:-1;
       if(!tabs.hidden){uiAttribute(view.article, 'role', 'tabpanel');uiAttribute(view.article, 'aria-labelledby', view.tab.id);}
-      else{view.article.removeAttribute('role');view.article.removeAttribute('aria-labelledby');}
+      else{view.article.removeAttribute('role');uiAttribute(view.article, 'aria-labelledby', view.title.id);}
     }
+    retainFocus(focused);
     scene.invalidate();
   }
   function render(){
+    const focused=readingFocus();
     if(!panel.hidden)wide=panel.clientWidth>=580;
     const entries=shelf.entries;
     for(const [key,view]of views)if(!entries.some(entry=>entry.key===key)){view.article.remove();view.tab.remove();views.delete(key);}
     if(!entries.some(entry=>entry.key===activeKey))activeKey=entries[0]?.key||null;
     for(const entry of entries){
       let view=views.get(entry.key);if(!view){view=makeView(entry);views.set(entry.key,view);}
+      // Loading/error placeholders must not replace the last exact reading
+      // position. A still-readable copy can keep capturing while refreshed.
+      if(!entry.snapshot)view.reading.enter(null);
+      uiAttribute(view.body, 'aria-busy', String(entry.loading&&!entry.snapshot));
       if(entry.snapshot&&view.snapshot!==entry.snapshot){
         const languages=readingLanguages(entry.snapshot);uiChildren(view.language, "replaceChildren", ...languages.map(key=>{const option=el('option',formLabel(key));option.value=key;return option;}));
         if(!languages.includes(view.preferred)){const option=el('option',ui("{0} — недоступна", [formLabel(view.preferred)]));option.value=view.preferred;uiChildren(view.language, "prepend", option);}
         view.language.value=view.preferred;renderDocument(view,entry);
       }else if(!entry.snapshot){
         view.snapshot=null;view.titleText=uiText(view.title, entry.title?.text||ui("Материал"));uiChildren(view.body, "replaceChildren", el('p',entry.loading?ui("Получаю материал…"):ui("Материал пока недоступен."),'sc-reader-gap'));
+        if(entry.title?.lang)view.title.lang=entry.title.lang;else view.title.removeAttribute('lang');
       }
       uiText(view.tab, view.titleText);uiAttribute(view.body, 'aria-label', ui("Чтение: {0}", [view.titleText]));
       view.language.disabled=!entry.snapshot;view.refresh.disabled=entry.loading;
+      uiText(view.refresh, entry.retryable?ui("Повторить загрузку"):ui("Обновить"));
       const mismatch=Boolean(entry.snapshot&&shelf.sceneRevision&&entry.sourceRevision!==shelf.sceneRevision);
-      const states=[entry.loading?ui("Обновляю материал…"):null,entry.error,
-        entry.changed?ui("Данные изменились: чтение начато с начала актуального материала."):null,
-        mismatch?ui("Материал и сцена относятся к разным снимкам."):null,
-        entry.snapshot&&entry.error?ui("Показан ранее закреплённый материал."):null];
-      uiText(view.state, states.filter(Boolean).join(' '));view.state.hidden=!view.state.textContent;
+      uiText(view.state, readingStatus(entry,shelf.sceneRevision));view.state.hidden=!view.state.textContent;
       view.back.hidden=!entry.bookmark;view.back.disabled=entry.bookmark?.graph?.packet?.source_revision!==scene.port.packet?.source_revision;
       view.open.disabled=!entry.snapshot||mismatch;view.evidence.disabled=!entry.snapshot||mismatch;view.sources.disabled=!entry.snapshot||mismatch;
       view.article.dataset.snapshot=entry.snapshot?.sourceRevision||'';
@@ -231,7 +265,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     uiAttribute(resume, 'aria-label', resumeLabel);uiText(resume.querySelector('span'), resumeLabel);
     uiText(resume.querySelector('.sc-reader-resume-count'), String(entries.length));
     panel.dataset.count=String(entries.length);uiText(status, storageError||notice||ui("Пара материалов, формы и позиции чтения сохраняются в этом браузере."));status.dataset.important=String(Boolean(storageError));
-    layout();restore();scheduleSave();
+    layout();restore();retainFocus(focused);scheduleSave();
   }
   const resize=new ResizeObserver(()=>{
     if(panel.hidden)return;
@@ -240,6 +274,7 @@ export function createReaderPanel(root,scene,panels,{data:{client},onUserAction=
     // Reflow already happened by this callback. Keep the reading anchor saved
     // before the width changed instead of capturing the reflowed scroll offset.
     restore();
+    retainFocus(readingFocus());
   });resize.observe(panel);
   root.addEventListener('sophia-read',event=>pinSelection({...event.detail,sourceRevision:scene.port.packet?.source_revision}));
   root.addEventListener('sophia-workspace-replacing',()=>{writable=false;clearTimeout(saveTimer);shelf.suspend();});

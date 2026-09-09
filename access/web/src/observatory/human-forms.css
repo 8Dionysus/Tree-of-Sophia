@@ -21,3 +21,19 @@
 .sc-assertion-context .sc-form-values{padding-left:0}
 .sc-form-metadata{font-size:.85em;margin:8px 0}
 .sc-form-metadata summary{cursor:pointer}
+.sc-context-data{min-width:0;max-width:100%;font-size:13px;line-height:1.65}
+.sc-context-fields{margin:0}
+.sc-context-field{margin:12px 0}
+.sc-context-field>dt{font:500 11px/1.6 system-ui,sans-serif;color:var(--sc-muted,#9fb0c5);overflow-wrap:anywhere}
+.sc-context-field>dd{margin:3px 0 0;min-width:0}
+.sc-context-field .sc-context-fields{border-left:1px solid var(--sc-border,#374355);padding-left:9px}
+.sc-context-field .sc-context-field .sc-context-field .sc-context-fields{border-left:0;padding-left:0}
+.sc-context-list{padding-left:20px;margin:4px 0}
+.sc-context-list>li{padding-left:2px;margin:8px 0}
+.sc-context-list>li::marker{color:var(--sc-muted,#9fb0c5);font-size:10px}
+.sc-context-value{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;color:var(--sc-text,#dddcd6)}
+.sc-context-value[data-value-type=null],.sc-context-value[data-value-type=array],.sc-context-value[data-value-type=object]{font-style:italic;color:var(--sc-muted,#9fb0c5)}
+.sc-context-exact,.sc-context-location{font:11px/1.6 system-ui,sans-serif;margin:10px 0;max-width:100%}
+.sc-context-exact>summary,.sc-context-location>summary{cursor:pointer;padding-block:7px;color:var(--sc-accent,#cdb790)}
+.sc-context-exact>.sc-form-json{font-family:ui-monospace,monospace;font-size:10px}
+.sc-context-data :is(dt,dd,li,pre){overflow-wrap:anywhere}

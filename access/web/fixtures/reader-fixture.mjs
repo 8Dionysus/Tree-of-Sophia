@@ -4,18 +4,29 @@ import {mountObservatory} from '../src/observatory/app.mjs';
 import {createObservatoryData} from '../src/observatory/data-services.mjs';
 import {focusSpec} from '../src/observatory/knowledge-client.mjs';
 import {checkReadingResume} from './reading-resume-check.mjs';
+import {checkReadableContext} from './context-check.mjs';
+import {checkReadingContinuity,checkReadingRecovery,checkReadingRemoval,checkHeaderNavigation} from './reader-continuity-check.mjs';
 
-let generation=1,mode='long';
+const scenarios=['long','languages','context','missing','dense'],options=new URLSearchParams(location.search);
+let mode=scenarios.includes(options.get('scenario'))?options.get('scenario'):'long',generation=1+scenarios.indexOf(mode)*1000;
+document.querySelector('#fixture-case').value=mode;
+document.querySelector('.fixture-controls').hidden=options.get('stage')==='1';
 const revision=()=>generation.toString(16).padStart(64,'0');
 const localized=(ru,extra={})=>({ru,default:ru,en:null,original:null,...extra});
 const paragraph='Это искусственный материал для проверки чтения. Формулировка содержит оговорку: возможно, два прочтения различаются; отсутствие свидетельства не означает отрицание. Текст не является историческим утверждением.';
 function record(index){
   const summary=mode==='languages'?{default:'Texte de vérification sans langue déclarée.',ru:null,en:'This is a test passage, not a historical assertion.',original:'λόγος — δοκιμή','ar':'هذا نص اختبار للقراءة، وليس ادعاءً تاريخياً.','zh-Hant':'這是一段用於閱讀測試的文字。'}:
-    localized(Array.from({length:36},(_,i)=>`Абзац ${i+1}. ${paragraph}`).join('\n\n'));
-  return {id:'fixture:subject:'+index,kind_id:'work',content_revision:(generation+index+10).toString(16).padStart(64,'0'),
+    localized(Array.from({length:mode==='context'?1:36},(_,i)=>`Абзац ${i+1}. ${paragraph}`).join('\n\n'));
+  const title=localized(index<2?`Материал ${index?'Б':'А'} · проверка чтения`:`Проверочный узел ${index+1}`),kindLabel=localized('Проверочный материал');
+  const contentRevision=(generation+index+10).toString(16).padStart(64,'0');
+  return {id:'fixture:subject:'+index,kind_id:'work',content_revision:contentRevision,
     native_id:'fixture-'+index,source_graph:'fixture',source_refs:['Проверочный сценарий интерфейса; не источник Древа'],
-    display:{title:localized(index<2?`Материал ${index?'Б':'А'} · проверка чтения`:`Проверочный узел ${index+1}`),kind_label:localized('Проверочный материал'),
+    display:{title,kind_label:kindLabel,
       summary,summary_state:mode==='missing'?'missing':'authored',provenance:{}},
+    ...(mode==='context'?{display_selection:{schema_version:'tos_display_selection_v1',content_revision:contentRevision,
+      fields:Object.fromEntries(Object.entries({title,kind_label:kindLabel,summary}).map(([field,texts])=>[field,{requested_language:'ru',selected_key:'ru',actual_language:'ru',text:texts.ru,reason:'exact-language',available_keys:['ru','default'],content_available:true}])),essential_context_pointers:['/attributes/context','/attributes/missing']},
+      attributes:{context:{notes:paragraph,source_refs:['fixture:source'],constraints:{scope:'Проверочный сценарий',unknown:null,negated:false},
+        relations:[{source_ref:'fixture:subject:1',status:'unreviewed'}],unknown_field:['Сохранён неизвестный элемент',0,true,'',[],{}]}}}:{}),
     epistemic:{authority_layer:null,review_posture:index%2?'disputed':'unreviewed',canon_status:null,confidence:null}};
 }
 function graph(){
@@ -65,13 +76,27 @@ async function load(){
   try{const packet=await data.client.compile(focusSpec('fixture:subject:0'));scene.port.setGraph(packet);root.querySelector('.sc-context h2').textContent='Проверка чтения';}
   catch(error){document.querySelector('#fixture-metrics').textContent=error.message;}
 }
-document.querySelector('#fixture-reload').addEventListener('click',()=>{mode=document.querySelector('#fixture-case').value;generation++;void load();});
+document.querySelector('#fixture-reload').addEventListener('click',()=>{mode=document.querySelector('#fixture-case').value;generation=1+scenarios.indexOf(mode)*1000;void load();});
 document.querySelector('#fixture-revision').addEventListener('click',()=>{generation++;void load();});
 document.querySelector('#fixture-resume-check').addEventListener('click',()=>{
   const output=document.querySelector('#fixture-metrics');
   try{output.textContent=JSON.stringify(checkReadingResume(root));}
   catch(error){output.textContent='FAIL: '+error.message;}
 });
+document.querySelector('#fixture-context-check').addEventListener('click',()=>{
+  const output=document.querySelector('#fixture-metrics');
+  try{output.textContent=JSON.stringify(checkReadableContext(root));}
+  catch(error){output.textContent='FAIL: '+error.message;}
+});
+for(const [id,check] of [['continuity',checkReadingContinuity],['recovery',checkReadingRecovery],['removal',checkReadingRemoval],['header',checkHeaderNavigation]]){
+  document.querySelector('#fixture-'+id+'-check').addEventListener('click',async event=>{
+    const output=document.querySelector('#fixture-metrics');event.currentTarget.disabled=true;
+    const action=event.currentTarget;
+    try{output.textContent=JSON.stringify(await check(root));}
+    catch(error){output.textContent='FAIL: '+error.message;}
+    finally{action.disabled=false;}
+  });
+}
 document.querySelector('#fixture-measure').addEventListener('click',()=>{
   const output=document.querySelector('#fixture-metrics'),times=[],start=performance.now();let previous=start;
   output.textContent='Измеряю…';

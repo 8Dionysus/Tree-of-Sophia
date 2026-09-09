@@ -1,5 +1,6 @@
 import {ui,uiText} from './ui-i18n.mjs';
 import {formView,inspectExactHumanForms} from './human-forms.mjs';
+import {renderContextData} from './context-view.mjs';
 
 const el=(tag,value='',className='')=>{const node=document.createElement(tag);node.className=className;uiText(node,value);return node;};
 const roleLabels={name:'Название',caption:'Подпись',hover:'Краткий контекст',statement:'Формулировка',grounds:'Основания',history:'История',technical:'Точные сведения'};
@@ -56,7 +57,7 @@ function exactDetails(title,value,anchor,className='sc-form-exact'){
 function appendContextEntry(section,entry,anchorPrefix){
   const context=el('section','','sc-form-context');context.dataset.contextSlot=entry.slot;
   const heading=el('p',entry.slot,'sc-form-context-slot');heading.dataset.readingAnchor=`${anchorPrefix}:slot`;context.append(heading);
-  context.append(readableValue(entry.value,`${anchorPrefix}:value`));
+  context.append(renderContextData(entry.value,`${anchorPrefix}:value`));
   if(typeof entry.binding?.pointer==='string'){
     const pointer=el('p',ui('Поле источника: {0}',[entry.binding.pointer||ui('корень')]),'sc-source-ref');
     pointer.dataset.readingAnchor=`${anchorPrefix}:pointer`;context.append(pointer);
@@ -182,28 +183,17 @@ export function renderEssentialContext(context){
   if(context.state==='unavailable')section.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
   context.items.forEach((item,index)=>{
     const entry=el('section','','sc-form-context');entry.dataset.contextPointer=typeof item.pointer==='string'?item.pointer:'';
-    if(typeof item.pointer==='string')entry.append(el('p',item.pointer,'sc-source-ref'));
+    entry.append(el('h6',ui('Контекст {0}',[index+1])));
     if(item.state==='available'){
-      entry.append(readableValue(item.value,'record-context:'+index+':value'));
-      entry.append(exactDetails(ui('Точная запись обязательного контекста'),item.value,'record-context:'+index+':raw'));
+      entry.append(renderContextData(item.value,'record-context:'+index));
     }
     else entry.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
+    if(typeof item.pointer==='string'){
+      const route=el('details','','sc-context-location');route.dataset.readingKey='record-context:'+index+':route';
+      route.append(el('summary',ui('Расположение в ответе')),el('p',item.pointer,'sc-source-ref'));entry.append(route);
+    }
     section.append(entry);
   });
-  return section;
-}
-export function renderEssentialContext(context){
-  const section=el('section','','sc-form-role sc-record-context');section.dataset.contextState=context.state;
-  section.hidden=context.state==='not-declared'||context.state==='available'&&!context.items.length;
-  if(section.hidden)return section;
-  section.append(el('h5',ui('Обязательный контекст записи')));
-  if(context.state==='unavailable')section.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
-  context.items.forEach((item,index)=>{
-    const entry=el('section','','sc-form-context');entry.dataset.contextPointer=typeof item.pointer==='string'?item.pointer:'';
-    if(typeof item.pointer==='string')entry.append(el('p',item.pointer,'sc-source-ref'));
-    if(item.state==='available')entry.append(jsonBlock(item.value,'record-context:'+index));
-    else entry.append(el('p',ui('Объявленный контекст недоступен в этой версии ответа.'),'sc-reader-gap'));
-    section.append(entry);
-  });
+  if(['unavailable','incomplete'].includes(context.state))section.append(el('p',ui('Чтобы проверить отсутствующий контекст, откройте источники материала.'),'sc-form-status'));
   return section;
 }

@@ -39,4 +39,9 @@ html,body,#app{margin:0;min-height:100%;background:#05080f}body{padding:0}button
 @container(max-width:540px){#sophia-gestures .sc-context-route{max-width:calc(100cqw - 42px);gap:7px}#sophia-gestures .sc-inspector .sc-neighbors{display:flex;margin:14px 0 18px;gap:6px}#sophia-gestures .sc-window-handle{cursor:default;padding:4px 0}#sophia-gestures .sc-window-handle svg{display:none}#sophia-gestures .sc-card-tabs{margin-top:14px}#sophia-gestures .sc-card-tab{padding-bottom:9px}#sophia-gestures .sc-node-title{font-size:24px}#sophia-gestures .sc-inspector .sc-description{margin:15px 0 20px}#sophia-gestures .sc-neighbor{font-size:11px;padding:7px 8px}#sophia-gestures .sc-panel-bottom{padding-top:12px;padding-bottom:12px}}
 @media(prefers-reduced-motion:reduce){#sophia-gestures .sc-inspector{animation:none}#sophia-gestures .sc-node-label,#sophia-gestures .sc-neighbor{transition:none}}
 
-#sophia-gestures{height:100dvh;min-height:560px;border-radius:0}
+#sophia-gestures{height:100dvh;min-height:0;border-radius:0;container-type:size}
+@container(max-width:420px){
+  #sophia-gestures .sc-navigation{max-width:100%}
+  #sophia-gestures .sc-navigation .sc-icon{flex:none}
+  #sophia-gestures .sc-overview{min-width:0;white-space:normal;overflow-wrap:anywhere}
+}

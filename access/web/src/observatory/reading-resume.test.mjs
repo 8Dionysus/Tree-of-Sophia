@@ -66,3 +66,12 @@ test('captured diagnostic anchors cannot break paired export, strict validation 
   const resumed=createReadingMemory(body);resumed.enter(first.positions[0][0]);resumed.importPositions(loaded.entries[0].positions);body.scrollTop=0;resumed.restore();expect(body.scrollTop).toBe(200);
   loaded.entries[0].positions[0][1].anchor={key:'unassigned-form',offset:-12};expect(()=>validateReading(loaded)).toThrow();
 });
+test('readable context positions roundtrip bounded numeric anchors without field names or wording',()=>{
+  for(const key of ['record-context:0','record-context:1:part:42','claim-context:part:8','form:grounds:context:0:part:12']){
+    const value=state();value.entries[0].positions[0][1].anchor={key,offset:-4};
+    expect(readReading({getItem:()=>JSON.stringify(validateReading(value))}).entries[0].positions[0][1].anchor).toEqual({key,offset:-4});
+  }
+  for(const key of ['record-context:notes','record-context:0:part:source wording','record-context:0:part:1000000','claim-context:part:1\n']){
+    const value=state();value.entries[0].positions[0][1].anchor={key,offset:0};expect(()=>validateReading(value)).toThrow();
+  }
+});

@@ -1,5 +1,147 @@
 // Authored interface text only. Content-language variants remain server-owned.
 export const UI_CATALOG={
+  "Источник": {"en": "Source", "es": "Fuente"},
+  "Статус": {"en": "Status", "es": "Estado"},
+  "Версия материала изменилась. Обновите материал.": {
+    "en": "The item's version changed. Refresh the item.",
+    "es": "La versión del material cambió. Actualiza el material."
+  },
+  "Не удалось подготовить материал для чтения. Обновите материал.": {
+    "en": "The item could not be prepared for reading. Refresh the item.",
+    "es": "No se pudo preparar el material para leerlo. Actualiza el material."
+  },
+  "Загрузка не удалась. Повторите попытку.": {
+    "en": "Loading failed. Try again.",
+    "es": "La carga falló. Vuelve a intentarlo."
+  },
+  "Чтобы проверить отсутствующий контекст, откройте источники материала.": {
+    "en": "To check the missing context, open the material's sources.",
+    "es": "Para comprobar el contexto que falta, abre las fuentes del material."
+  },
+  "Поле источника": {
+    "en": "Source field",
+    "es": "Campo de la fuente"
+  },
+  "Запись": {
+    "en": "Record",
+    "es": "Registro"
+  },
+  "Идентификатор записи": {
+    "en": "Record identifier",
+    "es": "Identificador del registro"
+  },
+  "Версия записи": {
+    "en": "Record version",
+    "es": "Versión del registro"
+  },
+  "Ссылка на запись": {
+    "en": "Record reference",
+    "es": "Referencia al registro"
+  },
+  "Поля записи": {
+    "en": "Record fields",
+    "es": "Campos del registro"
+  },
+  "Примечания": {
+    "en": "Notes",
+    "es": "Notas"
+  },
+  "Основное название": {
+    "en": "Preferred label",
+    "es": "Nombre preferido"
+  },
+  "Варианты названия": {
+    "en": "Label variants",
+    "es": "Variantes del nombre"
+  },
+  "Контекст": {
+    "en": "Context",
+    "es": "Contexto"
+  },
+  "Ограничения": {
+    "en": "Constraints",
+    "es": "Restricciones"
+  },
+  "Область действия": {
+    "en": "Scope",
+    "es": "Ámbito"
+  },
+  "Расхождения": {
+    "en": "Conflicts",
+    "es": "Discrepancias"
+  },
+  "Основание": {
+    "en": "Grounds",
+    "es": "Fundamento"
+  },
+  "Интерпретация": {
+    "en": "Interpretation",
+    "es": "Interpretación"
+  },
+  "Контрольная сумма записи": {
+    "en": "Record digest",
+    "es": "Resumen criptográfico del registro"
+  },
+  "Версия схемы": {
+    "en": "Schema version",
+    "es": "Versión del esquema"
+  },
+  "Роль привязки": {
+    "en": "Binding role",
+    "es": "Función del vínculo"
+  },
+  "Предыдущая версия": {
+    "en": "Previous version",
+    "es": "Versión anterior"
+  },
+  "Внешние идентификаторы": {
+    "en": "External identifiers",
+    "es": "Identificadores externos"
+  },
+  "Статус идентификации": {
+    "en": "Identity status",
+    "es": "Estado de identificación"
+  },
+  "Статус отождествления": {
+    "en": "Equivalence status",
+    "es": "Estado de equivalencia"
+  },
+  "Значение null": {
+    "en": "Null value",
+    "es": "Valor null"
+  },
+  "Пустая строка": {
+    "en": "Empty string",
+    "es": "Cadena vacía"
+  },
+  "Да (true)": {
+    "en": "Yes (true)",
+    "es": "Sí (true)"
+  },
+  "Нет (false)": {
+    "en": "No (false)",
+    "es": "No (false)"
+  },
+  "Пустой список": {
+    "en": "Empty list",
+    "es": "Lista vacía"
+  },
+  "Пустой объект": {
+    "en": "Empty object",
+    "es": "Objeto vacío"
+  },
+  "Точные данные контекста": {
+    "en": "Exact context data",
+    "es": "Datos exactos del contexto"
+  },
+  "Контекст {0}": {
+    "en": "Context {0}",
+    "es": "Contexto {0}"
+  },
+  "Расположение в ответе": {
+    "en": "Location in the response",
+    "es": "Ubicación en la respuesta"
+  },
   "Обязательный контекст записи": {
     "en": "Required record context",
     "es": "Contexto obligatorio del registro"

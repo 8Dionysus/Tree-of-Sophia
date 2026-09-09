@@ -1,7 +1,7 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
-import {readingForm,readingLanguages,readingSnapshot,readingDocument,createReadingShelf} from './reader-model.mjs';
-import {RequestError,KnowledgeClient} from './knowledge-client.mjs';
+import {readingForm,readingLanguages,readingSnapshot,readingDocument,readingStatus,createReadingShelf} from './reader-model.mjs';
+import {ContractError,RevisionError,RequestError,KnowledgeClient} from './knowledge-client.mjs';
 import {compactFormLens,memberFormLens} from '../../fixtures/human-form-data.mjs';
 import {resolveClaimReading} from './human-forms.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
@@ -186,6 +186,65 @@ test('a snapshot change is explicit, network failure preserves the reading, revo
   assert.ok(shelf.entries[0].snapshot);assert.equal(shelf.entries[0].error,'Нет связи');
   error=new RequestError(403,'Доступ ограничен');await shelf.refresh(key);
   assert.equal(shelf.entries[0].snapshot,null);assert.equal(shelf.entries[0].bookmark,null);
+});
+
+test('retrying a failed language request retains the exact source, content revision and requested form',async()=>{
+  let error=null;const calls=[];
+  const shelf=createReadingShelf({client:{readMaterial:async(kind,id,signal,source,version,options)=>{
+    calls.push({kind,id,source,version,language:options.language});if(error)throw error;return answer(node(id));
+  }}});
+  const {key}=shelf.pin(target());await tick();const earlier=shelf.entries[0].snapshot;
+  error=new RequestError(0,'Connection lost');await shelf.language(key,'en');
+  assert.equal(shelf.entries[0].snapshot,earlier);assert.equal(shelf.entries[0].retryable,true);
+  assert.equal(shelf.entries[0].failure,'load');assert.equal(shelf.entries[0].preferred,'en');
+  const failed=calls.at(-1);assert.deepEqual(failed,{kind:'node',id:'opaque:one',source:revision,version:content,language:'en'});
+  error=null;await shelf.retry(key);
+  assert.deepEqual(calls.at(-1),failed);assert.equal(shelf.entries[0].error,null);
+  assert.equal(shelf.entries[0].retryable,false);assert.equal(shelf.entries[0].changed,false);
+  assert.equal(shelf.entries[0].sourceRevision,revision);assert.equal(shelf.entries[0].contentRevision,content);
+});
+
+test('retrying a failed restore repeats the current-material request without reintroducing stored revision pins',async()=>{
+  let error=new RequestError(0,'Offline');const calls=[],fresh={...node(),content_revision:'d'.repeat(64)};
+  const shelf=createReadingShelf({client:{readMaterial:async(kind,id,signal,source,version,options)=>{
+    calls.push({source,version,language:options.language});if(error)throw error;return answer(fresh,'c'.repeat(64));
+  }}});
+  shelf.restore([{kind:'node',id:fresh.id,sourceRevision:revision,contentRevision:content,preferred:'en'}]);await tick();
+  assert.equal(shelf.entries[0].retryable,true);assert.equal(shelf.entries[0].snapshot,null);
+  error=null;await shelf.retry(shelf.entries[0].key);
+  assert.deepEqual(calls,[{source:null,version:undefined,language:'en'},{source:null,version:undefined,language:'en'}]);
+  assert.equal(shelf.entries[0].sourceRevision,'c'.repeat(64));assert.equal(shelf.entries[0].contentRevision,fresh.content_revision);
+  assert.equal(shelf.entries[0].changed,true);assert.equal(shelf.entries[0].bookmark,null);
+});
+
+test('unavailable or invalid exact material requires explicit refresh instead of a retry that silently selects a newer version',async()=>{
+  for(const [failure,error]of [['revision',new RevisionError()],['contract',new ContractError('Incomplete packet')],
+    ['restricted',new RequestError(403,'Restricted')],['unavailable',new RequestError(404,'Missing')],['unavailable',new RequestError(410,'Expired')]]){
+    const calls=[];let fail=false;
+    const shelf=createReadingShelf({client:{readMaterial:async(kind,id,signal,source,version)=>{
+      calls.push({source,version});if(fail)throw error;return answer();
+    }}});
+    const {key}=shelf.pin(target());await tick();fail=true;await shelf.language(key,'en');
+    assert.equal(shelf.entries[0].failure,failure);assert.equal(shelf.entries[0].retryable,false);
+    assert.equal(shelf.entries[0].snapshot,null);assert.equal(shelf.entries[0].bookmark,null);
+    const before=calls.length;await shelf.retry(key);assert.equal(calls.length,before);
+    fail=false;await shelf.refresh(key);assert.deepEqual(calls.at(-1),{source:null,version:undefined});
+    assert.ok(shelf.entries[0].snapshot);assert.equal(shelf.entries[0].error,null);
+  }
+});
+
+test('reading status follows UI language while client error detail stays verbatim',()=>{
+  const entry={snapshot:{},sourceRevision:revision,loading:true,error:'Обновить',failure:'load',changed:false};
+  const status=readingStatus(entry,revision);
+  try{
+    for(const [language,loading,failure,retained]of [
+      ['ru','Обновляю материал…','Загрузка не удалась. Повторите попытку.','Показан ранее закреплённый материал.'],
+      ['en','Refreshing the item…','Loading failed. Try again.','Showing the previously pinned item.'],
+      ['es','Actualizando el material…','La carga falló. Vuelve a intentarlo.','Se muestra el material fijado anteriormente.']]){
+      setUiLanguage(language);assert.equal(String(status),[loading,failure,'Обновить',retained].join(' '));
+    }
+  }finally{setUiLanguage('ru');}
+  assert.equal(entry.error,'Обновить');
 });
 
 test('restored pairs fetch current material without carrying stored text or revision pins; late old requests stay excluded',async()=>{
