@@ -17,6 +17,7 @@ import {
   type QueryProperty,
 } from "./knowledge.ts";
 import { jsonRows, meta, rows } from "./store.ts";
+import { compareTemporalOperands, normalizeTemporalComparisonRequest } from './temporal-comparison.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const PAGE_SIZE = 2000;
@@ -43,6 +44,15 @@ export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit:
 
 export async function knowledgeRelationD1(db: D1Database, id: string): Promise<Item> {
   return consistentRead(db, () => knowledgeRelationD1Unchecked(db, id));
+}
+
+export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<Item> {
+  const normalized = normalizeTemporalComparisonRequest(request);
+  return consistentRead(db, async () => {
+    const top = await meta<Item>(db, 'knowledge_top');
+    return compareTemporalOperands(top.source_revision, normalized, identifier =>
+      jsonRows(db, 'SELECT json FROM knowledge_nodes WHERE id = ? LIMIT 2', identifier));
+  });
 }
 
 type ItemKind = "node" | "relation";

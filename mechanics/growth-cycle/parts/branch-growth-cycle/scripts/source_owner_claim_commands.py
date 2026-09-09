@@ -13,6 +13,7 @@ import re
 import time
 
 import source_commands as source
+import source_command_contracts as contract
 import source_claim_commands as claims
 import source_owner_profile_commands as transport
 import source_revisions as packages
@@ -480,32 +481,14 @@ def _proposal(config, context, path, state, request):
 
 def run_command(owner, config, digest, path, request):
     operation = request.get('operation')
-    keys = {'schema_version', 'operation'}
+    source.command_handler(config['schema_version']).validate_request(request)
     if operation in {'prepare-create', 'claims.create'}:
-        keys |= {'claims', 'forms'}
         needed = 'claims.create'
     elif operation in {'prepare-revise', 'claim.revise'}:
-        keys |= {'claim_id', 'fields', 'forms', 'reason'}
         needed = 'claim.revise'
-    elif operation == 'prepare':
-        keys |= {'claim_id', 'form_id', 'field_id'}
-        needed = None
-    elif operation == 'apply':
-        keys |= {'claim_id', 'changes'}
-        needed = None
-    elif operation == 'inspect-version':
-        keys |= {'claim_id', 'source'}
-        needed = None
-    elif operation == 'describe':
-        needed = None
     else:
-        raise ValueError('unknown private Claim command')
+        needed = None
     writing = operation in {'claims.create', 'claim.revise', 'apply'}
-    if writing:
-        keys |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies', 'expected_inputs'}
-    source._keys(request, keys)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown source command envelope')
     if needed is not None and needed not in config['allowed_operations']:
         raise PermissionError('private Claim operation is not delegated')
     identity = request.get('claim_id')
@@ -567,6 +550,30 @@ def run_command(owner, config, digest, path, request):
     _current(owner, digest, config, context, path, list(state['records'].values()), state['dependencies'],
              exclude=path.parent, files=state['files'], proposed=proposed)
     return response
+
+
+def command_handlers():
+    creation, revision = {'claims', 'forms'}, {'claim_id', 'fields', 'forms', 'reason'}
+    commit = contract.COMMIT_KEYS | {'expected_inputs'}
+    operations = (contract.describe(),
+        contract.operation('prepare-create', creation, definition='Ground initial Claims and forms against independently bounded owner-local readers.', grants=('claims.create',)),
+        contract.operation('claims.create', creation | commit,
+            definition='Publish an exact new private Claim package with source-copy forms.', mutation='private_claim_package', grants=('claims.create',)),
+        contract.operation('prepare-revise', revision, definition='Prepare one selected private Claim successor and form rebindings.', grants=('claim.revise',)),
+        contract.operation('claim.revise', revision | commit,
+            definition='Revise one exact private Claim with continuous retained history.', mutation='private_claim_successor', grants=('claim.revise',)),
+        contract.operation('prepare', {'claim_id', 'form_id', 'field_id'}, definition='Prepare one source-copy form of the explicitly selected Claim.', grants=('form.create', 'form.revise')),
+        contract.operation('apply', {'claim_id', 'changes'} | commit,
+            definition='Create or revise explicitly selected private Claim forms.', mutation='private_claim_forms', grants=('form.create', 'form.revise')),
+        contract.inspect_version(claim=True))
+    return tuple(contract.Handler('owner-local-claim-' + version, (schema,), operations, run_command,
+        'Explicitly private source Claim growth; ' + profile + '.', configure=configuration,
+        typed_handles=(*contract.CLAIM_HANDLES, *contract.FORM_HANDLES, 'ToS/contracts/native-text-unit-binding.schema.json'),
+        profile_selection=profile + '; exact predicates still select their source_claim_profile, never a write grant.',
+        preconditions=('Execution requires confidential context plus separately bounded per-Claim source and native-binding selections.',
+                       'Native has_expression and translated_by creation remain outside this generic private writer.'))
+        for version, schema, profile in (('v1', CONFIG, 'semantic-relation-v1 and identity-relation-v1 readers'),
+            ('v2', REFERENCE_CONFIG, 'v1 readers plus explicitly allowlisted structured-reference-value-v1 objects')))
 
 
 def _create(owner, config, digest, context, path, request):

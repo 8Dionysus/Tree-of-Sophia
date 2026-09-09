@@ -22,6 +22,7 @@ import {
   knowledgeNodeD1,
   knowledgeRelationD1,
   knowledgeSearchD1,
+  knowledgeTemporalCompareD1,
 } from "./knowledge-store";
 import { SourceNavigationError, sourceDescend, sourceDossier } from "./source-navigation";
 import { metaItem } from "./store";
@@ -87,7 +88,7 @@ async function sourceNavigationPayload(request: Request, env: Env): Promise<Item
   return staticItem(env, request, "source-navigation/all.json");
 }
 
-async function lensCompileResponse(request: Request, env: Env, exploration = false): Promise<Response> {
+async function lensCompileResponse(request: Request, env: Env, operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
   const contentType = ((request.headers.get("Content-Type") ?? "").split(";").at(0) ?? "").trim().toLowerCase();
   if (contentType !== "application/json") throw new HttpError(415, "lens request must use application/json");
   const declaredLength = request.headers.get("Content-Length");
@@ -127,11 +128,12 @@ async function lensCompileResponse(request: Request, env: Env, exploration = fal
   }
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
   try {
-    return jsonResponse(await (exploration ? exploreD1(env.DB, spec) : executeKnowledgeLensD1(env.DB, spec)), 200, request.method);
+    const execute = operation === 'exploration' ? exploreD1 : operation === 'temporal' ? knowledgeTemporalCompareD1 : executeKnowledgeLensD1;
+    return jsonResponse(await execute(env.DB, spec), 200, request.method);
   } catch (error) {
     if (error instanceof KnowledgeRevisionConflict) throw error;
     if (error instanceof HttpError) throw error;
-    if (!exploration && error instanceof Error) throw new HttpError(400, error.message);
+    if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
     throw error;
   }
 }
@@ -423,9 +425,11 @@ export default {
       url.hostname = "treeofsophia.com";
       return Response.redirect(url.toString(), 308);
     }
-    if (request.method === "POST" && ["/api/knowledge/lenses/compile", "/api/knowledge/explore"].includes(url.pathname)) {
+    if (request.method === "POST" && ["/api/knowledge/lenses/compile", "/api/knowledge/explore", "/api/knowledge/temporal/compare"].includes(url.pathname)) {
       try {
-        return await lensCompileResponse(request, env, url.pathname === "/api/knowledge/explore");
+        const operation = url.pathname === '/api/knowledge/explore' ? 'exploration'
+          : url.pathname === '/api/knowledge/temporal/compare' ? 'temporal' : 'lens';
+        return await lensCompileResponse(request, env, operation);
       } catch (error) {
         if (error instanceof KnowledgeRevisionConflict) return jsonResponse({ error: error.message }, 409, request.method);
         if (error instanceof HttpError) return jsonResponse({ error: error.message }, error.status, request.method);

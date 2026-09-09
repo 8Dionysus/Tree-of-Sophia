@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .core import ToSAccessCore
 from .lens_pagination import KnowledgeRevisionConflict
+from .temporal_comparison import TemporalReadModelInvalid
 from .exploration import ExplorationExpired, exploration_capabilities
 from .doctor import web_root_for
 
@@ -351,7 +352,7 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
-            if parsed.path not in {"/api/knowledge/lenses/compile", "/api/knowledge/explore"}:
+            if parsed.path not in {"/api/knowledge/lenses/compile", "/api/knowledge/explore", "/api/knowledge/temporal/compare"}:
                 self._json({"error": "standalone access is read-only"}, HTTPStatus.METHOD_NOT_ALLOWED)
                 return
             try:
@@ -379,12 +380,20 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 spec = json.loads(body.decode("utf-8"))
                 if not isinstance(spec, dict):
                     raise ValueError("lens spec must be an object")
-                operation = core.knowledge_explore if parsed.path == "/api/knowledge/explore" else core.compile_knowledge_lens
+                operation = getattr(core, {
+                    '/api/knowledge/explore': 'knowledge_explore',
+                    '/api/knowledge/temporal/compare': 'knowledge_temporal_compare',
+                    '/api/knowledge/lenses/compile': 'compile_knowledge_lens',
+                }[parsed.path])
                 self._json(operation(spec))
             except ExplorationExpired as exc:
                 self._json({"error": str(exc), "code": "exploration_expired"}, HTTPStatus.GONE)
             except KnowledgeRevisionConflict as exc:
                 self._json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            except TemporalReadModelInvalid as exc:
+                self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            except KeyError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
             except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 

@@ -199,16 +199,15 @@ def run_command(adapter, owner, config, configuration_digest, path, request):
     """Dispatch this exact grant before the generic non-pending read wrapper."""
     root = Path(config['source_root'])
     operation = request.get('operation')
+    source.command_handler(adapter.CONFIG).validate_request(request)
     if operation in {adapter.PREPARE, adapter.OPERATION}:
         adapter._request(request, create=operation == adapter.OPERATION)
         adapter._scope(config, request)
     elif operation == adapter.RECOVERY:
-        source._keys(request, {'schema_version', 'operation', 'transaction_id', 'decision', 'expected_configuration'})
         if (request['schema_version'] != adapter.REQUEST or request['decision'] not in {'resume', 'rollback'}
                 or request['expected_configuration'] != configuration_digest or adapter.RECOVERY not in config['allowed_operations']):
             raise PermissionError('compound recovery requires its current exact delegation and explicit decision')
     elif operation == 'describe':
-        source._keys(request, {'schema_version', 'operation'})
         if request['schema_version'] != adapter.REQUEST:
             raise ValueError('unknown compound source command version')
         return adapter._result(config, configuration_digest)

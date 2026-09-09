@@ -276,6 +276,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md",
+      "source_truth": ["mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md", "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py"],
+      "reads": ["in-memory handler-owned operation keys, constant schema tags, owner routes and typed contract handles"],
+      "writes": [],
+      "side_effects": "Pure immutable handler descriptors shared by actual dispatch, exact top-level request validation and grant-free JSON discovery; no filesystem, credentials, configuration, source, clock or network access; no grants or admission",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",
@@ -283,7 +297,7 @@
       "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json", "ToS/contracts/historical-record.schema.json", "ToS/contracts/historical-claim.schema.json", "ToS/contracts/provenance-event-v2.schema.json", "ToS/contracts/sign-description-record.schema.json", "ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/doctrine/semantic-interchange/assessment-policy.v2.json"],
       "reads": ["independently selected protected local owner delegation, explicit corpus/historical/profile record or one selected declared Claim and adjacent source form set", "bounded JSON command on stdin and the shared metadata/Claim field catalog; Claim form scope binds exact source-profile/schema inputs", "source creation and profile forms: bounded native semantic identity inventory, protected membership/byte recheck and opaque fingerprint separate from public profile inputs", "source creation: authored records, claims, metadata and Claim form histories, provenance, anchors, referenced metadata and schema/registry contracts for identity and dependency closure", "v2/profile/native creation: executing script and Python executable bytes, runtime/Unicode versions and process argv digest; no environment variables or private configuration disclosure", "Sign promotion: exact public source-bound candidate, complete native grounding, separately selected protected assessment owner and current journal/policy/competence result", "creation retry: bounded exact package and receipt bindings; existing source-revision archive reader for legitimate historical corrections, retained initial forms for later form versions"],
       "writes": ["one adjacent source form set with current forms, retained predecessors and command receipts; sibling writer lock and invocation-local publication staging file", "separately delegated historical creation: new subject directory containing record, claims, forms and creation receipt; v2 adds canonical request, environment description and serialization provenance; global create lock and staging outside source-witnesses", "declared-profile or standalone native Agent/Place/Organization creation: existing source record, exact forms, request, environment, provenance and receipt; no new claims or schema registration", "separately delegated Sign issuance: same atomic subject package with exact historical promotion basis; selected candidate journal writer lock held from final check through publication"],
-      "side_effects": "Unix account/path checks, bounded shared locking, fsync and atomic form-set or no-replace new-subject publication; separately delegates historical/profile/native Corpus metadata correction to source_revisions.py without widening old permissions, declared Claim correction to claim_revisions.py, confidential native TextUnit creation to source_text_unit_commands.py and explicitly private profile/Claim transactions to source_owner_profile_commands.py/source_owner_claim_commands.py; internal provenance modes preserve local-only disclosure; no payload/graph writes, model calls, semantic assessment, new current-use grant or deployment",
+      "side_effects": "Grant-free discovery projects the actual connected handler descriptors without reading grants, targets or corpus; the same descriptors drive dispatch and request-key validation. Delegated execution retains Unix account/path checks, shared locking, fsync and form-set or no-replace source publication; routes revisions, private TextUnit/profile/Claim transport and typed native compounds to their exact handlers without widening old permissions. No payload/graph writes, model calls, semantic assessment, new current-use grant or deployment",
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/growth-cycle/tests/test_source_commands.py",

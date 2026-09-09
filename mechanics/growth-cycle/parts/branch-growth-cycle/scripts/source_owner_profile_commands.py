@@ -16,6 +16,7 @@ import tempfile
 import time
 
 import source_commands as source
+import source_command_contracts as contract
 import source_revisions as revisions
 from source_owner_context import OwnerLocalSourceContext, _open, _read as context_read
 from source_owner_record_profiles import OwnerLocalSourceRecordProfiles
@@ -28,7 +29,7 @@ CONFIG_FILE = 'source-create-owner-configuration.json'
 RECEIPT_FILE = 'source-create-receipt.json'
 IMPLEMENTATIONS = (
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_profile_commands.py',
-    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
@@ -494,24 +495,7 @@ def _creation_replay(config, context, path, request, configuration_digest):
 
 def run_command(owner, config, configuration_digest, path, request):
     operation = request.get('operation')
-    fields = {'schema_version', 'operation'}
-    if operation in {'prepare-create', 'source.create'}:
-        fields |= {'record', 'forms'}
-    elif operation in {'prepare-revise', 'record.revise'}:
-        fields |= {'fields', 'forms', 'reason'}
-    elif operation == 'prepare':
-        fields |= {'form_id', 'field_id'}
-    elif operation == 'apply':
-        fields |= {'changes'}
-    elif operation == 'inspect-version':
-        fields |= {'source'}
-    elif operation != 'describe':
-        raise ValueError('unknown owner-local source operation')
-    if operation in {'source.create', 'record.revise', 'apply'}:
-        fields |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies'}
-    source._keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown source command envelope')
+    source.command_handler(config['schema_version']).validate_request(request)
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     if operation == 'describe' and not os.path.lexists(path.parent):
         return _result(config, configuration_digest, path)
@@ -595,6 +579,26 @@ def _create(owner, config, configuration_digest, context, path, request):
     finally:
         revisions._discard_staging(staging, files)
     return _result(config, configuration_digest, path, state=_inspect(config, context, path), receipt=receipt)
+
+
+def command_handlers():
+    creation, revision = {'record', 'forms'}, {'fields', 'forms', 'reason'}
+    return (contract.Handler('owner-local-profile', (CONFIG,), (contract.describe(),
+        contract.operation('prepare-create', creation, definition='Prepare an initial owner-local metadata record and source-copy forms.', grants=('source.create',)),
+        contract.operation('source.create', creation | contract.COMMIT_KEYS,
+            definition='Publish one new private metadata profile package.', mutation='private_source_package', grants=('source.create',)),
+        contract.operation('prepare-revise', revision, definition='Prepare a descriptive private metadata successor and explicit form rebindings.', grants=('record.revise',)),
+        contract.operation('record.revise', revision | contract.COMMIT_KEYS,
+            definition='Revise the exact private source package with retained predecessor bytes.', mutation='private_record_successor', grants=('record.revise',)),
+        contract.operation('prepare', {'form_id', 'field_id'}, definition='Prepare a source-copy form of the selected private record.', grants=('form.create', 'form.revise')),
+        contract.operation('apply', {'changes'} | contract.COMMIT_KEYS,
+            definition='Create or revise explicitly selected private human forms.', mutation='private_human_forms', grants=('form.create', 'form.revise')),
+        contract.inspect_version()), run_command, 'Declared semantic metadata in an independently protected owner-local source context.',
+        configure=configuration, typed_handles=(*contract.RECORD_HANDLES, *contract.FORM_HANDLES,
+            'ToS/contracts/native-text-unit-binding.schema.json'),
+        profile_selection='Explicit profile_type_id must have an understood semantic-metadata-v1 source_record_profile; profile readability is not a grant.',
+        preconditions=('Requires separately selected confidential context, bounded source access and native bindings.',
+                       'Generic private profile creation cannot issue a Sign identity.')),)
 
 
 def _revision_proposal(config, context, path, state, request):

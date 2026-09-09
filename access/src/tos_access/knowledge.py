@@ -4692,6 +4692,8 @@ def knowledge_catalog(
             "knowledge_api": "access/contracts/knowledge-api.v1.json",
             "lens_spec": "access/contracts/lens-spec.v1.schema.json",
             "lens_result": "access/contracts/lens-result.v1.schema.json",
+            "temporal_comparison_request": "access/contracts/temporal-comparison-request.v1.schema.json",
+            "temporal_comparison_result": "access/contracts/temporal-comparison-result.v1.schema.json",
             "knowledge_graph": "access/contracts/knowledge-graph.v1.schema.json",
             "entity_type_registry_schema": "ToS/contracts/semantic-entity-type-registry.schema.json",
             "relation_type_registry_schema": "ToS/contracts/semantic-relation-type-registry.schema.json",

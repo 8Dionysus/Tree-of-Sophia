@@ -992,6 +992,8 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
             "access/contracts/knowledge-graph.v1.schema.json",
             "access/contracts/lens-spec.v1.schema.json",
             "access/contracts/lens-result.v1.schema.json",
+            "access/contracts/temporal-comparison-request.v1.schema.json",
+            "access/contracts/temporal-comparison-result.v1.schema.json",
             "ToS/contracts/semantic-entity-type-registry.schema.json",
             "ToS/contracts/semantic-relation-type-registry.schema.json",
             "ToS/doctrine/semantic-interchange/entity-types.v1.json",

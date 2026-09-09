@@ -13,6 +13,7 @@ import stat
 import tempfile
 
 import source_commands as source
+import source_command_contracts as contract
 
 HISTORY = 'source-revision-history.json'
 MAX_PACKAGE_BYTES = 8 * 1024 * 1024
@@ -174,7 +175,7 @@ def _validate_record(config, record):
 
 def _dependencies(config, record):
     inputs = _validate_record(config, record)
-    for path in ('mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+    for path in ('mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
                  'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
                  'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
                  'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
@@ -360,18 +361,7 @@ def run_revision(owner, config, configuration, path, request):
         return run_selected_revision(owner, config, configuration, path, request)
     root = Path(config['source_root'])
     operation = request.get('operation')
-    fields = {'schema_version', 'operation'}
-    if operation in {'record.revise', 'prepare-revise'}:
-        fields |= {'fields', 'forms', 'reason'}
-    if operation == 'record.revise':
-        fields |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies'}
-    elif operation == 'inspect-version':
-        fields |= {'source'}
-    elif operation not in {'describe', 'prepare-revise'}:
-        raise ValueError('unsupported source revision operation')
-    source._keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown source command version')
+    source.command_handler(config['schema_version']).validate_request(request)
 
     def inspect():
         files = _package(path.parent)
@@ -471,3 +461,23 @@ def run_revision(owner, config, configuration, path, request):
                 elif remaining == output:
                     _discard_staging(staging, output)
         return result(output, revised, proposed, receipt)
+
+
+def command_handlers():
+    proposal = {'fields', 'forms', 'reason'}
+    operations = (contract.describe(),
+        contract.operation('prepare-revise', proposal, definition='Prepare explicitly selected descriptive fields and source-copy form successors.', grants=('record.revise',)),
+        contract.operation('record.revise', proposal | contract.COMMIT_KEYS,
+            definition='Publish one exact flat metadata-package successor and retain its predecessor.', mutation='record_successor', grants=('record.revise',)),
+        contract.inspect_version())
+    return tuple(contract.Handler(identifier, (schema,), operations, run_revision, definition,
+        typed_handles=(*handles, *contract.FORM_HANDLES),
+        profile_selection=selection,
+        preconditions=('Existing flat source package and separately selected descriptive fields; identity and bibliography link fields are not generic corrections.',))
+        for identifier, schema, definition, handles, selection in (
+            ('historical-source-revision', source.REVISION_CONFIG, 'Correct one historical source record.',
+             ('ToS/contracts/historical-record.schema.json',), 'HistoricalEvent, HistoricalProcess or HistoricalState under its exact source schema.'),
+            ('public-profile-revision', source.PROFILE_REVISION_CONFIG, 'Correct one declared public metadata profile.',
+             contract.RECORD_HANDLES, 'Explicit profile_type_id selects the existing source_record_profile and schema, not write authority.'),
+            ('native-corpus-flat-revision', source.CORPUS_REVISION_CONFIG, 'Correct standalone native public metadata in a flat source home.',
+             ('ToS/contracts/corpus-record.schema.json',), 'Agent, Place, Organization or Work; nested selected-file correction is a separate v2 grant.')))

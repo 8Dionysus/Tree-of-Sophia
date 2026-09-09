@@ -113,11 +113,15 @@ The read-only operations are available through all backend adapters:
   explicit `focus` object. Ambiguous native IDs fail closed so the caller can
   disambiguate through search;
 - `GET /api/knowledge/lenses/{lens_id}` executes a stored LensSpec;
+- `POST /api/knowledge/temporal/compare` compares the normalized date envelopes
+  of two exact source Claims selected from one snapshot. Discover the request
+  schema through `/api/knowledge/contracts`; unknown grounds remain unknown,
+  and the result keeps both full Claim contexts without accepting either;
 - `POST /api/knowledge/lenses/compile` executes an arbitrary validated
   LensSpec. This `POST` carries structured query data only and creates no
   server state;
 - native MCP exposes the corresponding `tos_knowledge_*` tools; CLI exposes
-  `tos knowledge catalog|contracts|search|node|relation|focus` and
+  `tos knowledge catalog|contracts|search|node|relation|focus|temporal-compare` and
   `tos lens open|compile`.
 
 The direct agent loop is `search -> focus -> inspect or refine`. For example,

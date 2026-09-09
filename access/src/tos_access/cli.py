@@ -38,6 +38,8 @@ def _parser() -> argparse.ArgumentParser:
     node.add_argument("--relation-limit", type=int, default=200)
     relation = knowledge_sub.add_parser("relation", help="Inspect one normalized relation")
     relation.add_argument("relation_id")
+    compare = knowledge_sub.add_parser("temporal-compare", help="Compare two exact Claim date envelopes; JSON file or - for stdin")
+    compare.add_argument("request")
     focus = knowledge_sub.add_parser("focus", help="Build a bounded radial lens around one node")
     focus.add_argument("node_id")
     focus.add_argument("--sources", nargs="*")
@@ -95,6 +97,9 @@ def main(argv: list[str] | None = None) -> None:
             packet = core.knowledge_node(args.node_id, args.relation_limit)
         elif args.knowledge_command == "relation":
             packet = core.knowledge_relation(args.relation_id)
+        elif args.knowledge_command == "temporal-compare":
+            raw = sys.stdin.read() if args.request == "-" else Path(args.request).read_text(encoding="utf-8")
+            packet = core.knowledge_temporal_compare(json.loads(raw))
         elif args.knowledge_command == "focus":
             packet = core.knowledge_focus(
                 args.node_id,

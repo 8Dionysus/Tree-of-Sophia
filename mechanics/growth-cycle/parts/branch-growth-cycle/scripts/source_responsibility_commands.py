@@ -14,6 +14,7 @@ import re
 import sys
 
 import source_commands as source
+import source_command_contracts as contract
 import source_revisions as revisions
 import source_metadata_transactions as transactions
 import source_compound_commands as common
@@ -47,7 +48,7 @@ PROPOSAL_KEYS = {'agent', 'claim', 'forms', 'claim_forms', 'reason'}
 CREATE_KEYS = PROPOSAL_KEYS | {'schema_version', 'operation', 'command_id', 'fields',
     'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies', 'expected_publication'}
 IMPLEMENTATIONS = (MODULE_REF, common.MODULE_REF,
-    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py',
@@ -121,7 +122,7 @@ def configuration(config, *, owner_config=None):
 
 
 def _request(request, *, create=False):
-    source._keys(request, CREATE_KEYS if create else PROPOSAL_KEYS | {'schema_version', 'operation'})
+    source.command_handler(CONFIG).validate_request(request)
     if (request['schema_version'] != REQUEST or request['operation'] != (OPERATION if create else PREPARE)
             or len(source._canonical(request)) > source.MAX_COMMAND_BYTES
             or not isinstance(request['reason'], str) or not 1 <= len(request['reason'].strip()) <= 4096):
@@ -571,3 +572,19 @@ def _result(config, configuration_digest, *, receipt=None, replayed=False, recov
 
 def run_responsibility_command(owner, config, configuration_digest, path, request):
     return common.run_command(sys.modules[__name__], owner, config, configuration_digest, path, request)
+
+
+def command_handlers():
+    return (contract.Handler('native-expression-responsibility', (CONFIG,), (contract.describe(),
+        contract.operation(PREPARE, PROPOSAL_KEYS, definition='Prepare one qualified translator Claim for an existing Expression and Agent.', grants=(OPERATION,)),
+        contract.operation(OPERATION, CREATE_KEYS - contract.BASE_KEYS,
+            definition='Append exactly one responsibility Claim reference and publish its separate qualified Claim/form package.',
+            mutation='selected_expression_and_new_claim_package', grants=(OPERATION,)), contract.recovery(RECOVERY)),
+        run_responsibility_command, 'Attach a qualified translated_by assertion without creating or revising the existing Agent.',
+        configure=configuration, request_schema=REQUEST,
+        owner_route='mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md',
+        typed_handles=(CORPUS_REF, 'ToS/contracts/source-relation-claim.schema.json', *contract.CLAIM_HANDLES, *FORM_CONTRACTS),
+        profile_selection='Only translated_by under identity-relation-v1; the Claim needs statement, statement_language, statement_script and attribution_scope.',
+        preconditions=('Requires exact current Expression and Agent byte bindings, a new relation home, bounded forms and evidence allowlists.',
+                       'URL addresses are not observed remote contents; competing Claims retain separate identities.'),
+        manages_publication=True),)

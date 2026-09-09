@@ -60,6 +60,7 @@ EXPECTED_KNOWLEDGE_OPERATIONS = {
     "tos.knowledge.search",
     "tos.knowledge.node.inspect",
     "tos.knowledge.relation.inspect",
+    "tos.knowledge.temporal.compare",
     "tos.knowledge.focus",
     "tos.lens.open",
     "tos.lens.compile",
@@ -88,6 +89,8 @@ def _validate_knowledge_contracts(repo_root: Path) -> None:
         "knowledge-graph.v1.schema.json",
         "lens-spec.v1.schema.json",
         "lens-result.v1.schema.json",
+        "temporal-comparison-request.v1.schema.json",
+        "temporal-comparison-result.v1.schema.json",
         "exploration-request.v1.schema.json",
         "exploration-result.v1.schema.json",
     )
@@ -168,6 +171,8 @@ def _validate_knowledge_contracts(repo_root: Path) -> None:
         "knowledge_graph",
         "lens_spec",
         "lens_result",
+        "temporal_comparison_request",
+        "temporal_comparison_result",
         "entity_type_registry_schema",
         "relation_type_registry_schema",
         "entity_type_registry",
@@ -418,6 +423,7 @@ contracts = core.knowledge_contracts()
 assert contracts["schema"] == "tos_knowledge_contract_bundle_v1"
 assert set(contracts["contracts"]) == {
     "api", "knowledge_graph", "lens_spec", "lens_result",
+    "temporal_comparison_request", "temporal_comparison_result",
     "entity_type_registry_schema", "relation_type_registry_schema",
     "entity_type_registry", "relation_type_registry",
 }

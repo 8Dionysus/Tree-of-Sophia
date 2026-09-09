@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from .core import ToSAccessCore
@@ -40,16 +41,26 @@ def build_server(
         raise SystemExit("Missing dependency 'mcp'. Install with: python -m pip install -e .") from exc
 
     mcp = FastMCP("tree-of-sophia", json_response=True)
+    state_lock = Lock()
+    cached_state: ToSAccessCore | None = None
 
     def current_state() -> ToSAccessCore:
-        return ToSAccessCore.discover(
+        nonlocal cached_state
+        resolved = ToSAccessCore.discover(
             tos_root=tos_root,
             index_path=index_path,
             philosophy_graph_projection_path=philosophy_graph_projection_path,
             philosophy_post_planting_audit_path=philosophy_post_planting_audit_path,
         )
+        # Discover path changes on every call, but keep the shared graph/index
+        # for unchanged paths. Core readers still observe current file versions.
+        # Equality excludes disposable indexes/checkpoints and compares paths.
+        with state_lock:
+            if cached_state is None or cached_state != resolved:
+                cached_state = resolved
+            return cached_state
 
-    # Other tools can rediscover source paths on each call. Exploration keeps
+    # Tools rediscover source paths on each call. Exploration keeps
     # its disposable checkpoints for the lifetime of this MCP server only.
     from .exploration import ExplorationService
     exploration = ExplorationService(lambda: current_state().knowledge_graph())
@@ -121,6 +132,11 @@ def build_server(
     def tos_knowledge_relation(relation_id: str) -> dict[str, Any]:
         """Inspect a normalized relation together with its display-complete endpoints."""
         return current_state().knowledge_relation(relation_id)
+
+    @mcp.tool()
+    def tos_knowledge_temporal_compare(request: dict[str, Any]) -> dict[str, Any]:
+        """Compare two exact Claim date envelopes, not event truth. Discover the request schema with tos_knowledge_contracts."""
+        return current_state().knowledge_temporal_compare(request)
 
     @mcp.tool()
     def tos_knowledge_focus(

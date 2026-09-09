@@ -9,6 +9,7 @@ from __future__ import annotations
 from contextlib import contextmanager, nullcontext
 import ctypes
 from datetime import datetime, timezone
+from functools import lru_cache
 import errno
 import fcntl
 import hashlib
@@ -29,6 +30,7 @@ from assessment_journal import (
     _owned_path, _sync_directory,
 )
 from knowledge_assessment import Record, _canonical, _instant
+import source_command_contracts as contract
 
 ROOT = Path(__file__).resolve().parents[5]
 if str(ROOT / 'scripts') not in sys.path:
@@ -66,6 +68,8 @@ REVISION_FIELDS = {'preferred_label', 'variant_labels', 'notes', 'field_language
                    'semantic_content'}
 CORPUS_REVISION_FIELDS = {'preferred_label', 'notes', 'field_languages', 'source_refs'}
 MAX_COMMAND_BYTES = 1_048_576
+DISCOVERY_REQUEST = 'tos_source_command_discovery_request_v1'
+DISCOVERY_RESULT = 'tos_source_command_discovery_v1'
 
 
 def _digest(raw):
@@ -87,27 +91,13 @@ def _read(path, limit):
 def _configuration(path):
     raw = _read(path, MAX_COMMAND_BYTES)
     config = _json_object(raw)
-    if config.get('schema_version') == 'tos_local_expression_responsibility_owner_v1':
-        from source_responsibility_commands import configuration
-        return configuration(config, owner_config=path)
-    if config.get('schema_version') == 'tos_local_work_expression_owner_v1':
-        from source_expression_commands import configuration
-        return configuration(config, owner_config=path)
-    if config.get('schema_version') in {OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
-        from source_owner_claim_commands import configuration
-        return configuration(config, owner_config=path)
-    if config.get('schema_version') == OWNER_PROFILE_CONFIG:
-        from source_owner_profile_commands import configuration
-        return configuration(config, owner_config=path)
-    if config.get('schema_version') == TEXT_UNIT_CONFIG:
-        from source_text_unit_commands import configuration
-        return configuration(config, owner_config=path)
-    if config.get('schema_version') in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG, CLAIM_REFERENCE_CONFIG}:
-        from source_claim_commands import configuration
-        return configuration(config)
-    if config.get('schema_version') in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_REFERENCE_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
-        from claim_revisions import configuration
-        return configuration(config)
+    handler = command_handler(config.get('schema_version'))
+    if handler.configure is not None:
+        return handler.configure(config, owner_config=path)
+    return _builtin_configuration(config, path)
+
+
+def _builtin_configuration(config, path):
     creation = config.get('schema_version') in CREATION_CONFIGS
     profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
@@ -750,10 +740,10 @@ def _prepare_creation(config, request):
     if new_event in events:
         raise JournalConflict('provenance identity already exists')
     anchors = _scan_index(root, filename_pattern='*anchor*.jsonl', id_field='anchor_id')
-    contract = _historical_claim_contract(root) if claims else None
+    historical_contract = _historical_claim_contract(root) if claims else None
     evidence = []
     for claim in claims:
-        contract[0].validate(claim)
+        historical_contract[0].validate(claim)
         if (claim['claim_id'] not in config['allowed_claim_ids']
                 or claim['subject_ref'] != source['record_id']
                 or claim['maker']['agent_ref'] != config['principal_id']
@@ -766,7 +756,7 @@ def _prepare_creation(config, request):
             raise JournalConflict('claim identity already exists or repeats in the batch')
         claim_ids.add(claim['claim_id'])
         try:
-            _validate_historical_claim(claim, objects, contract)
+            _validate_historical_claim(claim, objects, historical_contract)
             if new_event and claim['provenance_event_ref'] != new_event:
                 raise PermissionError('new claims must bind the delegated creation provenance')
             if claim['provenance_event_ref'] not in events and claim['provenance_event_ref'] != new_event:
@@ -824,7 +814,7 @@ def _prepare_creation(config, request):
             'ToS/doctrine/semantic-interchange/entity-types.v1.json',
             'ToS/doctrine/semantic-interchange/relation-types.v1.json')},
         'implementation': {ref: _digest(_read(ROOT / ref, MAX_SET_BYTES)) for ref in (
-            'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+            'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
             'scripts/source_witness_human_forms.py', 'scripts/build_source_witness_catalog.py',
@@ -1093,20 +1083,7 @@ def _create_source(owner_config, config, configuration, source_path, request):
     profile_creation = config['schema_version'] in {*PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}
     corpus_creation = config['schema_version'] == CORPUS_CONFIG
     creation_operation = 'sign.promote' if config['schema_version'] == SIGN_CONFIG else 'source.create' if profile_creation else CREATION_OPERATION
-    claim_fields = set() if profile_creation else {'claims'}
-    fields = {'schema_version', 'operation'}
-    if request.get('operation') == creation_operation:
-        fields |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision',
-                   'expected_dependencies', 'record', 'forms'} | claim_fields
-    elif request.get('operation') == 'prepare':
-        fields |= {'record'}
-    elif request.get('operation') == 'prepare-create':
-        fields |= {'record', 'forms'} | claim_fields
-    elif request.get('operation') != 'describe':
-        raise ValueError('unsupported source creation command')
-    _keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown source command version')
+    command_handler(config['schema_version']).validate_request(request)
     root, target = Path(config['source_root']), source_path.parent
     os.close(_owned_path(target.parent, directory=True))
     profile = (_configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]) if profile_creation else None
@@ -1207,66 +1184,41 @@ def _create_source(owner_config, config, configuration, source_path, request):
         return result(receipt)
 
 
-def run_local_command(owner_config: Path, request: dict):
+def run_local_command(owner_config: Path | None, request: dict):
     """One independently delegated source owner route; never semantic admission."""
     if not isinstance(request, dict) or len(_canonical(request)) > MAX_COMMAND_BYTES:
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
+    if request.get('schema_version') == DISCOVERY_REQUEST:
+        if owner_config is not None:
+            raise ValueError('discovery takes no owner configuration or target')
+        return discover_commands(request)
+    if owner_config is None:
+        raise PermissionError('source commands require an independently selected owner configuration')
     config, configuration, source_path = _configuration(owner_config)
-    if config['schema_version'] == 'tos_local_expression_responsibility_owner_v1':
-        from source_responsibility_commands import run_responsibility_command
-        return run_responsibility_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] == 'tos_local_work_expression_owner_v1':
-        from source_expression_commands import run_expression_command
-        return run_expression_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] == CORPUS_SELECTED_REVISION_CONFIG:
-        from source_revisions import run_revision
-        return run_revision(owner_config, config, configuration, source_path, request)
+    handler = command_handler(config['schema_version'])
+    handler.validate_request(request)
+    if handler.manages_publication:
+        return handler.run(owner_config, config, configuration, source_path, request)
     from source_metadata_snapshot import PublicationSnapshot
     snapshot = PublicationSnapshot(Path(config['source_root'])) if 'source_root' in config else None
-    result = _run_configured_command(owner_config, config, configuration, source_path, request)
+    result = handler.run(owner_config, config, configuration, source_path, request)
     if snapshot is not None:
         snapshot.verify_current()
     return result
 
 
 def _run_configured_command(owner_config, config, configuration, source_path, request):
-    if config['schema_version'] in {OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
-        from source_owner_claim_commands import run_command
-        return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] == OWNER_PROFILE_CONFIG:
-        from source_owner_profile_commands import run_command
-        return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] == TEXT_UNIT_CONFIG:
-        from source_text_unit_commands import run_command
-        return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {CLAIM_CONFIG, CLAIM_VALUE_CONFIG, CLAIM_STRUCTURED_CONFIG, CLAIM_REFERENCE_CONFIG}:
-        from source_claim_commands import run_command
-        return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {CLAIM_REVISION_CONFIG, CLAIM_VALUE_REVISION_CONFIG, CLAIM_STRUCTURED_REVISION_CONFIG, CLAIM_REFERENCE_REVISION_CONFIG, CLAIM_LAYER_REVISION_CONFIG}:
-        from claim_revisions import run_command
-        return run_command(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {*CREATION_CONFIGS, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG}:
-        return _create_source(owner_config, config, configuration, source_path, request)
-    if config['schema_version'] in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
-                                    CORPUS_SELECTED_REVISION_CONFIG}:
-        from source_revisions import run_revision
-        return run_revision(owner_config, config, configuration, source_path, request)
+    return command_handler(config['schema_version']).run(owner_config, config, configuration, source_path, request)
+
+
+def _run_form_command(owner_config, config, configuration, source_path, request):
     claim_id = config['claim_id'] if config['schema_version'] == CLAIM_FORM_CONFIG else None
     field_catalog = claim_field_catalog if claim_id is not None else metadata_field_catalog
     materialize = materialize_claim_forms if claim_id is not None else materialize_metadata_forms
     prepare_change = prepare_claim_change if claim_id is not None else prepare_metadata_change
     operation = request.get('operation')
-    fields = {'schema_version', 'operation'}
-    if operation == 'apply':
-        fields |= {'command_id', 'expected_source', 'expected_revision', 'expected_configuration', 'changes'}
-    elif operation == 'prepare':
-        fields |= {'field_id', 'form_id'}
-    elif operation != 'describe':
-        raise ValueError('unknown source command')
-    _keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown source command version')
+    command_handler(config['schema_version']).validate_request(request)
     snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
     source_contracts = (_claim_form_source(source_path, Path(config['source_root']), claim_id)[2]
                         if claim_id is not None else
@@ -1360,16 +1312,125 @@ def _run_configured_command(owner_config, config, configuration, source_path, re
         return result((source_raw, source, subject, target, encoded, value), receipt)
 
 
+def _builtin_handlers():
+    form_ops = (contract.describe(),
+        contract.operation('prepare', {'field_id', 'form_id'}, definition='Prepare one source-copy form for an explicit field.', grants=OPERATIONS),
+        contract.operation('apply', {'command_id', 'expected_source', 'expected_revision', 'expected_configuration', 'changes'},
+            definition='Create or revise explicitly selected forms while retaining predecessors.', mutation='human_forms', grants=OPERATIONS))
+    forms = contract.Handler('public-source-forms', ('tos_local_source_command_owner_v1', CLAIM_FORM_CONFIG),
+        form_ops, _run_form_command, 'Human forms of existing public native/profile metadata or one declared Claim.',
+        typed_handles=(*contract.FORM_HANDLES, *contract.RECORD_HANDLES, *contract.CLAIM_HANDLES),
+        preconditions=('Form writes cannot change the source record or Claim, and require exact delegated form identities.',))
+    def creator(identifier, schemas, name, definition, handles, *, historical=False, selection=None, preconditions=()):
+        proposal = {'record', 'forms'} | ({'claims'} if historical else set())
+        return contract.Handler(identifier, tuple(schemas), (contract.describe(),
+            contract.operation('prepare', {'record'}, definition='Inspect candidate source-copy field selectors.', grants=(name,)),
+            contract.operation('prepare-create', proposal, definition='Prepare the exact initial source package without publishing it.', grants=(name,)),
+            contract.operation(name, proposal | contract.COMMIT_KEYS, definition=definition, mutation='new_source_package', grants=(name,))),
+            _create_source, definition, typed_handles=(*handles, *contract.FORM_HANDLES),
+            profile_selection=selection or 'Exact source schema and typed identity are checked by the creation handler.',
+            preconditions=('Requires an absent source home, initial identity/version and explicitly selected source-copy forms.', *preconditions))
+    return (forms,
+        creator('historical-source-create', sorted(CREATION_CONFIGS), CREATION_OPERATION,
+            'Create one HistoricalEvent, HistoricalProcess or HistoricalState with its bounded initial Claims.',
+            ('ToS/contracts/historical-record.schema.json', 'ToS/contracts/historical-claim.schema.json'), historical=True),
+        creator('public-profile-create', (PROFILE_CONFIG,), 'source.create',
+            'Create one public source metadata record supported by an existing declared profile.', contract.RECORD_HANDLES,
+            selection='Select profile_type_id in entity-types.v1.json; source_record_profile supplies the exact schema, not a write grant.',
+            preconditions=('Sign requires the separate sign.promote handler and cannot use this generic route.',)),
+        creator('native-corpus-create', (CORPUS_CONFIG,), 'source.create',
+            'Create one provisional standalone Agent, Place, Organization or initial Work.',
+            ('ToS/contracts/corpus-record.schema.json',),
+            selection='Explicit record_type is agent, place, organization or work; no Expression/Edition or role-subclass creation.',
+            preconditions=('The Nietzsche Work home retains its stronger authorship and chronology route.',)),
+        creator('sign-promotion', (SIGN_CONFIG,), 'sign.promote',
+            'Issue a Sign source identity from an independently assessed eligible exact candidate.',
+            ('ToS/contracts/sign-description-record.schema.json', *contract.RECORD_HANDLES,
+             'ToS/doctrine/KNOWLEDGE_ASSESSMENT.md'),
+            selection='Only tos.entity.sign and its declared sign-promotion-v1 gate.',
+            preconditions=('Requires separate public source-bound assessment-owner selection and current sign-promotion admission; this handler does not grant that admission.',)))
+
+
+@lru_cache(maxsize=1)
+def command_handlers():
+    """Fixed implementation imports, never a request/registry-selected executable."""
+    import source_claim_commands
+    import claim_revisions
+    import source_revisions
+    import source_selected_revisions
+    import source_text_unit_commands
+    import source_owner_profile_commands
+    import source_owner_claim_commands
+    import source_expression_commands
+    import source_responsibility_commands
+    handlers = (*_builtin_handlers(), *(handler for module in (
+        source_claim_commands, claim_revisions, source_revisions, source_selected_revisions,
+        source_text_unit_commands, source_owner_profile_commands, source_owner_claim_commands,
+        source_expression_commands, source_responsibility_commands) for handler in module.command_handlers()))
+    schemas = [schema for handler in handlers for schema in handler.owner_schemas]
+    if len(set(schemas)) != len(schemas) or len({handler.handler_id for handler in handlers}) != len(handlers):
+        raise ValueError('source command handlers have ambiguous configuration dispatch')
+    return handlers
+
+
+def command_handler(owner_schema):
+    if not isinstance(owner_schema, str):
+        raise ValueError('source command owner schema must be an implemented string tag')
+    selected = next((handler for handler in command_handlers() if owner_schema in handler.owner_schemas), None)
+    if selected is None:
+        raise ValueError('unknown source command owner schema')
+    return selected
+
+
+def discover_commands(request=None):
+    """Implementation-only discovery: no configuration, target, source or clock IO."""
+    if request is None:
+        request = {'schema_version': DISCOVERY_REQUEST, 'operation': 'discover'}
+    _keys(request, {'schema_version', 'operation'} | ({'handler_id'} if 'handler_id' in request else set()))
+    if request['schema_version'] != DISCOVERY_REQUEST or request['operation'] != 'discover':
+        raise ValueError('unknown source command discovery request')
+    handlers = command_handlers()
+    if 'handler_id' in request:
+        if not isinstance(request['handler_id'], str):
+            raise ValueError('discovery handler selector must be an exact implemented identity')
+        handlers = tuple(handler for handler in handlers if handler.handler_id == request['handler_id'])
+        if not handlers:
+            raise ValueError('unknown source command discovery handler')
+    return {'schema_version': DISCOVERY_RESULT, 'entrypoint':
+        'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+        'discovery_request': {'schema_version': DISCOVERY_REQUEST, 'operation': 'discover'},
+        'posture': 'implemented_capabilities_not_authorized_now', 'authorization_status': 'not_evaluated',
+        'grants_admission': False, 'reads_owner_configuration': False, 'reads_source_targets': False,
+        'handler_count': len(handlers), 'handlers': [handler.public() for handler in handlers],
+        'owner_handoffs': [
+            {'capability': 'knowledge assessment', 'dispatched_here': False,
+             'owner_route': 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'},
+            {'capability': 'semantic registry evolution', 'dispatched_here': False,
+             'owner_route': 'ToS/doctrine/semantic-interchange/README.md',
+             'validation_route': 'scripts/validate_semantic_registry_transition.py'},
+            {'capability': 'read-only CLI HTTP WebMCP and native MCP access', 'dispatched_here': False,
+             'owner_route': 'access/AGENTS.md'}]}
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--owner-config', type=Path, required=True)
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument('--owner-config', type=Path)
+    selection.add_argument('--discover', action='store_true', help='Emit handler-owned JSON capability grammar without reading stdin, owner configuration or source targets.')
+    parser.add_argument('--handler', help='With --discover, select one exact handler_id from the implementation catalogue.')
     args = parser.parse_args()
+    if args.handler is not None and not args.discover:
+        parser.error('--handler requires --discover')
     try:
-        raw = sys.stdin.buffer.read(MAX_COMMAND_BYTES + 1)
-        if len(raw) > MAX_COMMAND_BYTES:
-            raise ValueError('source command exceeds the stdin budget')
-        response = run_local_command(args.owner_config, _json_object(raw))
+        if args.discover:
+            response = discover_commands({'schema_version': DISCOVERY_REQUEST, 'operation': 'discover',
+                                         **({'handler_id': args.handler} if args.handler is not None else {})})
+        else:
+            raw = sys.stdin.buffer.read(MAX_COMMAND_BYTES + 1)
+            if len(raw) > MAX_COMMAND_BYTES:
+                raise ValueError('source command exceeds the stdin budget')
+            response = run_local_command(args.owner_config, _json_object(raw))
     except (ValueError, KeyError, TypeError, OSError, ValidationError, RuntimeError) as error:
         print(json.dumps({'schema_version': 'tos_local_source_command_error_v1', 'error': type(error).__name__}))
         return 2

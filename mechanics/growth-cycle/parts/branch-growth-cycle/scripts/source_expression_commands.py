@@ -20,6 +20,7 @@ import source_compound_commands as common
 from source_compound_commands import _record_ref, _claim_ref, _selections, _forms, _read_catalog, _catalog_record, _catalog_claim, _environment
 
 import source_commands as source
+import source_command_contracts as contract
 import source_revisions as revisions
 import source_metadata_transactions as transactions
 from source_metadata_snapshot import PublicationSnapshot
@@ -50,7 +51,7 @@ PROPOSAL_KEYS = {'record', 'claim', 'forms', 'expression_forms', 'claim_forms', 
 CREATE_KEYS = PROPOSAL_KEYS | {'schema_version', 'operation', 'command_id', 'fields',
     'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies', 'expected_publication'}
 IMPLEMENTATIONS = (MODULE_REF, common.MODULE_REF,
-    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
@@ -120,7 +121,7 @@ def configuration(config, *, owner_config=None):
 
 
 def _request(request, *, create=False):
-    source._keys(request, CREATE_KEYS if create else PROPOSAL_KEYS | {'schema_version', 'operation'})
+    source.command_handler(CONFIG).validate_request(request)
     if (request['schema_version'] != REQUEST or request['operation'] != (OPERATION if create else 'prepare-create')
             or len(source._canonical(request)) > source.MAX_COMMAND_BYTES
             or not isinstance(request['reason'], str) or not 1 <= len(request['reason'].strip()) <= 4096):
@@ -551,3 +552,18 @@ def _prepare_fields(record, scope):
 
 def _prepared_refs(receipt):
     return {'prepared_work': receipt['parent_after'], 'prepared_expression': receipt['expression']}
+
+
+def command_handlers():
+    return (contract.Handler('native-work-expression', (CONFIG,), (contract.describe(),
+        contract.operation(PREPARE, PROPOSAL_KEYS, definition='Prepare one provisional Expression and exact parent Work append.', grants=(OPERATION,)),
+        contract.operation(OPERATION, CREATE_KEYS - contract.BASE_KEYS,
+            definition='Create the new Expression, distinct has_expression Claim and forms with one Work successor.',
+            mutation='selected_work_and_new_expression_package', grants=(OPERATION,)), contract.recovery(RECOVERY)),
+        run_expression_command, 'Separately delegated native Work to Expression growth.', configure=configuration,
+        request_schema=REQUEST, owner_route='mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md',
+        typed_handles=(CORPUS_REF, 'ToS/contracts/source-relation-claim.schema.json', *contract.CLAIM_HANDLES, *FORM_CONTRACTS),
+        profile_selection='Exact Work and new Expression; has_expression uses the canonical identity-relation-v1 profile.',
+        preconditions=('Requires exact current catalog/parent/source-copy forms, absent child home and distinct Claim identity.',
+                       'Only expression_claim_refs appends; language, translation equivalence and source admission are not inferred.'),
+        manages_publication=True),)

@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 
 import source_commands as source
+import source_command_contracts as contract
 import source_revisions as packages
 from source_record_profiles import SourceClaimProfiles, SOURCE_CLAIM_BASENAME
 
@@ -296,20 +297,7 @@ def _proposal(config, path, files, record, request):
 
 def run_command(owner, config, configuration_digest, path, request):
     operation = request.get('operation')
-    fields = {'schema_version', 'operation'}
-    if operation in {OPERATION, 'prepare-revise'}:
-        fields |= {'fields', 'forms', 'reason'}
-        if config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG:
-            fields |= {'layer_transition'}
-    if operation == OPERATION:
-        fields |= {'command_id', 'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies', 'expected_inputs'}
-    elif operation == 'inspect-version':
-        fields |= {'source'}
-    elif operation not in {'describe', 'prepare-revise'}:
-        raise ValueError('unsupported Claim correction operation')
-    source._keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown source command version')
+    source.command_handler(config['schema_version']).validate_request(request)
     root = Path(config['source_root'])
 
     def inspect():
@@ -419,3 +407,25 @@ def run_command(owner, config, configuration_digest, path, request):
                 elif remaining == output:
                     packages._discard_staging(staging, output)
         return result(output, revised, receipt)
+
+
+def command_handlers():
+    result = []
+    for version, schema, scope in (
+            ('v1', source.CLAIM_REVISION_CONFIG, 'descriptive fields only; identity endpoints and object values stay fixed'),
+            ('v2', source.CLAIM_VALUE_REVISION_CONFIG, 'descriptive fields and separately allowlisted temporal value replacement'),
+            ('v3', source.CLAIM_STRUCTURED_REVISION_CONFIG, 'descriptive fields and separately allowlisted structured value replacement'),
+            ('v4', source.CLAIM_REFERENCE_REVISION_CONFIG, 'descriptive fields and separately allowlisted reference-bearing value replacement'),
+            ('layer-v1', source.CLAIM_LAYER_REVISION_CONFIG, 'only an explicitly allowlisted assertion-layer transition')):
+        proposal = {'fields', 'forms', 'reason'} | ({'layer_transition'} if schema == source.CLAIM_LAYER_REVISION_CONFIG else set())
+        result.append(contract.Handler('public-claim-revision-' + version, (schema,), (contract.describe(),
+            contract.operation('prepare-revise', proposal, definition='Prepare a qualified exact Claim successor and form rebindings.', grants=(OPERATION,)),
+            contract.operation(OPERATION, proposal | contract.COMMIT_KEYS | {'expected_inputs'},
+                definition='Revise one Claim while retaining its exact prior package and independent assertion identity.', mutation='claim_successor', grants=(OPERATION,)),
+            contract.inspect_version()), run_command, 'Correct one declared public Claim: ' + scope + '.',
+            configure=lambda config, owner_config: configuration(config),
+            typed_handles=(*contract.CLAIM_HANDLES, *contract.FORM_HANDLES, 'ToS/contracts/source-structured-value.schema.json'),
+            profile_selection='The current Claim predicate and exact source_claim_profile remain unchanged; ' + scope + '.',
+            preconditions=('Requires an existing exact Claim, continuous history, selected fields/forms and newly cited evidence allowlists.',
+                           'Native translated_by corrections additionally preserve verified compound origin and explicit attribution_scope.')))
+    return tuple(result)

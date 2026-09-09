@@ -123,6 +123,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_temporal_comparison.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "exact_claim_temporal_comparison",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/temporal-comparison-request.v1.schema.json",
+      "protects": "exact Claim and object source bindings, date-envelope relations without historical judgment, explicit calendar/numbering/role/certainty, retained unknown and disputed context, malformed normalized-carrier refusal, bounded shared-index reads, revision conflicts and CLI/HTTP/native MCP parity; exports shared fixtures for Worker/D1 parity",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_temporal_comparison.py",
+      "failure_route": "Fix the shared exact-date comparison or adapter binding without interpreting relative dates, inventing calendar context, granting admission or replacing source Claims with derived relations.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_cloudflare_tunnel_deploy.py",
       "home": "access",
       "home_scope": "product-local",
@@ -1095,6 +1110,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/growth-cycle/tests/test_human_forms.py",
       "failure_route": "Fix the source human-form contract or materializer; preserve mandatory context and current assessment boundaries.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md",
+      "protects": "grant-free deterministic discovery from actual handler descriptors, exact connected schema/key grammar, descriptor-driven dispatch and direct-handler refusal, no private/source/network/mutation IO on fresh import, explicit non-authorization and read-only handoffs",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
+      "failure_route": "Fix the actual handler grammar or grant-free front door without duplicating an operation registry, weakening current grants or opening source data during discovery.",
       "disposition": "keep"
     },
     {

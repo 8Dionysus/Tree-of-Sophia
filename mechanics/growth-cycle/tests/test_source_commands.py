@@ -68,10 +68,10 @@ class SourceCommandTests(unittest.TestCase):
         self.assertFalse(changed['replayed'])
         self.assertFalse(changed['grants_admission'])
         stored = json.loads(self.target.read_bytes())
-        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][0]])
+        self.assertEqual(stored['prior_forms'], [*self.original_set['prior_forms'], self.original_set['forms'][0]])
         self.assertEqual(stored['forms'][1:], self.original_set['forms'][1:])
         self.assertEqual(stored['forms'][0], request['changes'][0]['form'])
-        self.assertEqual(stored['growth_history'], [changed['receipt']])
+        self.assertEqual(stored['growth_history'], [*self.original_set.get('growth_history', []), changed['receipt']])
         self.assertEqual(changed['materializations'][0]['state'], 'ready')
         self.assertEqual(changed['materializations'][0]['display_text'], json.loads(self.original_source)['preferred_label'])
         self.assertIsNone(changed['materializations'][0]['admission'])
@@ -178,12 +178,17 @@ class SourceCommandTests(unittest.TestCase):
 
     def test_new_set_uses_the_existing_source_adapter_without_a_second_store(self):
         self.target.unlink()  # Only a temporary fixture, never the source repo.
-        form = {**copy.deepcopy(self.original_set['forms'][0]), 'creator_id': self.creator}
-        request = self.request([{'operation': 'form.create', 'expected_form': None, 'form': form}])
+        change = commands.prepare_metadata_change(json.loads(self.original_source), None,
+            self.creator, 'tos.form.test.new', 'metadata.preferred-name')
+        self.assertEqual(change['operation'], 'form.create')
+        self.assertEqual(change['form']['form_version'], 1)
+        self.assertIsNone(change['form']['revises'])
+        request = self.request([change])
         result = self.run_request(request)
         self.assertIsNone(result['receipt']['previous_revision'])
         self.assertEqual(result['materializations'][0]['state'], 'ready')
         self.assertEqual(json.loads(self.target.read_bytes())['prior_forms'], [])
+        self.assertEqual(self.source.read_bytes(), self.original_source)
 
     def test_historical_record_uses_same_command_abi_without_source_rewrite_or_admission(self):
         self.relative = 'ToS/source-witnesses/history/synthetic/historical-event.json'
@@ -283,7 +288,7 @@ class SourceCommandTests(unittest.TestCase):
         self.assertEqual(next(item['value'] for item in view['context']
                              if item['binding']['pointer'] == '/field_languages/notes'), metadata)
         stored = json.loads(self.target.read_bytes())
-        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][2]])
+        self.assertEqual(stored['prior_forms'], [*self.original_set['prior_forms'], self.original_set['forms'][2]])
         self.assertEqual(self.source.read_bytes(), before)
 
     def test_field_language_metadata_is_explicit_and_bounded_not_inferred_from_expression_or_ui(self):
@@ -325,7 +330,7 @@ class SourceCommandTests(unittest.TestCase):
         unknown = next(item for item in context if item['binding']['pointer'].endswith('/future~1a~0b'))
         self.assertEqual(unknown['value'], {'unknown': None, 'negative': False})
         stored = json.loads(self.target.read_bytes())
-        self.assertEqual(stored['prior_forms'], [self.original_set['forms'][1]])
+        self.assertEqual(stored['prior_forms'], [*self.original_set['prior_forms'], self.original_set['forms'][1]])
         self.assertEqual(stored['forms'][0], self.original_set['forms'][0])
 
     def test_current_catalogue_metadata_preparation_covers_each_supported_record_without_writes(self):

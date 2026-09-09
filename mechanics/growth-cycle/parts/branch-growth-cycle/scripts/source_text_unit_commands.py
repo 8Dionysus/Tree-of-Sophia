@@ -19,6 +19,7 @@ import time
 from jsonschema import Draft202012Validator, FormatChecker
 
 import source_commands as source
+import source_command_contracts as contract
 from source_owner_context import OwnerLocalSourceContext, _open, _read as context_read
 from native_text_binding import NativeTextBindingResolver, check_local_research_rights
 from source_revisions import _encode, _file_refs
@@ -38,7 +39,7 @@ MAX_INVENTORY_FILE_BYTES = 32 * 1024 * 1024
 MAX_INVENTORY_RECORDS = 65536
 IMPLEMENTATIONS = (
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py',
-    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+    'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
     'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
@@ -336,16 +337,7 @@ def _replay(config, configuration_digest, context, path, request, *, owner_confi
 
 def run_command(owner_config, config, configuration_digest, path, request):
     operation = request.get('operation')
-    fields = {'schema_version', 'operation'}
-    if operation in {'prepare-create', OPERATION}:
-        fields |= {'spans', 'excluded_gaps'}
-    if operation == OPERATION:
-        fields |= {'command_id', 'expected_configuration', 'expected_dependencies', 'expected_source', 'expected_revision'}
-    if operation not in {'describe', 'prepare-create', OPERATION}:
-        raise ValueError('unsupported native source command')
-    source._keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unknown native command envelope')
+    source.command_handler(config['schema_version']).validate_request(request)
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     target = path.parent
     def result(receipt=None, replayed=False):
@@ -418,3 +410,16 @@ def run_command(owner_config, config, configuration_digest, path, request):
                     (staging / name).unlink(missing_ok=True)
                 staging.rmdir()
         return result(receipt)
+
+
+def command_handlers():
+    proposal = {'spans', 'excluded_gaps'}
+    return (contract.Handler('owner-local-text-unit-create', (CONFIG,), (contract.describe(),
+        contract.operation('prepare-create', proposal, definition='Prepare an explicit interval partition of the independently selected native text closure.', grants=(OPERATION,)),
+        contract.operation(OPERATION, proposal | contract.COMMIT_KEYS,
+            definition='Create a confidential native TextUnit packet with immutable source and serialization bindings.', mutation='private_text_unit_package', grants=(OPERATION,))),
+        run_command, 'Explicit native TextUnit segmentation in the independently selected owner-local store.', configure=configuration,
+        typed_handles=(PACKET_SCHEMA, BINDING_SCHEMA, PROVENANCE_SCHEMA),
+        profile_selection='The owner selects one exact native binding and bounded unit slots; request spans cannot select another source or executable.',
+        preconditions=('Execution requires an independently protected owner-local context, exact read scope and valid local-research rights.',
+                       'Discovery does not open that context or reveal its source text, slots or targets.')),)

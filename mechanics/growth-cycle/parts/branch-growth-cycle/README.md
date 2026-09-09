@@ -1,5 +1,14 @@
 # Branch Growth Cycle
 
+## Find a source-owner command
+
+Start with `python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py --discover`.
+It returns handler-owned JSON operation and request shapes without a private
+grant or source target. Use `--discover --handler HANDLER_ID` for one exact
+family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the
+compact API, typed owner handles and limits: implemented is not authorized-now,
+and access adapters remain read-only.
+
 ## Operating Card
 
 | Field | Route |

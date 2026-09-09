@@ -12,6 +12,7 @@ import tempfile
 import time
 
 import source_commands as source
+import source_command_contracts as contract
 from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles, SOURCE_CLAIM_BASENAME
 
 OPERATION = 'claims.create'
@@ -253,7 +254,7 @@ def _ground_claims(config, claims, *, initial):
         'selected_source_bindings': source_bindings,
         'provenance_contract': source._digest(source._read(root / 'ToS/contracts/provenance-event-v2.schema.json', source.MAX_SET_BYTES)),
         'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in
-            (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+            (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
              'scripts/source_record_profiles.py', 'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
@@ -327,16 +328,7 @@ def _replay(target, config, request):
 
 def run_command(owner_config, config, configuration_digest, path, request):
     operation = request.get('operation')
-    fields = {'schema_version', 'operation'}
-    if operation == 'prepare-create':
-        fields |= {'claims'}
-    elif operation == OPERATION:
-        fields |= {'claims', 'command_id', 'expected_configuration', 'expected_revision', 'expected_dependencies', 'expected_inputs'}
-    elif operation != 'describe':
-        raise ValueError('unsupported claim source command')
-    source._keys(request, fields)
-    if request['schema_version'] != 'tos_local_source_command_v1':
-        raise ValueError('unsupported source command version')
+    source.command_handler(config['schema_version']).validate_request(request)
     root, target = Path(config['source_root']), path.parent
     os.close(source._owned_path(target.parent, directory=True))
     def result(receipt=None, replayed=False):
@@ -405,3 +397,21 @@ def run_command(owner_config, config, configuration_digest, path, request):
                     (staging / name).unlink(missing_ok=True)
                 staging.rmdir()
         return result(receipt)
+
+
+def command_handlers():
+    operations = (contract.describe(),
+        contract.operation('prepare-create', {'claims'}, definition='Ground a bounded initial Claim batch against its exact selected source contracts.', grants=(OPERATION,)),
+        contract.operation(OPERATION, {'claims', 'command_id', 'expected_configuration', 'expected_revision', 'expected_dependencies', 'expected_inputs'},
+            definition='Publish a new flat source Claim package with exact grounded inputs.', mutation='new_claim_package', grants=(OPERATION,)))
+    return tuple(contract.Handler('public-claim-create-' + version, (schema,), operations, run_command,
+        'Create declared public Claims; ' + values + '.', configure=lambda config, owner_config: configuration(config),
+        typed_handles=(*contract.CLAIM_HANDLES, 'ToS/contracts/source-structured-value.schema.json', 'ToS/contracts/historical-claim.schema.json'),
+        profile_selection='Exact predicate selects source_claim_profile in relation-types.v1.json; ' + values + '.',
+        preconditions=('Requires an absent relation home, explicit Claim/endpoints/evidence and maker allowlists.',
+                       'has_expression and translated_by creation require their separately delegated native compound handlers.'))
+        for version, schema, values in (
+            ('v1', source.CLAIM_CONFIG, 'identity objects only, no typed-value grant'),
+            ('v2', source.CLAIM_VALUE_CONFIG, 'separately allowlisted temporal values'),
+            ('v3', source.CLAIM_STRUCTURED_CONFIG, 'separately allowlisted structured values, not reference-bearing values'),
+            ('v4', source.CLAIM_REFERENCE_CONFIG, 'separately allowlisted structured reference values and exact identity dependencies')))

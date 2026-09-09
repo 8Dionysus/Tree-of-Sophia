@@ -349,6 +349,13 @@ class NativeExpressionTests(unittest.TestCase):
 
     def test_prepared_dependency_drift_and_midpublication_revocation_fail_closed(self):
         request = self.request()
+        read = commands._read
+        def changed_grammar(path, limit):
+            raw = read(path, limit)
+            return raw + b'\n' if Path(path) == commands.ROOT / commands.contract.MODULE_REF else raw
+        with patch.object(commands, '_read', side_effect=changed_grammar), self.assertRaises(commands.JournalConflict):
+            commands.run_local_command(self.owner, request)
+        self.assertEqual(json.loads(self.work_path.read_bytes()), self.work)
         manifest = self.root / compound.CATALOG_MANIFEST
         before = manifest.read_bytes()
         manifest.write_bytes(before + b'\n')

@@ -7,6 +7,8 @@
     "knowledge_graph": "knowledge-graph.v1.schema.json",
     "lens_spec": "lens-spec.v1.schema.json",
     "lens_result": "lens-result.v1.schema.json",
+    "temporal_comparison_request": "temporal-comparison-request.v1.schema.json",
+    "temporal_comparison_result": "temporal-comparison-result.v1.schema.json",
     "entity_type_registry_schema": "../../ToS/contracts/semantic-entity-type-registry.schema.json",
     "relation_type_registry_schema": "../../ToS/contracts/semantic-relation-type-registry.schema.json",
     "entity_type_registry": "../../ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -47,6 +49,21 @@
       "mcp_tool": "tos_knowledge_relation",
       "cli": "tos knowledge relation",
       "result": "normalized relation matches and display-complete endpoints"
+    },
+    {
+      "operation_id": "tos.knowledge.temporal.compare",
+      "http": {"method": "POST", "path": "/api/knowledge/temporal/compare", "content_type": "application/json"},
+      "mcp_tool": "tos_knowledge_temporal_compare",
+      "cli": "tos knowledge temporal-compare",
+      "request_schema": "temporal-comparison-request.v1.schema.json",
+      "result_schema": "temporal-comparison-result.v1.schema.json",
+      "result": "bounded comparison of two exact Claim date envelopes, with full source context and comparable/undetermined/unsupported posture",
+      "post_semantics": "structured read only; no state, inferred Claim, assessment or authored write",
+      "resolution": "two exact normalized Claim IDs and their content revisions in one required source revision; no alias resolution",
+      "errors": {"400": "invalid request", "404": "exact selected node unavailable or ambiguous", "409": "snapshot or selected content changed; select again", "503": "selected normalized carrier has invalid structural containers; repair the projection before retrying"},
+      "bounds": "at most four exact node lookups after the shared snapshot/index is prepared; cold graph construction is separate",
+      "supported_time_roles": ["historical-time"],
+      "comparison_law": "inclusive normalized envelopes; equal first, strict before/after, inclusive contains/contained-by excluding equal, otherwise overlaps (including shared boundaries). Same explicit time role and exact certainty required. No calendar conversion, relative-anchor resolution, uncertainty expansion, duration or historical-truth inference."
     },
     {
       "operation_id": "tos.knowledge.focus",

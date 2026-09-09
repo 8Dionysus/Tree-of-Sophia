@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 
 import source_commands as source
+import source_command_contracts as contract
 import source_revisions as revisions
 from source_metadata_snapshot import PublicationSnapshot
 import source_metadata_transactions as transactions
@@ -18,9 +19,7 @@ RECOVERY = 'tos_selected_metadata_recovery_authorization_v1'
 
 
 def _request(request):
-    source._keys(request, {'schema_version', 'operation', 'fields', 'forms', 'reason', 'command_id',
-        'expected_configuration', 'expected_source', 'expected_revision', 'expected_dependencies',
-        'expected_publication'})
+    source.command_handler(source.CORPUS_SELECTED_REVISION_CONFIG).validate_request(request)
     if (request['schema_version'] != 'tos_local_source_command_v1' or request['operation'] != 'record.revise'
             or not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256
             or len(source._canonical(request)) > source.MAX_COMMAND_BYTES
@@ -159,26 +158,15 @@ def _pending_plan(config, path, pending, *, scope_operation='record.revise'):
 def run_selected_revision(owner, config, configuration, path, request):
     root = Path(config['source_root'])
     operation = request.get('operation')
+    source.command_handler(config['schema_version']).validate_request(request)
     if operation == 'record.revise':
         _request(request)
     elif operation == 'record.recover':
-        source._keys(request, {'schema_version', 'operation', 'transaction_id', 'decision', 'expected_configuration'})
         if (request['schema_version'] != 'tos_local_source_command_v1'
                 or request['decision'] not in {'resume', 'rollback'}
                 or request['expected_configuration'] != configuration
                 or 'record.recover' not in config['allowed_operations']):
             raise PermissionError('recovery requires current explicitly delegated scope and decision')
-    else:
-        fields = {'schema_version', 'operation'}
-        if operation == 'prepare-revise':
-            fields |= {'fields', 'forms', 'reason'}
-        elif operation == 'inspect-version':
-            fields.add('source')
-        elif operation != 'describe':
-            raise ValueError('unknown selected metadata operation')
-        source._keys(request, fields)
-        if request['schema_version'] != 'tos_local_source_command_v1':
-            raise ValueError('unknown source command version')
 
     if operation not in {'record.revise', 'record.recover'}:
         snapshot = PublicationSnapshot(root)
@@ -264,3 +252,18 @@ def run_selected_revision(owner, config, configuration, path, request):
         transactions.apply_transaction(root, plan, expected_snapshot=snapshot, authorization_guard=guard,
                                        transaction_id=receipt['publication']['transaction_id'])
         return _result(config, configuration, path, PublicationSnapshot(root), receipt=receipt)
+
+
+def command_handlers():
+    proposal = {'fields', 'forms', 'reason'}
+    return (contract.Handler('native-corpus-selected-revision', (source.CORPUS_SELECTED_REVISION_CONFIG,),
+        (contract.describe(),
+         contract.operation('prepare-revise', proposal, definition='Prepare a selected metadata successor without enumerating descendants.', grants=('record.revise',)),
+         contract.operation('record.revise', proposal | contract.COMMIT_KEYS | {'expected_publication'},
+             definition='Publish exact selected metadata files with a cooperating-reader barrier.', mutation='selected_record_successor', grants=('record.revise',)),
+         contract.recovery('record.recover'), contract.inspect_version()),
+        run_selected_revision, 'Correct selected native metadata, including existing nested Expressions, with explicit recovery.',
+        typed_handles=('ToS/contracts/corpus-record.schema.json', *contract.FORM_HANDLES),
+        profile_selection='Agent, Place, Organization, Work or Expression; only preferred_label, notes, field_languages and source_refs.',
+        preconditions=('Requires exact publication snapshot and retained selected-file history; structural link changes use their typed compound owners.',),
+        manages_publication=True),)

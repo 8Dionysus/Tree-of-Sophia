@@ -42,6 +42,49 @@ reading. These fields are materialized by the Python producer and transported
 unchanged to D1; existing read snapshots require regeneration to gain this
 correction. Processor dependency digests invalidate affected normalization
 cache entries, not source history.
+
+`tos.knowledge.temporal.compare` compares two explicitly selected source
+Claim date envelopes within one required `source_revision`. Its request binds
+each exact normalized Claim ID and `content_revision`; native IDs, entity IDs
+and source-priority resolution are not accepted. The selected Claim's declared
+object binding resolves its own temporal carrier. Claim identity/version,
+mapped predicate, object ownership, lossless raw value and normalized input
+must agree. Responses retain both full Claim and value carriers, including
+their revisions, original wording, unknown qualifiers, polarity and review
+posture. The operation does not select a preferred Claim or accept either one.
+
+The v1 comparison supports the source-defined `historical-time` role, with
+explicit exact certainty and complete comparable date bounds. Unknown roles,
+missing calendars/numbering/certainty, relative order and open bounds cannot
+yield a relation. Known unsupported systems, incompatible roles and
+invalid/conflicting shapes return `unsupported`; missing or uncertain grounds
+return `undetermined`. Reasons identify the left, right or pair-level limit.
+No relative anchor traversal, calendar conversion, uncertainty expansion,
+prose parsing or record-version-as-historical-time interpretation occurs.
+
+`comparable` describes **closed normalized date envelopes**, not historical
+truth. Equal envelopes are `equal`; disjoint envelopes are strict `before` or
+`after`; inclusive containment excluding equality is `contains` or
+`contained-by`; all other intersections, including shared endpoints, are
+`overlaps`. Year/month precision retains its outer envelope. Equality does not
+establish simultaneous events, identity or independent evidence; subtraction
+of date ordering keys is not a duration. Negated and disputed Claims can have
+their stated envelopes compared without affirming their propositions.
+
+The read performs at most four exact lookups after shared snapshot/index
+preparation; it is not a claim about cold graph construction. 409 requires
+reselection after snapshot/content drift; 404 means an exact selected node is
+unavailable or ambiguous. The discoverable request/result schemas are
+`temporal-comparison-request.v1.schema.json` and
+`temporal-comparison-result.v1.schema.json`. This structured POST creates no
+query checkpoint, inferred Claim, assessment or source write.
+
+Invalid structural containers in a selected normalized carrier yield HTTP 503,
+not a schema-invalid successful operand or a rewritten source. Repair the
+projection before retrying. This is distinct from a structurally valid
+temporal object whose kind, calendar or dating grounds are unsupported or
+unknown; that object is retained in the normal comparison result.
+
 `seed.focus_node_id` and `tos.knowledge.focus` make the selected center
 machine-readable in both request and result. Resolution is exact normalized
 ID first, then stable entity ID, then unique native ID; ambiguity is rejected. Catalog entity routes connect

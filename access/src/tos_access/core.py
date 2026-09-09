@@ -23,6 +23,7 @@ from .knowledge import (
     search_knowledge_graph,
 )
 from .exploration import ExplorationService, exploration_capabilities
+from .temporal_comparison import compare_temporal_claims
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -45,6 +46,8 @@ KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
     "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
     "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
+    "temporal_comparison_request": Path("access/contracts/temporal-comparison-request.v1.schema.json"),
+    "temporal_comparison_result": Path("access/contracts/temporal-comparison-result.v1.schema.json"),
     "entity_type_registry_schema": Path(
         "ToS/contracts/semantic-entity-type-registry.schema.json"
     ),
@@ -1057,6 +1060,11 @@ class ToSAccessCore:
         """Inspect one normalized relation and its display-complete endpoints."""
         graph = self.knowledge_graph()
         return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
+
+    def knowledge_temporal_compare(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Compare the date envelopes of two exact Claims, without adjudication."""
+        graph = self.knowledge_graph()
+        return compare_temporal_claims(graph, request, graph_index=self._current_graph_index(graph))
 
     def _current_graph_index(self, graph: dict[str, Any]) -> KnowledgeGraphIndex:
         with self._graph_index_lock:
