@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4544,
+    "tracked_surface_count": 4550,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1168,
+    "excluded_tracked_path_count": 1175,
     "human_scope": {
-      "bytes": 5764478,
-      "count": 939,
+      "bytes": 5786425,
+      "count": 941,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -76,9 +76,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 342321,
+          "bytes": 347561,
           "count": 147,
-          "lines": 6913
+          "lines": 6988
         },
         "memo": {
           "bytes": 4538,
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4449104,
-          "count": 652,
-          "lines": 74204
+          "bytes": 4465811,
+          "count": 654,
+          "lines": 74470
         }
       },
-      "lines": 97352
+      "lines": 97693
     },
     "surface_kind_counts": {
       "executable": 291,
-      "human": 939,
-      "structured": 3314
+      "human": 941,
+      "structured": 3318
     },
-    "tracked_path_count": 5712,
-    "tracked_surface_count": 4544,
+    "tracked_path_count": 5725,
+    "tracked_surface_count": 4550,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 652,
-        "structured": 3233
+        "human": 654,
+        "structured": 3237
       },
-      "tracked_surface_bytes": 233361006,
-      "tracked_surface_count": 3889
+      "tracked_surface_bytes": 233394938,
+      "tracked_surface_count": 3895
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 79,
         "structured": 6
       },
-      "tracked_surface_bytes": 924855,
+      "tracked_surface_bytes": 925719,
       "tracked_surface_count": 85
     },
     {
@@ -222,7 +222,7 @@
         "human": 147,
         "structured": 33
       },
-      "tracked_surface_bytes": 2506520,
+      "tracked_surface_bytes": 2556264,
       "tracked_surface_count": 245
     },
     {
@@ -231,7 +231,7 @@
         "executable": 119,
         "human": 2
       },
-      "tracked_surface_bytes": 4010594,
+      "tracked_surface_bytes": 4011283,
       "tracked_surface_count": 121
     },
     {
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 2035850,
+      "tracked_surface_bytes": 2036558,
       "tracked_surface_count": 71
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "a2e68f3e390946289ba41622b2ce61586c36ccaadca6c2ae4741f443bd91c2c9",
+  "tracked_surface_digest": "504ca8440cd327b9d599a8883043ec7fe549ad1109c183661ba40709399f6e3f",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -1951,11 +1951,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 7266,
+      "bytes": 9663,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/human-form.schema.json",
-      "sha256": "6d4054080dae1ebb2521b173e89cd97284d4d7c8cbae33de74d327941c7595da",
+      "sha256": "7053e5ae7375d7a05ab5ebaa51bb10c403f30a016dd7feb6643d4854883b41df",
       "surface_kind": "structured"
     },
     {
@@ -3183,19 +3183,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 107522,
+      "bytes": 107962,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "af648ae0eb87f4ad12171aec584b85b44a27ff734539c22e4007dbc65e5ed59d",
+      "sha256": "716104f7ef49eae285f5b2f268dad10970809fe32a8c6987ebd5bcc3cc8f15fb",
       "surface_kind": "human"
     },
     {
-      "bytes": 28195,
+      "bytes": 30977,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/HUMAN_FORMS.md",
-      "sha256": "2c66eab44db48bb2e0df210e13f1e95517e6206343c25fff808ea90c40bdbfde",
+      "sha256": "747d923fb47a68f7740458ac2029e3f3ec157170fbba7a5d86a76708d8d3f9cd",
       "surface_kind": "human"
     },
     {
@@ -17919,6 +17919,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 4325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-09-native-corpus-descriptive-revision-review.md",
+      "sha256": "f12eea43a341ccde3766ca5bd58f231ef82fa93635a2847548de66e227fa908e",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 7793,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -17967,11 +17975,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8713,
+      "bytes": 9023,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-09-real-native-quality-assessment-review.md",
-      "sha256": "3041fefc6a370b1a03e86583f53c9f4026aa2aebf5accd0a66f21213abb5b144",
+      "sha256": "6936115ce05e6dae447eeb94b98b2ba206e806ccf65d7edf61b06e55eae4fd1c",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 8850,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-09-real-native-semantic-form-assessment-review.md",
+      "sha256": "c047fa7fd1665c060c2c0c11861288a041d2a3c5c075fae6425b5648017fbcfd",
       "surface_kind": "human"
     },
     {
@@ -17991,11 +18007,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 455,
+      "bytes": 456,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/.metadata-publication.json",
-      "sha256": "9b4a747e8b91df3e35b6d2865469afa636bd232cebd49e2dec5f7aafb95c3166",
+      "sha256": "d65ad87be4fe3f948799d0073e26167cda14ebd987d1d3769887a54fa6ce225e",
       "surface_kind": "structured"
     },
     {
@@ -18031,6 +18047,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583/completion.json",
+      "sha256": "362880c566f6ed9166b72f71c1d29960233f5638961bd73e2c03b8a1e5c6db34",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3728,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583/manifest.json",
+      "sha256": "837acccab94aa9a72d821781eecd064303366888823d9e118b3659f873f0bcac",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 526,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18060,6 +18092,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/.metadata-transactions/fd5e00f8798907518f8034815581b09faf4a54dada844c55cd3cf19bc8ba5813/manifest.json",
       "sha256": "5c59b286c10d1d74c275cc6b45a7908a611c6af0587985de4b8a7476eda96b34",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1037,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2/manifest.json",
+      "sha256": "b08aeb0e18d48d9683ac29a00a2f239b54c2af34ffa7273ad8454190b4e6f39f",
       "surface_kind": "structured"
     },
     {
@@ -20251,7 +20291,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "51f61057e41f0a78d8a51f72486f32f7c2f65f0ba4dad10741cdfac00c6fc16b",
+      "sha256": "b4ca637eeda5c4d55e84c68c1b4fa1c2761865153a06ed1add7f0e68f629ab91",
       "surface_kind": "structured"
     },
     {
@@ -20439,19 +20479,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 4886,
+      "bytes": 9323,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.human-forms.json",
-      "sha256": "f5a148e876b20437cc7c2a561a3ab257d8c74c9278399769f5cf76ffdb558dc7",
+      "sha256": "1f2239e57cab70fd39d45af8277b4e2d675c46213c807223a233ecce3d9a26b4",
       "surface_kind": "structured"
     },
     {
-      "bytes": 2416,
+      "bytes": 2591,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json",
-      "sha256": "cb9f065a4c925bcef4b77011ff87316e3fb254e8b4aa3748c4e4db9b1f172048",
+      "sha256": "acf3f17bded4bedccd6d950df078fc05d203a1b46ceb3ab1b38f13a89865b0af",
       "surface_kind": "structured"
     },
     {
@@ -20516,6 +20556,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json",
       "sha256": "4d7d4c69118416796f847be97d83cc04a9a30213fda9710d5412918c8f8bdbb7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4923,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/source-revision-history.json",
+      "sha256": "51e09b868107e5fc41af804a724d214dbc55dbba677d5c4a9de60f2ab659c018",
       "surface_kind": "structured"
     },
     {
@@ -32799,11 +32847,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 232974,
+      "bytes": 233838,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "365e7b53b20a97c467e3eb7d6b6d287ac0c6e9e72566c0496a794a907e71865d",
+      "sha256": "d3447aad20ad2c9c07082cf423ddc7eadaae1c7fb669d2435ed7170b74a91e1d",
       "surface_kind": "structured"
     },
     {
@@ -34015,11 +34063,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 132512,
+      "bytes": 136452,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "b176370cbcade88a8448f195d48dcc4252579df09290387195b926f3c7d6895e",
+      "sha256": "407ce5727f45c576b9bee8fa8b475a7d91cb072177a5f2a620edf2b0a02dfaf2",
       "surface_kind": "human"
     },
     {
@@ -34063,11 +34111,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 8023,
+      "bytes": 9323,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md",
-      "sha256": "f52120d8b329b6523f2a8b4b805db4b12552929731afb524009adb40723d4cc6",
+      "sha256": "d9de58d6b587904e9217fc4aa8ff10648b10193de28ed97f70bb794298535851",
       "surface_kind": "human"
     },
     {
@@ -34111,11 +34159,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 86822,
+      "bytes": 93837,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-      "sha256": "0486a618e86a95b1e49849bdd64d534030a313656a3bdae29e7bce6683501487",
+      "sha256": "7d39da69ed16f65fdceca3aa0d4a7d48230e29400770067dc450f5d0a05a13cb",
       "surface_kind": "executable"
     },
     {
@@ -34135,11 +34183,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 17601,
+      "bytes": 21022,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
-      "sha256": "783257e6b5fdf41b12175e1a404ff99acab20050d4d8b0d8c0ace5bc2a84084d",
+      "sha256": "d8e68fce7e6dd0dc3b71b4d2184d2f0e0c7116e0425ccc92ba5689e0329eca12",
       "surface_kind": "executable"
     },
     {
@@ -34151,11 +34199,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 32237,
+      "bytes": 32291,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py",
-      "sha256": "6ae96a1514bd9270794f1f197a777406df3f1f9e4b56893a1ab24043cb171ad6",
+      "sha256": "5a3385990d0f9e6306d7ebd4c6b11526b713d92c5f6654155d6c17f07ff80f9b",
       "surface_kind": "executable"
     },
     {
@@ -34191,11 +34239,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 95726,
+      "bytes": 96027,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "dc49deeaea98bfd30e2a9a19c404e379ef7728b70178aa7efb8588eb32786004",
+      "sha256": "c4b04b7981d3a483f873bfab671cfe477b5e88b278e8d7d602565a5107f3908f",
       "surface_kind": "executable"
     },
     {
@@ -34271,19 +34319,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 29587,
+      "bytes": 29590,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
-      "sha256": "44caf965614366d520978fe5a9ef727e456a0404fa725050fedd2c4a35f589d1",
+      "sha256": "aa26554c70b988613fd2f960e3504dd89f61c036dfe5abfa9621f04cb1be2ce8",
       "surface_kind": "executable"
     },
     {
-      "bytes": 18301,
+      "bytes": 18528,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
-      "sha256": "eef1904af81f94b367e6798a28f7b5450a6648195506412762055079723b945f",
+      "sha256": "efb3bbc982f8f28b4d7659313b438ab32f3fc3f9cb78221011289e493504f27f",
       "surface_kind": "executable"
     },
     {
@@ -34311,11 +34359,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 24876,
+      "bytes": 30634,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_human_forms.py",
-      "sha256": "e8fac0fef03ce9e9c8d0c4441ef5d852126b9c94063bce9806b35ebecefcfa87",
+      "sha256": "788af5738272fa85581cfc02753b8ac1e4839708a53e8ed1f2a885ebd65e6e41",
       "surface_kind": "executable"
     },
     {
@@ -34335,11 +34383,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 30966,
+      "bytes": 52484,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_native_layer_quality_journal.py",
-      "sha256": "d1d45cb9b103684a4aad858505f9395ce345b678cf9edeabe5fd08b06fc897da",
+      "sha256": "a812cf822369305c3ff6455bd366ed1486814d38cd206c525a7982ef65a96f2d",
       "surface_kind": "executable"
     },
     {
@@ -34399,11 +34447,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 12987,
+      "bytes": 12989,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
-      "sha256": "b8983a23c1b9cfbcb9f7bfb1ce3e7c8de1785596f32808320aeb00ccfe1bd965",
+      "sha256": "1a98f63badface360b00f1def5c99bdd89f9169e227127ba94c466144fac9719",
       "surface_kind": "executable"
     },
     {
@@ -34487,11 +34535,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 18133,
+      "bytes": 24338,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_selected_revisions.py",
-      "sha256": "7d31e2e97697b36b91202d9f631d0dac77fc7ead89c8db35a2d74329d84ea10e",
+      "sha256": "d539aec536e4e187b263be382c48c5b73c3f23cb172bd68abfd2a2b9470fe619",
       "surface_kind": "executable"
     },
     {
@@ -35743,11 +35791,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22707,
+      "bytes": 23396,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_witness_human_forms.py",
-      "sha256": "b0ed67520df614a96d847485ac3a7c3ded910008626affcba0aac5b48306eaa9",
+      "sha256": "7884bba46fe268c30cd315653b7ec68d3ea771d3a2d79e44933bf4f119a5e3de",
       "surface_kind": "executable"
     },
     {
@@ -36223,11 +36271,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 107361,
+      "bytes": 108069,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "aadd6c9787a1600be3c48c0bed10be9186461dc24c2fa906c03f044404627636",
+      "sha256": "f922e08307df1de7982ad80d833c46d5c68a3f0e1334ea2ed096bc7beb9bec0b",
       "surface_kind": "structured"
     },
     {

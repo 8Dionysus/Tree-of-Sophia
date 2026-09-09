@@ -9,6 +9,7 @@ import copy
 from contextlib import contextmanager
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import unittest
@@ -32,6 +33,10 @@ from native_text_binding import NativeTextBindingResolver
 from source_owner_context import OwnerLocalSourceContext
 from source_text_unit_proposal import build_text_unit_proposal
 import source_text_unit_commands
+import source_commands
+import source_owner_claim_commands
+from source_witness_human_forms import claim_forms_path
+from test_source_owner_record_profiles import lexeme
 
 
 def encode(value):
@@ -45,7 +50,7 @@ def envelope(record):
 
 class QualityJournalFixture:
     """Real private adapters over synthetic source, policy and execution inputs."""
-    def __init__(self, test, *, source=False):
+    def __init__(self, test, *, source=False, claim=False):
         self.fx = NativeLayerAssessmentFixture(test)
         self.policy_fixture = policy_tests.AssessmentPolicyTests(methodName='runTest')
         self.policy_fixture.setUp()
@@ -60,7 +65,7 @@ class QualityJournalFixture:
             target.write_bytes((ROOT / 'ToS/contracts' / target.name).read_bytes())
         self.policy = Record.from_payload('tos.policy.knowledge-assessment', 3, json.loads(
             (ROOT / 'ToS/doctrine/semantic-interchange/assessment-policy.v3.json').read_text()))
-        self.use = 'text-layer:semantic-analysis' if source else 'text-layer:citation'
+        self.use = 'text-layer:semantic-analysis' if source or claim else 'text-layer:citation'
         self.fx.subjects[self.fx.layer_id]['requested_use'] = self.use
         self.config.update(schema_version='tos_local_assessment_owner_v5', policy=envelope(self.policy),
             source_context_ref=str(self.fx.context_path), source_records=[], owner_local_source_records=[],
@@ -76,13 +81,15 @@ class QualityJournalFixture:
                 competence_refs=[Record.from_payload(**competence).ref],
                 assertion_layers=competence['payload']['assertion_layers'], languages=['und', 'en', 'ru'],
                 profile_ids=profile_ids, uses=['research', self.use],
-                subject_prefixes=['tos.text-layer.', 'tos.text-unit.', 'tos.occurrence.', 'tos.form.'])
+                subject_prefixes=['tos.text-layer.', 'tos.text-unit.', 'tos.occurrence.', 'tos.claim.', 'tos.form.'])
         self.layer_record = Record.from_payload(self.fx.layer_id, 1, self.fx.layer,
                                                origin_id=self.fx.selections[0]['origin_id'])
         self._unit()
         self.target = self.unit
-        if source:
+        if source or claim:
             self._source()
+        if claim:
+            self._create_claim()
         self.save()
 
     def _unit(self):
@@ -145,6 +152,79 @@ class QualityJournalFixture:
     def save(self):
         self.owner.write_bytes(encode(self.config))
         self.owner.chmod(0o600)
+
+    def _create_claim(self):
+        """Use the actual private Claim writer, including its initial source-copy."""
+        conception = lexeme()
+        conception.pop('semantic_content')
+        conception.update(schema_version='tos_semantic_description_record_v1', record_type='conception',
+            record_id='tos.conception.synthetic.quality', visibility='public_metadata_only')
+        conception_ref = 'ToS/source-witnesses/semantic-descriptions/quality/conception.json'
+        path = self.fx.public / conception_ref
+        path.parent.mkdir(parents=True)
+        path.write_bytes(encode(conception))
+        expression_ref = self.native['source_record_refs']['expression']
+        expression = json.loads((self.fx.public / expression_ref).read_bytes())
+        body = {'schema_version': 'tos_semantic_relation_claim_v1', 'claim_id': 'tos.claim.synthetic.quality',
+            'claim_version': 1, 'claim_type': 'relation', 'assertion_layer': 'semantic_interpretation',
+            'subject_ref': conception['record_id'], 'predicate': 'conception_expressed_in',
+            'object': expression['record_id'], 'evidence_refs': [self.source_ref],
+            'maker': {'maker_type': 'model', 'agent_ref': 'model:synthetic-claim-writer'},
+            'provenance_event_ref': 'tos.event.synthetic.quality-claim-creation',
+            'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'local_only',
+            'polarity': 'unknown', 'qualifiers': {'statement': 'Синтетическая возможность, не установленный вывод.',
+                'statement_language': 'ru', 'statement_script': 'Cyrl',
+                'relation_basis': 'Synthetic selected occurrence, not a historical or semantic judgment.',
+                'unknown': {'zero': 0, 'negative': False}}}
+        sources = [{'path': conception_ref, 'record_id': conception['record_id'],
+            'profile_type_id': 'tos.entity.conception', 'origin_id': 'synthetic-conception',
+            'source_access': {**self.access, 'read_scope': 'metadata_only'}, 'source_binding': None},
+            {'path': expression_ref, 'record_id': expression['record_id'], 'profile_type_id': 'tos.entity.expression',
+             'origin_id': 'synthetic-expression', 'source_access': {**self.access, 'read_scope': 'metadata_only'},
+             'source_binding': None},
+            {key: value for key, value in self.config['owner_local_source_records'][0].items() if key != 'form_ids'}]
+        selected = {'claim_id': body['claim_id'], 'relation_type_id': 'tos.relation.conception-expressed-in',
+            'origin_id': self.layer_record.origin_id, 'source_access': self.access, 'source_records': sources,
+            'native_bindings': [], 'verify_content': True}
+        claim_ref = self.fx.seed.prefix + 'claims/quality/source-claims.jsonl'
+        (self.fx.store / claim_ref).parent.parent.mkdir(mode=0o700)
+        form_id = 'tos.form.synthetic.created-quality-statement'
+        config = {'schema_version': source_owner_claim_commands.CONFIG, 'uid': os.getuid(),
+            'principal_id': body['maker']['agent_ref'], 'maker_type': 'model',
+            'authority_ref': 'operator:synthetic-quality-claim-creation', 'expires_at': '2099-01-01T00:00:00Z',
+            'source_context_ref': str(self.fx.context_path), 'source_path': claim_ref,
+            'provenance_event_id': body['provenance_event_ref'], 'allowed_operations': ['claims.create'],
+            'allowed_claim_ids': [body['claim_id']], 'allowed_subject_refs': [body['subject_ref']],
+            'allowed_object_refs': [body['object']], 'allowed_predicates': [body['predicate']],
+            'allowed_evidence_refs': body['evidence_refs'], 'allowed_form_ids': [form_id], 'allowed_fields': [],
+            'claim_selections': [selected]}
+        owner = self.fx.base / 'claim-source-owner.json'
+        owner.write_bytes(encode(config))
+        owner.chmod(0o600)
+        request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
+            'claims': [body], 'forms': [{'claim_id': body['claim_id'], 'form_id': form_id, 'field_id': 'claim.statement'}]}
+        prepared = source_commands.run_local_command(owner, request)
+        self.created = source_commands.run_local_command(owner, {**request, 'operation': 'claims.create',
+            'command_id': 'synthetic-quality-claim-created', 'expected_source': None, 'expected_revision': None,
+            'expected_configuration': prepared['owner_configuration'],
+            'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings']})
+        self.config['subjects'].pop(self.target.id)
+        self.config['quality_dependencies'].pop(self.target.id)
+        self.config['subjects'].pop(self.unit.id)
+        self.config['quality_dependencies'].pop(self.unit.id)
+        self.target = Record.from_payload(body['claim_id'], 1, body, origin_id=self.layer_record.origin_id)
+        self.source_path = self.fx.store / claim_ref
+        self.form_path = claim_forms_path(self.source_path, self.target.id)
+        form = json.loads(self.form_path.read_bytes())['forms'][0]
+        self.form = Record.from_payload(form_id, 1, form, origin_id=self.layer_record.origin_id)
+        self.config.update(owner_local_source_records=[], native_text_units=[],
+            owner_local_source_claims=[{**selected, 'path': claim_ref, 'form_ids': [form_id]}])
+        for record, layer, maker in ((self.target, 'semantic_interpretation', body['maker']['agent_ref']),
+                                     (self.form, 'human_projection', form['creator_id'])):
+            self.config['subjects'][record.id] = {'record': record.ref, 'assertion_layer': layer,
+                'risk': 'low', 'languages': ['ru', 'en', 'und'], 'maker_id': maker,
+                'requested_use': 'research', 'access_allowed': True}
+            self.config['quality_dependencies'][record.id] = [{'layer_id': self.layer_record.id, 'use': self.use}]
 
     def actor(self, index):
         self.config['principal_id'] = self.config['authorities'][index]['payload']['actor_id']
@@ -215,6 +295,213 @@ class QualityJournalFixture:
 
 
 class QualityJournalTests(unittest.TestCase):
+    def test_source_created_claim_copy_uses_current_quality_review_without_source_rewrite(self):
+        fixture = QualityJournalFixture(self, claim=True)
+        before = {path: path.read_bytes() for path in (fixture.source_path, fixture.form_path,
+            fixture.fx.store / fixture.packet_ref, fixture.fx.store / fixture.fx.source_ref)}
+        self.assertEqual(fixture.form.payload['content']['kind'], 'source-copy')
+        self.assertTrue(all(binding['record'] == fixture.target.ref
+                            for binding in fixture.form.payload['bindings'].values()))
+        source_view = fixture.created['materializations'][0]
+        self.assertEqual(source_view['state'], 'ready')
+        self.assertIsNone(source_view['admission'])
+        self.assertIn('materialize-form', fixture.describe(fixture.form)['result']['command_context']['supported_operations'])
+        closed = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(closed['state'], 'needs-assessment')
+        self.assertFalse(closed['admission']['can_use'])
+        quality = fixture.admit_quality(decision='admit-with-limits', limits=['synthetic selected layer only'])
+        unreviewed = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(unreviewed['state'], 'needs-assessment')
+        self.assertFalse(unreviewed['admission']['can_use'])
+        review = fixture.request(record=fixture.form, name='source-copy-reviewed',
+            decision='admit-with-limits', limits=['synthetic form reading only'])
+        fixture.run(review)
+        ready = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(ready['state'], 'ready')
+        self.assertEqual(ready['derivation'], 'source-copy')
+        self.assertEqual(ready['display_text'], fixture.target.payload['qualifiers']['statement'])
+        self.assertEqual((ready['language'], ready['script']), ('ru', 'Cyrl'))
+        self.assertTrue(ready['admission']['can_use'])
+        self.assertEqual(ready['admission']['subject'], fixture.form.ref)
+        self.assertEqual(ready['subject_assessment']['subject'], fixture.target.ref)
+        self.assertEqual(ready['subject_assessment']['admission']['status'], 'unreviewed')
+        self.assertFalse(ready['subject_assessment']['admission']['can_use'])
+        self.assertFalse(ready['subject_assessment']['form_admission_is_parent_endorsement'])
+        self.assertEqual(ready['admission']['limits'], ['synthetic form reading only', 'synthetic selected layer only'])
+        self.assertEqual(ready['context'][0]['value'], fixture.target.payload)
+        self.assertEqual(ready['context'][-1]['slot'], 'owner:quality:0')
+        self.assertFalse(ready['standalone_reading'])
+        self.assertIn(ready['context'][-1]['binding']['record'], ready['dependencies'])
+        history = fixture.history_bytes()
+        request = fixture.request('materialize-form', record=fixture.form)
+        self.assertEqual(fixture.run(request)['result']['materialization'], ready)
+        self.assertEqual(fixture.history_bytes(), history)
+        fixture.admit_quality(name='copy-quality-withdrawn', decision='withdraw',
+            supersedes=quality['result']['current_admission']['assessment_refs'])
+        with self.assertRaises(JournalConflict):
+            fixture.run(request)
+        stopped = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(stopped['state'], 'needs-assessment')
+        self.assertFalse(stopped['admission']['can_use'])
+        self.assertIsNone(stopped['display_text'])
+        fixture.admit_quality(name='copy-quality-renewed')
+        stale_review = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(stale_review['state'], 'needs-assessment')
+        self.assertFalse(stale_review['admission']['can_use'])
+        fixture.run(fixture.request(record=fixture.form, name='same-copy-renewed-review'))
+        renewed = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(renewed['state'], 'ready')
+        self.assertEqual(renewed['form'], ready['form'])
+        self.assertEqual(renewed['display_text'], ready['display_text'])
+        self.assertNotEqual(renewed['context'][-1]['binding'], ready['context'][-1]['binding'])
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
+        self.assertTrue(all(fixture.history_bytes()[name] == raw for name, raw in history.items()
+                            if not name.endswith('/head')))
+
+    def test_assessed_copy_access_expiry_and_lock_time_drift_never_emit_wording(self):
+        fixture = QualityJournalFixture(self, claim=True)
+        fixture.admit_quality()
+        fixture.run(fixture.request(record=fixture.form, name='copy-before-refusal'))
+        request = fixture.request('materialize-form', record=fixture.form)
+        before, history = fixture.form_path.read_bytes(), fixture.history_bytes()
+        future = '2028-01-01T00:00:00Z'
+        described = fixture.policy_fixture.run_local(fixture.owner,
+            {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
+             'subject_id': fixture.form.id}, now=future)
+        expired = fixture.policy_fixture.run_local(fixture.owner,
+            {**request, 'expected_snapshot': described['owner_snapshot']}, now=future)
+        self.assertNotEqual(expired['result']['materialization']['state'], 'ready')
+        self.assertIsNone(expired['result']['materialization']['display_text'])
+        self.assertFalse(expired['result']['materialization']['admission']['can_use'])
+        original = assessment_journal.AssessmentJournal.locked_subjects
+        observed = []
+        @contextmanager
+        def changed(journal, identifiers):
+            observed.extend(identifiers)
+            with original(journal, identifiers):
+                fixture.config['subjects'][fixture.form.id]['access_allowed'] = False
+                fixture.save()
+                yield
+        with patch.object(assessment_journal.AssessmentJournal, 'locked_subjects', changed), self.assertRaises(JournalConflict):
+            fixture.run(request)
+        self.assertEqual(set(observed), {fixture.form.id, fixture.target.id, fixture.layer_record.id})
+        with self.assertRaises(PermissionError):
+            fixture.run(request)
+        self.assertEqual(fixture.form_path.read_bytes(), before)
+        self.assertEqual(fixture.history_bytes(), history)
+
+    def test_current_parent_withdrawal_dispute_and_limits_are_visible_without_endorsing_the_claim(self):
+        fixture = QualityJournalFixture(self, claim=True)
+        fixture.admit_quality()
+        form_before, claim_before = fixture.form_path.read_bytes(), fixture.source_path.read_bytes()
+        fixture.actor(1)
+        admitted = fixture.run(fixture.request(name='parent-reviewed', decision='admit-with-limits',
+            limits=['parent synthetic interpretation only']))
+        fixture.actor(0)
+        unreviewed = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(unreviewed['state'], 'needs-assessment')
+        self.assertFalse(unreviewed['admission']['can_use'])
+        self.assertTrue(unreviewed['subject_assessment']['admission']['can_use'])
+        self.assertIsNone(unreviewed['display_text'])
+        fixture.run(fixture.request(record=fixture.form, name='qualified-copy-reading'))
+        request = fixture.request('materialize-form', record=fixture.form)
+        packet = fixture.run(request)['result']['materialization']
+        self.assertTrue(packet['admission']['can_use'])
+        self.assertTrue(packet['subject_assessment']['admission']['can_use'])
+        self.assertEqual(packet['subject_assessment']['admission']['limits'], ['parent synthetic interpretation only'])
+        fixture.actor(1)
+        withdrawn = fixture.run(fixture.request(name='parent-withdrawn', decision='withdraw',
+            supersedes=admitted['result']['current_admission']['assessment_refs']))
+        withdrawal_ref = withdrawn['result']['current_admission']['assessment_refs'][0]
+        fixture.actor(0)
+        with self.assertRaises(JournalConflict):
+            fixture.run(request)
+        packet = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(packet['state'], 'ready')
+        self.assertTrue(packet['admission']['can_use'])
+        self.assertFalse(packet['subject_assessment']['admission']['can_use'])
+        self.assertEqual(packet['subject_assessment']['historical_withdrawals'], [withdrawal_ref])
+        for decision, status in (('reject', 'rejected'), ('dispute', 'disputed')):
+            fixture.actor(1)
+            fixture.run(fixture.request(name='parent-' + decision, decision=decision, limits=['parent ' + status]))
+            fixture.actor(0)
+            packet = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+            self.assertEqual(packet['state'], 'ready')
+            self.assertTrue(packet['admission']['can_use'])
+            self.assertFalse(packet['subject_assessment']['admission']['can_use'])
+            self.assertEqual(packet['subject_assessment']['admission']['status'], status)
+            self.assertIn('parent ' + status, packet['subject_assessment']['admission']['limits'])
+            self.assertEqual(packet['subject_assessment']['historical_withdrawals'], [withdrawal_ref])
+            self.assertFalse(packet['standalone_reading'])
+            self.assertFalse(packet['subject_assessment']['form_admission_is_parent_endorsement'])
+        request = fixture.request('materialize-form', record=fixture.form)
+        history = fixture.history_bytes()
+        original_load, parent_reads = assessment_journal.AssessmentJournal._load, []
+        def changed_parent_head(journal, identity):
+            revision, chain = original_load(journal, identity)
+            if identity == fixture.target.id:
+                parent_reads.append(revision)
+                if len(parent_reads) == 2:
+                    return 'f' * 64, chain
+            return revision, chain
+        with patch.object(assessment_journal.AssessmentJournal, '_load', changed_parent_head), self.assertRaises(JournalConflict):
+            fixture.run(request)
+        self.assertEqual(len(parent_reads), 2)
+        self.assertEqual(fixture.history_bytes(), history)
+        original = copy.deepcopy(fixture.config)
+        for mutation in ('missing', 'access', 'use', 'maker', 'source', 'languages'):
+            with self.subTest(parent_scope=mutation):
+                fixture.config = copy.deepcopy(original)
+                scope = fixture.config['subjects'][fixture.target.id]
+                if mutation == 'missing':
+                    fixture.config['subjects'].pop(fixture.target.id)
+                    fixture.config['quality_dependencies'].pop(fixture.target.id)
+                elif mutation == 'access':
+                    scope['access_allowed'] = False
+                elif mutation == 'use':
+                    scope['requested_use'] = 'another-use'
+                elif mutation == 'maker':
+                    scope['maker_id'] = 'another-maker'
+                elif mutation == 'source':
+                    scope['record']['digest'] = 'sha256:' + 'a' * 64
+                else:
+                    scope['languages'] = ['en']
+                fixture.save()
+                with self.assertRaises((PermissionError, JournalConflict)):
+                    fixture.describe(fixture.form)
+        self.assertEqual(fixture.form_path.read_bytes(), form_before)
+        self.assertEqual(fixture.source_path.read_bytes(), claim_before)
+
+    def test_assessed_copy_requires_owned_field_language_and_whole_claim_context(self):
+        fixture = QualityJournalFixture(self, claim=True)
+        fixture.admit_quality()
+        original = json.loads(fixture.form_path.read_bytes())
+        for mutation in ('language', 'role', 'context', 'pointer'):
+            with self.subTest(mutation=mutation):
+                form_set = copy.deepcopy(original)
+                body = form_set['forms'][0]
+                if mutation == 'language':
+                    body['language'] = 'en'
+                elif mutation == 'role':
+                    body['role'] = 'hover'
+                elif mutation == 'context':
+                    body['bindings'] = {key: value for key, value in body['bindings'].items() if value['pointer']}
+                else:
+                    body['bindings'][body['content']['slot']]['pointer'] = '/predicate'
+                fixture.form = Record.from_payload(body['form_id'], 1, body, origin_id=fixture.target.origin_id)
+                fixture.config['subjects'][fixture.form.id]['record'] = fixture.form.ref
+                fixture.form_path.write_bytes(encode(form_set))
+                fixture.save()
+                if mutation in ('role', 'pointer'):
+                    with self.assertRaises(PermissionError):
+                        fixture.run(fixture.request('materialize-form', record=fixture.form))
+                else:
+                    result = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+                    self.assertEqual(result['state'], 'invalid')
+                    self.assertIsNone(result['display_text'])
+                    self.assertEqual(result['issues'], ['context.omitted'] if mutation == 'context'
+                        else ['source-copy.language-not-bound-to-source'])
+
     def test_exact_comparison_and_quality_append_preserve_native_source(self):
         fixture = QualityJournalFixture(self)
         before = {str(path): path.read_bytes() for path in (
@@ -332,14 +619,34 @@ class QualityJournalTests(unittest.TestCase):
         self.assertIsNone(unavailable['display_text'])
         self.assertEqual(fixture.form_path.read_bytes(), source_before)
 
-    def test_freeform_cannot_omit_required_quality_context_even_with_valid_review(self):
+    def test_freeform_gets_owner_quality_context_without_frozen_authored_binding(self):
         fixture = QualityJournalFixture(self, source=True)
         fixture.admit_quality()
         fixture.add_form(bind_quality=False)
         fixture.run(fixture.request(record=fixture.form, name='form-review-without-context'))
         result = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
-        self.assertNotEqual(result['state'], 'ready')
-        self.assertIsNone(result['display_text'])
+        self.assertEqual(result['state'], 'ready')
+        self.assertEqual(result['context'][-1]['slot'], 'owner:quality:0')
+        self.assertEqual(result['context'][-1]['binding']['record'], fixture.basis.ref)
+        self.assertNotIn('quality', fixture.form.payload['bindings'])
+
+    def test_explicit_authored_quality_binding_stays_stale_after_owner_basis_renewal(self):
+        fixture = QualityJournalFixture(self, source=True)
+        quality = fixture.admit_quality()
+        fixture.add_form()
+        before = fixture.form_path.read_bytes()
+        fixture.run(fixture.request(record=fixture.form, name='explicit-basis-form-reviewed'))
+        fixture.admit_quality(name='explicit-basis-quality-withdrawn', decision='withdraw',
+            supersedes=quality['result']['current_admission']['assessment_refs'])
+        fixture.admit_quality(name='explicit-basis-quality-renewed')
+        fixture.run(fixture.request(record=fixture.form, name='explicit-basis-form-reassessed'))
+        current = fixture.describe(fixture.form)['result']['current_admission']
+        self.assertTrue(current['can_use'])
+        stale = fixture.run(fixture.request('materialize-form', record=fixture.form))['result']['materialization']
+        self.assertEqual(stale['state'], 'stale')
+        self.assertEqual(stale['issues'], ['binding.changed:quality'])
+        self.assertIsNone(stale['display_text'])
+        self.assertEqual(fixture.form_path.read_bytes(), before)
 
     def test_closed_quality_still_allows_negative_review_and_explicit_withdrawal(self):
         fixture = QualityJournalFixture(self)

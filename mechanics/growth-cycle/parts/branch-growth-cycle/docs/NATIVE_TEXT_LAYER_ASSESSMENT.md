@@ -97,9 +97,26 @@ admission under the same target/dependency journal locks. It derives a
 comparison, purpose, content scope, policy, active assessment references,
 current status and inherited limits. `describe.required_admissions` exposes
 its reference and permission, not confidential text. This record must occur in
-dependent assessment evidence. A human form must bind its whole current basis
-as context as well as its subject. Caller-supplied basis records cannot shadow
-this runtime-owned result.
+dependent assessment evidence. The explicit assessed source-copy/freeform
+consumer retains the whole current basis as owner-resolved context and an exact
+dependency alongside the immutable authored subject/field bindings. It requires
+current admission of the form itself; ordinary source-only readiness remains
+`admission: null`. Changing the basis requires renewed form review but does not
+rewrite unchanged wording. An already authored explicit basis ref still has to
+match exactly and remains visibly stale after replacement, even if a new review
+otherwise qualifies. Caller-supplied basis records cannot shadow this
+runtime-owned result. See [assessed form materialization](../README.md#assessed-form-materialization).
+
+A v5 Claim form additionally resolves current parent Claim admission under an
+explicit exact same-use parent scope and the combined form/parent/layer locks.
+The complete `subject_assessment` companion retains current state/limits and
+historical withdrawals; its observed head/current result joins the owner
+snapshot and is checked before return. Parent raw initial review posture is
+not silently presented as current status. Unreviewed or negative parent
+admission does not by itself prohibit qualified display, but the parent state
+and its restrictions are mandatory reading context. Positive form admission is
+not Claim endorsement. This current parent observation is separate from the
+layer quality basis and cannot substitute for its evidence or use gate.
 
 Withdrawal, revocation, scope expiry, changed comparison or replaced quality
 evidence makes the affected dependent result unusable without deleting source

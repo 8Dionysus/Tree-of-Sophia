@@ -303,11 +303,13 @@ profile: null is valid until an actual qualified writer binding exists.
 
 ### Assessed form materialization
 
-For an explicitly source-selected `tos_human_form_v1` with `content.kind=freeform`,
+For an explicitly source-selected `tos_human_form_v1` with `content.kind` equal
+to `source-copy` or `freeform`,
 `describe` also discovers `materialize-form`. Its request has the same exact
 fields as `inspect`, with `operation: materialize-form`; no proposed wording,
 assessment, clock, permission or configuration path is accepted in the request.
-This operation is available only with source-bound configuration v2. It reads
+This operation requires source-bound configuration (v2/v3 public source or
+v4/v5 confidential owner source). It reads
 the current source snapshot and the complete committed journal history once,
 then calls the existing human-form materializer and assessment policy engine.
 It performs no model call, journal append, source write or graph publication.
@@ -316,10 +318,54 @@ The selected form must be in the validated adjacent form set of its explicitly
 selected subject, with exact source/set/form refs. Every content binding must
 also resolve from explicitly selected source records; inline copies cannot
 supply missing source dependencies. The complete subject is mandatory context
-for this freeform lane. The set's exact retained `prior_forms`, read within the
+for this assessed lane. Source-copy additionally resolves the actual Claim or
+metadata field catalogue: exact whole-field pointer, role and source-declared
+language/script must match, and all field-specific context stays mandatory.
+The set's exact retained `prior_forms`, read within the
 same bounded source snapshot, support successor validation without treating
-them as current assessment targets. Existing metadata source-copy and trusted
-template contracts are not expanded by this operation.
+them as current assessment targets. The source-only writer/metadata reader
+retains its separate ready-copy result with `admission: null`. Trusted template
+admission is not expanded by this operation.
+
+The adapter enables trusted `FormScope.require_current_assessment`; this is
+an internal owner input, not a request/configuration flag or a permission a
+form can grant itself. The same pure materializer then evaluates current form
+admission for source-copy as well as freeform. V5 quality bases still come from
+exact native closure and purpose under the existing target/dependency locks.
+Their complete current payloads become mandatory `owner:quality:<index>` output
+context and exact dependencies without changing authored form bindings. The
+colon-separated slots cannot collide with authored binding names. Current
+source limits and form limits are retained in the admission; the copied subject
+remains full context and is not itself admitted by a form review.
+
+A changed current basis invalidates earlier dependent review evidence and
+requires renewed review of the unchanged form. Existing explicit authored basis
+refs remain exact: a stale binding is refused, not substituted with the new
+owner context, even if a later assessment is otherwise usable. No inline basis,
+submitted `can_use`, source rewrite or conversion to freeform supplies this
+route. Freeform remains assessment-required even in the default pure scope.
+
+V5 Claim forms also require the parent Claim's explicitly configured exact
+scope: its real layer/maker, complete source-language closure, same requested
+use and granted access. Its current admission is evaluated using its own exact
+grounding and matching current quality dependencies under the same ordered
+form/parent/layer locks. `describe` and materialization carry
+`subject_assessment`: the current parent result/limits, observed journal head
+and batch count, and historical withdrawals in the exact parent scope. That
+observation participates in the expected owner snapshot and its head is rechecked
+before return. No inline parent status can supply it.
+
+The whole immutable Claim remains authored context; `subject_assessment` is
+separately derived current context, not a rewritten `review_status`. A positive
+form admission permits qualified presentation of an unreviewed, rejected,
+disputed or withdrawn Claim, not its endorsement. Consumers must retain both
+the current parent state/limits and the form's distinct admission. Parent
+withdrawal or dispute changes the observation and invalidates an older prepared
+read; a fresh read exposes that state without inventing a new review or changing
+wording. Layer-quality loss still closes the form's current-use gate. The
+optional materialization schema companion is a closed-contract extension;
+older strict readers must update or refuse it, never discard it. Existing
+public freeform consumers retain their nonconfidential source route.
 
 A source-form subject scope may additionally declare `form_language_context`:
 an exact `{record, pointer}` binding or null. This is selected independently in
@@ -1105,8 +1151,8 @@ assessment unusable for another subject; the unchanged supporting layer ID
 cannot revive an old positive decision after exact reading is withdrawn.
 Claim and Claim-form scopes instead use their declared exact grounding closure:
 unrelated metadata-only units or languages do not contaminate that scope.
-Private freeform `materialize-form` uses the existing whole-subject binding
-and assessment route, returning wording only while that assessment qualifies.
+Private source-copy/freeform `materialize-form` uses the whole-subject binding
+and current assessment route, returning wording only while that form assessment qualifies.
 Reading a source-copy form or recording its assessment does not turn it into
 an agent-authored freeform or mutate its source.
 
@@ -1698,7 +1744,19 @@ v1 correction grant nor a form/creation grant gains these capabilities.
 The current record's ID, type, schema, identity/equivalence posture, external
 identifiers and relation refs remain outside descriptive correction scope.
 
-The v2 revision unit is exactly the selected `<type>.json`, adjacent
+`tos_local_corpus_revision_owner_v3` is a separate explicit grant version for
+the same selected-file operation. It additionally supports Edition, Collection
+and Item, completing descriptive correction for the eight native Corpus record
+kinds. V1 and v2 retain their original type scopes. V3 permits only
+`preferred_label`, `notes`, `field_languages` and `source_refs`, within the
+issuer's narrower `allowed_fields`. Edition embodiment/publication/exemplar
+refs, Collection membership, Item manifests, rights, payloads, identity status
+and all other structural fields are preserved, not followed or modified by
+this metadata command. Their semantic or source-quality validity is not
+established by correcting a description. Initial Collection creation and
+membership growth remain separate operations; this grant does not supply them.
+
+The v2/v3 revision unit is exactly the selected `<type>.json`, adjacent
 `<type>.human-forms.json`, and `source-revision-history.json`. An initial form
 set or history may be absent. Every successor has all three files. This route
 does not enumerate, copy or exchange the parent directory: existing Expressions,
@@ -1707,7 +1765,7 @@ the selected unit. A request cannot supply extra paths or a larger file set.
 The earlier v1 flat-directory package digest and archive semantics are unchanged.
 
 Use the ordinary `describe`, `prepare-revise`, `record.revise` and
-`inspect-version` requests. V2 result envelopes identify
+`inspect-version` requests. Both grant versions retain the v2 result envelope:
 `tos_local_source_revision_result_v2`, `publication_protocol`, `selected_files`
 and the current `publication_snapshot`. Preparation also returns
 `expected_publication`; copy it into the revision request alongside the existing

@@ -149,3 +149,8 @@ check only. It does not close semantic or linguistic assessment, human-form
 use of this private paragraph, Sign issuance, both complete research routes,
 all Foundation profiles, public UI consumption, broad throughput, CI, merge or
 deployment. Those retain their own source, integration and acceptance owners.
+
+The later [semantic Claim and contextual Form follow-up](2026-09-09-real-native-semantic-form-assessment-review.md)
+records its separate competence scope, real expiry/renewal and assessed
+consumption. It does not retroactively enlarge the citation/observation
+decisions or the evidence counts in this review.

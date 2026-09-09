@@ -696,21 +696,23 @@ def _public_claim_required_sources(identifier, dependencies, sourced, native_sum
 
 def _materialize_source_form(config, sourced, form_sets, engine, context, history, *, now, contract_root,
                              owner_local_paths=None, owner_local_form_validator=None,
-                             materializer_validators=None):
+                             materializer_validators=None, subject_assessment=None):
     """Render the selected form from this exact source/journal snapshot only.
 
-    This owner lane requires whole-subject context for assessed freeform. It
+    This owner lane requires whole-subject context for assessed source forms. It
     does not make submitted bindings the authority for dropping qualifications.
-    Existing source-copy/template adapters retain their separate contracts.
+    Source-only readiness and admitted templates retain their separate contracts.
     """
     from human_forms import FormScope, SourceBinding, materialize_form
-    from source_witness_human_forms import _validator, claim_forms_path
+    from source_witness_human_forms import (_validator, claim_forms_path, claim_field_catalog,
+                                           metadata_field_catalog, source_copy_field)
     form = context.record
     body = form.payload
     selected = {row['id'] for row in sourced}
     if (form.id not in selected or body.get('schema_version') != 'tos_human_form_v1'
-            or not isinstance(body.get('content'), dict) or body['content'].get('kind') != 'freeform'):
-        raise PermissionError('assessed materialization requires an explicitly selected freeform source form')
+            or not isinstance(body.get('content'), dict)
+            or body['content'].get('kind') not in ('source-copy', 'freeform')):
+        raise PermissionError('assessed materialization requires an explicitly selected source-copy or freeform source form')
     subject_ref = body.get('subject')
     subject = engine.records.get(subject_ref.get('id')) if isinstance(subject_ref, dict) else None
     if subject is None or subject.id not in selected or subject.id == form.id:
@@ -735,6 +737,15 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
     for binding in body['bindings'].values():
         if binding['record']['id'] not in selected:
             raise PermissionError('form bindings require explicit source-selected records')
+    required_context, source_languages = [SourceBinding(subject, '')], ()
+    if body['content']['kind'] == 'source-copy':
+        catalog = (claim_field_catalog(subject.payload) if source_path.name == 'source-claims.jsonl'
+                   else metadata_field_catalog(subject.payload))
+        field = source_copy_field(subject, body, catalog)
+        if field is None:
+            raise PermissionError('assessed source-copy requires an exact source-owned field and role')
+        required_context.extend(SourceBinding(subject, pointer) for pointer in field['context'] if pointer)
+        source_languages = ((SourceBinding(subject, field['pointer']), field['language'], field['script']),)
     language = config['subjects'][form.id].get('form_language_context')
     language_binding = None
     if language is not None:
@@ -747,14 +758,66 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
             raise PermissionError('linguistic context must bind an exact selected source field')
         language_binding = SourceBinding(record, language['pointer'])
     prior = [Record.from_payload(row['form_id'], row['form_version'], row) for row in package['prior_forms']]
-    scope = FormScope(subject, (SourceBinding(subject, ''),), context.maker_id, context.risk,
+    scope = FormScope(subject, tuple(required_context), context.maker_id, context.risk,
                       context.languages, context.requested_use, access_allowed=context.access_allowed,
                       language_context=language_binding, required_sources=context.required_sources,
-                      required_admissions=context.required_admissions)
+                      required_admissions=context.required_admissions, source_languages=source_languages,
+                      require_current_assessment=True, subject_assessment=subject_assessment)
     return materialize_form(contract_root, form, scope,
                             [engine.records[identity] for identity in selected], prior_forms=prior,
                             engine=engine, trusted_history=history, now=now,
                             **({'validators': materializer_validators} if materializer_validators is not None else {}))
+
+
+def _form_parent_claim_context(form_context, subjects, records, sourced, private_sources,
+                               public_claim_dependencies, native_summaries):
+    """Resolve a v5 form's parent Claim scope, never infer its admission.
+
+    Raw Claim posture and current journal status are distinct. Reading that
+    status requires its own explicit same-use owner scope and exact grounding.
+    An unreviewed parent is still displayable as such, not silently endorsed.
+    """
+    ref = form_context.record.payload.get('subject')
+    parent = records.get(ref.get('id')) if isinstance(ref, dict) else None
+    if parent is None or parent.ref != ref:
+        raise JournalConflict('form parent is not its exact selected source')
+    body = parent.payload
+    if 'claim_id' not in body or 'claim_version' not in body:
+        return None
+    scope = subjects.get(parent.id)
+    if scope is None:
+        raise PermissionError('v5 Claim form needs an explicit parent assessment read scope')
+    _keys(scope, {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'})
+    if scope['record'] != parent.ref:
+        raise JournalConflict('parent Claim assessment scope is stale')
+    if (scope['access_allowed'] is not True or scope['requested_use'] != form_context.requested_use
+            or scope['assertion_layer'] != body['assertion_layer']
+            or scope['maker_id'] != body.get('maker', {}).get('agent_ref')):
+        raise PermissionError('parent Claim scope disagrees with its source, use or access')
+    if (not isinstance(scope['languages'], list) or not scope['languages']
+            or any(not isinstance(language, str) or not language for language in scope['languages'])
+            or any(not isinstance(scope[key], str) or not scope[key]
+                   for key in ('assertion_layer', 'risk', 'maker_id', 'requested_use'))):
+        raise ValueError('parent Claim assessment scope is incomplete')
+    if parent.id in public_claim_dependencies:
+        sources = _public_claim_required_sources(parent.id, public_claim_dependencies, sourced, native_summaries)
+    elif private_sources is not None and parent.id in private_sources.claim_dependencies:
+        sources = private_sources.required_sources(parent.id)
+    else:
+        raise PermissionError('form parent is not an explicitly source-selected Claim')
+    if not {_canonical(record.ref) for record in (parent, *sources)} <= {
+            _canonical(record.ref) for record in form_context.required_sources}:
+        raise PermissionError('parent Claim grounding is outside the selected form closure')
+    if private_sources is not None:
+        languages = private_sources.required_languages(parent.id, sourced)
+        dependency_ids = {record.id for record in sources}
+        languages.update(row['language'].casefold() for row in native_summaries
+            if row['unit_id'] in dependency_ids and isinstance(row.get('language'), str) and row['language'])
+        if not languages <= {language.casefold() for language in scope['languages']}:
+            raise PermissionError('parent Claim assessment scope omits source languages')
+    return SubjectContext(parent, scope['assertion_layer'], scope['risk'], tuple(scope['languages']),
+        scope['maker_id'], scope['requested_use'], access_allowed=True,
+        source_read_ready=form_context.source_read_ready, required_sources=sources)
 
 
 def _validate_native_selections(config):
@@ -1224,6 +1287,15 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                                 batch_validator=private_sources.assessment_validators['-batch'] if private_sources is not None else None)
     quality_requirements = (_quality_requirements(current, required_sources, engine.records,
         config['quality_dependencies'], layer_sources.layers, scope['assertion_layer']) if layer_quality else [])
+    parent_context, parent_quality_requirements = None, []
+    if layer_quality and source_form:
+        parent_context = _form_parent_claim_context(context, subjects, engine.records, sourced, private_sources,
+                                                   public_claim_dependencies, native_summaries)
+        if parent_context is not None:
+            parent_quality_requirements = _quality_requirements(parent_context.record, parent_context.required_sources,
+                engine.records, config['quality_dependencies'], layer_sources.layers, parent_context.assertion_layer)
+            if any(entry not in quality_requirements for entry in parent_quality_requirements):
+                raise PermissionError('parent Claim quality is outside the selected form closure')
 
     def source_snapshot_guard():
         # Recheck after waiting for a lock, at the commit edge, and before any
@@ -1260,6 +1332,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         nonlocal context, snapshot, source_read_ready
         now = datetime.now(timezone.utc).isoformat()
         dependency_heads, admission_dependencies = {}, []
+        subject_assessment = None
         if layer_quality:
             source_snapshot_guard()
             for requirement in quality_requirements:
@@ -1288,6 +1361,23 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                               source_read_ready=source_read_ready)
             snapshot = 'sha256:' + _digest({'source_snapshot': snapshot,
                 'quality_bases': [entry.basis.ref for entry in admission_dependencies]})
+            if parent_context is not None:
+                parent_layers = {entry['layer_id'] for entry in parent_quality_requirements}
+                parent = replace(parent_context, required_admissions=tuple(entry for entry in admission_dependencies
+                    if entry.basis.payload['layer']['id'] in parent_layers))
+                revision, chain = journal._load(parent.record.id)
+                history = journal._history(chain)
+                admission = engine.evaluate(parent, (), now=now, trusted_history=history)
+                withdrawals = [Record.from_payload(entry.assessment['assessment_id'], 1, entry.assessment).ref
+                    for entry in history if entry.assessment['decision'] == 'withdraw'
+                    and entry.assessment['subject'] == parent.record.ref
+                    and entry.committed_scope is not None and entry.committed_scope.matches(parent)]
+                subject_assessment = {'schema_version': 'tos_human_form_subject_assessment_v1',
+                    'subject': parent.record.ref, 'admission': admission, 'journal_revision': revision,
+                    'journal_batches': len(chain), 'historical_withdrawals': withdrawals,
+                    'form_admission_is_parent_endorsement': False}
+                dependency_heads[parent.record.id] = revision
+                snapshot = 'sha256:' + _digest({'source_snapshot': snapshot, 'subject_assessment': subject_assessment})
             if operation != 'describe' and request['expected_snapshot'] != snapshot:
                 raise JournalConflict('expected source or current quality basis snapshot is stale')
         if operation == 'materialize-form':
@@ -1298,7 +1388,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 journal._history(chain), now=now, contract_root=contract_root or Path(__file__).resolve().parents[5],
                 owner_local_paths=private_sources.paths if private_sources is not None else None,
                 owner_local_form_validator=private_sources.form_validator if private_sources is not None else None,
-                materializer_validators=private_sources.materializer_validators if private_sources is not None else None)
+                materializer_validators=private_sources.materializer_validators if private_sources is not None else None,
+                subject_assessment=subject_assessment)
             result = {'revision': revision, 'batch_count': len(chain),
                       'current_admission': materialized['admission'], 'materialization': materialized}
         elif operation in ('inspect', 'describe', 'read-layer-comparison'):
@@ -1313,10 +1404,12 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 result['command_context'] = {'subject': current.ref, 'policy': engine.policy.ref,
                                              'scope': scope, 'supported_operations': ['describe', 'inspect', 'append',
                                                  *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
-                                                   and current.payload['content'].get('kind') == 'freeform' else [])],
+                                                   and current.payload['content'].get('kind') in ('source-copy', 'freeform') else [])],
                                              'grants_authority': False}
                 if required_sources:
                     result['command_context']['required_sources'] = [record.ref for record in required_sources]
+                if subject_assessment is not None:
+                    result['command_context']['subject_assessment'] = subject_assessment
                 if layer_sources is not None:
                     result['command_context']['required_admissions'] = [
                         {'basis': entry.basis.ref, 'can_use': entry.can_use, 'limits': list(entry.limits),
@@ -1385,7 +1478,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         if source_bound:
             source_snapshot_guard()
             if any(journal._load(layer_id)[0] != revision for layer_id, revision in dependency_heads.items()):
-                raise JournalConflict('source quality history changed before returning its dependent view')
+                raise JournalConflict('source quality or parent history changed before returning its dependent view')
             if journal._load(identifier)[0] != result['revision']:
                 raise JournalConflict('source assessment history changed before returning the current view')
         return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
@@ -1393,7 +1486,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 **({'visibility': 'local_only', 'publication_authorized': False} if owner_local else {})}
 
     if layer_quality:
-        with journal.locked_subjects([identifier, *(entry['layer_id'] for entry in quality_requirements)]):
+        with journal.locked_subjects([identifier, *(entry['layer_id'] for entry in quality_requirements),
+                                      *([parent_context.record.id] if parent_context is not None else [])]):
             return execute_operation()
     return execute_operation()
 

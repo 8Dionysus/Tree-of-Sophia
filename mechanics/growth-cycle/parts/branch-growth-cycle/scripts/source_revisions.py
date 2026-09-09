@@ -27,7 +27,7 @@ def _encode(value):
 
 
 def _selected(config):
-    return config.get('schema_version') == source.CORPUS_SELECTED_REVISION_CONFIG
+    return config.get('schema_version') in source.CORPUS_SELECTED_REVISION_CONFIGS
 
 
 def _package(directory, *, archive=False):
@@ -157,7 +157,7 @@ def _history(files, record):
 
 def _validate_record(config, record):
     root = Path(config['source_root'])
-    if config['schema_version'] in {source.CORPUS_REVISION_CONFIG, source.CORPUS_SELECTED_REVISION_CONFIG}:
+    if config['schema_version'] in {source.CORPUS_REVISION_CONFIG, *source.CORPUS_SELECTED_REVISION_CONFIGS}:
         profile = source._configured_corpus_profile(config)
         schema_raw = source._read(root / profile['schema_ref'], source.MAX_COMMAND_BYTES)
         schema = source._json_object(schema_raw)

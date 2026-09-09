@@ -130,6 +130,82 @@ class HumanFormTests(unittest.TestCase):
         self.payload['script'] = None
         self.assertEqual(self.render(scope=replace(self.scope, source_languages=()))['state'], 'ready')
 
+    def test_assessed_copy_resolves_owner_quality_context_without_rewriting_authored_bindings(self):
+        fixture = assessment_fixture.AssessmentPolicyTests()
+        fixture.setUp()
+        basis = Record.from_payload('tos.quality-basis.synthetic.form', 1,
+            {'limits': ['selected synthetic source only'], 'review': 'one'}, origin_id='synthetic-quality')
+        fixture.subject = self.form()
+        fixture.records.extend([self.subject, fixture.subject, basis])
+        fixture.competencies = [Record.from_payload(c.id, c.version, {**c.payload,
+            'assertion_layers': [*c.payload['assertion_layers'], 'human_projection']}) for c in fixture.competencies]
+        fixture.authorities = [Record.from_payload(a.id, a.version, {**a.payload,
+            'assertion_layers': [*a.payload['assertion_layers'], 'human_projection'],
+            'subject_prefixes': ['tos.form.'], 'competence_refs': [fixture.competencies[i].ref]})
+            for i, a in enumerate(fixture.authorities)]
+        scope = replace(self.scope, require_current_assessment=True, required_sources=(self.subject,),
+            required_admissions=(RequiredAdmission(basis, True, tuple(basis.payload['limits'])),))
+        before = copy.deepcopy(self.payload)
+        kwargs = {'scope': scope, 'records': [self.subject, basis], 'engine': fixture.engine(),
+                  'now': assessment_fixture.NOW}
+        absent = self.render(**kwargs)
+        self.assertEqual(absent['state'], 'needs-assessment')
+        self.assertFalse(absent['admission']['can_use'])
+        review = fixture.review(profile='interpretation')
+        for record in (self.subject, basis):
+            review.assessment['evidence'].append({'record': record.ref, 'stance': 'context', 'locator': 'Synthetic required input.'})
+        ready = self.render(**kwargs, reviews=[review])
+        self.assertEqual(ready['state'], 'ready')
+        self.assertTrue(ready['admission']['can_use'])
+        self.assertEqual(ready['derivation'], 'source-copy')
+        self.assertEqual(ready['context'][-1], {'slot': 'owner:quality:0',
+            'binding': SourceBinding(basis, '').ref, 'value': basis.payload})
+        self.assertEqual(ready['admission']['limits'], basis.payload['limits'])
+        self.assertEqual(self.payload, before)
+        parent = {'schema_version': 'tos_human_form_subject_assessment_v1', 'subject': self.subject.ref,
+            'admission': {'schema_version': 'tos_knowledge_admission_v1', 'subject': self.subject.ref,
+                'policy': fixture.policy.ref, 'use': 'research', 'status': 'unreviewed', 'can_use': False,
+                'limits': ['parent remains uncertain'], 'is_semantic_evaluation': False},
+            'journal_revision': None, 'journal_batches': 0, 'historical_withdrawals': [],
+            'form_admission_is_parent_endorsement': False}
+        qualified = self.render(**{**kwargs, 'scope': replace(scope, subject_assessment=parent)}, reviews=[review])
+        self.assertEqual(qualified['state'], 'ready')
+        self.assertTrue(qualified['admission']['can_use'])
+        self.assertFalse(qualified['subject_assessment']['admission']['can_use'])
+        self.assertEqual(qualified['subject_assessment'], parent)
+        self.assertFalse(qualified['standalone_reading'])
+        qualified['subject_assessment']['admission']['status'] = 'disputed'
+        self.assertEqual(parent['admission']['status'], 'unreviewed')
+        wrong = {**parent, 'subject': self.form().ref}
+        self.assertEqual(self.render(**{**kwargs, 'scope': replace(scope, subject_assessment=wrong)})['issues'],
+                         ['form.subject-assessment-binding'])
+        self.assertEqual(self.render(scope=replace(self.scope, subject_assessment=parent))['issues'],
+                         ['form.subject-assessment-outside-assessed-scope'])
+        excessive = {**parent, 'admission': {**parent['admission'], 'limits': ['x' * 65536]}}
+        stopped = self.render(**{**kwargs, 'scope': replace(scope, subject_assessment=excessive)})
+        self.assertEqual(stopped['state'], 'over-budget')
+        self.assertIsNone(stopped['display_text'])
+        changed = Record.from_payload(basis.id, 1, {**basis.payload, 'review': 'two'}, origin_id=basis.origin_id)
+        fixture.records = [changed if record.id == basis.id else record for record in fixture.records]
+        updated = {**kwargs, 'scope': replace(scope, required_admissions=(RequiredAdmission(changed, True),)),
+                   'records': [self.subject, changed], 'engine': fixture.engine()}
+        stopped = self.render(**updated, reviews=[review])
+        self.assertEqual(stopped['state'], 'needs-assessment')
+        self.assertFalse(stopped['admission']['can_use'])
+        bound = copy.deepcopy(self.payload)
+        bound['bindings']['quality'] = SourceBinding(basis, '').ref
+        self.assertEqual(self.render(payload=bound, **updated)['issues'], ['binding.changed:quality'])
+        self.assertEqual(self.render(payload=bound, **updated)['state'], 'stale')
+        denied = self.render(**{**updated, 'scope': replace(scope,
+            required_admissions=(RequiredAdmission(changed, False, ('withdrawn',)),))}, reviews=[review])
+        self.assertEqual(denied['state'], 'needs-assessment')
+        self.assertFalse(denied['admission']['can_use'])
+        self.assertIsNone(denied['display_text'])
+        self.assertEqual(self.render(scope=replace(self.scope, require_current_assessment='true'))['state'], 'invalid')
+        body = {**self.payload, 'content': {'kind': 'template', 'template': self.template().ref}}
+        self.assertEqual(self.render(payload=body, scope=scope, records=[self.subject, basis])['issues'],
+                         ['form.assessed-template-outside-scope'])
+
     def linguistic_context(self, relation='original', source=None):
         record = Record.from_payload('tos.record.form-language', 1, {
             'relation': relation, 'language': self.payload['language'], 'script': self.payload['script'],

@@ -1,8 +1,10 @@
-"""Explicit v2 selected-file correction, including nested native source homes.
+"""Explicit selected-file correction, including nested native source homes.
 
 The old flat-directory grant and archive meaning are not widened. Publication
 uses a cooperating-reader barrier and recoverable exact-file transaction; it
 does not claim atomic filesystem visibility to arbitrary raw-file readers.
+Owner v3 additionally delegates descriptive Edition, Collection and Item
+correction; v1/v2 grants and structural metadata remain unchanged.
 """
 from datetime import datetime, timezone
 from pathlib import Path
@@ -256,14 +258,15 @@ def run_selected_revision(owner, config, configuration, path, request):
 
 def command_handlers():
     proposal = {'fields', 'forms', 'reason'}
-    return (contract.Handler('native-corpus-selected-revision', (source.CORPUS_SELECTED_REVISION_CONFIG,),
+    return (contract.Handler('native-corpus-selected-revision',
+        (source.CORPUS_SELECTED_REVISION_CONFIG, source.CORPUS_COMPLETE_REVISION_CONFIG),
         (contract.describe(),
          contract.operation('prepare-revise', proposal, definition='Prepare a selected metadata successor without enumerating descendants.', grants=('record.revise',)),
          contract.operation('record.revise', proposal | contract.COMMIT_KEYS | {'expected_publication'},
              definition='Publish exact selected metadata files with a cooperating-reader barrier.', mutation='selected_record_successor', grants=('record.revise',)),
          contract.recovery('record.recover'), contract.inspect_version()),
-        run_selected_revision, 'Correct selected native metadata, including existing nested Expressions, with explicit recovery.',
+        run_selected_revision, 'Correct selected native metadata with versioned type scope and explicit recovery.',
         typed_handles=('ToS/contracts/corpus-record.schema.json', *contract.FORM_HANDLES),
-        profile_selection='Agent, Place, Organization, Work or Expression; only preferred_label, notes, field_languages and source_refs.',
+        profile_selection='Owner v2: Agent, Place, Organization, Work, Expression. Owner v3 additionally: Edition, Collection, Item. Only preferred_label, notes, field_languages and source_refs.',
         preconditions=('Requires exact publication snapshot and retained selected-file history; structural link changes use their typed compound owners.',),
         manages_publication=True),)

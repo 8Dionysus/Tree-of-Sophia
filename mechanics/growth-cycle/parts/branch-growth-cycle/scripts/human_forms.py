@@ -70,6 +70,8 @@ class FormScope:
     language_context: SourceBinding | None = None
     required_sources: tuple[Record, ...] = ()
     required_admissions: tuple[RequiredAdmission, ...] = ()
+    require_current_assessment: bool = False
+    subject_assessment: dict[str, Any] | None = None
 
 
 @lru_cache(maxsize=8)
@@ -120,6 +122,8 @@ def materialize_form(root: Path, form: Record, scope: FormScope, records: Sequen
 Trusted templates are admitted by their source owner before this call, not by
 including a template in the submitted form. Freeform needs a fresh assessment
 policy result bound to this exact form and current dependency snapshot.
+The trusted assessed lane also requires that result for source-copy. Its
+current quality context is owner-resolved, not a rewrite of authored bindings.
 """
     base = {'schema_version': 'tos_human_form_materialization_v1', 'form': form.ref,
               'subject': scope.subject.ref, 'state': 'invalid', 'display_text': None,
@@ -131,6 +135,7 @@ policy result bound to this exact form and current dependency snapshot.
         if len(_canonical(packet).encode('utf-8')) > MAX_OUTPUT_BYTES:
             packet.update(state='over-budget', admission=None,
                           issues=['form.output-budget-exceeded-use-separate-assessment-inspection'])
+            packet.pop('subject_assessment', None)
         if len(_canonical(packet).encode('utf-8')) > MAX_OUTPUT_BYTES:
             raise ValueError('form identity exceeds output budget')
         return packet
@@ -144,7 +149,9 @@ policy result bound to this exact form and current dependency snapshot.
             or any(not isinstance(item, RequiredAdmission) or not isinstance(item.basis, Record)
                    or type(item.can_use) is not bool for item in scope.required_admissions)):
         return stop('invalid', 'form.required-admission-scope')
-    if any(not item.can_use for item in scope.required_admissions):
+    if type(scope.require_current_assessment) is not bool:
+        return stop('invalid', 'form.current-assessment-scope')
+    if not scope.require_current_assessment and any(not item.can_use for item in scope.required_admissions):
         return stop('needs-assessment', 'source-quality.not-admitted')
     if (len(records) > MAX_SOURCE_RECORDS or len(templates) > MAX_TEMPLATES
             or len(prior_forms) > MAX_PRIOR_FORMS or len(scope.required_context) > 256
@@ -156,10 +163,32 @@ policy result bound to this exact form and current dependency snapshot.
     payload = form.payload
     if not form_validator.is_valid(payload):
         return stop('invalid', 'form.schema')
+    if scope.require_current_assessment and payload['content']['kind'] == 'template':
+        return stop('invalid', 'form.assessed-template-outside-scope')
     if (payload['form_id'] != form.id or payload['form_version'] != form.version
             or payload['subject'] != scope.subject.ref or form.id == scope.subject.id
             or payload['creator_id'] != scope.maker_id):
         return stop('invalid', 'form.identity-or-subject')
+    subject_assessment_bytes = 0
+    if scope.subject_assessment is not None:
+        if not scope.require_current_assessment:
+            return stop('invalid', 'form.subject-assessment-outside-assessed-scope')
+        assessment_validator = form_validator.evolve(schema={
+            '$ref': form_validator.schema['$id'] + '#/$defs/subjectAssessment'})
+        observed = scope.subject_assessment
+        if (not assessment_validator.is_valid(observed) or observed['subject'] != scope.subject.ref
+                or observed['admission']['subject'] != scope.subject.ref
+                or observed['admission']['use'] != scope.requested_use):
+            return stop('invalid', 'form.subject-assessment-binding')
+        encoded_assessment = _canonical(observed)
+        subject_assessment_bytes = len(encoded_assessment.encode('utf-8'))
+        if (form.size_bytes + sum(record.size_bytes for record in (*records, *templates, *prior_forms))
+                + subject_assessment_bytes > MAX_INPUT_BYTES):
+            return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
+        observed = json.loads(encoded_assessment)
+        # This current observation is part of the complete reading packet,
+        # never a modification of the parent's or form's authored payload.
+        base['subject_assessment'] = result['subject_assessment'] = observed
     if payload['language'] is not None and payload['language'].casefold() not in {language.casefold() for language in scope.languages}:
         return stop('invalid', 'form.language-outside-scope')
     if payload.get('language_context') != (scope.language_context.ref if scope.language_context else None):
@@ -204,8 +233,9 @@ policy result bound to this exact form and current dependency snapshot.
             return stop('invalid', 'binding.pointer:' + slot)
         dependencies.append(source.ref)
     binding_keys = {_canonical(binding): slot for slot, binding in payload['bindings'].items()}
-    required_context = [*scope.required_context,
-                        *(SourceBinding(item.basis, '') for item in scope.required_admissions)]
+    required_context = list(scope.required_context)
+    if not scope.require_current_assessment:
+        required_context.extend(SourceBinding(item.basis, '') for item in scope.required_admissions)
     if scope.language_context is not None:
         metadata_slot = binding_keys.get(_canonical(scope.language_context.ref))
         if metadata_slot is None:
@@ -230,14 +260,28 @@ policy result bound to this exact form and current dependency snapshot.
                 return stop('invalid', 'language-context.source-requires-complete-nonempty-string')
             required_context.append(SourceBinding(current[source['record']['id']], source['pointer']))
         result['language_context'] = {'binding': scope.language_context.ref, 'value': metadata}
-    if len(required_context) > 256:
+    owner_quality_context = scope.required_admissions if scope.require_current_assessment else ()
+    if len(required_context) + len(owner_quality_context) > 256:
         return stop('over-budget', 'form.input-budget-exceeded-narrow-snapshot')
-    context_bytes = 0
+    context_bytes = subject_assessment_bytes
+    if context_bytes > MAX_OUTPUT_BYTES:
+        return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
     for required in required_context:
         slot = binding_keys.get(_canonical(required.ref))
         if slot is None:
             return stop('invalid', 'context.omitted')
         entry = {'slot': slot, 'binding': required.ref, 'value': values[slot]}
+        context_bytes += len(_canonical(entry).encode('utf-8'))
+        if context_bytes > MAX_OUTPUT_BYTES:
+            return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
+        result['context'].append(entry)
+    for index, dependency in enumerate(owner_quality_context):
+        # ':' cannot occur in an authored binding slot. This current context
+        # is supplied by the authenticated owner, never inserted into the form.
+        # Every authored binding was resolved above, including explicit older
+        # quality refs: a new current basis cannot silently replace those refs.
+        entry = {'slot': f'owner:quality:{index}', 'binding': SourceBinding(dependency.basis, '').ref,
+                 'value': dependency.basis.payload}
         context_bytes += len(_canonical(entry).encode('utf-8'))
         if context_bytes > MAX_OUTPUT_BYTES:
             return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
@@ -293,8 +337,11 @@ policy result bound to this exact form and current dependency snapshot.
         wording = ''.join(parts)
         dependencies.append(template.ref)
     else:
+        wording = content['text']
+    if scope.require_current_assessment or content['kind'] == 'freeform':
+        prefix = 'form' if scope.require_current_assessment else 'freeform'
         if engine is None or now is None:
-            return stop('needs-assessment', 'freeform.current-assessment-required')
+            return stop('needs-assessment', prefix + '.current-assessment-required')
         # A historical receipt or an engine observing another source snapshot
         # must not authorize a revised form or stale source wording.
         for dependency in [form.ref, *dependencies]:
@@ -306,9 +353,10 @@ policy result bound to this exact form and current dependency snapshot.
                                  required_sources=scope.required_sources,
                                  required_admissions=scope.required_admissions)
         result['admission'] = engine.evaluate(context, reviews, now=now, trusted_history=trusted_history)
+        if any(not item.can_use for item in scope.required_admissions):
+            return stop('needs-assessment', 'source-quality.not-admitted')
         if not result['admission']['can_use']:
-            return stop('needs-assessment', 'freeform.not-admitted')
-        wording = content['text']
+            return stop('needs-assessment', prefix + '.not-admitted')
     if not wording.strip():
         return stop('invalid', 'form.empty')
     # Field bindings/context remain separate and exact. Dependencies identify
@@ -317,7 +365,7 @@ policy result bound to this exact form and current dependency snapshot.
     dependencies = list({_canonical(ref): ref for ref in dependencies}.values())
     result.update(state='ready', display_text=wording, role=payload['role'], language=payload['language'],
                   script=payload['script'], derivation=content['kind'], dependencies=dependencies,
-                  standalone_reading=not result['context'])
+                  standalone_reading=not result['context'] and scope.subject_assessment is None)
     if len(_canonical(result).encode('utf-8')) > MAX_OUTPUT_BYTES:
         return stop('over-budget', 'form.output-budget-exceeded-do-not-truncate')
     return result

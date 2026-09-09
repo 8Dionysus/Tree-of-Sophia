@@ -81,14 +81,15 @@ class SelectedSourceRevisionTests(unittest.TestCase):
         catalog = self.root / 'ToS/source-witnesses/catalog'
         catalog.mkdir(exist_ok=True)
         entry = {'schema_version': 'tos_source_witness_catalog_entry_v1',
-            'record_id': record['record_id'], 'record_type': 'work',
+            'record_id': record['record_id'], 'record_type': record['record_type'],
             'preferred_label': record['preferred_label'], 'identity_status': record['identity_status'],
             'source_record_ref': self.fixture.relative,
             'record_sha256': metadata_version_reader._record_ref(record)['digest'][7:], 'links': {}}
-        files = {'ToS/source-witnesses/catalog/works.jsonl': source._canonical(entry) + b'\n',
+        catalog_ref = 'ToS/source-witnesses/catalog/' + metadata_version_reader.NATIVE_CATALOGS[record['record_type']]
+        files = {catalog_ref: source._canonical(entry) + b'\n',
                  'ToS/source-witnesses/catalog/claims.jsonl': b''}
         manifest = {'schema_version': 'tos_source_witness_catalog_v3',
-            'record_files': {'work': 'ToS/source-witnesses/catalog/works.jsonl'},
+            'record_files': {record['record_type']: catalog_ref},
             'claim_file': 'ToS/source-witnesses/catalog/claims.jsonl'}
         snapshot = PublicationSnapshot(self.root)
         if snapshot.token is not None:
@@ -304,6 +305,107 @@ class SelectedSourceRevisionTests(unittest.TestCase):
         self.assertIn('unrecognized.json', prior['files'])
         later = fixture.run_command('inspect-version', source=second['expected_source'])
         self.assertEqual(set(later['files']), set(revisions._selected_names(fixture.path)))
+
+    def native_kind_fixture(self, kind):
+        """An independent native record with structural fields not delegated for edit."""
+        harness = SelectedSourceRevisionTests()
+        harness.setUp()
+        self.addCleanup(harness.doCleanups)
+        f = harness.fixture
+        oldpath, oldforms = f.path, f.formpath
+        f.relative = str(Path(f.relative).with_name(kind + '.json'))
+        f.path, f.formpath = f.root / f.relative, (f.root / f.relative).with_name(kind + '.human-forms.json')
+        f.record.pop('expression_claim_refs')
+        f.record.update(record_type=kind, record_id='tos.' + kind + '.selected-fixture')
+        structural = {
+            'edition': {'embodies_expression_refs': ['tos.expression.qualified-fixture'],
+                        'publication_claim_refs': ['tos.claim.publication-fixture'],
+                        'exemplar_claim_refs': ['tos.claim.exemplar-fixture'],
+                        'edition_statement': 'Synthetic reported edition; not verified.'},
+            'collection': {'membership_claim_refs': ['tos.claim.membership-fixture']},
+            'item': {'item_manifest_ref': str(Path(f.relative).with_name('item-manifest.json'))},
+        }[kind]
+        f.record.update(structural)
+        f.path.write_bytes(revisions._encode(f.record))
+        subject = source.Record.from_payload(f.record['record_id'], 1, f.record)
+        forms = source._apply(None, subject, [source.prepare_metadata_change(
+            f.record, None, 'test:author', **selection) for selection in f.selections])
+        f.formpath.write_bytes(revisions._encode(forms))
+        oldpath.unlink()
+        oldforms.unlink()
+        f.config.update(schema_version=source.CORPUS_COMPLETE_REVISION_CONFIG,
+                        record_type=kind, record_id=f.record['record_id'], source_path=f.relative)
+        f.owner.write_bytes(revisions._encode(f.config))
+        harness.path = f.path
+        harness.before = revisions._selected_package(f.path)
+        return harness, structural
+
+    def test_v3_native_descriptive_correction_preserves_structure_history_and_reader(self):
+        for kind in ('edition', 'collection', 'item'):
+            with self.subTest(kind=kind):
+                h, structural = self.native_kind_fixture(kind)
+                request = h.request('test:v3-' + kind)
+                original_read = source._read
+                def read_selected(path, limit):
+                    self.assertFalse(path.is_relative_to(h.nested))
+                    self.assertNotEqual(path.name, 'item-manifest.json')
+                    return original_read(path, limit)
+                with patch.object(source, '_read', side_effect=read_selected):
+                    result = h.run_request(request)
+                    repeated = h.run_request(request)
+                    prior = h.fixture.run_command('inspect-version', source=request['expected_source'])
+                current = json.loads(h.path.read_bytes())
+                self.assertEqual(current, {**h.fixture.record, **request['fields'], 'record_version': 2})
+                self.assertEqual({key: current[key] for key in structural}, structural)
+                self.assertEqual(prior['record'], h.fixture.record)
+                self.assertTrue(repeated['replayed'])
+                self.assertEqual(repeated['receipt'], result['receipt'])
+                self.assertFalse(result['grants_admission'])
+                self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None
+                                    for view in result['materializations']))
+                h.sync_catalog()
+                reader = metadata_version_reader.MetadataVersionReader(h.root)
+                resolved = reader.resolve(request['expected_source'])
+                self.assertEqual(resolved['status'], 'available', resolved)
+                self.assertEqual(resolved['version_status'], 'historical')
+                reader.verify_current()
+
+    def test_v3_does_not_widen_old_grants_or_allow_structural_edits(self):
+        for kind in ('edition', 'collection', 'item'):
+            with self.subTest(kind=kind):
+                h, structural = self.native_kind_fixture(kind)
+                f = h.fixture
+                for version in (source.CORPUS_REVISION_CONFIG, source.CORPUS_SELECTED_REVISION_CONFIG):
+                    f.owner.write_bytes(revisions._encode({**f.config, 'schema_version': version,
+                                                         'allowed_operations': ['record.revise']}))
+                    with self.assertRaises(PermissionError):
+                        f.run_command('describe')
+                f.owner.write_bytes(revisions._encode(f.config))
+                request = h.request()
+                for field in (*structural, 'record_id', 'identity_status', 'same_as_posture'):
+                    invalid = copy.deepcopy(request)
+                    invalid['fields'][field] = None
+                    with self.assertRaises(PermissionError):
+                        h.run_request(invalid)
+                f.owner.write_bytes(revisions._encode({**f.config,
+                    'allowed_fields': [*f.config['allowed_fields'], next(iter(structural))]}))
+                with self.assertRaises(ValueError):
+                    h.run_request(request)
+                self.assertEqual(revisions._selected_package(h.path), h.before)
+                self.assertIsNone(PublicationSnapshot(h.root).token)
+
+    def test_v3_item_recovery_retains_exact_selected_scope(self):
+        h, _ = self.native_kind_fixture('item')
+        request = h.request('test:v3-item-recovery')
+        h.interrupt(request)
+        restored = h.recover(request, 'rollback')
+        self.assertEqual(restored['recovery']['status'], 'rolled-back')
+        self.assertEqual(revisions._selected_package(h.path), h.before)
+        retry = h.request('test:v3-item-after-rollback')
+        h.interrupt(retry)
+        result = h.recover(retry, 'resume')
+        self.assertEqual(result['source']['version'], 2)
+        self.assertEqual((h.nested / 'private.bin').read_bytes(), b'opaque synthetic descendant')
 
 
 if __name__ == '__main__':

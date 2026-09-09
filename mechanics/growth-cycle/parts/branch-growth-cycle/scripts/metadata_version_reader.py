@@ -35,7 +35,8 @@ MAX_CONTRACTS = 128
 MAX_SAFE_VERSION = 9_007_199_254_740_991
 NATIVE_CATALOGS = {'agent': 'agents.jsonl', 'place': 'places.jsonl',
                    'organization': 'organizations.jsonl', 'work': 'works.jsonl',
-                   'expression': 'expressions.jsonl', 'edition': 'editions.jsonl', 'item': 'items.jsonl'}
+                   'expression': 'expressions.jsonl', 'edition': 'editions.jsonl',
+                   'collection': 'collections.jsonl', 'item': 'items.jsonl'}
 PUBLIC = {'public', 'public_metadata_only'}
 FORBIDDEN = {'catalog', 'payload', 'private', 'local-content', 'owner-local'}
 IDENTITY = re.compile(r'tos\.([a-z][a-z0-9-]*)\.[a-z0-9]+(?:[.-][a-z0-9]+)*')

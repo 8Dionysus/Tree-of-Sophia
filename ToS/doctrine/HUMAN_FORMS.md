@@ -4,7 +4,7 @@ A human form is a versioned record about a subject, not the subject, its name
 identity, an assertion of truth, or an admission decision. Its `tos.form.*` ID
 remains stable through corrections. A change of subject identity requires
 another form identity; changing wording, corrected role/language metadata or
-exact source dependencies creates a successor version with an explicit
+exact authored source dependencies creates a successor version with an explicit
 predecessor. A newly authored translation must not overwrite its source form;
 the source owner retains both forms and their derivation relationship.
 
@@ -109,7 +109,10 @@ It returns `ready`, `invalid`, `unavailable`, `stale`, `restricted`,
 `needs-assessment` or `over-budget`. `ready` means this rendering operation
 succeeded; it does not mean the represented historical or philosophical
 assertion is accepted. Rejections and disputes remain in the separate
-assessment result. A source or template rendering has no invented assessment.
+assessment result. A source-only or template rendering has no invented
+assessment. An explicitly assessed source-copy instead reports its own current
+form admission, without changing its production mode or treating the copied
+Claim as admitted.
 
 Rendering has no network calls, writes or model calls. The materializer bounds
 the selected input at 8 MiB, 512 source records, 64 templates and 256 predecessor
@@ -123,16 +126,52 @@ real-language calibration, all-corpus forms and actual UI consumption remain
 required work in [the foundation coverage map](FOUNDATION_V1.md), not facts
 established by those tests.
 
-The source-bound assessment journal now exposes a local `materialize-form`
-operation for stored freeform proposals. It supplies current authenticated
+The source-bound assessment journal exposes a local `materialize-form`
+operation for stored source-copy and freeform forms. It supplies current authenticated
 policy/history and exact selected source records to the same pure materializer;
 the proposed form cannot supply its own authority. This lane requires complete
 subject context and retains predecessor forms from their exact adjacent set.
+For a source-copy, the copied field, role, language and script must also match
+the actual source-owned field catalogue; assessment cannot authorize an arbitrary
+pointer or inferred language. The separate source-only writer/metadata reader
+continues to return mechanical readiness with `admission: null`.
 Linguistic context, when used, is separately selected by the source owner.
 See the [command contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#assessed-form-materialization).
 This is current local materialization, not automatic admission or publication
 of a new public graph snapshot. The metadata-only graph adapter below still
 refuses unassessed freeform wording.
+
+In the explicit assessed lane, current native quality context is resolved by
+the source owner separately from immutable authored form bindings. Each whole
+current basis is an exact dependency and mandatory output context, under an
+`owner:quality:<index>` slot which cannot be an authored binding name. The
+admission carries inherited source limits together with the form's own limits.
+The dependent review must cite the current source and basis references: a
+changed basis invalidates the old review and needs renewed assessment, not a
+rewrite of unchanged wording. An already authored explicit basis binding is
+still exact; a newer owner-resolved basis cannot silently rebind or rescue it.
+Missing, stale or denied inputs emit no wording. No request field or submitted
+form can enable this trusted mode, supply `can_use` or override the current basis.
+Freeform remains assessment-required outside this mode too; template admission
+is not extended by the assessed source-form route.
+
+For a v5 form of a Claim, the owner additionally selects that Claim's exact
+same-use assessment scope. `subject_assessment` retains its current admission,
+limits, journal observation and relevant historical withdrawal refs, under
+the form/parent/quality lock set. This is mandatory reading context alongside
+the whole raw Claim, whose initial `review_status` is not current assessment.
+A positive form admission permits this qualified presentation, not endorsement
+of the Claim: an unreviewed, rejected, disputed or withdrawn parent remains
+explicitly visible as such. Parent history changes invalidate a previously
+prepared materialization snapshot, not the immutable wording; re-reading shows
+the new status without inventing a new parent assessment. Missing or denied
+parent read scope refuses this v5 route. The parent's judgment and its limits
+remain separate from the form's own admission and current layer-quality gate.
+Consumers must retain this companion as part of the complete form packet, not
+display positive form status as positive Claim status. The optional closed-schema
+extension requires updated `human-form.schema.json`; older strict consumers
+must reject it rather than strip it. Existing public freeform and source-only
+metadata paths do not acquire a confidential parent-journal reader.
 
 ### Local assessed research snapshots
 

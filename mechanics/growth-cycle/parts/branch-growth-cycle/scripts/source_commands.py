@@ -48,6 +48,8 @@ PROFILE_CREATION_CONFIGS = {PROFILE_CONFIG, SIGN_CONFIG}
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 CORPUS_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v1'
 CORPUS_SELECTED_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v2'
+CORPUS_COMPLETE_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v3'
+CORPUS_SELECTED_REVISION_CONFIGS = {CORPUS_SELECTED_REVISION_CONFIG, CORPUS_COMPLETE_REVISION_CONFIG}
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
 CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
@@ -102,10 +104,10 @@ def _builtin_configuration(config, path):
     profile_creation = config.get('schema_version') in PROFILE_CREATION_CONFIGS
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
     corpus_creation = config.get('schema_version') == CORPUS_CONFIG
-    corpus_revision = config.get('schema_version') in {CORPUS_REVISION_CONFIG, CORPUS_SELECTED_REVISION_CONFIG}
+    corpus_revision = config.get('schema_version') in {CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS}
     profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
     revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
-                                               CORPUS_SELECTED_REVISION_CONFIG}
+                                               *CORPUS_SELECTED_REVISION_CONFIGS}
     claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
     captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
@@ -119,13 +121,13 @@ def _builtin_configuration(config, path):
           | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, CORPUS_SELECTED_REVISION_CONFIG, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, CORPUS_CONFIG, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
             or _instant(config['expires_at']) <= datetime.now(timezone.utc)):
         raise PermissionError('source-command delegation is invalid or expired')
-    operations = (('record.revise', 'record.recover') if config['schema_version'] == CORPUS_SELECTED_REVISION_CONFIG
+    operations = (('record.revise', 'record.recover') if config['schema_version'] in CORPUS_SELECTED_REVISION_CONFIGS
                   else ('sign.promote',) if sign_promotion else ('source.create',) if profile_creation or corpus_creation
                   else (CREATION_OPERATION,) if creation else ('record.revise',) if revision else OPERATIONS)
     for key, allowed in (('allowed_operations', operations), ('allowed_form_ids', None)):
@@ -219,10 +221,12 @@ def _configured_corpus_profile(config):
     """
     kind = config.get('record_type')
     allowed = {'agent', 'place', 'organization', 'work'}
-    if config.get('schema_version') == CORPUS_SELECTED_REVISION_CONFIG:
+    if config.get('schema_version') in CORPUS_SELECTED_REVISION_CONFIGS:
         allowed.add('expression')
+    if config.get('schema_version') == CORPUS_COMPLETE_REVISION_CONFIG:
+        allowed.update({'edition', 'collection', 'item'})
     if not isinstance(kind, str) or kind not in allowed:
-        raise PermissionError('native metadata writing requires Agent, Place, Organization or Work')
+        raise PermissionError('native record type is outside this metadata grant version')
     return {'record_type': kind, 'id_prefix': f'tos.{kind}.', 'source_basename': kind + '.json',
             'schema_ref': 'ToS/contracts/corpus-record.schema.json', 'schema_version': 'tos_corpus_record_v1',
             'source_scope': 'public_metadata_only'}

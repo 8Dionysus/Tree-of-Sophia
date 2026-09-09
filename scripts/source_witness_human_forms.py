@@ -1,7 +1,7 @@
 """Read adjacent metadata and declared Claim forms through the source materializer.
 
 The default adapter copies already public metadata. Explicit local snapshots
-can read protected source/journal inputs for current freeform policy admission.
+can read protected source/journal inputs for current source-form policy admission.
 Neither route performs substantive assessment or authorizes public release.
 """
 from __future__ import annotations
@@ -304,6 +304,23 @@ def materialize_claim_forms(source: dict, form_set: dict, *, access_allowed: boo
                               source.get('visibility') in {'public', 'public_metadata_only'})
 
 
+def source_copy_field(subject: Record, form: dict, field_catalog: list[dict]) -> dict | None:
+    """Resolve one whole copied field by the source owner's actual catalogue.
+
+    Shared by source-only readiness and the explicit assessed consumer. A form
+    cannot grant an arbitrary pointer, role or language its own source scope.
+    """
+    content = form['content']
+    selected = form['bindings'].get(content.get('slot')) if content['kind'] == 'source-copy' else None
+    if selected is None or selected['record'] != subject.ref:
+        return None
+    matches = [field for field in field_catalog
+               if (field['role'], field['pointer']) == (form['role'], selected['pointer'])]
+    if len(matches) > 1:
+        raise ValueError('source-copy field catalogue is ambiguous')
+    return matches[0] if matches else None
+
+
 def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dict, *, access_allowed: bool,
                        validator=None, materializer_validators=None):
     input_bytes = 0
@@ -318,7 +335,6 @@ def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dic
     stale_subject = form_set['subject'] != subject.ref
     prior = [Record.from_payload(value['form_id'], value['form_version'], value)
              for value in form_set['prior_forms']]
-    fields = {(field['role'], field['pointer']): field for field in field_catalog}
     seen, results, output_bytes = set(), [], 0
     for value in form_set['forms']:
         if value['form_id'] in seen:
@@ -331,11 +347,10 @@ def _materialize_forms(subject: Record, field_catalog: list[dict], form_set: dic
         pointer = selected['pointer'] if selected else None
         required = []
         language, script, supported = None, None, False
-        if selected and selected['record'] == subject.ref:
-            field = fields.get((value['role'], pointer))
-            if field is not None:
-                language, script, supported = field['language'], field['script'], True
-                required = [SourceBinding(subject, pointer) for pointer in field['context']]
+        field = source_copy_field(subject, value, field_catalog)
+        if field is not None:
+            language, script, supported = field['language'], field['script'], True
+            required = [SourceBinding(subject, pointer) for pointer in field['context']]
         scope = FormScope(subject, tuple(required), value['creator_id'], 'low',
                           (language,) if isinstance(language, str) else (), 'research',
                           access_allowed=access_allowed,

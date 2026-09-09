@@ -65,6 +65,7 @@
         }},
         "issues": {"type": "array", "items": {"type": "string"}},
         "admission": {"type": ["object", "null"]},
+        "subject_assessment": {"$ref": "#/$defs/subjectAssessment"},
         "assessment_snapshot": {"$ref": "#/$defs/assessmentSnapshot"},
         "performs_semantic_assessment": {"const": false},
         "role": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
@@ -79,10 +80,41 @@
         "then": {
           "required": ["role", "language", "script", "derivation", "dependencies", "standalone_reading"],
           "properties": {"display_text": {"type": "string", "minLength": 1}, "issues": {"maxItems": 0}},
-          "allOf": [{"if": {"properties": {"context": {"minItems": 1}}}, "then": {"properties": {"standalone_reading": {"const": false}}}}]
+          "allOf": [{"if": {"properties": {"context": {"minItems": 1}}}, "then": {"properties": {"standalone_reading": {"const": false}}}},
+            {"if": {"required": ["subject_assessment"]}, "then": {"properties": {"standalone_reading": {"const": false}}}}]
         },
         "else": {"properties": {"display_text": {"type": "null"}, "context": {"maxItems": 0}, "issues": {"minItems": 1}}}
       }]
+    },
+    "subjectAssessment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "subject", "admission", "journal_revision", "journal_batches", "historical_withdrawals", "form_admission_is_parent_endorsement"],
+      "properties": {
+        "schema_version": {"const": "tos_human_form_subject_assessment_v1"},
+        "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+        "admission": {
+          "type": "object",
+          "required": ["schema_version", "subject", "policy", "use", "status", "can_use", "limits", "is_semantic_evaluation"],
+          "properties": {
+            "schema_version": {"const": "tos_knowledge_admission_v1"},
+            "subject": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+            "policy": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"},
+            "use": {"type": "string", "minLength": 1},
+            "status": {"enum": ["admitted", "admitted-with-limits", "disputed", "rejected", "deferred", "unreviewed"]},
+            "can_use": {"type": "boolean"},
+            "limits": {"type": "array", "items": {"type": "string"}},
+            "is_semantic_evaluation": {"const": false}
+          }
+        },
+        "journal_revision": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$(?![\\s\\S])"},
+        "journal_batches": {"type": "integer", "minimum": 0},
+        "historical_withdrawals": {"type": "array", "maxItems": 256, "items": {"$ref": "knowledge-assessment.schema.json#/$defs/exactRef"}},
+        "form_admission_is_parent_endorsement": {"const": false}
+      },
+      "allOf": [{"if": {"properties": {"journal_batches": {"const": 0}}},
+        "then": {"properties": {"journal_revision": {"type": "null"}, "historical_withdrawals": {"maxItems": 0}}},
+        "else": {"properties": {"journal_revision": {"type": "string"}}}}],
+      "description": "Owner-derived current parent Claim assessment in the same source/use snapshot. It is mandatory reading context, not admission of the parent by the form. Historical withdrawals remain visible even when a later assessment or revoked grant changes current status. No source or form is rewritten."
     },
     "assessmentSnapshot": {
       "type": "object",
