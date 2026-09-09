@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro P. Sestio</title>
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi022.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">5</biblScope>
+						<biblScope n="contents">Cum Senatui Gratias Egit; Cum Populo Gratias Egit; De Domo Sua; De Haruspicum Responso; Pro Sestio; In Vatinium; De Provinciis Consularibus; Pro Balbo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno05ciceuoft/page/123/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" matchPattern="(\w+)">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change who="Michael Konieczny" when="2021-02-01">Revisions for EpiDoc+CTS compliance</change> 
+<change who="Thibault Clérice" when="2021-01-25">Capitains + Epidoc</change> 
+<change who="Stella Dee" when="2014-08-01">edited markup</change> 
+<change who="Stella Dee" when="2014-07">split composite text and converted to unicode</change> 
+<change who="balmas01" when="2013-09-13">reverting texts back to pre_cts_reorg tagged version</change> 
+<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName tags</change> 
+<change who="gcrane" when="2011-07-09">fixed problems with capitalization</change> 
+<change who="gcrane" when="2011-01-15">base SDL file</change> 
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change> 
+<change who="gcrane" when="2006-04-21">these now have the app crit entered as notes</change> 
+<change who="packel" when="2005-08-01">removed stray item tags</change> 
+<change who="packel" when="2005-07-25">Converted to XML</change> 
+<change who="mimno" when="2005-04-08">added default chunks</change> 
+<change who="mimno" when="2004-12-23">typo: cDe harus... -> De harus</change> 
+<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change who="amahoney" when="2002-12-02">correct spelling of Quirites, improperly 'regularized'</change> 
+<change who="dasmith" when="2000-03-04">Added separate funder entity to TEI header.</change> 
+<change who="dasmith" when="1999-10-14">Added explanatory subtitles to titleStmt</change> 
+<change who="dasmith" when="1999-08-12">Fixed refsDecl</change> 
+<change who="textgod" when="1999-08-04">Random changes over a period of months.</change> 
+<change who="textgod" when="1997-10-31">Added QUOTE tags to verse.</change> 
+<change who="cjsu" when="1997-05-13">passed SGML validation</change>
+		</revisionDesc>
+	</teiHeader>
+
+	<text xml:lang="lat">
+		<body xml:base="urn:cts:latinLit:phi0474.phi022.perseus-lat2">
+			<div xml:lang="lat" type="edition">
+				<head rend="align(center)">PRO P. SESTIO ORATIO</head>
+				
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi022.perseus-lat2" type="textpart" n="1"> <p rend="align(indent)"><milestone unit="chapter" n="1" resp="editor"/> <reg>si</reg> quis antea, iudices, mirabatur quid esset quod, pro tantis opibus rei publicae tantaque dignitate imperi, nequaquam satis multi cives forti et magno animo invenirentur qui auderent se et salutem suam in discrimen offerre pro statu civitatis et pro communi libertate<note><w type="lemma">libertate</w> libertates <hi rend="italic">P<hi rend="superscript">1</hi> unde</hi> lib. ⟨is⟩ ex hoc <hi rend="italic">Mommsen</hi>: lib. is hoc <hi rend="italic">Bake</hi> (<hi rend="italic">del.</hi> ex)</note>, ex hoc tempore miretur potius si quem bonum et fortem civem viderit, quam si quem aut timidum aut sibi potius quam rei publicae consulentem. <reg>nam</reg> ut omittatis de unius cuiusque casu cogitando recordari, uno aspectu intueri potestis eos qui cum senatu, cum bonis omnibus, rem publicam adflictam excitarint et latrocinio domestico liberarint, maestos sordidatos reos, de capite, de fama, de civitate, de fortunis, de liberis dimicantis; eos autem qui omnia divina et humana violarint vexarint perturbarint everterint, non solum alacris laetosque volitare, sed etiam fortissimis atque optimis civibus periculum moliri, de se nihil timere. </p> </div> 
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi022.perseus-lat2" type="textpart" n="2"> <p><reg>in</reg> quo cum multa sunt indigna, tum nihil minus est ferendum quam quod iam non per latrones suos, non per homines egestate et scelere perditos, sed per vos nobis, per optimos viros optimis civibus periculum inferre conantur, et quos lapidibus, quos ferro, quos facibus, quos vi manu copiis delere non potuerunt, hos vestra auctoritate, vestra religione, vestris sententiis se oppressuros arbitrantur. <reg>ego</reg> autem<note><w type="lemma">autem</w> vero <hi rend="italic">k</hi></note>, iudices, qua<note><w type="lemma">qua</w> quoniam qua <hi rend="italic">Halm</hi></note> voce mihi in agendis gratiis commemorandoque eorum qui de me optime meriti sunt beneficio esse utendum putabam, ea nunc uti cogor in eorum<note>eorum <hi rend="italic">susp. Landgraf</hi> (<hi rend="italic">cf.</hi> § 144): reorum <hi rend="italic">Stangl</hi>: amicorum <hi rend="italic">Weidner</hi>: meorum <hi rend="italic">coni. Mueller</hi></note> periculis depellendis, <add>ut</add><note>ut <hi rend="italic">supplevi, a librario aliquo, ut videtur, omissum, qui illud</hi> uti (VTIIS) <hi rend="italic">male post vocabulum</hi> cogor <hi rend="italic">iterari opinatus est</hi> (<hi rend="italic">Cl. Qu.</hi> iii. 266)</note> iis potissimum vox haec serviat quorum opera et mihi et vobis et populo Romano restituta est. </p> </div> 
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi022.perseus-lat2" type="textpart" n="3"> <p rend="align(indent)"><milestone unit="chapter" n="2" resp="editor"/><reg>et</reg> quamquam a Q. Hortensio, clarissimo viro atque eloquentissimo, causa est P. Sesti perorata, nihilque ab eo praetermissum est quod aut pro re publica conquerendum fuit aut pro reo disputandum, tamen adgrediar ad dicendum, ne mea propugnatio ei potissimum defuisse videatur per quem est perfectum ne ceteris civibus deesset. <reg>atque</reg> ego sic statuo, iudices, a me in hac causa atque hoc extremo dicendi loco pietatis potius quam defensionis, querelae quam eloquentiae, doloris quam ingeni partis esse susceptas. </p> </div> 
+<div subtype="section" xml:base="urn:cts:latinLit:phi0474.phi022.perseus-lat2" type="textpart" n="4"> <p><reg>itaque</reg> si aut acrius egero aut liberius quam qui ante me dixerunt, peto a vobis ut tantum orationi meae concedatis quantum et pio dolori et iustae iracundiae concedendum putetis; nam neque<note>nam neque <hi rend="italic">ut Madv. ita G<hi rend="superscript">2</hi></hi>: nãq: 

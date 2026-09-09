@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" 
+	schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro Cn. Plancio</title>
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi028.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1911</date>
+						</imprint>
+				<biblScope unit="volume">6</biblScope>
+				<biblScope n="contents">Pro Tullio; Pro Fonteio; Pro Sulla; Pro Archia; Pro Plancio; Pro Scauro</biblScope></monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+<ref target="https://hdl.handle.net/2027/njp.32101073249417?urlappend=%3Bseq=125%3Bownerid=13510798896722459-137">Hathi Trust</ref>
+	<ref target="https://archive.org/details/orationes0006cice/page/n123/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" n="section">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change who="Michael Konieczny" when="2021-02-06">Revisions for EpiDoc+CTS compliance</change> 
+<change who="Thibault Clérice" when="2021-01-29">Capitains + Epidoc</change> 
+<change who="Stella Dee" when="2014-08-01">edited markup</change> 
+<change who="Stella Dee" when="2014-07-01">split composite text and converted to unicode</change> 
+<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change> 
+<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change> 
+<change when="2011-01-15" who="gcrane">base SDL file</change> 
+<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change> 
+<change when="2006-08-11" who="gcrane">small mods</change> 
+<change when="2006-04-21" who="gcrane">these now have the app crit entered as notes</change> 
+<change when="2005-08-01" who="packel">removed stray item tags</change> 
+<change when="2005-07-25" who="packel"> Converted to XML</change> 
+<change when="2005-04-08" who="mimno">added default chunks</change> 
+<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change> 
+<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change> 
+<change when="1999-08-12" who="dasmith">Fixed refsDecl</change> 
+<change when="1999-08-04" who="textgod">Random changes over a period of months.</change> 
+<change when="1997-10-17" who="textgod">Added CVS log.</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="lat">
+	<body xml:base="urn:cts:latinLit:phi0474.phi028.perseus-lat2">
+	
+<div type="edition" xml:lang="lat">
+	<head rend="align(center)">PRO CN. PLANCIO ORATIO</head>
+
+<div n="1" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi028.perseus-lat2"><p rend="align(indent)"><milestone resp="editor" n="1" unit="chapter"/> <reg>cum</reg> propter egregiam et singularem Cn. Planci, iudices, in mea salute custodienda fidem tam multos et bonos viros eius honori viderem esse fautores, capiebam animo non mediocrem voluptatem quod, cuius officium mihi saluti fuisset, ei meorum temporum memoriam suffragari videbam. <reg>cum</reg> autem audirem meos partim inimicos, partim invidos huic accusationi esse fautores, eandemque rem adversariam esse in iudicio Cn. Plancio quae in petitione fuisset adiutrix, dolebam, iudices, et acerbe ferebam, si huius salus ob eam ipsam causam esset infestior quod is meam salutem atque vitam sua benivolentia praesidio custodiaque texisset. </p> </div> 
+
+<div n="2" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi028.perseus-lat2"> <p><reg>nunc</reg> autem vester, iudices, conspectus et consessus iste reficit et recreat mentem meam, cum intueor et contemplor unum quemque vestrum. <reg>video</reg> enim hoc in numero neminem cui mea salus non cara fuerit, cuius non exstet in me summum<note>summum <hi rend="italic">TEb<hi rend="superscript">3</hi>k</hi>: suum <hi rend="italic">cett.</hi></note> meritum, cui non sim obstrictus memoria benefici sempiterna. <reg>itaque</reg> non extimesco ne Cn. Plancio custodia meae salutis apud eos obsit<note>obstet <hi rend="italic">E</hi></note> qui me ipsi<note>ipsi <hi rend="italic">TEa</hi>: ipsum <hi rend="italic">cett.</hi></note> maxime salvum videre voluerunt, saepiusque, iudices, mihi venit in mentem admirandum esse M. Laterensem, hominem studiosissimum et dignitatis et<note>dignitatis et <hi rend="italic">TE</hi>: dignissimum <hi rend="italic">ag</hi>: diligentissimum <hi rend="italic">cett.</hi></note> salutis meae, reum sibi hunc potissimum delegisse<note>elegisse <hi rend="italic">T<hi rend="superscript">1</hi></hi></note> quam metuendum ne vobis<note>nobis <hi rend="italic">T</hi></note> id ille magna ratione fecisse videatur. </p> </div> 
+
+<div n="3" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi028.perseus-lat2"> <p><reg>quamquam</reg> mihi non sumo tantum neque adrogo, iudices<note>neque adrogo iudices <hi rend="italic">TE</hi>: iudices neque adrogo <hi rend="italic">cett.</hi></note>, ut Cn. Plancium suis erga me meritis impunitatem consecutum<note>consecutum <hi rend="italic">TEa</hi>: consecuturum <hi rend="italic">cett.</hi></note> putem. Nisi eius integerrimam vitam, modestissimos mores, summam fidem, continentiam, pietatem, innocentiam ostendero, nihil de poena recusabo; sin omnia praestitero quae sunt a bonis viris exspectanda<note>expetenda <hi rend="italic"><foreign xml:lang="grc">Σ</foreign>ac</hi></note>, petam, iudices, a vobis ut, cuius misericordia salus mea custodita sit, ei vos vestram misericordiam me deprecante tribuatis. <reg>equidem</reg> ad reliquos labores, quos in hac causa maiores suscipio<note>maioris suspicio <hi rend="italic">TE</hi></note> quam in ceteris, etiam hanc molestiam adsumo, quod mihi non solum pro Cn. Plancio dicendum est, cuius ego salutem non secus ac meam tueri debeo, sed etiam pro me ipso, de quo accusatores plura paene quam de re reoque dixerunt. </p> </div> 
+
+<div n="4" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi028.perseus-lat2"> <p><milestone resp="editor" n="2" unit="chapter"/><reg>quamquam</reg>, iudices, si quid est in me ipso ita reprehensum ut id ab hoc seiunctum<note>seiunctum (seui actum <hi rend="italic">a</hi>) <hi rend="italic">TEab<hi rend="superscript">2</hi></hi>: <hi rend="italic">om. <foreign xml:lang="grc">Σ<hi rend="superscript">1</hi></foreign>gp in lac.</hi>: dictum <hi rend="italic">b<hi rend="superscript">1</hi></hi>: alienum <hi rend="italic">cett.</hi> (<foreign xml:lang="grc"

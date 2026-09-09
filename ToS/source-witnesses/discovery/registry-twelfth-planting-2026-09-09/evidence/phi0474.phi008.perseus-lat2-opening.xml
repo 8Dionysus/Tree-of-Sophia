@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro A. Caecina</title>				
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Zach Himes</persName>
+					<orgName>Tufts University</orgName>
+					<resp>CTS and EpiDoc conversion</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi008.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt> 
+			
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1909</date>
+						</imprint>
+						<biblScope unit="volume">4</biblScope>
+						<biblScope n="contents">Pro P. Quinctio; Pro Q. Roscio comoedo; Pro A. Caecina; De lege agraria contra Rullum; Pro C. Rabirio perduellionis reo; Pro L. Flacco; In L. Pisonem; Pro C. Rabirio Postumo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno04ciceuoft/page/64/mode/2up">Internet Archive</ref>					
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-04-06" who="Lisa Cerrato">Minor changes to tagging; bumped URN</change>
+			<change when="2015-12-17" who="Zach Himes">Cleaned up teiHeader. Converted to TEI P5 and EpiDoc.</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+			<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+			<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+			<change when="2011-07-09" who="gcrane">fixed problems with capitalization</change>
+			<change when="2011-01-15" who="gcrane">base SDL file</change>
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+			<change when="2005-08-01" who="packel">removed stray item tags</change>
+			<change when="2005-07-25" who="packel">Converted to XML</change>
+			<change when="2005-04-08" who="mimno">added default chunks</change>
+			<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+			<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change>
+			<change when="2000-03-13" who="amahoney">don't put header for fragments next to header for speech:  gets into short toc</change>
+			<change when="2000-03-06" who="amahoney">add headers for groups of speeches, so they show up in the toc:  Catilines, Verrines, Philippics, and Agrarian Law</change>
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change>
+			<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change>
+			<change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+			<change when="1999-08-04" who="textgod">Random changes over a period of months.</change>
+			<change when="1997-10-17" who="textgod">Tagged Greek.</change>
+			<change when="1997-08-18" who="textgod">???</change>
+			<change when="1997-05-12" who="cjsu">making sure that the file passed the parcer</change>
+			<change when="1997-05-12" who="cjsu">Added seven works... SGML varified</change>
+			<change when="1997-04-03" who="textgod">Changed ADD tags to CORR.</change>
+			<change when="1997-03-26" who="textgod">Added to repository. Passes TEI parse.</change>
+		</revisionDesc>
+	</teiHeader>
+	<text xml:lang="lat">
+<body xml:base="urn:cts:latinLit:phi0474.phi008.perseus-lat2">
+<div type="edition" xml:lang="lat" subtype="edition"> 
+<head rend="align(center)">PRO A. CAECINA ORATIO</head> 
+
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi008.perseus-lat2" n="1"><p rend="align(indent)"><milestone n="1" unit="chapter"/>  
+<reg>si</reg>, quantum in agro locisque desertis audacia potest, tantum in foro atque in iudiciis impudentia valeret, non minus nunc in causa cederet A. Caecina Sex. Aebuti impudentiae, quam tum in vi facienda cessit audaciae. <reg>verum</reg> et illud considerati hominis esse putavit, qua de re iure disceptari oporteret, armis non contendere, et hoc constantis, quicum vi et armis certare noluisset, eum iure iudicioque superare. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi008.perseus-lat2" n="2"><p><reg>ac</reg> mihi quidem cum audax praecipue fuisse videtur Aebutius in convocandis hominibus et armandis, tum impudens in iudicio, non solum quod in iudicium venire ausus est—nam id quidem tametsi improbe fit in aperta re, tamen malitia est iam usitatum—sed quod non dubitavit id ipsum quod arguitur confiteri; nisi forte hoc rationis habuit, quoniam, si facta vis esset moribus, superior in possessione retinenda non fuisset, quia contra ius moremque facta sit, A. Caecinam cum amicis metu perterritum profugisse; nunc quoque in iudicio si causa more institutoque omnium defendatur, nos inferiores in agendo non futuros; sin a consuetudine recedatur, se, quo impudentius egerit, hoc superiorem discessurum. <reg>quasi</reg> vero aut idem possit in iudicio improbitas quod in vi confidentia, aut nos non eo libentius tum audaciae cesserimus quo nunc impudentiae facilius obsisteremus. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi008.perseus-lat2" n="3"><p><reg>itaque</reg> longe alia ratione, recuperatores, ad agendam causam hac actione venio atque initio veneram. <reg>tum</reg> enim nostrae causae spes erat posita in defensione mea, nunc in confessione adversarii, tum in nostris, nunc vero in illorum testibus; de quibus ego antea laborabam ne, si improbi essent, falsi aliquid dicerent, si probi existimarentur, quod dixissent probarent; nunc sum animo aequissimo. <reg>si</reg> enim sunt viri boni, me adiuvant, cum id iurati dicunt quod ego iniuratus insimulo; sin autem minus idonei, me non laedunt, cum eis sive creditur, <add>creditur</add> hoc ipsum quod nos arguimus, sive fides non habetur, de adversarii testium fide derogatur. </p></div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi008.perseus-lat2" n="4"><p rend="align(indent)"><milestone n="2" unit="chapter"/>  
+<reg>verum</reg> tamen cum illorum actionem causae considero, non video quid impudentius dici possit, cum autem vestram in iudicando dubitationem, vereor ne id quod videntur impudenter fecisse astute et callide fecerint. <reg>nam</reg>, si negassent vim hominibus armatis esse factam, facile honestissimis testibus in re perspicua tenerentur; sin confessi essent et id quod nullo tempore iure fieri potest tum ab se iure factum esse defenderent, sperarunt, id quod adsecuti sunt, se iniecturos vobis causam deliberandi et iudicandi iustam moram ac religionem. <reg>simul</reg> illud quod indignissimum est futurum arbitrati sunt, ut in hac causa non de improbitate Sex. Aebuti, sed de iure civili iudicium fieri videretur. <reg>qua</reg> in re, si mihi esset unius A. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi008.perseus-lat2" n="5"><p>Caecinae causa agenda, profiterer satis idoneum esse me defensorem, propterea quod fidem meam diligentiamque praestarem; quae cum sunt in actore causae, nihil est in re praesertim aperta ac simplici quod excellens ingenium requiratur. <reg>sed</reg> cum de eo mihi iure dicendum sit, quod pertineat ad omnis, quodque constitutum sit a maioribus, conservatum usque ad hoc tempus, quo sublato non solum pars aliqua iuris deminuta, s

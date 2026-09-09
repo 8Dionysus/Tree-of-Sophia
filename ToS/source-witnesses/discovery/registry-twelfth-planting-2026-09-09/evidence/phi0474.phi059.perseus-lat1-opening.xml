@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title>Letters to and from Brutus</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor>Louis Claude Purser</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>William Merrill</name>
+               <name>David Mimno</name>
+               <name>Rashmi Singhal</name>
+               <name>David Smith</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2000-03-17" cert="medium">Perseus 2.5</date>
+         </publicationStmt>
+         <sourceDesc>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="letter" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts letter</p>
+            </cRefPattern>
+            <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." unit="book"/>
+            <refState delim="." unit="letter"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='Book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div/div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin
+	</language>
+            <language ident="grc">Greek
+      </language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-07-21">small mods</change>
+<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName tags</change>
+<change who="gcrane" when="2011-07-17">regularized some capitalization</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="packel" when="2006-05-05">fixed date tags</change>
+<change who="packel" when="2006-02-10">places/dates now actually tagged</change>
+<change who="packel" when="2005-08-01">removed stray item tags</change>
+	<change who="packel" when="2005-07-25">	Converted to XML</change>
+	
+<change who="amahoney" when="2004-05-24">mark dates in headers</change>
+<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+<change who="amahoney" when="2000-03-06">remove headers so books show up in short toc</change>
+<change who="dasmith" when="2000-03-05">Added responsibility and funder info to TEI header.</change>
+<change who="dasmith" when="1999-08-04">Added encodingDesc and revisionDesc.</change>
+
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="lat">
+      <body xml:base="urn:cts:latinLit:phi0474.phi059.perseus-lat1">
+         <div xml:lang="lat"
+              type="edition">
+            <div type="textpart" n="1" subtype="Book">
+               <head >LIBER PRIMVS</head>
+               <div type="textpart" n="1" subtype="letter">
+                  <label rend="opener">
+
+                     <seg rend="dateline" >Scr. eodem die quo ep. 2a. <date when="-0043">711 (43)</date>.</seg>
+
+                     <seg rend="salute" >Cicero Bruto salutem</seg>
+                  </label>
+                  <div type="textpart" n="1" subtype="section">
+                     <p >L. Clodius, tribunus plebis designatus, valde me diligit
+vel, ut <foreign xml:lang="greek">e)mfatikw/teron</foreign> dicam, valde me amat. <reg>quod</reg> cum
+mihi ita persuasum sit, non dubito (bene enim me nosti)
+quin illum quoque iudices a me amari. <reg>nihil</reg> enim mihi
+minus hominis videtur quam non respondere in amore iis
+a quibus provocere. <reg>is</reg> mihi visus est suspicari nec sine
+magno quidem dolore aliquid a suis vel per suos potius
+iniquos ad te esse delatum quo tuus animus a se esset
+alienior. <reg>non</reg> soleo, mi Brute, quod tibi notum esse arbitror, temere adfirmare de altero; est enim periculosum
+propter occultas hominum voluntates multiplicisque
+naturas; sed Clodi animum perspectum habeo, cognitum,
+iudicatum. <reg>multa</reg> eius indicia sed ad scribendum non
+necessaria. <reg>volo</reg> enim testimonium hoc tibi videri potius
+quam epistulam. <reg>auctus</reg> Antoni beneficio est. <reg>eius</reg> ipsius
+benefici magna pars a te est. <reg>itaque</reg> eum salvis nobis
+
+<pb/>
+
+vellet salvum. 
+</p>
+                  </div>
+                  <div type="textpart" n="2" subtype="section">
+                     <p >
+                        <reg>in</reg> eum autem locum rem adductam intellegit (est enim, ut scis, minime stultus) ut utrique salvi esse
+non possint. <reg>itaque</reg> nos mavult; de te vero amicissime et
+loquitur et sentit. <reg>qua</reg> re si quis secus ad te de eo scripsit
+aut si coram locutus est, peto a te etiam atque etiam mihi
+ut potius credas, qui et facilius iudicare possum quam ille
+nescio quis et te plus diligo. Clodium tibi amicissimum
+existima civemque talem qualis et prudentissimus et fortuna
+optima esse debet.
+</p>
+                  </div>
+               </div>
+               <div type="textpart" n="2" subtype="letter">
+                  <label rend="opener">
+
+                     <seg rend="dateline" >Scr. Romae ex. m. Mai. a. 711(43).</seg>
+
+                     <seg rend="salute" >Cicero Bruto salutem</seg>
+                  </label>
+                  <div type="textpart" n="1" subtype="section">
+                     <p >
+                        <reg>scripta</reg> et obsignata iam epistula litterae mihi redditae
+sunt a te plenae rerum novarum, maximeque mirabile
+Dolabellam quinque cohortis misisse in Chersonesum.
+<reg>adeone</reg> copiis abundat ut is qui ex Asia fugere dicebatur
+Europam appetere conetur? <reg>quinque</reg> autem cohortibus
+quidnam se facturum arbitratus est, cum tu †eo† quinque
+legiones, optimum equitatum, maxima auxilia haberes?
+<reg>quas</reg> quidem cohortis spero iam tuas esse, quoniam latro
+ille tam fuit demens. 
+
+</p>
+                  </div>
+                  <div type="textpart" n="2" subtype="section">
+                     <p >
+                        <reg>tuum</reg> consilium vehementer laudo
+quod non prius exercitum Apollonia Dyrrhachioque movisti
+quam de Antoni fuga audisti, Bruti eruptione, populi Romani
+victoria. <reg>itaque</reg> quod scribis post ea statuisse te ducere
+exercitum in Chersonesum nec pati sceleratissimo hosti
+ludibrio esse imperium populi Romani, facis ex tua dignitate
+et ex re publica.
+
+</p>
+                  </div>
+                  <div type="textpart" n="3" subtype="section">
+                     <p >
+                        <reg>quod</reg> scribis de seditione quae facta est
+in legione quarta decima fraude C. Antoni (in bonam partem
+accipies), magis mihi probatur militum seve

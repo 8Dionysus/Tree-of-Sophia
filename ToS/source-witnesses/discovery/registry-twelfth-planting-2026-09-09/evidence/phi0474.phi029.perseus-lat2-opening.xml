@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro M. Scauro</title>
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi029.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1911</date>
+						</imprint>
+						<biblScope unit="volume">6</biblScope>
+						<biblScope n="contents">Pro Tullio; Pro Fonteio; Pro Sulla; Pro Archia; Pro Plancio; Pro Scauro</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://hdl.handle.net/2027/njp.32101073249417?urlappend=%3Bseq=180%3Bownerid=13510798896722459-192">Hathi Trust</ref>
+					<ref target="https://archive.org/details/orationes0006cice/page/n179/mode/2up">Internet Archive</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors; editorial comments and testimonia omitted from this transcription.</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" n="section">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+<change who="Michael Konieczny" when="2021-02-08">Revisions for EpiDoc+CTS compliance</change> 
+<change who="Thibault Clérice" when="2021-01-29">Capitains + Epidoc</change> 
+<change who="Stella Dee" when="2014-08-01">edited markup</change> 
+<change who="Stella Dee" when="2014-07-01">split composite text and converted to unicode</change> 
+<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change> 
+<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change> 
+<change when="2011-01-15" who="gcrane">base SDL file</change> 
+<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change> 
+<change when="2006-08-11" who="gcrane">small mods</change> 
+<change when="2006-04-21" who="gcrane">these now have the app crit entered as notes</change> 
+<change when="2005-08-01" who="packel">removed stray item tags</change> 
+<change when="2005-07-25" who="packel"> Converted to XML</change> 
+<change when="2005-04-08" who="mimno">added default chunks</change> 
+<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change> 
+<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change> 
+<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change> 
+<change when="1999-08-12" who="dasmith">Fixed refsDecl</change> 
+<change when="1999-08-04" who="textgod">Random changes over a period of months.</change> 
+<change when="1997-10-17" who="textgod">Added CVS log.</change>
+		</revisionDesc>
+	</teiHeader>
+	
+	<text xml:lang="lat">
+	<body xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2">
+	
+<div type="edition" xml:lang="lat">
+	<head rend="align(center)">PRO M. SCAVRO ORATIO</head>
+
+<div n="a" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"><p rend="align(indent)"> <reg>maxime</reg> fuit optandum M. Scauro, iudices, ut nullo suscepto cuiusquam odio sine offensione ac molestia retineret, id quod praecipue semper studuit, generis, familiae, nominis dignitatem<note>maxime ... retineret <hi rend="italic">August.</hi>: id quod ... dignitatem <hi rend="italic">Arusian.</hi>: <hi rend="italic">conexuit Beier</hi></note>. </p> </div> 
+
+<div n="c" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>subiit</reg><note>subit <foreign xml:lang="grc">Σ</foreign>: <hi rend="italic">corr. Mai</hi></note> etiam populi iudicium inquirente<note>anquirente <hi rend="italic">Mommsen</hi></note> Cn. Domitio tribuno plebis. </p> </div> 
+
+<div n="d" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>reus</reg> est factus a Q. Servilio Caepione lege Servilia, cum iudicia penes equestrem ordinem essent et P. Rutilio damnato nemo tam innocens videretur ut non timeret<note>timeret <hi rend="italic">P</hi>: timere <hi rend="italic">SM</hi></note> illa. </p> </div> 
+
+<div n="e" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>ab</reg> eodem etiam lege Varia custos ille rei publicae proditionis est in crimen vocatus<note>castos <foreign xml:lang="grc">Σ</foreign>: <hi rend="italic">corr.</hi> <foreign xml:lang="grc">Ϛ</foreign></note>; vexatus a Q. Vario tribuno<note>r#l##ip. <foreign xml:lang="grc">Σ</foreign>: <hi rend="italic">corr. ed. Iunt.</hi></note> plebis est. </p> </div> 
+
+<div n="f" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>non</reg> enim tantum admiratus sum ego illum virum, sicut omnes, sed etiam praecipue dilexi. <reg>primus</reg> enim me flagrantem studio laudis in spem impulit<note>intulit <hi rend="italic">S</hi> virtutem sine <foreign xml:lang="grc">Σ</foreign>: <hi rend="italic">corr. Mommsen</hi></note> posse virtute me sine praesidio fortunae, quo contendissem<note>contendisset <hi rend="italic">Manutius</hi></note>, labore et constantia pervenire. </p> </div> 
+
+<div n="g" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>et</reg> quoniam congesta fuit accusatio magis acervo quodam criminum, non distinctione aliqua generum et varietate. </p> </div> 
+
+<div n="h" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)">Bostarem igitur quendam dixit Norensem fugientem e Sardinia Scauri adventum <gap reason="lost" rend=" . . . "/> prius illum sepultum quam huic cenam esse sublatam. </p> </div> 
+
+<div n="i" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>si</reg> denique in illa bona invadere nullo modo potuisset nisi mortuo Bostare. </p> </div> 
+
+<div n="k" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>si</reg> me hercule, iudices, pro L. Tubulo dicerem, quem unum ex<note>ex <hi rend="italic">Lodoicus</hi>: et <foreign xml:lang="grc">Σ</foreign></note> omni memoria sceleratissimum et audacissimum<note>et audacissimum <hi rend="italic">om. S</hi></note> fuisse accepimus, tamen non timerem, venenum hospiti aut convivae si diceretur cenanti ab illo datum cui neque heres neque iratus fuisset. </p> </div> 
+
+<div n="m" type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi029.perseus-lat2"> <p rend="align(indent)"> <reg>bona</reg> quam<note>.... quam <hi rend="italic">A</hi>: <hi rend="italic">suppl. Beier</hi></note

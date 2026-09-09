@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?><TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Pro T. Annio Milone</title>
+				<author>M. Tullius Cicero</author>
+				<editor>Albert Curtis Clark</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Michael Konieczny</persName>
+					<orgName/>
+					<resp>Digital editor</resp>
+				</respStmt>
+				<funder>National Endowment For The Humanities (NEH)</funder>
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi031.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>Albert Curtis Clark</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon Press</publisher>
+							<date>1918</date>
+							<date type="alternate">1901</date>
+						</imprint>
+						<biblScope unit="volume">6</biblScope>
+						<biblScope n="contents">Pro Milone; Pro Marcello; Pro Ligario; Pro Rege Deiotaro; Philippicae I-XIV</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://babel.hathitrust.org/cgi/pt?id=uc1.31822018932749;view=2up;seq=38">HathiTrust</ref>
+					<ref target="https://archive.org/details/mtvlliciceroniso06cice/page/n23/mode/2up">Internet Archive</ref><!-- different edition -->
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<editorialDecl>
+				<quotation marks="none"/>
+			</editorialDecl>
+			<editorialDecl>
+				<p>Notes may contain errors</p>
+			</editorialDecl>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])" matchPattern="(\w+)">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>	
+<change who="Michael Konieczny" when="2021-01-13">edited for CTS and EpiDoc compliance</change> 
+<change who="Stella Dee" when="2014-08-01">edited markup</change> 
+<change who="balmas01" when="2013-09-13">reverting texts back to pre_cts_reorg tagged version</change> 
+<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName tags</change> 
+<change who="gcrane" when="2011-01-15">base SDL file</change> 
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change> 
+<change who="gcrane" when="2006-04-02"> mainly fixes to the words lower cased at the start of sentences: found that we had always had <name>Cum</name> rather than <reg>cum</reg>. This has been fixed in oct.cic[123] oct.cic[456] are having the app crits added and will need to be updated when those files come back </change> 
+<change who="gcrane" when="2006-03-31">missing charaters from imaging problems have been checked</change> 
+<change who="gaweaver" when="2006-03-29">this includes the notes from the app crit. there is one known problem: the lower right hand corner of one page got clipped and the characters in the app crit need to be added with reference to a clean copy </change> 
+<change who="packel" when="2005-08-01">removed stray item tags</change> 
+<change who="packel" when="2005-07-25"> Converted to XML</change> 
+<change who="mimno" when="2005-04-08">added default chunks</change> 
+<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change> 
+<change who="amahoney" when="2003-05-20">do not mark Heus as a proper name</change> 
+<change who="amahoney" when="2002-12-02">correct spelling of Quirites, improperly 'regularized'</change> 
+<change who="amahoney" when="2000-03-06">add headers for groups of speeches, so they show up in the toc: Catilines, Verrines, Philippics, and Agrarian Law</change> 
+<change who="dasmith" when="2000-03-04">Added separate funder entity to TEI header.</change> 
+<change who="dasmith" when="1999-10-14">Added explanatory subtitles to titleStmt</change> 
+<change who="dasmith" when="1999-08-12">Fixed refsDecl</change> 
+<change who="textgod" when="1999-08-04">Random changes over a period of months.</change> 
+<change who="textgod" when="1997-08-18">???</change> 
+<change who="cjsu" when="1997-05-12">Fixed type attribute.</change> 
+<change who="cjsu" when="1997-05-09">Fixed header info. Added abbreviations.</change> 
+<change who="cjsu" when="1997-05-09">Added to repository. Passes SGML validation.</change>
+		</revisionDesc>
+	</teiHeader>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Cum Populo Gratias Egit</title>				
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Zach Himes</persName>
+					<orgName>Tufts University</orgName>
+					<resp>CTS and EpiDoc conversion</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi018.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt> 
+			
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon</publisher>
+							<date>1909</date>
+						</imprint>
+				<biblScope unit="volume">5</biblScope>
+				<biblScope n="contents">Cum Senatui Gratias Egit; Cum Populo Gratias Egit; De Domo Sua; De Haruspicum Responso; Pro Sestio; In Vatinium; De Provinciis Consularibus; Pro Balbo</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno05ciceuoft/page/17/mode/2up">Internet Archive</ref>
+					<ref target="https://babel.hathitrust.org/cgi/pt?id=njp.32101073249664&amp;amp=&amp;seq=48">HathiTrust</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+		
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+		
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-05-20" who="Lisa Cerrato">Review of EpiDoc and CTS work. Minor edits.</change>
+			<change when="2016-03-17" who="Zach Himes">Changed section milestones to divs.</change>
+			<change when="2015-12-17" who="Zach Himes">Cleaned up teiHeader.</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+			<change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+			<change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+			<change when="2011-07-09" who="gcrane">fixed problems with capitalization</change>
+			<change when="2011-01-15" who="gcrane">base SDL file</change>
+			<change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+			<change when="2006-04-21" who="gcrane">these now have the app crit entered as notes</change>
+			<change when="2005-08-01" who="packel">removed stray item tags</change>
+			<change when="2005-07-25" who="packel">Converted to XML</change>
+			<change when="2005-04-08" who="mimno">added default chunks</change>
+			<change when="2004-12-23" who="mimno">typo: cDe harus... -&gt;  De harus</change>
+			<change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+			<change when="2002-12-02" who="amahoney">correct spelling of Quirites, improperly 'regularized'</change>
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change>
+			<change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change>
+			<change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+			<change when="1999-08-04" who="textgod">Random changes over a period of months.</change>
+			<change when="1997-10-31" who="textgod">Added QUOTE tags to verse.</change>
+			<change when="1997-08-18" who="textgod">???</change>
+			<change when="1997-05-13" who="cjsu">passed SGML validation</change>
+			<change when="1997-03-26" who="DAS">ed.</change>
+		</revisionDesc>
+	</teiHeader>
+	
+	<text xml:lang="lat">
+	<body xml:base="urn:cts:latinLit:phi0474.phi018.perseus-lat2">
+	
+
+<div type="edition" xml:lang="lat" subtype="edition"> 
+<head rend="align(center)">ORATIO CVM POPVLO GRATIAS EGIT</head>
+	
+ <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi018.perseus-lat2" n="1"><p rend="align(indent)"><milestone n="1" unit="chapter"/> <reg>quod</reg> precatus a Iove <reg>optimo</reg> <reg>maximo</reg> ceterisque dis immortalibus sum, Quirites, eo tempore cum me fortunasque meas pro vestra incolumitate otio concordiaque devovi, ut, si meas rationes umquam vestrae saluti anteposuissem, sempiternam poenam sustinerem mea voluntate susceptam, sin et ea quae ante gesseram conservandae civitatis causa gessissem et illam miseram profectionem vestrae salutis gratia suscepissem, ut quod odium scelerati homines et audaces in rem publicam et in omnis bonos conceptum iam diu continerent, id in me uno potius quam in optimo quoque et<note>et in <hi rend="italic">dett.</hi></note> universa civitate defigerent,<note>defigerent <hi rend="italic">Hotoman</hi> (<hi rend="italic">cf. Verr. Act. Pr.</hi> § 7): deficeret <hi rend="italic">codd.</hi> (deferrent.<hi rend="italic">b,</hi> deflecterent <hi rend="italic">k</hi>): desaeviret <hi rend="italic">Gesner</hi>: patefieret <hi rend="italic">Reid</hi>: <hi rend="italic">num</hi> expleretur <hi rend="italic">ant</hi> defervesceret?</note>—hoc si animo in vos liberosque vestros fuissem, ut aliquando vos patresque conscriptos Italiamque universam memoria mei misericordia desideriumque<note>misericordia desideriumque <hi rend="italic">Gt</hi>: misericordiaque desiderium <hi rend="italic">P rell.</hi> (<hi rend="italic">secl.</hi> desiderium <hi rend="italic">Halm</hi>)</note> teneret: eius devotionis me esse convictum iudicio deorum immortalium, testimonio senatus, consensu Italiae, confessione inimicorum, beneficio divino immortalique vestro maxime laetor. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi018.perseus-lat2" n="2"><p><add><reg>namque</reg>,</add> Quirites<note>Namque, Quirites <hi rend="italic">scripsi</hi>: Quirites <hi rend="italic">codd.</hi> (laetor, Quirites. Et si <hi rend="italic">ed. R.</hi> Et si enim <hi rend="italic">Hotom.</hi>): Quare etsi (<hi rend="italic">om.</hi> Quirites) <hi rend="italic">Madv., Muell.</hi></note>, etsi nihil est homini magis optandum quam prospera aequabilis perpetuaque fortuna secundo vitae sine ulla offensione cursu, tamen, si mihi tranquilla et placata<note>pacata <hi rend="italic">dett.</hi></note> omnia fuissent, incredibili quadam et paene divina, qua nunc vestro beneficio fruor, laetitiae voluptate<note><hi rend="italic">Num</hi> laetitia et volup. (<hi rend="italic">pro Sulla</hi> § 91)</note> caruissem. <reg>quid</reg> dulcius hominum generi ab natura datum est quam sui cuique liberi? mihi vero et propter indulgentiam meam et propter excellens eorum ingenium vita sunt mea cariores: tamen non tanta voluptate erant suscepti quanta<note>tantae voluptati ... quantae <hi rend="italic">Schol., Halm</hi></note> nunc sunt restituti. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi018.perseus-lat2" n="3"><p><reg>nihil</reg> cuiquam fuit umquam iucundius quam mihi meus frater: non tam id sentiebam cum fruebar quam tum cum carebam, et postea quam vos me illi et mihi eum reddidistis. <reg>res</reg> familiaris sua quemque delectat: reliquae meae fortunae reciperatae plus mihi nunc voluptatis adferunt quam tum incolumes<note>quam tum incolumes <hi rend="italic">Lg.</hi> 25, <hi rend="italic">Hotom.</hi>: quantum incolumitate <hi rend="italic">P</hi> (<hi rend="italic">corr.</hi> quam tum incolumitatis, <hi rend="italic">et ita B rell.</hi>): quam tum in incolumitate <hi rend="italic">Halm</hi></note> adferebant. <reg>amicitiae</reg>, consuetudines, vicinitates, clientelae, ludi denique et dies festi quid haberent voluptatis carendo magis intellexi quam fruendo. </p></div> 
+
+<div type="textpart" subtype="section" xml:base="urn

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+ <teiHeader xml:lang="eng">
+  <fileDesc>
+   <titleStmt>
+    <title xml:lang="lat">In C. Verrem</title>    
+    <author>M. Tullius Cicero</author>
+    <editor>William Peterson</editor>
+    <sponsor>Perseus Project, Tufts University</sponsor>
+    <principal>Gregory Crane</principal>
+     <respStmt>
+       <resp>Prepared under the supervision of</resp>
+       <name>Bridget Almas</name>
+       <name>Lisa Cerrato</name>
+       <name>William Merrill</name>
+       <name>David Mimno</name>
+       <name>Rashmi Singhal</name>
+       <name>David Smith</name>
+     </respStmt>
+     <respStmt>
+       <persName>Zach Himes</persName>
+       <orgName>Tufts University</orgName>
+       <resp>CTS and EpiDoc conversion</resp>
+     </respStmt>
+    <funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+
+   </titleStmt>
+    <publicationStmt>
+      <publisher>Trustees of Tufts University</publisher>
+      <pubPlace>Medford, MA</pubPlace>
+      <authority>Perseus Project</authority>
+      <date type="release" when="1997-10-28">Perseus 2.5</date>
+      <idno type="filename">phi0474.phi005.perseus-lat2.xml</idno>
+      <availability>
+        <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+    </publicationStmt>
+
+   <sourceDesc>
+    <biblStruct>
+      <monogr>
+        <author>M. Tullius Cicero</author>
+        <title xml:lang="lat">Orationes</title>
+        <editor>William Peterson</editor>
+        <imprint>
+          <pubPlace>Oxford</pubPlace>
+          <publisher>Clarendon</publisher>
+          <date>1917</date>
+        </imprint>
+        <biblScope unit="volume">3</biblScope>
+        <biblScope n="contents">Divinatio in Q. Caecilium; In C. Verrem</biblScope>
+      </monogr>
+      <series>
+        <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+        <title type="alternative">Oxford Classical Texts</title>
+      </series>
+      <ref target="https://archive.org/details/orationesrecogno02ciceuoft/page/n53/mode/2up">Open Content Alliance</ref>      
+    </biblStruct>
+   </sourceDesc>
+  </fileDesc>
+
+  <encodingDesc>
+    <refsDecl n="CTS">
+    <cRefPattern n="section" matchPattern="(\w+).(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+        <p>This pointer pattern extracts actio and book and section.</p>
+      </cRefPattern>
+      <cRefPattern n="book" matchPattern="(\w+).(\w+)"
+        replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+        <p>This pointer pattern extracts actio and book.</p>
+      </cRefPattern>
+      <cRefPattern n="actio" matchPattern="(\w+)"
+        replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+        <p>This pointer pattern extracts actio.</p>
+      </cRefPattern>
+    </refsDecl>
+    <refsDecl>
+      <refState unit="actio" delim="."/>
+      <refState unit="book" delim="."/>
+      <refState unit="section"/>
+    </refsDecl>
+    <refsDecl xml:id="CTS">
+      <citeStructure match="/TEI/text/body" use="@xml:base">
+        <citeStructure unit="actio" delim=":" match="div/div[@subtype='actio']" use="@n">
+          <citeStructure unit="book" delim="." match="div[@subtype='book']" use="@n">
+            <citeStructure unit="section" delim="." match="div[@subtype='section']" use="@n" n="chunk"/>
+          </citeStructure>
+        </citeStructure>
+      </citeStructure>
+    </refsDecl>
+</encodingDesc>
+
+  <profileDesc>
+   <langUsage>
+    <language ident="lat">Latin</language>
+    <language ident="grc">Greek</language>
+   </langUsage>
+  </profileDesc>
+
+  <revisionDesc>
+    <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+    <change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+    <change when="2016-02-08" who="Lisa Cerrato">CTS structure and minor formatting changes</change>
+    <change when="2016-02-03" who="Lisa Cerrato">integrating log revisions and other markup;
+      suggest canonical scheme of action/book/section; make chapters milestones; following PHI and
+      OLD</change>
+    <change when="2015-12-13" who="Zach Himes">Cleaned up teiHeader. Converted to TEI P5 and
+      EpiDoc.</change>
+    <change when="2014-07-01" who="Stella Dee">split composite text and converted to unicode</change>
+    <change when="2014-08-01" who="Stella Dee">edited markup</change>
+    <change when="2013-09-13" who="balmas01">reverting texts back to pre_cts_reorg tagged version</change>
+      <change when="2011-07-19" who="gcrane">removed the earlier persName/placeName tags</change>
+      <change when="2011-07-09" who="gcrane">fixed problems with capitalization</change>
+      <change when="2011-01-15" who="gcrane">base SDL file</change>
+      <change when="2010-03-09" who="rsingh04">commented out chapter milestone in actio 2 because it's breaking up the (correct) chunks by section and lines are not being displayed online</change>
+      <change when="2009-10-09" who="rsingh04">more reorganizing of texts module by collection</change>
+      <change when="2009-09-25" who="rsingh04">added missing milestone and line of text</change>
+      <change when="2009-09-22" who="rsingh04">fixed chunking for cic. ver. to text:actio:book:section in order for bibls to work</change>
+      <change when="2006-04-02" who="gcrane">mainly fixes to the words lower cased at the start of sentences: found that we had always had Cum rather than cum.  This has been fixed in oct.cic[123]  oct.cic[456] are having the app crits added and will need to be updated when those files come back</change>
+      <change when="2006-03-31" who="gcrane">this now parses with a cut at the app crit</change>
+      <change when="2005-08-01" who="packel">removed stray item tags</change>
+      <change when="2005-07-25" who="packel">Converted to XML</change>
+      <change when="2005-04-08" who="mimno">added default chunks</change>
+      <change when="2003-07-01" who="yorkc">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+      <change when="2000-09-11" who="gcrane">fixed Satyrus as a personal name.</change>
+      <change when="2000-03-06" who="amahoney">oops, put head for verrines in wrong place</change>
+      <change when="2000-03-06" who="amahoney">add headers for groups of speeches, so they show up in the toc:  Catilines, Verrines, Philippics, and Agrarian Law</change>
+      <change when="2000-03-04" who="dasmith">Added separate funder entity to TEI header.</change>
+      <change when="1999-10-14" who="dasmith">Added explanatory subtitles to titleStmt</change>
+      <change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+      <change when="1999-08-04" who="textgod">Random changes over a period of months.</change>
+      <change when="1997-08-18" who="textgod">???</change>
+      <change when="1997-03-26" who="textgod">Removed N attribute on TEI.2</change>
+      <change when="1997-03-26" who="textgod">Added to repository. Passes TEI parse.</change>
+    <change when="1997-03-25" who="DAS">ed.</change>
+     </revisionDesc>
+ </teiHeader>
+  
+ <text xml:lang="lat">
+  <body xml:base="urn:cts:latinLit:phi0474.phi005.perseus-lat2">
+    <div type="edition" xml:lang="lat">
+   <head rend="align(center)">Orationes in C. Verrem</head>
+      <div type="textpart" subtype="actio" xml:base="urn:cts:latinLit:phi0474.phi005.perseus-lat2" n="1">
+        <div type="textpart" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi005.perseus-lat2:1" n="1">
+          <head rend="align(center)">M. TVLLI CICERONIS</head>
+          <head rend="align(center)">IN C. VERREM ACTIO PRIMA</head>
+          
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi005.perseus-lat2:1.1" n="1">
+<p rend="align(indent)"><milestone n="1" unit="chapter"/><reg>quod</reg> erat optandum maxime, iudices, et quod unum ad invidiam vestri ordinis infamiamque iudiciorum sedandam maxime pertinebat, id non humano consilio sed prope divinitus datum atque oblatum vobis<note>nobis <hi rend="italic">G1</hi></note> summo rei publicae tempore videtur. <reg>inveteravit</reg> enim iam opinio perniciosa rei publicae vobisque periculosa, quae non modo apud nos sed apud exteras nationes<note>non modo apud nos sed apud exteras nationes <hi rend="italic">Harl.</hi> 5428 (A. D. 1470): non modo Romae sed et (etiam <hi rend="italic">Halm</hi>) apud ext. nat. <hi rend="italic">Naugerius, vulg.</hi> (<hi rend="italic">cf.</hi> iv §58) : non modo apud populum Romanum sed etiam ext. nat. <hi rend="italic">edit. Iunt. secuti Baiter, Kayser, Mueller. Habent</hi> non modo apud ext. nat., <hi rend="italic">mediis omissis, Dp et codd. praeter r et Burn.</hi> 158, <hi rend="italic">in quibus est</hi> (<hi rend="italic">itemque in ed. Ven.</hi> 1483) non modo apud ext. nat. sed omnium sermone <hi rend="italic">fort. recte</hi>; <hi rend="italic">Cl. Rev.</hi> xvii. 199</note> omnium sermone percrebruit, his iudiciis quae nunc sunt pecuniosum hominem, quamvis sit nocens, neminem posse damnari.</p></div>  
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi005.perseus-lat2:1.1" n="2"><p><reg>nunc</reg> in ipso discrimine ordinis iudiciorumque vestrorum, cum sint parati qui contionibus et legibus hanc invidiam senatus inflammare conentur, reus in iudicium adductus est C. Verres, homo vita atque factis omnium iam opinione damnatus, pecuniae magnitudine sua spe et praedicatione absolutus. <reg>huic</reg> ego causae, iudices, cum summa voluntate et exspectatione populi Romani actor accessi, non ut augerem invidiam ordinis, sed ut infamiae communi succurrerem. <reg>adduxi</reg> enim hominem in quo reconciliare existimationem iudiciorum amissam, redire in gratiam cum populo Romano, satis facere exteris nationibus possetis, depeculatorem aerari, vexatorem Asiae atque Pamphyliae, praedonem iuris urbani<note>iuris urbani <hi rend="italic"><foreign xml:lang="grc">π</foreign>b, Asc.</hi>: iuris <hi rend="italic">D<foreign xml:lang="grc">ψ</foreign></hi>: urbis <hi rend="italic">W. Paul</hi> (<hi rend="italic">cf. De Domo,</hi> §140) <hi rend="italic">An</hi> huius urbis? <hi rend="italic">Cl. Rev.</hi> xvii. 200</note>, labem atque perniciem provinciae Siciliae.</p></div>  
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi005.perseus-lat2:1.1" n="3"><p><reg>de</reg> quo si vos severe ac religiose iudicaveritis, auctoritas ea quae<note>atque <hi rend="italic">G2K<foreign xml:lang="grc">δ</foreign></hi></note> in vobis remanere debet haerebit; sin istius ingentes divitiae iudiciorum religionem veritatemque perfregerint, ego hoc tamen adsequar, ut iudicium potius rei publicae quam aut reus iudicibus aut accusator reo defuisse videatur.</p>
+
+
+<p rend="align(indent)"><milestone n="2" unit="chapter"/><reg>equidem</reg> ut de me confitear, iudices, cum multae mihi a C. Verre insidiae terra marique factae sint, quas partim mea diligentia devitarim, partim amicorum studio officioque reppulerim, numquam tamen neque tantum periculum mihi adire visus sum neque tanto opere pertimui ut nunc in ipso iudicio.</p> </div>
+
+<div type="textpart" subtype="section" xml:base="urn:cts

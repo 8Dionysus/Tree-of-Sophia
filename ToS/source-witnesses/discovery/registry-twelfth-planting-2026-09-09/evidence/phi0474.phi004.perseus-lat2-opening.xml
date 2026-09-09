@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+	<teiHeader xml:lang="eng">
+		<fileDesc>
+			<titleStmt>
+				<title xml:lang="lat">Divinatio in Q. Caecilium</title>				
+				<author>M. Tullius Cicero</author>
+				<editor>William Peterson</editor>
+				<sponsor>Perseus Project, Tufts University</sponsor>
+				<principal>Gregory Crane</principal>
+				<respStmt>
+					<resp>Prepared under the supervision of</resp>
+					<name>Bridget Almas</name>
+					<name>Lisa Cerrato</name>
+					<name>William Merrill</name>
+					<name>David Mimno</name>
+					<name>Rashmi Singhal</name>
+					<name>David Smith</name>
+				</respStmt>
+				<respStmt>
+					<persName>Zach Himes</persName>
+					<orgName>Tufts University</orgName>
+					<resp>CTS and EpiDoc conversion</resp>
+				</respStmt>
+				<funder n="org:NEH">National Endowment For The Humanities (NEH)</funder>
+
+			</titleStmt>
+			<publicationStmt>
+				<publisher>Trustees of Tufts University</publisher>
+				<pubPlace>Medford, MA</pubPlace>
+				<authority>Perseus Project</authority>
+				<date type="release" when="1997-10-28">Perseus 2.5</date>
+				<idno type="filename">phi0474.phi004.perseus-lat2.xml</idno>
+				<availability>
+				<licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+			</publicationStmt>
+
+			<sourceDesc>
+				<biblStruct>
+					<monogr>
+						<author>M. Tullius Cicero</author>
+						<title xml:lang="lat">Orationes</title>
+						<editor>William Peterson</editor>
+						<imprint>
+							<pubPlace>Oxford</pubPlace>
+							<publisher>Clarendon</publisher>
+							<date>1917</date>
+						</imprint>
+						<biblScope unit="volume">3</biblScope>
+						<biblScope n="contents">Divinatio in Q. Caecilium; In C. Verrem</biblScope>
+					</monogr>
+					<series>
+						<title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+						<title type="alternative">Oxford Classical Texts</title>
+					</series>
+					<ref target="https://archive.org/details/orationesrecogno02ciceuoft/page/n29/mode/2up">Open Content Alliance</ref>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+
+		<encodingDesc>
+			<refsDecl n="CTS">
+				<cRefPattern n="section" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+					<p>This pointer pattern extracts section.</p>
+				</cRefPattern>
+			</refsDecl>
+			<refsDecl>
+				<refState unit="section"/>
+			</refsDecl>
+
+				<refsDecl xml:id="CTS">
+				  <citeStructure match="/TEI/text/body" use="@xml:base">
+				    <citeStructure unit="section" delim=":" match="div/div[@subtype='section']" use="@n"/>
+				  </citeStructure>
+				</refsDecl>
+</encodingDesc>
+
+		<profileDesc>
+			<langUsage>
+				<language ident="lat">Latin</language>
+				<language ident="grc">Greek</language>
+			</langUsage>
+		</profileDesc>
+
+		<revisionDesc>
+		  <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+			<change when="2026-06" who="Lisa Cerrato">Updates to header and encoding to reflect best practices.</change>
+			<change when="2016-02-05" who="Lisa Cerrato">CTS structure</change>
+			<change when="2016-02-02" who="Lisa Cerrato">reorganized change log; added three letter
+				langs; revised refsDecl to make section canonical as chapter does not always contain
+				sections (see chapter 6) creating conflicting hierarchies</change>
+			<change when="2015-12-17" who="Zach Himes">Cleaned up teiHeader. Converted to TEI P5 and
+				EpiDoc.</change>
+			<change when="2014-08-01" who="Stella Dee">edited markup</change>
+			<change when="2014-07-01" who="Stella Dee">split composite text and converted to
+				unicode</change>
+			<change who="balmas01" when="2013-09-13">reverting texts back to pre_cts_reorg tagged
+				version</change>
+			<change who="gcrane" when="2011-07-19">removed the earlier persName/placeName
+				tags</change>
+			<change who="gcrane" when="2011-07-09">fixed problems with capitalization</change>
+			<change who="gcrane" when="2011-01-15">base SDL file</change>
+			<change who="rsingh04" when="2010-03-09">commented out chapter milestone in actio 2
+				because it's breaking up the (correct) chunks by section and lines are not being
+				displayed online</change>
+			<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by
+				collection</change>
+			<change who="rsingh04" when="2009-09-25">added missing milestone and line of
+				text</change>
+			<change who="rsingh04" when="2009-09-22">fixed chunking for cic. ver. to
+				text:actio:book:section in order for bibls to work</change>
+			<change who="gcrane" when="2006-04-02">mainly fixes to the words lower cased at the
+				start of sentences: found that we had always hadfound that we had always had Cum
+				rather than cum.   This has been fixed in oct.cic[123]  oct.cic[456] are having the
+				app crits added and will need to be updated when  those files come back</change>
+			<change when="2006-03-31" who="gcrane">this now parses with a cut at the app
+				crit</change>
+			<change when="2005-08-01" who="packel">removed stray item tags</change>
+			<change when="2005-07-25" who="packel">Converted to XML</change>
+			<change when="2005-04-08" who="mimno"> added default chunks  </change>
+			<change when="2003-07-01" who="yorkc"> Updated texts to TEI P4 and Perseus P4
+				extensions; minor cleanup (esp. character encodings and typos.)  </change>
+			<change when="2000-09-11" who="gcrane"> fixed Satyrus as a personal name.</change>
+			<change when="2000-03-06" who="amahoney"> oops, put head for verrines in wrong
+				place  </change>
+			<change when="2000-03-06" who="amahoney"> add headers for groups of speeches, so they
+				show up in the toc: Catilines, Verrines, Philippics, and Agrarian Law  </change>
+			<change when="2000-03-04" who="dasmith">Added separate funder entity to TEI
+				header.  </change>
+			<change when="1999-10-14" who="dasmith">Added explanatory subtitles to
+				titleStmt</change>
+			<change when="1999-08-12" who="dasmith">Fixed refsDecl</change>
+			<change when="1999-08-04" who="textgod">Random changes over a period of
+				months.  </change>
+			<change when="1997-08-18" who="textgod"> ???</change>
+			<change when="1997-03-26" who="textgod"> Removed N attribute on TEI.2  </change>
+			<change when="1997-03-26" who="textgod"/>
+			<change when="1997-03-25" who="DAS">ed.</change>
+		</revisionDesc>
+	</teiHeader>
+
+<text xml:lang="lat">
+<body xml:base="urn:cts:latinLit:phi0474.phi004.perseus-lat2"> 
+<div type="edition" xml:lang="lat"> 
+<head rend="align(center)">M. Tulli Ciceroni in Q. Caecilium Oratio</head> <head rend="align(center)">Quae Divinatio Dicitur</head> 
+
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi004.perseus-lat2.xml" n="1">
+<p rend="align(indent)"><milestone n="1" unit="chapter"/> <reg>si</reg> quis vestrum, iudices, aut eorum qui adsunt, forte miratur<note>mirantur <hi rend="italic">plerique codd.</hi>: <hi rend="italic">num</hi> mirabitur? (<hi rend="italic">Cl. Rev.</hi> xviii. 440) qui per tot (<hi rend="italic">Quint.</hi> iv. 1. 49) <hi rend="italic">G2L</hi></note> me, qui tot annos in causis iudiciisque publicis ita sim<note>sim ita <foreign xml:lang="grc">π</foreign></note> versatus ut defenderim<note>defenderem <hi rend="italic">codd.</hi></note> multos, laeserim neminem, subito nunc mutata voluntate ad accusandum descendere, is, si mei consili causam rationemque cognoverit, una et id quod facio probabit, et in hac causa profecto neminem praeponendum mihi esse actorem putabit.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi004.perseus-lat2.xml" n="2"> <p rend="align(indent)"> Cum quaestor in Sicilia fuissem, iudices, itaque ex ea provincia decessissem<note>decessissem <hi rend="italic"><foreign xml:lang="grc">π</foreign>b</hi> (i, §52): discessissem <hi rend="italic">D<foreign xml:lang="grc">Υ</foreign></hi></note> ut Siculis omnibus iucundam diuturnamque memoriam quaesturae nominisque mei relinquerem, factum est uti cum summum in veteribus patronis multis, tum non nullum etiam in me praesidium suis fortunis constitutum esse arbitrarentur. <reg>quare</reg><note>Quare <hi rend="italic">DG2KZ</hi>: qui <foreign xml:lang="grc">π</foreign> <hi rend="italic">et plerique codd.</hi></note> nunc populati atque vexati cuncti ad me publice<note>publice saepe <hi rend="italic">codd.</hi>: saepe <hi rend="italic">om. r, del. Bake</hi>: supplices saepe <hi rend="italic">J. Paulson</hi></note> saepe venerunt, ut suarum fortunarum<note>fortunarum suarum (<hi rend="italic">sed cum signis transp.</hi>) <hi rend="italic">D, item G2LK</hi> (§31 <hi rend="italic">infra</hi>)</note> omnium causam defensionemque susciperem. <reg>me</reg> saepe esse<note>esse <hi rend="italic">om. p</hi></note> pollicitum, saepe ostendisse dicebant, si quod tempus accidisset, quo tempore aliquid a me requirerent, commodis eorum me non defuturum. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi004.perseus-lat2.xml" n="3"> <p> <reg>venisse</reg> tempus aiebant non iam ut commoda sua<note>sua <hi rend="italic">et</hi> ut <hi rend="italic">om. p</hi></note>, sed ut vitam salutemque totius provinciae defenderem; sese iam ne deos quidem in suis urbibus ad quos confugerent habere, quod eorum<note><hi rend="italic">num</hi> quod deorum? (iv, §151)</note> simulacra sanctissima C. Verres ex delubris religiosissimis sustulisset; quas res luxuries in flagitiis, crudelitas in suppliciis, avaritia in rapinis, superbia in contumeliis efficere potuisset, eas omnis sese hoc uno praetore per triennium pertulisse; rogare et orare ne illos supplices aspernarer quos me incolumi nemini supplices esse oporteret.</p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi004.perseus-lat2.xml" n="4">
+<p rend="align(indent)"><milestone n="2" unit="chapter"/><reg>tuli</reg> graviter et acerbe, iudices, in eum me locum adduci ut aut eos homines spes falleret qui opem a me atque auxilium petissent, aut ego, qui me ad defendendos homines ab ineunte adulescentia dedissem, tempore atque officio coactus ad accusandum traducerer. <reg>dicebam</reg> habere eos<note>habere eos <hi rend="italic">pr<foreign xml:lang="grc">δ</foreign> Quint.</hi> ix. 2. 59: eos habere <hi rend="italic">D<foreign xml:lang="grc">Υ</foreign></hi></note> actorem Q. Caecilium, qui praesertim quaestor in eadem<note>eadem <hi rend="italic">prG1</hi>: su

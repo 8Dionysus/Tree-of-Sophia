@@ -1,0 +1,149 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title>Letters to Atticus</title>
+            
+            <author>M. Tullius Cicero</author>
+           <editor>Louis Claude Purser</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+           <respStmt>
+             <resp>Prepared under the supervision of</resp>
+             <name>Bridget Almas</name>
+             <name>Lisa Cerrato</name>
+             <name>William Merrill</name>
+             <name>David Mimno</name>
+             <name>Rashmi Singhal</name>
+             <name>David Smith</name>
+           </respStmt>
+           <respStmt>
+             <persName>Allison Dempsey</persName>
+             <orgName>Tufts University</orgName>
+             <resp>Digital editing</resp>
+           </respStmt>
+           <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+        <publicationStmt>
+          <publisher>Trustees of Tufts University</publisher>
+          <pubPlace>Medford, MA</pubPlace>
+          <authority>Perseus Project</authority>
+          <date type="release" when="2000-03-17" cert="medium">Perseus 2.5</date>
+        </publicationStmt>
+         <sourceDesc>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+        <refsDecl n="CTS">
+          <cRefPattern n="section"
+            matchPattern="(\w+).(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2']/tei:div[@n='$3'])">
+            <p>This pointer pattern extracts section</p>
+          </cRefPattern>
+          <cRefPattern n="letter"
+            matchPattern="(\w+).(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+            <p>This pointer pattern extracts letter</p>
+          </cRefPattern>
+          <cRefPattern n="book"
+            matchPattern="(\w+)"
+            replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+            <p>This pointer pattern extracts book</p>
+          </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState delim="." unit="book"/>
+            <refState delim="." unit="letter"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="section" delim="." match="div/div[@subtype='section']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin </language>
+            <language ident="grc">Greek </language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change> 
+         <change who="gcrane" when="2011-07-09">        header problem fixed</change>
+        
+         <change who="gcrane" when="2011-07-09">         cleaned up tagging problems in the header</change>
+        
+         <change who="gcrane" when="2011-01-15">         base SDL file</change>
+        
+         <change who="student" when="2010-05-28">        putting in page numbers - AD</change>
+        
+        <change who="rsingh04" when="2010-01-27">cleaned up some
+          bad tagging, and added two more servius texts that were never in the hopper for some
+          reason </change>
+        <change who="rsingh04" when="2009-10-09">more reorganizing of texts module by
+          collection </change>
+        <change who="gcrane" when="2006-05-15">small fixes </change>
+        <change who="gcrane" when="2006-05-12">small mods </change>
+        <change who="gcrane" when="2006-05-11">fixes on the sections 
+          (a bunch were missed) up through book 15 </change>
+        <change who="gcrane" when="2006-05-11">small 
+          fixesCVS:  </change>
+        <change who="gcrane" when="2006-05-10">small fixes </change>
+        <change who="gcrane" when="2006-05-06">small 
+          mods </change>
+        <change who="gcrane" when="2006-05-04">a quick cross check of the two files against
+          each other </change>
+        <change who="gcrane" when="2006-05-02">cross checked through book 12 </change>
+        <change who="gcrane" when="2006-05-01">cross checked up through book 10 </change>
+        <change who="gcrane" when="2006-05-01">cross checked (one quick pass) up through book 8 </change>
+        <change who="gcrane" when="2006-04-30">fixes based on check against DRSB through book 7 </change>
+        <change who="gcrane" when="2006-04-30">first pass comparison with DRSB complete through book 4  NB: places 
+          where Purser and DRSB follow radically different orders for chunks of text * There were a
+          handful of ugly errors caught: properans to properaris, darius to clarius, etc. </change>
+        <change who="gcrane" when="2006-04-30">more small edits </change>
+        <change who="gcrane" when="2006-04-30">fixed more capitalization </change>
+        <change who="gcrane" when="2006-04-30">refined capitalization found a bunch of missing periods because of inexplicable capitalizations </change>
+        <change who="gcrane" when="2006-04-29">small corrections on capitalization and regularizing quotations
+          as QUOTE tags </change>
+        <change who="gcrane" when="2006-04-26">more work on converting "'" into 
+          QUOTE tags </change>
+        <change who="gcrane" when="2006-04-24">a script was run to convert "'" to 
+          QUOTE tags. this parses and seems to produce good results but we need to be on the lookout
+          for glitches in this. </change>
+        <change who="gcrane" when="2006-04-24">did more work on quotes</change>
+        <change who="gcrane" when="2006-04-24">1) added a new set of milestone tags with UNIT 
+          "vulgate-letter" to provide a common reference scheme across different versions which
+          slice up the letters differently in the later books 2) cleaned up the quotations, esp.
+          with Greek </change>
+        <change who="gcrane" when="2006-04-19">trying to fix a permissions screw up</change>
+        <change who="gcrane" when="2006-04-19">more small fixes </change>
+        <change who="gcrane" when="2006-04-16">small fixes </change>
+        <change who="gcrane" when="2006-04-16">1) double checked the 
+          non-standard numbers against DRSB's edition. (non-standard numbers — e.g., reverse C
+          (&amp;c;) and numbers with overhead line (C_C_). 2) added a couple of notes (ZZZ) to
+          recheck </change>
+        <change who="packel" when="2005-08-01">removed stray item tags </change>
+        <change who="packel" when="2005-07-25">Converted to XML </change>
+        <change who="amahoney" when="2004-05-24">mark dates in headers </change>
+        <change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and
+          Perseus P4 extensions; minor cleanup (esp. character encodings and typos.) </change>
+        <change who="amahoney" when="2002-05-23">fix some apostrophes (ocr errors) and mark some abbreviations</change>
+        <change who="gcrane" when="2000-09-11">added diareses </change>
+        <change who="gcrane" when="2000-09-11">Marked Satyrus as a personal name. </change>
+        <change who="gcrane" when="2000-06-06">typo fixed</change>
+        <change who="amahoney" when="2000-03-06">remove headers so books show up in short toc</change>
+        <change who="dasmith" when="2000-03-05">Added responsibility and funder info to TEI header. </change>
+        <change who="dasmith" when="1999-08-04">Added encodingDesc and RevisionDesc.</change>
+        
+        
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
