@@ -348,19 +348,26 @@ def transfer(root: Path, target: dict, entry: dict, log: Path) -> tuple[bytes, d
 def tei_division_addresses(edition: ET.Element, milestone_unit: str | None = None,
                            repeated_milestones: list[dict] | None = None,
                            repeated_divisions: list[dict] | None = None) -> list[str]:
-    """Keep strict division IDs, or explicitly inventory physical occurrences."""
+    """Keep supplied division paths; null marks an unnumbered typed container."""
     addresses: list[str] = []
-    occurrences: dict[tuple[tuple[str, str], ...], int] = {}
-    divisions: dict[tuple[tuple[str, str], ...], int] = {}
-    seen: set[tuple[tuple[str, str], ...]] = set()
-    def visit(node: ET.Element, parents: tuple[tuple[str, str], ...]) -> None:
+    occurrences: dict[tuple[tuple[str, str | None], ...], int] = {}
+    divisions: dict[tuple[tuple[str, str | None], ...], int] = {}
+    seen: set[tuple[tuple[str, str | None], ...]] = set()
+    def visit(node: ET.Element, parents: tuple[tuple[str, str | None], ...]) -> None:
         for child in node:
             address = parents
             if child.tag == "{http://www.tei-c.org/ns/1.0}div":
                 label = child.get("subtype") or child.get("type")
                 number = child.get("n")
-                if not label or not number:
+                if not label or not label.strip() or (number is not None and not number.strip()):
                     raise ValueError("Perseus text division lacks a supplied type or number")
+                if number is None and not any(
+                    descendant is not child and descendant.get("n")
+                    for descendant in child.iter("{http://www.tei-c.org/ns/1.0}div")
+                ):
+                    raise ValueError("Perseus unnumbered division is not a numbered-text container")
+                # Do not invent a supplier number or flatten a fragments/speech
+                # envelope. The explicit null remains part of the unique path.
                 address += ((label, number),)
                 if repeated_divisions is None:
                     if address in seen:
@@ -448,6 +455,15 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
                 "division_addresses_sha256": sha256(("\n".join(addresses)+"\n").encode()),
                 "address_scope": ("occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted" if milestones else "source-supplied division type/number chain; no CTS service resolution asserted"),
                 count_field: count})
+            unnumbered = []
+            for address in addresses:
+                path = json.loads(address)
+                for index, (_, number) in enumerate(path):
+                    if number is None and path[:index + 1] not in unnumbered:
+                        unnumbered.append(path[:index + 1])
+            if unnumbered:
+                report["files"][-1]["unnumbered_containers"] = unnumbered
+                report["files"][-1]["address_scope"] += "; null numbers mark supplied typed containers without n; not supplied numeric citations"
             if milestones:
                 report["files"][-1]["repeated_section_markers"] = repetitions
                 report["files"][-1]["repeated_division_labels"] = division_repetitions

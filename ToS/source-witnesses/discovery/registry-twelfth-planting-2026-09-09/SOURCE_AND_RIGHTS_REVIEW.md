@@ -69,3 +69,9 @@ The following is reported supplier metadata, not independent historical bibliogr
 ## Boundary review
 
 Source traceability, exact identity, immutable bytes, language separation, explicit uncertainty and layer-specific rights: reviewed. Source text, interpretation, canon, public delivery and human legal acceptance remain unadmitted. Prepared readiness, custody and branch completion are separately recorded. No generated check can strengthen these judgments.
+
+## Full-file structural review addendum
+
+The first acquisition attempt retained phi027 (In L. Calpurnium Pisonem) with exact Git blob and transfer receipt, then stopped before installing its owner records: its fragments and speech containers have supplied type labels but no n attribute. The source acquisition observer now preserves these typed ancestors with explicit null numbers in its locally observed paths. Every unnumbered container must contain numbered divisions; duplicate qualified paths, empty numbers and unnumbered leaves remain rejected. Null is absence, never an invented source citation. This changes observation mechanics, not the prepared file list, source identities, source bytes or rights. The original preparation commit retains the pre-acquisition review.
+
+This container support protects the continuing source-inventory boundary: flattening would discard the supplied fragments/speech hierarchy and could conflate independently numbered descendants in other sources, while inventing numbers would falsify source metadata. A focused behavior test retains both paths and checks failure for ambiguity and unnumbered leaves. Remote CTS address resolution and textual completeness remain unproved.

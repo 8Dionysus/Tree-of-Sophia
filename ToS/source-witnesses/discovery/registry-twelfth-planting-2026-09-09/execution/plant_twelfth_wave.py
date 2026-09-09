@@ -13,6 +13,9 @@ for target in manifest['targets']:
  checked=verify_target(root,target)
  version_description=target['version_description']
  extra_limits=[]
+ observed=json.loads((root/target['paths']['item_root']/'forensic-observations.json').read_text())
+ if any(row.get('unnumbered_containers') for row in observed['files']):
+  extra_limits.append('Supplied fragments and speech containers have no numbers. Local inventory retains explicit null ancestors; this does not supply numeric CTS citations, repair gaps or establish ancient completeness.')
  plan=plans[target['branch_target_slug']]; anchor=plan['anchor_preparation']; a=anchor['source_backlog_anchor']
  current=prepare_anchor(root,atlas_row_id=anchor['atlas_row_id'],source_table_index=a['source_table_index'],source_row_index=a['source_row_index'],source_label=a['source_label'])
  if current['backlog_row_sha256']!=anchor['backlog_row_sha256']: raise ValueError('backlog changed')

@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "ea4f8bcde9ea900ff08ea62c960035362d13a942d1cffae034181b62b99fd50a",
+  "queue_sha256": "f38b0c16ac64406cadc727995d38edab6a3fa6dd5fcf485a3de59c416c06adb5",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
-      "catalog_works": 249,
-      "discovery_runs": 485,
+      "catalog_works": 280,
+      "discovery_runs": 516,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "c86f0e32098731e6812631c3e9702eab1aa572d78dca9bc0a750b7f7f16969f5",
+    "input_sha256": "22a3b26a10520939cbf8dff8c915b885fe9fa1413f400213a469d1da52824f94",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "50958a7a7b44a5154d19086e6f66bfb277c8c131337a5e3f3a4c2c88754906ee"
+        "sha256": "76dcad96044a233326d4b74111c3e9c606667f35e9083e84792d7a7906a14fd8"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "e1088a771388556d31ad8d3cd564a93d1fa67116a2afb35bc70c4c02c2b49501"
+        "sha256": "2f92b5315bbca98615262e37314a8a37e820b430ba4ccd6769cc7cef5f444024"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1386,6 +1386,130 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-charmides.2026-09-08.v1.json",
         "sha256": "9463bf9b3b3ac73b81a732b97e30285654cbbb8a6102f77b3e710589ff41d4f7"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-against-vatinius-latin.2026-09-09.v1.json",
+        "sha256": "bc1dbcfb72286581f39e9edbf8d85a883a331c6795dca52070c1c473600da28f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-cum-populo-gratias-egit-latin.2026-09-09.v1.json",
+        "sha256": "e29bfeb478ac2dac81d5d1c9d0c6383241903fa708ad302acddcad8ee2813f76"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-cum-senatui-gratias-egit-latin.2026-09-09.v1.json",
+        "sha256": "2923e73ba7a31d777a9765e71aa8fd662ac7318ac66ed0edbc21abb54b6b7f89"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-de-domo-sua-ad-pontifices-latin.2026-09-09.v1.json",
+        "sha256": "b7405b462c6df75ab40a69093769ce040cfc83c022d182444d8911725abea1db"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-de-haruspicum-responso-in-p-clodium-latin.2026-09-09.v1.json",
+        "sha256": "be033e11f1dbe722c86676e2d700f4b01fb808139e38806920f5d99bcdb7b9f8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-de-imperio-cn-pompei-ad-quirites-latin.2026-09-09.v1.json",
+        "sha256": "9cca04f5c660053ec3ccf0942af4696bd9bcaa34f06c50b2c42e059476c130cd"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-de-provinciis-consularibus-latin.2026-09-09.v1.json",
+        "sha256": "cd670f794e97b17e497f66e89f489c806ff56b697ea3405231d60ec345e5fba1"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-divinatio-in-q-caecilium-latin.2026-09-09.v1.json",
+        "sha256": "0cc4c1dfe2c9a2740be804c2f73a3b436b543f5eb5afc33dc0a34d9654e116a8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-in-l-calpurnium-pisonem-latin.2026-09-09.v1.json",
+        "sha256": "2cfe084e2ac1e473200002defe65508f20b59f45f879f336520eb11b841f5d16"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-a-caecina-latin.2026-09-09.v1.json",
+        "sha256": "404ca830b2af15deeb4045acef94bb3e11a9b5378e7f9064e0e4890286fd561d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-a-cluentio-latin.2026-09-09.v1.json",
+        "sha256": "5a5f3eb151db9997235d3c89c5bd0e3d8b059bbfda00a05ea6b93a5552e58fd0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-archia-poeta-latin.2026-09-09.v1.json",
+        "sha256": "e5e38a954d2c3678282b0a7391423ced85d2d998aeb842139a55c371e844eddd"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-c-rabirio-perduellionis-reo-ad-quirites-latin.2026-09-09.v1.json",
+        "sha256": "2e0e1defc587917eab70b548c6eec2144beeb64286058dba9abfcc3ddd024113"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-c-rabirio-postumo-latin.2026-09-09.v1.json",
+        "sha256": "cbe663bd13911e7cb1e68f5990dd8f0556fef073bfe92695e0012cfd8b91a3c8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-cn-plancio-latin.2026-09-09.v1.json",
+        "sha256": "0dc68377a81db8645a36ee88d76b43fb590f5ae70f2e5644bf9adcacfae07ac0"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-fonteio-latin.2026-09-09.v1.json",
+        "sha256": "2d221e09e7acd4c202276bd400d1c6c7e1c2e03387e1a5dc42e6915e87555f3e"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-l-cornelio-balbo-latin.2026-09-09.v1.json",
+        "sha256": "21fb5450412091830abd5fd47737520e5d63f49f9a12cc1a18b676b604fc0a47"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-l-flacco-latin.2026-09-09.v1.json",
+        "sha256": "4f8df1ae8c920942657b1905cfd3e62f230bffa13a74abf4d85038b890936ba2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-l-murena-latin.2026-09-09.v1.json",
+        "sha256": "5bf51b699d6c7f6f2c0f03f484989eaf8418ce75a0deea5f89d2a53c9031646b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-m-caelio-latin.2026-09-09.v1.json",
+        "sha256": "93181830b3f4f94afc4016bfb35623351d1414696d66cc7f86d6aee3dd22b7bd"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-m-marcello-latin.2026-09-09.v1.json",
+        "sha256": "769c007cc5d52252640684b0026c51641448b8b7437dbcdb325ceae47e3186b4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-m-scauro-latin.2026-09-09.v1.json",
+        "sha256": "d5f0c0c887a5bf7817bebf88e0cc40c4598e37858d0af01451a637218479b67a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-m-tullio-latin.2026-09-09.v1.json",
+        "sha256": "808a77e0ab0ac45784217d64b3c9b2d626b1519aceef8864d64d98b10f885601"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-p-quinctio-latin.2026-09-09.v1.json",
+        "sha256": "d02141fbb6c163f713587951db5db55352fc8cce8fbebed07d17f1f0a09d11d5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-p-sestio-latin.2026-09-09.v1.json",
+        "sha256": "543fadf48ea2cc07572049a80ae80b07ac6876c1dda3f160de76563d7ac4e95c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-p-sulla-latin.2026-09-09.v1.json",
+        "sha256": "dedf6efa39ecd7bf581d967e682df21d52c32dc2b03ee38c84d13f37f167f57d"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-q-ligario-latin.2026-09-09.v1.json",
+        "sha256": "a5fdc1893e253241f5b1731936c4d2431fec7d205a0c7ec2682cbfba8cd381eb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-q-roscio-comoedo-latin.2026-09-09.v1.json",
+        "sha256": "c6b1ccf4cde588830c8037fc8880ff617b74bb39ecd914e2ba5a38d39b61f0fa"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-rege-deiotaro-latin.2026-09-09.v1.json",
+        "sha256": "bf0269314a89d0bbed1d4e1951b176d95c215b3caafa0821ea9ef32a7d7c8b01"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-s-roscio-amerino-latin.2026-09-09.v1.json",
+        "sha256": "65bfb762b1ede2a7f5908bd093b36a7748d60dcb8a6e3c62886f738d1f015da6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-cicero-pro-t-annio-milone-latin.2026-09-09.v1.json",
+        "sha256": "916730380eb12c69fece423952aa56d943815cb1bc1febb3bb628a2c7a1cfaaa"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-cleitophon-english.2026-09-09.v1.json",
@@ -2965,7 +3089,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "d9a2b605938330a33fc84a37da2aebb9e983d34232fc1f2bd7475b99b19ddf56"
+        "sha256": "fe99bbe8c8bded58a0592140ca6ee3f808908e9430fdc79bc1c249900de55c9c"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -3077,7 +3201,7 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "2f653e221905b468cc996a33cd2d3f7b1205710f9cb303f0306abdc9bb043b05"
+        "sha256": "26d281fc776c4b918448538b822a65f9eda1651ecf5fe2004e19c5cb1b4b7e12"
       },
       {
         "path": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3148,8 +3272,20 @@
         "sha256": "5eab8795414220eeb4b68bc8e3edec0d03c8b10fb6f12691caf67c3ac6309bf9"
       },
       {
+        "path": "ToS/source-witnesses/works/cicero/against-vatinius/expressions/la-perseus-phi0474-phi023/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "9be4a07a801e6a593723027920b45641158238e44ee7ac05f98ae9346851246d"
+      },
+      {
         "path": "ToS/source-witnesses/works/cicero/brutus/expressions/la-perseus-phi0474-phi039/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "f124f0b42113e9e11e254c5524823bee39fbded1fc431a18282388fc83687177"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/cum-populo-gratias-egit/expressions/la-perseus-phi0474-phi018/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b29ece2af9edab5a0ee4e2fb7566134238489579110011ea2c8dd1ca3888e3d0"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/cum-senatui-gratias-egit/expressions/la-perseus-phi0474-phi019/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "d4ed9b5ad3163a9b5b852741ba6e4e8d0df33037e8f32eccc32ee8b65b7b3b69"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
@@ -3168,12 +3304,24 @@
         "sha256": "cd05baaa7e608b68aebb0cf9379e8e889c24f4c0205abef6b4d0a63ff49c52bb"
       },
       {
+        "path": "ToS/source-witnesses/works/cicero/de-domo-sua-ad-pontifices/expressions/la-perseus-phi0474-phi020/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "05c732487ff47f4ca633d5cc43f426123398565efef234aba1064ccdfd4e02ba"
+      },
+      {
         "path": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "c1a6a05c680ddc8d492a7ca9bc962fa59cd518c60e04d2d2b8cab3058b49e3dc"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "15ea11174f09d7392a8515d526176a18bc894ca5f8a5de5bfb42fedd8ae49811"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/de-haruspicum-responso-in-p-clodium/expressions/la-perseus-phi0474-phi021/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c40107515c4e90710693502b1ba9acbbb9c173146f586de60b4daceb3da0ee4b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/de-imperio-cn-pompei-ad-quirites/expressions/la-perseus-phi0474-phi009/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "028b9be7d6d07e7a748c8ac032d487d3cb6fd873faf2d7aff9a5450fa9ca45b2"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/de-inventione/expressions/la-perseus-phi0474-phi036/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
@@ -3196,6 +3344,10 @@
         "sha256": "509f57ed688292754ebc29fa734ec08f1100b942ec3ea15a60868f2719fe27c7"
       },
       {
+        "path": "ToS/source-witnesses/works/cicero/de-provinciis-consularibus/expressions/la-perseus-phi0474-phi025/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e1c1c9d0fe2a5192cd189ea32b35c1e0feed650f91b246b6f7823ed48e9cb5fa"
+      },
+      {
         "path": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "aac79db1ff13047f113004598c09c918aa3ef4cdcc7e26aa370075eeac6d55bf"
       },
@@ -3206,6 +3358,14 @@
       {
         "path": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "57a0868e6a44fbd8771b7b9171455be5a9f333b5794f338280a30bd2bbfcbbd9"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/divinatio-in-q-caecilium/expressions/la-perseus-phi0474-phi004/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f1686cc444ef8572313c66f3721cffac177920c04673f383599d2281d4c51ed7"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/in-l-calpurnium-pisonem/expressions/la-perseus-phi0474-phi027/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0320307ece8f9d8919c2a8b59666b6126b0f426fd8d6c981c491897ff304fc83"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/on-oratory/expressions/la-perseus-phi0474-phi037/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
@@ -3222,6 +3382,94 @@
       {
         "path": "ToS/source-witnesses/works/cicero/partitiones-oratoriae/expressions/la-perseus-phi0474-phi038/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "833463cf32a91e540869aa6c65cd1f0fecd7ec0096c2b9f9443a3fdacb91a7b6"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-a-caecina/expressions/la-perseus-phi0474-phi008/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c28acfabca77dc07290712f87a9278d122acffee9d12bc71bab343d4838040de"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-a-cluentio/expressions/la-perseus-phi0474-phi010/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "825c8d4187cec8239e1c2ea53ad53a5d39ff59d3fc2aeb8e8c5fc43cb4ec717e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-archia-poeta/expressions/la-perseus-phi0474-phi016/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "64bd4c6f910004da0b7d6388e8a575ffcf915333e6c4ef9a91d7d8bee1a581f0"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-c-rabirio-perduellionis-reo-ad-quirites/expressions/la-perseus-phi0474-phi012/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "647f44bc614550f5303905dea954a3214a07c9bb6bae802f5ef8d1aae009591c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-c-rabirio-postumo/expressions/la-perseus-phi0474-phi030/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "6a7beba86cb903b09e74c940c0a40d1c819e05f815965bd7757f32576d209839"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-cn-plancio/expressions/la-perseus-phi0474-phi028/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "520bbdb3d97fc890216935920862723befa85097ba4d502db069787a2b8ee4ed"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-fonteio/expressions/la-perseus-phi0474-phi007/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "bd7df074170e2d34fabf2f70922d46f00c310b8c7d0fbc859533bcb9241e7ad1"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-l-cornelio-balbo/expressions/la-perseus-phi0474-phi026/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "2e9e0687bf952971709a7c0fe0536a536b9e8e8a82e9a6f4d1f2468f9896f414"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-l-flacco/expressions/la-perseus-phi0474-phi017/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "6765b4b00b2cbd2b0db400fe64d7c98409b06f2c34a42ac65b9581123c578c3c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-l-murena/expressions/la-perseus-phi0474-phi014/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "70a86a1944b15484405d2e347aa6f128d941840a8fd4aac51e6c452b15719233"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-m-caelio/expressions/la-perseus-phi0474-phi024/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a600b7773c3ea928d9b60abc2a0454689a92bee9f0472e4838655f7ab046a03a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-m-marcello/expressions/la-perseus-phi0474-phi032/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "43cfb5e1e86081f01ba27264072b3eb215e4f2574f11aa4920c1cbd9e843be69"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-m-scauro/expressions/la-perseus-phi0474-phi029/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1e75dfe4397b2624411e1cfdaee6e686bd00a0e817961009b835165649317732"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-m-tullio/expressions/la-perseus-phi0474-phi006/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3ad4127634574feccc705ccc72702c0a682828a1d57162cf3cf003657ed88c21"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-p-quinctio/expressions/la-perseus-phi0474-phi001/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b5aefe20f4c76a49b2cfe77fd8be76ed99d53b9dae92f07c621360951c719247"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-p-sestio/expressions/la-perseus-phi0474-phi022/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "47a7b674c71a376580cad95b08f2d88d9daafb29b2dcb79e6a554410ff1b133d"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-p-sulla/expressions/la-perseus-phi0474-phi015/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c5eee9716fa74c2195a455a8480df09127e6890aeaa5b3169f80e7bcf8b283db"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-q-ligario/expressions/la-perseus-phi0474-phi033/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "318551cd3bff8b54deabf8a8a7e953df8ba6d7b61354d4b95776753df11c9887"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-q-roscio-comoedo/expressions/la-perseus-phi0474-phi003/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "77dd6ea7280dc4b0fde6beb0032e1024573138d015165d28752d79709a7b4813"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-rege-deiotaro/expressions/la-perseus-phi0474-phi034/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "07dceb4c84310631d6828c0864ac1a24e4c7dafafdb73ec61f54caec0daf77ef"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-s-roscio-amerino/expressions/la-perseus-phi0474-phi002/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "9e29ca95b1f6023dc2f4dff0e4f71879445a113843523114f28a67bd30daae4f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/pro-t-annio-milone/expressions/la-perseus-phi0474-phi031/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "736c8a0afac03d91166013daa021eb0e3cb09d0283403d264255716374b5cd55"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/topica/expressions/la-perseus-phi0474-phi042/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",

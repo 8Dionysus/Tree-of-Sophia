@@ -58,3 +58,7 @@ Global proposed node and relation rows for this branch are aggregated in `ToS/ph
 ## Registry planting: eleventh wave (2026-09-09)
 
 64 English versions alongside existing Greek texts. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-eleventh-planting-2026-09-09/RESULTS.md).
+
+## Registry planting: twelfth wave (2026-09-09)
+
+31 exact Latin versions. [Batch reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-twelfth-planting-2026-09-09/RESULTS.md).

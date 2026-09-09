@@ -107,6 +107,23 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
         self.assertEqual(duplicates, [{"source_address": [("book", "1")], "occurrences": 2}])
         self.assertEqual([node.get("n") for node in edition], ["1", "1"])
 
+    def test_unnumbered_containers_preserve_scope_and_reject_ambiguous_or_leaf_paths(self) -> None:
+        import xml.etree.ElementTree as ET
+        text = ('<div xmlns="http://www.tei-c.org/ns/1.0">'
+                '<div type="textpart" subtype="fragments"><div type="textpart" subtype="section" n="1">fragment</div></div>'
+                '<div type="textpart" subtype="speech"><div type="textpart" subtype="section" n="1">speech</div></div></div>')
+        edition = ET.fromstring(text)
+        before = ET.tostring(edition)
+        paths = [json.loads(value) for value in acquisition.tei_division_addresses(edition)]
+        self.assertEqual(paths, [[["fragments", None]], [["fragments", None], ["section", "1"]],
+                                [["speech", None]], [["speech", None], ["section", "1"]]])
+        self.assertEqual(ET.tostring(edition), before)
+        for changed in (text.replace('subtype="speech"', 'subtype="fragments"'),
+                        text.replace(' n="1"', ''), text.replace('subtype="speech"', 'subtype="speech" n=""'),
+                        text.replace('subtype="speech"', 'subtype="speech" n=" "')):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                acquisition.tei_division_addresses(ET.fromstring(changed))
+
     def test_metadata_elapsed_requires_retained_measurement_or_valid_interval(self) -> None:
         observation = {"started_at": "2026-09-09T07:00:00+00:00", "ended_at": "2026-09-09T07:00:02.5+00:00"}
         self.assertEqual(acquisition.metadata_elapsed_seconds(observation), 2.5)
@@ -302,7 +319,10 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
         report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
         self.assertEqual(report["files"][0]["division_count"], 4)
         self.assertEqual(json.loads(report["files"][0]["last_division"]), [["book", "2"], ["section", "1"]])
-        for altered in (body.replace(b'n="2"', b'n="1"'), body.replace(b'n="2"', b'')):
+        absent = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body.replace(b'n="2"', b''))])["files"][0]
+        self.assertEqual(absent["unnumbered_containers"], [[["book", None]]])
+        self.assertEqual(json.loads(absent["last_division"]), [["book", None], ["section", "1"]])
+        for altered in (body.replace(b'n="2"', b'n="1"'), body.replace(b'n="2"', b'n=""')):
             with self.subTest(altered=altered[-200:]), self.assertRaises(ValueError):
                 acquisition.inspect_payloads(target, [({"basename": "source.xml"}, altered)])
 

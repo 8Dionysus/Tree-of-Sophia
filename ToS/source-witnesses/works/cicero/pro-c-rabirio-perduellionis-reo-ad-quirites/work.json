@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.cicero.pro-c-rabirio-perduellionis-reo-ad-quirites",
+  "preferred_label": "Pro C. Rabirio Perduellionis Reo Ad Quirites",
+  "field_languages": {
+    "preferred_label": {
+      "language": "la",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/manifest.json",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/SOURCE_AND_RIGHTS_REVIEW.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi012-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi012.perseus-lat2-header.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi012.perseus-lat2-opening.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474-cts.xml",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-README.md",
+    "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/perseus-license.md",
+    "https://github.com/PerseusDL/canonical-latinLit/tree/8668397510ca77fec6406f7d48f405e50d296764",
+    "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CTS",
+      "value": "urn:cts:latinLit:phi0474.phi012",
+      "source_ref": "ToS/source-witnesses/discovery/registry-twelfth-planting-2026-09-09/evidence/phi0474.phi012-cts.xml",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "expression_claim_refs": [
+    "tos.claim.topology.registry-20260909.cicero-pro-c-rabirio-perduellionis-reo-ad-quirites-latin.work-expression"
+  ],
+  "responsibility_claim_refs": [],
+  "notes": "Provisional work identity for the exact selected source version. The exact supplied Latin digital edition is not a manuscript facsimile or a ToS critical reconstruction. Supplier attribution, editor, date and language statements are retained without ancient authorship or chronology admission. Complete pinned file does not mean complete ancient work, critical completeness, correct readings or complete coverage of other versions. Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations. Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine. Forensic advocacy, accusations, praise and political argument remain the speech witness, not accepted historical fact or author doctrine. No ancient author attribution is inferred from the responsibility path or modern provider.",
+  "record_version": 1,
+  "supersedes_ref": null
+}
