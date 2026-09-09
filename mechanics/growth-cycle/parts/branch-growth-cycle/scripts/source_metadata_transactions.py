@@ -405,7 +405,15 @@ def _retain(root, manifest, blobs):
     return _digest(raw)
 
 
-def _validate_manifest(manifest, transaction_id):
+def _validate_manifest(manifest, transaction_id, *, historical_read=False):
+    """Validate retained evidence, with an explicit read-only portability mode.
+
+    Parent bindings are exact local guards when a transaction can be selected
+    for mutation or recovery.  A historical transaction may instead be read
+    from a different checkout/account: its recorded device, inode and owner
+    remain evidence, but must not be mistaken for the reader's live binding.
+    ``_Parents`` remains the authority for every local filesystem operation.
+    """
     if (not isinstance(manifest, dict)
             or set(manifest) != {'schema_version', 'transaction_id', 'base_publication', 'plan', 'parents'}
             or manifest['schema_version'] not in (MANIFEST_SCHEMA, PROFILED_MANIFEST_SCHEMA)
@@ -433,17 +441,17 @@ def _validate_manifest(manifest, transaction_id):
         elif (not isinstance(binding, dict) or set(binding) != {'device', 'inode', 'mode', 'uid'}
                 or any(type(value) is not int or value < 0 for value in binding.values())
                 or not stat.S_ISDIR(binding['mode']) or binding['mode'] & 0o022
-                or binding['uid'] not in (0, os.getuid())):
+                or (not historical_read and binding['uid'] not in (0, os.getuid()))):
             raise TransactionCorruption('invalid retained source-parent binding')
 
 
-def _load_manifest(root, transaction_id):
+def _load_manifest(root, transaction_id, *, historical_read=False):
     transaction_id = _identifier(transaction_id)
     directory = root / TRANSACTIONS_REF / transaction_id[7:]
     raw = _read_owned(directory / 'manifest.json', MAX_MANIFEST_BYTES)
     manifest = _json(raw)
     try:
-        _validate_manifest(manifest, transaction_id)
+        _validate_manifest(manifest, transaction_id, historical_read=historical_read)
     except (ValueError, TypeError, KeyError) as error:
         raise TransactionCorruption('retained transaction manifest is invalid') from error
     blobs, total = {}, 0
@@ -534,7 +542,11 @@ def inspect_transaction(root, transaction_id):
     """
     root = Path(root)
     state = read_publication_state(root)
-    manifest, digest, blobs = _load_manifest(root, transaction_id)
+    # A non-selected completed/orphan transaction is historical evidence.  Its
+    # parent bindings describe the writer's checkout, not this reader's live
+    # device/inode/UID.  Any later mutation path re-loads it in strict mode and
+    # enters ``_Parents`` before touching the source tree.
+    manifest, digest, blobs = _load_manifest(root, transaction_id, historical_read=True)
     completion = _completion(root, manifest, digest)
     selected = state is not None and state['transaction_id'] == transaction_id
     if selected:

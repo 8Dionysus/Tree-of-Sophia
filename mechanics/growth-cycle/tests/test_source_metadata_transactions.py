@@ -10,6 +10,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -653,6 +654,52 @@ class SelectedMetadataTransactionTests(unittest.TestCase):
         self.assert_side(self.root, self.plan, 'before')
         self.authorized = True
         self.assertEqual(self.apply()['status'], 'committed')  # Exact explicit original plan, not automatic orphan recovery.
+
+    def test_historical_parent_owner_is_portable_but_recovery_stays_strict(self):
+        self.apply()
+        transaction = self.root / publication.TRANSACTIONS_REF / IDENTIFIER[7:]
+        historical_root = self.root / 'historical-copy'
+        historical_transaction = historical_root / publication.TRANSACTIONS_REF / IDENTIFIER[7:]
+        historical_transaction.parent.mkdir(parents=True)
+        shutil.copytree(transaction, historical_transaction)
+        manifest_path = historical_transaction / 'manifest.json'
+        manifest = json.loads(manifest_path.read_bytes())
+        for binding in manifest['parents'].values():
+            if binding is not None:
+                binding['uid'] = 424242
+        manifest_raw = publication._canonical(manifest) + b'\n'
+        manifest_path.write_bytes(manifest_raw)
+        completion_path = historical_transaction / 'completion.json'
+        completion = json.loads(completion_path.read_bytes())
+        completed = completion['publication']
+        completed['manifest_sha256'] = publication._digest(manifest_raw)
+        completed['token'] = publication._digest(publication._canonical(
+            {key: value for key, value in completed.items() if key != 'token'}))
+        completion_path.write_bytes(publication._canonical(completion) + b'\n')
+
+        inspected = transactions.inspect_transaction(historical_root, IDENTIFIER)
+        self.assertEqual(inspected['status'], 'committed')
+        self.assertTrue(all(binding is None or binding['uid'] == 424242
+                            for binding in inspected['manifest']['parents'].values()))
+        with self.assertRaises(transactions.TransactionCorruption):
+            transactions._validate_manifest(manifest, IDENTIFIER)
+
+        pending_root = self.root / 'pending-foreign-owner'
+        pending_plan = fixture(pending_root)
+        interrupted = self.child(pending_root, pending_plan, edge='after-pending')
+        self.assertEqual(interrupted.returncode, 86, interrupted.stdout + interrupted.stderr)
+        pending_manifest_path = pending_root / publication.TRANSACTIONS_REF / IDENTIFIER[7:] / 'manifest.json'
+        pending_manifest = json.loads(pending_manifest_path.read_bytes())
+        for binding in pending_manifest['parents'].values():
+            if binding is not None:
+                binding['uid'] = 424242
+        pending_manifest_path.write_bytes(publication._canonical(pending_manifest) + b'\n')
+        with self.assertRaises(transactions.TransactionCorruption):
+            transactions.read_pending_transaction(pending_root)
+        with corpus_lock(pending_root):
+            with self.assertRaises(transactions.TransactionCorruption):
+                transactions.resume_transaction(pending_root, authorization_guard=lambda *args: True,
+                                                transaction_id=IDENTIFIER)
 
     def test_reused_identity_stale_snapshot_and_current_replay_revocation_are_refused(self):
         self.apply()
