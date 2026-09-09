@@ -98,7 +98,7 @@ class RoadmapParityTestCase(unittest.TestCase):
         provider_ref = "d9b00bc456ea95dd8447311331ee83ba51afa023"
         action_ref = provider_ref
         self.assertIn(
-            "current provider source snapshot `" + provider_ref + "`",
+            "segmented provider source snapshot `" + provider_ref + "`",
             release_contract,
         )
         self.assertIn(
