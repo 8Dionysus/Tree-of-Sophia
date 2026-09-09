@@ -1093,16 +1093,11 @@ def _v2_candidate_inventory(root: Path, excluded_path: Path) -> list[dict[str, A
         try:
             metadata = path.lstat()
         except FileNotFoundError:
-            inventory.append(
-                {
-                    "path": relative.as_posix(),
-                    "state": "missing",
-                    "kind": "missing",
-                    "mode": "missing",
-                    "bytes": 0,
-                    "content_digest": KAG_BUDGET_CANDIDATE_ZERO_DIGEST,
-                }
-            )
+            # Match aoa-kag's portable candidate identity: a tracked path
+            # deleted in the worktree is absent from the effective candidate.
+            # Keeping a synthetic ``missing`` record here would make the
+            # downstream validator disagree with the owner receipt across the
+            # dirty-to-commit boundary.
             continue
         if stat.S_ISREG(metadata.st_mode):
             content = path.read_bytes()

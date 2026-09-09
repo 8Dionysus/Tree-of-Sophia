@@ -1,25 +1,25 @@
 {
-  "allowed_bytes": 64009230,
-  "allowed_tracked_bytes": 205565,
+  "allowed_bytes": 64041888,
+  "allowed_tracked_bytes": 205844,
   "approved_by": "repository-owner",
   "base_ref": "da8fb0993298e7f1de20875cbf2bd19d9e2f5ed0",
   "candidate_identity": {
     "algorithm": "sha256:canonical-json-file-inventory-v2",
     "base_ref": "da8fb0993298e7f1de20875cbf2bd19d9e2f5ed0",
     "contract_version": "aoa-kag:budget-receipt-candidate-identity-v2",
-    "excluded_path": "kag/receipts/index_family_budget/b1a21aa06345628cac143d4d983d50529b2fffe6f99021aeb487bd2dd1f47f44.json",
-    "family_digest": "b1a21aa06345628cac143d4d983d50529b2fffe6f99021aeb487bd2dd1f47f44",
-    "file_count": 7268,
-    "seal": "0afb9b883a7f6f8bde75bc44c60d7a630503863cfe2baf219b3d1e7861053fa8",
-    "source_epoch": "sha256:f10a5c15d6167de11b2b511e3fcd27de4f80d222460f3f045152842dc6a3f228",
-    "source_snapshot": "sha256:4dfe40ee1e87b9873966c2d1b0c2cc9a9834c5d921328d17f2d80a66b2b30b6b"
+    "excluded_path": "kag/receipts/index_family_budget/26938240fff952ca786e36502c234ec9c48dbea3f52bdb72b08a8fbbc2154315.json",
+    "family_digest": "26938240fff952ca786e36502c234ec9c48dbea3f52bdb72b08a8fbbc2154315",
+    "file_count": 7270,
+    "seal": "273c1dc1ffae478b6f48ca87816f427dc6e002c3d0a8e677a41246cc23e15220",
+    "source_epoch": "sha256:0cddb0db58ce6a346ba23a1bfe5b928e084bdc868dae4c9d3bca7ad31548abac",
+    "source_snapshot": "sha256:8e147b9e64529cde48730f77fe4c139541a8da92885b08a911d3a34fa58d0e16"
   },
-  "changed_generated_bytes": 64009230,
-  "changed_generated_files": 659,
+  "changed_generated_bytes": 64041888,
+  "changed_generated_files": 660,
   "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0040-bounded-segmented-kag-family.md",
   "default_limit_bytes": 1048576,
-  "head_family_digest": "b1a21aa06345628cac143d4d983d50529b2fffe6f99021aeb487bd2dd1f47f44",
-  "head_source_snapshot": "sha256:4dfe40ee1e87b9873966c2d1b0c2cc9a9834c5d921328d17f2d80a66b2b30b6b",
+  "head_family_digest": "26938240fff952ca786e36502c234ec9c48dbea3f52bdb72b08a8fbbc2154315",
+  "head_source_snapshot": "sha256:8e147b9e64529cde48730f77fe4c139541a8da92885b08a911d3a34fa58d0e16",
   "producer_identity": {
     "action": {
       "bytes": 5200,
@@ -383,9 +383,9 @@
         "state": "present"
       },
       {
-        "bytes": 2227,
-        "content_digest": "d67c6d3205c964d8600a214679e9e72b0be0028d9f64c34ee0d48a83e5c808b3",
-        "git_blob": "sha1:b731032d3ac50ae2f1924d434c5102c94e345edc",
+        "bytes": 4822,
+        "content_digest": "62deb2bf3c6714447b82524647ce6c084088b95aa90335e064638667f75b6dd2",
+        "git_blob": "sha1:a900fbb8a1342928d38dd3cc94fc718f2d6e08a4",
         "path": "scripts/assemble_repo_local_kag_family.py",
         "state": "present"
       },
@@ -593,9 +593,9 @@
         "state": "present"
       },
       {
-        "bytes": 23451,
-        "content_digest": "b9d624ef2f650915b5b26db72938d727a7d611a8e840d9c99555796a42b62133",
-        "git_blob": "sha1:2a78cd59ee412db929491385be749aea18e87a7d",
+        "bytes": 24352,
+        "content_digest": "a7d1df3321e18016cd7878d5cb4b4039c3f4962793916403a8874c7a508683d6",
+        "git_blob": "sha1:45572318bb7cfc1a30c35f90cb49608d2bf6356d",
         "path": "scripts/repo_local_kag_gate.py",
         "state": "present"
       },
@@ -1167,7 +1167,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "540a7810a02359648de48b3aa0ecad67013299e91dabfd86ffa46f1578825a1c",
+    "identity_digest": "bf6454ca77dbd0683fddeced46d33ff2a5401e9cbcef03b067a846325cca2962",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -1369,12 +1369,12 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "0abba775532d432938f7bf2d1415c254445a363b7cc71869826117035811b951"
+    "source_digest": "31167e49d08dbf736e693f8f764a496609a73b2eeac64439296e70e81fc48f24"
   },
-  "reason": "Admit the cumulative Tree-of-Sophia segmented KAG family after bounded D1, reader-context and language-priority integration against its reviewed da8fb099 base.",
+  "reason": "Admit the current Tree-of-Sophia segmented KAG family after immutable aoa-kag provider-pin integration and reassessed human-form source changes.",
   "repo": "Tree-of-Sophia",
   "schema_version": "aoa-repo-local-kag-budget-receipt-v2",
   "scope": "generated_delta",
-  "tracked_bytes": 205565,
+  "tracked_bytes": 205844,
   "tracked_bytes_max": 50331648
 }

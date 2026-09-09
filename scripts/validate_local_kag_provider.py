@@ -20,6 +20,15 @@ RECORD_DIRS = {
     "projections": "projection",
     "receipts": "receipt",
 }
+GENERATED_INDEX_NAMES = {
+    "source_surface_index.json",
+    "repo_artifact_index.json",
+    "repo_anchor_index.json",
+    "repo_entity_index.json",
+    "repo_event_index.json",
+    "repo_assertion_index.json",
+    "repo_relation_index.json",
+}
 REQUIRED_RECORD_FIELDS = {
     "schema_version",
     "repo",
@@ -42,6 +51,7 @@ REPO_LOCAL_FAMILY_MANIFEST = Path("kag/indexes/index_family.manifest.json")
 REPO_LOCAL_BUDGET_RECEIPT_ROOT = Path("kag/receipts/index_family_budget")
 REPO_LOCAL_PROVIDER_PIN = Path("kag/provider_pin.json")
 SEGMENTED_FAMILY_SCHEMA = "aoa-repo-local-kag-segmented-family-v1"
+SEGMENTED_SCHEMA_REF = "aoa-kag:schemas/repo-local-kag-segmented-family.schema.json"
 
 
 class ValidationError(RuntimeError):
@@ -167,6 +177,10 @@ def validate_records() -> dict[str, list[dict[str, Any]]]:
             if (
                 relative == REPO_LOCAL_FAMILY_MANIFEST
                 or REPO_LOCAL_BUDGET_RECEIPT_ROOT in relative.parents
+                or (
+                    relative.parent == Path("kag/indexes")
+                    and relative.name in GENERATED_INDEX_NAMES
+                )
             ):
                 continue
             record = read_json(path)

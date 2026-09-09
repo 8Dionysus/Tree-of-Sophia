@@ -2628,6 +2628,30 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/validate_local_segmented_kag_provider.py",
+      "family": "source_validator",
+      "organ_lane": "source/topology",
+      "owner_surface": "kag/AGENTS.md",
+      "source_truth": [
+        "kag/provider_pin.json",
+        "kag/indexes/index_family.manifest.json",
+        "kag/indexes/segments/",
+        "aoa-kag:scripts/repo_local/segmented_family.py"
+      ],
+      "reads": [
+        "kag/provider_pin.json",
+        "kag/indexes/index_family.manifest.json",
+        "kag/indexes/segments/",
+        "AOA_KAG_ROOT or a compatible local aoa-kag checkout at the exact pinned revision"
+      ],
+      "writes": [],
+      "side_effects": "validation output only; requires a clean exact-pinned aoa-kag checkout and performs one bounded segment read without full materialization",
+      "validation_lane": "local_kag_provider",
+      "ci_inclusion": "release",
+      "test_target": "tests/test_validate_local_kag_provider.py",
+      "disposition": "keep"
+    },
+    {
       "path": "scripts/validate_local_stats_port.py",
       "family": "source_validator",
       "organ_lane": "source/topology",

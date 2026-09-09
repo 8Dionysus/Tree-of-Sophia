@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4430,
+    "tracked_surface_count": 4437,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1082,
+    "excluded_tracked_path_count": 1083,
     "human_scope": {
-      "bytes": 5543502,
-      "count": 917,
+      "bytes": 5579373,
+      "count": 921,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 118754,
+          "bytes": 120448,
           "count": 8,
-          "lines": 1858
+          "lines": 1880
         },
         "agents-other": {
           "bytes": 9111,
@@ -51,19 +51,19 @@
           "lines": 155
         },
         "docs": {
-          "bytes": 578847,
-          "count": 77,
-          "lines": 9255
+          "bytes": 581937,
+          "count": 78,
+          "lines": 9326
         },
         "evals": {
-          "bytes": 10934,
-          "count": 8,
-          "lines": 202
+          "bytes": 18219,
+          "count": 9,
+          "lines": 314
         },
         "github": {
-          "bytes": 13471,
+          "bytes": 14262,
           "count": 5,
-          "lines": 360
+          "lines": 374
         },
         "kag": {
           "bytes": 5466,
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4339945,
-          "count": 641,
-          "lines": 72647
+          "bytes": 4362956,
+          "count": 643,
+          "lines": 72960
         }
       },
-      "lines": 93940
+      "lines": 94472
     },
     "surface_kind_counts": {
-      "executable": 256,
-      "human": 917,
-      "structured": 3257
+      "executable": 258,
+      "human": 921,
+      "structured": 3258
     },
-    "tracked_path_count": 5512,
-    "tracked_surface_count": 4430,
+    "tracked_path_count": 5520,
+    "tracked_surface_count": 4437,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -149,7 +149,7 @@
         "human": 3,
         "structured": 3
       },
-      "tracked_surface_bytes": 138804,
+      "tracked_surface_bytes": 138806,
       "tracked_surface_count": 6
     },
     {
@@ -157,45 +157,45 @@
       "surface_kind_counts": {
         "human": 5
       },
-      "tracked_surface_bytes": 13471,
+      "tracked_surface_bytes": 14262,
       "tracked_surface_count": 5
     },
     {
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 641,
+        "human": 643,
         "structured": 3181
       },
-      "tracked_surface_bytes": 231929916,
-      "tracked_surface_count": 3826
+      "tracked_surface_bytes": 231953195,
+      "tracked_surface_count": 3828
     },
     {
       "family_id": "access",
       "surface_kind_counts": {
-        "executable": 30,
+        "executable": 31,
         "human": 8,
         "structured": 22
       },
-      "tracked_surface_bytes": 1311680,
-      "tracked_surface_count": 60
+      "tracked_surface_bytes": 1326643,
+      "tracked_surface_count": 61
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 77,
+        "human": 78,
         "structured": 6
       },
-      "tracked_surface_bytes": 889912,
-      "tracked_surface_count": 83
+      "tracked_surface_bytes": 894811,
+      "tracked_surface_count": 84
     },
     {
       "family_id": "evals",
       "surface_kind_counts": {
-        "human": 8
+        "human": 9
       },
-      "tracked_surface_bytes": 10934,
-      "tracked_surface_count": 8
+      "tracked_surface_bytes": 18219,
+      "tracked_surface_count": 9
     },
     {
       "family_id": "stats",
@@ -210,10 +210,10 @@
       "family_id": "kag",
       "surface_kind_counts": {
         "human": 3,
-        "structured": 6
+        "structured": 7
       },
-      "tracked_surface_bytes": 14594,
-      "tracked_surface_count": 9
+      "tracked_surface_bytes": 15745,
+      "tracked_surface_count": 10
     },
     {
       "family_id": "mechanics",
@@ -228,11 +228,11 @@
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 114,
+        "executable": 115,
         "human": 2
       },
-      "tracked_surface_bytes": 3913773,
-      "tracked_surface_count": 116
+      "tracked_surface_bytes": 3923932,
+      "tracked_surface_count": 117
     },
     {
       "family_id": "tests",
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 1923222,
+      "tracked_surface_bytes": 1933662,
       "tracked_surface_count": 68
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "f7d50059db5aa1e644bbb4f39d54ec8eb4cc75734820cf54da43ca15831f4557",
+  "tracked_surface_digest": "55d6fc4f044df6e283a64daa99330c326a11ba1b537c7236b690edcb20e8e60b",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -307,7 +307,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agent-surface.current.json",
-      "sha256": "e27121e78453302a8651b0e20c2166e5f353e62180830ef27cc7b80bc4e99eb9",
+      "sha256": "e36280e694f76140a625c676ac58b15d2d302d4cfdc7e326e24aed952c9fc5ab",
       "surface_kind": "structured"
     },
     {
@@ -319,11 +319,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 86480,
+      "bytes": 86482,
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "729fb02963910ae45ac3863062f08f644b9f242fa54f6d04599fd46476d71e52",
+      "sha256": "a70424b441fec225f266f83145862c5fcb6b49c811692b4e8f28692f1164c78f",
       "surface_kind": "structured"
     },
     {
@@ -351,11 +351,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 7174,
+      "bytes": 7965,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "f4d5e4cea54dcfaa511fef214e99223efd273701d43c5240b0ba5898d11282f9",
+      "sha256": "1e209dc90fe9506ca9194e9b84c9fedef37a016a682e5e03f8036b9ff80db5f9",
       "surface_kind": "human"
     },
     {
@@ -3079,11 +3079,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 61193602,
+      "bytes": 61193870,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "0af861b097f527b6bcde0e02ad5a9fa4d49392527608cd1c34d9f32fa51da3c3",
+      "sha256": "28bb71853ef2bccd487bdab4183563cec9e8cc565df4e857d10b4b176f0d2328",
       "surface_kind": "structured"
     },
     {
@@ -3159,11 +3159,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 94933,
+      "bytes": 99223,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "6fd6f04c942c50099db432fcdc78a6767478cc6a261965768da8e3a6093e4615",
+      "sha256": "89be76e90713690ec624083d932514df944e243fe41b52a4b18d05c4b066ae70",
       "surface_kind": "human"
     },
     {
@@ -17847,6 +17847,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 9725,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-08-real-source-assessment-review.md",
+      "sha256": "63908933ad626909334afa20f221eee4b460114127dbd7ab2d630b271bfb25cc",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 6784,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -17868,6 +17876,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-08-translatability-profile-review.md",
       "sha256": "d5c92ba2858aa4a2acd7c7662d8be88bf65f7f4ea374cd469f8948139576fb7d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 8996,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-09-real-human-form-assessment-review.md",
+      "sha256": "6cdc9fd0af4f49243796ce1a91d5308dd2100d5bfadf23cf2f42f728b99984eb",
       "surface_kind": "human"
     },
     {
@@ -31095,11 +31111,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 14082,
+      "bytes": 14483,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/README.md",
-      "sha256": "50e60f536e6ef505831e94c38f929906db5e5e9d8798027e14e1c7429d684ff5",
+      "sha256": "f0c5ec79f38086fde00382879ea44a2e6b5ce5df689337db418bdea36060f862",
       "surface_kind": "human"
     },
     {
@@ -31231,11 +31247,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 17732,
+      "bytes": 18605,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/README.md",
-      "sha256": "e80f59de0142711d49c0a6448a690acb79df98cf53e0ab070b158bca1dd40028",
+      "sha256": "afa3b0da3838e03cffefe8c99e6987bc74c4be28d9c1e51f9672fab436066d36",
       "surface_kind": "human"
     },
     {
@@ -31271,11 +31287,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 2828,
+      "bytes": 3019,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/scripts/import_local_sqlite.py",
-      "sha256": "f5bbed3f87c837fca8ecaaadb390c5034f0ec5b6777c2247f8685a01a2f22604",
+      "sha256": "e3d7cc0d29965927b5715cc088eb9f23c428c352e26be2979098828542e238fa",
       "surface_kind": "executable"
     },
     {
@@ -31284,6 +31300,14 @@
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/scripts/incremental_runtime.py",
       "sha256": "6d387b5207e07f746a1159813a7b9beda0f21e2c6df3d09443579ec9ca8f2a24",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 3169,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/deploy/cloudflare-worker/scripts/sql_stream.py",
+      "sha256": "f30d9659832b85e15c39df34f14402f7188ccb20d76aa9c04c788729719d15af",
       "surface_kind": "executable"
     },
     {
@@ -31431,11 +31455,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 259176,
+      "bytes": 259847,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/knowledge.py",
-      "sha256": "3a0d852af7793e642e65e3ea33ca0add5e1412464358c3123b21aa168c1cd8be",
+      "sha256": "92c05d38c5be130ccc8d113a6a2a5b6a928bed387a998eb1dbc86c0d214c0aa6",
       "surface_kind": "executable"
     },
     {
@@ -31503,19 +31527,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 18168,
+      "bytes": 24975,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_incremental_runtime.py",
-      "sha256": "93a0b8a22f6d4960e2c23cf0940b1949d7602f8d69f84fdd3df4f932acfbf4ef",
+      "sha256": "06f261815bc588cd4f14724717736ef5b3d7e828451c847cd264eb1434ac44a1",
       "surface_kind": "executable"
     },
     {
-      "bytes": 183511,
+      "bytes": 185942,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_knowledge_contract.py",
-      "sha256": "5c21c0e58bda39a9795184487ea4339dce7c978104c43244e808cbef7c47810a",
+      "sha256": "4f9674f553b59318bf2eb3dee716c4c54760bb6dcd10892e1d81aa9c7f3b5359",
       "surface_kind": "executable"
     },
     {
@@ -31527,11 +31551,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 41635,
+      "bytes": 42055,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/web/README.md",
-      "sha256": "2e6217ac219423cb69b2ceb6d97e4bfb0d0dc286be465e8313a382e999347ee2",
+      "sha256": "0eeda6b51faf37fc6558f02bc923b5d5b1935e8d78c023c82cd0a42391eef4e1",
       "surface_kind": "human"
     },
     {
@@ -32087,6 +32111,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3090,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0060-bounded-segmented-kag-provider-pin.md",
+      "sha256": "988476be2ec979d1c3ed40834526c4536dd477a4667d8db40c1ea0abac65e7bd",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -32207,11 +32239,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 207772,
+      "bytes": 209581,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "5c4a916d892402609c796f2e203f578f456186c3f6802455cb826e0468b61f35",
+      "sha256": "893312f753079bf6cb9b89260e035b3b505ab2913aa275168c11df34adb5f43a",
       "surface_kind": "structured"
     },
     {
@@ -32271,11 +32303,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 502,
+      "bytes": 786,
       "currentness": "tracked_source_snapshot",
       "family_id": "evals",
       "path": "evals/suites/README.md",
-      "sha256": "094496e7f9fc6787385aba6cc5126be9eaf2bccff16837d1cadf273016554476",
+      "sha256": "26f88bcaeb2e0ec2f595fb3cfd000c737e15b07b13fbaf0b50f95059782b2c16",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7001,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "evals",
+      "path": "evals/suites/metadata-human-form-ru-en-v1.suite.md",
+      "sha256": "03f3929c85f24f6dccf629d2f19ade8e46906a06be1b856ffa1dcbc8fba3cd44",
       "surface_kind": "human"
     },
     {
@@ -32348,6 +32388,14 @@
       "family_id": "kag",
       "path": "kag/projections/mcp_source_return.json",
       "sha256": "55a598899f9a50a8f688098536afc0887101159ad9e1266cb6e390baae5cc3ef",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1151,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "kag",
+      "path": "kag/provider_pin.json",
+      "sha256": "b17bcb4e21796a598df68d7485aadd2424edbbe3eee08e2b7195ab45e566dac8",
       "surface_kind": "structured"
     },
     {
@@ -34887,11 +34935,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 131192,
+      "bytes": 131184,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_agent_surface.py",
-      "sha256": "2fb34191ab7e46335b7a3485dc0a67814c9d1c19b6419a29ed2effc94d07e4a2",
+      "sha256": "227448d339d1e4c4a0878d8a2f175935a225a5457e9e5a351b9098236846344d",
       "surface_kind": "executable"
     },
     {
@@ -34959,11 +35007,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 14474,
+      "bytes": 14967,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_local_kag_provider.py",
-      "sha256": "be307004592e6e53247c2698c955444868b5e406567c53afc66534f37aad35f1",
+      "sha256": "d4dcd1458e627aa7897870c59c428446d5309881f4bb841a975ce36589b73817",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 9674,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/validate_local_segmented_kag_provider.py",
+      "sha256": "1e10870882b1e6f9de1758e10e73c8bf654a792194f2de84b6c83fa8810d1395",
       "surface_kind": "executable"
     },
     {
@@ -35207,11 +35263,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 82852,
+      "bytes": 83303,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_agent_surface.py",
-      "sha256": "4c55b0d0c139f9f4b55aa551079b57b0b4bcd643acd741b8ba9a5ddb89917a7b",
+      "sha256": "aa21707c2a5a4a01d326ab7c1bd9d2fbeba662a4846c6ba6171381d6bd41799f",
       "surface_kind": "executable"
     },
     {
@@ -35335,11 +35391,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 88981,
+      "bytes": 89075,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "0cabe2ba16e08ec8976ad88cda81fd75e51468475286b4ca828f882de1cb76fb",
+      "sha256": "f0ee717b4bf54f248a856f1358cfd2b59d608675f62e525cafde4d4c333bcf87",
       "surface_kind": "structured"
     },
     {
@@ -35591,11 +35647,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 5919,
+      "bytes": 15814,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validate_local_kag_provider.py",
-      "sha256": "3804a7b1f65d4bd2c4f6b8751be774e54bdb633a5273705ea1642b4e473c86e3",
+      "sha256": "59964f0a61e2694b53ebca5aa3093b668d1b54294c6df44ac70b22416211921b",
       "surface_kind": "executable"
     },
     {

@@ -47,13 +47,6 @@
     }
   ],
   "consumer_routes": ["aoa-kag registry", "abyss-stack federation mirror", "aoa-kag-mcp resource"],
-  "provider_pin": {
-    "path": "kag/provider-pin.json",
-    "family_schema": "aoa-repo-local-kag-segmented-family-v1",
-    "consumer_adapter": "scripts/validate_local_kag_provider.py",
-    "migration": "explicit-provider-pin-dual-read",
-    "rollback": "retain-last-good-manifest-and-select-by-digest"
-  },
   "owner_return_routes": [
     {
       "repo": "Tree-of-Sophia",

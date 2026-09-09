@@ -423,16 +423,16 @@
       "whitespace_tokens": 206
     },
     {
-      "bytes": 2114,
+      "bytes": 2552,
       "inheritance_stack": [
         "AGENTS.md",
         "kag/AGENTS.md"
       ],
-      "lines": 52,
+      "lines": 58,
       "path": "kag/AGENTS.md",
-      "sha256": "0e0f806defdee433cfdf9ef4d4ade12c00a3e86590e73ba34382c98dfe75c5d1",
+      "sha256": "54b1f5ae337baef90f1d1e7bee10ae43cb580cbe6ec66f394691d7a7c89d1483",
       "tracked": true,
-      "whitespace_tokens": 268
+      "whitespace_tokens": 318
     },
     {
       "bytes": 1478,
@@ -822,31 +822,31 @@
       "whitespace_tokens": 1029
     },
     {
-      "bytes": 34169,
+      "bytes": 34399,
       "exists": true,
-      "lines": 894,
+      "lines": 897,
       "path": ".agents/agent-surface.manifest.json",
       "role": "skill, owner-port, carrier, and task-probe map",
-      "sha256": "44737083d14af61d4a69c6e6891b9f700490101e643714306df2304b5812e04f",
-      "whitespace_tokens": 2506
+      "sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
+      "whitespace_tokens": 2514
     },
     {
-      "bytes": 8417,
+      "bytes": 8814,
       "exists": true,
-      "lines": 261,
+      "lines": 271,
       "path": ".agents/agent-surface.current.json",
       "role": "generated skill/port currentness read model",
-      "sha256": "c3a7f37f3b0157302be81c332dd04af54ecb6804dd9c25e34eb2afdc67885b74",
-      "whitespace_tokens": 400
+      "sha256": "e36280e694f76140a625c676ac58b15d2d302d4cfdc7e326e24aed952c9fc5ab",
+      "whitespace_tokens": 416
     },
     {
-      "bytes": 34440,
+      "bytes": 34458,
       "exists": true,
       "lines": 895,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "b0f92db41e3a74e7d85203f769c93600cf5112c4cfa94e74e97cc25faf165508",
-      "whitespace_tokens": 2517
+      "sha256": "0949f21261691a62be05b79176925d7be3e972730d35ea03fe89b51e9936fdcb",
+      "whitespace_tokens": 2518
     },
     {
       "bytes": 9588,
@@ -894,22 +894,22 @@
       "whitespace_tokens": 1837
     },
     {
-      "bytes": 207772,
+      "bytes": 209581,
       "exists": true,
-      "lines": 3387,
+      "lines": 3425,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "5c4a916d892402609c796f2e203f578f456186c3f6802455cb826e0468b61f35",
-      "whitespace_tokens": 11640
+      "sha256": "893312f753079bf6cb9b89260e035b3b505ab2913aa275168c11df34adb5f43a",
+      "whitespace_tokens": 11764
     },
     {
-      "bytes": 6551,
+      "bytes": 7965,
       "exists": true,
-      "lines": 180,
+      "lines": 206,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "820af37f7808f5668b558554dea298514c191160f6af96bbfb4e4f98ee23a503",
-      "whitespace_tokens": 540
+      "sha256": "1e209dc90fe9506ca9194e9b84c9fedef37a016a682e5e03f8036b9ff80db5f9",
+      "whitespace_tokens": 669
     },
     {
       "bytes": 1069,
@@ -1609,7 +1609,7 @@
       ]
     },
     {
-      "additional_context_tokens": 2217,
+      "additional_context_tokens": 2269,
       "completion_evidence": [
         {
           "bytes": 1384,
@@ -1647,13 +1647,13 @@
       "inherited_context_tokens": 1083,
       "on_demand_surfaces": [
         {
-          "bytes": 14082,
+          "bytes": 14483,
           "exists": true,
-          "lines": 207,
+          "lines": 212,
           "path": "access/contracts/README.md",
           "role": "on_demand",
-          "sha256": "50e60f536e6ef505831e94c38f929906db5e5e9d8798027e14e1c7429d684ff5",
-          "whitespace_tokens": 1811
+          "sha256": "f0c5ec79f38086fde00382879ea44a2e6b5ce5df689337db418bdea36060f862",
+          "whitespace_tokens": 1863
         },
         {
           "bytes": 7729,
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "additional_context_tokens": 5958,
+      "additional_context_tokens": 6086,
       "completion_evidence": [
         {
           "bytes": 6605,
@@ -2059,13 +2059,13 @@
           "whitespace_tokens": 826
         },
         {
-          "bytes": 34440,
+          "bytes": 34458,
           "exists": true,
           "lines": 895,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "b0f92db41e3a74e7d85203f769c93600cf5112c4cfa94e74e97cc25faf165508",
-          "whitespace_tokens": 2517
+          "sha256": "0949f21261691a62be05b79176925d7be3e972730d35ea03fe89b51e9936fdcb",
+          "whitespace_tokens": 2518
         },
         {
           "bytes": 9862,
@@ -2077,13 +2077,13 @@
           "whitespace_tokens": 917
         },
         {
-          "bytes": 6551,
+          "bytes": 7965,
           "exists": true,
-          "lines": 180,
+          "lines": 206,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "820af37f7808f5668b558554dea298514c191160f6af96bbfb4e4f98ee23a503",
-          "whitespace_tokens": 540
+          "sha256": "1e209dc90fe9506ca9194e9b84c9fedef37a016a682e5e03f8036b9ff80db5f9",
+          "whitespace_tokens": 669
         }
       ],
       "id": "release_validation",
@@ -2103,13 +2103,13 @@
           "whitespace_tokens": 274
         },
         {
-          "bytes": 34440,
+          "bytes": 34458,
           "exists": true,
           "lines": 895,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "b0f92db41e3a74e7d85203f769c93600cf5112c4cfa94e74e97cc25faf165508",
-          "whitespace_tokens": 2517
+          "sha256": "0949f21261691a62be05b79176925d7be3e972730d35ea03fe89b51e9936fdcb",
+          "whitespace_tokens": 2518
         },
         {
           "bytes": 14444,
@@ -2121,22 +2121,22 @@
           "whitespace_tokens": 1837
         },
         {
-          "bytes": 6486,
+          "bytes": 6423,
           "exists": true,
-          "lines": 103,
+          "lines": 102,
           "path": "docs/RELEASING.md",
           "role": "on_demand",
-          "sha256": "b4846817ee2cde033bbea47529bdae30f3d5b539cacd3edc063ef008bac3a8cd",
-          "whitespace_tokens": 790
+          "sha256": "afaaf1d85eb6e9f28c186a9504ea0a1be67e2629bc261d97a9fc7da337e09b94",
+          "whitespace_tokens": 788
         },
         {
-          "bytes": 6551,
+          "bytes": 7965,
           "exists": true,
-          "lines": 180,
+          "lines": 206,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "820af37f7808f5668b558554dea298514c191160f6af96bbfb4e4f98ee23a503",
-          "whitespace_tokens": 540
+          "sha256": "1e209dc90fe9506ca9194e9b84c9fedef37a016a682e5e03f8036b9ff80db5f9",
+          "whitespace_tokens": 669
         }
       ],
       "owner_exists": true,
@@ -2185,7 +2185,7 @@
       ]
     },
     {
-      "additional_context_tokens": 4994,
+      "additional_context_tokens": 5002,
       "completion_evidence": [
         {
           "bytes": 1660,
@@ -2197,31 +2197,31 @@
           "whitespace_tokens": 221
         },
         {
-          "bytes": 34169,
+          "bytes": 34399,
           "exists": true,
-          "lines": 894,
+          "lines": 897,
           "path": ".agents/agent-surface.manifest.json",
           "role": "completion",
-          "sha256": "44737083d14af61d4a69c6e6891b9f700490101e643714306df2304b5812e04f",
-          "whitespace_tokens": 2506
+          "sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
+          "whitespace_tokens": 2514
         },
         {
-          "bytes": 8417,
+          "bytes": 8814,
           "exists": true,
-          "lines": 261,
+          "lines": 271,
           "path": ".agents/agent-surface.current.json",
           "role": "completion",
-          "sha256": "c3a7f37f3b0157302be81c332dd04af54ecb6804dd9c25e34eb2afdc67885b74",
-          "whitespace_tokens": 400
+          "sha256": "e36280e694f76140a625c676ac58b15d2d302d4cfdc7e326e24aed952c9fc5ab",
+          "whitespace_tokens": 416
         },
         {
-          "bytes": 129858,
+          "bytes": 131184,
           "exists": true,
-          "lines": 2954,
+          "lines": 2981,
           "path": "scripts/validate_agent_surface.py",
           "role": "completion",
-          "sha256": "c4115dc6794470832876aa39be07503ee1ca1fb2f55bcc5fb375a07b9317f964",
-          "whitespace_tokens": 10172
+          "sha256": "227448d339d1e4c4a0878d8a2f175935a225a5457e9e5a351b9098236846344d",
+          "whitespace_tokens": 10282
         }
       ],
       "id": "agent_profile",
@@ -2241,13 +2241,13 @@
           "whitespace_tokens": 1029
         },
         {
-          "bytes": 34169,
+          "bytes": 34399,
           "exists": true,
-          "lines": 894,
+          "lines": 897,
           "path": ".agents/agent-surface.manifest.json",
           "role": "on_demand",
-          "sha256": "44737083d14af61d4a69c6e6891b9f700490101e643714306df2304b5812e04f",
-          "whitespace_tokens": 2506
+          "sha256": "8323d0d7cde98df8428f6d9ac9d2e7ff552110dbfcf1bd4413fee44ad22f0d8e",
+          "whitespace_tokens": 2514
         },
         {
           "bytes": 22513,
@@ -2285,13 +2285,13 @@
           "whitespace_tokens": 1492
         },
         {
-          "bytes": 129858,
+          "bytes": 131184,
           "exists": true,
-          "lines": 2954,
+          "lines": 2981,
           "path": "scripts/validate_agent_surface.py",
           "role": "validation",
-          "sha256": "c4115dc6794470832876aa39be07503ee1ca1fb2f55bcc5fb375a07b9317f964",
-          "whitespace_tokens": 10172
+          "sha256": "227448d339d1e4c4a0878d8a2f175935a225a5457e9e5a351b9098236846344d",
+          "whitespace_tokens": 10282
         },
         {
           "bytes": 23014,
@@ -2527,34 +2527,34 @@
       ]
     },
     {
-      "additional_context_tokens": 768,
+      "additional_context_tokens": 789,
       "completion_evidence": [
         {
-          "bytes": 2114,
+          "bytes": 2552,
           "exists": true,
-          "lines": 52,
+          "lines": 58,
           "path": "kag/AGENTS.md",
           "role": "completion",
-          "sha256": "0e0f806defdee433cfdf9ef4d4ade12c00a3e86590e73ba34382c98dfe75c5d1",
-          "whitespace_tokens": 268
+          "sha256": "54b1f5ae337baef90f1d1e7bee10ae43cb580cbe6ec66f394691d7a7c89d1483",
+          "whitespace_tokens": 318
         },
         {
-          "bytes": 2043,
+          "bytes": 1778,
           "exists": true,
-          "lines": 68,
+          "lines": 62,
           "path": "kag/manifest.json",
           "role": "completion",
-          "sha256": "2149a1b5b82eee29728a7927b32c808f33724f274ea7cbfc29caabe4ab074d38",
-          "whitespace_tokens": 123
+          "sha256": "1a8ad98aefbf1cd3202470ae5b3c1789274047dcc839ae91ce3d8a4983f5f081",
+          "whitespace_tokens": 112
         },
         {
-          "bytes": 25959,
+          "bytes": 14967,
           "exists": true,
-          "lines": 554,
+          "lines": 352,
           "path": "scripts/validate_local_kag_provider.py",
           "role": "completion",
-          "sha256": "7cd5cb7a87bb9623e2f3d3cd31c62ca3eff9ad36e1c43bafb690396ccf7466eb",
-          "whitespace_tokens": 2084
+          "sha256": "d4dcd1458e627aa7897870c59c428446d5309881f4bb841a975ce36589b73817",
+          "whitespace_tokens": 1190
         }
       ],
       "id": "kag_port",
@@ -2562,34 +2562,34 @@
         "AGENTS.md",
         "kag/AGENTS.md"
       ],
-      "inherited_context_tokens": 1166,
+      "inherited_context_tokens": 1216,
       "on_demand_surfaces": [
         {
-          "bytes": 1475,
+          "bytes": 1727,
           "exists": true,
-          "lines": 33,
+          "lines": 39,
           "path": "kag/README.md",
           "role": "on_demand",
-          "sha256": "9d621ab32f18160a24fb5504445233a3aedd0fa1f001d2538acb653e946e7bba",
-          "whitespace_tokens": 218
+          "sha256": "c9e44f9f1fabbac82a0d85239753ff717cdf5eae52ef72fd73fc57be490436dd",
+          "whitespace_tokens": 241
         },
         {
-          "bytes": 2043,
+          "bytes": 1778,
           "exists": true,
-          "lines": 68,
+          "lines": 62,
           "path": "kag/manifest.json",
           "role": "on_demand",
-          "sha256": "2149a1b5b82eee29728a7927b32c808f33724f274ea7cbfc29caabe4ab074d38",
-          "whitespace_tokens": 123
+          "sha256": "1a8ad98aefbf1cd3202470ae5b3c1789274047dcc839ae91ce3d8a4983f5f081",
+          "whitespace_tokens": 112
         },
         {
-          "bytes": 1225,
+          "bytes": 1187,
           "exists": true,
-          "lines": 24,
+          "lines": 25,
           "path": "kag/VALIDATION.md",
           "role": "on_demand",
-          "sha256": "bf157867aaddb55e515da0afc2284a547c5f71f83979dd0f5ec888d764329a53",
-          "whitespace_tokens": 143
+          "sha256": "6ce56430754aa5af1c5ecc1906e5590c48b3c4b8c5b42256e54fdd153750bf80",
+          "whitespace_tokens": 152
         },
         {
           "bytes": 2741,
@@ -2603,13 +2603,13 @@
       ],
       "owner_exists": true,
       "owner_handoff": {
-        "bytes": 2114,
+        "bytes": 2552,
         "exists": true,
-        "lines": 52,
+        "lines": 58,
         "path": "kag/AGENTS.md",
         "role": "owner_handoff",
-        "sha256": "0e0f806defdee433cfdf9ef4d4ade12c00a3e86590e73ba34382c98dfe75c5d1",
-        "whitespace_tokens": 268
+        "sha256": "54b1f5ae337baef90f1d1e7bee10ae43cb580cbe6ec66f394691d7a7c89d1483",
+        "whitespace_tokens": 318
       },
       "owner_handoff_context_tokens": 0,
       "owner_in_inheritance_stack": true,
@@ -2618,13 +2618,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 25959,
+          "bytes": 14967,
           "exists": true,
-          "lines": 554,
+          "lines": 352,
           "path": "scripts/validate_local_kag_provider.py",
           "role": "validation",
-          "sha256": "7cd5cb7a87bb9623e2f3d3cd31c62ca3eff9ad36e1c43bafb690396ccf7466eb",
-          "whitespace_tokens": 2084
+          "sha256": "d4dcd1458e627aa7897870c59c428446d5309881f4bb841a975ce36589b73817",
+          "whitespace_tokens": 1190
         },
         {
           "bytes": 6421,
