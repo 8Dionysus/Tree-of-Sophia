@@ -56,7 +56,16 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     }catch(error){root.dataset.dataState='error';notifyFailure(error,()=>loadFocus(id,{initial,depth,selectFocus}));}
   }
   function chooseNode(id,expected){
-    if(expected===port.packet?.source_revision&&port.node(id)){port.selectNode(id);q('#so-about-tab').focus();return;}
+    const raw=port.node(id);
+    const isClaim=raw?.type_id==='tos.entity.claim'||raw?.semantics?.type_ancestors?.includes('tos.entity.claim');
+    // Search and overview packets can expose a Claim carrier without both
+    // endpoint identities. A reader must never turn that partial packet into
+    // a standalone assertion: reload the exact Claim focus so the bounded
+    // backend scene can supply its complete path and mandatory context.
+    if(isClaim&&!claimPathFor(port.packet,id)){
+      loadFocus(id,{expected:expected===port.packet?.source_revision?expected:null,selectFocus:true});return;
+    }
+    if(expected===port.packet?.source_revision&&raw){port.selectNode(id);q('#so-about-tab').focus();return;}
     loadFocus(id,{expected,selectFocus:true});
   }
   async function chooseRelation(raw,expected){

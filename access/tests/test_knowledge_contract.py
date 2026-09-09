@@ -802,7 +802,16 @@ class KnowledgeContractTests(unittest.TestCase):
         for focus in ('c', 'evidence'):
             view = knowledge_scene(graph['nodes'], graph['relations'], focus)['compact']
             self.assertIn('tos-scene:entity:tos.test.' + focus, view['vertex_ids'])
-            self.assertIn('c-subject', view['relation_ids'])
+            # A focused Claim remains a vertex, while its complete path is
+            # available to the bounded reader and accounts for the two legs.
+            visible_relations = set(view['relation_ids']) | {
+                relation_id
+                for path in view['claim_paths']
+                for relation_id in [*path['relation_ids'], *path['detail_relation_ids']]
+            }
+            self.assertIn('c-subject', visible_relations)
+            if focus == 'c':
+                self.assertIn('c', [path['claim_node_id'] for path in view['claim_paths']])
         # An unknown incident edge must not disappear behind a convenient line.
         graph['relations'].append({**edge, 'id': 'unexpected', 'from_id': 'c', 'to_id': 'evidence',
                                    'relation_type_id': 'tos.relation.related-to'})

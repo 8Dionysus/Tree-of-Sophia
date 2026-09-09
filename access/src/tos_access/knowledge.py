@@ -3804,12 +3804,23 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
                 if arc['to_id'] == focus_vertex:
                     reason = 'focus-detail'
                     break
-        if reason:
+        # A focused Claim remains an explicit vertex, but a complete path is
+        # still useful as the bounded reader's exact context unit.  Do not
+        # fold the focused vertex; consume only the path relations below so
+        # the scene accounts for them once through `claim_paths`.
+        if reason and reason != 'focus-claim':
             for id in local_claims:
                 reasons.setdefault(id, reason)
             continue
-        folded.add(vertex['id'])
+        if reason == 'focus-claim' and any(id not in candidates for id in local_claims):
+            for id in local_claims:
+                reasons.setdefault(id, reason)
+            continue
+        if reason is None:
+            folded.add(vertex['id'])
         for identifier in identifiers:
+            if identifier not in candidates:
+                continue
             candidate = candidates[identifier]
             node, claim, legs = candidate['node'], candidate['claim'], candidate['legs']
             details = sorted(r['id'] for r in outgoing[identifier]
