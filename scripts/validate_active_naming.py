@@ -45,6 +45,20 @@ GENERATED_KAG_PREFIXES = (
     Path("kag/indexes/shards"),
     Path("kag/receipts/index_family_budget"),
 )
+# The v5 segmented family keeps these deterministic v2 compatibility indexes
+# beside its manifest. They are generated carrier material, not authored
+# naming authority; inspect the source routes and the pinned producer instead.
+GENERATED_KAG_INDEX_FILES = frozenset(
+    {
+        "kag/indexes/source_surface_index.json",
+        "kag/indexes/repo_artifact_index.json",
+        "kag/indexes/repo_anchor_index.json",
+        "kag/indexes/repo_entity_index.json",
+        "kag/indexes/repo_event_index.json",
+        "kag/indexes/repo_assertion_index.json",
+        "kag/indexes/repo_relation_index.json",
+    }
+)
 MECHANICS_TOPOLOGY_ROUTE = "mechanics/topology.json"
 RETIRED_TOKENS = (
     "w" + "ave",
@@ -261,6 +275,7 @@ def is_excluded(path: Path) -> bool:
 def _is_excluded_relative(rel: Path) -> bool:
     return (
         rel.as_posix() in EXCLUDED_FILES
+        or rel.as_posix() in GENERATED_KAG_INDEX_FILES
         or any(prefix == rel or prefix in rel.parents for prefix in GENERATED_KAG_PREFIXES)
         or any(part in EXCLUDED_PARTS for part in rel.parts)
     )
