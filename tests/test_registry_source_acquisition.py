@@ -83,8 +83,12 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
                 "citation_scope": "hierarchical_divisions_and_section_milestones", "header_prefix_sha256": acquisition.sha256(prefix)}}
         report = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, body)])
         self.assertEqual(report["files"][0]["division_count"], 4)
-        for changed in (body.replace(b'<p>', b'<p><milestone unit="section" n="1"/>', 1),
-                body.replace(b'unit="section" n="1"', b'unit="section"'),
+        repeated = body.replace(b'<p>', b'<p><milestone unit="section" n="1"/>', 1)
+        observed = acquisition.inspect_payloads(target, [({"basename": "source.xml"}, repeated)])["files"][0]
+        self.assertEqual(observed["division_count"], 5)
+        self.assertEqual(observed["repeated_section_markers"], [{"source_address": [("book", "1"), ("section", "1")], "occurrences": 2}])
+        self.assertNotEqual(observed["division_addresses_sha256"], report["files"][0]["division_addresses_sha256"])
+        for changed in (body.replace(b'unit="section" n="1"', b'unit="section"'),
                 body.replace(b'type="translation"', b'type="translation" n="urn:cts:latinLit:wrong.eng1"'),
                 body.replace(b'xml:base=', b'wrong='),
                 body.replace(b'xml:lang="eng"', b'xml:lang="lat"')):
