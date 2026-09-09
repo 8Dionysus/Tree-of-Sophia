@@ -26,3 +26,7 @@ Exact De Senectute Latin edition within Цицероновский корпус;
 - Greek or modern-language quotations/notes remain embedded source material, not separately admitted translations.
 - Dramatic speakers, objections, reported schools, rhetorical techniques and political recommendations are not automatically the author's own doctrine.
 - Local file custody and branch route do not admit text, translation, semantics or canon.
+
+## English translation added 2026-09-09
+
+[English version and source file](../registry-de-senectute-english/README.md). Shared Work identity does not establish edition dependence or alignment.

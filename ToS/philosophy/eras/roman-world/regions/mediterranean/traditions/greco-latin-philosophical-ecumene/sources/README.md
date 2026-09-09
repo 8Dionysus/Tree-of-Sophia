@@ -69,3 +69,13 @@
 - [De Rerum Natura](plantings/registry-de-rerum-natura/README.md)
 - [De Beneficiis](plantings/registry-de-beneficiis/README.md)
 - [De Clementia](plantings/registry-de-clementia/README.md)
+
+## Registry planting: sixth wave (2026-09-09)
+
+5 English versions alongside existing Latin texts. [Batch reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-sixth-planting-2026-09-09/RESULTS.md).
+
+- [De Senectute, De senectute; De amicitia; De divinatione — English / Latin](plantings/registry-de-senectute-english/README.md)
+- [Laelius on Friendship — English / Latin](plantings/registry-de-amicitia-english/README.md)
+- [De Divinatione, De senectute; De amicitia; De divinatione — English / Latin](plantings/registry-de-divinatione-english/README.md)
+- [De Officiis, De officiis — English / Latin](plantings/registry-de-officiis-english/README.md)
+- [De Rerum Natura — English / Latin](plantings/registry-de-rerum-natura-english/README.md)

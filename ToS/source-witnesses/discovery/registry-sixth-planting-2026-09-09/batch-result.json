@@ -1,0 +1,291 @@
+{
+  "schema_version": "tos_registry_first_planting_result_v1",
+  "completed_at": "2026-09-09T07:19:40.267051+00:00",
+  "preparation_commit": "ec48df224f224e2a5c20c2ca0749d88bb4b6ccd6",
+  "normalization_snapshot": "ToS/research-packets/source-registries/snapshots/32fb9e9c47179581a8f79b992914111515d18602215fe4171609b1f3dd991e00/snapshot.json",
+  "planted": [
+    {
+      "target_slug": "de-senectute-english",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-senectute.en-perseus-phi0474-phi051-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 96162,
+      "textual_acceptance": false,
+      "title": "De Senectute, De senectute; De amicitia; De divinatione",
+      "work_title": "De Senectute",
+      "language": "en",
+      "expression_role": "translation",
+      "new_work_created": false,
+      "atlas_row": "A29",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-senectute-english/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-senectute-english/README.md",
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-senectute/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi051.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "observed_coverage": {
+        "basename": "phi0474.phi051.perseus-eng1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi051.perseus-eng1",
+        "division_count": 85,
+        "first_division": "[[\"section\",\"1\"],[\"marker_occurrence\",\"1\"]]",
+        "last_division": "[[\"section\",\"85\"],[\"marker_occurrence\",\"1\"]]",
+        "division_addresses_sha256": "9b52c5fbaff224d59c9b48c9abf2fb0d0bb889afb77e3d65f39289b83fa4cb88",
+        "address_scope": "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted",
+        "latin_letter_count": 61848,
+        "repeated_section_markers": [
+          {
+            "source_address": [
+              [
+                "section",
+                "35"
+              ]
+            ],
+            "occurrences": 2
+          }
+        ],
+        "repeated_division_labels": []
+      },
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+        "The supplied source repeats logical section numbering: [{\"source_address\": [[\"section\", \"35\"]], \"occurrences\": 2}]. Occurrence-qualified markers distinguish physical locations without correcting the source or establishing CTS passage identity.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-amicitia-english",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 121519,
+      "textual_acceptance": false,
+      "title": "Laelius on Friendship",
+      "work_title": "De Amicitia",
+      "language": "en",
+      "expression_role": "translation",
+      "new_work_created": false,
+      "atlas_row": "A29",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-amicitia-english/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-amicitia-english/README.md",
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-amicitia/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi052.perseus-lat2.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "observed_coverage": {
+        "basename": "phi0474.phi052.perseus-eng2.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi052.perseus-eng2",
+        "division_count": 104,
+        "first_division": "[[\"section\",\"1\"],[\"division_occurrence\",\"1\"]]",
+        "last_division": "[[\"section\",\"104\"],[\"division_occurrence\",\"1\"]]",
+        "division_addresses_sha256": "68ea3468f78ab9b31c073016f2c9926ea97cfe562fb689942e1a15ee15890169",
+        "address_scope": "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted",
+        "latin_letter_count": 72707,
+        "repeated_section_markers": [],
+        "repeated_division_labels": []
+      },
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-divinatione-english",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-divinatione.en-perseus-phi0474-phi053-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 349986,
+      "textual_acceptance": false,
+      "title": "De Divinatione, De senectute; De amicitia; De divinatione",
+      "work_title": "De Divinatione",
+      "language": "en",
+      "expression_role": "translation",
+      "new_work_created": false,
+      "atlas_row": "A29",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-divinatione-english/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-divinatione-english/README.md",
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-divinatione/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi053.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "observed_coverage": {
+        "basename": "phi0474.phi053.perseus-eng1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi053.perseus-eng1",
+        "division_count": 282,
+        "first_division": "[[\"book\",\"1\"],[\"division_occurrence\",\"1\"]]",
+        "last_division": "[[\"book\",\"2\"],[\"division_occurrence\",\"1\"],[\"section\",\"150\"],[\"marker_occurrence\",\"1\"]]",
+        "division_addresses_sha256": "c8499c22ed4629db704068ca4ff16aa4782ca67b939ba291ba7e47dfb29c57b3",
+        "address_scope": "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted",
+        "latin_letter_count": 221489,
+        "repeated_section_markers": [],
+        "repeated_division_labels": []
+      },
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-officiis-english",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.cicero.de-officiis.en-perseus-phi0474-phi055-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 409894,
+      "textual_acceptance": false,
+      "title": "De Officiis, De officiis",
+      "work_title": "De Officiis",
+      "language": "en",
+      "expression_role": "translation",
+      "new_work_created": false,
+      "atlas_row": "A29",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-officiis-english/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-officiis-english/README.md",
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/cicero/de-officiis/work.json",
+        "expression_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi055.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "observed_coverage": {
+        "basename": "phi0474.phi055.perseus-eng1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0474.phi055.perseus-eng1",
+        "division_count": 374,
+        "first_division": "[[\"book\",\"1\"],[\"division_occurrence\",\"1\"]]",
+        "last_division": "[[\"book\",\"1\"],[\"division_occurrence\",\"2\"],[\"section\",\"121\"],[\"marker_occurrence\",\"1\"]]",
+        "division_addresses_sha256": "a2e102e47d6d826ba6036f37aba01ae1bafd15f002d1c3596c2669d760616db5",
+        "address_scope": "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted",
+        "latin_letter_count": 274615,
+        "repeated_section_markers": [],
+        "repeated_division_labels": [
+          {
+            "source_address": [
+              [
+                "book",
+                "1"
+              ]
+            ],
+            "occurrences": 2
+          }
+        ]
+      },
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+        "The supplied source repeats logical section numbering: [{\"source_address\": [[\"book\", \"1\"]], \"occurrences\": 2}]. Occurrence-qualified markers distinguish physical locations without correcting the source or establishing CTS passage identity.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    },
+    {
+      "target_slug": "de-rerum-natura-english",
+      "status": "local-payload-and-owner-package-verified",
+      "item_id": "tos.item.lucretius.de-rerum-natura.en-perseus-phi0550-phi001-perseus-eng1.perseus-8668397510ca.git-tei-xml",
+      "item_manifest_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+      "files": 1,
+      "bytes": 662239,
+      "textual_acceptance": false,
+      "title": "De Rerum Natura",
+      "work_title": "De Rerum Natura",
+      "language": "en",
+      "expression_role": "translation",
+      "new_work_created": false,
+      "atlas_row": "A29",
+      "planting_ref": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-rerum-natura-english/source-planting.json",
+      "reading_route": "ToS/philosophy/eras/roman-world/regions/mediterranean/traditions/greco-latin-philosophical-ecumene/sources/plantings/registry-de-rerum-natura-english/README.md",
+      "parallel_source": {
+        "work_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/work.json",
+        "expression_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/expression.json",
+        "edition_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/edition.json",
+        "item_manifest_ref": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json",
+        "files": [
+          "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0550.phi001.perseus-lat1.xml"
+        ],
+        "relationship_limit": "Parallel versions of the same CTS Work; no exact translation-source or segment-alignment claim."
+      },
+      "observed_coverage": {
+        "basename": "phi0550.phi001.perseus-eng1.xml",
+        "cts_urn": "urn:cts:latinLit:phi0550.phi001.perseus-eng1",
+        "division_count": 219,
+        "first_division": "[[\"book\",\"1\"],[\"division_occurrence\",\"1\"]]",
+        "last_division": "[[\"book\",\"6\"],[\"division_occurrence\",\"1\"],[\"card\",\"1247\"],[\"division_occurrence\",\"1\"]]",
+        "division_addresses_sha256": "7996a0ae9c10a29f068053b655b2d2250ac1c818f8d9e5d23ab19a20efd6b6d7",
+        "address_scope": "occurrence-qualified source divisions and section markers; repeated numbering is retained, not corrected; no CTS service resolution asserted",
+        "latin_letter_count": 327416,
+        "repeated_section_markers": [],
+        "repeated_division_labels": []
+      },
+      "remaining_controls": [
+        "The acquired file is an English translation, distinct from the previously retained Latin Expression and Edition.",
+        "Shared CTS Work identity is not evidence that this translation used the particular Latin edition held by ToS; no exact translation-from or passage alignment is asserted.",
+        "Translator, editor, printing dates and ancillary language statements remain the literal supplied edition metadata.",
+        "Complete pinned supplied file only; no independent completeness, accuracy, ancient-authorship or critical-edition judgment.",
+        "Latin and other-language quotations, introductions and notes inside the file remain distinct supplied editorial layers.",
+        "Local custody, branch routes and parallel reading do not admit translation quality, philosophical meaning or canon.",
+        "The parallel Latin version retains its own source uncertainties; those are not transferred to this translation bibliography.",
+        "Local file custody and branch route do not admit text, translation, semantics or canon."
+      ]
+    }
+  ],
+  "deferred": [],
+  "blocked": [],
+  "total_files": 5,
+  "total_bytes": 1639800,
+  "scope": "5 English translations of existing Works in A29; Latin versions preserved and parallel-linked.",
+  "new_works_created": 0,
+  "source_text_admitted": false,
+  "payload_visibility": "local_only",
+  "public_or_remote_deployment": false,
+  "execution_checkpoint_refs": [
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/preparation-checkpoint-receipt.json",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/acquisition-retry-checkpoint-receipt.json",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/acquisition-recovery-checkpoint-receipt.json",
+    "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/acquisition-occurrences-checkpoint-receipt.json"
+  ],
+  "source_format_followup_ref": "ToS/source-witnesses/discovery/registry-sixth-planting-2026-09-09/SOURCE_FORMAT_FOLLOWUP.md"
+}

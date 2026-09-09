@@ -108,6 +108,8 @@ def report(completed):
         'deferred': [row for row in selection['candidates'] if row['decision'] == 'defer'], 'blocked': [],
         'total_files': sum(row['files'] for row in rows), 'total_bytes': sum(row['bytes'] for row in rows),
         'scope': '5 English translations of existing Works in A29; Latin versions preserved and parallel-linked.',
+        'execution_checkpoint_refs': [str((BASE / name).relative_to(ROOT)) for name in ('preparation-checkpoint-receipt.json', 'acquisition-retry-checkpoint-receipt.json', 'acquisition-recovery-checkpoint-receipt.json', 'acquisition-occurrences-checkpoint-receipt.json')],
+        'source_format_followup_ref': REL + '/SOURCE_FORMAT_FOLLOWUP.md',
         'new_works_created': 0, 'source_text_admitted': False, 'payload_visibility': 'local_only', 'public_or_remote_deployment': False}
     write(BASE / 'batch-result.json', result)
     lines = ['# Шестая посадка: английские переводы', '',
@@ -115,10 +117,11 @@ def report(completed):
         'Четыре произведения Цицерона и «О природе вещей» Лукреция. У каждого сохранены собственные переводчик, издание и проверенный локальный файл; рядом доступна прежняя латинская версия.', '',
         '| Произведение | Ветвь | Английский и латинский тексты |', '| --- | --- | --- |']
     for row in rows:
-        lines.append(f"| {row['title']} | {row['atlas_row']} | [Открыть версии]({os.path.relpath(ROOT / row['reading_route'], BASE)}) |")
+        lines.append(f"| {row['work_title']} | {row['atlas_row']} | [Открыть версии]({os.path.relpath(ROOT / row['reading_route'], BASE)}) |")
     lines.extend(['', '## Границы', '',
         'У остальных шестнадцати Works предыдущей латинской партии нет английского XML в этом проверенном снимке; это не утверждение об отсутствии переводов вообще. [Следующий маршрут](selection-review.json) остаётся у владельца источников.', '',
         'Библиография перевода Лукреция не устраняет неизвестность печатного источника ранее сохранённой латинской версии. Исходная разметка всех пяти переводов и их точные идентификаторы сохранены.', '',
+        'В «О старости» повторён номер раздела 35; в «Об обязанностях» третья книга повторно помечена как первая. Нумерация не исправлена: различаются физические вхождения, а повторы явно отражены в отчётах. [Наблюдения и история восстановления](SOURCE_FORMAT_FOLLOWUP.md).', '',
         'Одинаковое произведение не означает, что перевод сделан с имеющегося у нас латинского издания. Построчное соответствие и качество перевода этой посадкой не приняты.', '',
         '[Покрытие всего реестра](../../../research-packets/source-registries/COVERAGE.md). [Выбор версий](selection-review.json). [Полный результат](batch-result.json).', '',
         'Файлы текстов локальны и исключены из Git; metadata, fixity, права, происхождение и читательские маршруты отслеживаются. CI, merge и публикация остаются отдельными состояниями.', ''])

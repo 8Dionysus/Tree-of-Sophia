@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "57ada190e842d262ab8a64d054dabfcb3387ef69b4f42ac892651219a7c2d0d4",
+  "queue_sha256": "a9f4ff5f6003308c53d0f8d311406ff993123fc9c65535aa1cd2a19dbd1b40f7",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
       "catalog_works": 140,
-      "discovery_runs": 254,
+      "discovery_runs": 259,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "b6caa42834c12879d0254b16d88f62308b0ee036be750798e01f03285064a870",
+    "input_sha256": "8a6293ed17af9d62469caf3001dc816cf2fcb577640e165375fca939ec0bad24",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "05f108b9747fd7b3df15588ca350ff244a3ed8614d3eb3243f2ad49c6abe49b4"
+        "sha256": "4ef32ba1302a7d157554a1bf7b9fe82cda73f6bc5b19963d373283e82d4b78ab"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "c4c84c66e494fcbd630eee1edc824eeb73c03fee46d3986c35c62f0bc88bfbbc"
+        "sha256": "c112a02c99ec75324cd01d294344658dacb9b84c22c74b918378eb8d51e645b7"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1388,6 +1388,10 @@
         "sha256": "5afe14c2f56a3997dd83b2404426556a2be3f5e0c5739c6ffbf5bd87c1aa94b5"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-amicitia-english.2026-09-09.v1.json",
+        "sha256": "07a96af5e6f888d41b466c628dd9385c7fa593c9409a6e8b466da7cc33f7a64c"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-amicitia.2026-09-09.v1.json",
         "sha256": "9d07d03b5b172fa803b553606ad85130e0dcc9ba40a0ee4187e32341d5c6126d"
       },
@@ -1430,6 +1434,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-defectu-oraculorum.2026-09-08.v1.json",
         "sha256": "f0b6215df3495f714d316d85738b9aead20f0b508acf5ef75cd03210b273834a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-divinatione-english.2026-09-09.v1.json",
+        "sha256": "0d8444ff301ab515ba72a63c6d3c24c2196391d96083877dabd02a8e8664c710"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-divinatione.2026-09-09.v1.json",
@@ -1484,6 +1492,10 @@
         "sha256": "ede68c2382ce43bd4ae1517d4ef83555c61576c18a65e0a74a0943108fd66cb3"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-officiis-english.2026-09-09.v1.json",
+        "sha256": "f4fc12dc6199cf734d35a8305331f364b70b5c81f0639724a3370b146c265bb6"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-officiis.2026-09-09.v1.json",
         "sha256": "21836919d822400bd935fc7873e5441e7a80f82c23a3902a893daebf01fb9afe"
       },
@@ -1496,8 +1508,16 @@
         "sha256": "1044a685ae6bba9ce82bdd879f63744aeacecc673b088b056353a3b56c660328"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-rerum-natura-english.2026-09-09.v1.json",
+        "sha256": "51d81bffa9f5159cefde7b15fb1f9238603eb653e771275526a5f834c1846dea"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-rerum-natura.2026-09-09.v1.json",
         "sha256": "5d18f8e30a669194fa9e3b8813f49acd42feda5f9e9affc742ae58cb9edfad89"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-senectute-english.2026-09-09.v1.json",
+        "sha256": "bb8065a8f6a385172adeebb104ae69c708b07efc800ab0473b013675c61e1846"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-senectute.2026-09-09.v1.json",
@@ -2041,7 +2061,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "2cddb2a13ec6293efb919b6df63c15c30e238a0d96f53177ee0c37a6b6f64139"
+        "sha256": "934ee89e62a329642a91dd6a924fd9d95b24e222bc7779ae789ce0175487da73"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -2153,7 +2173,7 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "3054ec10e0758c90e0c2fa51202d36e2d3512f52af269404a11e37a8abdd7ecc"
+        "sha256": "d92b596ac1e46b7ccaaedcad8db8fc996b08be4fbc0508c66cc6bb40d694ef0c"
       },
       {
         "path": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2228,8 +2248,16 @@
         "sha256": "f124f0b42113e9e11e254c5524823bee39fbded1fc431a18282388fc83687177"
       },
       {
+        "path": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b5710eff50f12ff0ff566da979fff4869b0cabc784fe54f2007b346b39c65244"
+      },
+      {
         "path": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/la-perseus-phi0474-phi052/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "abf9bcf4d1782150e2dfc2a4977082efaf03506e3de470f389025d3e424ec793"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e1fe3842a036cd4b0cadc6de9fc709bc13207d21372044ebba8913f3206fdde0"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/de-divinatione/expressions/la-perseus-phi0474-phi053/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
@@ -2252,6 +2280,10 @@
         "sha256": "d00041d987e4506bd89543297b47787d670e280dfceecd2147650afb5bcf40d7"
       },
       {
+        "path": "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "15aecbc20483a4f5d838e6c8f85f73e4b6855ae47ad7c2da35421a073e4c1d19"
+      },
+      {
         "path": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "6e66a4d274b728b323e4cac3c6ef322ef49aab467fe2206f9c4b453da2a59f03"
       },
@@ -2262,6 +2294,10 @@
       {
         "path": "ToS/source-witnesses/works/cicero/de-republica/expressions/la-perseus-phi0474-phi043/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
         "sha256": "aac79db1ff13047f113004598c09c918aa3ef4cdcc7e26aa370075eeac6d55bf"
+      },
+      {
+        "path": "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "600693dc1ac26331d3410fd389a81b3c7e3591ad4967b411b4b1d78040a8bda9"
       },
       {
         "path": "ToS/source-witnesses/works/cicero/de-senectute/expressions/la-perseus-phi0474-phi051/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
@@ -2458,6 +2494,10 @@
       {
         "path": "ToS/source-witnesses/works/hebrew-bible/proverbs/expressions/hbo-wlc-oshb/editions/oshb-3d15126fb1ef/items/git-osis-xml/provenance.jsonl",
         "sha256": "a5ce595867979bbf6030e407936e43385fa10f09d3656855cf875c6d6244b508"
+      },
+      {
+        "path": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
+        "sha256": "28d43dd45f81e93843d27867fdc4045e5fb3547e2ff932992e575a60359084b5"
       },
       {
         "path": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",
