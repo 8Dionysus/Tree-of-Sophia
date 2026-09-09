@@ -124,6 +124,28 @@ class TextUnitProposalTests(unittest.TestCase):
         self.assertEqual(coverage["excluded_anchor_refs"], [anchor(20)])
         self.assertEqual([row["certainty"]["value"] for row in packet["units"]], [0.37, 0.81])
 
+    def test_explicit_layer_only_first_segmentation_has_no_predecessor_packet(self):
+        inputs = copy.deepcopy(self.inputs)
+        del inputs['verified_packet']
+        inputs['verified_layer_binding'] = {'schema_version': 'tos_native_text_layer_binding_v1',
+            'text_layer': copy.deepcopy(self.fixture.binding['text_layer']),
+            'source_record_refs': copy.deepcopy(self.fixture.binding['source_record_refs'])}
+        packet = build_text_unit_proposal(**inputs)
+        self.assert_valid(packet)
+        self.assertIsNone(packet['supersedes_packet_ref'])
+        self.assertEqual(packet['source_scope'], self.fixture.packet['source_scope'])
+        self.assertEqual(packet['source_layer'], self.fixture.packet['source_layer'])
+        self.assertEqual(packet['segmentations'][0]['status'], 'proposed')
+        self.assertTrue(packet['rights_and_visibility']['private_source_used'])
+        self.assertFalse(packet['rights_and_visibility']['publication_authorized'])
+        self.assertEqual(packet['rights_and_visibility']['packet_visibility'], 'local_only')
+        with self.assertRaises(TextUnitProposalError):
+            build_text_unit_proposal(**{**inputs, 'verified_packet': self.fixture.packet})
+        bad = copy.deepcopy(inputs)
+        bad['verified_layer_binding']['text_layer']['layer_id'] += '.different'
+        with self.assertRaises(TextUnitProposalError):
+            build_text_unit_proposal(**bad)
+
     def test_prefix_interior_suffix_gaps_are_explicit_and_source_ordered(self):
         spans = [self.span(1, 4, 5), self.span(2, 6, 7)]
         gaps = [{"anchor_ref": anchor(20 + index), "start": start, "end": end}

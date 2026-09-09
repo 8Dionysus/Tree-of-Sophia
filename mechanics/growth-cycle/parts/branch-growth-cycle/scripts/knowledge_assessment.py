@@ -71,6 +71,20 @@ class Record:
 
 
 @dataclass(frozen=True)
+class RequiredAdmission:
+    """One owner-resolved current-use dependency, never reviewer-supplied.
+
+    The exact basis record carries the source scope, policy, active assessment
+    refs and limits. Its journal head is only a concurrency guard and is not
+    part of the semantic basis, so unrelated events do not force reassessment.
+    """
+
+    basis: Record
+    can_use: bool
+    limits: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SubjectContext:
     record: Record
     assertion_layer: str
@@ -83,6 +97,10 @@ class SubjectContext:
     # The source owner, not assessment prose, selects the exact grounding
     # closure. Presence in the engine alone is not evidence it was assessed.
     required_sources: tuple[Record, ...] = ()
+    required_admissions: tuple[RequiredAdmission, ...] = ()
+    # Available evidence can justify rejection/withdrawal even when a trusted
+    # source-quality condition rules out positive use. This is not access.
+    positive_use_allowed: bool = True
 
 
 class ExecutionBinding(Protocol):
@@ -91,10 +109,40 @@ class ExecutionBinding(Protocol):
 
 
 @dataclass(frozen=True)
+class CommittedScope:
+    """Trusted original batch purpose, not a field supplied by a reviewer.
+
+    Event v1 intentionally keeps this in its enclosing batch request. Retain
+    that context when restoring history so a broader current grant cannot
+    silently turn an earlier judgment into a different use or assessment act.
+    """
+
+    assertion_layer: str
+    risk: str
+    languages: tuple[str, ...]
+    maker_id: str
+    requested_use: str
+
+    @classmethod
+    def from_context(cls, context: SubjectContext) -> CommittedScope:
+        return cls(context.assertion_layer, context.risk, context.languages,
+                   context.maker_id, context.requested_use)
+
+    def matches(self, context: SubjectContext) -> bool:
+        # Language order/case is not a new purpose; adding a language is.
+        return (self.assertion_layer == context.assertion_layer
+                and self.risk == context.risk and self.maker_id == context.maker_id
+                and self.requested_use == context.requested_use
+                and {value.casefold() for value in self.languages}
+                    == {value.casefold() for value in context.languages})
+
+
+@dataclass(frozen=True)
 class Submission:
     assessment: dict[str, Any]
     principal_id: str
     execution_profile: ExecutionBinding
+    committed_scope: CommittedScope | None = None
 
 
 def _instant(value: str) -> datetime:
@@ -234,6 +282,8 @@ class AssessmentEngine:
             reasons.append("subject.access-denied")
         if context.source_read_ready is not True:
             reasons.append("subject.exact-source-unverified")
+        if submission.committed_scope is not None and not submission.committed_scope.matches(context):
+            reasons.append("assessment.committed-scope-mismatch")
         if not context.languages or not context.maker_id:
             reasons.append("subject.scope-incomplete")
         issued = _instant(assessment["issued_at"])
@@ -294,11 +344,14 @@ class AssessmentEngine:
             reasons.append("method.unqualified-execution")
         supporting = []
         evidence_refs = {_canonical(item['record']) for item in assessment['evidence']}
-        for dependency in context.required_sources:
+        for dependency in (*context.required_sources, *(item.basis for item in context.required_admissions)):
             if _resolve(dependency.ref, self.records) is None:
                 reasons.append('source-dependency.stale-or-missing')
             if _canonical(dependency.ref) not in evidence_refs:
                 reasons.append('evidence.required-source-omitted')
+        if assessment['decision'] in POSITIVE and (context.positive_use_allowed is not True
+                or any(item.can_use is not True for item in context.required_admissions)):
+            reasons.append('source-quality.not-admitted')
         for evidence in assessment["evidence"]:
             record = _resolve(evidence["record"], self.records)
             if record is None:
@@ -327,12 +380,23 @@ class AssessmentEngine:
         dependencies; committed supersession remains historical after revocation.
         Truncating history is not a pagination mechanism.
         """
+        if type(context.positive_use_allowed) is not bool:
+            raise ValueError('positive-use eligibility must be an explicit trusted boolean')
         if (not isinstance(context.required_sources, tuple)
                 or len(context.required_sources) > MAX_ASSESSMENTS
                 or any(not isinstance(item, Record) or item.id == context.record.id
                        for item in context.required_sources)):
             raise ValueError('required source closure must contain bounded distinct supporting records')
         _index(context.required_sources)
+        if (not isinstance(context.required_admissions, tuple)
+                or len(context.required_admissions) > 64
+                or any(not isinstance(item, RequiredAdmission) or not isinstance(item.basis, Record)
+                       or item.basis.id == context.record.id or type(item.can_use) is not bool
+                       or not isinstance(item.limits, tuple)
+                       or any(not isinstance(limit, str) or not limit.strip() for limit in item.limits)
+                       for item in context.required_admissions)):
+            raise ValueError('required admission closure must contain bounded trusted basis records')
+        _index(item.basis for item in context.required_admissions)
         if len(reviews) + len(trusted_history) > MAX_ASSESSMENTS:
             raise ValueError("assessment work limit exceeded; do not truncate history")
         instant = _instant(now)
@@ -356,7 +420,13 @@ class AssessmentEngine:
             for ref in submission.assessment['supersedes']:
                 if refs.get(ref['id']) != ref:
                     raise ValueError('trusted history is missing an exact supersession target')
-                permanent_superseded.add(ref['id'])
+                previous = history[ref['id']]
+                # Keep the past act, but never import its supersession into a
+                # different trusted purpose. Legacy batches already carry the
+                # necessary scope; their bytes do not need a migration write.
+                if (submission.committed_scope is None or submission.committed_scope.matches(context)) and (
+                        previous.committed_scope is None or previous.committed_scope.matches(context)):
+                    permanent_superseded.add(ref['id'])
         grouped: dict[str, list[Submission]] = defaultdict(list)
         for submission in (*trusted_history, *reviews):
             assessment_id = submission.assessment.get("assessment_id")
@@ -403,6 +473,8 @@ class AssessmentEngine:
                     invalid.setdefault(assessment_id, []).append("supersession.invalid-target")
                     continue
                 authority = self.authorities[assessment["authority"]["id"]].payload
+                if previous.committed_scope is not None and not previous.committed_scope.matches(context):
+                    invalid.setdefault(assessment_id, []).append("supersession.outside-committed-scope")
                 if (previous.principal_id != submission.principal_id
                         and not authority["can_supersede_others"]):
                     invalid.setdefault(assessment_id, []).append("supersession.unauthorized")
@@ -439,7 +511,8 @@ class AssessmentEngine:
                 groups[item.principal_id].add(self.authorities[item.assessment["authority"]["id"]].payload["independence_group"])
             if len(actors) >= profile["min_reviewers"] and _independent_seats(groups) >= profile["min_independence_groups"]:
                 has_quorum = True
-        limits = sorted({limit for item in judgments for limit in item.assessment["limits"]})
+        limits = sorted({limit for item in judgments for limit in item.assessment["limits"]}
+                        | {limit for item in context.required_admissions for limit in item.limits})
         if disputes or (positives and negatives):
             status = "disputed"
         elif negatives:

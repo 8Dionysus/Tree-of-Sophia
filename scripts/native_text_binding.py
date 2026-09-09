@@ -25,6 +25,7 @@ from referencing.exceptions import Unresolvable
 SOURCE_HOME = Path('ToS/source-witnesses')
 CONTRACT_HOME = Path('ToS/contracts')
 BINDING_SCHEMA = 'native-text-unit-binding.schema.json'
+LAYER_BINDING_SCHEMA = 'native-text-layer-binding.schema.json'
 ASSESSMENT_SCHEMA = 'native-text-unit-assessment-subject.schema.json'
 MAX_METADATA_FILE_BYTES = 1_048_576
 MAX_INPUT_FILES = 128
@@ -304,9 +305,8 @@ class NativeTextBindingResolver:
             raise NativeTextBindingError('native assessment view exceeds the one-record byte budget')
         return {'records': records, 'summary': summary}
 
-    def _source_scope(self, binding, packet, layer):
+    def _source_scope(self, binding, scope, layer):
         """Validate current metadata topology, not historical or textual truth."""
-        scope = packet['source_scope']
         layer_scope = layer['source_binding']
         records = {}
         for kind, ref in binding['source_record_refs'].items():
@@ -338,6 +338,73 @@ class NativeTextBindingResolver:
         if len(matches) != 1 or matches[0]['sha256'] != scope['file_sha256']:
             raise NativeTextBindingError('native source file is not uniquely present in its item manifest')
         return manifest
+
+    def resolve_layer(self, binding: dict, *, verify_content=False, allow_private_content=False):
+        """Resolve a real layer without inventing a predecessor TextUnit.
+
+        This private construction input is not an assessment target or a
+        public-content route. Rights are checked before representation I/O.
+        """
+        if type(verify_content) is not bool or type(allow_private_content) is not bool:
+            raise NativeTextBindingError('native content-read controls must be explicit booleans')
+        self._validate(binding, LAYER_BINDING_SCHEMA)
+        target = binding['text_layer']
+        layer = self._record(target['record_ref'], expected=target['record_sha256'])
+        self._validate(layer, 'source-text-layer.schema.json')
+        if layer['layer_id'] != target['layer_id'] or layer['layer_version'] != target['layer_version']:
+            raise NativeTextBindingError('native text-layer identity/version differs')
+        self._layer_dependencies(layer)
+        source = layer['source_binding']
+        scope = {key: source[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
+        scope.update(file_ref=source['source_file_ref'], file_sha256=source['source_file_sha256'])
+        manifest = self._source_scope(binding, scope, layer)
+        rep = layer['representation']
+        if (rep['media_type'] not in {'text/plain', 'text/plain; charset=utf-8'}
+                or rep['content_file_id'] != 'tos.file.sha256.' + rep['content_sha256']):
+            raise NativeTextBindingError('native construction needs an exact UTF-8 representation File')
+        from validate_source_witness_foundation import _anchor_v2_semantic_issues
+        for entry in source['anchors']:
+            anchor = self._record(entry['anchor_record_ref'], expected=entry['anchor_record_sha256'])
+            self._validate(anchor, 'source-anchor-v2.schema.json')
+            if (anchor['anchor_id'] != entry['anchor_id']
+                    or anchor['target']['item_id'] != scope['item_ref']
+                    or anchor['target']['file_id'] != scope['file_ref']
+                    or anchor['target']['file_sha256'] != scope['file_sha256']
+                    or _anchor_v2_semantic_issues(anchor)):
+                raise NativeTextBindingError('native layer source-anchor closure differs')
+        rights = {entry['ref'] for entry in rep['rights_record_refs']}
+        if not rights or manifest['rights_ref'] not in rights:
+            raise NativeTextBindingError('native layer omits its exact Item rights')
+        relevant = {layer['layer_id'], rep['content_file_id'], *(v for k, v in scope.items() if k.endswith('_ref'))}
+        for entry in rep['rights_record_refs']:
+            record = self._record(entry['ref'], expected=entry['sha256'])
+            self._validate(record, 'rights-record.schema.json')
+            if (not relevant.intersection(record['scope_refs'])
+                    or entry['ref'] == manifest['rights_ref']
+                    and not {scope['item_ref'], scope['file_ref']}.issubset(record['scope_refs'])):
+                raise NativeTextBindingError('native layer rights address a different source')
+        check_local_research_rights(self, layer)
+        for entry in rep['publication_authority_refs']:
+            self._read(entry['ref'], expected=entry['sha256'], support=True)
+        self._path(rep['content_ref'], content=True)
+        if verify_content:
+            if allow_private_content is not True:
+                raise NativeTextBindingError('layer construction requires explicit exact private reading')
+            raw = self._read(rep['content_ref'], expected=rep['content_sha256'], content=True)
+            try:
+                text = raw.decode('utf-8')
+            except UnicodeError as error:
+                raise NativeTextBindingError('native layer is not exact UTF-8') from error
+            span = rep['text_scope']
+            if not 0 <= span['start'] < span['end'] <= len(text):
+                raise NativeTextBindingError('native layer scope leaves its exact representation')
+            form = rep['character_normalization']
+            if form != 'none' and unicodedata.normalize(form, text[span['start']:span['end']]) != text[span['start']:span['end']]:
+                raise NativeTextBindingError('native layer contradicts its declared Unicode form')
+        self.snapshot()
+        return {'metadata_verified': True, 'content_verified': verify_content,
+                'public_content_declared': False, 'assessment_applied': False,
+                'input_mode': 'exact_layer_first_segmentation'}
 
     def _layer_dependencies(self, layer, *, visiting=frozenset()):
         """Retain fixed predecessor and policy bytes, without replaying OCR.
@@ -391,7 +458,7 @@ class NativeTextBindingResolver:
                 or _source_text_layer_semantic_issues(layer)):
             raise NativeTextBindingError('native packet or layer violates its internal evidence contract')
         self._layer_dependencies(layer)
-        manifestation = self._source_scope(binding, packet, layer)
+        manifestation = self._source_scope(binding, packet['source_scope'], layer)
         rep = layer['representation']
         packet_layer = packet['source_layer']
         unicode_form = {'none': 'source_preserved'}.get(rep['character_normalization'], rep['character_normalization'])

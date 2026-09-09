@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "mechanics/growth-cycle/parts/branch-growth-cycle/scripts"))
 sys.path.insert(0, str(ROOT / 'scripts'))  # Source-to-graph assessment adapter contract.
 
-from knowledge_assessment import AssessmentEngine, Record, SubjectContext, Submission
+from knowledge_assessment import AssessmentEngine, Record, RequiredAdmission, SubjectContext, Submission
 
 
 NOW = "2026-09-05T12:00:00Z"
@@ -144,6 +144,96 @@ class AssessmentPolicyTests(unittest.TestCase):
         self.assertTrue(replay['replayed'])
         self.assertTrue(replay['receipt']['admission_at_commit']['can_use'])
         self.assertFalse(replay['current_admission']['can_use'])
+
+    def _two_use_policy(self):
+        body = self.policy.payload
+        body['profiles'][0]['uses'].append('fixture-layer-reading')
+        self.policy = Record.from_payload(self.policy.id, self.policy.version, body)
+        for index, grant in enumerate(self.authorities):
+            body = grant.payload
+            body.update(policy=self.policy.ref, uses=['research', 'fixture-layer-reading'],
+                        can_supersede_others=True)
+            self.authorities[index] = Record.from_payload(grant.id, grant.version, body)
+
+    def test_journal_restores_original_scope_without_rewriting_v1_history(self):
+        from assessment_journal import AssessmentJournal
+        self._two_use_policy()
+        path, _config, _request = self.local_command_fixture()
+        journal = AssessmentJournal(path.parent / 'journal')
+        review = self.review()
+        first = journal.append(self.engine(), self.context, [review], command_id='scope-one',
+                               expected_revision=None, now=NOW)
+        home = journal._home(self.subject.id)
+        retained = {file.name: file.read_bytes() for file in home.iterdir() if file.is_file()}
+        for fields in ({'requested_use': 'fixture-layer-reading'}, {'risk': 'moderate'},
+                       {'maker_id': 'another-maker'}, {'languages': ('de', 'ru')},
+                       {'assertion_layer': 'semantic_interpretation'}):
+            with self.subTest(fields=fields):
+                view = AssessmentJournal(path.parent / 'journal').inspect(
+                    self.engine(), replace(self.context, **fields), now=NOW)
+                self.assertEqual(view['revision'], first['revision'])
+                self.assertFalse(view['current_admission']['can_use'])
+                self.assertIn('assessment.committed-scope-mismatch',
+                              view['current_admission']['invalid_assessments'][0]['reasons'])
+        # The same language written with another case is not another purpose.
+        self.assertTrue(journal.inspect(self.engine(), replace(self.context, languages=('DE',)),
+                                        now=NOW)['current_admission']['can_use'])
+        self.assertEqual(retained, {file.name: file.read_bytes() for file in home.iterdir() if file.is_file()})
+        replay = journal.append(self.engine(), self.context, [review], command_id='scope-one',
+                                expected_revision=None, now=NOW)
+        self.assertTrue(replay['replayed'])
+        self.assertTrue(replay['current_admission']['can_use'])
+
+    def test_cross_use_withdrawal_cannot_suppress_a_committed_research_judgment(self):
+        from assessment_journal import AssessmentJournal, AssessmentRejected
+        self._two_use_policy()
+        path, _config, _request = self.local_command_fixture()
+        journal = AssessmentJournal(path.parent / 'journal')
+        positive = self.review()
+        first = journal.append(self.engine(), self.context, [positive], command_id='research-one',
+                               expected_revision=None, now=NOW)
+        withdrawal = self.review(decision='withdraw', name='tos.review.fixture-other-use-withdrawal')
+        withdrawal.assessment['supersedes'] = [Record.from_payload(
+            positive.assessment['assessment_id'], 1, positive.assessment).ref]
+        with self.assertRaises(AssessmentRejected) as rejected:
+            journal.append(self.engine(), replace(self.context, requested_use='fixture-layer-reading'),
+                           [withdrawal], command_id='cross-use-withdrawal',
+                           expected_revision=first['revision'], now=NOW)
+        self.assertIn('supersession.outside-committed-scope',
+                      rejected.exception.invalid_assessments[0]['reasons'])
+        view = journal.inspect(self.engine(), self.context, now=NOW)
+        self.assertEqual(view['revision'], first['revision'])
+        self.assertTrue(view['current_admission']['can_use'])
+        self.assertEqual(view['current_admission']['superseded_assessment_refs'], [])
+
+    def test_current_admission_dependency_requires_exact_basis_and_retains_limits(self):
+        basis = Record.from_payload('tos.quality-basis.fixture', 1, {
+            'synthetic': True, 'quality_assessment_refs': ['fixture-review-one'],
+            'use': 'fixture-semantic-source', 'limits': ['English provider text only']}, origin_id='source-a')
+        self.records.append(basis)
+        context = replace(self.context, required_admissions=(RequiredAdmission(
+            basis, True, ('English provider text only',)),))
+        review = self.review()
+        missing = self.run_reviews(review, context=context)
+        self.assertFalse(missing['can_use'])
+        self.assertIn('evidence.required-source-omitted', missing['invalid_assessments'][0]['reasons'])
+        review.assessment['evidence'].append({'record': basis.ref, 'stance': 'context', 'locator': 'whole exact quality basis'})
+        admitted = self.run_reviews(review, context=context)
+        self.assertTrue(admitted['can_use'])
+        self.assertEqual(admitted['status'], 'admitted-with-limits')
+        self.assertEqual(admitted['limits'], ['English provider text only'])
+        denied = self.run_reviews(review, context=replace(context, required_admissions=(RequiredAdmission(basis, False),)))
+        self.assertFalse(denied['can_use'])
+        self.assertIn('source-quality.not-admitted', denied['invalid_assessments'][0]['reasons'])
+        # A new valid quality judgment is a different basis, not resurrection
+        # of the old downstream review. An unrelated journal head is absent.
+        changed = Record.from_payload(basis.id, 1, {**basis.payload,
+            'quality_assessment_refs': ['fixture-review-two']}, origin_id='source-a')
+        self.records[-1] = changed
+        replaced_basis = self.run_reviews(review, context=replace(context,
+            required_admissions=(RequiredAdmission(changed, True),)))
+        self.assertFalse(replaced_basis['can_use'])
+        self.assertIn('evidence.required-source-omitted', replaced_basis['invalid_assessments'][0]['reasons'])
 
     def test_local_request_cannot_supply_identity_scope_clock_or_owner_inputs(self):
         path, config, request = self.local_command_fixture()
@@ -1673,6 +1763,38 @@ class AssessmentPolicyTests(unittest.TestCase):
                 contender.append(self.engine(), self.context, [self.review()],
                                  command_id='busy', expected_revision=None, now=NOW)
         self.assertEqual(journal.inspect(self.engine(), self.context, now=NOW)['batch_count'], 0)
+
+    def test_ordered_dependency_locks_allow_nested_append_but_not_another_writer(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from assessment_journal import AssessmentJournal, JournalBusy, JournalConflict
+        journal = self.make_journal()
+        journal.lock_timeout_seconds = 0
+        dependency = 'tos.text-layer.synthetic-dependency'
+        with journal.locked_subjects([self.subject.id, dependency]):
+            committed = journal.append(self.engine(), self.context, [self.review()],
+                                       command_id='within-held-scope', expected_revision=None, now=NOW)
+            self.assertTrue(committed['current_admission']['can_use'])
+            def contend():
+                try:
+                    # The same instance must not treat another thread as the
+                    # holder of this thread's actual per-subject flock.
+                    with journal.locked_subjects([dependency]):
+                        return False
+                except JournalBusy:
+                    return True
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                self.assertTrue(pool.submit(contend).result(timeout=2))
+            with self.assertRaises(JournalConflict):
+                with journal.locked_subjects([dependency, 'tos.text-layer.another']):
+                    pass
+        # Exceptional and normal exits release every acquired lock.
+        with AssessmentJournal(journal.directory, lock_timeout_seconds=0).locked_subjects(
+                [dependency, self.subject.id]):
+            pass
+        for ids in ([], [dependency, dependency], [''], list(map(str, range(66)))):
+            with self.subTest(ids=ids), self.assertRaises(ValueError):
+                with journal.locked_subjects(ids):
+                    pass
 
 
 if __name__ == "__main__":

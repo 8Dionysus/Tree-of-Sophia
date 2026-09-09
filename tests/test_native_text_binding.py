@@ -26,6 +26,7 @@ from native_text_binding import NativeTextBindingError, NativeTextBindingResolve
 LAB = "ToS/research-packets/foundation-laboratory-2026-07"
 CONTRACTS = (
     "native-text-unit-binding.schema.json",
+    "native-text-layer-binding.schema.json",
     "source-text-unit-packet-v1.schema.json",
     "source-text-layer.schema.json",
     "source-anchor-v2.schema.json",
@@ -278,6 +279,57 @@ class NativeTextBindingTests(unittest.TestCase):
 
     def resolve(self, **kwargs):
         return NativeTextBindingResolver(self.root).resolve(self.fixture.binding, **kwargs)
+
+    def layer_binding(self):
+        return {'schema_version': 'tos_native_text_layer_binding_v1',
+                'text_layer': copy.deepcopy(self.fixture.binding['text_layer']),
+                'source_record_refs': copy.deepcopy(self.fixture.refs)}
+
+    def test_layer_only_bootstrap_needs_no_packet_or_original_payload(self):
+        (self.root / self.fixture.packet_ref).unlink()
+        resolver = NativeTextBindingResolver(self.root)
+        metadata = resolver.resolve_layer(self.layer_binding())
+        self.assertFalse(metadata['content_verified'])
+        exact = resolver.resolve_layer(self.layer_binding(), verify_content=True, allow_private_content=True)
+        self.assertTrue(exact['content_verified'])
+        self.assertFalse(exact['public_content_declared'])
+        self.assertFalse(exact['assessment_applied'])
+        self.assert_private_safe(exact)
+        self.assertEqual((self.root / self.fixture.content_ref).read_bytes(), self.fixture.content)
+        self.assertFalse((self.root / self.fixture.original_ref).exists())
+
+    def test_layer_only_rights_and_read_grant_refusal_precede_representation_io(self):
+        def reader(path, limit):
+            self.assertNotEqual(path, self.root / self.fixture.content_ref)
+            self.assertNotEqual(path, self.root / self.fixture.original_ref)
+            return path.read_bytes()
+        with self.assertRaises(NativeTextBindingError):
+            NativeTextBindingResolver(self.root, read_bytes=reader).resolve_layer(
+                self.layer_binding(), verify_content=True)
+        self.fixture.rights['derivative_posture'] = 'not_authorized'
+        self.fixture.refresh()
+        with self.assertRaises((NativeTextBindingError, PermissionError)):
+            NativeTextBindingResolver(self.root, read_bytes=reader).resolve_layer(
+                self.layer_binding(), verify_content=True, allow_private_content=True)
+
+    def test_layer_only_binding_does_not_accept_packet_surrogate_or_drift(self):
+        for change in ('packet', 'identity', 'digest'):
+            binding = self.layer_binding()
+            if change == 'packet':
+                binding['packet_ref'] = self.fixture.packet_ref
+            elif change == 'identity':
+                binding['text_layer']['layer_id'] += '.other'
+            else:
+                binding['text_layer']['record_sha256'] = '0' * 64
+            with self.subTest(change=change), self.assertRaises(NativeTextBindingError):
+                NativeTextBindingResolver(self.root).resolve_layer(binding)
+
+    def test_layer_only_view_never_becomes_a_public_content_route(self):
+        self.fixture.make_public()
+        result = NativeTextBindingResolver(self.root).resolve_layer(
+            self.layer_binding(), verify_content=True, allow_private_content=True)
+        self.assertFalse(result['public_content_declared'])
+        self.assertFalse(result['assessment_applied'])
 
     def assert_private_safe(self, value):
         rendered = json.dumps(value, ensure_ascii=False)

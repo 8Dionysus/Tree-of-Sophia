@@ -33,6 +33,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
             source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
             source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
             source.CLAIM_LAYER_REVISION_CONFIG, source.TEXT_UNIT_CONFIG, source.OWNER_PROFILE_CONFIG,
+            'tos_local_text_unit_create_owner_v2', 'tos_local_text_layer_create_owner_v1',
             source.OWNER_CLAIM_CONFIG, source.OWNER_CLAIM_REFERENCE_CONFIG,
             'tos_local_work_expression_owner_v1', 'tos_local_expression_responsibility_owner_v1',
             'tos_local_expression_edition_owner_v1', 'tos_local_item_adoption_owner_v1'})

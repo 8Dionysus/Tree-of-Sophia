@@ -70,6 +70,12 @@ growth; qualified Expression translator attachment; and separately delegated
 [Expression/Edition growth](NATIVE_EXPRESSION_EDITION_GROWTH.md). Distinct owner-schema
 versions retain their actual typed-value and recovery boundaries.
 
+The separately selected [private native extraction and first-segmentation
+route](NATIVE_TEXT_LAYER_CONSTRUCTION.md) exposes `owner-local-text-layer-create`
+and adds the v2 layer-only input to `owner-local-text-unit-create`. Discovery
+lists implemented grammar only, never an existing source, usable payload,
+private selector/slot, current grant, rights decision or accepted TextLayer.
+
 Assessment-journal and semantic-registry evolution remain explicit owner
 handoffs, not operations dispatched by this front door. Access CLI, HTTP,
 WebMCP and native MCP remain read-only access surfaces; this catalogue does not

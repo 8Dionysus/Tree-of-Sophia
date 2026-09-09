@@ -629,6 +629,24 @@ profile writers below use this transport interface; v1-v3 assessment command con
 public source/Claim/form commands do not implicitly acquire private-source
 support. Each future writer/consumer needs its own explicit adapter.
 
+### Confidential native TextLayer and first segmentation
+
+The separately delegated `tos_local_text_layer_create_owner_v1` route performs
+bounded `text-layer.create` from one already acquired exact EPUB member to a
+new private, unreviewed native layer/anchor package. It requires distinct
+current reading and local-derivation authority plus exact Item/File and new
+layer rights before original bytes are read. It does not acquire material,
+assess text or publish content. The existing owner-local context stays two-root;
+the explicit payload input root is not a fallback namespace.
+
+`tos_local_text_unit_create_owner_v2` then supports first `text-unit.create`
+from a real layer-only binding, without an invented predecessor packet. V2
+adds exact retained input pins and redacted responses; v1 retains its existing
+historical retry semantics. Both new routes retain bounded private recovery
+plans and never overwrite a source or erase interrupted evidence. See
+[the full extraction, grant, limits, first-segmentation and recovery contract](docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md).
+The existing public Occurrence gate is unchanged.
+
 ### Confidential native TextUnit creation
 
 `source_commands.py` dispatches the separately selected
@@ -1118,6 +1136,17 @@ checks live in `tests/test_source_owner_claim_profiles.py` and
 `mechanics/growth-cycle/tests/test_owner_local_claim_assessment.py`.
 Successful synthetic qualification proves
 the mechanics, not real-language competence, source quality or legal permission.
+
+### Confidential text-layer quality v5
+
+The additive `tos_local_assessment_owner_v5` configuration can assess one
+exact raw native TextLayer against its original acquired bytes and require
+current purpose-scoped quality for dependent units, Claims and human forms.
+The [text-layer assessment contract](docs/NATIVE_TEXT_LAYER_ASSESSMENT.md)
+owns selection, explicit comparison reading, protected grants, quality-basis
+dependencies, withdrawal behavior and bounded journal coordination. It uses
+the existing policy engine and immutable journal; v1–v4 and public adapter
+boundaries remain unchanged.
 
 ### Descriptions bound to native text
 

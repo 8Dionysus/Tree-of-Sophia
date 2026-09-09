@@ -26,9 +26,11 @@ from source_revisions import _encode, _file_refs
 
 
 CONFIG = 'tos_local_text_unit_create_owner_v1'
+LAYER_CONFIG = 'tos_local_text_unit_create_owner_v2'
 OPERATION = 'text-unit.create'
 PACKET_SCHEMA = 'ToS/contracts/source-text-unit-packet-v1.schema.json'
 BINDING_SCHEMA = 'ToS/contracts/native-text-unit-binding.schema.json'
+LAYER_BINDING_SCHEMA = 'ToS/contracts/native-text-layer-binding.schema.json'
 PROVENANCE_SCHEMA = 'ToS/contracts/provenance-event-v2.schema.json'
 CONFIG_FILE = 'source-create-owner-configuration.json'
 RECEIPT_FILE = 'source-create-receipt.json'
@@ -84,7 +86,7 @@ def configuration(config, *, owner_config):
     raw = context_read(Path(owner_config), source.MAX_COMMAND_BYTES, confidential_file=True)
     if source._json_object(raw) != config:
         raise source.JournalConflict('native delegation changed while being selected')
-    if (config['schema_version'] != CONFIG or type(config['uid']) is not int
+    if (config['schema_version'] not in {CONFIG, LAYER_CONFIG} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -105,12 +107,13 @@ def configuration(config, *, owner_config):
             or len(Path(config['source_path']).parts) < 7):
         raise PermissionError('native construction requires a new private source package')
     _private_directory(context, path.parent.parent)
+    binding_schema = LAYER_BINDING_SCHEMA if config['schema_version'] == LAYER_CONFIG else BINDING_SCHEMA
     contracts = {ref: context.read_bytes(context.public_root / ref, source.MAX_COMMAND_BYTES)
-                 for ref in (PACKET_SCHEMA, BINDING_SCHEMA, PROVENANCE_SCHEMA)}
+                 for ref in (PACKET_SCHEMA, binding_schema, PROVENANCE_SCHEMA)}
     schema = source._json_object(contracts[PACKET_SCHEMA])
     method_schema = {'$ref': '#/$defs/method', '$defs': schema['$defs']}
     if (not Draft202012Validator(method_schema, format_checker=FormatChecker()).is_valid(config['method'])
-            or not Draft202012Validator(source._json_object(contracts[BINDING_SCHEMA])).is_valid(config['source_binding'])):
+            or not Draft202012Validator(source._json_object(contracts[binding_schema])).is_valid(config['source_binding'])):
         raise ValueError('native delegation does not use the existing method and binding grammar')
     base = Path(config['source_path']).parent
     method = config['method']
@@ -174,6 +177,7 @@ def _inventory_paths(context, *, exclude=None):
                     if stat.S_ISDIR(info.st_mode):
                         pending.append(path)
                     elif (fnmatch.fnmatchcase(entry.name, '*source-text-unit*.json')
+                          or fnmatch.fnmatchcase(entry.name, '*source-text-layer*.json')
                           or fnmatch.fnmatchcase(entry.name, '*source-anchor*.json')
                           or fnmatch.fnmatchcase(entry.name, '*anchor*.jsonl')
                           or 'provenance' in entry.name and entry.name.endswith('.jsonl')):
@@ -187,7 +191,7 @@ def _inventory_paths(context, *, exclude=None):
     return sorted(paths)
 
 
-def _identity_snapshot(context, config, *, exclude=None):
+def _identity_snapshot(context, config, *, exclude=None, identities=None):
     paths = _inventory_paths(context, exclude=exclude)
     remaining, inputs, owned, record_count = MAX_INVENTORY_BYTES, {}, set(), 0
     for ref, path in paths:
@@ -210,13 +214,17 @@ def _identity_snapshot(context, config, *, exclude=None):
                 for group, key in (('schemes', 'scheme_id'), ('anchors', 'anchor_ref'), ('units', 'unit_id'),
                                    ('segmentations', 'segmentation_id')):
                     owned.update(row.get(key) for row in packet.get(group, []))
+            elif packet.get('schema_version') == 'tos_source_text_layer_v1':
+                owned.add(packet.get('layer_id'))
             elif packet.get('schema_version') in {'tos_source_anchor_v2', 'tos_source_anchor_v1'}:
                 owned.add(packet.get('anchor_id'))
+                if packet.get('passage_id') is not None:
+                    owned.add(packet['passage_id'])
             elif 'provenance' in path.name:
                 owned.add(packet.get('event_id'))
             else:
                 raise ValueError('native identity metadata has an unsupported owner shape')
-    if set(_delegated_ids(config)) & owned:
+    if set(_delegated_ids(config) if identities is None else identities) & owned:
         raise source.JournalConflict('a delegated native identity already has an owner')
     if paths != _inventory_paths(context, exclude=exclude):
         raise source.JournalConflict('native identity membership changed during inspection')
@@ -233,46 +241,73 @@ def _prepare(config, request, *, exclude=None):
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     resolver = NativeTextBindingResolver(context.public_root, owner_context=context, read_bytes=source._read)
     binding = config['source_binding']
+    bootstrap = config['schema_version'] == LAYER_CONFIG
     # Access to bytes and permission to derive from them are different gates.
-    resolver.resolve(binding)
-    packet = resolver._record(binding['packet_ref'], expected=binding['packet_sha256'])
+    resolve = resolver.resolve_layer if bootstrap else resolver.resolve
+    resolve(binding)
+    packet = None if bootstrap else resolver._record(binding['packet_ref'], expected=binding['packet_sha256'])
     layer = resolver._record(binding['text_layer']['record_ref'], expected=binding['text_layer']['record_sha256'])
     _local_research_gate(resolver, layer)
     identity_snapshot = _identity_snapshot(context, config, exclude=exclude)
-    summary = resolver.resolve(binding, verify_content=True, allow_private_content=True)
+    summary = resolve(binding, verify_content=True, allow_private_content=True)
     representation = layer['representation']
     raw = resolver._read(representation['content_ref'], expected=representation['content_sha256'], content=True)
     text = raw.decode('utf-8')
-    unit = next(row for row in packet['units'] if row['unit_id'] == binding['unit_id'])
-    anchors = {row['anchor_ref']: row['selector'] for row in packet['anchors']}
-    intervals = [(anchors[ref]['start'], anchors[ref]['end']) for ref in unit['ordered_anchor_refs']]
     start, end = _interval(config['allowed_text_scope'])
-    if (unit['continuity'] != 'contiguous' or not intervals
-            or any(left[1] != right[0] for left, right in zip(intervals, intervals[1:]))
-            or not intervals[0][0] <= start < end <= intervals[-1][1]):
-        raise PermissionError('delegated construction scope leaves the selected contiguous native unit')
+    if not bootstrap:
+        unit = next(row for row in packet['units'] if row['unit_id'] == binding['unit_id'])
+        anchors = {row['anchor_ref']: row['selector'] for row in packet['anchors']}
+        intervals = [(anchors[ref]['start'], anchors[ref]['end']) for ref in unit['ordered_anchor_refs']]
+        if (unit['continuity'] != 'contiguous' or not intervals
+                or any(left[1] != right[0] for left, right in zip(intervals, intervals[1:]))
+                or not intervals[0][0] <= start < end <= intervals[-1][1]):
+            raise PermissionError('delegated construction scope leaves the selected contiguous native unit')
+    elif not representation['text_scope']['start'] <= start < end <= representation['text_scope']['end']:
+        raise PermissionError('first segmentation leaves its explicitly selected text-layer scope')
     output = build_text_unit_proposal(verified_packet=packet, verified_layer=layer, exact_text=text,
         scope=config['allowed_text_scope'], identities=_identities(config), spans=request['spans'],
-        excluded_gaps=request['excluded_gaps'], scheme=config['scheme'], method=config['method'])
+        excluded_gaps=request['excluded_gaps'], scheme=config['scheme'], method=config['method'],
+        **({'verified_layer_binding': binding} if bootstrap else {}))
     resolver._validate(output, 'source-text-unit-packet-v1.schema.json')
-    if (output['source_scope'] != packet['source_scope'] or output['source_layer'] != packet['source_layer']
+    if ((not bootstrap and (output['source_scope'] != packet['source_scope'] or output['source_layer'] != packet['source_layer']))
             or any(row['source_return']['locator_ref'] != representation['content_ref'] for row in output['anchors'])):
         raise ValueError('constructed native proposal changed its verified source closure')
     # Inputs retain raw source bindings only inside the confidential provenance.
     native_inputs = {'rights': representation['rights_record_refs'], 'entities': []}
-    for ref, body, role, media in (
-            (binding['packet_ref'], resolver._read(binding['packet_ref']), 'verified-native-packet', 'application/json'),
+    input_rows = [
             (binding['text_layer']['record_ref'], resolver._read(binding['text_layer']['record_ref']), 'verified-text-layer', 'application/json'),
-            (representation['content_ref'], raw, 'verified-exact-representation', representation['media_type'])):
+            (representation['content_ref'], raw, 'verified-exact-representation', representation['media_type'])]
+    if not bootstrap:
+        input_rows.insert(0, (binding['packet_ref'], resolver._read(binding['packet_ref']), 'verified-native-packet', 'application/json'))
+    for ref, body, role, media in input_rows:
         native_inputs['entities'].append({'entity_ref': ref, 'role': role, 'sha256': source._digest(body)[7:],
             'size_bytes': len(body), 'media_type': media, 'availability': 'owner_local',
             'content_disclosure': 'private_content', 'fixity_verified': True,
             'fixity_verified_at': datetime.now(timezone.utc).isoformat()})
+    implementation_refs = IMPLEMENTATIONS
+    if bootstrap:
+        implementation_refs = (*implementation_refs,
+            'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_layer_commands.py',
+            'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_deposit.py',
+            'scripts/source_metadata_snapshot.py')
+    implementations = {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES))
+                       for ref in implementation_refs}
     dependencies = source._digest(source._canonical({
         'native_snapshot': resolver.snapshot(), 'identity_snapshot': identity_snapshot,
-        'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in IMPLEMENTATIONS}}))
+        'implementation': implementations}))
     subject = source.Record.from_payload(output['packet_id'], output['packet_version'], output)
     files = {Path(config['source_path']).name: _encode(output), CONFIG_FILE: _encode(config)}
+    if bootstrap:
+        # This immutable carrier pins exact dependencies on later retries;
+        # unrelated future identity additions are not historical source drift.
+        from source_text_layer_commands import _runtime
+        files['source-create-inputs.json'] = _encode({
+            'schema_version': 'tos_native_construction_inputs_v1',
+            'context': context.snapshot(),
+            'inputs': [[ref, category, digest] for (ref, category), digest in sorted(resolver._inputs.items())],
+            'implementation': implementations, 'runtime': _runtime()})
+        dependencies = source._digest(source._canonical({'dependencies': dependencies,
+            'exact_inputs': source._digest(files['source-create-inputs.json'])}))
     if sum(map(len, files.values())) > 2 * source.MAX_COMMAND_BYTES:
         raise ValueError('native package proposal exceeds its metadata byte budget')
     return subject, files, dependencies, native_inputs, summary
@@ -283,7 +318,7 @@ def _package(context, target):
     before = target.stat()
     files, remaining = {}, 8 * source.MAX_COMMAND_BYTES
     for path in sorted(target.iterdir()):
-        if len(files) >= 6 or not stat.S_ISREG(path.lstat().st_mode):
+        if len(files) >= 7 or not stat.S_ISREG(path.lstat().st_mode):
             raise source.JournalCorruption('native package must contain only its bounded regular files')
         raw = context.read_bytes(path, min(2 * source.MAX_COMMAND_BYTES, remaining))
         remaining -= len(raw)
@@ -297,8 +332,9 @@ def _package(context, target):
 def _replay(config, configuration_digest, context, path, request, *, owner_config):
     files = _package(context, path.parent)
     original_files = dict(files)
-    if set(files) != {path.name, CONFIG_FILE, RECEIPT_FILE, 'source-create-request.json',
-                      'source-create-environment.json', 'source-create-provenance.jsonl'}:
+    if set(files) != ({path.name, CONFIG_FILE, RECEIPT_FILE, 'source-create-request.json',
+                      'source-create-environment.json', 'source-create-provenance.jsonl'}
+                      | ({'source-create-inputs.json'} if config['schema_version'] == LAYER_CONFIG else set())):
         raise source.JournalCorruption('native package has missing or unbound files')
     receipt = source._json_object(files.pop(RECEIPT_FILE))
     expected_keys = {'schema_version', 'command_id', 'request_digest', 'principal_id', 'authority_ref',
@@ -341,6 +377,15 @@ def run_command(owner_config, config, configuration_digest, path, request):
     context = OwnerLocalSourceContext.load(config['source_context_ref'])
     target = path.parent
     def result(receipt=None, replayed=False):
+        if config['schema_version'] == LAYER_CONFIG:
+            return {'schema_version': 'tos_local_text_unit_create_result_v2',
+                'authentication': 'local-unix-account', 'owner_configuration': configuration_digest,
+                'target_exists': os.path.lexists(target), 'supported_operations': [OPERATION],
+                'command_operations': ['describe', 'prepare-create', OPERATION],
+                'expected_source': None, 'expected_revision': None,
+                'receipt_sha256': source._digest(source._canonical(receipt)) if receipt is not None else None,
+                'replayed': replayed, 'grants_admission': False, 'content_disclosure': 'withheld',
+                'input_mode': 'exact_layer_first_segmentation'}
         return {'schema_version': 'tos_local_text_unit_create_result_v1', 'authentication': 'local-unix-account',
             'owner_configuration': configuration_digest, 'source_path': config['source_path'],
             'packet_id': config['packet_id'], 'target_exists': os.path.lexists(target),
@@ -361,6 +406,9 @@ def run_command(owner_config, config, configuration_digest, path, request):
         response = result()
         response.update(prepared_source=subject.ref, prepared_files=_file_refs(files), expected_dependencies=dependencies,
             capture_at_apply=['source-create-request.json', 'source-create-environment.json', 'source-create-provenance.jsonl'])
+        if config['schema_version'] == LAYER_CONFIG:
+            response.pop('prepared_source')
+            response.pop('prepared_files')
         return response
     if not isinstance(request['command_id'], str) or not 1 <= len(request['command_id']) <= 256:
         raise ValueError('native command identity must contain one to 256 characters')
@@ -382,7 +430,8 @@ def run_command(owner_config, config, configuration_digest, path, request):
         if request['expected_dependencies'] != dependencies:
             raise source.JournalConflict('prepared native source dependencies are stale')
         source._capture_creation_provenance({**config, 'source_root': str(context.public_root)}, request,
-            files, started_at, started_ns, procedure_name='exact-native-text-unit-construction',
+            files, started_at, started_ns, procedure_name=('exact-native-first-text-unit-segmentation'
+                if config['schema_version'] == LAYER_CONFIG else 'exact-native-text-unit-construction'),
             additional_software_refs=IMPLEMENTATIONS[:1] + ('scripts/source_text_unit_proposal.py',), native_inputs=native_inputs)
         receipt = {'schema_version': 'tos_local_source_create_receipt_v1', 'command_id': request['command_id'],
             'request_digest': source._digest(source._canonical(request)), 'principal_id': config['principal_id'],
@@ -391,6 +440,22 @@ def run_command(owner_config, config, configuration_digest, path, request):
             'source': subject.ref, 'dependencies': dependencies, 'files': _file_refs(files), 'grants_admission': False}
         files[RECEIPT_FILE] = source._canonical(receipt) + b'\n'
         _private_directory(context, target.parent)
+        if config['schema_version'] == LAYER_CONFIG:
+            from source_text_layer_commands import install_private_package, _verify_receipt
+            def guard():
+                if (_prepare(config, request)[2] != dependencies
+                        or source._configuration(owner_config)[1:] != (configuration_digest, path)
+                        or context.snapshot() != OwnerLocalSourceContext.load(config['source_context_ref']).snapshot()):
+                    raise source.JournalConflict('first segmentation inputs, context or grant changed before commit')
+            def verify_retained(retained):
+                _, expected, _, _, _ = _prepare(config, request)
+                if (set(retained) != set(files) or any(retained.get(name) != body for name, body in expected.items())):
+                    raise source.JournalConflict('first segmentation retained stage changed outputs or exact dependencies')
+                _verify_receipt(retained, config=config, configuration_digest=configuration_digest,
+                    request=request, source_id=config['packet_id'])
+            retained = install_private_package(context, target, files, request=request,
+                                                guard=guard, verify_retained=verify_retained)
+            return result(source._json_object(retained[RECEIPT_FILE]))
         staging = Path(tempfile.mkdtemp(prefix='.native-create-', suffix='.pending', dir=context.private_root))
         try:
             for name, raw in files.items():
@@ -414,12 +479,12 @@ def run_command(owner_config, config, configuration_digest, path, request):
 
 def command_handlers():
     proposal = {'spans', 'excluded_gaps'}
-    return (contract.Handler('owner-local-text-unit-create', (CONFIG,), (contract.describe(),
+    return (contract.Handler('owner-local-text-unit-create', (CONFIG, LAYER_CONFIG), (contract.describe(),
         contract.operation('prepare-create', proposal, definition='Prepare an explicit interval partition of the independently selected native text closure.', grants=(OPERATION,)),
         contract.operation(OPERATION, proposal | contract.COMMIT_KEYS,
             definition='Create a confidential native TextUnit packet with immutable source and serialization bindings.', mutation='private_text_unit_package', grants=(OPERATION,))),
         run_command, 'Explicit native TextUnit segmentation in the independently selected owner-local store.', configure=configuration,
-        typed_handles=(PACKET_SCHEMA, BINDING_SCHEMA, PROVENANCE_SCHEMA),
+        typed_handles=(PACKET_SCHEMA, BINDING_SCHEMA, LAYER_BINDING_SCHEMA, PROVENANCE_SCHEMA),
         profile_selection='The owner selects one exact native binding and bounded unit slots; request spans cannot select another source or executable.',
         preconditions=('Execution requires an independently protected owner-local context, exact read scope and valid local-research rights.',
                        'Discovery does not open that context or reveal its source text, slots or targets.')),)

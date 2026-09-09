@@ -930,7 +930,7 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
     if native_inputs is not None:
         # Internal native adapter only. Source reading/anchor construction is
         # not metadata-only serialization; its whole receipt stays private.
-        event['activity']['event_type'] = 'segmentation'
+        event['activity']['event_type'] = native_inputs.get('event_type', 'segmentation')
         event['activity']['warnings'][0] = (
             'Exact representation and native metadata verified; proposed anchors computed; '
             'atomic publication occurs afterward and no linguistic assessment is performed.')
@@ -958,6 +958,23 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
         event['reproducibility']['replay_scope'] = (
             'Exact source-byte verification and deterministic packet construction from the retained '
             'delegation/request, not linguistic correctness or deterministic provenance timestamps.')
+        if native_inputs.get('event_type') == 'native_extraction':
+            event['activity']['warnings'][0] = (
+                'Exact acquired File and member verified; declared bounded structural extraction completed; '
+                'atomic publication occurs afterward and no textual assessment is performed.')
+            event['method']['procedure']['purpose'] = (
+                'Extract a separately granted exact member/selector into an immutable unreviewed private '
+                'TextLayer; no OCR, silent whitespace/Unicode rewrite or first segmentation.')
+            event['reproducibility']['known_gaps'][0] = (
+                'Source selection and rights decisions belong to the independent owner; this command '
+                'captures bounded extraction mechanics without assessing source fidelity or content truth.')
+            event['reproducibility']['replay_scope'] = (
+                'Exact retained source/configuration/implementation and bounded extraction output; '
+                'not textual correctness or deterministic provenance timestamps.')
+            for group in event['entities'].values():
+                for item in group:
+                    if item['entity_ref'].endswith('/content.txt'):
+                        item['media_type'] = 'text/plain; charset=utf-8'
     if owner_local_metadata:
         # Explicit internal private metadata adapter, never a caller flag.
         # This records serialization; it does not pretend to segment text.
@@ -1359,6 +1376,7 @@ def command_handlers():
     import source_revisions
     import source_selected_revisions
     import source_text_unit_commands
+    import source_text_layer_commands
     import source_owner_profile_commands
     import source_owner_claim_commands
     import source_expression_commands
@@ -1367,7 +1385,7 @@ def command_handlers():
     import source_item_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions,
-        source_text_unit_commands, source_owner_profile_commands, source_owner_claim_commands,
+        source_text_unit_commands, source_text_layer_commands, source_owner_profile_commands, source_owner_claim_commands,
         source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands)
         for handler in module.command_handlers()))
     schemas = [schema for handler in handlers for schema in handler.owner_schemas]

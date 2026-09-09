@@ -108,6 +108,47 @@ class NativeUnitCommandTests(unittest.TestCase):
         self.assertFalse(os.path.lexists(self.path.parent))
         self.assertEqual(list(self.private.glob('.native-create-*.pending')), [])
 
+    def select_layer_only(self):
+        self.config['schema_version'] = native.LAYER_CONFIG
+        self.config['source_binding'] = {
+            'schema_version': 'tos_native_text_layer_binding_v1',
+            'text_layer': copy.deepcopy(self.fixture.binding['text_layer']),
+            'source_record_refs': copy.deepcopy(self.fixture.refs)}
+        (self.public / self.fixture.packet_ref).unlink()
+        self.write_owner()
+
+    def test_layer_only_bootstrap_is_private_and_pins_original_exact_inputs_on_retry(self):
+        self.select_layer_only()
+        described = self.run_command({'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+        prepared = self.prepare()
+        created = self.run_command(self.request)
+        retained = self.files()
+        replay = self.run_command(self.request)
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['receipt_sha256'], created['receipt_sha256'])
+        self.assertIn('source-create-inputs.json', retained)
+        for value in (described, prepared, created, replay):
+            rendered = json.dumps(value)
+            for secret in ('unit_slots', 'allowed_text_scope', 'source_path', 'prepared_files',
+                           'prepared_source', self.fixture.content_ref, self.source_ref):
+                self.assertNotIn(secret, rendered)
+            self.assertFalse(value['grants_admission'])
+        self.fixture.manifest['manifest_version'] = 2
+        self.fixture.write_json(self.fixture.manifest_ref, self.fixture.manifest)
+        # V2 pins consumed bytes; this is intentionally stricter than V1's
+        # historical-request/current-source-validation contract below.
+        with self.assertRaises(ValueError):
+            self.run_command(self.request)
+        self.assertEqual(self.files(), retained)
+
+    def test_layer_only_scope_cannot_escape_its_real_layer(self):
+        self.select_layer_only()
+        self.config['allowed_text_scope'] = {'start': 0, 'end': len(self.fixture.text)}
+        self.write_owner()
+        with self.assertRaises(PermissionError):
+            self.prepare()
+        self.assert_not_published()
+
     def test_describe_needs_delegation_but_never_reads_the_representation(self):
         (self.public / self.fixture.content_ref).unlink()
         described = self.run_command({'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})

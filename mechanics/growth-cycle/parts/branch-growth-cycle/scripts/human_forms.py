@@ -15,7 +15,7 @@ from typing import Any, Iterable, Sequence
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
-from knowledge_assessment import AssessmentEngine, Record, SubjectContext, Submission
+from knowledge_assessment import AssessmentEngine, Record, RequiredAdmission, SubjectContext, Submission
 
 
 MAX_OUTPUT_BYTES = 65_536
@@ -69,6 +69,7 @@ class FormScope:
     source_languages: tuple[tuple[SourceBinding, str | None, str | None], ...] = ()
     language_context: SourceBinding | None = None
     required_sources: tuple[Record, ...] = ()
+    required_admissions: tuple[RequiredAdmission, ...] = ()
 
 
 @lru_cache(maxsize=8)
@@ -139,6 +140,12 @@ policy result bound to this exact form and current dependency snapshot.
     if (not isinstance(scope.required_sources, tuple)
             or any(not isinstance(item, Record) or item.id == form.id for item in scope.required_sources)):
         return stop('invalid', 'form.required-source-scope')
+    if (not isinstance(scope.required_admissions, tuple) or len(scope.required_admissions) > 64
+            or any(not isinstance(item, RequiredAdmission) or not isinstance(item.basis, Record)
+                   or type(item.can_use) is not bool for item in scope.required_admissions)):
+        return stop('invalid', 'form.required-admission-scope')
+    if any(not item.can_use for item in scope.required_admissions):
+        return stop('needs-assessment', 'source-quality.not-admitted')
     if (len(records) > MAX_SOURCE_RECORDS or len(templates) > MAX_TEMPLATES
             or len(prior_forms) > MAX_PRIOR_FORMS or len(scope.required_context) > 256
             or len(scope.source_languages) > 256 or len(scope.required_sources) > 256
@@ -177,7 +184,7 @@ policy result bound to this exact form and current dependency snapshot.
     values = {}
     source_payloads = {}
     dependencies = [scope.subject.ref]
-    for dependency in _index(scope.required_sources).values():
+    for dependency in _index((*scope.required_sources, *(item.basis for item in scope.required_admissions))).values():
         if dependency.id not in current:
             return stop('unavailable', 'required-source.unavailable')
         if current[dependency.id].ref != dependency.ref:
@@ -197,7 +204,8 @@ policy result bound to this exact form and current dependency snapshot.
             return stop('invalid', 'binding.pointer:' + slot)
         dependencies.append(source.ref)
     binding_keys = {_canonical(binding): slot for slot, binding in payload['bindings'].items()}
-    required_context = list(scope.required_context)
+    required_context = [*scope.required_context,
+                        *(SourceBinding(item.basis, '') for item in scope.required_admissions)]
     if scope.language_context is not None:
         metadata_slot = binding_keys.get(_canonical(scope.language_context.ref))
         if metadata_slot is None:
@@ -295,7 +303,8 @@ policy result bound to this exact form and current dependency snapshot.
                 return stop('stale', 'assessment.snapshot-differs')
         context = SubjectContext(form, 'human_projection', scope.risk, scope.languages,
                                  scope.maker_id, scope.requested_use, access_allowed=True,
-                                 required_sources=scope.required_sources)
+                                 required_sources=scope.required_sources,
+                                 required_admissions=scope.required_admissions)
         result['admission'] = engine.evaluate(context, reviews, now=now, trusted_history=trusted_history)
         if not result['admission']['can_use']:
             return stop('needs-assessment', 'freeform.not-admitted')

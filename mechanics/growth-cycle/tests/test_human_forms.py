@@ -14,7 +14,7 @@ from referencing import Registry, Resource
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'))
 from human_forms import FormScope, SourceBinding, materialize_form
-from knowledge_assessment import Record
+from knowledge_assessment import Record, RequiredAdmission
 import test_knowledge_assessment as assessment_fixture
 
 
@@ -95,6 +95,30 @@ class HumanFormTests(unittest.TestCase):
         self.assertIsNone(result['admission'])
         self.assertFalse(result['performs_semantic_assessment'])
         self.assertEqual(self.payload, before)
+
+    def test_quality_bound_copy_and_template_require_current_basis_and_context(self):
+        basis = Record.from_payload('tos.quality-basis.form-fixture', 1,
+            {'synthetic': True, 'limits': ['selected text only'], 'assessment_refs': ['fixture-quality-one']})
+        scope = replace(self.scope, required_admissions=(RequiredAdmission(basis, True, ('selected text only',)),))
+        self.assertEqual(self.render(scope=scope, records=[self.subject, basis])['issues'], ['context.omitted'])
+        self.payload['bindings']['quality'] = SourceBinding(basis, '').ref
+        template = self.template()
+        for kind in ('source-copy', 'template'):
+            with self.subTest(kind=kind):
+                body = copy.deepcopy(self.payload)
+                if kind == 'template':
+                    body['content'] = {'kind': 'template', 'template': template.ref}
+                result = self.render(payload=body, scope=scope, records=[self.subject, basis], templates=[template])
+                self.assertEqual(result['state'], 'ready')
+                self.assertIn(basis.ref, result['dependencies'])
+                self.assertEqual(result['context'][-1]['value'], basis.payload)
+                stopped = self.render(payload=body, records=[self.subject, basis], templates=[template],
+                    scope=replace(scope, required_admissions=(RequiredAdmission(basis, False),)))
+                self.assertEqual(stopped['state'], 'needs-assessment')
+                self.assertIsNone(stopped['display_text'])
+                self.assertEqual(stopped['issues'], ['source-quality.not-admitted'])
+        changed = Record.from_payload(basis.id, 1, {**basis.payload, 'assessment_refs': ['fixture-quality-two']})
+        self.assertEqual(self.render(scope=scope, records=[self.subject, changed])['state'], 'stale')
 
     def test_current_dependency_and_source_language_are_not_form_author_choices(self):
         changed = Record.from_payload(self.subject.id, 2, {**self.subject.payload, 'negated': False})

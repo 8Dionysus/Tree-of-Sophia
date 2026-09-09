@@ -236,6 +236,17 @@ class OwnerLocalAssessmentSources:
             result.append(record)
         return tuple(result)
 
+    def load_quality_grammar(self):
+        """V5-only grammar: private v4 keeps its exact original read closure."""
+        ref = 'ToS/contracts/native-text-layer-quality-basis.schema.json'
+        raw = self.context.read_bytes(self.context.path(ref), MAX_RECORD_BYTES, read_bytes=self._read)
+        schema = _json_object(raw)
+        if schema.get('$id') != 'https://tree-of-sophia.local/' + ref:
+            raise ValueError('quality basis grammar has another source identity')
+        Draft202012Validator.check_schema(schema)
+        self.contracts[ref] = hashlib.sha256(raw).hexdigest()
+        return Draft202012Validator(schema, format_checker=FormatChecker())
+
     def _add(self, body, identity, version, origin, path):
         record = Record.from_payload(body[identity], body[version], body, origin_id=origin)
         return self._add_record({'id': record.id, 'version': record.version,

@@ -82,6 +82,50 @@ can be researched without pretending that its assertion has been settled.
 
 ## History and withdrawal
 
+### Text-layer quality and dependent use
+
+`assessment-policy.v3.json` retains the earlier profiles and adds separate
+quality uses for citation, linguistic analysis, semantic analysis and search
+projection. Admission for one purpose does not imply the others. Low and
+moderate risk require one competent reviewer independent of the layer maker;
+high risk requires two independent reviewer groups. Original-source support
+and counterevidence search remain necessary. These profiles do not grant
+diplomatic fidelity, translation-source authority, publication or canon.
+
+An exact TextLayer quality assessment addresses the unchanged raw layer record
+and a separate versioned comparison of the original source with the derived
+representation, including the selector, editorial policy and maker settings.
+The initial comparison adapter supports bounded structural extraction from one
+EPUB XHTML member only. Unsupported OCR, correction or normalization chains
+require their own comparison route; verified derived bytes cannot stand in for
+that missing evidence. Mechanical equality makes discrepancies inspectable;
+it never supplies a positive quality judgment by itself.
+
+Available exact comparison and positive-use eligibility are separate gates.
+A competent authorized reviewer may reject, dispute, defer or withdraw on
+available current evidence even when quality prevents positive admission.
+The same exact dependency evidence and supersession authority remain required;
+missing source access or a metadata-only comparison cannot qualify any such
+decision. Closing a quality gate must not prevent recording an explicit
+withdrawal of an affected dependent judgment.
+
+A dependent Claim, unit or human form uses a freshly derived quality basis:
+the exact layer, comparison, purpose, content scope, policy, active assessment
+references and limits. The trusted source closure determines which layers are
+required; neither incoming prose nor a copied positive basis can omit them.
+The reviewer must explicitly address this basis as evidence, and the current
+gate must still permit use. Human forms retain it in their context and inherit
+its limitations. Replaced quality evidence requires renewed dependent review,
+even when the text bytes have not changed. An unrelated journal append does
+not change the basis merely by moving a journal head.
+
+The confidential v5 command adapter holds bounded, consistently ordered locks
+on the target and selected quality journals while resolving, committing and
+returning their current use. Source, rights and access are rechecked at the
+commit and return boundaries. It neither rewrites prior events nor claims a
+cross-subject write transaction. The existing public graph adapter refuses
+this private owner configuration before opening its source context.
+
 ### Candidate-to-Sign issuance
 
 `assessment-policy.v2.json` is an additive policy successor. Version 1 and
@@ -123,6 +167,13 @@ invalidate dependent admission results. They do not rewrite the recorded past
 act. Serving uses the agreed snapshot; historical inspection names its snapshot.
 An invalid new assessment cannot suppress a valid earlier one.
 
+The original trusted purpose and scope of an assessment stay bound to its
+immutable batch request. A later configuration cannot reinterpret that event
+as another use, layer, risk, maker or language scope, even when a current grant
+covers both. Inspection requalifies the event within its original scope;
+cross-scope supersession is not authorized by the ordinary same-subject grant.
+Existing batch v1 records already retain this context and are not rewritten.
+
 ## Succession of existing contracts
 
 This law replaces a universal human-only requirement for new competence-scoped
@@ -146,6 +197,9 @@ decision boundary, not by the mere fact that knowledge is philosophical.
 - `ToS/contracts/knowledge-assessment-batch.schema.json`
 - `ToS/doctrine/semantic-interchange/assessment-policy.v1.json`
 - `ToS/doctrine/semantic-interchange/assessment-policy.v2.json`
+- `ToS/doctrine/semantic-interchange/assessment-policy.v3.json`
+- `ToS/contracts/native-text-layer-comparison.schema.json`
+- `ToS/contracts/native-text-layer-quality-basis.schema.json`
 - `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py`
 - `mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py`
 

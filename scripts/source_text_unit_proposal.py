@@ -183,10 +183,12 @@ def _delegated_identities(identities, packet):
         delegated.append(_identity(identity, "anchor"))
     if len(set(delegated)) != len(delegated):
         _fail("native identity delegation repeats an identity")
-    existing = {packet["packet_id"]}
-    for rows, key in (("schemes", "scheme_id"), ("segmentations", "segmentation_id"),
-                      ("units", "unit_id"), ("anchors", "anchor_ref")):
-        existing.update(row[key] for row in packet[rows])
+    existing = set()
+    if packet is not None:
+        existing.add(packet["packet_id"])
+        for rows, key in (("schemes", "scheme_id"), ("segmentations", "segmentation_id"),
+                          ("units", "unit_id"), ("anchors", "anchor_ref")):
+            existing.update(row[key] for row in packet[rows])
     if existing.intersection(delegated):
         _fail("new native identities reuse an identity from the source packet")
     return by_unit
@@ -249,15 +251,73 @@ def _partition(scope, slots, spans, gaps, allowed_gaps):
         _fail("explicit excluded gaps are not the exact ordered complement of the units")
 
 
-def build_text_unit_proposal(*, verified_packet, verified_layer, exact_text, scope,
-                             identities, spans, excluded_gaps, scheme, method):
+def _layer_only_inputs(layer, binding, exact_text, scope):
+    """First-segmentation fields from a real layer, never a surrogate packet."""
+    _keys(binding, {'schema_version', 'text_layer', 'source_record_refs'}, 'layer-only binding')
+    if (binding['schema_version'] != 'tos_native_text_layer_binding_v1'
+            or type(layer) is not dict or layer.get('schema_version') != 'tos_source_text_layer_v1'
+            or type(exact_text) is not str):
+        _fail('first segmentation requires verified native layer-only evidence')
+    _json_bytes(binding)
+    _json_bytes(layer)
+    _keys(scope, {'start', 'end'}, 'proposal scope')
+    start, end = _interval(scope, 'proposal scope')
+    try:
+        raw = exact_text.encode('utf-8')
+        rep = layer['representation']
+        target = binding['text_layer']
+        frozen = rep['text_scope']
+        form = rep['character_normalization']
+        if (not raw or len(raw) > MAX_TEXT_BYTES
+                or target['layer_id'] != layer['layer_id'] or target['layer_version'] != layer['layer_version']
+                or not frozen['start'] <= start < end <= frozen['end'] <= len(exact_text)
+                or frozen['position_unit'] != 'unicode_code_point' or frozen['interval'] != 'half_open'
+                or rep['content_sha256'] != hashlib.sha256(raw).hexdigest()
+                or rep['content_file_id'] != 'tos.file.sha256.' + rep['content_sha256']
+                or rep['media_type'] not in {'text/plain', 'text/plain; charset=utf-8'}
+                or form not in {'none', 'NFC', 'NFD', 'NFKC', 'NFKD'}
+                or rep['content_visibility'] not in VISIBILITY_RANK
+                or not rep['rights_record_refs'] or _source_text_layer_semantic_issues(layer)):
+            _fail('first segmentation layer or exact representation closure differs')
+        selected = exact_text[frozen['start']:frozen['end']]
+        if form != 'none' and unicodedata.normalize(form, selected) != selected:
+            _fail('first segmentation would contradict source Unicode declaration')
+        source = layer['source_binding']
+        source_scope = {key: source[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
+        source_scope.update(file_ref=source['source_file_ref'], file_sha256=source['source_file_sha256'])
+        source_layer = {'text_layer_ref': target['record_ref'], 'text_layer_sha256': rep['content_sha256'],
+            'language': rep['language'], 'media_type': 'text/plain; charset=utf-8',
+            'unicode_form': 'source_preserved' if form == 'none' else form,
+            'position_unit': 'unicode_code_point', 'interval': 'half_open', 'immutable': True,
+            'visibility': rep['content_visibility'], 'publication_authorized': rep['publication_authorized']}
+        rights = {'source_visibility': rep['content_visibility'], 'packet_visibility': 'local_only',
+            'effective_visibility': max((rep['content_visibility'], 'local_only'), key=VISIBILITY_RANK.__getitem__),
+            'rights_record_refs': [entry['ref'] for entry in rep['rights_record_refs']],
+            'private_source_used': True, 'publication_authorized': False,
+            'inheritance_policy': 'most-restrictive-source-packet-and-destination-wins'}
+        return rep, source_scope, source_layer, rights
+    except (KeyError, TypeError, AttributeError, UnicodeError):
+        _fail('first segmentation requires exact bounded source-layer fields')
+
+
+def build_text_unit_proposal(*, verified_layer, exact_text, scope,
+                             identities, spans, excluded_gaps, scheme, method,
+                             verified_packet=None, verified_layer_binding=None):
     """Construct a native packet without I/O, mutation or authority promotion.
 
     ``exact_text`` is the full representation, not an offset-rebased fragment.
     Schema validation, source-read authority, global ID uniqueness and atomic
     storage remain obligations of the caller, not assertions of this function.
     """
-    rep = _source_inputs(verified_packet, verified_layer, exact_text, scope)
+    if verified_packet is None:
+        rep, source_scope, source_layer, source_rights = _layer_only_inputs(
+            verified_layer, verified_layer_binding, exact_text, scope)
+    else:
+        if verified_layer_binding is not None:
+            _fail('segmentation must select exactly one real native input mode')
+        rep = _source_inputs(verified_packet, verified_layer, exact_text, scope)
+        source_scope, source_layer, source_rights = (verified_packet[key] for key in
+            ('source_scope', 'source_layer', 'rights_and_visibility'))
     for value in (identities, spans, excluded_gaps, scheme, method):
         _json_bytes(value)
     slots = _delegated_identities(identities, verified_packet)
@@ -266,7 +326,7 @@ def build_text_unit_proposal(*, verified_packet, verified_layer, exact_text, sco
     except (TypeError, KeyError):
         _fail("proposal method has an incompatible native shape")
     _partition(scope, slots, spans, excluded_gaps, identities["gap_anchor_refs"])
-    source_layer = copy.deepcopy(verified_packet["source_layer"])
+    source_layer = copy.deepcopy(source_layer)
 
     def anchor(identity, role, left, right):
         return {"anchor_ref": identity, "text_layer_ref": source_layer["text_layer_ref"],
@@ -290,13 +350,13 @@ def build_text_unit_proposal(*, verified_packet, verified_layer, exact_text, sco
               "parent_unit_refs": [], "ordered_child_unit_refs": [], "boundary_posture": "method_proposed",
               "certainty": copy.deepcopy(row["certainty"]), "status_reason": row["status_reason"],
               "source_text_mutated": False, "semantic_promotion": False} for row in spans]
-    rights = copy.deepcopy(verified_packet["rights_and_visibility"])
+    rights = copy.deepcopy(source_rights)
     rights.update(packet_visibility="local_only", publication_authorized=False,
                   effective_visibility=max((rights["source_visibility"], "local_only"), key=VISIBILITY_RANK.__getitem__))
     packet = {
         "$schema": SCHEMA_URI, "schema_version": "tos_source_text_unit_packet_v1",
         "packet_id": identities["packet_id"], "packet_version": 1, "supersedes_packet_ref": None,
-        "content_posture": "source_bound", "source_scope": copy.deepcopy(verified_packet["source_scope"]),
+        "content_posture": "source_bound", "source_scope": copy.deepcopy(source_scope),
         "source_layer": source_layer,
         "schemes": [{"scheme_id": identities["scheme_id"], "scheme_version": 1, "supersedes_scheme_ref": None,
                      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",

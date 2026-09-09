@@ -242,12 +242,14 @@ def validate_documentation_references(repo_root: Path, issues: list[Issue]) -> N
     for path in current_mechanics_markdown(repo_root):
         relative = path.relative_to(repo_root).as_posix()
         text = path.read_text(encoding="utf-8")
-        references = list(markdown_destinations(text))
+        # Examples are not live Markdown routes; keep raw text for executable checks below.
+        rendered = rendered_markdown(text)
+        references = list(markdown_destinations(rendered))
         definitions = {
             re.sub(r"\s+", " ", label.strip()).casefold(): (angle or bare)
-            for label, angle, bare in MARKDOWN_REFERENCE_DEFINITION_RE.findall(text)
+            for label, angle, bare in MARKDOWN_REFERENCE_DEFINITION_RE.findall(rendered)
         }
-        for label, explicit_label in MARKDOWN_REFERENCE_USE_RE.findall(text):
+        for label, explicit_label in MARKDOWN_REFERENCE_USE_RE.findall(rendered):
             key = re.sub(r"\s+", " ", (explicit_label or label).strip()).casefold()
             if key not in definitions:
                 issues.append((relative, f"unresolved reference-style documentation route: {explicit_label or label}"))

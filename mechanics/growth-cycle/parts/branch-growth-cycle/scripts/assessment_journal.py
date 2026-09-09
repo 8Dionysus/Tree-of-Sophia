@@ -9,8 +9,8 @@ second corpus or an independently authoritative cached admission database.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
-from dataclasses import dataclass
+from contextlib import contextmanager, ExitStack
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -22,13 +22,14 @@ import re
 import stat
 import sys
 import tempfile
+import threading
 import time
 from typing import Any, Callable, Iterator, Sequence
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from knowledge_assessment import (
-    AssessmentEngine, MAX_ASSESSMENTS, MAX_RECORD_BYTES, SubjectContext,
-    Record, Submission, _canonical, _instant, _validators,
+    AssessmentEngine, CommittedScope, MAX_ASSESSMENTS, MAX_RECORD_BYTES, SubjectContext,
+    Record, RequiredAdmission, Submission, _canonical, _instant, _validators,
 )
 
 
@@ -66,9 +67,9 @@ def _serialize(submission: Submission) -> dict[str, Any]:
             'execution_profile': submission.execution_profile.ref}
 
 
-def _restore(payload: dict[str, Any]) -> Submission:
+def _restore(payload: dict[str, Any], scope: CommittedScope | None = None) -> Submission:
     return Submission(payload['assessment'], payload['principal_id'],
-                      _RecordedExecution(**payload['execution_profile']))
+                      _RecordedExecution(**payload['execution_profile']), scope)
 
 
 def _digest(value: Any) -> str:
@@ -106,6 +107,7 @@ class AssessmentJournal:
         self.lock_timeout_seconds = lock_timeout_seconds
         self.protected_storage = protected_storage or confidential_root is not None
         self.confidential_root = confidential_root
+        self._thread_locks = threading.local()
         if not self.directory.parent.is_dir():
             raise ValueError('the configured owner parent directory must already exist')
         self.validator = (batch_validator if batch_validator is not None else
@@ -123,7 +125,15 @@ class AssessmentJournal:
         return self.directory / hashlib.sha256(subject_id.encode('utf-8')).hexdigest()
 
     @contextmanager
-    def _locked(self, home: Path) -> Iterator[None]:
+    def _locked(self, home: Path, *, deadline: float | None = None) -> Iterator[None]:
+        held = getattr(self._thread_locks, 'homes', None)
+        if held is None:
+            held = self._thread_locks.homes = set()
+        if home in held:
+            # Reuse only this instance's actual same-thread held flock. Other
+            # threads/processes still acquire the ordinary filesystem lock.
+            yield
+            return
         self.directory.mkdir(mode=0o700, exist_ok=True)
         _sync_directory(self.directory.parent)
         home.mkdir(mode=0o700, exist_ok=True)
@@ -137,7 +147,8 @@ class AssessmentJournal:
                 raise JournalCorruption('writer lock must be a regular file')
             if self.protected_storage:
                 self._check_path(lock_path)
-            deadline = time.monotonic() + self.lock_timeout_seconds
+            deadline = min(deadline, time.monotonic() + self.lock_timeout_seconds) if deadline is not None else (
+                time.monotonic() + self.lock_timeout_seconds)
             while True:
                 try:
                     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -148,9 +159,33 @@ class AssessmentJournal:
                         raise JournalBusy('subject writer is busy; no history was changed') from None
                     time.sleep(min(0.01, remaining))
             try:
+                held.add(home)
                 yield
             finally:
+                held.discard(home)
                 fcntl.flock(lock, fcntl.LOCK_UN)
+
+    @contextmanager
+    def locked_subjects(self, subject_ids: Sequence[str]) -> Iterator[None]:
+        """One bounded, ordered current-read/commit boundary for dependencies.
+
+        This does not commit multiple subjects atomically. It prevents their
+        existing heads from changing while one dependent decision is read or
+        written; all writers keep using the same per-subject journal locks.
+        """
+        if (not isinstance(subject_ids, (list, tuple)) or not subject_ids or len(subject_ids) > 65
+                or any(not isinstance(identity, str) or not identity.strip() for identity in subject_ids)
+                or len(set(subject_ids)) != len(subject_ids)):
+            raise ValueError('journal lock scope needs at most 65 distinct subject identities')
+        homes = sorted(self._home(identity) for identity in subject_ids)
+        held = getattr(self._thread_locks, 'homes', set())
+        if held and not set(homes).issubset(held):
+            raise JournalConflict('cannot expand an already acquired journal lock set')
+        deadline = time.monotonic() + self.lock_timeout_seconds
+        with ExitStack() as stack:
+            for home in homes:
+                stack.enter_context(self._locked(home, deadline=deadline))
+            yield
 
     def _load(self, subject_id: str) -> tuple[str | None, list[dict[str, Any]]]:
         home = self._home(subject_id)
@@ -224,7 +259,13 @@ class AssessmentJournal:
 
     @staticmethod
     def _history(chain: Sequence[dict[str, Any]]) -> list[Submission]:
-        return [_restore(event) for batch in chain for event in batch['events']]
+        result = []
+        for batch in chain:
+            request = batch['request']
+            scope = CommittedScope(request['layer'], request['risk'], tuple(request['languages']),
+                                   request['maker_id'], request['use'])
+            result.extend(_restore(event, scope) for event in batch['events'])
+        return result
 
     def inspect(self, engine: AssessmentEngine, context: SubjectContext, *, now: str) -> dict[str, Any]:
         if context.access_allowed is not True:
@@ -708,7 +749,8 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
     prior = [Record.from_payload(row['form_id'], row['form_version'], row) for row in package['prior_forms']]
     scope = FormScope(subject, (SourceBinding(subject, ''),), context.maker_id, context.risk,
                       context.languages, context.requested_use, access_allowed=context.access_allowed,
-                      language_context=language_binding, required_sources=context.required_sources)
+                      language_context=language_binding, required_sources=context.required_sources,
+                      required_admissions=context.required_admissions)
     return materialize_form(contract_root, form, scope,
                             [engine.records[identity] for identity in selected], prior_forms=prior,
                             engine=engine, trusted_history=history, now=now,
@@ -801,6 +843,108 @@ def _native_text_records(config, *, owner_context=None):
     return list(records.values()), summaries, resolvers, contracts
 
 
+QUALITY_USES = frozenset({'text-layer:citation', 'text-layer:linguistic-analysis',
+                        'text-layer:semantic-analysis', 'text-layer:search-projection'})
+
+
+def _validate_quality_dependencies(dependencies, subjects):
+    """Protected explicit use bindings; no request or source prose supplies them."""
+    if (not isinstance(dependencies, dict) or len(dependencies) > MAX_ASSESSMENTS
+            or not isinstance(subjects, dict) or not set(dependencies).issubset(subjects)):
+        raise ValueError('quality dependencies must select bounded configured subjects')
+    for entries in dependencies.values():
+        if not isinstance(entries, list) or len(entries) > 8:
+            raise ValueError('one subject may require at most eight selected text layers')
+        seen = set()
+        for entry in entries:
+            _keys(entry, {'layer_id', 'use'})
+            if (not isinstance(entry['layer_id'], str) or not entry['layer_id'].strip()
+                    or entry['layer_id'] in seen or not isinstance(entry['use'], str)
+                    or entry['use'] not in QUALITY_USES):
+                raise ValueError('quality dependency repeats a layer or names an unsupported use')
+            seen.add(entry['layer_id'])
+
+
+def _quality_requirements(current, required_sources, records, configured, layers, assertion_layer):
+    """Derive native coverage from actual selected sources, then check grants.
+
+    The protected mapping chooses the purpose but cannot omit a native source,
+    substitute an unrelated layer or promote search-only quality to semantics.
+    No graph/corpus scan, guessed relationship or assessment-text parsing.
+    """
+    needed = set()
+    pending = [current, *required_sources]
+    seen = set()
+    while pending:
+        record = pending.pop()
+        if record.id in seen:
+            continue
+        seen.add(record.id)
+        if len(seen) > MAX_ASSESSMENTS:
+            raise ValueError('quality grounding closure exceeds its bounded source budget')
+        body = record.payload
+        binding = body.get('native_text_binding', body.get('native_binding'))
+        if binding is not None:
+            if not isinstance(binding, dict) or not isinstance(binding.get('text_layer'), dict):
+                raise ValueError('quality grounding has an incomplete native binding')
+            identity = binding['text_layer'].get('layer_id')
+            selected = layers.get(identity)
+            if (selected is None or selected['binding']['text_layer'] != binding['text_layer']
+                    or selected['binding']['source_record_refs'] != binding.get('source_record_refs')):
+                raise PermissionError('quality grounding lacks the same exact selected layer binding')
+            needed.add(identity)
+        if body.get('schema_version') == 'tos_source_text_layer_v1' and record.id != current.id:
+            if record.id not in layers or layers[record.id]['record'].ref != record.ref:
+                raise PermissionError('quality grounding lacks its current exact layer selection')
+            needed.add(record.id)
+        if body.get('schema_version') == 'tos_human_form_v1':
+            refs = [body['subject'], *(value['record'] for value in body['bindings'].values())]
+            for ref in refs:
+                if ref['id'].startswith('tos.quality-basis.sha256.'):
+                    # This is checked against the freshly derived basis after
+                    # dependency journals are locked. It cannot supply native
+                    # grounding or replace an exact source binding here.
+                    continue
+                source = records.get(ref['id'])
+                if source is None or source.ref != ref:
+                    raise JournalConflict('quality-bound form references another source snapshot')
+                pending.append(source)
+    entries = configured.get(current.id, [])
+    if {entry['layer_id'] for entry in entries} != needed or current.id in needed:
+        raise PermissionError('quality requirements omit, add or cycle a native grounding dependency')
+    effective_layer = assertion_layer
+    if assertion_layer == 'human_projection':
+        parent = records.get(current.payload.get('subject', {}).get('id'))
+        if parent is not None:
+            effective_layer = parent.payload.get('assertion_layer') or (
+                'textual_observation' if parent.payload.get('schema_version') == 'tos_native_text_unit_assessment_subject_v1'
+                else 'semantic_interpretation')
+    required_use = ('text-layer:linguistic-analysis' if effective_layer in {
+        'linguistic_analysis', 'translation_alignment', 'translation_judgment'} else
+        'text-layer:citation' if effective_layer in {'textual_observation', 'forensic_observation',
+                                                    'bibliographic_assertion', 'scholarly_report'} else
+        'text-layer:semantic-analysis')
+    for entry in entries:
+        if entry['use'] != required_use:
+            raise PermissionError('native quality purpose does not cover this dependent assertion layer')
+    return sorted(entries, key=lambda entry: entry['layer_id'])
+
+
+def _quality_basis(layer, admission, use, validator):
+    identity = 'tos.quality-basis.sha256.' + _digest({
+        'layer_id': layer['record'].id, 'use': use, 'scope': layer['scope']})
+    body = {'schema_version': 'tos_native_text_layer_quality_basis_v1',
+        'basis_id': identity, 'basis_version': 1, 'layer': layer['record'].ref,
+        'comparison': layer['comparison'].ref if layer['comparison'] is not None else None,
+        'use': use, 'scope': layer['scope'], 'policy': admission['policy'],
+        'assessment_refs': admission['assessment_refs'], 'status': admission['status'],
+        'can_use': admission['can_use'] is True and layer['read_ready'] is True,
+        'limits': admission['limits'], 'visibility': 'local_only',
+        'publication_authorized': False, 'performs_semantic_assessment': False}
+    validator.validate(body)
+    return Record.from_payload(identity, 1, body, origin_id=layer['record'].origin_id)
+
+
 PUBLIC_SOURCE_OWNER_VERSIONS = frozenset({'tos_local_assessment_owner_v1',
     'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3'})
 
@@ -832,7 +976,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise PermissionError('assessment consumer does not accept this source-owner version')
     fields = {'schema_version', 'uid', 'principal_id', 'execution_profile',
               'policy', 'authorities', 'competencies', 'records', 'subjects', 'journal_directory'}
-    owner_local = config.get('schema_version') == 'tos_local_assessment_owner_v4'
+    layer_quality = config.get('schema_version') == 'tos_local_assessment_owner_v5'
+    owner_local = layer_quality or config.get('schema_version') == 'tos_local_assessment_owner_v4'
     native_bound = owner_local or config.get('schema_version') == 'tos_local_assessment_owner_v3'
     source_bound = native_bound or config.get('schema_version') == 'tos_local_assessment_owner_v2'
     if source_bound:
@@ -843,13 +988,16 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             fields.add('owner_local_source_claims')
     if native_bound:
         fields.add('native_text_units')
+    if layer_quality:
+        fields |= {'native_text_layers', 'quality_dependencies'}
     _keys(config, fields)
-    if (config['schema_version'] not in PUBLIC_SOURCE_OWNER_VERSIONS | {'tos_local_assessment_owner_v4'}
+    if (config['schema_version'] not in PUBLIC_SOURCE_OWNER_VERSIONS | {'tos_local_assessment_owner_v4', 'tos_local_assessment_owner_v5'}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
     snapshot = 'sha256:' + _digest(config)
     owner_context, private_sources, private_snapshot = None, None, None
+    layer_sources, quality_validator = None, None
     if owner_local:
         scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
         if scripts not in sys.path:
@@ -867,6 +1015,10 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             scope = source_access(selection['source_access'])
             native_selections.append({'binding': selection['binding'], 'origin_id': selection['origin_id'], 'read_scope': scope})
         _validate_native_selections({**config, 'native_text_units': native_selections})
+        if layer_quality:
+            from native_text_layer_assessment import NativeLayerAssessmentSources, preflight_layer_selections
+            preflight_layer_selections(config['native_text_layers'], config['subjects'])
+            _validate_quality_dependencies(config['quality_dependencies'], config['subjects'])
         owner_context = OwnerLocalSourceContext.load(config['source_context_ref'])
         confidential_journal(owner_context, config['journal_directory'])
         # Runtime-only normalization; exact retained config still owns the hash.
@@ -874,6 +1026,9 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         native_config = {**config, 'source_root': str(source_root), 'native_text_units': native_selections}
         private_sources = OwnerLocalAssessmentSources(owner_context, config['owner_local_source_records'],
             config.get('owner_local_source_claims', ()))
+        if layer_quality:
+            quality_validator = private_sources.load_quality_grammar()
+            layer_sources = NativeLayerAssessmentSources(owner_context, config['native_text_layers'], config['subjects'])
         private_snapshot = private_sources.snapshot()
     else:
         source_root = Path(config['source_root']) if source_bound else None
@@ -926,6 +1081,17 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 native_records = list(native_index.values())
                 native_summaries.extend(private_sources.native_summaries)
             identity_snapshots['native_text_snapshots'] = [resolver.snapshot() for resolver in native_resolvers]
+        if layer_sources is not None:
+            selected = {row['id']: row for row in sourced}
+            native_ids = {row['id'] for row in native_records}
+            for row in layer_sources.records:
+                if row['id'] in selected:
+                    if (row['id'] not in native_ids or row['id'] not in layer_sources.layers
+                            or _canonical(selected[row['id']]) != _canonical(row)):
+                        raise ValueError('layer comparison cannot shadow another source identity or origin')
+                else:
+                    sourced.append(row)
+            identity_snapshots['native_layer_assessment_snapshot'] = layer_sources.snapshot()
         snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': fixity,
                                        'resolved_records': sourced, **identity_snapshots,
                                        **({'public_claim_dependencies': public_claim_dependencies}
@@ -941,15 +1107,15 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         fields |= {'expected_subject', 'expected_snapshot'}
     if operation == 'append':
         fields |= {'command_id', 'expected_revision', 'assessments'}
-    elif operation not in ('inspect', 'describe', 'materialize-form'):
+    elif operation not in ('inspect', 'describe', 'materialize-form', *(['read-layer-comparison'] if layer_quality else [])):
         raise ValueError('unknown assessment command')
     _keys(request, fields)
     if request['schema_version'] != 'tos_local_assessment_command_v1':
         raise ValueError('unknown assessment command version')
-    if operation != 'describe' and request['expected_snapshot'] != snapshot:
+    if not layer_quality and operation != 'describe' and request['expected_snapshot'] != snapshot:
         raise JournalConflict('expected owner snapshot is stale')
 
-    def record(value):
+    def envelope_record(value):
         _keys(value, {'id', 'version', 'payload', 'origin_id'})
         return Record.from_payload(**value)
 
@@ -961,10 +1127,10 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     if {item['id'] for item in config['records']} & {item['id'] for item in sourced}:
         raise ValueError('inline records cannot shadow source-bound records')
     engine = AssessmentEngine(contract_root or Path(__file__).resolve().parents[5],
-                              record(config['policy']),
-                              [record(item) for item in config['authorities']],
-                              [record(item) for item in config['competencies']],
-                              [record(item) for item in [*config['records'], *sourced]],
+                              envelope_record(config['policy']),
+                              [envelope_record(item) for item in config['authorities']],
+                              [envelope_record(item) for item in config['competencies']],
+                              [envelope_record(item) for item in [*config['records'], *sourced]],
                               **({'validators': private_sources.assessment_validators} if private_sources is not None else {}))
     subjects = config['subjects']
     identifier = request['subject_id']
@@ -972,7 +1138,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             or not isinstance(identifier, str) or identifier not in subjects):
         raise PermissionError('subject is outside the configured command scope')
     if (identifier in {row['id'] for row in native_records}
-            and identifier not in explicit_native_targets):
+            and identifier not in explicit_native_targets
+            and (layer_sources is None or identifier not in layer_sources.layers)):
         raise PermissionError('native supporting layer is evidence, not a selected unit assessment target')
     scope = subjects[identifier]
     scope_fields = {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'}
@@ -994,11 +1161,16 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     required_sources = (_public_claim_required_sources(identifier, public_claim_dependencies, sourced,
                                                        native_summaries) if public_claim_bound
                         else private_sources.required_sources(identifier) if private_sources is not None else ())
+    selected_layer = layer_sources.layers.get(identifier) if layer_sources is not None else None
+    if selected_layer is not None:
+        required_sources = (selected_layer['comparison'],) if selected_layer['comparison'] is not None else ()
     claim_source_bound = public_claim_bound or (private_sources is not None and identifier in private_sources.claim_dependencies)
     active_native_summaries = native_summaries
     if claim_source_bound:
         dependency_ids = {record.id for record in required_sources}
         active_native_summaries = [row for row in native_summaries if row['unit_id'] in dependency_ids]
+    if selected_layer is not None:
+        active_native_summaries = []
     if (private_sources is not None and identifier in {row['id'] for row in sourced}
             and identifier not in {row['id'] for row in native_records}):
         required_languages = private_sources.required_languages(identifier, sourced)
@@ -1033,11 +1205,14 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         for binding in required_native_bindings)
     if owner_local and any(not row['content_verified'] for row in active_native_summaries):
         source_read_ready = False
+    if selected_layer is not None:
+        source_read_ready = selected_layer['comparison'] is not None
     if operation == 'materialize-form' and not source_read_ready:
         raise PermissionError('native-bound form materialization requires the same explicitly selected exact text read')
     context = SubjectContext(current, scope['assertion_layer'], scope['risk'],
                              tuple(scope['languages']), scope['maker_id'], scope['requested_use'], True,
-                             source_read_ready=source_read_ready, required_sources=required_sources)
+                             source_read_ready=source_read_ready, required_sources=required_sources,
+                             positive_use_allowed=selected_layer['read_ready'] if selected_layer is not None else True)
     source_form = source_bound and identifier in {item['id'] for item in sourced} and current.payload.get('schema_version') == 'tos_human_form_v1'
     if 'form_language_context' in scope and not source_form:
         raise PermissionError('form linguistic context is outside a source-form scope')
@@ -1047,6 +1222,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True,
                                 confidential_root=owner_context.private_root if owner_context is not None else None,
                                 batch_validator=private_sources.assessment_validators['-batch'] if private_sources is not None else None)
+    quality_requirements = (_quality_requirements(current, required_sources, engine.records,
+        config['quality_dependencies'], layer_sources.layers, scope['assertion_layer']) if layer_quality else [])
 
     def source_snapshot_guard():
         # Recheck after waiting for a lock, at the commit edge, and before any
@@ -1058,6 +1235,9 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             raise JournalConflict('protected source assessment configuration changed')
         for resolver in native_resolvers:
             resolver.snapshot()
+        if layer_sources is not None:
+            if layer_sources.snapshot() != identity_snapshots['native_layer_assessment_snapshot']:
+                raise JournalConflict('layer comparison inputs changed during assessment')
         if owner_context is not None:
             from source_owner_context import _read
             if _read(owner_config, len(encoded), confidential_file=True) != encoded:
@@ -1072,87 +1252,150 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         if (current_records != regular_sourced or current_fixity != fixity
                 or current_dependencies != public_claim_dependencies
                 or any(identity_snapshots.get(key) != value for key, value in current_identities.items())
-                or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots'}):
+                or set(current_identities) != set(identity_snapshots) - {'native_text_snapshots', 'native_layer_assessment_snapshot'}):
             raise JournalConflict('assessment supporting source snapshot changed')
         source_publication.verify_current()
 
-    now = datetime.now(timezone.utc).isoformat()
-    if operation == 'materialize-form':
-        if not source_form:
-            raise PermissionError('form materialization requires a source-bound form scope')
-        revision, chain = journal._load(identifier)
-        materialized = _materialize_source_form(config, sourced, form_sets, engine, context,
-            journal._history(chain), now=now, contract_root=contract_root or Path(__file__).resolve().parents[5],
-            owner_local_paths=private_sources.paths if private_sources is not None else None,
-            owner_local_form_validator=private_sources.form_validator if private_sources is not None else None,
-            materializer_validators=private_sources.materializer_validators if private_sources is not None else None)
-        result = {'revision': revision, 'batch_count': len(chain),
-                  'current_admission': materialized['admission'], 'materialization': materialized}
-    elif operation in ('inspect', 'describe'):
-        result = journal.inspect(engine, context, now=now)
-        if operation == 'describe':
-            result['command_context'] = {'subject': current.ref, 'policy': engine.policy.ref,
-                                         'scope': scope, 'supported_operations': ['describe', 'inspect', 'append',
-                                             *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
-                                               and current.payload['content'].get('kind') == 'freeform' else [])],
-                                         'grants_authority': False}
-            if required_sources:
-                result['command_context']['required_sources'] = [record.ref for record in required_sources]
-            if required_native_bindings:
-                result['command_context']['source_read'] = {'required': True, 'ready': source_read_ready}
-                if not source_read_ready:
-                    result['command_context']['supported_operations'] = ['describe', 'inspect']
-            if source_bound:
-                digests = {item['path']: item['digest'] for item in fixity}
-                result['command_context']['source_records'] = [
-                    {'record': record(item).ref, 'path': binding['path'],
-                     'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
-                    for item, binding in zip(regular_sourced, config['source_records'], strict=True)]
-                paths = {binding['path'] for binding in config['source_records']}
-                result['command_context']['source_contracts'] = [item for item in fixity if item['path'] not in paths]
-                if native_bound:
-                    result['command_context']['native_text_units'] = native_summaries
-                    result['command_context']['native_contracts'] = [
+    def execute_operation():
+        nonlocal context, snapshot, source_read_ready
+        now = datetime.now(timezone.utc).isoformat()
+        dependency_heads, admission_dependencies = {}, []
+        if layer_quality:
+            source_snapshot_guard()
+            for requirement in quality_requirements:
+                layer_id = requirement['layer_id']
+                layer = layer_sources.layers[layer_id]
+                layer_scope = subjects[layer_id]
+                if layer_scope['requested_use'] != requirement['use']:
+                    raise PermissionError('quality dependency requires another explicitly selected layer use')
+                layer_context = SubjectContext(layer['record'], layer_scope['assertion_layer'],
+                    layer_scope['risk'], tuple(layer_scope['languages']), layer_scope['maker_id'],
+                    layer_scope['requested_use'], access_allowed=True, source_read_ready=layer['comparison'] is not None,
+                    positive_use_allowed=layer['read_ready'],
+                    required_sources=(layer['comparison'],) if layer['comparison'] is not None else ())
+                dependency = journal.inspect(engine, layer_context, now=now)
+                dependency_heads[layer_id] = dependency['revision']
+                basis = _quality_basis(layer, dependency['current_admission'], requirement['use'], quality_validator)
+                if basis.id in engine.records:
+                    raise PermissionError('inline source cannot supply a derived current quality basis')
+                engine.records[basis.id] = basis
+                sourced.append({'id': basis.id, 'version': basis.version, 'payload': basis.payload,
+                                'origin_id': basis.origin_id})
+                admission_dependencies.append(RequiredAdmission(basis, basis.payload['can_use'],
+                                                               tuple(basis.payload['limits'])))
+                source_read_ready = source_read_ready and layer['comparison'] is not None
+            context = replace(context, required_admissions=tuple(admission_dependencies),
+                              source_read_ready=source_read_ready)
+            snapshot = 'sha256:' + _digest({'source_snapshot': snapshot,
+                'quality_bases': [entry.basis.ref for entry in admission_dependencies]})
+            if operation != 'describe' and request['expected_snapshot'] != snapshot:
+                raise JournalConflict('expected source or current quality basis snapshot is stale')
+        if operation == 'materialize-form':
+            if not source_form:
+                raise PermissionError('form materialization requires a source-bound form scope')
+            revision, chain = journal._load(identifier)
+            materialized = _materialize_source_form(config, sourced, form_sets, engine, context,
+                journal._history(chain), now=now, contract_root=contract_root or Path(__file__).resolve().parents[5],
+                owner_local_paths=private_sources.paths if private_sources is not None else None,
+                owner_local_form_validator=private_sources.form_validator if private_sources is not None else None,
+                materializer_validators=private_sources.materializer_validators if private_sources is not None else None)
+            result = {'revision': revision, 'batch_count': len(chain),
+                      'current_admission': materialized['admission'], 'materialization': materialized}
+        elif operation in ('inspect', 'describe', 'read-layer-comparison'):
+            result = journal.inspect(engine, context, now=now)
+            if operation == 'read-layer-comparison':
+                if selected_layer is None or selected_layer['comparison'] is None:
+                    raise PermissionError('comparison reading requires an exact selected layer and original-source grant')
+                comparison = selected_layer['comparison']
+                result['source_comparison'] = {'record': comparison.ref, 'payload': comparison.payload,
+                                               'origin_id': comparison.origin_id}
+            if operation == 'describe':
+                result['command_context'] = {'subject': current.ref, 'policy': engine.policy.ref,
+                                             'scope': scope, 'supported_operations': ['describe', 'inspect', 'append',
+                                                 *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
+                                                   and current.payload['content'].get('kind') == 'freeform' else [])],
+                                             'grants_authority': False}
+                if required_sources:
+                    result['command_context']['required_sources'] = [record.ref for record in required_sources]
+                if layer_sources is not None:
+                    result['command_context']['required_admissions'] = [
+                        {'basis': entry.basis.ref, 'can_use': entry.can_use, 'limits': list(entry.limits),
+                         'layer': entry.basis.payload['layer'], 'use': entry.basis.payload['use']}
+                        for entry in admission_dependencies]
+                    result['command_context']['layer_comparison_contracts'] = [
                         {'path': path, 'digest': 'sha256:' + digest}
-                        for path, digest in sorted(native_contracts.items())]
-                    if any(not row['content_verified'] for row in active_native_summaries):
+                        for path, digest in sorted(layer_sources.contracts.items())]
+                if selected_layer is not None:
+                    result['command_context']['source_comparison'] = {
+                        'required': True, 'ready': selected_layer['comparison'] is not None,
+                        'positive_use_allowed': selected_layer['read_ready'],
+                        'record': selected_layer['comparison'].ref if selected_layer['comparison'] is not None else None}
+                    if selected_layer['comparison'] is None:
                         result['command_context']['supported_operations'] = ['describe', 'inspect']
-                if private_sources is not None:
-                    result['command_context']['owner_local_source_records'] = [
-                        {'record': record(item).ref, 'origin_id': item['origin_id']}
-                        for item in private_sources.records]
-                    result['command_context']['owner_local_contracts'] = [
-                        {'path': path, 'digest': 'sha256:' + digest}
-                        for path, digest in sorted(private_sources.contracts.items())]
-    else:
-        if not source_read_ready:
-            raise PermissionError('native-bound source assessment requires the same explicitly selected exact text read')
-        if any(not row['content_verified'] for row in active_native_summaries):
-            raise PermissionError('native assessment append requires an explicit exact text read')
-        execution = config['execution_profile']
-        _keys(execution, {'id', 'version', 'digest'})
-        executor = engine.records.get(execution['id'])
-        if executor is None or _canonical(executor.ref) != _canonical(execution):
-            raise PermissionError('configured execution profile is not current')
-        assessments = request['assessments']
-        revision = request['expected_revision']
-        if (not isinstance(assessments, list) or not assessments
-                or len(assessments) > MAX_ASSESSMENTS
-                or any(not isinstance(item, dict) for item in assessments)
-                or (revision is not None and (not isinstance(revision, str)
-                                              or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
-            raise ValueError('invalid assessment batch or expected revision')
-        reviews = [Submission(item, config['principal_id'], executor) for item in assessments]
-        result = journal.append(engine, context, reviews, command_id=request['command_id'],
-                                expected_revision=revision, now=now,
-                                **({'snapshot_guard': source_snapshot_guard} if source_bound else {}))
-    if source_bound:
-        source_snapshot_guard()
-        if journal._load(identifier)[0] != result['revision']:
-            raise JournalConflict('source assessment history changed before returning the current view')
-    return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
-            'authentication': 'local-unix-account', 'result': result,
-            **({'visibility': 'local_only', 'publication_authorized': False} if owner_local else {})}
+                    if selected_layer['comparison'] is not None:
+                        result['command_context']['supported_operations'].append('read-layer-comparison')
+                if required_native_bindings or quality_requirements:
+                    result['command_context']['source_read'] = {'required': True, 'ready': source_read_ready}
+                    if not source_read_ready:
+                        result['command_context']['supported_operations'] = ['describe', 'inspect']
+                if source_bound:
+                    digests = {item['path']: item['digest'] for item in fixity}
+                    result['command_context']['source_records'] = [
+                        {'record': envelope_record(item).ref, 'path': binding['path'],
+                         'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
+                        for item, binding in zip(regular_sourced, config['source_records'], strict=True)]
+                    paths = {binding['path'] for binding in config['source_records']}
+                    result['command_context']['source_contracts'] = [item for item in fixity if item['path'] not in paths]
+                    if native_bound:
+                        result['command_context']['native_text_units'] = native_summaries
+                        result['command_context']['native_contracts'] = [
+                            {'path': path, 'digest': 'sha256:' + digest}
+                            for path, digest in sorted(native_contracts.items())]
+                        if any(not row['content_verified'] for row in active_native_summaries):
+                            result['command_context']['supported_operations'] = ['describe', 'inspect']
+                    if private_sources is not None:
+                        result['command_context']['owner_local_source_records'] = [
+                            {'record': envelope_record(item).ref, 'origin_id': item['origin_id']}
+                            for item in private_sources.records]
+                        result['command_context']['owner_local_contracts'] = [
+                            {'path': path, 'digest': 'sha256:' + digest}
+                            for path, digest in sorted(private_sources.contracts.items())]
+        else:
+            if not source_read_ready:
+                raise PermissionError('native-bound source assessment requires the same explicitly selected exact text read')
+            if any(not row['content_verified'] for row in active_native_summaries):
+                raise PermissionError('native assessment append requires an explicit exact text read')
+            execution = config['execution_profile']
+            _keys(execution, {'id', 'version', 'digest'})
+            executor = engine.records.get(execution['id'])
+            if executor is None or _canonical(executor.ref) != _canonical(execution):
+                raise PermissionError('configured execution profile is not current')
+            assessments = request['assessments']
+            revision = request['expected_revision']
+            if (not isinstance(assessments, list) or not assessments
+                    or len(assessments) > MAX_ASSESSMENTS
+                    or any(not isinstance(item, dict) for item in assessments)
+                    or (revision is not None and (not isinstance(revision, str)
+                                                  or not re.fullmatch(r'[a-f0-9]{64}', revision)))):
+                raise ValueError('invalid assessment batch or expected revision')
+            reviews = [Submission(item, config['principal_id'], executor) for item in assessments]
+            result = journal.append(engine, context, reviews, command_id=request['command_id'],
+                                    expected_revision=revision, now=now,
+                                    **({'snapshot_guard': source_snapshot_guard} if source_bound else {}))
+        if source_bound:
+            source_snapshot_guard()
+            if any(journal._load(layer_id)[0] != revision for layer_id, revision in dependency_heads.items()):
+                raise JournalConflict('source quality history changed before returning its dependent view')
+            if journal._load(identifier)[0] != result['revision']:
+                raise JournalConflict('source assessment history changed before returning the current view')
+        return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
+                'authentication': 'local-unix-account', 'result': result,
+                **({'visibility': 'local_only', 'publication_authorized': False} if owner_local else {})}
+
+    if layer_quality:
+        with journal.locked_subjects([identifier, *(entry['layer_id'] for entry in quality_requirements)]):
+            return execute_operation()
+    return execute_operation()
 
 
 def main() -> int:
