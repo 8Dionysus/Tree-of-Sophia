@@ -23,7 +23,8 @@ The backend exposes two source-navigation operations over the same corpus
 index. `tos.source.descend` / `GET /api/source/navigation/{node_id}` walks from
 an era, region, tradition, planting, or source object toward bibliographic
 objects and Links. `tos.dossier.inspect` /
-`GET /api/source/dossiers/{object_id}` returns a compact Work or Link dossier:
+`GET /api/source/dossiers/{object_id}` returns a compact Work, Expression,
+Edition, Item, File, or Link dossier:
 the connected Work/Expression/Edition/Item/File chain, observed Links, scoped
 rights records, gaps, source refs, and a fail-closed `agent_summary`. A
 downloadable URL is reported as technical access only; legal openness requires
@@ -616,10 +617,11 @@ can also stage a typed relation, interpretation, metadata correction,
 source route, or concept-enrichment proposal. The proposal is bound to a
 parent hypothesis, the captured page/workspace revisions, explicit source and
 evidence references, actor origin, timestamp, projection fingerprint, and a
-deterministic trace digest. It is always local, `pending_human_review`, and
-`canon: false`. None of these actions writes to candidate intake, review
-ledgers, authored ToS source, or canon; export is the only handoff from this
-surface.
+deterministic trace digest. It is always local, `pending_review` with
+`review_requirement: human_or_authorized_agent`, and `canon: false` (older
+exported packets with `pending_human_review` remain readable). None of these
+actions writes to candidate intake, review ledgers, authored ToS source, or
+canon; export is the only handoff from this surface.
 
 The product shell makes this shared surface visible instead of assuming the
 Codex browser integration worked. Its header panel reports WebMCP availability,
@@ -629,7 +631,7 @@ opened in Codex's built-in browser; the atlas remains usable and `tos mcp` is
 shown only as optional off-page access. The same panel contains three
 bilingual, copyable prompts for the core demonstration loop: inspect evidence,
 reroute around a disputed edge, and move from comparison through a local
-hypothesis to a traceable proposal that remains pending human review.
+hypothesis to a traceable proposal that remains pending scoped review.
 
 Every successful `Repo Validation` run builds and validates
 `tree-of-sophia-standalone.zip`, then uploads the archive and its external

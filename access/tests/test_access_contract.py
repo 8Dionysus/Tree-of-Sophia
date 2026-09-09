@@ -826,6 +826,16 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(dossier["chain"]["work"][0]["node_id"], "tos.work.fixture")
             self.assertNotIn("tos.work.neighbor", {node["node_id"] for node in dossier["chain"]["work"]})
             self.assertNotIn("tos.link.neighbor", {node["node_id"] for node in dossier["chain"]["link"]})
+            for object_id, kind in [
+                ("tos.work.fixture", "work"), ("tos.expression.fixture", "expression"),
+                ("tos.edition.fixture", "edition"), ("tos.item.fixture", "item"),
+                ("tos.file.sha256.fixture", "file"), ("tos.link.fixture.download", "link"),
+            ]:
+                with self.subTest(object_id=object_id):
+                    selected = core.source_dossier(object_id)
+                    self.assertEqual(selected["object"]["node_kind"], kind)
+                    self.assertEqual(selected["tree_paths"][0]["node_ids"][-1], object_id)
+                    self.assertIn("tos.work.fixture", {node["node_id"] for node in selected["chain"]["work"]})
 
     def test_local_word_analysis_provider_is_capability_gated_and_source_bound(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

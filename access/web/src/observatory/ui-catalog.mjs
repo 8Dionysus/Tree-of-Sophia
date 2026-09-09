@@ -536,6 +536,10 @@ export const UI_CATALOG={
     "en": "Opening the relationship…",
     "es": "Abriendo la relación…"
   },
+  "Открываю карточку…": {
+    "en": "Opening the record…",
+    "es": "Abriendo el registro…"
+  },
   "Выбранное отношение отсутствует в области.": {
     "en": "The selected relationship is missing from the area.",
     "es": "La relación seleccionada no aparece en el área."

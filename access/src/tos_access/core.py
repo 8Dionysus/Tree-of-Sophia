@@ -612,7 +612,7 @@ class ToSAccessCore:
         }
 
     def source_dossier(self, object_id: str, limit: int = 300) -> dict[str, Any]:
-        """Return compact human and agent-facing context for one Work or Link."""
+        """Return compact human and agent-facing context for one bibliographic object or Link."""
 
         navigation = self.source_navigation(bibliographic_only=True)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
@@ -624,8 +624,8 @@ class ToSAccessCore:
         selected = nodes_by_id.get(object_id)
         if selected is None:
             raise KeyError(f"unknown ToS dossier object: {object_id}")
-        if selected.get("node_kind") not in {"work", "link"}:
-            raise ValueError("dossiers are currently available for Work and Link objects")
+        if selected.get("node_kind") not in {"work", "expression", "edition", "item", "file", "link"}:
+            raise ValueError("dossiers are available for Work, Expression, Edition, Item, File, and Link objects")
 
         all_edges = sorted(
             [edge for edge in navigation.get("edges", []) if isinstance(edge, dict)],
@@ -667,7 +667,7 @@ class ToSAccessCore:
         # to the owning Work. A Work dossier already has its root and never
         # walks backward through a shared Item into neighboring Works.
         forward_roots = {object_id} if selected.get("node_kind") == "work" else set()
-        if selected.get("node_kind") == "link":
+        if selected.get("node_kind") != "work":
             lineage_queue: deque[str] = deque([object_id])
             visited_lineage: set[str] = set()
             while lineage_queue:
@@ -681,7 +681,8 @@ class ToSAccessCore:
                     continue
                 allowed_predicates = link_predicates if current_kind == "link" else bibliographic_predicates
                 for edge in incoming.get(current, []):
-                    if (
+                    structural_file_parent = current_kind == "file" and edge.get("edge_kind") == "authored_item_manifest"
+                    if not structural_file_parent and (
                         edge.get("edge_kind") != "evidence_claim"
                         or edge.get("predicate_id") not in allowed_predicates
                     ):
@@ -803,7 +804,7 @@ class ToSAccessCore:
             if set(_string_list(record.get("scope_refs"))) & decision_scope_ids
         ]
 
-        dossier_links = grouped_chain["link"] if selected.get("node_kind") == "work" else [selected]
+        dossier_links = [selected] if selected.get("node_kind") == "link" else grouped_chain["link"]
         link_statuses = {
             str(node.get("properties", {}).get("access_status") or "unknown")
             for node in dossier_links

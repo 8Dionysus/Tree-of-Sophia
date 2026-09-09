@@ -14,7 +14,7 @@ describe('observatory research adapter',()=>{
   it('preserves exact identity, snapshot and non-canonical posture through export/import',()=>{
     const workspace=createResearchWorkspace({persistence:false});const id='graph:'+ 'a-long-opaque-id/'.repeat(12);
     const result=stageObservation(workspace,{...proposal,targetId:id});
-    expect(result.targetId).toBe(id);expect(result.dataFingerprint).toBe(proposal.dataFingerprint);expect(result.reviewStatus).toBe('pending_human_review');expect(result.canon).toBe(false);
+    expect(result.targetId).toBe(id);expect(result.dataFingerprint).toBe(proposal.dataFingerprint);expect(result.reviewStatus).toBe('pending_review');expect(result.reviewRequirement).toBe('human_or_authorized_agent');expect(result.canon).toBe(false);
     const loaded=createResearchWorkspace({persistence:false});loaded.importPacket(workspace.exportPacket());
     expect(loaded.getState().proposals[0]).toEqual(result);
   });

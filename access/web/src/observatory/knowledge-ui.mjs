@@ -3,7 +3,7 @@ import {createReadingMemory} from './reading-state.mjs';
 import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,materialDisplayForm,sourceOriginalTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
-import {renderHumanForms,renderClaimContext,renderEssentialContext} from './human-forms-view.mjs';
+import {renderHumanForms,renderEssentialContext} from './human-forms-view.mjs';
 import {essentialContext} from './record-context.mjs';
 import {formLabel,formLanguageNote} from './reader-model.mjs';
 
@@ -78,11 +78,20 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     const title=displayTitle(raw,raw.id);
     const row=button('',()=>kind==='node'?chooseNode(raw.id,revision):chooseRelation(raw,revision),'sc-result');
     const label=text('span','sc-result-label',title);
+    // Search deliberately preserves distinct source carriers, including two
+    // projections that share one declared entity_id. A title alone would make
+    // those rows look like a duplicate and invite an accidental merge. Keep
+    // the exact carrier route visible without changing the returned identity.
+    const carrier=[raw.source_graph,raw.native_id||raw.id].filter(value=>typeof value==='string'&&value.trim()).join(' · ');
+    let ariaLabel=title;
     if(kind==='relation'){
       const statement=localized(raw.display.statement,raw.from_id+' → '+raw.to_id);
-      uiChildren(label, "append", text('span','sc-result-detail',statement));uiAttribute(row, 'aria-label', title+' · '+statement);
+      uiChildren(label, "append", text('span','sc-result-detail',statement));ariaLabel+=" · "+statement;
     }
-    uiChildren(row, "append", label, text('small','',kind==='node'?localized(raw.display.kind_label):ui("Отношение")));
+    if(carrier)uiChildren(label,"append",text('span','sc-result-identity',carrier));
+    const kindLabel=kind==='node'?localized(raw.display.kind_label):ui("Отношение");
+    uiChildren(row, "append", label, text('small','',kindLabel));
+    uiAttribute(row,'aria-label',[ariaLabel,kindLabel,carrier].filter(Boolean).join(' · '));
     return row;
   }
   function search(value,offset=0){
@@ -181,16 +190,29 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   async function showCard(kind,raw){
     cancelInspector();const scene=port.packet,language=cardLanguage;if(!scene?.source_revision)return;
     root.dataset.inspectorState='loading';
-    renderTitle(raw);
+    // Compact scene carriers can expose an identifier fallback while the
+    // language-bound full material is in flight. Keep the current readable
+    // title for an in-place language switch; a new selection gets an explicit
+    // loading label. This prevents the opaque carrier ID from flashing as a
+    // title before the owner-selected form arrives.
+    const sameSelection=root.dataset.inspectorKind===kind&&root.dataset.inspectorId===raw.id&&q('.sc-node-title').textContent;
+    if(!sameSelection){
+      uiText(q('.sc-node-title'),ui("Открываю карточку…"));
+      q('.sc-node-title').lang='';q('.sc-node-title').dataset.requestedLanguage=language;q('.sc-node-title').dataset.displayLanguage='';
+      titleNote.hidden=true;uiText(titleNote,'');
+    }
     uiText(q('.sc-node-original'),'');q('.sc-provenance').replaceChildren();q('.sc-neighbors').replaceChildren();
     try{
-      renderCard(kind,raw);
       forms.replaceChildren(text('p','sc-form-status',ui('Обновляю формы…')));q('.sc-description').hidden=true;descriptionNote.hidden=true;
       const found=await slots.run('inspect',signal=>readInspectorMaterial({client,scene,kind,raw,language,signal}));
       if(!found.current||port.packet!==scene||cardLanguage!==language
         ||(kind==='relation'?port.selection.relationId:port.selection.nodeId)!==raw.id)return;
       renderCard(kind,found.value.match,found.value.endpoints);
-      if(found.value.claimReading)forms.append(renderClaimContext(found.value.claimReading));
+      // The card already contains each selected form's complete declared
+      // context and the record's explicit essential context. The compact
+      // claim reading (wording, semantics, epistemic state, relations) is the
+      // reader-panel surface; appending its whole packet here duplicated a
+      // generic Claim JSON block beside every human form.
       root.dataset.inspectorState='ready';
     }catch(error){
       root.dataset.inspectorState='error';

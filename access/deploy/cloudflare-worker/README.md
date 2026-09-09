@@ -230,7 +230,8 @@ streaming assembly and source acquisition scheduling remain outside this slice. 
 [TOS-D-0049](../../../docs/decisions/TOS-D-0049-content-verified-build-stages.md).
 
 Focus reads indexed adjacency per frontier instead of all relation headers.
-Legacy source descent and Work/Link dossiers retain a bibliographic overview;
+Legacy source descent and bibliographic-carrier/Link dossiers retain a
+bibliographic overview;
 dense text-packet members are served by the knowledge routes, not bundled into
 one growing static navigation file. The asset builder rejects oversized files.
 Broad independent queries and global counts can still scan larger sets.

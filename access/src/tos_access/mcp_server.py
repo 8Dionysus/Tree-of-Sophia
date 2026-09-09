@@ -162,7 +162,7 @@ def build_server(
 
     @mcp.tool()
     def tos_dossier_inspect(object_id: str, limit: int = 300) -> dict[str, Any]:
-        """Return a compact dossier for one Work or Link without converting availability into a rights conclusion."""
+        """Return a compact dossier for one bibliographic carrier or Link without converting availability into a rights conclusion."""
         return current_state().source_dossier(object_id=object_id, limit=limit)
 
     @mcp.tool()

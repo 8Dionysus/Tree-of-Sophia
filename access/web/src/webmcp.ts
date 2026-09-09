@@ -464,7 +464,7 @@ function dynamicTools(registry: PageCommandRegistry, context: PageContext): WebM
     commandTool(registry, "tos.page.stage-proposal", {
       name: "tos.page.stage-proposal",
       title: "Stage a traceable proposal from this selection",
-      description: `Stage a local, exportable proposal anchored to ${selected.id}. It remains pending human review, never writes to source, and never changes canon.`,
+      description: `Stage a local, exportable proposal anchored to ${selected.id}. It remains pending scoped review by a competent authorized human or agent, never writes to source, and never changes canon.`,
       inputSchema: objectSchema({
         kind: { type: "string", enum: ["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"] },
         statement: { type: "string", minLength: 1, maxLength: 2000 },
