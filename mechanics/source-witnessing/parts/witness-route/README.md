@@ -85,3 +85,8 @@ with the same digest and planting checks; they cannot also declare that Work
 new in `create_record_refs`. Completed, deferred and blocked entries remain in history and are not
 silently proposed for acquisition again. Absence of execution status preserves
 the existing pending/chronological behavior.
+
+Latin TEI intakes explicitly name the reviewed identity carrier: edition `n` or
+body `xml:base`. A conflicting carrier or different language/version role fails
+closed; legacy Greek and English profiles keep their original identity checks.
+Missing print-exemplar metadata remains an explicit source uncertainty.

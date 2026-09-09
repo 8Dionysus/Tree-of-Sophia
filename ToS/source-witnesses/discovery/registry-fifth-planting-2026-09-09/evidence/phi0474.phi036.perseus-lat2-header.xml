@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="lat">De Inventione</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Eduard Stroebel</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:Mellon">The Mellon Foundation</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2011-09-12">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi036.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <title xml:lang="lat">Rhetorici libri duo qui vocantur de inventione</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Eduard Stroebel</editor>
+                  <imprint>
+                     <publisher>Teubner</publisher>
+                     <pubPlace>Leipzig</pubPlace>
+                     <date>1915</date>
+                  </imprint>
+                  <biblScope/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">M. Tulli Ciceronis Scripta Quae Manserunt Omnia</title>
+                  <biblScope>2</biblScope>
+               </series>
+               <series>
+                  <title>Bibliotheca Teubneriana</title>
+               </series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=mdp.39015065485552&amp;seq=28">The Internet Archive</ref>
+            </biblStruct>
+            <list>
+               <item>OCR cleanup</item>
+            </list>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+           <cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         
+         <refsDecl n="TEI.2">
+            <refState unit="book" delim="."/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+         <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>

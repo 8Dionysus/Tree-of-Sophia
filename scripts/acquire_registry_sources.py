@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = "ToS/source-witnesses"
 TOPOLOGY = f"{SOURCE}/relations/provenance.jsonl"
 TOPOLOGY_EVENT = "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31"
-ALLOWED_REPOSITORIES = {"openscriptures/morphhb", "oraec/corpus_raw_data", "suttacentral/bilara-data", "PerseusDL/canonical-greekLit"}
+ALLOWED_REPOSITORIES = {"openscriptures/morphhb", "oraec/corpus_raw_data", "suttacentral/bilara-data", "PerseusDL/canonical-greekLit", "PerseusDL/canonical-latinLit"}
 NO_ACQUISITION = {"downloaded": False, "acquired_at": None, "byte_size": None, "sha256": None, "event_ref": None}
 
 
@@ -313,8 +313,11 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
     report = {"target_slug": target["slug"], "file_count": len(bodies), "byte_size": sum(len(body) for _, body in bodies),
               "source_bytes_changed": False, "textual_acceptance": False, "files": []}
     coverage = target["coverage"]
-    if coverage["kind"] in {"perseus-tei-work", "perseus-tei-translation"}:
+    if coverage["kind"] in {"perseus-tei-work", "perseus-tei-translation", "perseus-tei-latin-work"}:
         translated = coverage["kind"] == "perseus-tei-translation"
+        latin = coverage["kind"] == "perseus-tei-latin-work"
+        if latin and (target.get("language") != "la" or target.get("expression_role", "source_language") != "source_language"):
+            raise ValueError("Latin edition profile requires its explicit language and source role")
         if translated and (target.get("language") != "en" or target.get("expression_role") != "translation"):
             raise ValueError("English translation profile requires its explicit language and role")
         if len(bodies) != 1:
@@ -334,14 +337,24 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
             raise ValueError("Perseus file lacks the expected TEI body")
         editions = [node for node in text_body.iter(ns + "div") if node.get("type") in {"edition", "translation"}]
         expected_kind = "translation" if translated else "edition"
-        allowed_languages = {"en", "eng"} if translated else {"grc"}
-        if len(editions) != 1 or editions[0].get("type") != expected_kind or editions[0].get("n") != coverage["cts_urn"] or editions[0].get("{http://www.w3.org/XML/1998/namespace}lang") not in allowed_languages:
+        allowed_languages = {"en", "eng"} if translated else {"la", "lat"} if latin else {"grc"}
+        identity = editions[0].get("n") if len(editions) == 1 else None
+        if latin:
+            anchor = coverage.get("identity_anchor")
+            body_identity = text_body.get("{http://www.w3.org/XML/1998/namespace}base")
+            if anchor not in {"edition_n", "body_xml_base"}:
+                raise ValueError("Latin identity anchor must name its reviewed XML carrier")
+            if any(value is not None and value != coverage["cts_urn"] for value in (identity, body_identity)):
+                raise ValueError("Latin source identity carriers conflict")
+            if anchor == "body_xml_base":
+                identity = body_identity
+        if len(editions) != 1 or editions[0].get("type") != expected_kind or identity != coverage["cts_urn"] or editions[0].get("{http://www.w3.org/XML/1998/namespace}lang") not in allowed_languages:
             raise ValueError("Perseus edition identity or source language differs")
         sections = [node.get("n") for node in editions[0].iter(ns + "div") if node.get("subtype") == "section"]
         text = "".join(editions[0].itertext())
         greek = sum("\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff" for char in text)
-        count = sum(char.isascii() and char.isalpha() for char in text) if translated else greek
-        count_field = "latin_letter_count" if translated else "greek_character_count"
+        count = sum(char.isascii() and char.isalpha() for char in text) if translated or latin else greek
+        count_field = "latin_letter_count" if translated or latin else "greek_character_count"
         if coverage.get("citation_scope") == "hierarchical_divisions":
             addresses = tei_division_addresses(editions[0])
             if not addresses or count < 1000:

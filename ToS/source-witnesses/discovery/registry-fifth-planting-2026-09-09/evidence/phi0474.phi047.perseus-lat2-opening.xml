@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">Paradoxa Stoicorum ad M. Brutum</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Johann Georg Baiter</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi047.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Opera Quae Supersunt Omnia, Vol. 7</title>
+                  <title xml:lang="lat" type="subtitle">Opera Philosopha et Politica</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Johann Georg Baiter</editor>
+                  <editor n="series">Carl Ludwig Kayser</editor>
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Tauchnitz</publisher>
+                     <date>1864</date>
+                     <biblScope unit="volume">2</biblScope>
+                  </imprint>   
+               </monogr>
+               <series xml:lang="lat">Opera Quae Supersunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=hvd.hxjvih&amp;seq=472">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+           <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="book" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+ <change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added more cicero texts, removed old cicero files that aren't used</change>
+<change who="ajones06" when="2009-09-10">Fixed some of the metadata for the Cicero philosophical works.</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-05-06">small mods</change>
+<change who="gcrane" when="2006-04-29">replaced italics with angle brackets to mark supplements; fixed OCR errors by comparing this to another on-line edition: stray period "latr.aret"; "e" for "c": hue-to ;huc, area to arca; the latter is tough, since "area" is a real word. There may have been one or two other fixes I didn't check places where there was just a difference of a comma here or there. there are c. 30K of raw characters in this (30017 by one scan). at 99.95% accuracy, that would allow for 15 errors. It looks like we are better than that *before* the text comparison.</change>
+<change who="gcrane" when="2006-04-29">tagged quotes as QUOTE</change>
+<change who="gcrane" when="2006-04-29">added to repository</change>
+</revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      <!--<front>
+         <pb n="p.1001"/>
+         <div type="textpart" subtype="argument" n="arg">
+            <p>Hoc libello Cicero Catonis Uticensis, perfecti illius Stoici, admiratione adductus disciplinae Stoicae praecepta, quae homines ob severitatem admirabantur magis quam sequebantur, <foreign xml:lang="greek">para/doca</foreign>, quae Latini vocant <quote>admirabilia</quote>, orationis suae suavitate mollita probare populo et commendare sibi proposuit. Nam etsi in oratione pro L. Murena Catone accusante Stoicorum <foreign xml:lang="greek">para/doca</foreign> perstringit et in librorum de Finibus III. et IV. eorundem austeritati moderandum esse censet, tamen non tam doctrinae rationem illorum improbat quam sermonis insolentiam. Ac primo quidem loco bonum sola honestate contineri, deinde secundo tamquam consectario ostendit honestissimum quemque in se uno habere omnia bene beateque vivendi praesidia. Ex his autem locis cetera, quae deinceps persequitur, apta sunt et suspensa. Itaque tertius locus est de peccatorum aequalitate omnium. Quarti de stultorum insania loci pauca tantum verba supersunt; cetera exciderunt cum titulo et initio alius paradoxi (solum sapientem esse civem, omnes autem stultos esse exules), quo ad perstringendum Clodium usus est, quem non modo exulem, sed hostem, se ipsum semper civem fuisse demonstrat. Quinto loco, quo L. Lucullum atque etiam Hortensium videtur carpere, nisi sapientem libertate frui neminem docet, posse vero unum quemque ita vivere, ut velit, i. e. liberum esse, si modo honestatem sequatur. Denique sexto loco, quo M. Crassum divitem reprehendit, aerarii in consulatu secundo (a. u. c. 699.) expilati infamia notabilem, solum sapientem ait gaudere divitiis, ut quae cum in ceteris virtutibus tum maxime in continentia sint positae. Hoc autem brevium quaestionum, quod ad M. Brutum mittit, munusculum unius anni tempore, ut videtur, verno compositum esse e prooemii § 5. apparet. Et quamquam Cicero Crassum a. u. c. 701. et Clodium a. 702. interfectos dialogi licentia sibi adesse potuit fingere, non tamen post mensem anni 708. Iunium, quo Cato mortem sibi Uticae conscivit, conditum hoc opusculum esse videtur.</p>
+         </div>
+         <pb n="p.1002"/>
+      </front>-->
+      <body>
+      <div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi047.perseus-lat2">
+         <div type="textpart" n="intro" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi047.perseus-lat2">
+               <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi047.perseus-lat2:intro" n="1">
+                  <p rend="align(indent)"> Animadverti, Brute, saepe Catonem, avunculum tuum, cum in senatu sententiam diceret, locos gravis ex philosophia tractare abhorrentis ab hoc usu forensi et publico, sed dicendo consequi tamen, ut illa etiam populo probabilia viderentur; </p>
+               </div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi047.perseus-lat2:intro" n="2">
+                  <p> quod eo maius est illi quam aut tibi aut nobis, quia nos ea philosophia plus utimur, quae peperit dicendi copiam et in qua dicuntur ea, quae non multum discrepent ab opinione populari, Cato autem, perfectus mea sententia Stoicus, et ea sentit, quae non sane probantur in volgus, et in ea est haeresi, quae nullum sequitur florem orationis neque dilatat argumentum: minutis interrogatiunculis quasi punctis quod proposuit efficit. </p>
+               </div>
+               <div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi047.perseus-lat2:intro" n="3">
+                  <p> sed nihil est tam incredibile, quod non dicendo fiat probabile, nihil tam horridum, tam incultum, quod non splendescat oratione et tamquam excolatur. quod cum ita putarem, feci etiam audacius quam ille ipse, de quo loquor: Cato enim dum taxat de magnitudine animi, de continentia, de morte, de omni laude virtutis, de dis inmortalibus, de caritate patriae Stoice solet oratoriis ornamentis adhibitis dicere; ego tibi illa ip

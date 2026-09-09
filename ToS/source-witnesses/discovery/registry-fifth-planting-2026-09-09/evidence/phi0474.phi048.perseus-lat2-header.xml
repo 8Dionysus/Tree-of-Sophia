@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc >
+         <titleStmt>
+            <title xml:lang="lat">de Finibus Bonorum et Malorum</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Theodor Schiche</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+            <idno type="filename">phi0474.phi048.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+         
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <title xml:lang="lat">Scripta Quae Manserunt Omnia, Fasc. 43</title>
+                  <title xml:lang="lat" type="subtitle">De Finibus Bonorum et Malorum Libri Quinque</title>
+                  <author>M. Tullius Cicero</author>
+                  <editor>Theodor Schiche</editor>
+                 
+                  <imprint>
+                     <pubPlace>Leipzig</pubPlace>
+                     <publisher>Teubner</publisher>
+                     <date>1915</date>
+                     <biblScope/>
+                  </imprint>   
+               </monogr>
+               <series xml:lang="lat">Scripta Quae Manserunt Omnia</series>
+               <ref target="https://babel.hathitrust.org/cgi/pt?id=umn.31951002299499v&amp;seq=20">HathiTrust</ref>
+            </biblStruct>
+         </sourceDesc></fileDesc>
+      
+      
+      <encodingDesc>
+         <editorialDecl><p>C. 70 instances where the app crit contains abbreviations and graphic oddities trying to capture what is in the MSS. Not easily represented and not worth adding at this stage. These are for the most part just listed as illegible gaps. Front and back matter removed as this was largely uncorrected and badly captured.</p></editorialDecl>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="book"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts book.</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      <revisionDesc>
+<change when="2026-08" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN. Removed front and back matter for clarity.</change>        
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="rsingh04" when="2009-09-15">added a bunch of cicero texts, removed old cicero files that aren't used</change>
+<change who="gcrane" when="2009-09-09">base files</change>
+<change who="gcrane" when="2006-04-28">small fixes</change>
+<change who="gcrane" when="2006-04-26">added to repository</change>
+</revisionDesc>
+   </teiHeader>

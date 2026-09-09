@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://epidoc.stoa.org/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng">
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="lat">De Oratore</title>
+            <author>M. Tullius Cicero</author>
+            <editor>Augustus Samuel Wilkins</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Anne Mahoney</name>
+               <name>David Smith</name>
+               <name>Clifford Wulfman</name>
+            </respStmt>
+            <funder n="org:NEH">National Endowment For The Humanities (NEH)</funder> 
+         </titleStmt>
+         
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+            <date type="release" when="2002-07" cert="unknown">Perseus 3.0</date>
+            <idno type="filename">phi0474.phi037.perseus-lat2.xml</idno>
+            <availability>
+               <licence target="https://creativecommons.org/licenses/by-sa/4.0/">Available under a Creative Commons Attribution-ShareAlike 4.0 International License</licence></availability>
+         </publicationStmt>
+        
+         <sourceDesc>
+            <biblStruct>
+               <monogr>
+                  <author>M. Tullius Cicero</author>
+                  <title xml:lang="lat">Rhetorica</title>
+                  <editor>Augustus Samuel Wilkins</editor>
+                  <imprint>
+                     <pubPlace>Oxford</pubPlace>
+                     <publisher>Clarendon Press</publisher>
+                     <date>1902</date>
+                  </imprint>
+                  <biblScope unit="volume">1</biblScope>
+                  <biblScope n="contents"/>
+               </monogr>
+               <series>
+                  <title xml:lang="lat">Scriptorum Classicorum Bibliotheca Oxoniensis</title>
+                  <title type="alternative">Oxford Classical Texts</title>
+               </series>
+               <ref target="https://archive.org/details/rhetoricarecogno01ciceuoft/page/viii/mode/2up">Internet Archive</ref>
+            </biblStruct>
+         </sourceDesc>
+        </fileDesc>
+      
+      <encodingDesc>
+         <refsDecl n="CTS">
+          <cRefPattern n="section" matchPattern="(\w+).(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section.</p>
+            </cRefPattern>
+            <cRefPattern n="chapter" matchPattern="(\w+)" replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter.</p>
+            </cRefPattern>
+         </refsDecl>
+         
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState n="chunk+" unit="section"/>
+         </refsDecl>
+      </encodingDesc>
+      
+      <profileDesc>
+         <langUsage>
+            <language ident="lat">Latin</language>
+            <language ident="grc">Greek</language>
+         </langUsage>
+      </profileDesc>
+      
+<revisionDesc>
+  <change when="2026-07" who="Lisa Cerrato">Header, encoding fixes and various corrections to markup to conform to best practices. Bumped URN.</change>
+ <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+<change who="balmas01" when="2013-09-13">moving Greg's work-in-progress on CTS-izing greco-roman collection texts to a Work directory</change>
+<change who="gcrane" when="2013-06-08">TEI XML converted to facilitate CTS compatibility</change>
+<change who="gcrane" when="2011-01-15">base SDL file</change>
+<change who="rsingh04" when="2009-10-09">more reorganizing of texts module by collection</change>
+<change who="gcrane" when="2006-04-04">removed extra milestones for new books</change>
+<change who="packel" when="2005-08-01">removed stray item tags</change>
+<change who="packel" when="2005-07-25">Converted to XML</change>
+<change who="yorkc" when="2003-07-01">Updated texts to TEI P4 and Perseus P4 extensions; minor cleanup (esp. character encodings and typos.)</change>
+<change who="cwulfman" when="2002-07-25">fixed typo in head tag</change>
+<change who="cwulfman" when="2002-07-25">ready to release</change>
+<change who="amahoney" when="2002-05-23">fix some apostrophes (ocr errors) and mark some abbreviations</change>
+<change who="cwulfman" when="2001-09-20">moved milestone tags around; redid file because previous processing had taken out hyphens incorrectly</change>
+<change who="cwulfman" when="2001-09-17">adding file to repository</change>
+ </revisionDesc>
+   </teiHeader>
+   
+   <text xml:lang="lat">
+      <body>
+         
+<div xml:lang="lat" type="edition" n="urn:cts:latinLit:phi0474.phi037.perseus-lat2">
+            
+<div type="textpart" subtype="book" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2" n="1"> 
+<head rend="align(center)">LIBER PRIMVS</head> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="1"> <p>Cogitanti mihi saepe numero et memoria vetera repetenti perbeati fuisse, Quinte frater, illi videri solent, qui in optima re publica, cum et honoribus et rerum gestarum gloria florerent, eum vitae cursum tenere potuerunt, ut vel in negotio sine periculo vel in otio cum dignitate esse possent; ac fuit cum mihi quoque initium requiescendi atque animum ad utriusque nostrum praeclara studia referendi fore iustum et prope ab omnibus concessum arbitrarer, si infinitus forensium rerum labor et ambitionis occupatio decursu honorum, etiam aetatis flexu constitisset. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="2"> <p> Quam spem cogitationum et consiliorum meorum cum graves communium temporum tum varii nostri casus fefellerunt; nam qui locus quietis et tranquillitatis plenissimus fore videbatur, in eo maximae moles molestiarum et turbulentissimae tempestates exstiterunt; neque vero nobis cupientibus atque exoptantibus fructus oti datus est ad eas artis, quibus a pueris dediti fuimus, celebrandas inter nosque recolendas. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="3"> <p> Nam prima aetate incidimus in ipsam perturbationem disciplinae veteris, et consulatu devenimus in medium rerum omnium certamen atque discrimen, et hoc tempus omne post consulatum obiecimus eis fluctibus, qui per nos a communi peste depulsi in nosmet ipsos redundarent. Sed tamen in his vel asperitatibus rerum vel angustiis temporis obsequar studiis nostris et quantum mihi vel fraus inimicorum vel causae amicorum vel res publica tribuet oti, ad scribendum potissimum conferam; tibi vero, frater, neque hortanti deero neque roganti, nam neque auctoritate quisquam apud me plus valere te potest neque voluntate. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="4"> <p> Ac mihi repetenda est veteris cuiusdam memoriae non sane satis explicata recordatio, sed, ut arbitror, apta ad id, quod requiris, ut cognoscas quae viri omnium eloquentissimi clarissimique senserint de omni ratione dicendi. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="5"> <p> Vis enim, ut mihi saepe dixisti, quoniam, quae pueris aut adulescentulis nobis ex commentariolis nostris incohata ac rudia exciderunt, vix <add>sunt</add> hac aetate digna et hoc usu, quem ex causis, quas diximus, tot tantisque consecuti sumus, aliquid eisdem de rebus politius a nobis perfectiusque proferri; solesque non numquam hac de re a me in disputationibus nostris dissentire, quod ego eruditissimorum hominum artibus eloquentiam contineri statuam, tu autem illam ab elegantia doctrinae segregandam putes et in quodam ingeni atque exercitationis genere ponendam.</p> 
+<p rend="align(indent)">Ac mihi quidem saepe numero in summos homines ac summis ingeniis praeditos intuenti quaerendum esse visum est quid esset cur plures in omnibus rebus quam in dicendo admirabiles exstitissent; nam quocumque te animo et cogitatione converteris, permultos excellentis in quoque genere videbis non mediocrium artium, sed prope maximarum. </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="6"> <p> Quis enim est qui, si clarorum hominum scientiam rerum gestarum vel utilitate vel magnitudine metiri velit, non anteponat oratori imperatorem? </p> </div> 
+<div type="textpart" subtype="section" xml:base="urn:cts:latinLit:phi0474.phi037.perseus-lat2:1" n="7"> <p> Quis autem dubitet quin belli duces ex hac una civitate praestantissimos paene 
