@@ -18,11 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AOA_KAG_REVISION: 1a0342087b18d0a1f5630036937a548b6526e0e9
-      AOA_KAG_ROOT: ${{ github.workspace }}/.deps/aoa-kag
-      # The pinned composite action executes provider scripts by absolute path;
-      # expose the matching checkout so segmented-family imports cannot resolve
-      # accidentally against the consumer repository's ``scripts`` package.
-      PYTHONPATH: ${{ github.workspace }}/.deps/aoa-kag
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -35,6 +30,8 @@ jobs:
           python-version: "3.12"
 
       - name: Fetch pinned aoa-kag provider imports
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
         run: |
           git init --quiet "$AOA_KAG_ROOT"
           git -C "$AOA_KAG_ROOT" fetch --quiet --no-tags --depth=1 https://github.com/8Dionysus/aoa-kag.git "$AOA_KAG_REVISION"
@@ -43,6 +40,12 @@ jobs:
 
       - name: Check current canonical KAG owner family
         uses: 8Dionysus/aoa-kag/.github/actions/repo-local-kag-index@1a0342087b18d0a1f5630036937a548b6526e0e9
+        env:
+          AOA_KAG_ROOT: ${{ runner.temp }}/aoa-kag
+          # The pinned composite action executes provider scripts by absolute path;
+          # expose the matching checkout so segmented-family imports cannot resolve
+          # accidentally against the consumer repository's ``scripts`` package.
+          PYTHONPATH: ${{ runner.temp }}/aoa-kag
         with:
           history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
           event-history-ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
