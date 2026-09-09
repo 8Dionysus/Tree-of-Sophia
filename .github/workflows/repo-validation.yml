@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  # Keep the required repository gate explicit for pull-request events.
   pull_request:
 
 concurrency:
