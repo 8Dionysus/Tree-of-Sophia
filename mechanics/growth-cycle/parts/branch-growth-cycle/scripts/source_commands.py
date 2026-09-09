@@ -1434,11 +1434,12 @@ def command_handlers():
     import source_edition_commands
     import source_item_commands
     import source_collection_commands
+    import source_artifact_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions, source_native_metadata_commands,
         source_text_unit_commands, source_text_layer_commands, source_owner_profile_commands, source_owner_claim_commands,
         source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands,
-        source_collection_commands)
+        source_collection_commands, source_artifact_commands)
         for handler in module.command_handlers()))
     schemas = [schema for handler in handlers for schema in handler.owner_schemas]
     if len(set(schemas)) != len(schemas) or len({handler.handler_id for handler in handlers}) != len(handlers):

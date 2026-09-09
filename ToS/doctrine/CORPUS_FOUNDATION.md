@@ -172,6 +172,15 @@ projects native v1/v2 artifact metadata into the shared catalog and exact
 focus/inspection reader without replacing the authored record or inventing
 relations to Works, texts, composites or visual representations.
 
+Native Artifact v2 metadata can be created through a separately delegated
+[creation route](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ARTIFACT_GROWTH.md).
+Its existing exact rights, discovery and research records are inputs, not
+outputs of a fictitious discovery or philosophical planting. The actual
+`artifact_id`, empty initial planting refs, unreviewed posture and no text,
+semantic, rights, canon or publication admission remain explicit. Verified
+native serialization origin is distinct from retained legacy discovery
+provenance; neither can be substituted for a missing or corrupted other route.
+
 The [scholarly-composite adapter](semantic-interchange/README.md#scholarly-composites-existing-source-adapter)
 likewise retains native composite identities and complete v1 records in both
 readers. Source-reported members and coverage remain observations inside their

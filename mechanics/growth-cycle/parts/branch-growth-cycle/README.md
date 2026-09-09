@@ -2198,3 +2198,12 @@ not arbitrary historical versions. If a participant advances, the frozen plan
 remains readable through exact history but cannot be assessed by substituting
 the later record. Historical assessment selection requires its own bounded
 owner route; neither this proposal grant nor an old assessment grants it.
+
+### Native Artifact metadata creation
+
+The [native Artifact route](docs/NATIVE_ARTIFACT_GROWTH.md) uses its own
+`tos_local_artifact_create_owner_v1` grant and the existing `source.create`
+publication engine. Artifact v2 metadata and source-copy forms have an exact
+serialization origin; existing rights, discovery and research remain separately
+bound inputs. This does not acquire content, accept a witness or manufacture
+the older discovery/planting provenance.

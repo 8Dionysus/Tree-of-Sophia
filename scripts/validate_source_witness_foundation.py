@@ -13070,11 +13070,23 @@ def _validate_foundation(repo_root: Path, *, require_local_payloads: bool = Fals
             if discovery.get("target", {}).get("target_kind") != "artifact":
                 issues.append((artifact_ref, "artifact discovery target_kind must be artifact"))
 
+        from source_artifact_commands import verify_creation as verify_artifact_creation
+        try:
+            native_origin = verify_artifact_creation(repo_root, artifact_ref, artifact)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            issues.append((artifact_ref, f"native Artifact requires exact retained creation evidence: {error}"))
+            native_origin = False  # A broken native capture must not become a legacy witness.
         event_ref = artifact.get("provenance_event_ref")
         event_entry = discovery_events.get(str(event_ref))
-        if event_entry is None:
+        if native_origin:
+            if event_ref in event_ids:
+                issues.append((artifact_ref, f"duplicate native Artifact creation event_id: {event_ref}"))
+            event_ids.add(event_ref)
+            # Existing rights, discovery and research were exact inputs, not
+            # outputs fabricated by this metadata serialization operation.
+        elif native_origin is None and event_entry is None:
             issues.append((artifact_ref, "artifact provenance_event_ref is absent from discovery provenance"))
-        else:
+        elif native_origin is None:
             event, event_location = event_entry
             _validate_payload(event, provenance_validator, event_location, issues)
             _validate_source_refs(repo_root, event, event_location, issues)
