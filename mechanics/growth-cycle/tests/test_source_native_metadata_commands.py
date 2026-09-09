@@ -123,6 +123,30 @@ class NativeFixture:
 
 
 class NativeMetadataRevisionTests(unittest.TestCase):
+    def test_artifact_creation_replay_uses_native_identity_and_selected_files_without_history(self):
+        fixture = NativeFixture(self, 'artifact')
+        config = {'schema_version': source.ARTIFACT_CREATION_CONFIG, 'source_root': str(fixture.root),
+            'source_path': fixture.relative, 'record_id': fixture.record['artifact_id'],
+            'principal_id': 'test:synthetic-author', 'authority_ref': 'test:native-origin'}
+        request = {'record': fixture.record, 'forms': fixture.selections,
+                   'expected_configuration': 'sha256:' + 'a' * 64, 'expected_dependencies': 'sha256:' + 'b' * 64}
+        files = {fixture.path.name: fixture.path.read_bytes(), fixture.formpath.name: fixture.formpath.read_bytes()}
+        receipt = {'schema_version': 'tos_local_source_create_receipt_v1', 'command_id': 'test:native-origin',
+            'request_digest': source._digest(source._canonical(request)), 'principal_id': config['principal_id'],
+            'authority_ref': config['authority_ref'], 'owner_configuration': request['expected_configuration'],
+            'recorded_at': '2026-09-09T00:00:00Z', 'source_path': fixture.relative,
+            'source': source.metadata_subject(fixture.record).ref, 'dependencies': request['expected_dependencies'],
+            'files': revisions._file_refs(files), 'grants_admission': False}
+        fixture.path.with_name('source-create-receipt.json').write_bytes(revisions._encode(receipt))
+        original = Path.iterdir
+        def forbid_descendant_enumeration(path):
+            self.assertNotEqual(path, fixture.path.parent)
+            self.assertFalse(path.is_relative_to(fixture.nested))
+            return original(path)
+        with patch.object(Path, 'iterdir', forbid_descendant_enumeration):
+            source._creation_replay(config, fixture.path, request, receipt)
+        self.assertEqual((fixture.nested / 'untouched.bin').read_bytes(), b'synthetic opaque bytes')
+
     def test_each_native_identity_keeps_exact_history_forms_and_untouched_descendants(self):
         for kind in SAMPLES:
             with self.subTest(kind=kind):

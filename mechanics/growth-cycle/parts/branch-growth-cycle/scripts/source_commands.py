@@ -48,6 +48,7 @@ PROFILE_CREATION_CONFIGS = {PROFILE_CONFIG, SIGN_CONFIG}
 CORPUS_CONFIG = 'tos_local_corpus_create_owner_v1'
 CORPUS_COLLECTION_CONFIG = 'tos_local_corpus_create_owner_v2'
 CORPUS_CREATION_CONFIGS = {CORPUS_CONFIG, CORPUS_COLLECTION_CONFIG}
+ARTIFACT_CREATION_CONFIG = 'tos_local_artifact_create_owner_v1'
 CORPUS_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v1'
 CORPUS_SELECTED_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v2'
 CORPUS_COMPLETE_REVISION_CONFIG = 'tos_local_corpus_revision_owner_v3'
@@ -541,8 +542,15 @@ def _prepare_form_change(subject, fields, payload, principal_id, form_id, field_
 def _creation_scope(config, request):
     """Current delegated IDs and maker apply even to an exact old retry."""
     source, claims, selections = request['record'], request.get('claims', []), request['forms']
-    if not isinstance(source, dict) or source.get('record_id') != config['record_id']:
+    artifact = config['schema_version'] == ARTIFACT_CREATION_CONFIG
+    identity_field = 'artifact_id' if artifact else 'record_id'
+    if not isinstance(source, dict) or source.get(identity_field) != config['record_id']:
         raise PermissionError('source subject identity is not delegated')
+    if artifact:
+        from source_artifact_commands import initial_record
+        initial_record(config, source)
+        if request.get('source_bindings') != config['source_bindings']:
+            raise PermissionError('Artifact request differs from its separately delegated exact source inputs')
     if not isinstance(claims, list) or len(claims) > 32:
         raise ValueError('at most thirty-two initial claims are supported')
     if not isinstance(selections, list) or not 1 <= len(selections) <= 32:
@@ -661,6 +669,9 @@ def _sign_promotion_lock(config):
 
 
 def _initial_source_record(config, source, profiles=None):
+    if config['schema_version'] == ARTIFACT_CREATION_CONFIG:
+        from source_artifact_commands import initial_record
+        return initial_record(config, source)
     if config['schema_version'] in CORPUS_CREATION_CONFIGS:
         profile = _configured_corpus_profile(config)
         from source_record_profiles import METADATA_LINK_FIELDS
@@ -717,6 +728,9 @@ def _prepare_creation(config, request):
     The historical route alone admits initial claims under its own contract.
     A profile declaration neither selects a writer nor authorizes claims.
     """
+    if config['schema_version'] == ARTIFACT_CREATION_CONFIG:
+        from source_artifact_commands import prepare_creation
+        return prepare_creation(config, request)
     from build_source_witness_catalog import collect_records, collect_claims
     from source_record_profiles import SourceRecordProfiles
     from source_witness_bibliographic_graph_common import (
@@ -1043,7 +1057,7 @@ def _creation_replay(config, source_path, request, receipt):
               'owner_configuration', 'recorded_at', 'source_path', 'source', 'dependencies', 'files', 'grants_admission'}
     schema = ('tos_local_historical_create_receipt_v1' if config['schema_version'] in CREATION_CONFIGS
               else 'tos_local_source_create_receipt_v1')
-    original = Record.from_payload(request['record']['record_id'], request['record']['record_version'], request['record'])
+    original = metadata_subject(request['record'])
     if (set(receipt) != fields or receipt['schema_version'] != schema
             or receipt['principal_id'] != config['principal_id']
             or receipt['authority_ref'] != config['authority_ref']
@@ -1063,7 +1077,7 @@ def _creation_replay(config, source_path, request, receipt):
     history_path = source_path.parent / HISTORY
     selected_history = (os.path.lexists(history_path)
         and _json_object(_read(history_path, MAX_SET_BYTES)).get('schema_version') == 'tos_source_revision_history_v2')
-    if selected_history:
+    if selected_history or config['schema_version'] == ARTIFACT_CREATION_CONFIG:
         # Later explicitly selected corrections may coexist with descendants.
         # Rechecking a historical creation reads only its exact original files;
         # it does not retrospectively widen the old creation write grant.
@@ -1095,7 +1109,7 @@ def _creation_replay(config, source_path, request, receipt):
             if revision['previous_source'] != original.ref:
                 raise JournalCorruption('source history does not start at the created record')
             original_files = archived
-    if not history['receipts'] and Record.from_payload(record['record_id'], record['record_version'], record).ref != original.ref:
+    if not history['receipts'] and metadata_subject(record).ref != original.ref:
         raise JournalCorruption('created source changed without retained revision history')
     forms = _json_object(files[formname])
     _validate_history(forms)
@@ -1124,13 +1138,18 @@ def _creation_replay(config, source_path, request, receipt):
 
 
 def _create_source(owner_config, config, configuration, source_path, request):
-    profile_creation = config['schema_version'] in {*PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS}
+    artifact_creation = config['schema_version'] == ARTIFACT_CREATION_CONFIG
+    profile_creation = config['schema_version'] in {*PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, ARTIFACT_CREATION_CONFIG}
     corpus_creation = config['schema_version'] in CORPUS_CREATION_CONFIGS
     creation_operation = 'sign.promote' if config['schema_version'] == SIGN_CONFIG else 'source.create' if profile_creation else CREATION_OPERATION
     command_handler(config['schema_version']).validate_request(request)
     root, target = Path(config['source_root']), source_path.parent
     os.close(_owned_path(target.parent, directory=True))
-    profile = (_configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]) if profile_creation else None
+    if artifact_creation:
+        from source_artifact_commands import record_profile
+        profile = record_profile(config)
+    else:
+        profile = (_configured_corpus_profile(config) if corpus_creation else _configured_profile(config)[1]) if profile_creation else None
     def result(receipt=None, replayed=False):
         return {'schema_version': ('tos_local_source_create_result_v1' if profile_creation else 'tos_local_historical_create_result_v1'),
             'authentication': 'local-unix-account', 'owner_configuration': configuration,
@@ -1138,7 +1157,7 @@ def _create_source(owner_config, config, configuration, source_path, request):
             'target_exists': target.exists(), 'supported_operations': [creation_operation],
             'command_operations': ['describe', 'prepare', 'prepare-create', creation_operation],
             'allowed_operations': config['allowed_operations'],
-            **({'source_profile': profile, **({'record_type': config['record_type']} if corpus_creation else
+            **({'source_profile': profile, **({'record_type': 'artifact'} if artifact_creation else {'record_type': config['record_type']} if corpus_creation else
                                              {'profile_type_id': config['profile_type_id']})} if profile_creation else {
                 'allowed_claim_ids': config['allowed_claim_ids'],
                 'record_schema_ref': 'ToS/contracts/historical-record.schema.json',
@@ -1199,7 +1218,10 @@ def _create_source(owner_config, config, configuration, source_path, request):
         if config.get('provenance_event_id'):
             _capture_creation_provenance(config, request, files, started_at, started_ns,
                 procedure_name='sign-promoted-identity-serialization' if config['schema_version'] == SIGN_CONFIG
-                else 'source-corpus-metadata-serialization' if corpus_creation else None)
+                else 'native-artifact-metadata-serialization' if artifact_creation
+                else 'source-corpus-metadata-serialization' if corpus_creation else None,
+                additional_software_refs=('mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py',)
+                    if artifact_creation else ())
         receipt = {'schema_version': ('tos_local_source_create_receipt_v1' if profile_creation else 'tos_local_historical_create_receipt_v1'),
             'command_id': request['command_id'], 'request_digest': request_digest,
             'principal_id': config['principal_id'], 'authority_ref': config['authority_ref'],
