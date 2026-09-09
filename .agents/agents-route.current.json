@@ -894,22 +894,22 @@
       "whitespace_tokens": 1837
     },
     {
-      "bytes": 232760,
+      "bytes": 232974,
       "exists": true,
       "lines": 3661,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "bae80f9e6a3b9d7111bce470dcab5d76d26108473fcf68621970e6f487348674",
-      "whitespace_tokens": 13475
+      "sha256": "365e7b53b20a97c467e3eb7d6b6d287ac0c6e9e72566c0496a794a907e71865d",
+      "whitespace_tokens": 13500
     },
     {
-      "bytes": 8058,
+      "bytes": 8155,
       "exists": true,
-      "lines": 208,
+      "lines": 211,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "48adf0d65bfb192b23500689246f9f315c65e9ed1345f1efe09c04c49365bea5",
-      "whitespace_tokens": 680
+      "sha256": "70b70e875d5f7b73f49b2838f389656ca3d0ca00831df26ea4cf63232f718c99",
+      "whitespace_tokens": 686
     },
     {
       "bytes": 1069,
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "additional_context_tokens": 6097,
+      "additional_context_tokens": 6103,
       "completion_evidence": [
         {
           "bytes": 6605,
@@ -2077,13 +2077,13 @@
           "whitespace_tokens": 917
         },
         {
-          "bytes": 8058,
+          "bytes": 8155,
           "exists": true,
-          "lines": 208,
+          "lines": 211,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "48adf0d65bfb192b23500689246f9f315c65e9ed1345f1efe09c04c49365bea5",
-          "whitespace_tokens": 680
+          "sha256": "70b70e875d5f7b73f49b2838f389656ca3d0ca00831df26ea4cf63232f718c99",
+          "whitespace_tokens": 686
         }
       ],
       "id": "release_validation",
@@ -2130,13 +2130,13 @@
           "whitespace_tokens": 788
         },
         {
-          "bytes": 8058,
+          "bytes": 8155,
           "exists": true,
-          "lines": 208,
+          "lines": 211,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "48adf0d65bfb192b23500689246f9f315c65e9ed1345f1efe09c04c49365bea5",
-          "whitespace_tokens": 680
+          "sha256": "70b70e875d5f7b73f49b2838f389656ca3d0ca00831df26ea4cf63232f718c99",
+          "whitespace_tokens": 686
         }
       ],
       "owner_exists": true,
