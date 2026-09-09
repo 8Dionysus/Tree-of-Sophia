@@ -1,0 +1,66 @@
+{
+  "observed_at": "2026-09-09T07:04:55.000300+00:00",
+  "scope": "this checkout before sixth acquisition",
+  "targets": [
+    {
+      "target_slug": "de-senectute-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/cicero/de-senectute/expressions/en-perseus-phi0474-phi051-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi051.perseus-eng1.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/cicero/de-senectute/work.json",
+        "sha256": "51443b85953e4f734ee3dfe814ca103cc3636cf99c054a812008ba42c52cee39"
+      },
+      "parallel_Latin_payloads_present": true
+    },
+    {
+      "target_slug": "de-amicitia-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi052.perseus-eng2.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/cicero/de-amicitia/work.json",
+        "sha256": "979d764106a1779fafbcf382ed521a8d34c70f721a2f9de6d56554af1eceb1cf"
+      },
+      "parallel_Latin_payloads_present": true
+    },
+    {
+      "target_slug": "de-divinatione-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/cicero/de-divinatione/expressions/en-perseus-phi0474-phi053-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi053.perseus-eng1.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/cicero/de-divinatione/work.json",
+        "sha256": "dfddfd954d11d3d63e1ed53c4d9d30f59d8ace9b77563571efe85133b34c2a0c"
+      },
+      "parallel_Latin_payloads_present": true
+    },
+    {
+      "target_slug": "de-officiis-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/cicero/de-officiis/expressions/en-perseus-phi0474-phi055-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi055.perseus-eng1.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/cicero/de-officiis/work.json",
+        "sha256": "429ee51df07b10bdac7f5988d8b9a54addf3e1130c1f526097c153ebeda47004"
+      },
+      "parallel_Latin_payloads_present": true
+    },
+    {
+      "target_slug": "de-rerum-natura-english",
+      "new_payload_paths": [
+        "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/en-perseus-phi0550-phi001-perseus-eng1/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0550.phi001.perseus-eng1.xml"
+      ],
+      "new_payloads_present": false,
+      "existing_work_ref": {
+        "path": "ToS/source-witnesses/works/lucretius/de-rerum-natura/work.json",
+        "sha256": "6bc38e22083b1cc7a9d48e45bf187f15e63d487f45b8c9ecac0ce0009ed93cd4"
+      },
+      "parallel_Latin_payloads_present": true
+    }
+  ]
+}

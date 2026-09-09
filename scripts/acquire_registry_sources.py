@@ -287,7 +287,7 @@ def transfer(root: Path, target: dict, entry: dict, log: Path) -> tuple[bytes, d
         raise
 
 
-def tei_division_addresses(edition: ET.Element) -> list[str]:
+def tei_division_addresses(edition: ET.Element, milestone_unit: str | None = None) -> list[str]:
     """Qualify local division numbers by their source-supplied ancestors."""
     addresses: list[str] = []
     seen: set[tuple[tuple[str, str], ...]] = set()
@@ -304,6 +304,15 @@ def tei_division_addresses(edition: ET.Element) -> list[str]:
                     raise ValueError("Perseus qualified division address is duplicated")
                 seen.add(address)
                 addresses.append(json.dumps(address, ensure_ascii=False, separators=(",", ":")))
+            if milestone_unit and child.tag == "{http://www.tei-c.org/ns/1.0}milestone" and child.get("unit") == milestone_unit:
+                number = child.get("n")
+                if not number:
+                    raise ValueError("Perseus citation milestone lacks a supplied number")
+                marker = parents + ((milestone_unit, number),)
+                if marker in seen:
+                    raise ValueError("Perseus qualified milestone address is duplicated")
+                seen.add(marker)
+                addresses.append(json.dumps(marker, ensure_ascii=False, separators=(",", ":")))
             visit(child, address)
     visit(edition, ())
     return addresses
@@ -339,13 +348,13 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
         expected_kind = "translation" if translated else "edition"
         allowed_languages = {"en", "eng"} if translated else {"la", "lat"} if latin else {"grc"}
         identity = editions[0].get("n") if len(editions) == 1 else None
-        if latin:
+        if latin or (translated and "identity_anchor" in coverage):
             anchor = coverage.get("identity_anchor")
             body_identity = text_body.get("{http://www.w3.org/XML/1998/namespace}base")
             if anchor not in {"edition_n", "body_xml_base"}:
-                raise ValueError("Latin identity anchor must name its reviewed XML carrier")
+                raise ValueError("Perseus identity anchor must name its reviewed XML carrier")
             if any(value is not None and value != coverage["cts_urn"] for value in (identity, body_identity)):
-                raise ValueError("Latin source identity carriers conflict")
+                raise ValueError("Perseus source identity carriers conflict")
             if anchor == "body_xml_base":
                 identity = body_identity
         if len(editions) != 1 or editions[0].get("type") != expected_kind or identity != coverage["cts_urn"] or editions[0].get("{http://www.w3.org/XML/1998/namespace}lang") not in allowed_languages:
@@ -355,14 +364,15 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
         greek = sum("\u0370" <= char <= "\u03ff" or "\u1f00" <= char <= "\u1fff" for char in text)
         count = sum(char.isascii() and char.isalpha() for char in text) if translated or latin else greek
         count_field = "latin_letter_count" if translated or latin else "greek_character_count"
-        if coverage.get("citation_scope") == "hierarchical_divisions":
-            addresses = tei_division_addresses(editions[0])
+        if coverage.get("citation_scope") in {"hierarchical_divisions", "hierarchical_divisions_and_section_milestones"}:
+            milestones = coverage["citation_scope"] == "hierarchical_divisions_and_section_milestones"
+            addresses = tei_division_addresses(editions[0], "section" if milestones else None)
             if not addresses or count < 1000:
                 raise ValueError("Perseus qualified divisions or nonempty language-profile text check failed")
             report["files"].append({"basename": entry["basename"], "cts_urn": coverage["cts_urn"],
                 "division_count": len(addresses), "first_division": addresses[0], "last_division": addresses[-1],
                 "division_addresses_sha256": sha256(("\n".join(addresses)+"\n").encode()),
-                "address_scope": "source-supplied division type/number chain; no CTS service resolution asserted",
+                "address_scope": ("source-supplied division chains and section milestones; no CTS service resolution asserted" if milestones else "source-supplied division type/number chain; no CTS service resolution asserted"),
                 count_field: count})
         else:
             if not sections or len(sections) != len(set(sections)) or count < 1000:

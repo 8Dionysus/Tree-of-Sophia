@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/8.22/tei-epidoc.rng"
+  schematypens="http://relaxng.org/ns/structure/1.0"?><?xml-model href="http://www.stoa.org/epidoc/schema/8.22/tei-epidoc.rng"
+  schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+   <teiHeader xml:lang="eng" type="text">
+      <fileDesc >
+         <titleStmt>
+            <title>Divination</title>
+            
+            <author>M. Tullius Cicero</author>
+            <editor role="translator">William Armistead Falconer</editor>
+            <sponsor>Perseus Project, Tufts University</sponsor>
+            <principal>Gregory Crane</principal>
+            <respStmt>
+               <resp>Prepared under the supervision of</resp>
+               <name>Bridget Almas</name>
+               <name>Lisa Cerrato</name>
+               <name>Rashmi Singhal</name>
+            </respStmt>
+            <funder n="org:NEH">The National Endowment for the Humanities</funder>
+         </titleStmt>
+         <extent>About 100Kb</extent>
+         <publicationStmt>
+            <publisher>Trustees of Tufts University</publisher>
+            <pubPlace>Medford, MA</pubPlace>
+            <authority>Perseus Project</authority>
+             <date type="release" when="2009-10-07">Perseus 4.0</date>
+         </publicationStmt>
+         <sourceDesc>
+            <biblStruct >
+               <monogr>
+                  <author>Cicero: De Senectute De Amicitia De Divinatione</author>
+                  <title>With An English Translation</title>
+                  <editor role="translator">William Armistead Falconer</editor>
+                  <imprint>
+                     <pubPlace>Cambridge</pubPlace>
+                     <publisher>Harvard University Press; Cambridge, Mass., London, England</publisher>
+                     <date>1923</date>
+                  </imprint>
+               </monogr>
+            </biblStruct>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+         <refsDecl n="CTS">
+            <cRefPattern n="section"
+                         matchPattern="(\w+).(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1']/tei:div[@n='$2'])">
+               <p>This pointer pattern extracts section</p>
+            </cRefPattern>
+            <cRefPattern n="chapter"
+                         matchPattern="(\w+)"
+                         replacementPattern="#xpath(/tei:TEI/tei:text/tei:body/tei:div/tei:div[@n='$1'])">
+               <p>This pointer pattern extracts chapter</p>
+            </cRefPattern>
+         </refsDecl>
+         <refsDecl n="TEI.2">
+            <refState unit="book"/>
+            <refState unit="section"/>
+         </refsDecl>
+            <refsDecl xml:id="CTS">
+              <citeStructure match="/TEI/text/body" use="@xml:base">
+                <citeStructure unit="book" delim=":" match="div/div[@subtype='book']" use="@n">
+                  <citeStructure unit="chapter" delim="." match=".//milestone[@unit='chapter']" use="@n"/>
+                </citeStructure>
+              </citeStructure>
+            </refsDecl>
+</encodingDesc>
+      <profileDesc >
+         <langUsage>
+            <language ident="eng">English</language>
+            <language ident="grc">Ancient Greek</language>
+            <language ident="lat">Latin</language>
+         </langUsage>
+      </profileDesc>
+      
+      <revisionDesc>
+        <change who="Charles Pletcher" when="2026-08-26">Add citeStructure refsDecl</change>
+         <change when="2016-11-20" who="Thibault Clérice">CapiTainS and Epidoc</change>
+      </revisionDesc>
+   </teiHeader>
+   <text xml:lang="eng">
+      <body xml:base="urn:cts:latinLit:phi0474.phi053.perseus-eng1">
+         <div xml:lang="eng"
+              type="translation">
+            <pb n="p.223"/>
+            <div type="textpart" n="1" subtype="book">
+               <head >Divination Book I</head>
+               <p >
+                  <milestone unit="chapter" n="1"/>
+                  <milestone unit="section" n="1"/>There is an ancient belief, handed down to us
+even from mythical times and firmly established by
+the general agreement of the Roman people and of all
+nations, that divination of some kind exists among
+men; this the Greeks call <foreign xml:lang="greek">mantikh/</foreign>—that is, the
+foresight and knowledge of future events. A really
+splendid and helpful thing it is—if only such a faculty
+exists—since by its means men may approach very
+near to the power of gods. And, just as we Romans
+have done many other things better than the Greeks,
+so have we excelled them in giving to this most
+extraordinary gift a name, which we have derived
+from <hi rend="italics">divi,</hi> a word meaning <quote>gods,</quote> whereas, according to Plato's interpretation, they have derived it
+from <hi rend="italics">furor,</hi> a word meaning <quote>frenzy.</quote>
+                  <note>
+                     <hi rend="italics">Phaedrus</hi> 244 c <foreign xml:lang="greek">mantikh/</foreign>=<foreign xml:lang="greek">manikh/</foreign> from <foreign xml:lang="greek">mani/a</foreign> (<hi rend="italics">furor</hi>).</note>
+               </p>
+               <p >
+                  <milestone unit="section" n="2"/>Now I am aware of no people, however refined and
+learned or however savage and ignorant, which does
+not think that signs are given of future events,
+and that certain persons can recognize those signs
+and foretell events before they occur. First of all—to seek authority from the most distant sources—the
+Assyrians, on account of the vast plains inhabited by
+them, and because of the open and unobstructed
+view of the heavens presented to them on every
+
+<pb n="p.225"/>
+
+side, took observations of the paths and movements
+of the stars, and, having made note of them,
+transmitted to posterity what significance they
+had for each person. And in that same nation
+the Chaldeans—a name which they derived not
+from their art but their race<note>Cicero adds this because <hi rend="italics">Chaldaei</hi> had come to be used
+=<quote>astrologers.</quote> They were the ruling class among the
+Babylonians.</note> —have, it is thought,
+by means of long-continued observation of the constellations, perfected a science which enables them
+to foretell what any man's lot will be and for what
+fate he was born.</p>
+               <p >The same art is believed to have been acquired
+also by the Egyptians through a remote past extending over almost countless ages. Moreover, the
+Cilicians, Pisidians, and their neighbours, the Pamphylians—nations which I once governed—think
+that the future is declared by the songs and flights
+of birds, which they regard as most infallible signs.
+<milestone unit="section" n="3"/>And, indeed, what colony did Greece ever send
+into Aeolia, Ionia, Asia, Sicily, or Italy without
+consulting the Pythian or Dodonian oracle, or that
+of Jupiter Hammon? Or what war did she ever
+undertake without first seeking the counsel of the
+gods?</p>
+               <p >
+                  <milestone unit="chapter" n="2"/>Nor is it only one single mode of divination
+that has been employed in public and in private.
+For, to say nothing of other nations, how many
+our own people have embraced! In the first place,
+according to tradition, Romulus, the father of this
+City, not only founded it in obedience to the auspices,
+but was himself a most skilful augur. Next, the
+other Roman kings employed augurs; and, again,
+after the expulsion of the kings, no public business
+was ever transacted at home or abroad without first
+taking the auspices. Furthermore, since our fore-
+
+<pb n="p.227"/>
+
+fathers believed that the soothsayers'<note>The <hi rend="italics">haruspex
