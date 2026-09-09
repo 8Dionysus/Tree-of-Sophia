@@ -63,6 +63,36 @@ graphs, D1 tables, catalogs, and LensResults are disposable read models. They
 cannot accept source, rights, translation, semantic, identity, or canon
 claims.
 
+## Retained object-Link v1 context
+
+The retained `relations/object-link/object-link-claims.jsonl` stream has an
+explicit read-only adapter in `scripts/source_object_link_read.py`. It reads
+the unchanged `tos_object_link_claim_v1` contract: Work, Expression, Edition,
+Collection or Item as subject, Link as object, and the four declared access
+predicates. The newer six-kind native v2 write route does not admit legacy v1
+through `SourceClaimProfiles` or retroactively extend its subject domain.
+
+Every retained Claim has both its existing direct navigation edge and an
+additive reified source-claim carrier. Both preserve the exact raw Claim,
+source file, line and canonical digest. Evidence, maker, provenance, qualifiers,
+empty reviews, version and supersession return through ordinary core/agent
+inspection. The existing Link navigation body remains unchanged; its second
+source-claims endpoint is a separate carrier of the same declared Link ID,
+not another object or an identity equivalence decision.
+
+No legacy source wording, statement language, Form, assessment or historical
+revision is fabricated. Missing Forms remain explicit missing roles. An
+observed address is not an observation performed by the reader, acquisition,
+rights clearance or accepted content. The portable consumer checks exact
+body/digest/endpoint agreement and rejects conflicting marked carriers; it
+does not replace source validation or authenticate unsigned exports. Older
+unmarked projections retain their absent-context state.
+
+Exact metadata-version views reuse the same portable native identity grammar
+as Form selection. Artifact and scholarly Composite keep `artifact_id` and
+`composite_id`; the view does not add a `record_id` shadow. Exact source version
+and canonical byte-body binding remain required, with no current-use grant.
+
 ## Executable boundary and text spine
 
 Registry version 2 rejects abstract instances, missing or cyclic supersession

@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 30,
+  "registry_version": 31,
   "property_definitions": [
 {"property_id":"tos.property.record-version-resolution","field":"semantics.record_version.status","labels":{"default":"Exact version availability","ru":"Доступность точной версии","en":"Exact version availability"},"definition":"Whether the exact referenced source record bytes are readable in this snapshot; distinct from truth, review and current-use admission.","value_type":"string","applies_to":["tos.entity.record-version"],"required":true,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},
 {"property_id":"tos.property.record-version-posture","field":"semantics.record_version.version_status","labels":{"default":"Record version posture","ru":"Положение версии записи","en":"Record version posture"},"definition":"Current or historical within the verified source package, only when that exact version is available. A historical record is not the current record or a current grant.","value_type":"string","applies_to":["tos.entity.record-version"],"required":false,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},

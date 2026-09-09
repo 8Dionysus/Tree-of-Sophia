@@ -798,6 +798,19 @@ def _require_assessed_carrier_parity(left: dict[str, Any], right: dict[str, Any]
             raise ValueError('source carriers disagree on form assessment snapshot')
 
 
+def _native_metadata_identity(source):
+    """The existing portable native identity grammar, shared by its readers."""
+    field = {
+        'tos_scholarly_composite_witness_v1': 'composite_id',
+        'tos_artifact_source_witness_v1': 'artifact_id',
+        'tos_artifact_source_witness_v2': 'artifact_id',
+    }.get(source.get('schema_version')) if isinstance(source.get('schema_version'), str) else None
+    if field and ('record_id' in source or not isinstance(source.get(field), str)
+            or not source[field].startswith('tos.' + field.removesuffix('_id') + '.')):
+        raise ValueError('invalid native metadata identity')
+    return field
+
+
 def select_human_forms(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
     """Deliver source materializations intact; do not re-assess or rank truth.
 
@@ -840,14 +853,9 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
         record = claim
     if not isinstance(record, dict):
         return stop('invalid', 'forms.missing-source-record-binding')
-    native_identity = {
-        'tos_scholarly_composite_witness_v1': 'composite_id',
-        'tos_artifact_source_witness_v1': 'artifact_id',
-        'tos_artifact_source_witness_v2': 'artifact_id',
-    }.get(record.get('schema_version')) if not is_claim and isinstance(record.get('schema_version'), str) else None
-    if native_identity and ('record_id' in record or
-            not isinstance(record.get(native_identity), str) or
-            not record[native_identity].startswith('tos.' + native_identity.removesuffix('_id') + '.')):
+    try:
+        native_identity = None if is_claim else _native_metadata_identity(record)
+    except ValueError:
         return stop('invalid', 'forms.invalid-source-record-binding')
     subject = {'id': record.get('claim_id' if is_claim else native_identity or 'record_id'),
                'version': record.get('claim_version' if is_claim else 'record_version'),
@@ -1496,7 +1504,10 @@ def _record_version_view(item: dict[str, Any]) -> dict[str, Any]:
         raise ValueError('record version view identity does not bind its exact reference')
     if view['status'] == 'available':
         record = view['record']
-        identity_field, version_field = ('claim_id', 'claim_version') if view['record_kind'] == 'claim' else ('record_id', 'record_version')
+        native_identity = (_native_metadata_identity(record)
+                           if isinstance(record, dict) and view['record_kind'] == 'metadata' else None)
+        identity_field, version_field = (('claim_id', 'claim_version') if view['record_kind'] == 'claim'
+                                         else (native_identity or 'record_id', 'record_version'))
         if (not isinstance(record, dict) or not view['provenance']
                 or view['version_status'] not in ('current', 'historical')
                 or record.get(identity_field) != view['record_ref']['id']
@@ -1594,6 +1605,10 @@ def _metadata_history_refs(node: dict[str, Any]) -> list[dict[str, Any]] | None:
     """
     attributes = node.get('attributes') or {}
     history, record = attributes.get('record_history'), attributes.get('source_record')
+    try:
+        identity_field = (_native_metadata_identity(record) or 'record_id') if isinstance(record, dict) else 'record_id'
+    except ValueError:
+        return None
     fields = {'schema_version', 'status', 'reason', 'record_id', 'current_ref', 'refs',
               'provenance', 'grants_current_use', 'performs_assessment', 'writes_to_source'}
     if (not isinstance(history, dict) or set(history) != fields
@@ -1601,12 +1616,12 @@ def _metadata_history_refs(node: dict[str, Any]) -> list[dict[str, Any]] | None:
             or not isinstance(history['reason'], str) or not 1 <= len(history['reason']) <= 256
             or any(history[key] is not False for key in ('grants_current_use', 'performs_assessment', 'writes_to_source'))
             or not isinstance(history['provenance'], dict) or not history['provenance']
-            or not isinstance(record, dict) or record.get('record_id') != node.get('entity_id')
+            or not isinstance(record, dict) or record.get(identity_field) != node.get('entity_id')
             or type(record.get('record_version')) is not int
-            or history['record_id'] != record['record_id'] or not _exact_form_ref(history['current_ref'])
+            or history['record_id'] != record[identity_field] or not _exact_form_ref(history['current_ref'])
             or not isinstance(history['refs'], list) or not 1 <= len(history['refs']) <= 129):
         return None
-    current = {'id': record['record_id'], 'version': record['record_version'],
+    current = {'id': record[identity_field], 'version': record['record_version'],
                'digest': 'sha256:' + _exact_record_digest(record)}
     if _exact_record_digest(current) != _exact_record_digest(history['current_ref']):
         return None
@@ -1973,6 +1988,61 @@ def _normalize_relation(
     return normalized
 
 
+def _validate_retained_object_link_contexts(navigation, raw_nodes):
+    """Check exact legacy carrier agreement, not v1 source/write admission.
+
+    The source adapter owns schema validation. A portable projection cannot
+    silently attach another Claim body to a retained direct navigation edge.
+    Unmarked older projections keep their honest absent-context state.
+    """
+    source_ref = 'ToS/source-witnesses/relations/object-link/object-link-claims.jsonl'
+    schema_ref = 'ToS/contracts/object-link-claim.schema.json'
+    retained = {}
+
+    def context(item):
+        properties = item.get('properties')
+        if not isinstance(properties, dict) or properties.get('source_adapter') != 'retained-object-link-v1':
+            return None
+        claim = properties.get('source_claim')
+        if (not isinstance(claim, dict) or claim.get('schema_version') != 'tos_object_link_claim_v1'
+                or not isinstance(claim.get('claim_id'), str) or not claim['claim_id']
+                or properties.get('source_claim_file_ref') != source_ref
+                or properties.get('source_schema_ref') != schema_ref
+                or type(properties.get('source_claim_line')) is not int or properties['source_claim_line'] < 1
+                or properties.get('source_sha256') != _validation_digest(claim)):
+            raise ValueError('retained object-Link context has no exact source binding')
+        return properties, claim
+
+    for node in raw_nodes:
+        bound = context(node)
+        if bound is None:
+            continue
+        properties, claim = bound
+        if (node.get('node_kind') != 'claim' or node.get('node_id') != 'claim:' + claim['claim_id']
+                or node.get('source_ref') != source_ref
+                or node.get('source_line') != properties['source_claim_line']
+                or node.get('source_sha256') != properties['source_sha256']
+                or claim['claim_id'] in retained):
+            raise ValueError('retained object-Link Claim carrier differs from its source context')
+        retained[claim['claim_id']] = properties
+    for edge in _objects(navigation.get('edges')):
+        bound = context(edge)
+        if bound is None:
+            continue
+        properties, claim = bound
+        if (edge.get('edge_kind') != 'evidence_claim' or edge.get('claim_ref') != claim['claim_id']
+                or edge.get('edge_id') != 'source-navigation:claim:' + claim['claim_id']
+                or source_ref not in _source_refs(edge)
+                or any(edge.get(carrier) != claim.get(field) for carrier, field in
+                       (('from_id', 'subject_ref'), ('to_id', 'object'), ('predicate_id', 'predicate'),
+                        ('review_status', 'review_status')))):
+            raise ValueError('retained object-Link direct edge differs from its source context')
+        other = retained.get(claim['claim_id'])
+        if other is not None and any(properties[key] != other[key] for key in
+                ('source_claim', 'source_claim_file_ref', 'source_claim_line', 'source_sha256', 'source_schema_ref')):
+            raise ValueError('retained object-Link carriers disagree on exact source context')
+
+
 def _validate_reference_claim_carriers(bibliographic, raw_nodes, nodes_by_id,
                                        entity_entries, relation_entries, relation_mappings):
     """Check the declared fixed-slot ABI without IO or inferred references.
@@ -2318,6 +2388,7 @@ def build_knowledge_graph(
         for item in bibliographic_nodes
         if _string(item.get("node_id"))
     }
+    _validate_retained_object_link_contexts(navigation, bibliographic_nodes)
     _validate_claim_navigation_carriers(bibliographic_nodes, relation_registry, entity_entries, entity_mappings)
     for item in bibliographic_nodes:
         native = _string(item.get("node_id")) or "unnamed"

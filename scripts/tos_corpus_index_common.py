@@ -18,6 +18,7 @@ from build_source_witness_catalog import (artifact_catalog_entry, artifact_displ
                                          verify_catalog_publication)
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
 from source_record_profiles import SourceRecordProfiles
+from source_object_link_read import LegacyObjectLinkReader, SOURCE_REF as LEGACY_OBJECT_LINK_REF
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -694,6 +695,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
         source_refs: list[str],
         review_status: str = "not_applicable",
         claim_ref: str | None = None,
+        properties: dict[str, Any] | None = None,
     ) -> None:
         candidate: dict[str, Any] = {
             "edge_id": edge_id,
@@ -706,6 +708,8 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
         }
         if claim_ref:
             candidate["claim_ref"] = claim_ref
+        if properties is not None:
+            candidate['properties'] = properties
         existing = edges.get(edge_id)
         if existing is not None and existing != candidate:
             diagnostics.append(
@@ -961,6 +965,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
                 [planting_ref, witness_ref],
             )
 
+    legacy_links = None
     claim_files = (
         "work-expression-claims.jsonl",
         "expression-edition-claims.jsonl",
@@ -971,7 +976,12 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
     for basename in claim_files:
         for claim_path in sorted((TOS_ROOT / "source-witnesses").rglob(basename)):
             claim_ref = repo_ref(claim_path)
-            for claim in _jsonl(claim_path):
+            if claim_ref == LEGACY_OBJECT_LINK_REF:
+                legacy_links = LegacyObjectLinkReader(REPO_ROOT)
+                claim_rows = legacy_links.rows()
+            else:
+                claim_rows = enumerate(_jsonl(claim_path), start=1)
+            for source_line, claim in claim_rows:
                 if claim.get("visibility") not in {"public", "public_payload", "public_metadata_only"}:
                     continue
                 subject_ref = claim.get("subject_ref")
@@ -997,6 +1007,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
                     [claim_ref, *[str(ref) for ref in claim.get("evidence_refs", [])]],
                     str(claim.get("review_status") or "unknown"),
                     claim_id,
+                    (legacy_links.context(source_line, claim) if claim_ref == LEGACY_OBJECT_LINK_REF else None),
                 )
 
     for manifest_path in sorted((TOS_ROOT / "source-witnesses").rglob("item.manifest.json")):
@@ -1081,6 +1092,8 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication):
         version_reader.verify_current()
     if metadata_reader is not None:
         metadata_reader.verify_current()
+    if legacy_links is not None:
+        legacy_links.verify_current()
     if catalog_digests is not None and (
             catalog_manifest_path.read_bytes() != catalog_manifest_raw
             or any(sha256(REPO_ROOT / ref) != digest for ref, digest in catalog_digests.items())):

@@ -443,7 +443,22 @@
         "edge_kind": {"type": "string", "minLength": 1},
         "review_status": {"type": "string", "minLength": 1},
         "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "claim_ref": {"type": "string", "minLength": 1}
+        "claim_ref": {"type": "string", "minLength": 1},
+        "properties": {"$ref": "#/$defs/retainedObjectLinkContext"}
+      }
+    },
+    "retainedObjectLinkContext": {
+      "description": "Read-only context of one exact legacy object-Link v1 row; the source adapter validates the unchanged owner schema and its five-kind domain. No source prose or assessment is synthesized.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_claim", "source_claim_file_ref", "source_claim_line", "source_sha256", "source_schema_ref", "source_adapter"],
+      "properties": {
+        "source_claim": {"type": "object", "required": ["schema_version", "claim_id"], "properties": {"schema_version": {"const": "tos_object_link_claim_v1"}, "claim_id": {"type": "string", "minLength": 1}}},
+        "source_claim_file_ref": {"const": "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl"},
+        "source_claim_line": {"type": "integer", "minimum": 1},
+        "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "source_schema_ref": {"const": "ToS/contracts/object-link-claim.schema.json"},
+        "source_adapter": {"const": "retained-object-link-v1"}
       }
     },
     "sourceNavigationRights": {

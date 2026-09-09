@@ -15,6 +15,7 @@ from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from source_metadata_snapshot import PublicationSnapshot, PublicationChanged
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms, load_claim_forms
+from source_object_link_read import LegacyObjectLinkReader
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
                                     SOURCE_CLAIM_BASENAME, CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF,
                                     _read_json as _read_profile_json)
@@ -455,7 +456,7 @@ def _load_object_catalog(repo_root: Path, profiles: SourceRecordProfiles | None 
     return objects
 
 
-def _load_claim_catalog(repo_root: Path, profiles=None) -> list[dict[str, Any]]:
+def _load_claim_catalog(repo_root: Path, profiles=None, legacy_links=None) -> list[dict[str, Any]]:
     path = repo_root / CLAIM_CATALOG_REF
     claims: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -468,6 +469,11 @@ def _load_claim_catalog(repo_root: Path, profiles=None) -> list[dict[str, Any]]:
             raise BibliographicGraphBuildError(f"{location}: duplicate claim_id {claim_id!r}")
         seen.add(claim_id)
         if entry.get("source_claim_file_ref") == OBJECT_LINK_CLAIM_REF:
+            # This exact retained adapter is not SourceClaimProfiles admission:
+            # the v1 five-kind contract and absent source wording stay intact.
+            legacy_links = legacy_links or LegacyObjectLinkReader(repo_root)
+            legacy_links.from_catalog(entry)
+            claims.append(entry)
             continue
         if entry.get("visibility") not in {"public", "public_metadata_only"}:
             raise BibliographicGraphBuildError(
@@ -548,6 +554,7 @@ def _load_source_claim(
     *,
     repo_root: Path,
     profiles=None,
+    legacy_links=None,
 ) -> dict[str, Any]:
     source_ref = entry.get("source_claim_file_ref")
     source_line = entry.get("source_claim_line")
@@ -559,8 +566,12 @@ def _load_source_claim(
     profiled = source_path.name == SOURCE_CLAIM_BASENAME
     if profiled:
         profiles = profiles or SourceClaimProfiles(repo_root)
-    rows = dict(profiles.read_rows(source_ref) if profiled else iter_jsonl(source_path, repo_root))
-    claim = rows.get(source_line)
+    if source_ref == OBJECT_LINK_CLAIM_REF:
+        legacy_links = legacy_links or LegacyObjectLinkReader(repo_root)
+        claim = legacy_links.from_catalog(entry)
+    else:
+        rows = dict(profiles.read_rows(source_ref) if profiled else iter_jsonl(source_path, repo_root))
+        claim = rows.get(source_line)
     if claim is None:
         raise BibliographicGraphBuildError(
             f"{entry.get('claim_id')}: {source_ref}:{source_line} does not exist"
@@ -1267,7 +1278,9 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         )
     claim_profiles = (SourceClaimProfiles(repo_root) if any(
         Path(str(entry.get('source_claim_file_ref', ''))).name == SOURCE_CLAIM_BASENAME for entry in raw_claim_entries) else None)
-    claim_entries = _load_claim_catalog(repo_root, claim_profiles)
+    legacy_links = (LegacyObjectLinkReader(repo_root) if any(
+        entry.get('source_claim_file_ref') == OBJECT_LINK_CLAIM_REF for entry in raw_claim_entries) else None)
+    claim_entries = _load_claim_catalog(repo_root, claim_profiles, legacy_links)
     historical_contract = (_historical_claim_contract(repo_root)
                            if any(entry.get('predicate') in HISTORICAL_PREDICATES for entry in claim_entries) else None)
 
@@ -1296,9 +1309,11 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         _add_node(nodes, _identity_node(record))
 
     for entry in claim_entries:
-        claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles)
+        claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles, legacy_links=legacy_links)
         if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
             claim_profiles.validate(claim, objects)
+        elif entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
+            legacy_links.validate(claim, objects)
         elif claim.get('predicate') in HISTORICAL_PREDICATES:
             _validate_historical_claim(claim, objects, historical_contract)
         claim_id = str(claim["claim_id"])
@@ -1323,6 +1338,8 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         _add_node(nodes, object_node)
 
         claim_node = _claim_node(entry, claim)
+        if entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
+            claim_node['properties'].update(legacy_links.context(entry['source_claim_line'], claim))
         descriptor = build_claim_navigation_descriptor(
             claim, subject_node, object_node, navigation_registry, profiles.registry)
         if descriptor is not None:
@@ -1539,6 +1556,9 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         input_digests.update(claim_profiles.input_digests)
         input_digests = dict(sorted(input_digests.items()))
         profile_layers.add('source-profile')
+    if legacy_links is not None:
+        input_digests.update(legacy_links.input_digests)
+        input_digests = dict(sorted(input_digests.items()))
     payload: dict[str, Any] = {
         "schema_version": "tos_source_witness_bibliographic_graph_v1",
         "schema_ref": SCHEMA_REF,
@@ -1611,6 +1631,8 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
     _validate_cross_references(payload)
     if _catalog_input_digests(repo_root, profiles) != catalog_digests:
         raise PublicationChanged('catalog bytes changed during bibliographic projection')
+    if legacy_links is not None:
+        legacy_links.verify_current()
     return payload
 
 
