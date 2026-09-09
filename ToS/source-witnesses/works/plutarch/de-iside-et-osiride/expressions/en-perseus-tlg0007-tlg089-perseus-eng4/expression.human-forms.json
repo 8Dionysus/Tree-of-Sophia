@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+    "version": 1,
+    "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2608b08ba32bd4711c72c8b2e99903ee745cc8115215e270403145334c4efbc4",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+        "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+            "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.3b8e0c9b887124328e95da6347f3fc1c4eef0a14bbd766a21788bf47e81948c8",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e",
+        "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-seventh-source-forms:7ea488c72ad61b01cd7fdc82717903ab56ab742a67e4743b221a2d5c7b494839",
+      "request_digest": "sha256:826b944b33207ea18f484de7f27ec8f8c0bbd5b210b7c8ea0da4feff71964d7c",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:1c0a43345209d513088166e24f1f73f212b15e5a30174c16f0478286e77b49cd",
+      "recorded_at": "2026-09-09T19:51:52.757419+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-iside-et-osiride.en-perseus-tlg0007-tlg089-perseus-eng4",
+        "version": 1,
+        "digest": "sha256:4023fa83377317a2618f08420c75f9d41804094fdded286f7a3d1fc39f18d40e"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.2608b08ba32bd4711c72c8b2e99903ee745cc8115215e270403145334c4efbc4",
+          "version": 1,
+          "digest": "sha256:031e3c5c29ecfdf87689fac9b718da69f6517dea310aaba4d7be9f0dbd95e608"
+        },
+        {
+          "id": "tos.form.metadata.3b8e0c9b887124328e95da6347f3fc1c4eef0a14bbd766a21788bf47e81948c8",
+          "version": 1,
+          "digest": "sha256:4ad2be0197fa48c1fac8f817e5c66e2cb4f5c2a07f9fc604bf86c58c61f82e48"
+        }
+      ]
+    }
+  ]
+}

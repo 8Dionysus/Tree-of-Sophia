@@ -1,11 +1,175 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.work.epictetus.the-handbook",
-    "version": 2,
-    "digest": "sha256:b90a6612bed0e126cfd3fd4e3c84581db1dc867f8d1398fe7a6d98109c71eec3"
-  },
   "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b391b92ec2b057cc45c20f71791f0780d428ad83a7eb0ba6b3e681f9a0bf29f9",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:f55f9d4bb8e3989e755c24da88f4c79943224677c96f0cabf25260b0b0f9462e",
+        "id": "tos.form.metadata.b391b92ec2b057cc45c20f71791f0780d428ad83a7eb0ba6b3e681f9a0bf29f9",
+        "version": 1
+      },
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+        "id": "tos.work.epictetus.the-handbook",
+        "version": 3
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+            "id": "tos.work.epictetus.the-handbook",
+            "version": 3
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1bb31b961c4088c44d5b6095503dd0311301b0f58f192d4d57bc2b29803977f8",
+      "form_version": 2,
+      "language": "en",
+      "revises": {
+        "digest": "sha256:8ff20e7fac90d540365225c4a8ab21737eda61744de22f38019c7cf4eafc0879",
+        "id": "tos.form.metadata.1bb31b961c4088c44d5b6095503dd0311301b0f58f192d4d57bc2b29803977f8",
+        "version": 1
+      },
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1",
+        "id": "tos.work.epictetus.the-handbook",
+        "version": 3
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "command_id": "foundation-source-forms-v1:tos.work.epictetus.the-handbook",
+      "owner_configuration": "sha256:55cb348ea3f2f6a2228f7b344ba85fd88b4730c8758c7794b801ac867b33c599",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T15:55:19.997136+00:00",
+      "request_digest": "sha256:8e0fa9a148f1b67ef290527c572e78ed6f57dc45e1cda443897078e3d5506b7e",
+      "results": [
+        {
+          "digest": "sha256:f55f9d4bb8e3989e755c24da88f4c79943224677c96f0cabf25260b0b0f9462e",
+          "id": "tos.form.metadata.b391b92ec2b057cc45c20f71791f0780d428ad83a7eb0ba6b3e681f9a0bf29f9",
+          "version": 1
+        },
+        {
+          "digest": "sha256:8ff20e7fac90d540365225c4a8ab21737eda61744de22f38019c7cf4eafc0879",
+          "id": "tos.form.metadata.1bb31b961c4088c44d5b6095503dd0311301b0f58f192d4d57bc2b29803977f8",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:b90a6612bed0e126cfd3fd4e3c84581db1dc867f8d1398fe7a6d98109c71eec3",
+        "id": "tos.work.epictetus.the-handbook",
+        "version": 2
+      }
+    },
+    {
+      "command_id": "registry-seventh-source-forms:db438658efcf497a90d446afcf0c83f589546c8cc28802fe555ccf9a998eea88",
+      "request_digest": "sha256:57d7f83e008c087181016a0d2f55bceb41a49f7951438c2560fa6787feae5739",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:a120792e7e4368cb1201d7008e0834f8d3bd8a869f2a858a12c74bb04e71b0a8",
+      "recorded_at": "2026-09-09T19:51:54.352419+00:00",
+      "source": {
+        "id": "tos.work.epictetus.the-handbook",
+        "version": 3,
+        "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1"
+      },
+      "previous_revision": "sha256:5d40f14e4e344a6112d922619f9cc3ffeac4b6c9fe64b04fd6ad56803f767793",
+      "results": [
+        {
+          "id": "tos.form.metadata.b391b92ec2b057cc45c20f71791f0780d428ad83a7eb0ba6b3e681f9a0bf29f9",
+          "version": 2,
+          "digest": "sha256:412f81ddb6dc8de79603fe64f450c883668a97b193a855cc7d24685a8f6363dc"
+        },
+        {
+          "id": "tos.form.metadata.1bb31b961c4088c44d5b6095503dd0311301b0f58f192d4d57bc2b29803977f8",
+          "version": 2,
+          "digest": "sha256:cc6e06f5c21e2f489e930acd7577b8090c8e8e030646b369efd37f8be86119aa"
+        }
+      ]
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -113,33 +277,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "foundation-source-forms-v1:tos.work.epictetus.the-handbook",
-      "request_digest": "sha256:8e0fa9a148f1b67ef290527c572e78ed6f57dc45e1cda443897078e3d5506b7e",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
-      "owner_configuration": "sha256:55cb348ea3f2f6a2228f7b344ba85fd88b4730c8758c7794b801ac867b33c599",
-      "recorded_at": "2026-09-09T15:55:19.997136+00:00",
-      "source": {
-        "id": "tos.work.epictetus.the-handbook",
-        "version": 2,
-        "digest": "sha256:b90a6612bed0e126cfd3fd4e3c84581db1dc867f8d1398fe7a6d98109c71eec3"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.metadata.b391b92ec2b057cc45c20f71791f0780d428ad83a7eb0ba6b3e681f9a0bf29f9",
-          "version": 1,
-          "digest": "sha256:f55f9d4bb8e3989e755c24da88f4c79943224677c96f0cabf25260b0b0f9462e"
-        },
-        {
-          "id": "tos.form.metadata.1bb31b961c4088c44d5b6095503dd0311301b0f58f192d4d57bc2b29803977f8",
-          "version": 1,
-          "digest": "sha256:8ff20e7fac90d540365225c4a8ab21737eda61744de22f38019c7cf4eafc0879"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.epictetus.the-handbook",
+    "version": 3,
+    "digest": "sha256:85ebc43ee94d73c5f2859d8276c813b60af43fcb850587084c67dd517b5aafa1"
+  }
 }
