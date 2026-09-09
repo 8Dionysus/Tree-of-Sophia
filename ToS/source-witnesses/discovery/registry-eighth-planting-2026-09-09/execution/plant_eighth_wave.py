@@ -6,7 +6,7 @@ sys.path.insert(0,str(root/'scripts'))
 from acquire_registry_sources import verify_target, validate_json
 from prepare_philosophy_source_planting import prepare_anchor
 base=root/'ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09'
-manifest=json.loads((base/'manifest.json').read_text())
+manifest=json.loads((base/('manifest.corrected.json' if (base/'manifest.corrected.json').exists() else 'manifest.json')).read_text())
 plans={x['target_slug']:x for x in json.loads((root/'ToS/philosophy/source-planting-preparation/eighth-wave-20260909.json').read_text())['targets']}
 for target in manifest['targets']:
  if sys.argv[1:] and target['slug'] not in sys.argv[1:]: continue

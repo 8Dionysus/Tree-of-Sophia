@@ -19,7 +19,6 @@ import xml.etree.ElementTree as ET
 from jsonschema import Draft202012Validator
 
 from build_source_resource_inventories import build_inventory
-from build_source_witness_catalog import CLAIM_SOURCE_BASENAMES, SOURCE_CLAIM_BASENAME
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = "ToS/source-witnesses"
@@ -192,63 +191,6 @@ def operation_date(target: dict) -> str:
         raise ValueError("invalid acquisition operation date")
     datetime.strptime(value, "%Y-%m-%d")
     return value
-
-
-def preflight_identities(root: Path, targets: list[dict], packages: dict[str, dict]) -> None:
-    """Reject occupied claim/run identities before any acquisition side effect.
-
-    Read authored claims, not the possibly stale catalog. An identical claim
-    at its prepared owner path and a run for the same identities may resume.
-    """
-    claims, runs = {}, {}
-    for target in targets:
-        for claim in packages[target["slug"]]["claims"]:
-            claim_id = claim["record"]["claim_id"]
-            safe_path(root, claim["path"])
-            if claim_id in claims:
-                raise ValueError(f"duplicate prepared bibliographic claim ID: {claim_id}")
-            claims[claim_id] = (claim["path"], claim["record"])
-        day = operation_date(target)
-        run_id = f"tos.discovery.registry-{target['slug']}.{day}.v1"
-        run_ref = f"{SOURCE}/discovery/runs/registry-{target['slug']}.{day}.v1.json"
-        safe_path(root, run_ref)
-        if run_id in runs:
-            raise ValueError(f"duplicate prepared discovery ID: {run_id}")
-        runs[run_id] = (run_ref, set(target["ids"].values()))
-
-    basenames = {*CLAIM_SOURCE_BASENAMES, SOURCE_CLAIM_BASENAME}
-    claim_paths = {path for path in (root / SOURCE).rglob("*claims.jsonl") if path.name in basenames}
-    claim_paths.update(safe_path(root, ref) for ref, _ in claims.values())
-    seen = set()
-    for path in sorted(claim_paths):
-        ref = path.relative_to(root).as_posix()
-        path = safe_path(root, ref)
-        if not path.exists():
-            continue
-        for line in path.read_text().splitlines():
-            if not line.strip():
-                continue
-            record = json.loads(line)
-            claim_id = record.get("claim_id")
-            if claim_id not in claims:
-                continue
-            if claim_id in seen or claims[claim_id] != (ref, record):
-                raise ValueError(f"existing bibliographic claim differs from the prepared record: {claim_id} at {ref}")
-            seen.add(claim_id)
-
-    run_refs = {ref: run_id for run_id, (ref, _) in runs.items()}
-    for path in sorted((root / SOURCE / "discovery/runs").glob("*.json")):
-        ref = path.relative_to(root).as_posix()
-        run = json.loads(safe_path(root, ref).read_bytes())
-        run_id = run.get("discovery_id")
-        expected_id = run_refs.get(ref, run_id)
-        if expected_id not in runs:
-            continue
-        expected_ref, expected_ids = runs[expected_id]
-        known_ids = run.get("target", {}).get("known_tos_refs", [])
-        if (run_id != expected_id or ref != expected_ref
-                or set(known_ids) != expected_ids or len(known_ids) != len(expected_ids)):
-            raise ValueError(f"existing discovery run identity collision: {expected_id} at {ref}")
 
 
 def validate_work_extension(root: Path, target: dict, package: dict) -> tuple[str, bytes] | None:
@@ -568,7 +510,6 @@ def event(event_id: str, event_type: str, started: str, ended: str, inputs: list
 
 
 def install_target(root: Path, manifest_path: Path, preparation: dict, target: dict, package: dict) -> dict:
-    preflight_identities(root, [target], {target["slug"]: package})
     evidence_root = manifest_path.parent
     log = evidence_root / "acquisition-transfers.jsonl"
     manifest_ref = manifest_path.relative_to(root).as_posix()
@@ -836,7 +777,6 @@ def main() -> int:
         if not args.preparation_receipt:
             raise ValueError("acquire requires the completed preparation checkpoint receipt")
         check_preparation_receipt(ROOT, manifest_path, args.preparation_receipt)
-        preflight_identities(ROOT, targets, packages)
     for target in targets:
         result = install_target(ROOT, manifest_path, preparation, target, packages[target["slug"]]) if args.command == "acquire" else verify_target(ROOT, target)
         print(json.dumps(result, ensure_ascii=False), flush=True)

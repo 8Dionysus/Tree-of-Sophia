@@ -5,7 +5,7 @@ root=Path(__file__).resolve().parents[5]
 sys.path.insert(0,str(root/'scripts'))
 from acquire_registry_sources import event,validate_json
 src=root/'ToS/source-witnesses'; base=src/'discovery/registry-eighth-planting-2026-09-09'
-manifest=json.loads((base/'manifest.json').read_text())
+manifest=json.loads((base/('manifest.corrected.json' if (base/'manifest.corrected.json').exists() else 'manifest.json')).read_text())
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 for target in manifest['targets']:
  item=root/target['paths']['item_root']; mpath=item/'item.manifest.json'

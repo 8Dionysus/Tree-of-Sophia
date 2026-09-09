@@ -127,12 +127,14 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
             (item / "item.json").write_text("{}")
             event = {"event_type": "acquisition", "inputs": [{"ref": "manifest.json", "sha256": acquisition.sha256(manifest.read_bytes())}]}
             (item / "provenance.jsonl").write_text(json.dumps(event) + "\n")
-            target = {"slug": "resume", "paths": {"item_root": "item"}, "files": [{"basename": "source.xml"}]}
+            target = {"slug": "resume", "ids": {"item": "tos.item.resume"},
+                "paths": {"item_root": "item"}, "files": [{"basename": "source.xml"}]}
             preparation = {"prepared_packages_ref": "packages.jsonl"}
+            package = {"claims": []}
             with patch.object(acquisition, "verify_target", return_value={"verified": True}), \
                     patch.object(acquisition, "transfer", return_value=(b"text", {"status": "completed"})) as transfer, \
                     patch.object(acquisition, "write_discovery") as discovery:
-                self.assertEqual(acquisition.install_target(root, manifest, preparation, target, {}), {"verified": True})
+                self.assertEqual(acquisition.install_target(root, manifest, preparation, target, package), {"verified": True})
                 transfer.assert_called_once()
                 discovery.assert_called_once()
                 self.assertEqual(discovery.call_args.args[-1], event)
@@ -140,8 +142,97 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
             (item / "provenance.jsonl").write_text(json.dumps(event) + "\n")
             with patch.object(acquisition, "verify_target", return_value={}), patch.object(acquisition, "transfer") as transfer:
                 with self.assertRaisesRegex(ValueError, "does not bind"):
-                    acquisition.install_target(root, manifest, preparation, target, {})
+                    acquisition.install_target(root, manifest, preparation, target, package)
                 transfer.assert_not_called()
+
+    def test_claim_collision_stops_the_whole_batch_before_installation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            claim_ref = acquisition.SOURCE + "/relations/work-expression/work-expression-claims.jsonl"
+            old = {"claim_id": "tos.claim.shared-title", "subject_ref": "tos.work.cicero.de-fato",
+                "predicate": "has_expression", "object": "tos.expression.cicero.de-fato.la"}
+            incoming = {**old, "subject_ref": "tos.work.plutarch.de-fato", "object": "tos.expression.plutarch.de-fato.grc"}
+            acquisition.append_jsonl(root / claim_ref, old)
+            targets = [{"slug": slug, "ids": {"item": "tos.item." + slug}} for slug in ("first", "de-fato")]
+            packages = {"first": {"claims": []}, "de-fato": {"claims": [{"path": claim_ref, "record": incoming}]}}
+            before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+            with (patch.object(acquisition, "ROOT", root),
+                  patch.object(acquisition.sys, "argv", ["acquire", "acquire", "--manifest", str(root / "manifest.json"),
+                      "--preparation-receipt", str(root / "checkpoint.json")]),
+                  patch.object(acquisition, "load_preparation", return_value=({"targets": targets}, packages)),
+                  patch.object(acquisition, "check_preparation_receipt"),
+                  patch.object(acquisition, "install_target") as install,
+                  patch.object(acquisition, "transfer") as transfer):
+                with self.assertRaisesRegex(ValueError, "existing bibliographic claim"):
+                    acquisition.main()
+                install.assert_not_called()
+                transfer.assert_not_called()
+            self.assertEqual(before, {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()})
+
+    def test_identity_collision_precedes_transfer_and_existing_item_shortcut(self) -> None:
+        for collision in ("claim", "claim-other-owner", "discovery", "discovery-item", "discovery-other-path"):
+            for installed in (False, True):
+                with self.subTest(collision=collision, installed=installed), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    claim_ref = acquisition.SOURCE + "/relations/work-expression/work-expression-claims.jsonl"
+                    claim = {"claim_id": "tos.claim.shared-title", "subject_ref": "tos.work.plutarch.de-fato"}
+                    target = {"slug": "de-fato", "operation_date": "2026-09-09",
+                        "ids": {"work": "tos.work.plutarch.de-fato", "item": "tos.item.plutarch.de-fato"},
+                        "paths": {"item_root": "item"}}
+                    package = {"claims": [{"path": claim_ref, "record": claim}]}
+                    if collision.startswith("claim"):
+                        owner_ref = claim_ref if collision == "claim" else acquisition.SOURCE + "/relations/other/source-claims.jsonl"
+                        acquisition.append_jsonl(root / owner_ref, {**claim, "subject_ref": "tos.work.cicero.de-fato"})
+                    else:
+                        run_ref = acquisition.SOURCE + "/discovery/runs/registry-de-fato.2026-09-09.v1.json"
+                        if collision == "discovery-other-path":
+                            run_ref = acquisition.SOURCE + "/discovery/runs/other.json"
+                        known_ids = list(target["ids"].values())
+                        if collision == "discovery":
+                            known_ids = ["tos.work.cicero.de-fato", "tos.item.cicero.de-fato"]
+                        elif collision == "discovery-item":
+                            known_ids[-1] = "tos.item.other-edition"
+                        acquisition.write_json(root / run_ref, {"discovery_id": "tos.discovery.registry-de-fato.2026-09-09.v1",
+                            "target": {"known_tos_refs": known_ids}})
+                    if installed:
+                        acquisition.write_json(root / "item/item.json", {})
+                    before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+                    with (patch.object(acquisition, "verify_target") as verify,
+                          patch.object(acquisition, "transfer") as transfer,
+                          patch.object(acquisition, "write_discovery") as discovery):
+                        with self.assertRaisesRegex(ValueError, "existing bibliographic claim|discovery run identity collision"):
+                            acquisition.install_target(root, root / "manifest.json", {}, target, package)
+                        verify.assert_not_called()
+                        transfer.assert_not_called()
+                        discovery.assert_not_called()
+                    self.assertEqual(before, {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()})
+
+    def test_identical_claim_and_discovery_allow_idempotent_item_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = {"slug": "same", "ids": {"work": "tos.work.same", "item": "tos.item.same"},
+                "paths": {"item_root": "item"}}
+            claim_ref = acquisition.SOURCE + "/relations/work-expression/work-expression-claims.jsonl"
+            claim = {"claim_id": "tos.claim.same", "subject_ref": "tos.work.same"}
+            package = {"claims": [{"path": claim_ref, "record": claim}]}
+            acquisition.append_jsonl(root / claim_ref, claim)
+            acquisition.write_json(root / "item/item.json", {})
+            run_ref = acquisition.SOURCE + "/discovery/runs/registry-same.2026-09-08.v1.json"
+            acquisition.write_json(root / run_ref, {"discovery_id": "tos.discovery.registry-same.2026-09-08.v1",
+                "target": {"known_tos_refs": list(reversed(target["ids"].values()))}})
+            before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+            with (patch.object(acquisition, "verify_target", return_value={"verified": True}) as verify,
+                  patch.object(acquisition, "transfer") as transfer,
+                  patch.object(acquisition, "write_discovery") as discovery):
+                self.assertEqual(acquisition.install_target(root, root / "manifest.json",
+                    {"prepared_packages_ref": "packages.jsonl"}, target, package), {"verified": True})
+                verify.assert_called_once_with(root, target)
+                transfer.assert_not_called()
+                discovery.assert_not_called()
+            self.assertEqual(before, {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()})
+            second = {**target, "slug": "second"}
+            with self.assertRaisesRegex(ValueError, "duplicate prepared bibliographic claim ID"):
+                acquisition.preflight_identities(root, [target, second], {"same": package, "second": package})
 
     def test_existing_work_extension_preserves_identity_and_prior_assertions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -180,9 +271,10 @@ class RegistrySourceAcquisitionTests(unittest.TestCase):
             work = acquisition.safe_path(root, work_ref)
             work.parent.mkdir(parents=True)
             work.write_bytes(b'changed by another source operation')
-            target = {"paths": {"item_root": 'ToS/source-witnesses/works/author/work/expressions/en/editions/one/items/one'}}
+            target = {"slug": "work", "ids": {"item": "tos.item.work"},
+                "paths": {"item_root": 'ToS/source-witnesses/works/author/work/expressions/en/editions/one/items/one'}}
             preparation = {"prepared_packages_ref": 'prepared.jsonl'}
-            package = {"records": {work_ref: {}}}
+            package = {"records": {work_ref: {}}, "claims": []}
             with (patch.object(acquisition, 'validate_work_extension', return_value=(work_ref, b'original')),
                   patch.object(acquisition, 'transfer') as transfer):
                 with self.assertRaisesRegex(ValueError, 'refusing replacement'):

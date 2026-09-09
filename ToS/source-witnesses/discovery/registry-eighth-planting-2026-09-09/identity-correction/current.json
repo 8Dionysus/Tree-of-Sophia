@@ -1,0 +1,39 @@
+{
+  "status": "reviewed-operational-identity-correction",
+  "reviewer_ref": "model:codex/session/01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "observed_at": "2026-09-09T16:43:05.685683+00:00",
+  "failure": "existing bibliographic claim differs from the prepared record",
+  "original_preparation_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.json",
+  "original_preparation_sha256": "779603a6295102f6bef2106843db72999d490c0786a89ca6d93adad27b58d481",
+  "corrected_preparation_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/manifest.corrected.json",
+  "corrected_preparation_sha256": "35c191291710a5667bfa8084a29e0397c7eb6f2de3c1e510b474cdd43f26d54e",
+  "old_target_slug": "de-fato",
+  "corrected_target_slug": "plutarch-de-fato",
+  "work_slug": "de-fato",
+  "preserved_corpus_ids": {
+    "work": "tos.work.plutarch.de-fato",
+    "expression": "tos.expression.plutarch.de-fato.grc-perseus-tlg0007-tlg108",
+    "edition": "tos.edition.plutarch.de-fato.grc-perseus-tlg0007-tlg108.perseus-341e309c821d",
+    "item": "tos.item.plutarch.de-fato.grc-perseus-tlg0007-tlg108.perseus-341e309c821d.git-tei-xml"
+  },
+  "preserved_paths": {
+    "work": "ToS/source-witnesses/works/plutarch/de-fato/work.json",
+    "expression": "ToS/source-witnesses/works/plutarch/de-fato/expressions/grc-perseus-tlg0007-tlg108/expression.json",
+    "edition": "ToS/source-witnesses/works/plutarch/de-fato/expressions/grc-perseus-tlg0007-tlg108/editions/perseus-341e309c821d/edition.json",
+    "item": "ToS/source-witnesses/works/plutarch/de-fato/expressions/grc-perseus-tlg0007-tlg108/editions/perseus-341e309c821d/items/git-tei-xml/item.json",
+    "item_root": "ToS/source-witnesses/works/plutarch/de-fato/expressions/grc-perseus-tlg0007-tlg108/editions/perseus-341e309c821d/items/git-tei-xml"
+  },
+  "claim_id_mapping": {
+    "tos.claim.topology.registry-20260909.de-fato.work-expression": "tos.claim.topology.registry-20260909.plutarch-de-fato.work-expression",
+    "tos.claim.topology.registry-20260909.de-fato.expression-edition": "tos.claim.topology.registry-20260909.plutarch-de-fato.expression-edition",
+    "tos.claim.topology.registry-20260909.de-fato.edition-item": "tos.claim.topology.registry-20260909.plutarch-de-fato.edition-item"
+  },
+  "preimage_inventory_ref": "ToS/source-witnesses/discovery/registry-eighth-planting-2026-09-09/identity-correction/preimages.json",
+  "payload_ref": "ToS/source-witnesses/works/plutarch/de-fato/expressions/grc-perseus-tlg0007-tlg108/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg108.perseus-grc2.xml",
+  "payload_sha256": "e5abd7413f84f8d4d735116b886e43deff0ea293333fc91bfea0b170e6475b30",
+  "payload_changed": false,
+  "existing_cicero_modified": false,
+  "completed_targets_before_stop": 26,
+  "partial_target_metadata_retained": 11,
+  "semantic_admission": false
+}

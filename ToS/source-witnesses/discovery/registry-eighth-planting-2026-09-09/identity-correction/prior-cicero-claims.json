@@ -1,0 +1,75 @@
+[
+  {
+    "schema_version": "tos_claim_packet_v1",
+    "claim_id": "tos.claim.topology.registry-20260909.de-fato.work-expression",
+    "claim_type": "bibliographic",
+    "assertion_layer": "bibliographic_assertion",
+    "subject_ref": "tos.work.cicero.de-fato",
+    "predicate": "has_expression",
+    "object": "tos.expression.cicero.de-fato.la-perseus-phi0474-phi054",
+    "evidence_refs": [
+      "ToS/source-witnesses/works/cicero/de-fato/work.json",
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/expression.json"
+    ],
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "model:codex"
+    },
+    "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+    "epistemic_status": "observed",
+    "review_status": "unreviewed",
+    "reviews": [],
+    "visibility": "public_metadata_only",
+    "claim_version": 1,
+    "supersedes_claim_ref": null
+  },
+  {
+    "schema_version": "tos_claim_packet_v1",
+    "claim_id": "tos.claim.topology.registry-20260909.de-fato.expression-edition",
+    "claim_type": "bibliographic",
+    "assertion_layer": "bibliographic_assertion",
+    "subject_ref": "tos.expression.cicero.de-fato.la-perseus-phi0474-phi054",
+    "predicate": "embodied_by",
+    "object": "tos.edition.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca",
+    "evidence_refs": [
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/expression.json",
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/edition.json"
+    ],
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "model:codex"
+    },
+    "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+    "epistemic_status": "observed",
+    "review_status": "unreviewed",
+    "reviews": [],
+    "visibility": "public_metadata_only",
+    "claim_version": 1,
+    "supersedes_claim_ref": null
+  },
+  {
+    "schema_version": "tos_claim_packet_v1",
+    "claim_id": "tos.claim.topology.registry-20260909.de-fato.edition-item",
+    "claim_type": "bibliographic",
+    "assertion_layer": "bibliographic_assertion",
+    "subject_ref": "tos.edition.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca",
+    "predicate": "exemplified_by",
+    "object": "tos.item.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca.git-tei-xml",
+    "evidence_refs": [
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/edition.json",
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/item.json",
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/item.manifest.json"
+    ],
+    "maker": {
+      "maker_type": "model",
+      "agent_ref": "model:codex"
+    },
+    "provenance_event_ref": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+    "epistemic_status": "observed",
+    "review_status": "unreviewed",
+    "reviews": [],
+    "visibility": "public_metadata_only",
+    "claim_version": 1,
+    "supersedes_claim_ref": null
+  }
+]

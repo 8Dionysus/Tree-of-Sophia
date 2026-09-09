@@ -28,7 +28,7 @@ def write(path, value):
 
 
 def report(completed):
-    manifest = read(BASE / 'manifest.json')
+    manifest = read(BASE / ('manifest.corrected.json' if (BASE/'manifest.corrected.json').exists() else 'manifest.json'))
     branches = {plan['target_slug']: plan for plan in read(ROOT / manifest['branch_preparation_ref'])['targets']}
     now = datetime.now(timezone.utc).isoformat()
     if not completed:
@@ -47,7 +47,7 @@ def report(completed):
         documents[(document['corpus_id'], document['document_id'])] = path.relative_to(ROOT).as_posix()
     targets, rows = [], []
     for index, target in enumerate(manifest['targets'], 1):
-        plan = branches[target['slug']]
+        plan = branches[target['branch_target_slug']]
         branch = plan['anchor_preparation']['branch_path']
         planting_ref = branch + '/sources/plantings/registry-' + target['slug'] + '/source-planting.json'
         reading_ref = str(Path(planting_ref).with_name('README.md'))
@@ -55,7 +55,7 @@ def report(completed):
         files = [item + '/payload/' + entry['basename'] for entry in target['files']]
         discovery_ref = 'ToS/source-witnesses/discovery/runs/registry-' + target['slug'] + '.2026-09-09.v1.json'
         readiness = {
-            'version': control([REL + '/manifest.json', REL + '/SOURCE_AND_RIGHTS_REVIEW.md'], 'Exact Greek edition, CTS Work identity, contributor statement and file list reviewed.'),
+            'version': control([REL + ('/manifest.corrected.json' if (BASE/'manifest.corrected.json').exists() else '/manifest.json'), REL + '/SOURCE_AND_RIGHTS_REVIEW.md'], 'Exact Greek edition, CTS Work identity, contributor statement and file list reviewed.'),
             'access': control([discovery_ref] if completed else [next(path for path in target['metadata_evidence_refs'] if path.endswith('-header.xml')) + '.receipt.json'],
                 'Pinned source GET completed and retained.' if completed else 'Pinned source header GET succeeded; complete file transfer remains subject to exact acquisition checks.'),
             'rights': control([item + '/rights.json'] if completed else [REL + '/prepared-source-packages.jsonl', REL + '/SOURCE_AND_RIGHTS_REVIEW.md'],
