@@ -16,7 +16,7 @@ import {
   type Inclusion,
   type QueryProperty,
 } from "./knowledge.ts";
-import { jsonRows, meta, rows } from "./store.ts";
+import { meta, rows } from "./store.ts";
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const PAGE_SIZE = 2000;
@@ -48,16 +48,51 @@ export async function knowledgeRelationD1(db: D1Database, id: string): Promise<I
 type ItemKind = "node" | "relation";
 type SqlFragment = { sql: string; bindings: unknown[] };
 type RelationHeader = { id: string; from_id: string; to_id: string; from_source: string; to_source: string };
-type JsonRow = { json: string };
+type KnowledgeJsonRow = { id: string; json: string };
+type KnowledgePayloadRow = { id: string; part: number; json_chunk: string };
 type CountRow = { count: number };
 
+type KnowledgeTable = "knowledge_nodes" | "knowledge_relations";
+
+function payloadTable(table: KnowledgeTable): "knowledge_node_payload" | "knowledge_relation_payload" {
+  return table === "knowledge_nodes" ? "knowledge_node_payload" : "knowledge_relation_payload";
+}
+
+async function knowledgeJsonRows(
+  db: D1Database,
+  table: KnowledgeTable,
+  sql: string,
+  ...bindings: unknown[]
+): Promise<Item[]> {
+  const baseRows = await rows<KnowledgeJsonRow>(db, sql, ...bindings);
+  if (baseRows.length === 0) return [];
+  const ids = [...new Set(baseRows.map((row) => row.id))];
+  const chunks = await rows<KnowledgePayloadRow>(
+    db,
+    `SELECT id, part, json_chunk FROM ${payloadTable(table)}
+      WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id, part`,
+    JSON.stringify(ids),
+  );
+  const byId = new Map<string, string[]>();
+  for (const chunk of chunks) {
+    const parts = byId.get(chunk.id) ?? [];
+    parts.push(chunk.json_chunk);
+    byId.set(chunk.id, parts);
+  }
+  return baseRows.map((row) => parseItem(byId.has(row.id) ? byId.get(row.id)!.join("") : row.json));
+}
+
 function searchFragment(alias: string, needle: string): SqlFragment {
-  // Near-limit records keep their lossless JSON but omit the duplicated
-  // search copy. Only those rows need the JSON fallback; ordinary rows keep
-  // the cheaper search_text path.
+  // Near-limit records keep their lossless JSON in a payload table and omit
+  // the duplicated search copy. Ordinary rows keep the cheaper search_text
+  // path; compact rows fall back to their query JSON and payload chunks.
+  const payload = alias === "n" ? "knowledge_node_payload" : "knowledge_relation_payload";
   return {
-    sql: `(instr(${alias}.search_text, ?) > 0 OR (${alias}.search_text = '' AND instr(lower(${alias}.json), ?) > 0))`,
-    bindings: [needle, needle],
+    sql: `(instr(${alias}.search_text, ?) > 0 OR (${alias}.search_text = '' AND
+      (instr(lower(${alias}.json), ?) > 0 OR EXISTS (
+        SELECT 1 FROM ${payload} p WHERE p.id = ${alias}.id AND instr(lower(p.json_chunk), ?) > 0
+      ))))`,
+    bindings: [needle, needle, needle],
   };
 }
 
@@ -255,9 +290,10 @@ function asRelations(items: Item[]): KnowledgeRelation[] {
 export async function nodesByIds(db: D1Database, ids: Iterable<string>): Promise<KnowledgeNode[]> {
   const values = [...new Set(ids)];
   if (values.length === 0) return [];
-  return asNodes(await jsonRows(
+  return asNodes(await knowledgeJsonRows(
     db,
-    "SELECT json FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
+    "knowledge_nodes",
+    "SELECT id, json FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
     JSON.stringify(values),
   ));
 }
@@ -265,9 +301,10 @@ export async function nodesByIds(db: D1Database, ids: Iterable<string>): Promise
 export async function relationsByIds(db: D1Database, ids: Iterable<string>): Promise<KnowledgeRelation[]> {
   const values = [...new Set(ids)];
   if (values.length === 0) return [];
-  return asRelations(await jsonRows(
+  return asRelations(await knowledgeJsonRows(
     db,
-    "SELECT json FROM knowledge_relations WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
+    "knowledge_relations",
+    "SELECT id, json FROM knowledge_relations WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
     JSON.stringify(values),
   ));
 }
@@ -279,23 +316,26 @@ export async function resolveFocusNodeD1(
 ): Promise<KnowledgeNode | null> {
   if (requestedId === null) return null;
   const source = sourceFragment("n", sources);
-  const exact = asNodes(await jsonRows(
+  const exact = asNodes(await knowledgeJsonRows(
     db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.id = ? ORDER BY n.id`,
+    "knowledge_nodes",
+    `SELECT n.id, n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.id = ? ORDER BY n.id`,
     ...source.bindings,
     requestedId,
   ));
   if (exact.length > 0) return exact[0]!;
-  const entity = asNodes(await jsonRows(
+  const entity = asNodes(await knowledgeJsonRows(
     db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.entity_id = ? ORDER BY CASE n.source_graph WHEN 'source-navigation' THEN 0 WHEN 'canon' THEN 1 WHEN 'source-claims' THEN 2 WHEN 'philosophy' THEN 3 WHEN 'candidate-intake' THEN 4 WHEN 'repository' THEN 5 WHEN 'semantic-interchange' THEN 6 ELSE 99 END, n.id`,
+    "knowledge_nodes",
+    `SELECT n.id, n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.entity_id = ? ORDER BY CASE n.source_graph WHEN 'source-navigation' THEN 0 WHEN 'canon' THEN 1 WHEN 'source-claims' THEN 2 WHEN 'philosophy' THEN 3 WHEN 'candidate-intake' THEN 4 WHEN 'repository' THEN 5 WHEN 'semantic-interchange' THEN 6 ELSE 99 END, n.id`,
     ...source.bindings,
     requestedId,
   ));
   if (entity.length > 0) return entity[0]!;
-  const native = asNodes(await jsonRows(
+  const native = asNodes(await knowledgeJsonRows(
     db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.native_id = ? ORDER BY n.id`,
+    "knowledge_nodes",
+    `SELECT n.id, n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.native_id = ? ORDER BY n.id`,
     ...source.bindings,
     requestedId,
   ));
@@ -414,9 +454,10 @@ async function executeKnowledgeLensD1Unchecked(db: D1Database, specValue: unknow
       ? count(db, "knowledge_relations r", relationWhere)
       : Promise.resolve(0),
     spec.node_query.enabled
-      ? jsonRows(
+      ? knowledgeJsonRows(
         db,
-        `SELECT n.json FROM knowledge_nodes n WHERE ${nodeWhere.sql} ORDER BY ${orderClause("n", spec.composition.sort_nodes, "node")} LIMIT ?`,
+        "knowledge_nodes",
+        `SELECT n.id, n.json FROM knowledge_nodes n WHERE ${nodeWhere.sql} ORDER BY ${orderClause("n", spec.composition.sort_nodes, "node")} LIMIT ?`,
         ...nodeWhere.bindings,
         spec.limits.nodes,
       )
@@ -573,8 +614,8 @@ async function knowledgeSearchD1Unchecked(
   const [nodeCount, relationCount, nodeRows, relationRows, knowledgeTop] = await Promise.all([
     count(db, "knowledge_nodes n", nodeWhere),
     count(db, "knowledge_relations r", relationWhere),
-    jsonRows(db, `SELECT n.json FROM knowledge_nodes n WHERE ${nodeWhere.sql} ORDER BY ${nodeRank} LIMIT ? OFFSET ?`, ...nodeWhere.bindings, ...rankBindings, limit, offset),
-    jsonRows(db, `SELECT r.json FROM knowledge_relations r WHERE ${relationWhere.sql} ORDER BY ${relationRank} LIMIT ? OFFSET ?`, ...relationWhere.bindings, ...rankBindings, limit, offset),
+    knowledgeJsonRows(db, "knowledge_nodes", `SELECT n.id, n.json FROM knowledge_nodes n WHERE ${nodeWhere.sql} ORDER BY ${nodeRank} LIMIT ? OFFSET ?`, ...nodeWhere.bindings, ...rankBindings, limit, offset),
+    knowledgeJsonRows(db, "knowledge_relations", `SELECT r.id, r.json FROM knowledge_relations r WHERE ${relationWhere.sql} ORDER BY ${relationRank} LIMIT ? OFFSET ?`, ...relationWhere.bindings, ...rankBindings, limit, offset),
     meta<Item>(db, "knowledge_top"),
   ]);
   return {
@@ -593,15 +634,15 @@ async function knowledgeSearchD1Unchecked(
 async function knowledgeNodeD1Unchecked(db: D1Database, id: string, relationLimit: number): Promise<Item> {
   const identifier = id.trim();
   if (!identifier) throw new HttpError(400, "knowledge node id is required");
-  const exact = await rows<JsonRow>(db, "SELECT json FROM knowledge_nodes WHERE id = ? ORDER BY id", identifier);
-  const entity = exact.length ? [] : await rows<JsonRow>(db, "SELECT json FROM knowledge_nodes WHERE entity_id = ? ORDER BY id", identifier);
+  const exact = await knowledgeJsonRows(db, "knowledge_nodes", "SELECT id, json FROM knowledge_nodes WHERE id = ? ORDER BY id", identifier);
+  const entity = exact.length ? [] : await knowledgeJsonRows(db, "knowledge_nodes", "SELECT id, json FROM knowledge_nodes WHERE entity_id = ? ORDER BY id", identifier);
   const matchedRows = exact.length
     ? exact
     : entity.length
     ? entity
-    : await rows<JsonRow>(db, "SELECT json FROM knowledge_nodes WHERE native_id = ? ORDER BY id", identifier);
+    : await knowledgeJsonRows(db, "knowledge_nodes", "SELECT id, json FROM knowledge_nodes WHERE native_id = ? ORDER BY id", identifier);
   if (matchedRows.length === 0) throw new HttpError(404, `unknown ToS knowledge node: ${identifier}`);
-  const matches = matchedRows.map((row) => parseItem(row.json));
+  const matches = matchedRows;
   const ids = matches.map((item) => String(item.id));
   const relationWhere: SqlFragment = {
     sql: "from_id IN (SELECT value FROM json_each(?)) OR to_id IN (SELECT value FROM json_each(?))",
@@ -609,9 +650,10 @@ async function knowledgeNodeD1Unchecked(db: D1Database, id: string, relationLimi
   };
   const [relatedCount, selected, knowledgeTop] = await Promise.all([
     count(db, "knowledge_relations", relationWhere),
-    jsonRows(
+    knowledgeJsonRows(
       db,
-      `SELECT json FROM knowledge_relations WHERE ${relationWhere.sql} ORDER BY id LIMIT ?`,
+      "knowledge_relations",
+      `SELECT id, json FROM knowledge_relations WHERE ${relationWhere.sql} ORDER BY id LIMIT ?`,
       ...relationWhere.bindings,
       relationLimit,
     ),
@@ -635,10 +677,10 @@ async function knowledgeNodeD1Unchecked(db: D1Database, id: string, relationLimi
 async function knowledgeRelationD1Unchecked(db: D1Database, id: string): Promise<Item> {
   const identifier = id.trim();
   if (!identifier) throw new HttpError(400, "knowledge relation id is required");
-  const exact = await rows<JsonRow>(db, "SELECT json FROM knowledge_relations WHERE id = ? ORDER BY id", identifier);
-  const matchedRows = exact.length ? exact : await rows<JsonRow>(db, "SELECT json FROM knowledge_relations WHERE native_id = ? ORDER BY id", identifier);
+  const exact = await knowledgeJsonRows(db, "knowledge_relations", "SELECT id, json FROM knowledge_relations WHERE id = ? ORDER BY id", identifier);
+  const matchedRows = exact.length ? exact : await knowledgeJsonRows(db, "knowledge_relations", "SELECT id, json FROM knowledge_relations WHERE native_id = ? ORDER BY id", identifier);
   if (matchedRows.length === 0) throw new HttpError(404, `unknown ToS knowledge relation: ${identifier}`);
-  const matches = matchedRows.map((row) => parseItem(row.json));
+  const matches = matchedRows;
   const endpointIds = [...new Set(matches.flatMap((item) => [String(item.from_id), String(item.to_id)]))];
   const endpoints = await nodesByIds(db, endpointIds);
   const knowledgeTop = await meta<Item>(db, "knowledge_top");

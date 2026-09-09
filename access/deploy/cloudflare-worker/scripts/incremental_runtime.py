@@ -19,7 +19,8 @@ PRIMARY_KEYS = {
     'philosophy_cluster_edges': ('cluster_id', 'member_ord'),
     'philosophy_review_packets': ('view_id',), 'corpus_items': ('collection', 'ord'),
     'corpus_edges': ('ord',), 'corpus_packs': ('id',), 'knowledge_nodes': ('id',),
-    'knowledge_relations': ('id',),
+    'knowledge_node_payload': ('id', 'part'), 'knowledge_relations': ('id',),
+    'knowledge_relation_payload': ('id', 'part'),
 }
 INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES \((.*)\);$', re.S)
 

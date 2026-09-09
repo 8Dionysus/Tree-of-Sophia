@@ -191,7 +191,9 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     await db.batch([
       db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
       db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE INDEX kn_from ON knowledge_relations(from_id)"),
       db.prepare("CREATE INDEX kn_to ON knowledge_relations(to_id)"),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?) ").bind(JSON.stringify({sha256: graph.source_revision})),
@@ -631,7 +633,9 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
     await db.batch([
       db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
       db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))'),
       db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))'),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: source.source_revision})),
       db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: source.source_revision, authority_boundary: source.authority_boundary})),
       ...source.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
@@ -933,4 +937,64 @@ test("focus is explicit and closure cannot escape the requested neighborhood", a
     composition: { sort_nodes: [{ field: "id", direction: "asc" }] },
   });
   assert.equal((sortedByEntity.focus as { node_id: string }).node_id, "source-navigation:tos.concept.a");
+});
+
+test("D1 reconstructs oversized knowledge payloads without losing search", async () => {
+  const bundle = await build({
+    entryPoints: [fileURLToPath(new URL("../src/index.ts", import.meta.url))],
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "browser",
+    target: "es2022",
+  });
+  const mf = new Miniflare(convertV4MiniflareOptions({
+    modules: true,
+    script: bundle.outputFiles[0]!.text,
+    d1Databases: ["DB"],
+  }));
+  try {
+    const db = await mf.getD1Database("DB");
+    const full = {
+      id: "source-claims:provenance_event:oversized",
+      entity_id: "tos.event.oversized",
+      native_id: "tos.event.oversized",
+      source_graph: "source-claims",
+      kind_id: "provenance-event",
+      type_id: "tos.entity.provenance-event",
+      display: { title: { default: "Oversized event" } },
+      attributes: { event_type: "annotation" },
+      source_record: { payload: { token: "needle-only-in-payload", filler: "x".repeat(120_000) } },
+    };
+    const fullJson = JSON.stringify(full);
+    const split = Math.floor(fullJson.length / 2);
+    await db.batch([
+      db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (key, part))"),
+      db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, summary_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({ sha256: "a".repeat(64) })),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({ source_revision: "a".repeat(64), authority_boundary: {} })),
+      db.prepare("INSERT INTO knowledge_nodes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(
+        full.id, full.entity_id, full.native_id, full.source_graph, full.kind_id, full.type_id,
+        "oversized event", "", "", JSON.stringify({ ...full, source_record: undefined }),
+      ),
+      db.prepare("INSERT INTO knowledge_node_payload VALUES (?, ?, ?)").bind(full.id, 0, fullJson.slice(0, split)),
+      db.prepare("INSERT INTO knowledge_node_payload VALUES (?, ?, ?)").bind(full.id, 1, fullJson.slice(split)),
+    ]);
+    const packet = await knowledgeNodeD1(db, full.id, 0);
+    assert.deepEqual(packet.matches, [full]);
+    const search = await knowledgeSearchD1(db, {
+      query: "needle-only-in-payload",
+      sources: ["source-claims"],
+      kindIds: [],
+      predicateIds: [],
+      offset: 0,
+      limit: 10,
+    });
+    assert.deepEqual(search.nodes, [full]);
+  } finally {
+    await mf.dispose();
+  }
 });

@@ -21,7 +21,9 @@ async function init(db: D1Database, g: ReturnType<typeof graph>, migrated = true
   await db.batch([
     db.prepare('CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part))'),
     db.prepare('CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,entity_id TEXT,native_id TEXT,source_graph TEXT,json TEXT)'),
+    db.prepare('CREATE TABLE knowledge_node_payload(id TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(id,part))'),
     db.prepare('CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,from_id TEXT,to_id TEXT,source_graph TEXT,predicate_id TEXT,json TEXT)'),
+    db.prepare('CREATE TABLE knowledge_relation_payload(id TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(id,part))'),
     db.prepare("INSERT INTO edge_meta VALUES ('data_revision',0,?)").bind(JSON.stringify({sha256: g.source_revision})),
     db.prepare("INSERT INTO edge_meta VALUES ('knowledge_exploration_top',0,?)").bind(JSON.stringify({source_revision:g.source_revision, authority_boundary:{writes_to_tree:false}})),
     ...g.nodes.map((n: {id:string;source_graph:string;entity_id?:string}) => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?)').bind(n.id,n.entity_id??n.id,n.id,n.source_graph,JSON.stringify(n))),

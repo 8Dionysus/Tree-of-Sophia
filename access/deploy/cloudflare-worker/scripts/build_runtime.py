@@ -35,7 +35,7 @@ STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
 MAX_D1_ROW_BYTES = 2_000_000
-READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v6"
+READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v7"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v3"
 
 
@@ -340,6 +340,60 @@ def append_chunkable_insert(
             )
 
 
+def append_payload_chunks(
+    writer: SqlStatementWriter,
+    table: str,
+    item_id: str,
+    value: str,
+) -> int:
+    """Keep one lossless JSON value in bounded, independently sized rows."""
+    chunks = chunk_text(value)
+    for part, chunk in enumerate(chunks):
+        writer.append(
+            sql_insert(
+                table,
+                ("id", "part", "json_chunk"),
+                (sql_text(item_id), str(part), sql_text(chunk)),
+            )
+        )
+    return len(chunks)
+
+
+def prepare_knowledge_row(
+    normalized: dict[str, Any],
+    item_json: str,
+    values: tuple[str, ...],
+    *,
+    search_position: int,
+    json_position: int,
+) -> tuple[str, tuple[str, ...], str, str]:
+    """Choose a bounded query copy and retain the original for payload chunks."""
+    row_size = lambda candidate: sum(len(value.encode("utf-8")) for value in candidate) + 1024
+    if row_size(values) <= MAX_D1_ROW_BYTES:
+        return item_json, values, "", item_json.lower()
+
+    without_search = list(values)
+    without_search[search_position] = sql_text("")
+    without_search_values = tuple(without_search)
+    if row_size(without_search_values) <= MAX_D1_ROW_BYTES:
+        return item_json, without_search_values, "", ""
+
+    # The full read model keeps source_record lossless in a separate chunk
+    # table. The compact copy retains every normal query field, including the
+    # source input in attributes, while avoiding this duplicated envelope.
+    query_item = {key: value for key, value in normalized.items() if key != "source_record"}
+    query_json = compact_json(query_item)
+    compact_values = list(without_search_values)
+    compact_values[json_position] = sql_text(query_json)
+    compact_values_tuple = tuple(compact_values)
+    if row_size(compact_values_tuple) > MAX_D1_ROW_BYTES:
+        raise RuntimeError(
+            "knowledge record exceeds the D1 row budget after removing its duplicated source_record; "
+            "split the source record or add a bounded query projection"
+        )
+    return query_json, compact_values_tuple, item_json, ""
+
+
 def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> dict[str, Any]:
     philosophy = core.philosophy_projection()
     corpus = core.index()
@@ -386,7 +440,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "DROP TABLE IF EXISTS corpus_edges_next;",
         "DROP TABLE IF EXISTS corpus_packs_next;",
         "DROP TABLE IF EXISTS knowledge_nodes_next;",
+        "DROP TABLE IF EXISTS knowledge_node_payload_next;",
         "DROP TABLE IF EXISTS knowledge_relations_next;",
+        "DROP TABLE IF EXISTS knowledge_relation_payload_next;",
         "CREATE TABLE edge_meta_next (key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (key, part));",
         "CREATE TABLE philosophy_nodes_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
         "CREATE TABLE philosophy_edges_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
@@ -399,7 +455,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "CREATE TABLE corpus_edges_next (id TEXT NOT NULL, ord INTEGER PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL, pack_id TEXT, owner_branch TEXT, json TEXT NOT NULL);",
         "CREATE TABLE corpus_packs_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, json TEXT NOT NULL);",
         "CREATE TABLE knowledge_nodes_next (id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, native_id TEXT NOT NULL, source_graph TEXT NOT NULL, kind_id TEXT NOT NULL, type_id TEXT NOT NULL, title_text TEXT NOT NULL, summary_text TEXT NOT NULL, search_text TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE knowledge_node_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
         "CREATE TABLE knowledge_relations_next (id TEXT PRIMARY KEY, native_id TEXT NOT NULL, source_graph TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, relation_type_id TEXT NOT NULL, label_text TEXT NOT NULL, explanation_text TEXT NOT NULL, search_text TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE knowledge_relation_payload_next (id TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (id, part));",
     ))
 
     philosophy_top = {
@@ -684,6 +742,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             chunked_text={"json": item_json},
         )
 
+    knowledge_node_payload_chunks = 0
     knowledge_nodes = object_list(knowledge.get("nodes"))
     for item in knowledge_nodes:
         normalized = normalize_paths(item, REPO_ROOT)
@@ -707,13 +766,13 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             sql_text(search_text),
             sql_text(item_json),
         )
-        # A full JSON copy in search_text is useful for ordinary rows, but it
-        # can double a near-limit provenance record. Keep the lossless JSON
-        # payload and let the Worker query it as a fallback for this rare
-        # shape; truncating the searchable payload would lose discoverability.
-        if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_ROW_BYTES:
-            search_text = ""
-            values = (*values[:8], sql_text(search_text), values[9])
+        query_json, values, payload_json, search_text = prepare_knowledge_row(
+            normalized,
+            item_json,
+            values,
+            search_position=8,
+            json_position=9,
+        )
         append_chunkable_insert(
             statements,
             "knowledge_nodes_next",
@@ -723,10 +782,18 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             chunked_text={
                 "summary_text": summary_text,
                 "search_text": search_text,
-                "json": item_json,
+                "json": query_json,
             },
         )
+        if payload_json:
+            knowledge_node_payload_chunks += append_payload_chunks(
+                statements,
+                "knowledge_node_payload_next",
+                item_id,
+                payload_json,
+            )
 
+    knowledge_relation_payload_chunks = 0
     knowledge_relations = object_list(knowledge.get("relations"))
     for item in knowledge_relations:
         normalized = normalize_paths(item, REPO_ROOT)
@@ -751,9 +818,13 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             sql_text(search_text),
             sql_text(item_json),
         )
-        if sum(len(value.encode('utf-8')) for value in values) + 1024 > MAX_D1_ROW_BYTES:
-            search_text = ""
-            values = (*values[:9], sql_text(search_text), values[10])
+        query_json, values, payload_json, search_text = prepare_knowledge_row(
+            normalized,
+            item_json,
+            values,
+            search_position=9,
+            json_position=10,
+        )
         append_chunkable_insert(
             statements,
             "knowledge_relations_next",
@@ -763,9 +834,16 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             chunked_text={
                 "explanation_text": explanation_text,
                 "search_text": search_text,
-                "json": item_json,
+                "json": query_json,
             },
         )
+        if payload_json:
+            knowledge_relation_payload_chunks += append_payload_chunks(
+                statements,
+                "knowledge_relation_payload_next",
+                item_id,
+                payload_json,
+            )
 
     for table in (
         "edge_meta",
@@ -780,7 +858,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "corpus_edges",
         "corpus_packs",
         "knowledge_nodes",
+        "knowledge_node_payload",
         "knowledge_relations",
+        "knowledge_relation_payload",
     ):
         statements.append(f"DROP TABLE IF EXISTS {table};")
         statements.append(f"ALTER TABLE {table}_next RENAME TO {table};")
@@ -826,7 +906,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "corpus_edges": len(corpus_edges),
         "corpus_packs": len(corpus_packs),
         "knowledge_nodes": len(knowledge_nodes),
+        "knowledge_node_payload_chunks": knowledge_node_payload_chunks,
         "knowledge_relations": len(knowledge_relations),
+        "knowledge_relation_payload_chunks": knowledge_relation_payload_chunks,
         "sql_statements": statements.count,
         "delta": delta.summary(),
     }
