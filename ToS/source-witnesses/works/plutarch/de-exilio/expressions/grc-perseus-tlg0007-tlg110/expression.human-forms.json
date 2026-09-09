@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+    "version": 1,
+    "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0ae82d97b81b7d5379eaa4dfdc254005070a8556938abdd6c02df52ea51bca3f",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+        "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+            "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c1dd7e11bac517b811626224f6709659a15921a30eebdb22ea114f5f591a4948",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea",
+        "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:ebc7fb339ca5a70c5631bd6d172d5c764555db58e4135ec1c08cbc07fe6ad9d2",
+      "request_digest": "sha256:da57cd2c494b3dfa1c9772753615ebde4ee6716a6b88b30057c4fad3c1822adb",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:2f790b03cfe2e6aa011275e5ee3dd4aefd86faae0ecd29b10a9c8378174042ce",
+      "recorded_at": "2026-09-09T16:45:40.075771+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-exilio.grc-perseus-tlg0007-tlg110",
+        "version": 1,
+        "digest": "sha256:4a4558dba39acd3783e34433c10b267e9beb015beeecf120265afd581961baea"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.0ae82d97b81b7d5379eaa4dfdc254005070a8556938abdd6c02df52ea51bca3f",
+          "version": 1,
+          "digest": "sha256:38f60950cfc06643eeb4381f40a517dd21b6aa9214a8033e3ba3809d4890ba7c"
+        },
+        {
+          "id": "tos.form.metadata.c1dd7e11bac517b811626224f6709659a15921a30eebdb22ea114f5f591a4948",
+          "version": 1,
+          "digest": "sha256:a33cdfa9eb82b3dbec1f9039029d58e9ada0e8cf1c35fda0bb538f7b101dda1c"
+        }
+      ]
+    }
+  ]
+}

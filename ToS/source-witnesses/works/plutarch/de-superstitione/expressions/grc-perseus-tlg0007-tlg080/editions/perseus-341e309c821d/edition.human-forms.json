@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.0cb90421866c1e09ba1e3a18057ee31b3d67e5f84635cce5fe7d9e2f2560024a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+        "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+            "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2012ed18aa201bff16ace262a2c2650415f3b9ed4b2211639ca3b4e8e6a1b11e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646",
+        "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:59817f731d5649ce93c0a8dd81f25255e10b0bd9d2fe04ee2a894a3379d5ef6d",
+      "request_digest": "sha256:a9eba2170a9c5c1637598729cea8c0e31418a0a6ccd37ecee436f6b7c3bf0813",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:8d75ca96e2ec5e6ba07d839885d398f580b10fb0cfa13dfd3da1dd35a8ec106e",
+      "recorded_at": "2026-09-09T16:45:38.308044+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.de-superstitione.grc-perseus-tlg0007-tlg080.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:abd024ced4b6049b3cbdc3a17aa209147b7efa03868e456616d11141ab264646"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.0cb90421866c1e09ba1e3a18057ee31b3d67e5f84635cce5fe7d9e2f2560024a",
+          "version": 1,
+          "digest": "sha256:def53d0af068090a5db1580a1898afb01d8c256490d956e4bfb7a838b5813255"
+        },
+        {
+          "id": "tos.form.metadata.2012ed18aa201bff16ace262a2c2650415f3b9ed4b2211639ca3b4e8e6a1b11e",
+          "version": 1,
+          "digest": "sha256:e035b2e239f090850c848ad33c97579a240ec8b07fa3f2473baaf547488f27a5"
+        }
+      ]
+    }
+  ]
+}

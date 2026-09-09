@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.work.plutarch.conjugalia-praecepta",
+    "version": 1,
+    "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.6a8a5d7b564c831f0608b9eb5674cee4e0a3841f68515b2523f04d2a3e7ef56a",
+      "form_version": 1,
+      "language": "la",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+        "id": "tos.work.plutarch.conjugalia-praecepta",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+            "id": "tos.work.plutarch.conjugalia-praecepta",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.baab15a4c0eb32c71c52d973d9e93746e5aff0ae5c4c80182e5b3d2c48c308dc",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec",
+        "id": "tos.work.plutarch.conjugalia-praecepta",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:97751ac5a6ab3440abc01903f8db9f41b736b39f3da594324f47d150aa022226",
+      "request_digest": "sha256:4d406916871c815841779434483740283a6be14c4a6d8f0f3b50115d3cb70535",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:bfd130213cb9424eac7f62af344fc0a91a7f8aa6f3848c2717ce39fbde4706ad",
+      "recorded_at": "2026-09-09T16:45:37.966197+00:00",
+      "source": {
+        "id": "tos.work.plutarch.conjugalia-praecepta",
+        "version": 1,
+        "digest": "sha256:5882faefeaf54bc335edc73a24c58f9fb87987d49d277d19657dc095a9befaec"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.6a8a5d7b564c831f0608b9eb5674cee4e0a3841f68515b2523f04d2a3e7ef56a",
+          "version": 1,
+          "digest": "sha256:b175127899a8da9fdff36ad21d46ab5055c746bfa148a7e2d221731286047209"
+        },
+        {
+          "id": "tos.form.metadata.baab15a4c0eb32c71c52d973d9e93746e5aff0ae5c4c80182e5b3d2c48c308dc",
+          "version": 1,
+          "digest": "sha256:a52adfe4034c066d9e66eed27aca667fbfd57880786a7a71dd41673c6cadeec1"
+        }
+      ]
+    }
+  ]
+}

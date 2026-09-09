@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+    "version": 1,
+    "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.9c80ae77ed9dbd00a0c640e958a9e8775c6624fa740a6c820aa90d30014c05f7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+        "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+            "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5b594b205ae657733f4d61f739c9b0513da2e77bd3bdcf9a1bc9d46464b40aa0",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c",
+        "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:5f45def2cce2527164269aa3ad504598c8f2ae969e0f2283f4805c510bbc478f",
+      "request_digest": "sha256:686dbe4b27d020a119cddc9102d255e95a1be80ed920289bcc07fef60506efd4",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:cdacf7159a07b4a370f2d767112e9a6d008773a6696b831c90f11635db3b14ef",
+      "recorded_at": "2026-09-09T16:45:40.843575+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-vitando-aere-alieno.grc-perseus-tlg0007-tlg120",
+        "version": 1,
+        "digest": "sha256:0b97cd96f326770e3da0953b1eb7db0ad0887e843b4998b2c2847caf837c768c"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.9c80ae77ed9dbd00a0c640e958a9e8775c6624fa740a6c820aa90d30014c05f7",
+          "version": 1,
+          "digest": "sha256:dc3130069a05a5565ddbfaaba6260b2e79e8ce8de9f140c3ee512fb980cd49a4"
+        },
+        {
+          "id": "tos.form.metadata.5b594b205ae657733f4d61f739c9b0513da2e77bd3bdcf9a1bc9d46464b40aa0",
+          "version": 1,
+          "digest": "sha256:d5a3cf6d380f4617e469c75b9a532bde628f8db96d78320ae8c10eace123eaa9"
+        }
+      ]
+    }
+  ]
+}

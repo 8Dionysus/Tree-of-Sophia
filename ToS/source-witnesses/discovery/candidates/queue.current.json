@@ -304,20 +304,20 @@
   "generated_by": "scripts/build_open_work_candidate_queue.py",
   "next_candidate_id": "open-work-candidate.teaching-for-king-merykara",
   "owner_surface": "ToS/source-witnesses/discovery/candidates/reviewed-candidates.jsonl",
-  "queue_sha256": "3b0182b69b1d003aa7b402125239c203f6f0b233d6b022242512da3faa64b079",
+  "queue_sha256": "613b8df15d3eeddaceef8877e372f891a4168afdfa582d1c02af07372873f2db",
   "receipt_root": "ToS/source-witnesses/discovery/candidates/receipts",
   "schema_version": "tos_open_work_candidate_queue_v1",
   "source_snapshot": {
     "counts": {
       "accepted_dossiers": 190,
-      "catalog_works": 140,
-      "discovery_runs": 268,
+      "catalog_works": 185,
+      "discovery_runs": 313,
       "master_rows": 190,
       "reviewed_candidates": 17,
       "source_anchor_backlog_rows": 9530,
       "terminal_receipts": 19
     },
-    "input_sha256": "09ad57df7e51b8aa20b115c1fea7d0ece071c8855e15de8fc920492a5c53bdd1",
+    "input_sha256": "84df949ece99b3dbe596296d9c58f93e5e8958f3b088d16b894eca8b43bcde39",
     "inputs": [
       {
         "path": "ToS/philosophy/atlas/dossiers/index.jsonl",
@@ -833,7 +833,7 @@
       },
       {
         "path": "ToS/source-witnesses/catalog/works.jsonl",
-        "sha256": "44a8f1e2e94d4fefa99ff1ab5f6cac14f06801bfb356a75c67dadcb089e1b7d9"
+        "sha256": "3732003027bdf44c8d05997e92e35cdf73f5573f192abe4a99ce452e9e6556be"
       },
       {
         "path": "ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/provenance.jsonl",
@@ -933,7 +933,7 @@
       },
       {
         "path": "ToS/source-witnesses/discovery/provenance.jsonl",
-        "sha256": "97519c4046f25b036e1130e2f365653d14c8c5e9a84303fa0999770466c25ea1"
+        "sha256": "1860ede9a912b5503b02fc3b38bb23f3a7af0578ea35713783ab61f1d78de4e1"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/antichrist-authorial-witness-route.2026-07-30.v1.json",
@@ -1300,6 +1300,10 @@
         "sha256": "3a9c2debce128da728906973f21ba3879bcda1af61ac1f0f34ee3fce2369250d"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-ad-principem-ineruditum.2026-09-09.v1.json",
+        "sha256": "450806af01963aa96d06c5e6060908147cb2d2d678a474deb1edbca6369dfa39"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-ad-se-ipsum.2026-09-08.v1.json",
         "sha256": "20ea2db1bad0cad6cb08757e20d3bd36557770ca05da3927e194375aa45328a5"
       },
@@ -1328,6 +1332,30 @@
         "sha256": "e4b8e9947029c7d5af1e936dcaa67d0eb93ac6c8dba8e69b7f0314d865dd9af0"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-amatorius.2026-09-09.v1.json",
+        "sha256": "b324123be29d294d4004e822c24ded7948d88862d415341492d6c7803872bb11"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-an-recte-dictum-sit-latenter-esse-vivendum.2026-09-09.v1.json",
+        "sha256": "abcf6b5a950302e65cd88e92e73dcba2e0acbf91e908d04de1bc8ef4d2d063e2"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-an-seni-respublica-gerenda-sit.2026-09-09.v1.json",
+        "sha256": "e717968909570d8f535bad233745fc6755e96f00f2ae72c994f9ace2ebef188f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-an-virtus-doceri-possit.2026-09-09.v1.json",
+        "sha256": "5eb4855d1af719202cb066873ec47c7193e90f022605650217ba8eb540480cb9"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-an-vitiositas-ad-infelicitatem-sufficia.2026-09-09.v1.json",
+        "sha256": "df22284ae8d20844736051366245ede9611b27f465708daf310534097e4a3d93"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-animine-an-corporis-affectiones-sint-peiores.2026-09-09.v1.json",
+        "sha256": "2481559b6c40c8a27ef6703d0ceac0a76c7d7a361a211d2f16943e4df11c36f6"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-apology-english.2026-09-09.v1.json",
         "sha256": "f0133e521fa8d8a9df2fb16e53eee758f6f37fdc7a46b33cb444effe4020a753"
       },
@@ -1336,8 +1364,16 @@
         "sha256": "909ab9ed9bbdd88a20ea8af8f4a9d55b510928268790300a8822af410997bce4"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-aquane-an-ignis-sit-utilior.2026-09-09.v1.json",
+        "sha256": "609bc6977d6193a2a155a99f32803ba4c8306e2d14a9f94c61716a88e07fb546"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-be-a-scribe.2026-09-08.v1.json",
         "sha256": "6b97e982bd695d35c9cb39d65037ee0777123fc917279615bb41b03fab953fb5"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-bruta-animalia-ratione-uti.2026-09-09.v1.json",
+        "sha256": "fa03845cb65597b11df311a443c074e4b224ad07b1d3477fb9eaf47c22c40845"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-brutus.2026-09-09.v1.json",
@@ -1358,6 +1394,22 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-cleitophon.2026-09-08.v1.json",
         "sha256": "14b5b87aa8a5d0324f9f0a7fec522a6c8a7894cb2c0c3619570e34074005c9fa"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-comparationis-aristophanis-et-menandri-compendium.2026-09-09.v1.json",
+        "sha256": "99f9a7cd44bb78c38098963a3244a0dd61bc515d6d7c9d30e803b65c2bee2f9a"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-conjugalia-praecepta.2026-09-09.v1.json",
+        "sha256": "a2e24737e918f46a486a84f32cfaa766c4108757d24851385f098d343a6212bb"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-consolatio-ad-apollonium.2026-09-09.v1.json",
+        "sha256": "93c07679d145971824aabb10348dc42e75f5062b10173d5e459f03a6056e3835"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-consolatio-ad-uxorem.2026-09-09.v1.json",
+        "sha256": "2d2b878582bd26cffb6a340c3ae051694f15fe4380b1edb02b330eaeff142d51"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-constitution-of-the-athenians.2026-09-08.v1.json",
@@ -1396,6 +1448,14 @@
         "sha256": "9d07d03b5b172fa803b553606ad85130e0dcc9ba40a0ee4187e32341d5c6126d"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-amicorum-multitudine.2026-09-09.v1.json",
+        "sha256": "f5aa943ad775f3d7af4fee86611781054b5b1ff9abb8987c503a24f5d6022a9c"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-amore-prolis.2026-09-09.v1.json",
+        "sha256": "1b2bd0a7b785abcef5d8ec4f73e7efc31c6820fdade1f37ed71008230a500bd7"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-animae-procreatione-in-timaeo-english.2026-09-09.v1.json",
         "sha256": "9bc6c2749364af0ef38f5607dfca842343599d55303c5bb5931481b6ae053358"
       },
@@ -1408,8 +1468,16 @@
         "sha256": "9a3068684f0d526b0a072694e11f8945db85257704e2fc2713fe6b24b0b91fff"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-capienda-ex-inimicis-utilitate.2026-09-09.v1.json",
+        "sha256": "ce423f6f06e3a6a72ead345643d0abb2da557f6bbb6f2a60a59ad559c4fa824c"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-clementia.2026-09-09.v1.json",
         "sha256": "7a2cbf68eedcdf4f7f7c4023474ed526b709aedeb1d0f7d34faae577dadfa37f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-cohibenda-ira.2026-09-09.v1.json",
+        "sha256": "a74a82e54fafcd79a60e5956ac9129ca497812671f83881b9b7d450d5e6e98eb"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-communibus-notitiis-adversus-stoicos-english.2026-09-09.v1.json",
@@ -1418,6 +1486,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-communibus-notitiis-adversus-stoicos.2026-09-08.v1.json",
         "sha256": "f6184ea2a4a460e74f682b77a2803c57e168f1b7f416c9383461cb0989542064"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-cupiditate-divitiarum.2026-09-09.v1.json",
+        "sha256": "f59ca49cc2ecbab37b025d93f65653ea3c47b925a83360d312f87f282fc0112d"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-curiositate-english-1874.2026-09-09.v1.json",
@@ -1464,6 +1536,10 @@
         "sha256": "8655b0fd11a40b9ae6c6d353c9daef6b49bc5dca8e0163a0d1032684431609f0"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-exilio.2026-09-09.v1.json",
+        "sha256": "1826e70ea9964e0bc75a694b7e2b99c2b7c78d7541bafccdb426f7772618f005"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-facie-quae-in-orbe-lunae-apparet-english-1874.2026-09-09.v1.json",
         "sha256": "f5e3f60ca202c28f620815c06837ae36c67259799faeb332089e725dcdd80b8e"
       },
@@ -1496,8 +1572,28 @@
         "sha256": "9d9854ce095a111c48da8a91fdeb922a94330dfbab1c240d2c755c30d6ee1518"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-fraterno-amore.2026-09-09.v1.json",
+        "sha256": "151aefbd8f7db4124ecfd965b6b2f927761fb10c566aac8b2a0a7b73f021c6b3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-garrulitate.2026-09-09.v1.json",
+        "sha256": "a4850b4b9562d3ba3cb0065550c740fb6d556a813b3e5a5281014c35bbb8df66"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-genio-socratis.2026-09-09.v1.json",
+        "sha256": "ac98a8d0b154cd02ba366d49715ac01ba90521868e4ca9376be5a495a143f65b"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-heroditi-malignate.2026-09-09.v1.json",
+        "sha256": "488b236f8eec9c85704233d97d9ec8ca05a685943d33331b1741965054e04f7f"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-inventione.2026-09-09.v1.json",
         "sha256": "fbaa3948b567a78b423870967c418febebf36e355feffa1b7546bda675959248"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-invidia-et-odio.2026-09-09.v1.json",
+        "sha256": "459ae17d6b8425e16897024d2159c8966a5189744b1ad6d3ba7cbb3e0cfeccf9"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-iside-et-osiride-english-1874.2026-09-09.v1.json",
@@ -1510,6 +1606,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-iside-et-osiride.2026-09-08.v1.json",
         "sha256": "20bd1d31d55fd0ce91c320d416d40608fbb597e4e90b4656b21accd42b31ec39"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-liberis-educandis.2026-09-09.v1.json",
+        "sha256": "5811ce1114d70a30eff9b51a598cabaa34095d23ab857f8a66879f40f8326058"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-natura-deorum.2026-09-09.v1.json",
@@ -1528,6 +1628,18 @@
         "sha256": "553440afb49e41436e32d5468bdb76c2fb9c55c09e2977fa1f7c4586f6b12505"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-primo-frigido.2026-09-09.v1.json",
+        "sha256": "125ff959bb2b1d95dd377ffdce677a06761e91916661c4e93b3f732dd1106eb8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-pythiae-oraculis.2026-09-09.v1.json",
+        "sha256": "f8bb99470820abe311195b3d5ca4d78ca5ccdd4f0ccfa0b646410968f4fa5cd4"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-recta-ratione-audiendi.2026-09-09.v1.json",
+        "sha256": "aab6121307f8e597aac94ca42f62407e2b82f2fb0eff605c31a9471f5d8e59df"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-republica.2026-09-09.v1.json",
         "sha256": "1044a685ae6bba9ce82bdd879f63744aeacecc673b088b056353a3b56c660328"
       },
@@ -1538,6 +1650,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-rerum-natura.2026-09-09.v1.json",
         "sha256": "5d18f8e30a669194fa9e3b8813f49acd42feda5f9e9affc742ae58cb9edfad89"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-se-ipsum-citra-invidiam-laudando.2026-09-09.v1.json",
+        "sha256": "ea0f91394d146157502fc8856278a5e16c1fbb511242d809128d49c693ca2109"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-senectute-english.2026-09-09.v1.json",
@@ -1556,12 +1672,36 @@
         "sha256": "1a441d91f06a4143293103693ba38c896748ea6764d45be6815e5a85950867ef"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-sollertia-animalium.2026-09-09.v1.json",
+        "sha256": "83cba59e92d4f736914e930b7fed8d13577ba7d99d79b83abc869161b0c4a06d"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-stoicorum-repugnantiis-english.2026-09-09.v1.json",
         "sha256": "eea70e8530e2bbea12852b6a5aee2de2f665edf2779fa95712dfaf111397c820"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-stoicorum-repugnantiis.2026-09-08.v1.json",
         "sha256": "23a4d08761091a20266e1487be0f0f801667b280985423fd92e9c1dd4a924335"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-superstitione.2026-09-09.v1.json",
+        "sha256": "1f19c75b7043de031ae37bfc4e7a485c3c83d93ed67f8f14637db0f79a120c65"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-tranquillitate-animi.2026-09-09.v1.json",
+        "sha256": "af8bd3e6e6d32fe17ee205e336a628a1bff79b88c5ae33a4007e62bacb887f69"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-tuenda-sanitate-praecepta.2026-09-09.v1.json",
+        "sha256": "945d78527a8b60bf30b9209e1c36164228bdd05ea187cea7fcdeace450812689"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio.2026-09-09.v1.json",
+        "sha256": "1ace87441fa177314dbf9520b45417973f1d751f03fbdf31561d638c3a7e3f04"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-et-vitio.2026-09-09.v1.json",
+        "sha256": "8660939425efd93d08709a2da14a338ad6cf96b774e5ba06e0cd0c3b7584928a"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-morali-english-1874.2026-09-09.v1.json",
@@ -1574,6 +1714,14 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-de-virtute-morali.2026-09-08.v1.json",
         "sha256": "33385da280e823247027f3f95827de16bf87ce2aa12c9aeadece29d33af618c3"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-vitando-aere-alieno.2026-09-09.v1.json",
+        "sha256": "9fd418d238c718f41427371fe634be520cad5e9bd789c1cf2c7cf90d5222afe6"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-de-vitioso-pudore.2026-09-09.v1.json",
+        "sha256": "15c4001de87619c94ba5e491f45151490c278a6f2cff3598ff1fef180f1d5f68"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-dhammapada.2026-09-08.v1.json",
@@ -1728,6 +1876,10 @@
         "sha256": "06e12603c098c8f573c6bb74bd81bf39658b53f4c938ceb6977a57463c94e32e"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-maxime-cum-principibus-viris-philosopho-esse-disserendum.2026-09-09.v1.json",
+        "sha256": "3527529f6e1274638d3f672ba3fc684b030ac3e832d635b05f1d9090a2fac2de"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-menexenus-english.2026-09-09.v1.json",
         "sha256": "ec8157a08f47c856507c4d2f2d9562eb910bc88ff0797bdcd38e8c79edb2f855"
       },
@@ -1836,6 +1988,10 @@
         "sha256": "5a7f5e0bcbc51ac66769d3d67f2cbb11283529a97a73ca354f518eefde608fa8"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-plutarch-de-fato.2026-09-09.v1.json",
+        "sha256": "e6db957b0d11112c38276701d5ae6490a20a4fea35ac8c1fdd50bbcc278c5520"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-poetics-english.2026-09-09.v1.json",
         "sha256": "c0064213d498d79c0a6f4520a45e7f7ef52a18de9bb75be58c0301c6c2f457b7"
       },
@@ -1852,6 +2008,10 @@
         "sha256": "b5ef3f4bdef22d250cdab2d5a5abbb6a031b2b4b18db250937b8c289242c4428"
       },
       {
+        "path": "ToS/source-witnesses/discovery/runs/registry-praecepta-gerendae-reipublicae.2026-09-09.v1.json",
+        "sha256": "cf50365c501a60f143a1d5ac603ddd8e13c02a0ba34dee9a779914b73bfa6243"
+      },
+      {
         "path": "ToS/source-witnesses/discovery/runs/registry-protagoras-english.2026-09-09.v1.json",
         "sha256": "e2c1478bc57e516d84778cfe99a01eff215cf553035ded97c7584241f8545e11"
       },
@@ -1862,6 +2022,22 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-proverbs.2026-09-08.v1.json",
         "sha256": "4ca9ca64aab644bd6432cd573f88d686f257f74f2db28c8740adbd1a19b6e9b8"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-quaestiones-naturales.2026-09-09.v1.json",
+        "sha256": "341b136ef0f48b22db8cf1e5fa669ed1f3a29e0803bad92bdd1bcf369d06d83f"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-quomodo-adolescens-poetas-audire-debeat.2026-09-09.v1.json",
+        "sha256": "e24ba9c65846f18d6c87ad3e9159b4a626bcf6dbb75f5a35c6601a742e7f2d62"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-quomodo-adulator-ab-amico-internoscatur.2026-09-09.v1.json",
+        "sha256": "ced0e80b9a9ec08818b7c8ee41269a8eca15047269086258a2c3bc90d85c00ae"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-quomodo-quis-suos-in-virtute-sentiat-profectus.2026-09-09.v1.json",
+        "sha256": "758ee58bc793e58df6f5dffc961466d7a541a88f51ee4198a69dc7f71e005819"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-republic-english.2026-09-09.v1.json",
@@ -1886,6 +2062,10 @@
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-sammaditthi-sutta.2026-09-08.v1.json",
         "sha256": "6c0f7887db3094905f4168dcb0d8dc93efd28f7778f8636f6d37de759935ae83"
+      },
+      {
+        "path": "ToS/source-witnesses/discovery/runs/registry-septem-sapientium-convivium.2026-09-09.v1.json",
+        "sha256": "8231a5f0d21c9a8ff82c5d20c9cc13b264bfa9d1bbab8bfd217a720f7a1c0b6f"
       },
       {
         "path": "ToS/source-witnesses/discovery/runs/registry-sophist-english.2026-09-09.v1.json",
@@ -2097,7 +2277,7 @@
       },
       {
         "path": "ToS/source-witnesses/relations/provenance.jsonl",
-        "sha256": "486f791e9311ebc7fcbdb60f720516e88968c5c30d4397c5154e411013588d63"
+        "sha256": "32f000a7dff6680e051c7269e10bd43769982b484676c8dd44486e56e1c559e3"
       },
       {
         "path": "ToS/source-witnesses/scholarly-composites/critical/akkadian/laws-of-hammurapi/composite-witness.json",
@@ -2209,7 +2389,7 @@
       },
       {
         "path": "ToS/source-witnesses/server-import/provenance.jsonl",
-        "sha256": "6fba7a73fc167834302485464bd47d63d4240c76539a9d0dc5fe372dbbc5a91b"
+        "sha256": "bb54d19ace760345b856cd9b2ddcc062d913db40198452abea4c2488fe8b9373"
       },
       {
         "path": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2876,12 +3056,72 @@
         "sha256": "e8bcfedfec828fe611a77c83052764cf280000ba34a8cfa2093dca56c3949bcb"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/ad-principem-ineruditum/expressions/grc-perseus-tlg0007-tlg116/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "acb79c1b4992298e74323fbba89ef103f8a140e7691246e17c27b2aad9f118f0"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/adversus-coloten/expressions/en-perseus-tlg0007-tlg140-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "56ce1561144cbf2510446c8dc0149437d6727aaf1395d7a5879088c1879e9f98"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/adversus-coloten/expressions/grc-perseus-tlg0007-tlg140/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "e9f82ba3a36407614cd0cb115371f97fc3ecd88d0bdbce8d9523737c437848ba"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/amatorius/expressions/grc-perseus-tlg0007-tlg113/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "d9bdc0399207756f21e2dbc20ac5961ee26c710bd83a61d5fa62c1257d1a2ecc"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/an-recte-dictum-sit-latenter-esse-vivendum/expressions/grc-perseus-tlg0007-tlg141/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c18e7581d5ce7ac163bea4ffd4fcce01828f3f19922fad499a1f2b2873a0efe8"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/an-seni-respublica-gerenda-sit/expressions/grc-perseus-tlg0007-tlg117/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "6ade54d1f435ff7ca3330c66a70326b4ebf1445600cbc63775ed28aeeb2db833"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/an-virtus-doceri-possit/expressions/grc-perseus-tlg0007-tlg093/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "91ebc74e7adc1f0fd4d9c5534e42d3b074767714d61b152bf307d3736b4b949f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/an-vitiositas-ad-infelicitatem-sufficia/expressions/grc-perseus-tlg0007-tlg099/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1fa5ed11db1dea4bd86fde232af612b71aaabc4c965bebbcaeef8add3de8504c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/animine-an-corporis-affectiones-sint-peiores/expressions/grc-perseus-tlg0007-tlg100/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5489c83fea45c36886ede3b7e2d876922bb8380443d7136240b643cedf271ab9"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/aquane-an-ignis-sit-utilior/expressions/grc-perseus-tlg0007-tlg128/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "693f9459919dd1b8900a7216305412a3267d3dee8162e82831d4f5cd9912094c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/bruta-animalia-ratione-uti/expressions/grc-perseus-tlg0007-tlg130/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "6cc9988d8f933cc0269ee2e5890d72d05d45aef7450ed57f647226918bf30d6e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/comparationis-aristophanis-et-menandri-compendium/expressions/grc-perseus-tlg0007-tlg122/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "533d420a7bb907dad8be9ae9c77f05bf9a215664661cb1fa1c856e66f6cf5d73"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/conjugalia-praecepta/expressions/grc-perseus-tlg0007-tlg078/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "718b4e8c28d3866aba139b9fdc935306851f864e58f8c6bce2a8e8f69062fc8d"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/consolatio-ad-apollonium/expressions/grc-perseus-tlg0007-tlg076/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "86f902c28a4694a09c3fbf8e572e99095d8b8ed90ddf72fee0fe3a2b40eaaf5a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/consolatio-ad-uxorem/expressions/grc-perseus-tlg0007-tlg111/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f0733c34c9e2918841c09edbafc9801af3b8ce3645386a830e6740c952a98324"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-amicorum-multitudine/expressions/grc-perseus-tlg0007-tlg073/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "0cc22d1c8d64959ed4e83cbe56f186595e0ac9a0db9cd7abb50208280868a8d1"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-amore-prolis/expressions/grc-perseus-tlg0007-tlg098/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "975c2640e712b989c502d7bac5ecbf087fc69e5c1864c91883ef6ef01f0b8cce"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-animae-procreatione-in-timaeo/expressions/en-perseus-tlg0007-tlg134-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2892,12 +3132,24 @@
         "sha256": "b63e3bf60d56915ebb578e9c049e3d8c6cfa70ebddd15f75b21ba1648c4597a4"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-capienda-ex-inimicis-utilitate/expressions/grc-perseus-tlg0007-tlg072/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "77b6cdf709a6c48e657ce09789d55963b1ac31f93334668d90dbd42d4ce9dbbe"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-cohibenda-ira/expressions/grc-perseus-tlg0007-tlg095/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3894ca77c7523e602ff9c776e0c28990cabbe337b5c234523e4515a5e2067cfc"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-communibus-notitiis-adversus-stoicos/expressions/en-perseus-tlg0007-tlg138-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "8135fbe0baf55046ff2e68073e0b6866b0204d16e10301e9ef713dcde314aa6e"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-communibus-notitiis-adversus-stoicos/expressions/grc-perseus-tlg0007-tlg138/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "1d7b60dedc57febdba0765848ed043e145105fa1e4efd75a89987cd95049e14c"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-cupiditate-divitiarum/expressions/grc-perseus-tlg0007-tlg103/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "2867a5a6c9df2bdd3af78e827c89d1763a5826556dad46e4b5cf8251a017fb95"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-curiositate/expressions/en-perseus-tlg0007-tlg102-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2936,6 +3188,10 @@
         "sha256": "893468b76277caf859673f42e41488cd89b19705d432efa8922b9dd34a40b621"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-exilio/expressions/grc-perseus-tlg0007-tlg110/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "73f293967725ecbac4c127ed31da92f0df445ed294848daa04e7f1be23206ba8"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/en-perseus-tlg0007-tlg126-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "0b1c2195aedef9536beca45f0b85e89e35f9d924a5682ff956a578943251c4ad"
       },
@@ -2946,6 +3202,10 @@
       {
         "path": "ToS/source-witnesses/works/plutarch/de-facie-quae-in-orbe-lunae-apparet/expressions/grc-perseus-tlg0007-tlg126/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "d681c403c86a8d89eb7e439a0f5de9e83ad5608ac34ab20316faa7963deebffd"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-fato/expressions/grc-perseus-tlg0007-tlg108/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "05b076a7614a47f850a13e5d2438819730c9a679489f86ffc91fef7b2d9bc93b"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-fortuna/expressions/en-perseus-tlg0007-tlg074-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -2960,6 +3220,26 @@
         "sha256": "2681a6259c1f5976b614ca3bf38e30a89027afaec8da6222645d7e1cd32d4ede"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-fraterno-amore/expressions/grc-perseus-tlg0007-tlg097/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f9ad50357425ea2e1953de9f3a03e1aba52adcfcf95104c5f64dab3e0e1b4fe7"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-garrulitate/expressions/grc-perseus-tlg0007-tlg101/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e4686f35a17776e13a82dee121ec2221dc5e0bb17b3ef7fe4e4f6fdcf6123ca3"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-genio-socratis/expressions/grc-perseus-tlg0007-tlg109/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c76a08aa3ce01c7e999624c4da779ef08d174e6b2a01c94db975b523b5edba89"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-heroditi-malignate/expressions/grc-perseus-tlg0007-tlg123/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "b131ccb339974a729661f74c179a9236b14a2ab0901335a3886da28a40ea0476"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-invidia-et-odio/expressions/grc-perseus-tlg0007-tlg105/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "c599547bb0bbadbfe155e236243321768b924142cbf5c4aae4a9534d57c7b4b0"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-iside-et-osiride/expressions/en-perseus-tlg0007-tlg089-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "f4712a4788e273a693bf51c201fba16d71414467cf4854ca79aa23dfd981fb7d"
       },
@@ -2972,6 +3252,26 @@
         "sha256": "cb49ecd0fb29b58a9d4d7db07de608290aa9643fb525c9bc75eccf61ea889e81"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-liberis-educandis/expressions/grc-perseus-tlg0007-tlg067/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3ab1ee72e25098f77e8008419a9472b2bd7ebf85d72dccb88f964bd605cfa2a8"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-primo-frigido/expressions/grc-perseus-tlg0007-tlg127/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "880ee6bd421386bb9895d0dce88775faf973f0268e8a064ee201f38d71a9a024"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-pythiae-oraculis/expressions/grc-perseus-tlg0007-tlg091/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "49de1d8006062c92d0504bd58cc2ff0ed0a234d8cadc3901279d5878bc5e608f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-recta-ratione-audiendi/expressions/grc-perseus-tlg0007-tlg069/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "3b74be46be7429e2d23e062e3eb0d1b8cf7391b26d0922d35f78f789c7c4a483"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-se-ipsum-citra-invidiam-laudando/expressions/grc-perseus-tlg0007-tlg106/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "03b4ec8e4cd758b51d82132b713526fae4def82d3f28abc3c1e68946fdba7d27"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-sera-numinis-vindicta/expressions/en-perseus-tlg0007-tlg107-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "5c371075dccb6764bdc9d3c9d3fb4ea61ed20a9ced2852d01fe3df40c9f58992"
       },
@@ -2980,12 +3280,36 @@
         "sha256": "703a28e7ba0abd7728891bc2f0ce0a6ef6465b10d422ffc9b20327c2851d7689"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-sollertia-animalium/expressions/grc-perseus-tlg0007-tlg129/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a017ace2fba5c44813362efcb5fc1f15224cf22d40710abdbcb20129ec046e19"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/en-perseus-tlg0007-tlg136-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "17d5eea1bf1757b7a62b81c724f12d4eee6d4aebef1a3b0088de5565ca4536d8"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/grc-perseus-tlg0007-tlg136/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "3bfc5ad7d3b9121cda1153848e452dd95627c85bc20997ebeca92179868f140d"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-superstitione/expressions/grc-perseus-tlg0007-tlg080/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a3b8bea2ea0e97ea7d0335beb9c86a34123144553f2e7ae1054b581913063274"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-tranquillitate-animi/expressions/grc-perseus-tlg0007-tlg096/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "a204013282e2d9ce0fd85c2e237681c19e33850368e99dbcbc82011b6bb7386d"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-tuenda-sanitate-praecepta/expressions/grc-perseus-tlg0007-tlg077/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5f5127f6c543cc908c0c063294d3b880005f2a9c5f290556f8a3a87da38e0485"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-unius-in-republica-dominatione-populari-statu-et-paucorum-imperio/expressions/grc-perseus-tlg0007-tlg119/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "252b9b43c070ffd8527e8de4ad311707d33b14dc9af6c54199982b29845bbedf"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-virtute-et-vitio/expressions/grc-perseus-tlg0007-tlg075/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "937fe9654c690bc6a766b1b7b52a827a761aeec6c6fc7b1f826f1dde00932ee3"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng3/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3000,8 +3324,20 @@
         "sha256": "029bb4dc376ad6c86553e419c41603c332a26335ebcbf5d44bdffa903bcb3e69"
       },
       {
+        "path": "ToS/source-witnesses/works/plutarch/de-vitando-aere-alieno/expressions/grc-perseus-tlg0007-tlg120/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "e17e00f0218c14df0c5b1d54583bebbc88153c663e01fa3889f72f499573393e"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/de-vitioso-pudore/expressions/grc-perseus-tlg0007-tlg104/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "1d34eb1cf0534a7be672be3d26da19ae03a5a6bf39e25f9cbbaa09f5746b0fe5"
+      },
+      {
         "path": "ToS/source-witnesses/works/plutarch/epitome-libri-de-animae-procreatione-in-timaeo/expressions/grc-perseus-tlg0007-tlg135/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "b54359ca18fbf5b73551ec8a54321b9125206564c3fc09e63eedce78235c5717"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/maxime-cum-principibus-viris-philosopho-esse-disserendum/expressions/grc-perseus-tlg0007-tlg115/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "52a2e20008a7edfa33c30d41af7b581bea6e8c293dd654a1926c413380cfd3b1"
       },
       {
         "path": "ToS/source-witnesses/works/plutarch/non-posse-suaviter-vivi-secundum-epicurum/expressions/en-perseus-tlg0007-tlg139-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
@@ -3018,6 +3354,30 @@
       {
         "path": "ToS/source-witnesses/works/plutarch/platonicae-quaestiones/expressions/grc-perseus-tlg0007-tlg133/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
         "sha256": "0c94f3433ea4b41f2b7529bbf274a5ab2adbad2b1ab2470f25cccff09700b03a"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/praecepta-gerendae-reipublicae/expressions/grc-perseus-tlg0007-tlg118/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "58d2f316efe2e6fec1bba36c3ab3aa51fd472e3a33a5531ae4885193a68da552"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/quaestiones-naturales/expressions/grc-perseus-tlg0007-tlg125/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "66ac67333e9ae24f880d5a3e17d6cfcd832ba183a90a775a5e38109cc036a17b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/quomodo-adolescens-poetas-audire-debeat/expressions/grc-perseus-tlg0007-tlg068/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "5614752f1dc402ccf71dafb946719bd422a98f249c52ece3627ccaa82240f58f"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/quomodo-adulator-ab-amico-internoscatur/expressions/grc-perseus-tlg0007-tlg070/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "6c8dcedf6b64e6664098a3351de972f2e7f85c640a2b736572b018752fb380a9"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/quomodo-quis-suos-in-virtute-sentiat-profectus/expressions/grc-perseus-tlg0007-tlg071/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "f790ebc7dc5d76685440add6b52230ffbe51e81cf8e63f25f0f9a2ae30c76d7b"
+      },
+      {
+        "path": "ToS/source-witnesses/works/plutarch/septem-sapientium-convivium/expressions/grc-perseus-tlg0007-tlg079/editions/perseus-341e309c821d/items/git-tei-xml/provenance.jsonl",
+        "sha256": "54377b10bb78f2550ce2903b7d6ac94694ea2c8478d310ac6249074057b26d19"
       },
       {
         "path": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml/provenance.jsonl",

@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+    "version": 1,
+    "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.bcd57acef195babc3362dc9340e9f607c1e5979fc052ac266db6a46bc7f5612d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+        "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+            "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.605144b4aac3e65cffc44292ac5d029e58e49bd7dce992f21abf853e42da5012",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38",
+        "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:091489bddbb1f7b240973da226128ec5e8d75a93d5a3453ed174a0a0b93135d7",
+      "request_digest": "sha256:d225a79144d6c6c41d0cea23efa33cf0647c34952fed60adf3fc9703cac9a310",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:7102eebbe0ae557568c94138933de5bc307c899da27e6c5f47dcc6883df2968a",
+      "recorded_at": "2026-09-09T16:45:36.929901+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-liberis-educandis.grc-perseus-tlg0007-tlg067",
+        "version": 1,
+        "digest": "sha256:8ed8d364a4dda064df3de6887e9a08f8603a424e45ba079d47e1f6a5c7cf2b38"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.bcd57acef195babc3362dc9340e9f607c1e5979fc052ac266db6a46bc7f5612d",
+          "version": 1,
+          "digest": "sha256:0d705af127ddb782478d3b4517346a2e3010bfe8b5c00a136bbc4689a182c718"
+        },
+        {
+          "id": "tos.form.metadata.605144b4aac3e65cffc44292ac5d029e58e49bd7dce992f21abf853e42da5012",
+          "version": 1,
+          "digest": "sha256:76d85e1a6c6e0f3267b5b4174ea67c9968a9fae6b405926b2dad0f34d5561fe2"
+        }
+      ]
+    }
+  ]
+}

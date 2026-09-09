@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.5689bae0f89ceb7e04873d6e1ea1b694fd54c13a5b8ac8c03068626dfb02023e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+        "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+            "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f8089e97c5f9d41685ce045bc76fb18eee60350a6d8aab520063e2123d8bd07d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6",
+        "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:4fe8cecdf3c176732ea9c88f7857d2ee0c26e5e1d777695667edd9ceb4d51c9f",
+      "request_digest": "sha256:1f2f50f0e40389b13ba4650e46ef3fbfd07def029e354f640630ac58fb071bb1",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:266df1d5bc6fe6e46d0409788af7027aae6769b8aac0cdf71e3a9e5f7594c2ee",
+      "recorded_at": "2026-09-09T16:45:41.072735+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.de-heroditi-malignate.grc-perseus-tlg0007-tlg123.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:5ca19fd1fccf762ccb491be61a0f3e647e374cd752184366f16c7db12a88dae6"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.5689bae0f89ceb7e04873d6e1ea1b694fd54c13a5b8ac8c03068626dfb02023e",
+          "version": 1,
+          "digest": "sha256:df50b37fac80b2688fd2ce315a960469a7d92d6893e7a12adec9746dace88148"
+        },
+        {
+          "id": "tos.form.metadata.f8089e97c5f9d41685ce045bc76fb18eee60350a6d8aab520063e2123d8bd07d",
+          "version": 1,
+          "digest": "sha256:b34b973896e49454376525d966beed000a947348f088038a8c6f4558af7783a3"
+        }
+      ]
+    }
+  ]
+}

@@ -105,6 +105,9 @@ def report(completed):
         'deferred': [row for row in selection['candidates'] if row['decision'] == 'defer'], 'blocked': [],
         'total_files': sum(row['files'] for row in rows), 'total_bytes': sum(row['bytes'] for row in rows),
         'scope': '45 exact Greek versions in the Plutarch Moralia corpus through the A29 anchor; collections, paired versions and identity conflicts explicitly deferred.',
+        'identity_correction_ref': REL + '/identity-correction/current.json',
+        'corrected_preparation_commit': read(BASE/'preparation-checkpoint-receipt.corrected.json')['commit'],
+        'human_form_companions_ref': REL + '/human-form-companions.json',
         'new_works_created': len(rows), 'source_text_admitted': False, 'payload_visibility': 'local_only', 'public_or_remote_deployment': False}
     write(BASE / 'batch-result.json', result)
     lines = ['# Восьмая посадка: греческий корпус Moralia', '',
@@ -114,6 +117,8 @@ def report(completed):
     for row in rows:
         lines.append(f"| {row['title']} | {row['atlas_row']} | [Открыть]({os.path.relpath(ROOT / row['reading_route'], BASE)}) |")
     lines.extend(['', '## Границы', '',
+        'После 26 завершённых целей обнаружена коллизия служебного имени De fato с Цицероном. Для Плутарха введено plutarch-de-fato; идентификаторы корпуса и исходные байты сохранены. [Разбор и сохранённые метаданные попытки](identity-correction/REVIEW.md).', '',
+        'Для всех 180 новых записей созданы 360 форм метаданных через штатную команду владельца: точное копирование исходных полей, без семантического принятия. [Проверка форм](human-form-companions.json).', '',
         f"Отложено {len(result['deferred'])} точных вариантов: парные издания, сборники, части и прежний конфликт идентификатора. Условия следующего шага остаются у владельца source-witnesses / source-registry.", '',
         'Compendium сравнения Аристофана и Менандра удержан как отдельная переданная эпитома, без отождествления с утраченным полным сравнением. Названия поставщика сохранены буквально, включая опечатки.', '',
         '[Покрытие реестра](../../../research-packets/source-registries/COVERAGE.md). [Отбор](selection-review.json). [Полный результат](batch-result.json). [Разбор источника и прав](SOURCE_AND_RIGHTS_REVIEW.md).', '',

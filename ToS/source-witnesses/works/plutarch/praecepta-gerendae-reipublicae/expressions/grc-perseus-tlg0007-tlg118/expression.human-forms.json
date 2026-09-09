@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+    "version": 1,
+    "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.630996ba3c1d48cbeb8734de7407267070025755076b6cf3d59b908b1fac111e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+        "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+            "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.eb7af9621ad486ea9e7038de76f4025569eddc13fdf247feb51c0ffbf0d1b98b",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f",
+        "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:883c8947bc8916a802884977a68860d455fd84f921adbbae88eb16df820e7836",
+      "request_digest": "sha256:1830aca816b5366743c058ceb25a0eba8add4f7c2e492af869909717531baed6",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:b8e6f6807625aadc87aef6b5b103045abe441c75a07c4f5f6c9c6e24a5a09e14",
+      "recorded_at": "2026-09-09T16:45:40.652409+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.praecepta-gerendae-reipublicae.grc-perseus-tlg0007-tlg118",
+        "version": 1,
+        "digest": "sha256:04cca52b2f94c7e41c1a46347107e0b94afad8010126d91c141ef8fb0c11de4f"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.630996ba3c1d48cbeb8734de7407267070025755076b6cf3d59b908b1fac111e",
+          "version": 1,
+          "digest": "sha256:af2b92a4d76847830cd77e7eb352bc2a6ed000f77190867c16f11f9e393e8e02"
+        },
+        {
+          "id": "tos.form.metadata.eb7af9621ad486ea9e7038de76f4025569eddc13fdf247feb51c0ffbf0d1b98b",
+          "version": 1,
+          "digest": "sha256:0a2234fc0405783477c52cb6a63bc507406ab063b77d43025193911640a98ebc"
+        }
+      ]
+    }
+  ]
+}

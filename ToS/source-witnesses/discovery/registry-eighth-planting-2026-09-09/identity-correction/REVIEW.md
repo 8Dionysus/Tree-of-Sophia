@@ -9,3 +9,5 @@ The exact eleven incomplete metadata files are retained in preimages/ with their
 manifest.json and prepared-source-packages.jsonl remain frozen initial preparation. manifest.corrected.json carries the same 45 exact versions, changing only this operational namespace and its source evidence links. The first 26 successful acquisitions retain the original preparation evidence; resumed acquisitions cite the corrected preparation. Registry coverage may continue to enumerate the original 45 stable Item identities, while post-acquisition reading routes use the corrected operational identity.
 
 The engine also gains a pre-write collision check, so future equivalent namespace failures are rejected before payload or metadata mutation. Source custody remains distinct from textual, semantic, canon and publication acceptance.
+
+Retained historical metadata filenames use `.preimage` so generic source/provenance scanners cannot promote the failed attempt back into current authority. Bytes and original paths remain fixed by preimages.json.

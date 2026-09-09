@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.41832bcf52af4048019b6a94182453152ac71267d7eb7eceb04a2438f3dbfe7b",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+        "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+            "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.1514e3d1f95404581b02cf17f50f0136869a7166a581f855952dd8ed8c03609a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66",
+        "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "registry-eighth-source-forms:61f63451be63a3dc404da3c21bff88ac0478daf1e52d9b3428b3f7debcec5301",
+      "request_digest": "sha256:8b9a6230bc1bb2f0ed71b8351b28cf4a85ddf46f3fa34a1d0f8a1fc59807571b",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:session:01a08281-293a-7ff0-927a-0fd73dfacf7d:registry-eighth-planting",
+      "owner_configuration": "sha256:0cb85be530cf73d4cc94ee72c29eaee6382c7ebb2f0041c106f114371369ae56",
+      "recorded_at": "2026-09-09T16:45:38.032669+00:00",
+      "source": {
+        "id": "tos.edition.plutarch.conjugalia-praecepta.grc-perseus-tlg0007-tlg078.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:1af47953f557ced565ed5e839c770fd4447003c78eb7933199cb03ead05e5d66"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.41832bcf52af4048019b6a94182453152ac71267d7eb7eceb04a2438f3dbfe7b",
+          "version": 1,
+          "digest": "sha256:b98da7adb2a7715e13bc2a76ca273448beabe06b3a74cda605ba1d91b3f1cfc1"
+        },
+        {
+          "id": "tos.form.metadata.1514e3d1f95404581b02cf17f50f0136869a7166a581f855952dd8ed8c03609a",
+          "version": 1,
+          "digest": "sha256:4674524b1e3ad63a5f9df2c372416455344954a4e00a7e9ccc6400e1419d04b4"
+        }
+      ]
+    }
+  ]
+}
