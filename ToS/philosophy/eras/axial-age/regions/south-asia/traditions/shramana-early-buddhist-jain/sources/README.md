@@ -18,3 +18,7 @@ the Nikāya corpus.
 The [source-anchor backlog](source-anchor-backlog.jsonl) retains the wider
 branch needs. Local source custody does not admit textual interpretation or
 canon.
+
+## Registry planting: thirteenth Pali stage (2026-09-09)
+
+183 exact versions. [Reading routes and evidence](../../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/PALI_RESULTS.md).

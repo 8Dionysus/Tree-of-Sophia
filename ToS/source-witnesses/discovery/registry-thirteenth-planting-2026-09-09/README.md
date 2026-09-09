@@ -1,3 +1,3 @@
-# Thirteenth planting
+# Thirteenth Pali stage
 
-Preparation of183 new Pali discourses, followed by186 English Sujato versions attached to the same Works. [Source review](SOURCE_AND_RIGHTS_REVIEW.md). Full acquisition awaits each stage checkpoint.
+[Reading routes and result](PALI_RESULTS.md). [Source and rights review](SOURCE_AND_RIGHTS_REVIEW.md).

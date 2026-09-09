@@ -24,3 +24,7 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 | `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |
 
 Global proposed node and relation rows for this branch are aggregated in `ToS/philosophy/graph-workbench/proposed-nodes/table-i-prepared-dossiers.jsonl` and `ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl`.
+
+## Registry planting: thirteenth Pali stage (2026-09-09)
+
+183 exact versions. [Reading routes and evidence](../../../../../../../source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/PALI_RESULTS.md).
