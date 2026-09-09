@@ -303,7 +303,7 @@ def write_segmented_family(tmp_path: Path) -> Path:
         "migration": {
             "mode": "explicit-provider-pin-dual-read",
             "rollback": "retain-last-good-manifest-and-select-by-digest",
-            "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0040-bounded-segmented-kag-family.md",
+            "decision_ref": "aoa-kag:docs/decisions/AOA-KAG-D-0051-bounded-segmented-kag-family.md",
         },
         "budgets": {
             "part_bytes_max": 16 * 1024 * 1024,

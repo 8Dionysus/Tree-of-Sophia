@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4437,
+    "tracked_surface_count": 4438,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1083,
     "human_scope": {
-      "bytes": 5583342,
-      "count": 921,
+      "bytes": 5586601,
+      "count": 922,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -51,9 +51,9 @@
           "lines": 155
         },
         "docs": {
-          "bytes": 585329,
-          "count": 78,
-          "lines": 9346
+          "bytes": 588588,
+          "count": 79,
+          "lines": 9422
         },
         "evals": {
           "bytes": 18219,
@@ -116,15 +116,15 @@
           "lines": 72960
         }
       },
-      "lines": 94501
+      "lines": 94577
     },
     "surface_kind_counts": {
       "executable": 258,
-      "human": 921,
+      "human": 922,
       "structured": 3258
     },
-    "tracked_path_count": 5520,
-    "tracked_surface_count": 4437,
+    "tracked_path_count": 5521,
+    "tracked_surface_count": 4438,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -183,11 +183,11 @@
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 78,
+        "human": 79,
         "structured": 6
       },
-      "tracked_surface_bytes": 898203,
-      "tracked_surface_count": 84
+      "tracked_surface_bytes": 901462,
+      "tracked_surface_count": 85
     },
     {
       "family_id": "evals",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "71b2e7328827cffad6c1c0d69bc31c1eff0cce9c1371a7521f70dc2c6ce8db38",
+  "tracked_surface_digest": "2c8af09cee4b6f3aedbafe0fb51b16ad48344e2256d488073a45759202441aac",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "bfce8b5fad88227c796dbb34c6a20ccd7cc75434a3b6873082693ddf0a05d948",
+      "sha256": "fba24c13bcc53336b5dd46a3f52dfe06e5025aa0f53b3621d974936661a26e2b",
       "surface_kind": "structured"
     },
     {
@@ -32119,6 +32119,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3259,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md",
+      "sha256": "6513da81cd8e94960f210adb629ffa9c559d9e1d6edfab4c59176c37b768db7c",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -34939,7 +34947,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_agent_surface.py",
-      "sha256": "227448d339d1e4c4a0878d8a2f175935a225a5457e9e5a351b9098236846344d",
+      "sha256": "263544484d895491eece28b1220907243f66e6e2181d45fa3791360329406462",
       "surface_kind": "executable"
     },
     {
@@ -35651,7 +35659,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validate_local_kag_provider.py",
-      "sha256": "59964f0a61e2694b53ebca5aa3093b668d1b54294c6df44ac70b22416211921b",
+      "sha256": "287f4ff6027f8a32dd01bbb60629da37f860db68d7e9f30451e8c207b4465068",
       "surface_kind": "executable"
     },
     {

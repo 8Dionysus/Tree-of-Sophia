@@ -147,7 +147,7 @@ KAG_TIERED_DECISION_REF = (
 )
 KAG_SEGMENTED_DECISION_REF = (
     "aoa-kag:docs/decisions/"
-    "AOA-KAG-D-0040-bounded-segmented-kag-family.md"
+    "AOA-KAG-D-0051-bounded-segmented-kag-family.md"
 )
 KAG_SEGMENTED_FAMILY_SCHEMA = "aoa-repo-local-kag-segmented-family-v1"
 KAG_BUDGET_RECEIPT_REQUIRED_FIELDS = {
