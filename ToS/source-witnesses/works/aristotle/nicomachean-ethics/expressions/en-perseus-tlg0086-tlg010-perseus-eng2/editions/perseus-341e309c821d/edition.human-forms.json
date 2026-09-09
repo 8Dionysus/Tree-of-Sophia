@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7178d5b3058c00ddaf30d7d48c737edf5deb284141b1e0a90e553d7290b33231",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+        "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+            "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.2bf97ad0d014a5fed63feadf7723ae2621fcb0d0d5214b47dc0b623a969206ac",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f",
+        "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+      "request_digest": "sha256:d967c66de54535297371fc86d626969dd8ebdab45a1c6b79145e665ca88f65b5",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:9b119646a047a48d54132c76002cac93988fd3cf052a986d211f8412473dbb6f",
+      "recorded_at": "2026-09-09T15:55:25.049096+00:00",
+      "source": {
+        "id": "tos.edition.aristotle.nicomachean-ethics.en-perseus-tlg0086-tlg010-perseus-eng2.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:061846ff1e4bdf9b9c00338e536abc8371c209e4ef03b8bc7439a6210f02b79f"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.7178d5b3058c00ddaf30d7d48c737edf5deb284141b1e0a90e553d7290b33231",
+          "version": 1,
+          "digest": "sha256:1b4156d0beafb3e44b9f0eb22bfc90975e9610c20f59387711218be1534ab529"
+        },
+        {
+          "id": "tos.form.metadata.2bf97ad0d014a5fed63feadf7723ae2621fcb0d0d5214b47dc0b623a969206ac",
+          "version": 1,
+          "digest": "sha256:5501d01581e74ef5c95aff4316fbf698fe421379e92dc4acf43cf368d4a33e10"
+        }
+      ]
+    }
+  ]
+}

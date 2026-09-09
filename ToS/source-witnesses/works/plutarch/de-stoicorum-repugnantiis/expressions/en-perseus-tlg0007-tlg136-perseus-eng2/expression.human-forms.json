@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.f806520b73bbee151f654c727a5af55e2b758babc27a0a6f52a275d541a6875e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+        "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+            "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e4d0003a5e2391cd31662b01483e76b588304f21307870147b4c0f8e6e9c153a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3",
+        "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+      "request_digest": "sha256:17a3b2eab2d269de35e48bc52c6c35ceb9b78bd42febd7f24ca02d36ea274f79",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:9dcae8a48fcc0eda74dd59587e8b0a8ce1299e102ac89095bce6cb8d9adb95af",
+      "recorded_at": "2026-09-09T15:55:24.651111+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:b72f0b14ceb97bde4c038f270745e7921e43332c1aec82aabbc4023cd33b4fc3"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.f806520b73bbee151f654c727a5af55e2b758babc27a0a6f52a275d541a6875e",
+          "version": 1,
+          "digest": "sha256:45c419e770d4414dae92dd73eb08f2b16b0b846558455743fc7a0646725f6149"
+        },
+        {
+          "id": "tos.form.metadata.e4d0003a5e2391cd31662b01483e76b588304f21307870147b4c0f8e6e9c153a",
+          "version": 1,
+          "digest": "sha256:a44a1c63ec1abfd1f89f71da8bbfdf68405a9f9eea8d6f55ffb1d1da4c85d425"
+        }
+      ]
+    }
+  ]
+}

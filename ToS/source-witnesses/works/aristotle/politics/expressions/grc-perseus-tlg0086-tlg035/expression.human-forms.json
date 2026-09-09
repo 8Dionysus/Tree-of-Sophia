@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+    "version": 1,
+    "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7a84d43f939919127e7be73a784fc24cb9561b286870faa3dd29bb811638916a",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+        "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+            "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.eecb83a3d5bbb1ecf72ff7aee9e9f0736f6a639e573bf01b9d130b9f682ee9d8",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36",
+        "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+      "request_digest": "sha256:7e9c7b972d932f93eeddda0e4b0f993afa7526a5e6cbd33fb6a67abf1d1fae3b",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:5f36f7edab239e322f197fe2d42680bf34628f0f17df38cd18252ef4ec8c25be",
+      "recorded_at": "2026-09-09T15:55:21.610477+00:00",
+      "source": {
+        "id": "tos.expression.aristotle.politics.grc-perseus-tlg0086-tlg035",
+        "version": 1,
+        "digest": "sha256:acc7902ff3e8586d238741f796d4f846109329a390c47b16f552e881ca3e1b36"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.7a84d43f939919127e7be73a784fc24cb9561b286870faa3dd29bb811638916a",
+          "version": 1,
+          "digest": "sha256:1bdd8d0c35533e4529a261fccbdbff0ff028ff10f1c5f5f7aaff285d5763d032"
+        },
+        {
+          "id": "tos.form.metadata.eecb83a3d5bbb1ecf72ff7aee9e9f0736f6a639e573bf01b9d130b9f682ee9d8",
+          "version": 1,
+          "digest": "sha256:f760843c22b84eaaa160e966283d5ba9ef3fa8af176669110b89b1d51d682442"
+        }
+      ]
+    }
+  ]
+}

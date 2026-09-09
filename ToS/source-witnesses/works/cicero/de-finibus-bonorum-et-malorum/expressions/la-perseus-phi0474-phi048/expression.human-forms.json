@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+    "version": 1,
+    "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d8dec9eff79cbdb197edca5d1ed874295585c9130f607c685e52fe79c2e1b1d7",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+        "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+            "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.acea53e592998ca8d2583324af0edc4b7e92e15fd196941e8888b0765417b812",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4",
+        "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+      "request_digest": "sha256:48c752a547153775c072906c8ad4dee958dc4899acf7c916720e650cfe0b3935",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:f0f1a7d1f7265c4b26f59f3efb679abacfddde6f1266c5d7b0eeac282f5028b9",
+      "recorded_at": "2026-09-09T15:55:21.828421+00:00",
+      "source": {
+        "id": "tos.expression.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048",
+        "version": 1,
+        "digest": "sha256:2a76ed2fb22d26031be644d770a23f541bf62419572ad2b68e04754f72cac0d4"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d8dec9eff79cbdb197edca5d1ed874295585c9130f607c685e52fe79c2e1b1d7",
+          "version": 1,
+          "digest": "sha256:34fb153325cd8cac9d70e21fde33330b04cb09ede09b07d51bc785426f89e016"
+        },
+        {
+          "id": "tos.form.metadata.acea53e592998ca8d2583324af0edc4b7e92e15fd196941e8888b0765417b812",
+          "version": 1,
+          "digest": "sha256:0b3bbe6b595ed69b482eeeece4d9df7d857be6b62c24133c26c4f15a7eabeb38"
+        }
+      ]
+    }
+  ]
+}

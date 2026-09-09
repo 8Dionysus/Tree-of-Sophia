@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+    "version": 1,
+    "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.ed0fc2ba2bde9efd8cf91e8aede1a79b9decc2bb35f1d3b7ab1231a5dd35d169",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+        "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+            "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.e437318d54c52178c557ccfbd6634f583fc14fa9d979caf384d3fd2b3c404332",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348",
+        "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plato.euthyphro.grc-perseus-burnet",
+      "request_digest": "sha256:9e5a2a9b3f61ecccfbe2b4d1ff7c24231990baf2902d0ec72dbb43afee4be440",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:936ad20ce1a5b92591ab597727a9b3c8f88e8e3de68234cead15aa2483ada98d",
+      "recorded_at": "2026-09-09T15:55:23.139023+00:00",
+      "source": {
+        "id": "tos.expression.plato.euthyphro.grc-perseus-burnet",
+        "version": 1,
+        "digest": "sha256:1d829d26b554870521ea3c48dd40509d9d7ca854e2ed952b0716b8f0f4234348"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.ed0fc2ba2bde9efd8cf91e8aede1a79b9decc2bb35f1d3b7ab1231a5dd35d169",
+          "version": 1,
+          "digest": "sha256:a2494e667966e20e78a830fbcb209f0256200a639766ff50d0c6cf61ae53b11f"
+        },
+        {
+          "id": "tos.form.metadata.e437318d54c52178c557ccfbd6634f583fc14fa9d979caf384d3fd2b3c404332",
+          "version": 1,
+          "digest": "sha256:e365eca60b96289f18b69189448bef84b76521c0742ce84a4bfa0573f8cc0e9e"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+    "version": 1,
+    "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.d558ac2611219bc167defe0ef187503a5c4325861db8e637a34cd90e4abd150e",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+        "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+            "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.b0e245e1703edfc6c1b3906c5c60aa3c8fd56aa55e34dbf1b3b62499486269cf",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f",
+        "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+      "request_digest": "sha256:685fd7801642deb0393fff64f0ac00d315ec8124c5a0b41d7f0c9f8141e2dce2",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:af939175e85f3796b15f9e57c9d7e63ea06319421d8498ff250213db5fa69518",
+      "recorded_at": "2026-09-09T15:55:24.694470+00:00",
+      "source": {
+        "id": "tos.expression.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng3",
+        "version": 1,
+        "digest": "sha256:63086b9d86267c2fe03480541a1aca180563f58eaf6e2b01042a5f621c06410f"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.d558ac2611219bc167defe0ef187503a5c4325861db8e637a34cd90e4abd150e",
+          "version": 1,
+          "digest": "sha256:90218e9418a82aac038342125bf53e6a8527c108ba3c3b82f2072ca7bef04574"
+        },
+        {
+          "id": "tos.form.metadata.b0e245e1703edfc6c1b3906c5c60aa3c8fd56aa55e34dbf1b3b62499486269cf",
+          "version": 1,
+          "digest": "sha256:2daecdabc9f0686aa83f71c740ab88f18a4069488e4d84905cef469593cb3211"
+        }
+      ]
+    }
+  ]
+}

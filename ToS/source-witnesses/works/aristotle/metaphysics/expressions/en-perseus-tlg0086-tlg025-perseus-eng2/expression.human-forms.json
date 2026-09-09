@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.3ded86a80f14fd34d2b48a1900fc85b38ab2758ba52f7e66dcbd658a8cf2ea41",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+        "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+            "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.7493125617dfbdaa5b4efc91db76b8f403c5018e6b9d40fddcee20b591e176af",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20",
+        "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+      "request_digest": "sha256:71b5598fd568a526320beb6d53570ce3ac69cba6d04e768ca4e225eb333ebefc",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:6e1378ef033b4f07158ef0dd0504697cb081a01728ccaf55f23a75dd97b3640e",
+      "recorded_at": "2026-09-09T15:55:21.438099+00:00",
+      "source": {
+        "id": "tos.expression.aristotle.metaphysics.en-perseus-tlg0086-tlg025-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:5e3dac5f35e433bf68110f55e00935cbffeb0f448cf98e7e5083f73669dd6e20"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.3ded86a80f14fd34d2b48a1900fc85b38ab2758ba52f7e66dcbd658a8cf2ea41",
+          "version": 1,
+          "digest": "sha256:91d458cfc6d1ff4a22b8dbc0ef12e632fb2dec7e1d390de7f68342e655640fa7"
+        },
+        {
+          "id": "tos.form.metadata.7493125617dfbdaa5b4efc91db76b8f403c5018e6b9d40fddcee20b591e176af",
+          "version": 1,
+          "digest": "sha256:01cf7a6c7ae3c18cbcc704145cb8e7143f5b6a6ee1cdb1b54e68ca2d1edcd897"
+        }
+      ]
+    }
+  ]
+}

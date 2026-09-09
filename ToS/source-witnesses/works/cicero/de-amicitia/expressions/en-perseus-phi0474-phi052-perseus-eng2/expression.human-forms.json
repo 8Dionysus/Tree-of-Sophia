@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+    "version": 1,
+    "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.646b9ad84fe5363021b1dcace15706b80dde1369e112712c6d6fa7912389e840",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+        "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+            "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.576ea8b964c55acd6a2e0270ef4ce7a652ff4ea40f3a0cac264237fec931386d",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982",
+        "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+      "request_digest": "sha256:33df67d7f26da09a8f6b8345e43cba42eb7c8b91cd618b9557c8ff4821b0fd8a",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:61302e65f5e65dea8b166d39567b36356b976c4153d02a9b508c8343d1d6bade",
+      "recorded_at": "2026-09-09T15:55:21.717076+00:00",
+      "source": {
+        "id": "tos.expression.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2",
+        "version": 1,
+        "digest": "sha256:50420c9fb6ba08e5ff4172b686147131e4a95c6e67b50224a1423c5ed16dc982"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.646b9ad84fe5363021b1dcace15706b80dde1369e112712c6d6fa7912389e840",
+          "version": 1,
+          "digest": "sha256:ad6654f08768494d0c55e0edf588338b972a3995e95301a300056bbf3bc3e125"
+        },
+        {
+          "id": "tos.form.metadata.576ea8b964c55acd6a2e0270ef4ce7a652ff4ea40f3a0cac264237fec931386d",
+          "version": 1,
+          "digest": "sha256:333a0fbfad71079f5cfb119f6ce57d8a54f268fbb1ce376806e52f9f1771b8ea"
+        }
+      ]
+    }
+  ]
+}

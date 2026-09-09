@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+    "version": 1,
+    "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.c3682f92fb09f31354936bc94414249c7a5d3568451c0902b4b6a6beae23b0fb",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+        "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+            "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.8e30cf48b12e294c23502c816f09faf8c8a83ce2daf228a9c71cb1c2c8aa4cbb",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2",
+        "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+      "request_digest": "sha256:677356d6245b5b1d830260c2a1d2c4a46764c77293eb3ab22e36a281606b872f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:d79d4c2c219aea5f89b6e0a4097ee421f9b8283e873ffefe943660e558ab39e2",
+      "recorded_at": "2026-09-09T15:55:27.029622+00:00",
+      "source": {
+        "id": "tos.edition.plato.lysis.grc-perseus-tlg0059-tlg020.perseus-341e309c821d",
+        "version": 1,
+        "digest": "sha256:c94984b215645a28bcf767a94854d2cfb04c9d8a6a4edabdad86ffd637301ae2"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.c3682f92fb09f31354936bc94414249c7a5d3568451c0902b4b6a6beae23b0fb",
+          "version": 1,
+          "digest": "sha256:3af2a6feaeec10eeef9f29e93d57304f033c7bafc62adcd9e6cf601fb588e156"
+        },
+        {
+          "id": "tos.form.metadata.8e30cf48b12e294c23502c816f09faf8c8a83ce2daf228a9c71cb1c2c8aa4cbb",
+          "version": 1,
+          "digest": "sha256:399ecbe899553a9bd0d9b3943f16b403f5e3c6b2eb803ce62dbdf215d71104cf"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+    "version": 1,
+    "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.bd2151445c3736dc30943e433d8e63b1b51de6a2a5a88c76973470273a1c913c",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+        "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+            "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "model:codex",
+      "form_id": "tos.form.metadata.9cf4ea6aff540e012138c04cf1366dc0e7ef2eb6a7af1d642dd16e5b49e98c2b",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1",
+        "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+      "request_digest": "sha256:d48f4e087e246712d2c61536bfc2d83b797df67930a38904e94738487bab39eb",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-09",
+      "owner_configuration": "sha256:47677db86c91a0543e9dd9c6efba9dfc658a73577cf223db570d8400bb274f34",
+      "recorded_at": "2026-09-09T15:55:25.312296+00:00",
+      "source": {
+        "id": "tos.edition.cicero.de-amicitia.la-perseus-phi0474-phi052.perseus-8668397510ca",
+        "version": 1,
+        "digest": "sha256:b0d1739d5af44a29e4b7021e49681e250f1d1d999d9143f178aa1d20b98b96e1"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.bd2151445c3736dc30943e433d8e63b1b51de6a2a5a88c76973470273a1c913c",
+          "version": 1,
+          "digest": "sha256:8825d5eae7f457e5d69283d8564e27ff32c310c2e6bdb5e4b1949b0ef62b510d"
+        },
+        {
+          "id": "tos.form.metadata.9cf4ea6aff540e012138c04cf1366dc0e7ef2eb6a7af1d642dd16e5b49e98c2b",
+          "version": 1,
+          "digest": "sha256:fcb68b44b73c66ad40f60cdfab4905ec32faf20a9cbffe297e689e9e725374ac"
+        }
+      ]
+    }
+  ]
+}
