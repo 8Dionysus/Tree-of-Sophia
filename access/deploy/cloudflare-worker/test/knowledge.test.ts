@@ -508,7 +508,8 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       assert.deepEqual(await executeKnowledgeLensD1(db,spec),result);
       assert.deepEqual(result,python(spec,pathGraph));
       const view = (result.scene as {compact:{claim_paths:{claim_node_id:string;reading:{standalone:boolean}}[]}}).compact;
-      assert.equal(view.claim_paths.length,focus === 'philosophy:a' && paging === null ? 1 : 0);
+      assert.equal(view.claim_paths.length,
+        (focus === 'philosophy:a' || focus === 'philosophy:c') && paging === null ? 1 : 0);
       if (view.claim_paths.length) {
         assert.equal(view.claim_paths[0]!.claim_node_id,pathClaim.id);
         assert.equal(view.claim_paths[0]!.reading.standalone,false);

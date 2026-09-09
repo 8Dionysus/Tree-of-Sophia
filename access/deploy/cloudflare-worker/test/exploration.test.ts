@@ -121,7 +121,7 @@ test('compact value-member context requires the full set and preserves focused o
     assert.equal(scene.arcs.length, c.graph.relations.length, c.name + ': raw arcs');
     assert.equal(compact.rule, 'explicit-claim-paths-v1');
     assert.equal(compact.authority, 'presentation-only-no-new-assertion');
-    if (c.reason) {
+    if (c.reason && c.reason !== 'focus-claim') {
       assert.deepEqual(compact.claim_paths, [], c.name);
       assert.deepEqual(compact.retained_claims, [{node_id: '1', reason: c.reason}], c.name);
       assert.equal(compact.vertex_ids.length, c.graph.nodes.length, c.name);
@@ -134,6 +134,13 @@ test('compact value-member context requires the full set and preserves focused o
       assert.deepEqual((path.reading as Item).relation_context_ids, ['subject', 'object', 'grounds', 'member-0', 'member-1', 'member-2']);
       assert.equal((path.reading as Item).standalone, false);
       assert.ok(compact.vertex_ids.includes('tos-scene:carrier:0'), 'the focal member remains a path endpoint');
+      if (c.name === 'claim focus') {
+        assert.deepEqual(compact.retained_claims, [], c.name);
+        assert.deepEqual(compact.vertex_ids, ['tos-scene:carrier:0', 'tos-scene:carrier:1', 'tos-scene:carrier:2']);
+        assert.deepEqual(compact.relation_ids, []);
+        assert.deepEqual(compact.folded_vertex_ids, ['3', '4', '5'].map(id => 'tos-scene:carrier:' + id));
+        continue;
+      }
       if (c.name === 'shared member neighborhood') {
         assert.deepEqual(compact.relation_ids, ['member-neighborhood']);
         for (const id of ['4', '5']) assert.ok(compact.vertex_ids.includes('tos-scene:carrier:' + id));

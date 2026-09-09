@@ -88,12 +88,21 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
         if (arc.to_id === focusVertex) { reason = 'focus-detail'; break; }
       }
     }
-    if (reason) {
+    // A focused Claim remains an explicit vertex, while a complete path is
+    // still useful as the bounded reader's exact context unit. Do not fold
+    // the focused vertex; consume only the path relations below so the scene
+    // accounts for them once through `claim_paths`.
+    if (reason && reason !== 'focus-claim') {
       for (const id of localClaims) if (!reasons.has(id)) reasons.set(id, reason);
       continue;
     }
-    folded.add(vertex.id);
+    if (reason === 'focus-claim' && localClaims.some(id => !candidates.has(id))) {
+      for (const id of localClaims) if (!reasons.has(id)) reasons.set(id, reason);
+      continue;
+    }
+    if (reason === null) folded.add(vertex.id);
     for (const id of ids) {
+      if (!candidates.has(id)) continue;
       const {node, claim, legs} = candidates.get(id)!;
       const details = (outgoing.get(id) ?? []).filter(r => detailTypes.has(String(r.relation_type_id)))
         .map(r => String(r.id)).sort(compareIds);
