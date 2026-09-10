@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -9,6 +10,15 @@ import { KnowledgeRevisionConflict } from '../src/lens-pagination.ts';
 import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson, type TemporalRequest } from '../src/temporal-comparison.ts';
 import { knowledgeTemporalCompareD1 } from '../src/knowledge-store.ts';
 import { lensCarrier, type KnowledgeNode } from '../src/knowledge.ts';
+
+const knowledgeExplorationMigration = readFileSync(
+  new URL('../migrations/0001-exploration.sql', import.meta.url),
+  'utf8',
+).replace(/^--.*$/gm, '').trim();
+
+async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
+  await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
+}
 
 type Fixture = { name: string; graph: { source_revision: string; nodes: Item[] };
   raw_nodes: string[];
@@ -116,9 +126,11 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
       db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
       // Permit duplicate rows only for the explicit corrupt-projection case;
       // the production store has unique identities and its index is stronger.
-      db.prepare('CREATE TABLE knowledge_nodes (id TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_nodes (id TEXT, entity_id TEXT, json TEXT)'),
       db.prepare('CREATE INDEX temporal_exact_node ON knowledge_nodes(id)'),
+      db.prepare('CREATE TABLE knowledge_relations (id TEXT, from_id TEXT, to_id TEXT)'),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     const all = fixtures();
     for (const fixture of all) {
       await t.test(fixture.name, async () => {
@@ -126,7 +138,7 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
           db.prepare('DELETE FROM edge_meta'), db.prepare('DELETE FROM knowledge_nodes'),
           db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({ sha256: fixture.graph.source_revision })),
           db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({ source_revision: fixture.graph.source_revision })),
-          ...fixture.raw_nodes.map(raw => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?)').bind(JSON.parse(raw).id, raw)),
+          ...fixture.raw_nodes.map(raw => db.prepare('INSERT INTO knowledge_nodes (id,entity_id,json) VALUES (?,?,?)').bind(JSON.parse(raw).id, '', raw)),
         ]);
         const reads: string[] = [];
         const observed = new Proxy(db, { get(target, key) {
@@ -156,7 +168,7 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
         }
         if (fixture.name === 'document-native-numbers') for (const variant of rowKeyVariants(fixture)) {
           await db.batch([db.prepare('DELETE FROM knowledge_nodes'), ...variant.nodes.map(raw =>
-            db.prepare('INSERT INTO knowledge_nodes VALUES (?,?)').bind(JSON.parse(raw).id, raw))]);
+            db.prepare('INSERT INTO knowledge_nodes (id,entity_id,json) VALUES (?,?,?)').bind(JSON.parse(raw).id, '', raw))]);
           assertRowKeyResult(await knowledgeTemporalCompareD1(db, fixture.request), fixture, variant.ambiguous);
           const response = await mf.dispatchFetch('http://localhost/api/knowledge/temporal/compare', {
             method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(fixture.request),

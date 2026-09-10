@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import test from "node:test";
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
@@ -9,6 +10,15 @@ import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeSearchD1Indexed, kn
 
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
+
+const knowledgeExplorationMigration = readFileSync(
+  new URL('../migrations/0001-exploration.sql', import.meta.url),
+  'utf8',
+).replace(/^--.*$/gm, '').trim();
+
+async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
+  await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
+}
 
 function decodeIndexedCursor(value: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Record<string, unknown>;
@@ -207,6 +217,105 @@ const graph: KnowledgeGraph = {
   authority_boundary: { is_source: false, is_canon: false },
 };
 
+test("knowledge reads require the publication clock and reject invalid or ABA snapshots", async () => {
+  const mf = new Miniflare(convertV4MiniflareOptions({modules: true,
+    script: 'export default {fetch(){return new Response()}}', d1Databases: ['DB']}));
+  try {
+    const db = await mf.getD1Database('DB');
+    await db.batch([
+      db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
+      db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: graph.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: graph.source_revision, authority_boundary: graph.authority_boundary})),
+      ...graph.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
+        n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
+        n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
+      ...graph.relations.map(r => db.prepare('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)').bind(
+        r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
+        r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
+    ]);
+    const request = {query: '', sources: null, kindIds: [], predicateIds: [], offset: 0, limit: 2};
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503),
+      'a database without the additive publication-clock migration is not ready');
+    await applyKnowledgeExplorationMigration(db);
+
+    await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(-1).run();
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(0).run();
+
+    for (const epoch of [1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(epoch).run();
+      await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    }
+    await db.prepare('UPDATE knowledge_exploration_clock SET epoch=? WHERE singleton=1').bind(0).run();
+
+    for (const value of [null, [], {sha256: ''}]) {
+      await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+        .bind(JSON.stringify(value)).run();
+      await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+      await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+        .bind(JSON.stringify({sha256: graph.source_revision})).run();
+    }
+
+    // The production schema has a singleton CHECK/PRIMARY KEY, but readiness
+    // must still fail closed if a legacy or hand-built table violates it.
+    await db.prepare('DROP TABLE knowledge_exploration_clock').run();
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.batch([
+      db.prepare('CREATE TABLE knowledge_exploration_clock (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+    ]);
+    await db.prepare('DROP TABLE knowledge_exploration_clock').run();
+    await db.batch([
+      db.prepare('CREATE TABLE knowledge_exploration_clock (singleton INTEGER, epoch INTEGER)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+    ]);
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.prepare('DROP TABLE knowledge_exploration_clock').run();
+    await db.batch([
+      db.prepare('CREATE TABLE knowledge_exploration_clock (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch INTEGER NOT NULL)'),
+      db.prepare('INSERT INTO knowledge_exploration_clock VALUES (1,0)'),
+    ]);
+
+    // A revision split with no part zero must not be treated as a valid
+    // one-part revision by the guard.
+    await db.prepare("UPDATE edge_meta SET part=1 WHERE key='data_revision'").run();
+    await assert.rejects(() => knowledgeSearchD1(db, request), hasHttpStatus(503));
+    await db.prepare("UPDATE edge_meta SET part=0 WHERE key='data_revision'").run();
+
+    const originalPrepare = db.prepare.bind(db);
+    let snapshotReads = 0;
+    const intercepted = new Proxy(db, {get(target, property) {
+      if (property === 'prepare') return (sql: string) => {
+        const statement = originalPrepare(sql);
+        if (!sql.includes('knowledge_exploration_clock')) return statement;
+        snapshotReads += 1;
+        if (snapshotReads !== 2) return statement;
+        const originalFirst = statement.first.bind(statement) as <T>(columnName?: string) => Promise<T | null>;
+        return new Proxy(statement, {get(inner, method, receiver) {
+          if (method !== 'first') return Reflect.get(inner, method, receiver);
+          return async <T>(columnName?: string) => {
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: 'b'.repeat(64)})).run();
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: graph.source_revision})).run();
+            return originalFirst<T>(columnName);
+          };
+        }});
+      };
+      const value = Reflect.get(target, property);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }});
+    await assert.rejects(() => knowledgeSearchD1(intercepted, request), hasHttpStatus(409),
+      'the epoch rejects A->B->A even when the digest returns to A');
+    assert.equal(snapshotReads, 2);
+  } finally {
+    await mf.dispose();
+  }
+});
+
 test("indexed D1 path conditions and inclusion agree with the pure engine", async () => {
   const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
     bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
@@ -224,6 +333,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       ...graph.nodes.map(n => db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(n.id,n.entity_id,n.native_id,n.source_graph,n.kind_id,n.type_id,n.display.title.default.toLowerCase(),JSON.stringify(n).toLowerCase(),JSON.stringify(n))),
       ...graph.relations.map(r => db.prepare("INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)").bind(r.id,r.native_id,r.source_graph,r.from_id,r.to_id,r.predicate_id,r.relation_type_id,r.display.label.default.toLowerCase(),JSON.stringify(r).toLowerCase(),JSON.stringify(r))),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     const base = { schema_version: 'tos_lens_spec_v1', lens_id: 'path-parity', sources: ['philosophy'], explain: true };
     for (const direction of ['outgoing', 'incoming', 'either']) {
       for (const quantifier of ['exists', 'not_exists']) {
@@ -594,6 +704,7 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
         return db.prepare("INSERT INTO knowledge_search_gram_stats VALUES (?,?,?,?)").bind(kind, 3, gram, postings);
       }),
     ]);
+    await applyKnowledgeExplorationMigration(db);
 
     const first = await knowledgeSearchD1Indexed(db, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1});
     assert.deepEqual((first.nodes as {id:string}[]).map(item => item.id), ["philosophy:a"]);
@@ -650,6 +761,14 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     const decodedOuter = decodeIndexedCursor(firstCursor);
     assert.equal(decodedOuter.relations_exhausted, true);
     assert.equal(typeof decodedOuter.nodes, "string");
+    const oldSchema = {...decodedOuter, schema: "tos_knowledge_search_indexed_cursor_v1"};
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1, cursor: encodeIndexedCursor(oldSchema),
+      }),
+      hasHttpStatus(400),
+      'the pre-epoch cursor schema is not silently accepted',
+    );
     const malformedOuter = {...decodedOuter};
     delete malformedOuter.nodes_exhausted;
     await assert.rejects(
@@ -702,6 +821,46 @@ test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Pyth
     for (const work of [firstWork.nodes, firstWork.relations]) {
       if (work.selection_rows_read !== undefined) assert.ok(Number.isSafeInteger(work.selection_rows_read));
     }
+
+    // Guard the indexed path at the same transaction boundary as the legacy
+    // path: an A->B->A publication during the read must fail by epoch even
+    // though the data_revision digest ends at its original value.
+    const originalPrepare = db.prepare.bind(db);
+    let snapshotReads = 0;
+    const intercepted = new Proxy(db, {get(target, property) {
+      if (property === 'prepare') return (sql: string) => {
+        const statement = originalPrepare(sql);
+        if (!sql.includes('knowledge_exploration_clock')) return statement;
+        snapshotReads += 1;
+        if (snapshotReads !== 2) return statement;
+        const originalFirst = statement.first.bind(statement) as <T>(columnName?: string) => Promise<T | null>;
+        return new Proxy(statement, {get(inner, method, receiver) {
+          if (method !== 'first') return Reflect.get(inner, method, receiver);
+          return async <T>(columnName?: string) => {
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: 'b'.repeat(64)})).run();
+            await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'")
+              .bind(JSON.stringify({sha256: indexedGraph.source_revision})).run();
+            return originalFirst<T>(columnName);
+          };
+        }});
+      };
+      const value = Reflect.get(target, property);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }});
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(intercepted, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1}),
+      hasHttpStatus(409),
+      'indexed A->B->A reads are rejected by the publication epoch',
+    );
+    assert.equal(snapshotReads, 2);
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1, cursor: firstCursor,
+      }),
+      hasHttpStatus(409),
+      'a continuation cursor remains bound to its publication epoch',
+    );
 
     // The budget preflight must reject from carrier metadata before rank JSON
     // fields or source search_text are evaluated. An invalid rank carrier is
@@ -1001,6 +1160,7 @@ test('Claim navigation and exact Claim/metadata versions survive RU/EN compact/f
         r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
         r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const {language, detail} = spec as {language: 'ru' | 'en'; detail: 'compact' | 'full'};
       const pure = await executeKnowledgeLens(source, spec);
@@ -1129,6 +1289,7 @@ print(json.dumps(result))
         r.id, r.native_id, r.source_graph, r.from_id, r.to_id, r.predicate_id, r.relation_type_id,
         r.display.label.default.toLowerCase(), JSON.stringify(r).toLowerCase(), JSON.stringify(r))),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const pure = await executeKnowledgeLens(source, spec), result = await executeKnowledgeLensD1(db, spec);
       assert.deepEqual(pure, expected, 'Python/Worker parity');

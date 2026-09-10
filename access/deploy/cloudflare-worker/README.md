@@ -307,6 +307,18 @@ An oversized checkpoint returns 413 before admission. 409 means changed
 publication, 410 means expired/evicted state, 503 means migration or metadata is
 missing. Restart from focus or narrow the request as appropriate.
 
+The same additive publication-clock migration is a readiness prerequisite for
+all D1 knowledge reads (lenses, legacy and indexed search, node/relation
+packets, and temporal comparison). Each read performs one statement before and
+after its work that validates the singleton clock and the complete contiguous
+`data_revision` chunk set. A missing or malformed clock/revision returns 503;
+an epoch or digest change returns 409, including an A->B->A publication whose
+final digest is unchanged. Apply `migrations/0001-exploration.sql` before
+serving these routes; no request performs DDL. Indexed search cursors use
+`tos_knowledge_search_indexed_cursor_v2`, which carries the publication epoch.
+Older cursor envelopes are invalid (400), and a cursor from another epoch must
+restart the search (409).
+
 At most 24 adjacency queries and 512 graph work units run per page; bounded
 metadata/admission queries are additional. D1 may pause earlier than Python.
 Counts are discoveries, not global totals; an empty paused page may still advance

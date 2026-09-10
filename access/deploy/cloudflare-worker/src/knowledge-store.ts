@@ -24,13 +24,114 @@ const PAGE_SIZE = 2000;
 const SEARCH_NGRAM_SIZE = 3;
 const SEARCH_MAX_CANDIDATES = 50_000;
 const SEARCH_MAX_VERIFY_CHARS = 16_000_000;
-const SEARCH_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v1";
+const SEARCH_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v2";
 
-async function consistentRead(db: D1Database, read: () => Promise<Item>): Promise<Item> {
-  const before = await meta<Item>(db, "data_revision");
-  const result = await read();
-  const after = await meta<Item>(db, "data_revision");
-  if (before.sha256 !== after.sha256) throw new HttpError(409, "knowledge snapshot changed during query; retry against the current revision");
+// A data_revision digest is not a publication identity: an import can move
+// A -> B -> A while retaining the same bytes at the end.  The additive
+// exploration clock is advanced by the maintenance publication triggers (and
+// by the builder's identical-data bootstrap), so the pair below is the
+// request's read-model identity.  Keep the metadata read as one SQL statement
+// so a guard never combines a clock from one D1 read with a revision from
+// another read.
+const KNOWLEDGE_SNAPSHOT_SQL = `
+SELECT
+  (SELECT COUNT(*) FROM knowledge_exploration_clock) AS clock_rows,
+  (SELECT COUNT(*) FROM knowledge_exploration_clock WHERE singleton = 1) AS singleton_rows,
+  (SELECT MIN(epoch) FROM knowledge_exploration_clock WHERE singleton = 1) AS epoch_min,
+  (SELECT MAX(epoch) FROM knowledge_exploration_clock WHERE singleton = 1) AS epoch_max,
+  (SELECT GROUP_CONCAT(json_chunk, '') FROM (
+    SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part
+  )) AS data_revision_json,
+  (SELECT COUNT(*) FROM edge_meta WHERE key = 'data_revision') AS data_revision_parts,
+  (SELECT COUNT(DISTINCT part) FROM edge_meta WHERE key = 'data_revision') AS data_revision_distinct_parts,
+  (SELECT MIN(part) FROM edge_meta WHERE key = 'data_revision') AS data_revision_min_part,
+  (SELECT MAX(part) FROM edge_meta WHERE key = 'data_revision') AS data_revision_max_part,
+  (SELECT COUNT(*) FROM edge_meta WHERE key = 'data_revision' AND typeof(part) != 'integer') AS data_revision_non_integer_parts,
+  (SELECT COUNT(*) FROM edge_meta WHERE key = 'data_revision' AND typeof(json_chunk) != 'text') AS data_revision_non_text_chunks
+`;
+
+type KnowledgeSnapshot = { epoch: number; revision: string };
+type KnowledgeSnapshotRow = {
+  clock_rows: unknown;
+  singleton_rows: unknown;
+  epoch_min: unknown;
+  epoch_max: unknown;
+  data_revision_json: unknown;
+  data_revision_parts: unknown;
+  data_revision_distinct_parts: unknown;
+  data_revision_min_part: unknown;
+  data_revision_max_part: unknown;
+  data_revision_non_integer_parts: unknown;
+  data_revision_non_text_chunks: unknown;
+};
+
+function snapshotCount(value: unknown): number | null {
+  return Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : null;
+}
+
+function invalidSnapshot(): never {
+  throw new HttpError(503, "knowledge read model publication clock or data revision is unavailable");
+}
+
+async function knowledgeSnapshot(db: D1Database): Promise<KnowledgeSnapshot> {
+  let row: KnowledgeSnapshotRow | null;
+  try {
+    row = await db.prepare(KNOWLEDGE_SNAPSHOT_SQL).first<KnowledgeSnapshotRow>();
+  } catch {
+    // Missing migration/table and malformed SQL-level metadata are readiness
+    // failures, not successful reads and not generic Worker 500s.
+    invalidSnapshot();
+  }
+  if (!row) invalidSnapshot();
+  const clockRows = snapshotCount(row.clock_rows);
+  const singletonRows = snapshotCount(row.singleton_rows);
+  const parts = snapshotCount(row.data_revision_parts);
+  const distinctParts = snapshotCount(row.data_revision_distinct_parts);
+  const minPart = snapshotCount(row.data_revision_min_part);
+  const maxPart = snapshotCount(row.data_revision_max_part);
+  const nonIntegerParts = snapshotCount(row.data_revision_non_integer_parts);
+  const nonTextChunks = snapshotCount(row.data_revision_non_text_chunks);
+  const epoch = row.epoch_min;
+  if (
+    clockRows !== 1
+    || singletonRows !== 1
+    || !Number.isSafeInteger(epoch)
+    || Number(epoch) < 0
+    || row.epoch_max !== epoch
+    || parts === null
+    || parts < 1
+    || distinctParts !== parts
+    || minPart !== 0
+    || maxPart !== parts - 1
+    || nonIntegerParts !== 0
+    || nonTextChunks !== 0
+    || typeof row.data_revision_json !== "string"
+  ) invalidSnapshot();
+  let revision: unknown;
+  try {
+    revision = JSON.parse(row.data_revision_json);
+  } catch {
+    invalidSnapshot();
+  }
+  if (!revision || typeof revision !== "object" || Array.isArray(revision)
+      || typeof (revision as Item).sha256 !== "string" || !(revision as Item).sha256) invalidSnapshot();
+  return { epoch: Number(epoch), revision: (revision as Item).sha256 as string };
+}
+
+function sameKnowledgeSnapshot(left: KnowledgeSnapshot, right: KnowledgeSnapshot): boolean {
+  return left.epoch === right.epoch && left.revision === right.revision;
+}
+
+async function consistentRead(
+  db: D1Database,
+  read: (snapshot: KnowledgeSnapshot) => Promise<Item>,
+): Promise<Item> {
+  const before = await knowledgeSnapshot(db);
+  const result = await read(before);
+  const after = await knowledgeSnapshot(db);
+  if (!sameKnowledgeSnapshot(before, after)) {
+    throw new HttpError(409, "knowledge snapshot changed during query; retry against the current revision");
+  }
   return result;
 }
 
@@ -46,7 +147,7 @@ export async function knowledgeSearchD1Indexed(
   db: D1Database,
   options: Parameters<typeof knowledgeSearchD1IndexedUnchecked>[1],
 ): Promise<Item> {
-  return consistentRead(db, () => knowledgeSearchD1IndexedUnchecked(db, options));
+  return consistentRead(db, (snapshot) => knowledgeSearchD1IndexedUnchecked(db, options, snapshot));
 }
 
 export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit: number): Promise<Item> {
@@ -670,6 +771,7 @@ async function indexedKindPage(
   kind: "nodes" | "relations",
   cursor: string | null,
   sourceRevision: string,
+  snapshotEpoch: number,
 ): Promise<IndexedPage> {
   const query = options.query.trim();
   if (query.length > 256) throw new HttpError(400, "knowledge search query exceeds 256 characters");
@@ -688,12 +790,20 @@ async function indexedKindPage(
   let cursorPosition = -1;
   if (cursor) {
     const decoded = indexedCursorDecode(cursor);
-    const expectedKeys = ["filters", "id", "kind", "position", "query", "rank", "schema", "source_revision"];
+    const expectedKeys = ["filters", "id", "kind", "position", "query", "rank", "schema", "snapshot_epoch", "source_revision"];
     if (JSON.stringify(Object.keys(decoded).sort()) !== JSON.stringify(expectedKeys.sort())) {
       throw new HttpError(400, "invalid indexed knowledge search cursor");
     }
     if (
+      typeof decoded.snapshot_epoch !== "number"
+      || !Number.isSafeInteger(decoded.snapshot_epoch)
+      || decoded.snapshot_epoch < 0
+    ) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
+    if (
       decoded.source_revision !== sourceRevision
+      || decoded.snapshot_epoch !== snapshotEpoch
       || decoded.kind !== kind
       || decoded.query !== needle
       || !indexedFiltersEqual(decoded.filters, filters)
@@ -812,7 +922,7 @@ async function indexedKindPage(
   const hasMore = result.results.length > options.limit;
   const last = selectedRows[selectedRows.length - 1];
   const nextCursor = hasMore && last
-    ? indexedCursorEncode({ schema: SEARCH_CURSOR_SCHEMA, source_revision: sourceRevision, kind, query: needle, filters, rank: last.search_rank, id: String(rowsValue.at(-1)?.id ?? "").toLowerCase(), position: last.position })
+    ? indexedCursorEncode({ schema: SEARCH_CURSOR_SCHEMA, source_revision: sourceRevision, snapshot_epoch: snapshotEpoch, kind, query: needle, filters, rank: last.search_rank, id: String(rowsValue.at(-1)?.id ?? "").toLowerCase(), position: last.position })
     : null;
   const resultRowsRead = indexedRowsRead(result.meta?.rows_read);
   const rowsRead = preflightRowsRead === undefined || resultRowsRead === undefined
@@ -833,7 +943,11 @@ async function indexedKindPage(
   };
 }
 
-async function knowledgeSearchD1IndexedUnchecked(db: D1Database, options: IndexedSearchOptions): Promise<Item> {
+async function knowledgeSearchD1IndexedUnchecked(
+  db: D1Database,
+  options: IndexedSearchOptions,
+  snapshot: KnowledgeSnapshot,
+): Promise<Item> {
   const query = options.query.trim();
   if (query.length > 256) throw new HttpError(400, "knowledge search query exceeds 256 characters");
   const needle = query.toLowerCase();
@@ -854,18 +968,26 @@ async function knowledgeSearchD1IndexedUnchecked(db: D1Database, options: Indexe
   let nodeCursor: string | null = null;
   let relationCursor: string | null = null;
   if (decodedCursor) {
+    const expectedKeys = [
+      "filters", "nodes", "nodes_exhausted", "query", "relations", "relations_exhausted", "schema", "snapshot_epoch", "source_revision",
+    ];
+    if (JSON.stringify(Object.keys(decodedCursor).sort()) !== JSON.stringify(expectedKeys.sort())) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
+    if (
+      typeof decodedCursor.snapshot_epoch !== "number"
+      || !Number.isSafeInteger(decodedCursor.snapshot_epoch)
+      || decodedCursor.snapshot_epoch < 0
+    ) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
     if (
       decodedCursor?.source_revision !== sourceRevision
+      || decodedCursor.snapshot_epoch !== snapshot.epoch
       || decodedCursor?.query !== needle
       || !indexedFiltersEqual(decodedCursor.filters, filters)
     ) {
       throw new HttpError(409, "indexed knowledge search cursor does not match the current snapshot/query");
-    }
-    const expectedKeys = [
-      "filters", "nodes", "nodes_exhausted", "query", "relations", "relations_exhausted", "schema", "source_revision",
-    ];
-    if (JSON.stringify(Object.keys(decodedCursor).sort()) !== JSON.stringify(expectedKeys.sort())) {
-      throw new HttpError(400, "invalid indexed knowledge search cursor");
     }
     if (typeof decodedCursor.nodes_exhausted !== "boolean" || typeof decodedCursor.relations_exhausted !== "boolean") {
       throw new HttpError(400, "invalid indexed knowledge search cursor");
@@ -898,15 +1020,16 @@ async function knowledgeSearchD1IndexedUnchecked(db: D1Database, options: Indexe
   const [nodes, relations] = await Promise.all([
     nodeExhausted
       ? Promise.resolve(emptyPage())
-      : indexedKindPage(db, {...options, limit}, "nodes", nodeCursor, sourceRevision),
+      : indexedKindPage(db, {...options, limit}, "nodes", nodeCursor, sourceRevision, snapshot.epoch),
     relationExhausted
       ? Promise.resolve(emptyPage())
-      : indexedKindPage(db, {...options, limit}, "relations", relationCursor, sourceRevision),
+      : indexedKindPage(db, {...options, limit}, "relations", relationCursor, sourceRevision, snapshot.epoch),
   ]);
   const nextCursor = nodes.nextCursor || relations.nextCursor
     ? indexedCursorEncode({
       schema: SEARCH_CURSOR_SCHEMA,
       source_revision: sourceRevision,
+      snapshot_epoch: snapshot.epoch,
       query: query.toLowerCase(),
       filters,
       nodes: nodes.nextCursor,

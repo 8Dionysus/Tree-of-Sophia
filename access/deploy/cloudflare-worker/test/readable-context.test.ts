@@ -3,9 +3,19 @@ import test from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {executeKnowledgeLens, type KnowledgeGraph} from '../src/knowledge.ts';
 import {executeKnowledgeLensD1, knowledgeNodeD1} from '../src/knowledge-store.ts';
+
+const knowledgeExplorationMigration = readFileSync(
+  new URL('../migrations/0001-exploration.sql', import.meta.url),
+  'utf8',
+).replace(/^--.*$/gm, '').trim();
+
+async function applyKnowledgeExplorationMigration(db: D1Database): Promise<void> {
+  await db.batch(knowledgeExplorationMigration.split(/\n(?=CREATE |INSERT )/).map((statement) => db.prepare(statement)));
+}
 
 test('readable context preserves exact full packets and is absent from compact Python/Worker/D1 delivery', async () => {
   const fixture = JSON.parse(execFileSync('python3', ['-c', `
@@ -44,6 +54,7 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
         n.id, n.entity_id, n.native_id, n.source_graph, n.kind_id, n.type_id,
         n.display.title.default.toLowerCase(), JSON.stringify(n).toLowerCase(), JSON.stringify(n))),
     ]);
+    await applyKnowledgeExplorationMigration(db);
     for (const {spec, expected} of fixture.cases) {
       const pure = await executeKnowledgeLens(graph, spec);
       const stored = await executeKnowledgeLensD1(db, spec);
