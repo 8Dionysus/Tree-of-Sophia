@@ -35,7 +35,7 @@ def bounded_cost(value: Any, budget: int) -> int:
         if isinstance(node, str):
             if len(node) > budget - cost:
                 raise ValueError('human form JSON exceeds byte budget')
-            cost += len(json.dumps(node, ensure_ascii=False).encode('utf-8', errors='backslashreplace'))
+            cost += len(json.encoder.encode_basestring(node).encode('utf-8', errors='backslashreplace'))
         elif node is None or type(node) is bool:
             cost += 5
         elif type(node) is int:

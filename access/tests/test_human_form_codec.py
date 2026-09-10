@@ -45,6 +45,23 @@ def logical(value):
 
 
 class HumanFormCodecTests(unittest.TestCase):
+    def test_string_cost_preserves_json_escaping_and_exact_budget_boundary(self):
+        # The byte guard must keep its conservative Unicode/escaping semantics
+        # when its string encoder changes; this is not a timing assertion.
+        class StringSubclass(str):
+            pass
+
+        rng = random.Random(705)
+        alphabet = ''.join(map(chr, range(32))) + '\\"' + 'αЖ詞🌌\ud800\udfff\u2028\u2029'
+        values = ['', 'plain', StringSubclass('α\n"'), alphabet]
+        values.extend(''.join(rng.choices(alphabet, k=rng.randrange(80))) for _ in range(300))
+        for value in values:
+            expected = len(json.dumps(value, ensure_ascii=False).encode('utf-8', errors='backslashreplace'))
+            with self.subTest(value=repr(value)):
+                self.assertEqual(bounded_cost(value, expected), expected)
+                with self.assertRaises(ValueError):
+                    bounded_cost(value, expected - 1)
+
     def test_exact_roundtrip_and_independent_objects(self):
         original = logical(item(True))
         wire = encode_human_form_selection(original)
