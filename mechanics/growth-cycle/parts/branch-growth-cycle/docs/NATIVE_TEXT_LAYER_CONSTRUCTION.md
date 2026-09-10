@@ -291,14 +291,15 @@ the explicit edits; they do not replay a historical OCR provider or use the
 current Unicode implementation as evidence of historical execution. Existing
 first segmentation can consume the real new layer without inheriting quality.
 
-The current `NativeLayerAssessmentSources._metadata` comparison adapter remains
-explicitly extraction-only and refuses these new methods. A prior extraction
-assessment is not a quality basis for its successor. The next owner route is
-`native_text_layer_assessment.py` and `NATIVE_TEXT_LAYER_ASSESSMENT.md`: introduce
-source-visible method-specific comparison with exact new layer and predecessor
-or anchored original, then issue a separate current purpose-scoped quality
-basis through the existing assessment journal. This construction commit does
-not claim Foundation-wide assessment completion or real-source acceptance.
+The current `NativeLayerAssessmentSources._metadata` adapter has a separate
+exact derived-layer comparison for the bounded EPUB/XHTML
+source-view profile, documented in [native assessment](NATIVE_TEXT_LAYER_ASSESSMENT.md).
+Images/PDFs and unsupported selectors still need their own source renderer.
+A prior extraction assessment is not a quality basis for its successor.
+The source-visible reviewer must assess the exact new layer against its
+predecessors and original source, then use the existing assessment journal for
+a separate current purpose-scoped quality basis. Construction and comparison
+do not themselves establish real-source acceptance or Foundation-wide quality.
 
 ## No-replace commit, replay and retained recovery
 

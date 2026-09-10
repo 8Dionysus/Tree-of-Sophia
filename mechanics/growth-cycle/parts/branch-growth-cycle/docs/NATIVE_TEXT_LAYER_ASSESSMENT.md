@@ -37,7 +37,7 @@ current reading grant.
 Each layer subject has the ordinary exact `record`, `risk`, `languages`,
 `maker_id`, `requested_use` and `access_allowed` fields. Its assertion layer
 is `textual_observation`, language is the actual single source language, and
-maker is the actual extraction maker. The four separate requested uses are:
+maker is the actual selected layer maker. The four separate requested uses are:
 
 - `text-layer:citation`
 - `text-layer:linguistic-analysis`
@@ -70,15 +70,50 @@ operation or append a quality assessment.
 
 `append` uses unchanged command/event/batch v1 fields. The quality reviewer
 must cite the comparison as evidence; a matching extraction or a successfully
-verified hash is not itself an assessment. The first adapter supports only
-the declared structural XHTML extraction profile. It rejects unsupported
-OCR/correction/normalization chains instead of treating derived-byte fixity as
-original fidelity. Original and selected-output disagreement remains visible
+verified hash is not itself an assessment. The structural-extraction adapter
+retains its original v1 comparison contract and exact XHTML profile.
+Original and selected-output disagreement remains visible
 in the comparison and prevents usable quality admission. It does not prevent
 a qualified rejection, dispute, deferral or withdrawal based on that available
 exact comparison. The adapter separates source availability from positive-use
 eligibility; `describe` exposes both comparison `ready` and
 `positive_use_allowed`. Metadata-only selection still cannot append any decision.
+
+### Native derived-layer comparison
+
+The same v5 selection can address a layer created under the independently
+versioned `tos_local_text_layer_derive_owner_v1` profile: explicit correction,
+Unicode normalization, or recording supplied manual/model transcription or
+OCR text. The source view is still one exact acquired EPUB/XHTML member and
+one supported structural anchor. An image/PDF or another anchor needs a
+separately implemented source renderer; its File digest cannot substitute for
+source visibility. This does not run an OCR or transcription provider.
+
+`native-text-layer-derivation-comparison.schema.json` is a separate additive
+contract. It does not rewrite the old extraction schema or old comparisons.
+The returned `tos_native_text_layer_derivation_comparison_v1` record contains
+the original member and selected character data, complete oldest-to-newest
+layer records and representations, exact policies/configuration digests,
+declared operations and unverified supplied-producer metadata. Source and
+output can intentionally differ. Every native delta is independently replayed;
+neither that integrity check nor `source_text_equals_output` is a quality
+verdict. `positive_use_allowed` means that an authorized competent reviewer
+can reach a positive or negative judgment from this available exact evidence,
+not that the comparison has already accepted a correction or normalized text.
+The unchanged assessment engine still requires the exact comparison in review
+evidence and applies current purpose, risk, authority and competence policy.
+
+Each predecessor's current rights are checked in the metadata pass before any
+selection's content is opened. Retained construction grants, even expired or
+revoked, remain source data; only independently selected current reading
+authority authorizes this read. Grant validity and a shared cooperative time
+budget are rechecked around every resolver file read, including recursive
+lineage and snapshot reads, and between parsing and comparison-building steps.
+An expired grant stops the next content read rather than waiting for the next
+top-level layer. A valid predecessor assessment does not admit its successor;
+the new layer needs its own exact comparison, assessment and scoped quality
+basis. Withdrawal and subsequent reassessment follow the existing dependent
+quality route below, without restoring obsolete dependent evidence.
 
 ## Dependent claims and forms
 
@@ -139,7 +174,11 @@ must stop.
 Selections conservatively charge original `byte_size` per layer, up to 16 MiB
 in total. The reader bounds metadata closure, original extraction and each
 comparison (1 MiB); oversized comparisons fail closed and need a narrower
-supported source route, never truncation. Locks use a shared bounded deadline
+supported source route, never truncation. A derived comparison contains at
+most 16 lineage layers within the same aggregate content/metadata budgets.
+One comparison construction or later snapshot call has a 30-second cooperative
+budget; nested checks cannot renew that call's deadline. This is not a
+preemptive timer for one filesystem or parser operation. Locks use a shared bounded deadline
 and stable order. They coordinate current reads and one target append, not an
 atomic multi-target write transaction.
 

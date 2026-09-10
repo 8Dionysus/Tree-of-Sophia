@@ -27,7 +27,7 @@ from assessment_journal import (_quality_requirements, _quality_basis,
 from knowledge_assessment import Record
 import assessment_journal
 import test_knowledge_assessment as policy_tests
-from test_native_text_layer_assessment import NativeLayerAssessmentFixture
+from test_native_text_layer_assessment import NativeLayerAssessmentFixture, NativeDerivedLayerAssessmentFixture
 from test_occurrence_growth import copy_contracts, occurrence
 from native_text_binding import NativeTextBindingResolver
 from source_owner_context import OwnerLocalSourceContext
@@ -50,8 +50,8 @@ def envelope(record):
 
 class QualityJournalFixture:
     """Real private adapters over synthetic source, policy and execution inputs."""
-    def __init__(self, test, *, source=False, claim=False):
-        self.fx = NativeLayerAssessmentFixture(test)
+    def __init__(self, test, *, source=False, claim=False, layer_fixture=None):
+        self.fx = layer_fixture if layer_fixture is not None else NativeLayerAssessmentFixture(test)
         self.policy_fixture = policy_tests.AssessmentPolicyTests(methodName='runTest')
         self.policy_fixture.setUp()
         test.addCleanup(self.policy_fixture.doCleanups)
@@ -82,7 +82,7 @@ class QualityJournalFixture:
                 assertion_layers=competence['payload']['assertion_layers'], languages=['und', 'en', 'ru'],
                 profile_ids=profile_ids, uses=['research', self.use],
                 subject_prefixes=['tos.text-layer.', 'tos.text-unit.', 'tos.occurrence.', 'tos.claim.', 'tos.form.'])
-        self.layer_record = Record.from_payload(self.fx.layer_id, 1, self.fx.layer,
+        self.layer_record = Record.from_payload(self.fx.layer_id, self.fx.layer['layer_version'], self.fx.layer,
                                                origin_id=self.fx.selections[0]['origin_id'])
         self._unit()
         self.target = self.unit
@@ -295,6 +295,56 @@ class QualityJournalFixture:
 
 
 class QualityJournalTests(unittest.TestCase):
+    def test_derived_layer_needs_fresh_quality_and_retracts_its_own_dependents(self):
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        fixture = QualityJournalFixture(self, layer_fixture=fx)
+        # An actual prior-layer admission in the same journal is not a verdict
+        # on the newly created normalized record or its own comparison.
+        schema = 'native-text-layer-comparison.schema.json'
+        (fx.public / 'ToS/contracts' / schema).write_bytes((ROOT / 'ToS/contracts' / schema).read_bytes())
+        predecessor = Record.from_payload(fx.writer.prior['layer_id'], fx.writer.prior['layer_version'],
+            fx.writer.prior, origin_id=fx.selections[0]['origin_id'])
+        prior_selection = copy.deepcopy(fx.selections[0])
+        prior_selection['binding'] = fx.writer.binding(fx.writer.seed.source_ref)
+        fixture.config['native_text_layers'].append(prior_selection)
+        prior_scope = copy.deepcopy(fixture.config['subjects'][fixture.layer_record.id])
+        prior_scope.update(record=predecessor.ref, maker_id=fx.writer.prior['derivation']['maker']['agent_ref'])
+        fixture.config['subjects'][predecessor.id] = prior_scope
+        current = fixture.layer_record
+        fixture.layer_record = predecessor
+        fixture.save()
+        self.assertTrue(fixture.admit_quality(name='synthetic-prior-quality')['result']['current_admission']['can_use'])
+        fixture.layer_record = current
+        before = {path: path.read_bytes() for path in (fixture.fx.writer.seed.path,
+            fixture.fx.writer.path, fixture.fx.store / fixture.packet_ref)}
+        described = fixture.describe(fixture.layer_record)['result']
+        self.assertEqual(described['current_admission']['status'], 'unreviewed')
+        self.assertFalse(described['current_admission']['can_use'])
+        self.assertTrue(described['command_context']['source_comparison']['positive_use_allowed'])
+        compared = fixture.run(fixture.request('read-layer-comparison', record=fixture.layer_record))['result']
+        self.assertEqual(compared['source_comparison']['payload']['schema_version'],
+                         'tos_native_text_layer_derivation_comparison_v1')
+        self.assertFalse(compared['source_comparison']['payload']['source_text_equals_output'])
+        self.assertEqual(compared['source_comparison']['payload']['inherited_quality'], 'not-transferred')
+        self.assertFalse(fixture.describe()['result']['current_admission']['can_use'])
+        missing_comparison = fixture.request(record=fixture.layer_record, name='synthetic-missing-derived-comparison')
+        missing_comparison['assessments'][0]['evidence'] = []
+        with self.assertRaises(ValueError):
+            fixture.run(missing_comparison)
+        quality = fixture.admit_quality(name='synthetic-derived-quality')
+        self.assertTrue(quality['result']['current_admission']['can_use'])
+        self.assertFalse(fixture.describe()['result']['current_admission']['can_use'])
+        accepted = fixture.run(fixture.request(name='synthetic-derived-unit-reviewed'))
+        self.assertTrue(accepted['result']['current_admission']['can_use'])
+        fixture.admit_quality(name='synthetic-derived-quality-withdrawn', decision='withdraw',
+            supersedes=quality['result']['current_admission']['assessment_refs'])
+        self.assertFalse(fixture.describe()['result']['current_admission']['can_use'])
+        fixture.admit_quality(name='synthetic-derived-quality-renewed')
+        self.assertFalse(fixture.describe()['result']['current_admission']['can_use'])
+        renewed = fixture.run(fixture.request(name='synthetic-derived-unit-renewed'))
+        self.assertTrue(renewed['result']['current_admission']['can_use'])
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
+
     def test_source_created_claim_copy_uses_current_quality_review_without_source_rewrite(self):
         fixture = QualityJournalFixture(self, claim=True)
         before = {path: path.read_bytes() for path in (fixture.source_path, fixture.form_path,

@@ -24,12 +24,24 @@ sys.path.insert(0, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/
 import test_source_text_layer_commands as construction_tests
 import native_text_layer_assessment as assessment
 from knowledge_assessment import Record, _canonical
+from native_text_binding import NativeTextBindingError
 from source_owner_context import OwnerLocalSourceContext
 from source_text_layer_proposal import build_text_layer_proposal, record_bytes
 
 
 def digest(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def assert_permission_denied(test, read):
+    # Inner current-grant checks can be wrapped by the unchanged transport's
+    # redacted error boundary. An unrelated binding error must not pass.
+    with test.assertRaises((PermissionError, NativeTextBindingError)) as caught:
+        read()
+    error = caught.exception
+    while error is not None and not isinstance(error, PermissionError):
+        error = error.__cause__
+    test.assertIsInstance(error, PermissionError)
 
 
 class NativeLayerAssessmentFixture:
@@ -356,9 +368,8 @@ class NativeLayerAssessmentTests(unittest.TestCase):
             self.fx.grant['access_allowed'] = False
             return result
         with patch.object(assessment.NativeTextBindingResolver, 'resolve_layer', side_effect=revoke, autospec=True), \
-                patch.object(assessment, '_read_payload', side_effect=AssertionError('original read')), \
-                self.assertRaises(PermissionError):
-            self.fx.reader()
+                patch.object(assessment, '_read_payload', side_effect=AssertionError('original read')):
+            assert_permission_denied(self, self.fx.reader)
 
     def test_payload_deadline_does_not_outlive_current_grant(self):
         self.fx.grant['expires_at'] = (datetime.now(timezone.utc) + timedelta(seconds=10)).isoformat()
@@ -412,6 +423,247 @@ class NativeLayerAssessmentTests(unittest.TestCase):
                 patch('subprocess.Popen', side_effect=AssertionError('process operation')):
             reader = self.fx.reader()
             reader.snapshot()
+
+
+class NativeDerivedLayerAssessmentFixture:
+    """Actual owner transactions over temporary synthetic text, not real grants."""
+
+    def __init__(self, test_case, operation='text-layer.normalize', *, model=False):
+        from native_text_layer_derivation_assessment import COMPARISON_SCHEMA
+        from source_text_layer_proposal import derivation_policy
+        self.writer = construction_tests.NativeLayerDerivationTests()
+        self.writer.setUp()
+        test_case.addCleanup(self.writer.doCleanups)
+        if operation == 'text-layer.correct':
+            self.writer.correction()
+        elif operation in {'text-layer.record-transcription', 'text-layer.record-ocr'}:
+            self.writer.supplied(operation)
+            if model:
+                self.writer.config['policy'] = derivation_policy(operation, transcription_method='model_transcription')
+                self.writer.config['derivation_access']['operation'] = 'model_transcription'
+                self.writer.config['material']['reported_maker']['maker_type'] = 'model'
+                self.writer.write_owner()
+        self.writer.created()
+        self.writer.seed.fixture.write_bytes('ToS/contracts/' + COMPARISON_SCHEMA,
+            (ROOT / 'ToS/contracts' / COMPARISON_SCHEMA).read_bytes())
+        self.context = OwnerLocalSourceContext.load(self.writer.seed.context_path)
+        self.seed = self.writer.seed
+        for name in ('base', 'store', 'public', 'context_path'):
+            setattr(self, name, getattr(self.seed, name))
+        self.source_ref = self.writer.config['source_path']
+        self.content = (self.writer.path.parent / 'content.txt').read_bytes()
+        self.layer = json.loads(self.writer.path.read_bytes())
+        self.layer_id = self.layer['layer_id']
+        binding = self.writer.binding(self.writer.config['source_path'])
+        self.binding = binding
+        grant = copy.deepcopy(self.writer.seed.config['source_access'])
+        grant.update(authority_ref='operator:synthetic-new-independent-comparison-read',
+            expires_at=(datetime.now(timezone.utc) + timedelta(hours=1)).isoformat())
+        self.selections = [{'binding': binding, 'origin_id': 'synthetic-derived-layer',
+            'source_access': {'read_scope': 'exact_owner_local', 'access_allowed': True,
+                            'authority_ref': 'operator:synthetic-new-independent-lineage-read'},
+            'payload_access': grant}]
+        record = Record.from_payload(self.layer_id, self.layer['layer_version'], self.layer)
+        self.subjects = {self.layer_id: {'record': record.ref, 'assertion_layer': 'textual_observation',
+            'risk': 'low', 'languages': [self.layer['representation']['language']],
+            'maker_id': self.layer['derivation']['maker']['agent_ref'],
+            'requested_use': 'text-layer:search-projection', 'access_allowed': True}}
+
+    def reader(self):
+        return assessment.NativeLayerAssessmentSources(self.context, self.selections, self.subjects)
+
+
+class NativeDerivedLayerAssessmentTests(unittest.TestCase):
+    def test_normalization_compares_source_and_whole_lineage_without_quality_transfer(self):
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        reader = fx.reader()
+        view = reader.layers[fx.layer_id]
+        body = view['comparison'].payload
+        self.assertTrue(view['read_ready'])
+        self.assertEqual(body['schema_version'], 'tos_native_text_layer_derivation_comparison_v1')
+        self.assertEqual(body['source_view']['source_member_utf8'], fx.writer.seed.member.decode())
+        self.assertEqual(body['source_view']['selected_text'], fx.writer.seed.content.decode())
+        self.assertFalse(body['source_text_equals_output'])  # NFC changed decomposed e-acute.
+        self.assertEqual([item['record']['version'] for item in body['lineage']], [1, 2])
+        self.assertEqual(body['lineage'][-1]['record_payload'], fx.layer)
+        self.assertEqual(body['lineage'][0]['record_payload'], fx.writer.prior)
+        self.assertEqual(body['layer'], view['record'].ref)
+        for item in body['lineage']:
+            self.assertEqual(item['record_payload']['admission']['accepted_uses'], [])
+            self.assertEqual(item['record_payload']['admission']['review_status'], 'unreviewed')
+        self.assertEqual(body['inherited_quality'], 'not-transferred')
+        self.assertEqual(body['positive_use_boundary'], 'source-visible-assessment-required-not-byte-equality')
+        self.assertFalse(body['performs_semantic_assessment'])
+        self.assertFalse(body['publication_authorized'])
+        self.assertEqual(body['comparison_id'], 'tos.text-comparison.sha256.' +
+            digest(_canonical({key: value for key, value in body.items() if key != 'comparison_id'})))
+        original = copy.deepcopy(body)
+        body['lineage'][-1]['record_payload']['admission']['accepted_uses'].append('not-real')
+        self.assertEqual(fx.layer['admission']['accepted_uses'], [])
+        self.assertEqual(fx.reader().layers[fx.layer_id]['comparison'].payload, original)
+
+    def test_correction_is_eligible_for_judgment_not_automatically_original_fidelity(self):
+        fx = NativeDerivedLayerAssessmentFixture(self, 'text-layer.correct')
+        with patch.object(assessment.construction, 'derive_configuration', side_effect=AssertionError('historical write grant used')):
+            view = fx.reader().layers[fx.layer_id]
+        body = view['comparison'].payload
+        self.assertTrue(view['read_ready'])
+        self.assertFalse(body['source_text_equals_output'])
+        self.assertIn('test', body['source_view']['selected_text'])
+        self.assertIn('trial', body['lineage'][-1]['representation_text'])
+        edit = body['lineage'][-1]['record_payload']['derivation']['change_payload']['operations'][0]
+        self.assertEqual(edit['input_exact'], 'test')
+        self.assertEqual(edit['output_exact'], 'trial')
+        self.assertEqual(edit['status'], 'proposed')
+        self.assertFalse(body['performs_semantic_assessment'])
+
+    def test_supplied_text_comparison_keeps_unverified_provider_and_source_difference(self):
+        for operation, model in [('text-layer.record-transcription', False),
+                                 ('text-layer.record-transcription', True), ('text-layer.record-ocr', False)]:
+            with self.subTest(operation=operation, model=model):
+                fx = NativeDerivedLayerAssessmentFixture(self, operation, model=model)
+                with patch('socket.socket.connect', side_effect=AssertionError('network operation')), \
+                        patch('subprocess.Popen', side_effect=AssertionError('provider operation')):
+                    view = fx.reader().layers[fx.layer_id]
+                body = view['comparison'].payload
+                self.assertTrue(view['read_ready'])
+                self.assertEqual(len(body['lineage']), 1)
+                self.assertEqual(body['lineage'][0]['representation_text'], fx.writer.supplied_text)
+                self.assertEqual(body['lineage'][0]['record_payload'], fx.layer)
+                self.assertEqual(body['lineage'][0]['reported_producer'], fx.writer.config['material']['reported_maker'])
+                self.assertEqual(body['provider_execution'], 'not-attested-by-comparison')
+                self.assertFalse(body['source_text_equals_output'])
+                self.assertFalse(body['performs_semantic_assessment'])
+
+    def test_metadata_only_derived_comparison_reads_no_content(self):
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        fx.selections[0]['source_access']['read_scope'] = 'metadata_only'
+        fx.selections[0]['payload_access'] = None
+        original = assessment.NativeTextBindingResolver._read
+        def metadata_only(resolver, ref, **kwargs):
+            self.assertFalse(kwargs.get('content', False))
+            return original(resolver, ref, **kwargs)
+        with patch.object(assessment.NativeTextBindingResolver, '_read', metadata_only), \
+                patch.object(assessment.construction, '_payload', side_effect=AssertionError('opened original')):
+            view = fx.reader().layers[fx.layer_id]
+        self.assertFalse(view['read_ready'])
+        self.assertIsNone(view['comparison'])
+        self.assertEqual(view['record'].payload, fx.layer)
+
+    def test_expired_derived_comparison_grant_refuses_before_source_io(self):
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        fx.selections[0]['payload_access']['expires_at'] = '2000-01-01T00:00:00Z'
+        with patch.object(assessment.NativeTextBindingResolver, '_read', side_effect=AssertionError('source read')):
+            with self.assertRaises(PermissionError):
+                fx.reader()
+
+    def test_derived_comparison_rechecks_predecessor_and_current_output_bytes(self):
+        for which in ('predecessor', 'current'):
+            with self.subTest(which=which):
+                fx = NativeDerivedLayerAssessmentFixture(self)
+                reader = fx.reader()
+                layer = fx.writer.prior if which == 'predecessor' else fx.layer
+                path = fx.writer.store / layer['representation']['content_ref']
+                path.write_bytes(path.read_bytes() + b' altered')
+                with self.assertRaises(ValueError):
+                    reader.snapshot()
+
+    def test_derived_comparison_time_budget_includes_source_parsing_before_lineage_reads(self):
+        import native_text_layer_derivation_assessment as derived
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        clock = [time.monotonic()]
+        original = derived.extract_xhtml_text
+        def slow_source(*args, **kwargs):
+            result = original(*args, **kwargs)
+            clock[0] += assessment.MAX_SECONDS + 1
+            return result
+        resolve = assessment.NativeTextBindingResolver.resolve_layer
+        def metadata_only(resolver, binding, **kwargs):
+            self.assertFalse(kwargs.get('verify_content', False))
+            return resolve(resolver, binding, **kwargs)
+        with patch.object(derived, 'monotonic', side_effect=lambda: clock[0]), \
+                patch.object(derived, 'extract_xhtml_text', side_effect=slow_source), \
+                patch.object(assessment.NativeTextBindingResolver, 'resolve_layer', metadata_only):
+            with self.assertRaisesRegex(ValueError, 'time budget'):
+                fx.reader()
+
+    def test_revoked_grant_during_derived_resolution_stops_the_next_content_read(self):
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        target = fx.store / fx.layer['representation']['content_ref']
+        revoked = []
+        original_read, original_open = assessment.NativeLayerAssessmentSources._read, assessment._open
+        def read_then_revoke(owner, path, limit):
+            raw = original_read(owner, path, limit)
+            if Path(path) == target and not revoked:
+                revoked.append(True)
+                fx.selections[0]['payload_access']['expires_at'] = '2000-01-01T00:00:00Z'
+            return raw
+        def guarded_open(path, *args, **kwargs):
+            if revoked and Path(path).name == 'content.txt':
+                self.fail('content opened after the independent grant expired')
+            return original_open(path, *args, **kwargs)
+        with patch.object(assessment.NativeLayerAssessmentSources, '_read', read_then_revoke), \
+                patch.object(assessment, '_open', guarded_open):
+            assert_permission_denied(self, fx.reader)
+        self.assertTrue(revoked)
+
+    def test_predecessor_rights_are_checked_before_any_selected_content(self):
+        import native_text_binding
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        previous = fx.writer.prior['layer_id']
+        observed = []
+        original_rights = native_text_binding.check_local_research_rights
+        original_read = assessment.NativeTextBindingResolver._read
+        def rights(resolver, layer):
+            if layer['layer_id'] == previous:
+                observed.append(previous)
+                raise PermissionError('synthetic independent predecessor rights denied')
+            return original_rights(resolver, layer)
+        def metadata_only(resolver, ref, **kwargs):
+            self.assertFalse(kwargs.get('content', False))
+            return original_read(resolver, ref, **kwargs)
+        with patch.object(native_text_binding, 'check_local_research_rights', rights), \
+                patch.object(assessment.NativeTextBindingResolver, '_read', metadata_only), \
+                patch.object(assessment.construction, '_payload', side_effect=AssertionError('original read')):
+            with self.assertRaises(PermissionError):
+                fx.reader()
+        self.assertEqual(observed, [previous])
+
+    def test_expired_retained_derivation_grants_are_not_current_reading_authority(self):
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        config = copy.deepcopy(fx.writer.config)
+        config['expires_at'] = '2000-01-01T00:00:00Z'
+        for key in ('source_access', 'derivation_access'):
+            config[key]['expires_at'] = '2000-01-01T00:00:00Z'
+        config['source_access']['access_allowed'] = False
+        config['derivation_access']['derivation_allowed'] = False
+        raw = record_bytes(config)
+        (fx.writer.path.parent / assessment.construction.CONFIG_FILE).write_bytes(raw)
+        # Rebind only this synthetic fixture; real history is never rewritten.
+        layer = copy.deepcopy(fx.layer)
+        layer['derivation']['maker']['configuration_digest'] = digest(raw)
+        for edit in layer['derivation']['change_payload']['operations']:
+            edit['responsibility'] = copy.deepcopy(layer['derivation']['maker'])
+        fx.writer.path.write_bytes(record_bytes(layer))
+        fx.layer = layer
+        fx.selections[0]['binding'] = fx.writer.binding(fx.source_ref)
+        fx.subjects[fx.layer_id]['record'] = Record.from_payload(fx.layer_id, layer['layer_version'], layer).ref
+        view = fx.reader().layers[fx.layer_id]
+        self.assertTrue(view['read_ready'])
+        self.assertEqual(view['comparison'].payload['lineage'][-1]['configuration_sha256'], digest(raw))
+        self.assertFalse(view['comparison'].payload['performs_semantic_assessment'])
+
+    def test_unsupported_source_view_has_no_default_selector_fallback(self):
+        import native_text_layer_derivation_assessment as derived
+        fx = NativeDerivedLayerAssessmentFixture(self)
+        comparison = object.__new__(derived.NativeDerivedLayerComparison)
+        comparison.source_scope = fx.writer.config['source_scope']
+        comparison.payload_ref = 'exact/payload/source.epub'
+        for payload in ({'kind': 'page', 'page': 1},
+                        {'kind': 'selector_expression', 'expression': {'mode': 'refinement_chain', 'steps': []}}):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    comparison._source_view({'selector_payload': payload})
 
 
 if __name__ == '__main__':

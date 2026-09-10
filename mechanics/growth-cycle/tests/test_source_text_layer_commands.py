@@ -817,14 +817,13 @@ class NativeLayerDerivationTests(unittest.TestCase):
         self.assertFalse(self.path.parent.exists())
         self.assertTrue(content.read_bytes().endswith(b'foreign'))
 
-    def test_extraction_assessment_explicitly_refuses_new_method_and_old_basis(self):
+    def test_derivation_write_grant_cannot_supply_current_assessment_read_authority(self):
         import native_text_layer_assessment as assessment
         self.created()
-        reader = object.__new__(assessment.NativeLayerAssessmentSources)
-        reader.context = OwnerLocalSourceContext.load(self.seed.context_path)
-        reader._read = source._read
-        with self.assertRaisesRegex(ValueError, 'only the bounded private EPUB extraction profile'):
-            reader._metadata({'binding': self.binding(self.config['source_path'])})
+        with patch.object(assessment.NativeTextBindingResolver, '_read', side_effect=AssertionError('source read')):
+            with self.assertRaises(ValueError):
+                assessment.NativeLayerAssessmentSources(OwnerLocalSourceContext.load(self.seed.context_path),
+                    [{'binding': self.binding(self.config['source_path'])}], {})
 
     def test_describe_discovery_and_result_do_not_disclose_native_content(self):
         with patch.object(layers, '_prepare_derivation', side_effect=AssertionError('describe opened source')):

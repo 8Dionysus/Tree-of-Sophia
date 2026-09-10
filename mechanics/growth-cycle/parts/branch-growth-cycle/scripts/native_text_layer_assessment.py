@@ -2,8 +2,9 @@
 
 The issuer selects all access grants independently of source material. Historical
 creation configuration is immutable DATA, never current reading authority. This
-bounded adapter supports only the declared EPUB structural-extraction profile;
-byte equality and an available comparison are not a textual-quality judgment.
+bounded adapter supports the declared EPUB structural-extraction profile and
+separately versioned derived-layer comparisons. Byte equality and an available
+comparison are not a textual-quality judgment.
 """
 from __future__ import annotations
 
@@ -22,6 +23,7 @@ from source_owner_context import OwnerLocalSourceContext, _absolute, _open
 from source_text_layer_proposal import extract_xhtml_text, validate_extraction_profile
 import source_text_layer_commands as construction
 import source_item_deposit as deposit
+from native_text_layer_derivation_assessment import NativeDerivedLayerComparison
 
 
 COMPARISON_SCHEMA = 'native-text-layer-comparison.schema.json'
@@ -164,6 +166,7 @@ class NativeLayerAssessmentSources:
         self._selection_bytes = _canonical({'selections': selections, 'subjects': subjects})
         self._selections, self._subjects = copy.deepcopy((selections, subjects))
         self._observed, self._total, self._resolvers, self._payloads = {}, 0, [], []
+        self._read_deadline = time.monotonic() + MAX_SECONDS
         self._context_snapshot = context.snapshot()
         for selection in self._selections:
             grant = selection['payload_access']
@@ -176,13 +179,14 @@ class NativeLayerAssessmentSources:
         # or original payload. A later bad rights binding cannot trigger an earlier
         # content read merely because its grant shape passed preflight.
         prepared = [self._metadata(selection) for selection in self._selections]
-        deadline = time.monotonic() + MAX_SECONDS
+        deadline = self._read_deadline
         for selection, resolver, layer, configuration, entry in prepared:
             self._check_selections()
             for selected in self._resolvers:
                 selected.snapshot()
             self._materialize(selection, resolver, layer, configuration, entry, deadline)
         self._snapshot = self.snapshot()
+        self._read_deadline = None
 
     def _check_selections(self):
         preflight_layer_selections(*self._provided)
@@ -201,6 +205,11 @@ class NativeLayerAssessmentSources:
         return deadline
 
     def _read(self, path, limit):
+        # Every resolver read, including its recursive lineage and snapshot
+        # checks, uses current authority and the same cooperative call budget.
+        self._check_selections()
+        if self._read_deadline is not None and time.monotonic() >= self._read_deadline:
+            _fail('native layer comparison exceeded its cooperative time budget')
         path = Path(path)
         if path not in self._observed and len(self._observed) >= MAX_SOURCE_FILES:
             _fail('native layer source closure exceeds its file budget')
@@ -219,6 +228,9 @@ class NativeLayerAssessmentSources:
         if (len(raw) > limit or _identity(before) != _identity(after) or _identity(before) != _identity(current)
                 or deposit._pins(path) != parents):
             raise JournalConflict('native layer source changed or exceeded its exact read budget')
+        self._check_selections()
+        if self._read_deadline is not None and time.monotonic() >= self._read_deadline:
+            _fail('native layer comparison exceeded its cooperative time budget')
         observed = (_hash(raw), _identity(before), parents)
         if path in self._observed:
             if self._observed[path] != observed:
@@ -235,6 +247,18 @@ class NativeLayerAssessmentSources:
         resolver.resolve_layer(binding, verify_content=False)
         layer = resolver._record(binding['text_layer']['record_ref'], expected=binding['text_layer']['record_sha256'])
         derivation, rep = layer['derivation'], layer['representation']
+        if derivation['method'] in {'correction', 'unicode_normalization', 'manual_transcription', 'model_transcription', 'ocr'}:
+            try:
+                comparison = NativeDerivedLayerComparison(self, selection, resolver, layer)
+            except (KeyError, TypeError, AttributeError, IndexError):
+                _fail('native derived comparison lacks its exact supported configuration')
+            record = Record.from_payload(layer['layer_id'], layer['layer_version'], layer, origin_id=selection['origin_id'])
+            target = self._subjects[layer['layer_id']]
+            if (target['record'] != record.ref or target['languages'] != [rep['language']]
+                    or target['maker_id'] != derivation['maker']['agent_ref']):
+                raise PermissionError('native derived comparison scope differs from its exact target')
+            self._resolvers.append(resolver)
+            return selection, resolver, layer, comparison, comparison.entry
         if (derivation['method'] != 'structural_extraction' or derivation['input_layers']
                 or derivation['change_payload'] != {'kind': 'none'} or layer['layer_role'] != 'machine_transcription'
                 or rep['character_normalization'] != 'none' or rep['content_visibility'] != 'local_only'
@@ -312,6 +336,10 @@ class NativeLayerAssessmentSources:
 
     def _materialize(self, selection, resolver, layer, configuration, entry, deadline):
         record = Record.from_payload(layer['layer_id'], layer['layer_version'], layer, origin_id=selection['origin_id'])
+        if isinstance(configuration, NativeDerivedLayerComparison):
+            comparison, read_ready = configuration.materialize(deadline)
+            self._register(selection, resolver, layer, record, comparison, read_ready)
+            return
         rep, comparison = layer['representation'], None
         read_ready = False
         if selection['payload_access'] is not None:
@@ -348,6 +376,10 @@ class NativeLayerAssessmentSources:
             comparison = Record.from_payload(body['comparison_id'], 1, body, origin_id=selection['origin_id'])
             read_ready = body['deterministic_match']
             self._payloads.append((payload_config, copy.deepcopy(entry), identity, _hash(member)))
+        self._register(selection, resolver, layer, record, comparison, read_ready)
+
+    def _register(self, selection, resolver, layer, record, comparison, read_ready):
+        rep = layer['representation']
         self.records.append({'id': record.id, 'version': record.version, 'payload': record.payload, 'origin_id': record.origin_id})
         if comparison is not None:
             self.records.append({'id': comparison.id, 'version': comparison.version, 'payload': comparison.payload, 'origin_id': comparison.origin_id})
@@ -359,11 +391,20 @@ class NativeLayerAssessmentSources:
 
     def snapshot(self):
         """Recheck grants, all source bytes/ancestors, rights and acquired inputs."""
+        previous = self._read_deadline
+        budget = time.monotonic() + MAX_SECONDS
+        self._read_deadline = min(previous, budget) if previous is not None else budget
+        try:
+            return self._snapshot_now()
+        finally:
+            self._read_deadline = previous
+
+    def _snapshot_now(self):
         self._check_selections()
         if self.context.snapshot() != self._context_snapshot:
             raise JournalConflict('native layer owner context changed during comparison')
         sources = [resolver.snapshot() for resolver in self._resolvers]
-        deadline = time.monotonic() + MAX_SECONDS
+        deadline = self._read_deadline
         for config, entry, expected_identity, digest in self._payloads:
             member, identity = _read_payload(config, entry, self._payload_deadline(deadline))
             if identity != expected_identity or _hash(member) != digest:
