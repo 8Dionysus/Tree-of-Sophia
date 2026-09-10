@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import copy
+import asyncio
+import http.client
+import importlib.util
 import json
 import shutil
 import sqlite3
@@ -9,13 +12,16 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import threading
 from contextlib import closing
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
 from test_published_exploration import builder, write_fixture, ToSAccessCore
 from test_indexed_lens import graph_for, lens, scenarios
 from tos_access import knowledge as k
+from tos_access.http_server import build_handler
 from tos_access.published_lens import PublishedLensService, PublishedLensLimits
 from tos_access.published_read_metadata import (
     TOP_KEY, LENS_META_KEY, READER_SCHEMA, _compact, emitted_row_digest,
@@ -51,6 +57,9 @@ class PublishedLensTests(unittest.TestCase):
             graph[key] = synthetic[key]
         cls.graph = builder.normalize_paths(graph, cls.root)
         snapshot['graph'] = cls.graph
+        cls.stored = lens(seed={'node_ids': ['philosophy:n00']})
+        cls.stored['lens_id'] = 'prepared-test-lens'
+        snapshot['catalog']['lenses'] = [cls.stored]
         target = cls.root / 'runtime/read-model.sql'
         with patch.object(builder, 'REPO_ROOT', cls.root), patch.object(ToSAccessCore, 'knowledge_snapshot', return_value=snapshot):
             builder.build_read_model_sql(core, target, 'a' * 64)
@@ -76,6 +85,80 @@ class PublishedLensTests(unittest.TestCase):
         actual = self.service.execute(spec)
         self.assertEqual(actual, expected)
         return actual
+
+    def prepared_core(self):
+        return ToSAccessCore.discover(self.root, published_read_model_path=self.path,
+                                     published_read_model_expected=self.binding)
+
+    def test_core_routes_focus_compilation_and_stored_lens_without_source_fallback(self):
+        core = self.prepared_core()
+        expected_focus = k.focus_knowledge_node(self.graph, 'n00')
+        expected_lens = k.execute_knowledge_lens(self.graph, self.stored)
+        with patch.object(ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('graph fallback')), patch.object(
+                ToSAccessCore, 'knowledge_snapshot', side_effect=AssertionError('snapshot fallback')):
+            self.assertEqual(core.knowledge_focus('n00'), expected_focus)
+            self.assertEqual(core.compile_knowledge_lens(self.stored), expected_lens)
+            self.assertEqual(core.stored_knowledge_lens('prepared-test-lens'), expected_lens)
+            with self.assertRaises(KeyError):
+                core.stored_knowledge_lens('absent')
+
+    def test_stored_lens_refuses_publication_between_catalog_and_execution(self):
+        core = self.prepared_core()
+        catalog = core.knowledge_catalog()
+        def superseded(_core):
+            with closing(sqlite3.connect(self.path)) as db:
+                db.execute("UPDATE edge_meta SET json_chunk=json_chunk WHERE key='data_revision'")
+                db.commit()
+            return catalog
+        with patch.object(ToSAccessCore, 'knowledge_catalog', superseded):
+            with self.assertRaises(PublishedSnapshotConflict):
+                core.stored_knowledge_lens('prepared-test-lens')
+
+    def test_http_focus_compile_and_stored_lens_use_exact_native_packets(self):
+        core = self.prepared_core()
+        expected_focus = k.focus_knowledge_node(self.graph, 'n00')
+        expected_lens = k.execute_knowledge_lens(self.graph, self.stored)
+        server = ThreadingHTTPServer(('127.0.0.1', 0), build_handler(core, self.root))
+        thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': 0.01}, daemon=True)
+        thread.start()
+        def request(path, payload=None):
+            with closing(http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=5)) as connection:
+                connection.request('GET' if payload is None else 'POST', path,
+                    body=None if payload is None else json.dumps(payload),
+                    headers={} if payload is None else {'Content-Type': 'application/json'})
+                response = connection.getresponse()
+                return response.status, json.loads(response.read())
+        try:
+            with patch.object(ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('graph fallback')):
+                self.assertEqual(request('/api/knowledge/focus/n00'), (200, expected_focus))
+                self.assertEqual(request('/api/knowledge/lenses/compile', self.stored), (200, expected_lens))
+                self.assertEqual(request('/api/knowledge/lenses/prepared-test-lens'), (200, expected_lens))
+                with closing(sqlite3.connect(self.path)) as db:
+                    db.execute("UPDATE edge_meta SET json_chunk=json_chunk WHERE key='data_revision'")
+                    db.commit()
+                self.assertEqual(request('/api/knowledge/focus/n00')[0], 409)
+                self.assertEqual(request('/api/knowledge/lenses/compile', self.stored)[0], 409)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
+    @unittest.skipUnless(importlib.util.find_spec('mcp'), 'mcp dependency is not installed')
+    def test_mcp_shared_dispatch_focus_compile_and_stored_lens(self):
+        from tos_access.mcp_server import build_server
+        core = self.prepared_core()
+        requests = [
+            ('tos_knowledge_focus', {'node_id': 'n00'}, k.focus_knowledge_node(self.graph, 'n00')),
+            ('tos_knowledge_lens_compile', {'spec': self.stored}, k.execute_knowledge_lens(self.graph, self.stored)),
+            ('tos_knowledge_lens_open', {'lens_id': 'prepared-test-lens'}, k.execute_knowledge_lens(self.graph, self.stored)),
+        ]
+        with patch.object(ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('graph fallback')):
+            server = build_server(core=core)
+            for name, arguments, expected in requests:
+                with self.subTest(tool=name):
+                    result = asyncio.run(server.call_tool(name, arguments))
+                    self.assertEqual(result[1], expected)
+                    self.assertEqual(json.loads(result[0][0].text), expected)
 
     def test_full_native_matrix_exact_packets_fingerprints_forms_and_counts(self):
         for number, spec in enumerate(scenarios()):

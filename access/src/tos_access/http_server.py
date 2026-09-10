@@ -157,6 +157,25 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     self._static(path.removeprefix("/static/"))
                     return
                 if path == "/health":
+                    try:
+                        prepared = core.knowledge_prepared_status()
+                    except PublishedReadModelError as exc:
+                        self._json({
+                            "service": "tree-of-sophia-access", "ok": False,
+                            "write_enabled": False, "errors": [str(exc)],
+                            "scope": "selected-prepared-publication",
+                        }, HTTPStatus.SERVICE_UNAVAILABLE)
+                        return
+                    if prepared is not None:
+                        self._json({
+                            "service": "tree-of-sophia-access", "ok": True,
+                            "write_enabled": False, "errors": [],
+                            "knowledge_schema": prepared["graph_schema"],
+                            "knowledge_counts": {},
+                            "scope": "selected-prepared-publication",
+                            "read_model_status": prepared,
+                        })
+                        return
                     errors: list[str] = []
                     knowledge_schema: str | None = None
                     knowledge_counts: dict[str, Any] = {}

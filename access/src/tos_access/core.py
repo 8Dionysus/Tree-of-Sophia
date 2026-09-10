@@ -45,6 +45,7 @@ from .exploration import ExplorationService, exploration_capabilities
 from .temporal_comparison import compare_temporal_claims
 from .published_read_model import PublishedKnowledgeReadModel, PublishedReadModelError
 from .published_exploration import PublishedExplorationService
+from .published_lens import PublishedLensService
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -488,6 +489,7 @@ class ToSAccessCore:
     published_read_model_expected: dict[str, Any] | None = None
     published_exploration_checkpoint_path: Path | None = None
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
+    _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
     _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
     _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
@@ -530,6 +532,7 @@ class ToSAccessCore:
             if not path.is_absolute():
                 path = self.tos_root / path
             self._prepared_reader = PublishedKnowledgeReadModel(path, self.published_read_model_expected)
+            self._prepared_lens = PublishedLensService(self._prepared_reader)
         if self.search_read_model_path is None:
             self.search_read_model_path = _default_search_read_model_path(self.tos_root)
         else:
@@ -550,6 +553,10 @@ class ToSAccessCore:
 
     def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._exploration.explore(request)
+
+    def knowledge_prepared_status(self) -> dict[str, Any] | None:
+        """Check selected publication readiness, without scanning source rows."""
+        return self._prepared_reader.status() if self._prepared_reader is not None else None
 
     def knowledge_exploration_capabilities(self) -> dict[str, Any]:
         return (self._exploration.capability() if self._prepared_reader is not None
@@ -585,8 +592,8 @@ class ToSAccessCore:
     ) -> "ToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
-        The prepared route serves catalog, full node/relation inspection and
-        bounded exploration. Other knowledge operations refuse instead of silently
+        The prepared route serves catalog, full node/relation inspection,
+        bounded exploration, and v9 lens/focus. Other knowledge operations refuse instead of silently
         rebuilding the graph. No environment variable activates this opt-in.
         """
         root = _discover_root(tos_root)
@@ -1782,6 +1789,12 @@ class ToSAccessCore:
         profile: str = "overview",
     ) -> dict[str, Any]:
         """Construct a bounded radial lens around one exact or unambiguous node identity."""
+        if self._prepared_lens is not None:
+            return self._prepared_lens.focus(
+                node_id, sources=sources, depth=depth, direction=direction,
+                predicate_ids=predicate_ids, node_limit=node_limit,
+                relation_limit=relation_limit, profile=profile,
+            )
         graph = self.knowledge_graph()
         return focus_knowledge_node(
             graph,
@@ -1798,11 +1811,23 @@ class ToSAccessCore:
 
     def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict[str, Any]:
         """Compile and execute a bounded read-only lens supplied by a human or agent."""
+        if self._prepared_lens is not None:
+            return self._prepared_lens.execute(spec)
         graph = self.knowledge_graph()
         return execute_knowledge_lens(graph, spec, graph_index=self._current_graph_index(graph))
 
     def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
         """Compile one source-backed stored lens through the same generic engine."""
+        if self._prepared_lens is not None:
+            # Both reads enforce the same immutable expected binding (including
+            # the publication epoch). A publication between them must refuse,
+            # not execute an old catalog entry on a newly selected snapshot.
+            catalog = self.knowledge_catalog()
+            spec = next((item for item in catalog.get("lenses", [])
+                         if isinstance(item, dict) and item.get("lens_id") == lens_id), None)
+            if spec is None:
+                raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
+            return self._prepared_lens.execute(spec)
         snapshot = self.knowledge_snapshot()
         spec = next(
             (

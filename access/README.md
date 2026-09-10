@@ -335,6 +335,11 @@ and final packet builder: query normalization, human forms, fingerprints,
 inclusion reasons, grouping, ordering and stateless pagination remain identical.
 Each page re-executes the complete bounded selection; it never substitutes a
 subgraph for global `available`, `matched` or `eligible` counts.
+The explicitly selected prepared core routes `knowledge_focus`,
+`compile_knowledge_lens` and `stored_knowledge_lens` to this service, including
+the existing HTTP and MCP adapters. Stored-lens catalog lookup and execution
+both enforce the same publication binding and epoch; publication between them
+refuses instead of mixing versions. The default source-backed core is unchanged.
 
 The producer owns small exact source/kind/type and source/predicate/relation-type
 histograms plus Python-lowercase order keys and local incidence indices. This
@@ -402,6 +407,15 @@ with discovery-path arguments and keeps the core's exploration/checkpoint policy
 The default MCP factory retains its existing discovery behavior. HTTP capability
 responses expose the selected mode; stale snapshots return 409, expired cursors
 410, exceeded read budgets 413, and unavailable read/checkpoint stores 503.
+
+In prepared mode `/health` checks only the selected publication header, binding
+and required indices. It returns `scope: selected-prepared-publication` and
+`verifies_all_rows: false` inside `read_model_status`; it does not scan corpus or
+philosophy sources, prove every item digest or check checkpoint-store readiness.
+An unavailable or changed selected publication returns health status 503.
+The default source-backed health checks remain unchanged. The prepared MCP
+factory is also tested over a real stdio handshake and tool discovery in separate
+server processes, replaying the same persistent continuation after restart.
 
 ## Constructor boundaries
 

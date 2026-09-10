@@ -17,6 +17,7 @@ import tempfile
 import threading
 import unittest
 from contextlib import closing
+from datetime import timedelta
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -275,6 +276,14 @@ class PublishedExplorationTests(unittest.TestCase):
         query = {'focus_node_id': 'node:00', 'max_depth': 0}
         try:
             with patch('tos_access.core.build_knowledge_graph', side_effect=AssertionError('hidden fallback')):
+                with patch.object(ToSAccessCore, 'index', side_effect=AssertionError('source corpus scan')), patch.object(
+                        ToSAccessCore, 'philosophy_projection', side_effect=AssertionError('source philosophy scan')):
+                    health_status, health = request('/health')
+                self.assertEqual(health_status, 200)
+                self.assertTrue(health['ok'])
+                self.assertEqual(health['scope'], 'selected-prepared-publication')
+                self.assertEqual(health['read_model_status'], core.knowledge_prepared_status())
+                self.assertFalse(health['read_model_status']['verifies_all_rows'])
                 status, capabilities = request('/api/knowledge/explore/capabilities')
                 self.assertEqual(status, 200)
                 self.assertEqual(capabilities, core.knowledge_exploration_capabilities())
@@ -291,11 +300,17 @@ class PublishedExplorationTests(unittest.TestCase):
                     db.commit()
                 self.assertEqual(request('/api/knowledge/nodes/node%3A00')[0], 503)
                 self.assertEqual(request('/api/knowledge/explore', query)[0], 503)
+                # Readiness is scoped to the header/index binding. It does not
+                # silently claim to have verified every item digest.
+                self.assertEqual(request('/health')[0], 200)
                 with closing(sqlite3.connect(self.path)) as db:
                     db.execute("UPDATE edge_meta SET json_chunk=json_chunk WHERE key='data_revision'")
                     db.commit()
                 self.assertEqual(request('/api/knowledge/catalog')[0], 409)
                 self.assertEqual(request('/api/knowledge/explore', query)[0], 409)
+                unhealthy_status, unhealthy = request('/health')
+                self.assertEqual(unhealthy_status, 503)
+                self.assertFalse(unhealthy['ok'])
         finally:
             server.shutdown()
             server.server_close()
@@ -325,6 +340,51 @@ class PublishedExplorationTests(unittest.TestCase):
         self.assertEqual(asyncio.run(restarted.call_tool('tos_knowledge_explore', {'request': request}))[1], expected)
         with self.assertRaises(ValueError):
             build_server(core=selected, tos_root=self.root)
+
+    @unittest.skipUnless(importlib.util.find_spec('mcp'), 'mcp dependency is not installed')
+    def test_stdio_mcp_handshake_and_continuation_survive_server_process_restart(self):
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+
+        checkpoint = self.path.parent / 'stdio-state.sqlite'
+        selected = ToSAccessCore.discover(self.root, published_read_model_path=self.path,
+                                         published_read_model_expected=self.binding,
+                                         published_exploration_checkpoint_path=checkpoint)
+        first = selected.knowledge_explore({'focus_node_id': 'node:00', 'max_depth': 3,
+                                            'profile': 'all', 'page_nodes': 1, 'page_relations': 1})
+        query = {'cursor': first['page']['next_cursor']}
+        self.assertIsNotNone(query['cursor'])
+        expected = selected.knowledge_explore(query)
+        before = hashlib.sha256(self.path.read_bytes()).hexdigest()
+        source = '''
+import json, sys
+from tos_access.core import ToSAccessCore
+from tos_access.mcp_server import build_server
+core = ToSAccessCore.discover(sys.argv[1], published_read_model_path=sys.argv[2],
+    published_read_model_expected=json.loads(sys.argv[3]),
+    published_exploration_checkpoint_path=sys.argv[4])
+build_server(core=core).run(transport='stdio')
+'''
+        parameters = StdioServerParameters(
+            command=sys.executable,
+            args=['-B', '-c', source, str(self.root), str(self.path), json.dumps(self.binding), str(checkpoint)],
+            env={'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src'),
+                 'PYTHONDONTWRITEBYTECODE': '1'},
+        )
+        async def read_from_new_process():
+            async with stdio_client(parameters) as (incoming, outgoing):
+                async with ClientSession(incoming, outgoing, read_timeout_seconds=timedelta(seconds=10)) as session:
+                    initialized = await session.initialize()
+                    self.assertIsNotNone(initialized.capabilities.tools)
+                    names = {tool.name for tool in (await session.list_tools()).tools}
+                    self.assertIn('tos_knowledge_explore', names)
+                    result = await session.call_tool('tos_knowledge_explore', {'request': query})
+                    self.assertFalse(result.isError)
+                    self.assertEqual(result.structuredContent, expected)
+                    self.assertEqual(json.loads(result.content[0].text), expected)
+        for _ in range(2):
+            asyncio.run(read_from_new_process())
+        self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(), before)
 
     def test_persistent_restart_concurrent_replay_and_successor_are_atomic(self):
         first = self.persistent().explore({"focus_node_id": "node:00", "max_depth": 3})
