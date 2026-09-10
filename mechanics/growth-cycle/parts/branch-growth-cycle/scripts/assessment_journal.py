@@ -434,6 +434,68 @@ def _keys(payload: Any, expected: set[str]) -> None:
         raise ValueError('command/configuration fields do not match the declared contract')
 
 
+def _envelope_record(value):
+    _keys(value, {'id', 'version', 'payload', 'origin_id'})
+    return Record.from_payload(**value)
+
+
+def _owner_engine(config, sourced, contract_root, *, validators=None):
+    """Shared owner-record checks, without admitting caller-prepared state."""
+    for key in ('authorities', 'competencies', 'records'):
+        if not isinstance(config[key], list) or len(config[key]) > MAX_ASSESSMENTS:
+            raise ValueError('owner record collections must be bounded lists')
+    if len(config['records']) + len(sourced) > MAX_ASSESSMENTS:
+        raise ValueError('combined owner/source records exceed snapshot budget')
+    if {item['id'] for item in config['records']} & {item['id'] for item in sourced}:
+        raise ValueError('inline records cannot shadow source-bound records')
+    return AssessmentEngine(contract_root, _envelope_record(config['policy']),
+                            [_envelope_record(item) for item in config['authorities']],
+                            [_envelope_record(item) for item in config['competencies']],
+                            [_envelope_record(item) for item in [*config['records'], *sourced]],
+                            **({'validators': validators} if validators is not None else {}))
+
+
+def _configured_scope(config, engine, request):
+    """Resolve the exact independently configured subject, never request scope."""
+    subjects, identifier = config['subjects'], request['subject_id']
+    if (not isinstance(subjects, dict) or len(subjects) > MAX_ASSESSMENTS
+            or not isinstance(identifier, str) or identifier not in subjects):
+        raise PermissionError('subject is outside the configured command scope')
+    scope = subjects[identifier]
+    scope_fields = {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'}
+    if config['schema_version'] != 'tos_local_assessment_owner_v1' and 'form_language_context' in scope:
+        scope_fields.add('form_language_context')
+    _keys(scope, scope_fields)
+    current = engine.records.get(identifier)
+    if (current is None or _canonical(current.ref) != _canonical(scope['record'])
+            or (request['operation'] != 'describe'
+                and _canonical(current.ref) != _canonical(request['expected_subject']))):
+        raise JournalConflict('expected subject or owner scope is stale')
+    if (not isinstance(scope['languages'], list) or not scope['languages']
+            or any(not isinstance(item, str) or not item for item in scope['languages'])
+            or any(not isinstance(scope[key], str) or not scope[key]
+                   for key in ('assertion_layer', 'risk', 'maker_id', 'requested_use'))):
+        raise ValueError('owner subject scope is incomplete')
+    if scope['access_allowed'] is not True:
+        raise PermissionError('subject access is not allowed')
+    return current, scope
+
+
+def _source_owned_scope(current, scope):
+    """Keep the maker/layer boundary shared by source reads and append."""
+    body = current.payload
+    if 'claim_id' in body and 'claim_version' in body:
+        maker = body.get('maker')
+        if (scope['assertion_layer'] != body.get('assertion_layer')
+                or not isinstance(maker, dict) or scope['maker_id'] != maker.get('agent_ref')):
+            raise PermissionError('configured scope disagrees with source-owned claim layer or maker')
+        from source_identity_proposals import validate_assessment_scope
+        validate_assessment_scope(body, scope)
+    elif body['schema_version'] == 'tos_human_form_v1':
+        if scope['assertion_layer'] != 'human_projection' or scope['maker_id'] != body.get('creator_id'):
+            raise PermissionError('configured scope disagrees with source-owned form layer or maker')
+
+
 def _source_records(root: Path, bindings: Any, *, form_sets: dict | None = None,
                     identity_snapshots: dict | None = None,
                     claim_dependencies: dict | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -769,7 +831,7 @@ def _public_claim_required_sources(identifier, dependencies, sourced, native_sum
 
 def _materialize_source_form(config, sourced, form_sets, engine, context, history, *, now, contract_root,
                              owner_local_paths=None, owner_local_form_validator=None,
-                             materializer_validators=None, subject_assessment=None):
+                             materializer_validators=None, subject_assessment=None, field_validators=None):
     """Render the selected form from this exact source/journal snapshot only.
 
     This owner lane requires whole-subject context for assessed source forms. It
@@ -814,8 +876,9 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
             raise PermissionError('form bindings require explicit source-selected records')
     required_context, source_languages = [SourceBinding(subject, '')], ()
     if body['content']['kind'] == 'source-copy':
-        catalog = (claim_field_catalog(subject.payload) if is_claim
-                   else metadata_field_catalog(subject.payload))
+        catalog = (claim_field_catalog(subject.payload, **({'validators': field_validators} if field_validators is not None else {}))
+                   if is_claim else metadata_field_catalog(subject.payload,
+                       **({'field_language_validator': field_validators[0]} if field_validators is not None else {})))
         field = source_copy_field(subject, body, catalog)
         if field is None:
             raise PermissionError('assessed source-copy requires an exact source-owned field and role')
@@ -1090,6 +1153,284 @@ PUBLIC_SOURCE_OWNER_VERSIONS = frozenset({'tos_local_assessment_owner_v1',
     'tos_local_assessment_owner_v2', 'tos_local_assessment_owner_v3'})
 
 
+class _OtherPublicReadVersion(PermissionError):
+    """The existing non-v2 public command remains the only supported reader."""
+
+
+def _read_assembly_grammar(root):
+    """Pin fresh source/form/journal grammar, independently of process LRU state."""
+    from referencing import Registry, Resource
+    assessment_names = {suffix or '-assessment': 'knowledge-assessment' + suffix + '.schema.json'
+                        for suffix in ('', '-policy', '-authority', '-competence', '-batch')}
+    names = (*assessment_names.values(), 'human-form.schema.json', 'human-form-template.schema.json',
+             'human-form-set.schema.json', 'corpus-record.schema.json', 'claim-display-fields.schema.json')
+    schemas, fixity, total = {}, {}, 0
+    for name in names:
+        path = root / 'ToS/contracts' / name
+        with os.fdopen(_owned_path(path), 'rb') as stream:
+            before = os.fstat(stream.fileno())
+            raw = stream.read(MAX_RECORD_BYTES + 1)
+            after = os.fstat(stream.fileno())
+        total += len(raw)
+        if len(raw) > MAX_RECORD_BYTES or total > 8 * MAX_RECORD_BYTES:
+            raise ValueError('read assembly grammar exceeds its 8 MiB / 1 MiB per-file bound')
+        if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+            raise JournalConflict('assessment grammar changed during selection')
+        schemas[name] = _json_object(raw)
+        Draft202012Validator.check_schema(schemas[name])
+        fixity[path] = (len(raw), hashlib.sha256(raw).digest())
+
+    def registry(names):
+        return Registry().with_resources((schemas[name]['$id'], Resource.from_contents(schemas[name])) for name in names)
+
+    assessment_registry = registry(assessment_names.values())
+    assessment = {key: Draft202012Validator(schemas[name], registry=assessment_registry, format_checker=FormatChecker())
+                  for key, name in assessment_names.items()}
+    form_registry = registry(('knowledge-assessment.schema.json', 'human-form.schema.json', 'human-form-template.schema.json'))
+    forms = (Draft202012Validator(schemas['human-form.schema.json'], registry=form_registry),
+             Draft202012Validator(schemas['human-form-template.schema.json'], registry=form_registry),
+             Draft202012Validator({'$ref': schemas['human-form.schema.json']['$id'] + '#/$defs/languageContext'}, registry=form_registry))
+    form_set = Draft202012Validator(schemas['human-form-set.schema.json'], registry=registry(
+        ('knowledge-assessment.schema.json', 'human-form.schema.json', 'human-form-set.schema.json')))
+    fields = (Draft202012Validator({'$ref': schemas['corpus-record.schema.json']['$id'] + '#/properties/field_languages'},
+                                  registry=registry(('corpus-record.schema.json',))),
+              Draft202012Validator(schemas['claim-display-fields.schema.json'], registry=registry(
+                  ('claim-display-fields.schema.json', 'corpus-record.schema.json'))))
+    return assessment, forms, form_set, fields, fixity
+
+
+class PublicSourceReadSession:
+    """One bounded v2 read assembly; no append, callbacks or prepared JSON input.
+
+    Only complete, rechecked batches escape this object. Source preparation is
+    retained locally, but every batch fully recollects source/configuration at
+    its boundaries and freshly evaluates each journal twice. The journal is
+    never locked or written. This detects observed drift, not a cross-subject
+    transaction or a runtime lease. A failed or closed session cannot refresh
+    itself into a different snapshot. v1/v3 and confidential owners do not gain
+    a batch implementation.
+    """
+
+    MAX_SUBJECTS = 256
+    MAX_OUTPUT_BYTES = 16 * MAX_RECORD_BYTES
+
+    @classmethod
+    def for_public_owner(cls, owner_config: Path, subject_ids: list[str], *,
+                         contract_root: Path | None = None):
+        """Select v2 locally; leave the existing public v1/v3 path unchanged."""
+        try:
+            return cls(owner_config, subject_ids, contract_root=contract_root)
+        except _OtherPublicReadVersion:
+            return None
+
+    def __init__(self, owner_config: Path, subject_ids: list[str], *, contract_root: Path | None = None):
+        if not isinstance(subject_ids, list) or not 1 <= len(subject_ids) <= self.MAX_SUBJECTS:
+            raise ValueError('read assembly requires 1..256 distinct selected subjects')
+        subject_ids = tuple(subject_ids)
+        if (any(not isinstance(value, str) or not value.strip() for value in subject_ids)
+                or len(set(subject_ids)) != len(subject_ids)):
+            raise ValueError('read assembly requires 1..256 distinct selected subjects')
+        self.__owner_config = Path(owner_config)
+        with os.fdopen(_owned_path(self.__owner_config), 'rb') as stream:
+            self.__encoded = stream.read(8 * MAX_RECORD_BYTES + 1)
+        if len(self.__encoded) > 8 * MAX_RECORD_BYTES:
+            raise ValueError('owner configuration exceeds the 8 MiB snapshot budget')
+        config = _json_object(self.__encoded)
+        version = config.get('schema_version')
+        if version in PUBLIC_SOURCE_OWNER_VERSIONS - {'tos_local_assessment_owner_v2'}:
+            raise _OtherPublicReadVersion()
+        if version != 'tos_local_assessment_owner_v2':
+            raise PermissionError('read assembly accepts only public source-owner v2')
+        _keys(config, {'schema_version', 'uid', 'principal_id', 'execution_profile', 'policy',
+                       'authorities', 'competencies', 'records', 'subjects', 'journal_directory',
+                       'source_root', 'source_records'})
+        if (type(config['uid']) is not int or config['uid'] != os.getuid()
+                or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
+            raise PermissionError('configuration does not bind this local account')
+        if (not isinstance(config['subjects'], dict) or len(config['subjects']) > MAX_ASSESSMENTS
+                or not set(subject_ids) <= set(config['subjects'])):
+            raise PermissionError('read assembly exceeds the configured subject scope')
+        self.__config = config
+        self.__subject_ids = frozenset(subject_ids)
+        self.__root = Path(config['source_root'])
+        self.__contract_root = contract_root or Path(__file__).resolve().parents[5]
+        scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        from source_metadata_snapshot import PublicationSnapshot
+        self.__publication = PublicationSnapshot(self.__root)
+        self.__form_sets, self.__identities, self.__dependencies = {}, {}, {}
+        self.__sourced, self.__fixity = _source_records(self.__root, config['source_records'],
+            form_sets=self.__form_sets, identity_snapshots=self.__identities,
+            claim_dependencies=self.__dependencies)
+        self.__snapshot = 'sha256:' + _digest({'configuration': config, 'source_files': self.__fixity,
+            'resolved_records': self.__sourced, **self.__identities,
+            **({'public_claim_dependencies': self.__dependencies} if self.__dependencies else {})})
+        (self.__assessment_validators, self.__form_validators, self.__form_set_validator,
+         self.__field_validators, self.__grammar_fixity) = _read_assembly_grammar(self.__contract_root)
+        self.__engine = _owner_engine(config, self.__sourced, self.__contract_root,
+                                     validators=self.__assessment_validators)
+        directory = Path(config['journal_directory'])
+        os.close(_owned_path(directory, directory=True))
+        self.__journal = AssessmentJournal(directory, contract_root=contract_root, protected_storage=True,
+                                           batch_validator=self.__assessment_validators['-batch'])
+        self.__source_ids = frozenset(item['id'] for item in self.__sourced)
+        self.__closed = False
+        self.__active = threading.Lock()
+
+    def close(self):
+        self.__closed = True
+
+    def __enter__(self):
+        if self.__closed:
+            raise JournalConflict('read assembly is closed or invalidated')
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def __verify_source(self):
+        self.__publication.verify_current()
+        os.close(_owned_path(Path(self.__config['journal_directory']), directory=True))
+
+        def configuration():
+            with os.fdopen(_owned_path(self.__owner_config), 'rb') as stream:
+                if stream.read(len(self.__encoded) + 1) != self.__encoded:
+                    raise JournalConflict('protected source assessment configuration changed')
+
+        configuration()
+        identities, dependencies = {}, {}
+        records, fixity = _source_records(self.__root, self.__config['source_records'],
+            identity_snapshots=identities, claim_dependencies=dependencies)
+        if (records != self.__sourced or fixity != self.__fixity
+                or identities != self.__identities or dependencies != self.__dependencies):
+            raise JournalConflict('assessment supporting source snapshot changed')
+        configuration()
+        self.__publication.verify_current()
+        for path, (size, digest) in self.__grammar_fixity.items():
+            with os.fdopen(_owned_path(path), 'rb') as stream:
+                raw = stream.read(size + 1)
+            if len(raw) != size or hashlib.sha256(raw).digest() != digest:
+                raise JournalConflict('assessment read grammar changed during assembly')
+        self.__publication.verify_current()
+
+    def __read(self, request):
+        # Internal only: no caller callback receives a partially verified view.
+        config, engine = self.__config, self.__engine
+        identifier, operation = request['subject_id'], request['operation']
+        if operation != 'describe' and request['expected_snapshot'] != self.__snapshot:
+            raise JournalConflict('expected owner snapshot is stale')
+        current, scope = _configured_scope(config, engine, request)
+        if identifier in self.__source_ids:
+            _source_owned_scope(current, scope)
+        required = (_public_claim_required_sources(identifier, self.__dependencies, self.__sourced, ())
+                    if identifier in self.__dependencies else ())
+        native_subjects = ([record.payload for record in required] if identifier in self.__dependencies
+                           else [item['payload'] for item in self.__sourced])
+        native_bindings = [body['native_text_binding'] for body in native_subjects if 'native_text_binding' in body]
+        if ('native_text_binding' in current.payload
+                or current.payload.get('schema_version') == 'tos_occurrence_description_record_v1'):
+            native_bindings.append(current.payload.get('native_text_binding'))
+        # v2 has no native text-return adapter. Presence is never reading proof.
+        source_read_ready = not native_bindings
+        source_form = (identifier in self.__source_ids
+                       and current.payload.get('schema_version') == 'tos_human_form_v1')
+        if 'form_language_context' in scope and not source_form:
+            raise PermissionError('form linguistic context is outside a source-form scope')
+        if operation == 'materialize-form' and not source_read_ready:
+            raise PermissionError('native-bound form materialization requires the same explicitly selected exact text read')
+        context = SubjectContext(current, scope['assertion_layer'], scope['risk'], tuple(scope['languages']),
+            scope['maker_id'], scope['requested_use'], True, source_read_ready=source_read_ready,
+            required_sources=required)
+        now = datetime.now(timezone.utc).isoformat()
+        if operation == 'materialize-form':
+            if not source_form:
+                raise PermissionError('form materialization requires a source-bound form scope')
+            revision, chain = self.__journal._load(identifier)
+            packet = _materialize_source_form(config, self.__sourced, self.__form_sets, engine, context,
+                self.__journal._history(chain), now=now, contract_root=self.__contract_root,
+                owner_local_form_validator=self.__form_set_validator, materializer_validators=self.__form_validators,
+                field_validators=self.__field_validators)
+            result = {'revision': revision, 'batch_count': len(chain),
+                      'current_admission': packet['admission'], 'materialization': packet}
+        else:
+            result = self.__journal.inspect(engine, context, now=now)
+            if operation == 'describe':
+                result['command_context'] = {'subject': current.ref, 'policy': engine.policy.ref,
+                    'scope': scope, 'supported_operations': ['describe', 'inspect', 'append',
+                        *(['materialize-form'] if source_form and isinstance(current.payload.get('content'), dict)
+                          and current.payload['content'].get('kind') in ('source-copy', 'freeform') else [])],
+                    'grants_authority': False}
+                if required:
+                    result['command_context']['required_sources'] = [record.ref for record in required]
+                if native_bindings:
+                    result['command_context']['source_read'] = {'required': True, 'ready': False}
+                    result['command_context']['supported_operations'] = ['describe', 'inspect']
+                digests = {item['path']: item['digest'] for item in self.__fixity}
+                result['command_context']['source_records'] = [
+                    {'record': _envelope_record(item).ref, 'path': binding['path'],
+                     'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
+                    for item, binding in zip(self.__sourced, config['source_records'], strict=True)]
+                paths = {binding['path'] for binding in config['source_records']}
+                result['command_context']['source_contracts'] = [item for item in self.__fixity if item['path'] not in paths]
+        return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': self.__snapshot,
+                'authentication': 'local-unix-account', 'result': result}
+
+    def read_batch(self, requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Return all current replies or none; every invocation rechecks truth."""
+        if not self.__active.acquire(blocking=False):
+            raise JournalBusy('read assembly is already in use')
+        try:
+            if self.__closed:
+                raise JournalConflict('read assembly is closed or invalidated')
+            if not isinstance(requests, list) or not 1 <= len(requests) <= self.MAX_SUBJECTS:
+                raise ValueError('read batch exceeds its 256-request / 1 MiB bound')
+            encoded = _canonical(requests)
+            if len(encoded) > MAX_RECORD_BYTES:
+                raise ValueError('read batch exceeds its 256-request / 1 MiB bound')
+            # Validate owned copies, not dictionaries another caller can change
+            # after validation and before the private evaluator sees them.
+            requests = json.loads(encoded)
+            selected = set()
+            for request in requests:
+                if not isinstance(request, dict) or request.get('operation') not in ('describe', 'inspect', 'materialize-form'):
+                    raise PermissionError('read assembly cannot append or execute another operation')
+                fields = {'schema_version', 'operation', 'subject_id'}
+                if request['operation'] != 'describe':
+                    fields |= {'expected_subject', 'expected_snapshot'}
+                _keys(request, fields)
+                identifier = request['subject_id']
+                if (request['schema_version'] != 'tos_local_assessment_command_v1'
+                        or not isinstance(identifier, str) or identifier not in self.__subject_ids
+                        or identifier in selected):
+                    raise PermissionError('read batch must select distinct subjects inside its fixed scope')
+                selected.add(identifier)
+            self.__verify_source()
+            replies, size = [], 0
+            for request in requests:
+                reply = self.__read(request)
+                encoded = _canonical(reply)
+                size += len(encoded)
+                if size > self.MAX_OUTPUT_BYTES:
+                    raise ValueError('read batch exceeds its 16 MiB output bound')
+                replies.append(json.loads(encoded))
+            for request, reply in zip(requests, replies, strict=True):
+                if self.__read(request) != reply:
+                    raise JournalConflict('assessment journal or current admission changed during read assembly')
+            self.__verify_source()
+            for request, reply in zip(requests, replies, strict=True):
+                if self.__journal._load(request['subject_id'])[0] != reply['result']['revision']:
+                    raise JournalConflict('source assessment history changed before returning the read assembly')
+            if self.__closed:
+                raise JournalConflict('read assembly closed before return')
+            return replies
+        except BaseException:
+            self.__closed = True
+            raise
+        finally:
+            self.__active.release()
+
+
 def run_public_source_command(owner_config: Path, request: dict[str, Any], *,
                               contract_root: Path | None = None) -> dict[str, Any]:
     """Keep the existing graph adapter out of confidential v4 source inputs."""
@@ -1260,23 +1601,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     if not layer_quality and operation != 'describe' and request['expected_snapshot'] != snapshot:
         raise JournalConflict('expected owner snapshot is stale')
 
-    def envelope_record(value):
-        _keys(value, {'id', 'version', 'payload', 'origin_id'})
-        return Record.from_payload(**value)
-
-    for key in ('authorities', 'competencies', 'records'):
-        if not isinstance(config[key], list) or len(config[key]) > MAX_ASSESSMENTS:
-            raise ValueError('owner record collections must be bounded lists')
-    if len(config['records']) + len(sourced) > MAX_ASSESSMENTS:
-        raise ValueError('combined owner/source records exceed snapshot budget')
-    if {item['id'] for item in config['records']} & {item['id'] for item in sourced}:
-        raise ValueError('inline records cannot shadow source-bound records')
-    engine = AssessmentEngine(contract_root or Path(__file__).resolve().parents[5],
-                              envelope_record(config['policy']),
-                              [envelope_record(item) for item in config['authorities']],
-                              [envelope_record(item) for item in config['competencies']],
-                              [envelope_record(item) for item in [*config['records'], *sourced]],
-                              **({'validators': private_sources.assessment_validators} if private_sources is not None else {}))
+    engine = _owner_engine(config, sourced, contract_root or Path(__file__).resolve().parents[5],
+                           validators=private_sources.assessment_validators if private_sources is not None else None)
     subjects = config['subjects']
     identifier = request['subject_id']
     if (not isinstance(subjects, dict) or len(subjects) > MAX_ASSESSMENTS
@@ -1286,22 +1612,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             and identifier not in explicit_native_targets
             and (layer_sources is None or identifier not in layer_sources.layers)):
         raise PermissionError('native supporting layer is evidence, not a selected unit assessment target')
-    scope = subjects[identifier]
-    scope_fields = {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'}
-    if source_bound and 'form_language_context' in scope:
-        scope_fields.add('form_language_context')
-    _keys(scope, scope_fields)
-    current = engine.records.get(identifier)
-    if (current is None or _canonical(current.ref) != _canonical(scope['record'])
-            or (operation != 'describe' and _canonical(current.ref) != _canonical(request['expected_subject']))):
-        raise JournalConflict('expected subject or owner scope is stale')
-    if (not isinstance(scope['languages'], list) or not scope['languages']
-            or any(not isinstance(item, str) or not item for item in scope['languages'])
-            or any(not isinstance(scope[key], str) or not scope[key]
-                   for key in ('assertion_layer', 'risk', 'maker_id', 'requested_use'))):
-        raise ValueError('owner subject scope is incomplete')
-    if scope['access_allowed'] is not True:
-        raise PermissionError('subject access is not allowed')
+    current, scope = _configured_scope(config, engine, request)
     public_claim_bound = identifier in public_claim_dependencies
     required_sources = (_public_claim_required_sources(identifier, public_claim_dependencies, sourced,
                                                        native_summaries) if public_claim_bound
@@ -1324,17 +1635,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         if not required_languages <= {language.casefold() for language in scope['languages']}:
             raise PermissionError('private assessment scope omits source or authored-form languages')
     if identifier in {item['id'] for item in sourced}:
-        body = current.payload
-        if 'claim_id' in body and 'claim_version' in body:
-            maker = body.get('maker')
-            if (scope['assertion_layer'] != body.get('assertion_layer')
-                    or not isinstance(maker, dict) or scope['maker_id'] != maker.get('agent_ref')):
-                raise PermissionError('configured scope disagrees with source-owned claim layer or maker')
-            from source_identity_proposals import validate_assessment_scope
-            validate_assessment_scope(body, scope)
-        elif body['schema_version'] == 'tos_human_form_v1':
-            if scope['assertion_layer'] != 'human_projection' or scope['maker_id'] != body.get('creator_id'):
-                raise PermissionError('configured scope disagrees with source-owned form layer or maker')
+        _source_owned_scope(current, scope)
     # A public occurrence description is metadata about a use, not proof that
     # its text was read. Match the ENTIRE fixed binding, not merely a unit ID.
     # This applies to supporting occurrence records and source-bound forms too;
@@ -1518,7 +1819,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 if source_bound:
                     digests = {item['path']: item['digest'] for item in fixity}
                     result['command_context']['source_records'] = [
-                        {'record': envelope_record(item).ref, 'path': binding['path'],
+                        {'record': _envelope_record(item).ref, 'path': binding['path'],
                          'file_digest': digests[binding['path']], 'origin_id': item['origin_id']}
                         for item, binding in zip(regular_sourced, config['source_records'], strict=True)]
                     paths = {binding['path'] for binding in config['source_records']}
@@ -1532,7 +1833,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                             result['command_context']['supported_operations'] = ['describe', 'inspect']
                     if private_sources is not None:
                         result['command_context']['owner_local_source_records'] = [
-                            {'record': envelope_record(item).ref, 'origin_id': item['origin_id']}
+                            {'record': _envelope_record(item).ref, 'origin_id': item['origin_id']}
                             for item in private_sources.records]
                         result['command_context']['owner_local_contracts'] = [
                             {'path': path, 'digest': 'sha256:' + digest}

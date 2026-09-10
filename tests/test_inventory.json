@@ -1251,6 +1251,21 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/tests/test_assessment_read_batch.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_bound_assessment_read_assembly",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "v2-only invocation-local source-preparation reuse, fully buffered exact-scope reads, fresh journal/current-time evaluation, source/configuration/schema/registry/grammar drift and publication-epoch refusal, immutable replies and fail-closed lifetime, unchanged single-command compatibility and post-fsync no-replace candidate currentness; not substantive assessment, a global cache, runtime lease or cross-subject transaction",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_assessment_read_batch.py",
+      "failure_route": "Fix the source-owner read assembly or existing assessed-form consumer without weakening source, journal, authority or publication guards.",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/tests/test_human_forms.py",
       "home": "mechanics/growth-cycle/tests",
       "home_scope": "mechanic-level",

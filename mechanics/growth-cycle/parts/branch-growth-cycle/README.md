@@ -561,6 +561,37 @@ transaction across both files; common-reader carrier parity rejects a mixed
 pair. Double collection observes source/configuration and committed per-form
 journal changes; it is not a lock across all subjects or a runtime lease.
 
+For public owner v2, this same snapshot now uses an invocation-local
+`assessment_journal.PublicSourceReadSession(owner_config, subject_ids)`.
+Its `read_batch(requests)` accepts only ordinary `describe`, `inspect` and
+`materialize-form` requests, at most 256 distinct explicitly selected subjects
+and 1 MiB of request JSON per batch. The complete reply has a 16 MiB bound;
+larger selections must be narrowed, never silently truncated. Preparation
+retains one exact source selection, while every batch fully recollects source,
+configuration, declared identity/Claim dependencies and publication state at
+its boundaries. Both subject journal reads use fresh current-time evaluation,
+and all observed heads are checked again before any result escapes. There is
+no streaming callback, caller-supplied prepared state or cached admission.
+
+Engine, journal, form and field-language validators are freshly built from a
+separately pinned bounded grammar (8 MiB total, 1 MiB per file), including an
+explicit `contract_root` when supplied. These internal grammar byte guards do
+not change the public owner snapshot hash or turn process-wide validator LRU
+entries into currentness evidence. A source, configuration, grammar, epoch or
+observed history change fails the whole read; a failed or closed session never
+refreshes itself into another snapshot. Public v1/v3 keep their existing
+single-command route, and confidential v4-v6 gain no public reader. Append
+continues through the unchanged journal lock/replay/commit-edge checks.
+
+Both existing Python builders reuse this same instance when the caller passes
+it explicitly; separate CLI processes do not share a cache. Candidate writing
+rechecks the assembly after staging-file fsync immediately before the atomic
+no-replace link, as well as before staging. This remains observed currentness,
+not an atomic transaction across journals, sources or the two output files.
+Focused synthetic regression belongs to
+`mechanics/growth-cycle/tests/test_assessment_read_batch.py`; preparation-count
+bounds protect the reuse mechanism without treating timing as authority.
+
 Selected forms must resolve exactly once on each projection's existing source
 carrier, with matching source/form refs and owner-selected paths. Current
 policy admission governs wording; pending, withdrawn or restricted forms stay

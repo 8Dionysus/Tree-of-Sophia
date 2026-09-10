@@ -56,12 +56,12 @@ class AssessedFormSnapshot:
         self.form_ids = frozenset(form_ids)
         self._snapshot = None
         self._observed = {}
+        self._reader = None
+        self._reader_selected = False
 
-    def _resolve(self, subject, form_ref, source_path, form_path):
-        from assessment_journal import JournalConflict, run_public_source_command
+    def _bind_request(self, subject, form_ref, source_path, form_path, described):
+        from assessment_journal import JournalConflict
         identity = form_ref['id']
-        described = run_public_source_command(self.owner_config, {
-            'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': identity})
         context = described['result']['command_context']
         snapshot = described['owner_snapshot']
         if self._snapshot is not None and snapshot != self._snapshot:
@@ -72,9 +72,12 @@ class AssessedFormSnapshot:
                 or selected.get(subject.id, {}).get('path') != source_path
                 or selected.get(subject.id, {}).get('record') != subject.ref):
             raise JournalConflict('graph and assessment owner bind different source/form inputs')
-        request = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'materialize-form',
-                   'subject_id': identity, 'expected_subject': form_ref, 'expected_snapshot': snapshot}
-        reply = run_public_source_command(self.owner_config, request)
+        return {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'materialize-form',
+                'subject_id': identity, 'expected_subject': form_ref, 'expected_snapshot': snapshot}
+
+    def _remember_reply(self, subject, form_ref, request, reply):
+        from assessment_journal import JournalConflict
+        identity, snapshot = form_ref['id'], request['expected_snapshot']
         result = reply['result']
         packet = result['materialization']
         if packet['subject'] != subject.ref or packet['form'] != form_ref:
@@ -90,14 +93,42 @@ class AssessedFormSnapshot:
             'current_runtime_grant': False,
             **({'subject_assessment_required': True} if 'subject_assessment' in packet else {})}}
 
+    def _resolve(self, subject, form_ref, source_path, form_path):
+        # The pre-existing v1/v3 route keeps its single-command semantics.
+        from assessment_journal import run_public_source_command
+        described = run_public_source_command(self.owner_config, {
+            'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': form_ref['id']})
+        request = self._bind_request(subject, form_ref, source_path, form_path, described)
+        return self._remember_reply(subject, form_ref, request, run_public_source_command(self.owner_config, request))
+
+    def _resolve_batch(self, selections):
+        from assessment_journal import JournalConflict
+        described = self._reader.read_batch([
+            {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe', 'subject_id': form_ref['id']}
+            for subject, form_ref, source_path, form_path in selections])
+        if len({reply['owner_snapshot'] for reply in described}) != 1:
+            raise JournalConflict('assessment graph inputs changed during assembly')
+        requests = [self._bind_request(*selection, reply)
+                    for selection, reply in zip(selections, described, strict=True)]
+        # No unverified per-form callback crosses this boundary. Both batches
+        # have completed their source/configuration/journal checks before use.
+        replies = self._reader.read_batch(requests)
+        return [self._remember_reply(selection[0], selection[1], request, reply)
+                for selection, request, reply in zip(selections, requests, replies, strict=True)]
+
     def verify_current(self):
         """Fail on observed change; do not silently rebuild only part of a graph."""
         from assessment_journal import JournalConflict, run_public_source_command
         if set(self._observed) != self.form_ids:
             raise ValueError('selected assessed forms are not all present in the graph')
-        for identity in sorted(self._observed):
-            observed = self._observed[identity]
-            current = run_public_source_command(self.owner_config, observed['request'])
+        observations = [self._observed[identity] for identity in sorted(self._observed)]
+        if self._reader is None:
+            for observed in observations:
+                if run_public_source_command(self.owner_config, observed['request']) != observed['reply']:
+                    raise JournalConflict('assessment graph snapshot changed before return')
+            return
+        current_replies = self._reader.read_batch([item['request'] for item in observations])
+        for observed, current in zip(observations, current_replies, strict=True):
             if current != observed['reply']:
                 raise JournalConflict('assessment graph snapshot changed before return')
 
@@ -109,8 +140,11 @@ class AssessedFormSnapshot:
         The result is local research material: assessment limits and explicit
         source context have not received a separate public-safety clearance.
         """
-        from assessment_journal import JournalConflict
-        output, seen = [], set()
+        from assessment_journal import JournalConflict, PublicSourceReadSession
+        if not self._reader_selected:
+            self._reader = PublicSourceReadSession.for_public_owner(self.owner_config, sorted(self.form_ids))
+            self._reader_selected = True
+        output, seen, destinations, selections = [], set(), [], []
         for node in nodes:
             properties = node.get('properties', {})
             packets = properties.get('human_forms', [])
@@ -134,17 +168,28 @@ class AssessedFormSnapshot:
                 if identity in seen or packet.get('subject') != subject.ref:
                     raise ValueError('selected form must have one exact source carrier')
                 seen.add(identity)
-                replacement['properties']['human_forms'][index] = self._resolve(
-                    subject, packet['form'], node.get('source_ref'), properties.get('human_forms_source_ref'))
-                if len(json.dumps(replacement['properties']['human_forms'][index], ensure_ascii=False,
-                                  separators=(',', ':')).encode()) > 65_536:
-                    raise ValueError('assessed form with snapshot binding exceeds its output budget')
-            if len(json.dumps(replacement['properties']['human_forms'], ensure_ascii=False,
-                              separators=(',', ':')).encode()) > MAX_SET_OUTPUT_BYTES:
-                raise ValueError('assessed form set exceeds its output budget')
+                selection = (subject, packet['form'], node.get('source_ref'), properties.get('human_forms_source_ref'))
+                if self._reader is None:
+                    replacement['properties']['human_forms'][index] = self._resolve(*selection)
+                else:
+                    selections.append(selection)
+                destinations.append((replacement, index))
             output.append(replacement)
         if seen != self.form_ids:
             raise ValueError('selected assessed forms are not all present in the graph')
+        if self._reader is not None:
+            for (node, index), packet in zip(destinations, self._resolve_batch(selections), strict=True):
+                node['properties']['human_forms'][index] = packet
+        for node, index in destinations:
+            if len(json.dumps(node['properties']['human_forms'][index], ensure_ascii=False,
+                              separators=(',', ':')).encode()) > 65_536:
+                raise ValueError('assessed form with snapshot binding exceeds its output budget')
+        for node in output:
+            if any(packet.get('form', {}).get('id') in self.form_ids
+                   for packet in node.get('properties', {}).get('human_forms', [])):
+                if len(json.dumps(node['properties']['human_forms'], ensure_ascii=False,
+                                  separators=(',', ':')).encode()) > MAX_SET_OUTPUT_BYTES:
+                    raise ValueError('assessed form set exceeds its output budget')
         self.verify_current()
         return output
 
@@ -189,6 +234,7 @@ def write_assessed_candidate(target, rendered, snapshot):
             stream.write(rendered)
             stream.flush()
             os.fsync(stream.fileno())
+        snapshot.verify_current()
         os.link(temporary, target)  # Atomic complete visibility; never overwrite.
         directory = os.open(target.parent, os.O_RDONLY | os.O_DIRECTORY)
         try:
@@ -226,7 +272,7 @@ def _field_language_validator():
     return Draft202012Validator({'$ref': schema['$id'] + '#/properties/field_languages'}, registry=registry)
 
 
-def metadata_field_catalog(source: dict) -> list[dict]:
+def metadata_field_catalog(source: dict, *, field_language_validator=None) -> list[dict]:
     """Semantic field selectors for this adapter; callers never guess pointers.
 
     Variant ordinals are snapshot-local, not stable name identities. An exact
@@ -254,7 +300,7 @@ def metadata_field_catalog(source: dict) -> list[dict]:
         # They never supply this HumanForm's current semantic admission.
         context.append('/promotion_basis')
     declarations = source.get('field_languages', {})
-    if not _field_language_validator().is_valid(declarations):
+    if not (field_language_validator if field_language_validator is not None else _field_language_validator()).is_valid(declarations):
         raise ValueError('source field-language declarations violate the source contract')
     if any(not isinstance(source.get(key), str) or not source[key].strip() for key in declarations):
         raise ValueError('source field-language declaration has no complete wording field')
@@ -298,7 +344,7 @@ def _claim_display_validator():
     return Draft202012Validator(schemas[0], registry=registry)
 
 
-def claim_field_catalog(source: dict) -> list[dict]:
+def claim_field_catalog(source: dict, *, validators=None) -> list[dict]:
     """Whole authored fields only; the entire Claim guards every reading.
 
     A source profile validates the Claim before calling this adapter. No label,
@@ -307,13 +353,13 @@ def claim_field_catalog(source: dict) -> list[dict]:
     qualifiers = source.get('qualifiers') or {}
     display = qualifiers.get('display_fields')
     understood = isinstance(display, dict) and display.get('schema_version') == CLAIM_DISPLAY_VERSION
-    if understood and not _claim_display_validator().is_valid(qualifiers):
+    if understood and not (validators[1] if validators is not None else _claim_display_validator()).is_valid(qualifiers):
         raise ValueError('Claim display fields violate their explicit source contract')
     statement = qualifiers.get('statement')
     if not isinstance(statement, str) or not statement.strip():
         return []
     language, script = qualifiers.get('statement_language'), qualifiers.get('statement_script')
-    if not _field_language_validator().is_valid({'notes': {'language': language, 'script': script}}):
+    if not (validators[0] if validators is not None else _field_language_validator()).is_valid({'notes': {'language': language, 'script': script}}):
         raise ValueError('claim statement language/script violates the source-form contract')
     result = [{'field_id': 'claim.statement', 'pointer': '/qualifiers/statement', 'role': 'statement',
                'language': language, 'script': script, 'context': ['']}]
