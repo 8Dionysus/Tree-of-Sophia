@@ -51,6 +51,7 @@
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
 
 ## command lane
 
@@ -183,6 +184,7 @@
 ## human forms
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
 
 ## incremental projection
 
@@ -233,6 +235,7 @@
 ## navigation descriptor
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
+- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
 
 ## none
 
@@ -354,6 +357,7 @@
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
+- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
 
 ## skill helper boundary
 

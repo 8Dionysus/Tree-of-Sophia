@@ -179,7 +179,8 @@ def _claim_navigation_template_violations(registry: dict[str, Any]) -> list[str]
     fields = {'template_id', 'template_version', 'reader', 'purpose', 'owner_ref',
               'default_language', 'max_output_bytes', 'marker', 'status_labels', 'renderings'}
     invalid = ['claim navigation template violates its finite source contract']
-    if (not isinstance(template, dict) or set(template) != fields
+    if (not isinstance(template, dict) or not fields <= set(template)
+            or set(template) - fields - {'object_label_adapters'}
             or not isinstance(template['template_id'], str)
             or not re.fullmatch(r'tos\.navigation-template\.[a-z0-9]+(?:[.-][a-z0-9]+)*', template['template_id'])
             or type(template['template_version']) is not int or template['template_version'] < 1
@@ -187,6 +188,10 @@ def _claim_navigation_template_violations(registry: dict[str, Any]) -> list[str]
             or template['purpose'] != 'claim-navigation-only'
             or template['owner_ref'] != 'ToS/doctrine/HUMAN_FORMS.md'
             or type(template['max_output_bytes']) is not int or not 128 <= template['max_output_bytes'] <= 16384):
+        return invalid
+    if 'object_label_adapters' in template and (
+            template['object_label_adapters'] != ['historical-time-source-wording-v1']
+            or template['template_version'] < 2):
         return invalid
     renderings, statuses = template['renderings'], template['status_labels']
     status_keys = {'epistemic_status': {'observed', 'inferred', 'reported', 'interpreted', 'uncertain', 'disputed'},
@@ -2236,6 +2241,30 @@ def _claim_navigation_endpoint(node: dict[str, Any], identity_ref: Any) -> dict[
             'record_version': version, 'sha256': digest, 'label_pointer': pointer, 'label': value}
 
 
+def _claim_navigation_time_endpoint(node, claim):
+    value = claim['object']
+    properties = node.get('properties')
+    wording = value.get('source_wording')
+    if (not isinstance(properties, dict) or not isinstance(wording, dict)
+            or not isinstance(wording.get('text'), str) or not wording['text'].strip()
+            or 'language' not in wording
+            or wording['language'] is not None and not isinstance(wording['language'], str)
+            or node.get('node_kind') != 'literal'
+            or node.get('node_id') != 'literal:sha256:' + _validation_digest({'claim_ref': claim['claim_id'], 'value': value})
+            or properties.get('claim_ref') != claim['claim_id']
+            or _validation_digest(properties.get('value')) != _validation_digest(value)
+            or properties.get('value_sha256') != _validation_digest(value)
+            or node.get('source_sha256') != _validation_digest(claim)
+            or not isinstance(node.get('source_ref'), str) or not node['source_ref']
+            or type(node.get('source_line')) is not int or node['source_line'] < 1):
+        return None
+    return {'claim_ref': claim['claim_id'], 'node_id': node['node_id'],
+        'source_ref': node['source_ref'], 'source_line': node['source_line'],
+        'claim_version': claim['claim_version'], 'sha256': _validation_digest(claim),
+        'value_sha256': _validation_digest(value), 'label_pointer': '/object/source_wording/text',
+        'label': wording['text'], 'language': wording['language']}
+
+
 def _expected_claim_navigation(
     claim, subject_node, object_node, registry, entity_entries, entity_mappings,
 ):
@@ -2260,16 +2289,25 @@ def _expected_claim_navigation(
             or candidates[0][0].get('assertion_mode') != 'reified-claim'):
         return unavailable('predicate-not-understood')
     entry, mapping = candidates[0]
-    if not isinstance(claim.get('object'), str) or object_node.get('node_kind') != 'identity':
+    value = claim.get('object')
+    temporal = ('historical-time-source-wording-v1' in template.get('object_label_adapters', [])
+                and (entry.get('source_claim_profile') or {}).get('reader') == 'historical-temporal-v1'
+                and isinstance(value, dict) and value.get('role') == 'historical-time'
+                and isinstance(value.get('kind'), str)
+                and value['kind'] in {'date-assertion', 'interval-assertion', 'relative-order', 'unknown-date'}
+                and object_node.get('node_kind') == 'literal')
+    if not temporal and (not isinstance(value, str) or object_node.get('node_kind') != 'identity'):
         return unavailable('object-not-identity')
-    for node, allowed in ((subject_node, entry['domain_type_ids']), (object_node, entry['range_type_ids'])):
-        kind = (node.get('properties') or {}).get('identity_kind')
+    for node, allowed, override in ((subject_node, entry['domain_type_ids'], None),
+            (object_node, entry['range_type_ids'], 'temporal-assertion' if temporal else None)):
+        kind = override or (node.get('properties') or {}).get('identity_kind')
         type_id = entity_mappings.get(('source-claims', kind)) if isinstance(kind, str) else None
         if (not type_id or entity_entries[type_id].get('abstract') is not False
                 or not _type_is_a(type_id, allowed, entity_entries)):
             return unavailable('endpoint-type-not-understood')
     subject = _claim_navigation_endpoint(subject_node, claim.get('subject_ref'))
-    target = _claim_navigation_endpoint(object_node, claim['object'])
+    target = (_claim_navigation_time_endpoint(object_node, claim) if temporal
+              else _claim_navigation_endpoint(object_node, claim['object']))
     if subject is None or target is None:
         return unavailable('source-name-unavailable')
     statuses = {}
@@ -2307,10 +2345,13 @@ def _expected_claim_navigation(
 
 def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_entries, entity_mappings):
     by_identity = defaultdict(list)
+    by_literal = defaultdict(list)
     for node in bibliographic_nodes:
         properties = node.get('properties') or {}
         if node.get('node_kind') == 'identity' and isinstance(properties.get('identity_ref'), str):
             by_identity[properties['identity_ref']].append(node)
+        elif node.get('node_kind') == 'literal' and isinstance(properties.get('claim_ref'), str):
+            by_literal[properties['claim_ref']].append(node)
     def endpoint(identity):
         matches = by_identity.get(identity, []) if isinstance(identity, str) else []
         return matches[0] if len(matches) == 1 else {}
@@ -2332,7 +2373,13 @@ def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_en
                                      'epistemic_status', 'review_status', 'qualifiers'))
                 or not isinstance(registry.get('claim_navigation_template'), dict)):
             raise ValueError('claim navigation carrier has no exact source/template binding')
-        expected = _expected_claim_navigation(claim, endpoint(claim.get('subject_ref')), endpoint(claim.get('object')),
+        target = endpoint(claim.get('object'))
+        if isinstance(claim.get('object'), dict):
+            matches = by_literal.get(claim['claim_id'], [])
+            if (len(matches) == 1 and matches[0].get('source_ref') == node.get('source_ref')
+                    and matches[0].get('source_line') == node.get('source_line')):
+                target = matches[0]
+        expected = _expected_claim_navigation(claim, endpoint(claim.get('subject_ref')), target,
                                               registry, entity_entries, entity_mappings)
         if _validation_digest(properties['navigation_descriptor']) != _validation_digest(expected):
             raise ValueError(f"claim navigation carrier differs from source-bound syntax: {claim['claim_id']}")

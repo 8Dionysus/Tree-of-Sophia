@@ -198,7 +198,7 @@ def _navigation_source_endpoint(node: dict[str, Any], identity_ref: Any) -> dict
 
 def _navigation_endpoint_types(
     subject_node: dict[str, Any], object_node: dict[str, Any], relation: dict[str, Any],
-    entity_registry: dict[str, Any],
+    entity_registry: dict[str, Any], *, object_kind: str | None = None,
 ) -> bool:
     """Exact source-kind mapping and parent closure; IDs never imply types."""
     entries = entity_registry.get('types', [])
@@ -217,14 +217,15 @@ def _navigation_endpoint_types(
             result.update(inherited)
         return result
 
-    for node, allowed in ((subject_node, relation['domain_type_ids']),
-                          (object_node, relation['range_type_ids'])):
+    for node, allowed, override in ((subject_node, relation['domain_type_ids'], None),
+                                    (object_node, relation['range_type_ids'], object_kind)):
         properties = node.get('properties')
-        if not isinstance(properties, dict) or not isinstance(properties.get('identity_kind'), str):
+        kind = override or (properties.get('identity_kind') if isinstance(properties, dict) else None)
+        if not isinstance(properties, dict) or not isinstance(kind, str):
             return False
         mappings = [entry for entry in entries for mapping in entry['source_mappings']
                     if mapping.get('source_graph') == 'source-claims'
-                    and mapping.get('source_kind_id') == properties['identity_kind']]
+                    and mapping.get('source_kind_id') == kind]
         if (len(mappings) != 1 or mappings[0].get('abstract') is not False
                 or any(type_id not in entities for type_id in allowed)):
             return False
@@ -232,6 +233,30 @@ def _navigation_endpoint_types(
         if closure is None or not closure.intersection(allowed):
             return False
     return True
+
+
+def _navigation_time_endpoint(node: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any] | None:
+    """Exact historical-time source wording, not a formatted/converted date."""
+    value = claim['object']
+    properties = node.get('properties') or {}
+    wording = value.get('source_wording')
+    if (not isinstance(properties, dict) or not isinstance(wording, dict) or not isinstance(wording.get('text'), str)
+            or not wording['text'].strip() or 'language' not in wording
+            or wording['language'] is not None and not isinstance(wording['language'], str)
+            or node.get('node_kind') != 'literal'
+            or node.get('node_id') != 'literal:sha256:' + canonical_digest({'claim_ref': claim['claim_id'], 'value': value})
+            or properties.get('claim_ref') != claim['claim_id']
+            or canonical_digest(properties.get('value')) != canonical_digest(value)
+            or properties.get('value_sha256') != canonical_digest(value)
+            or node.get('source_sha256') != canonical_digest(claim)
+            or not isinstance(node.get('source_ref'), str) or not node['source_ref']
+            or type(node.get('source_line')) is not int or node['source_line'] < 1):
+        return None
+    return {'claim_ref': claim['claim_id'], 'node_id': node['node_id'],
+            'source_ref': node['source_ref'], 'source_line': node['source_line'],
+            'claim_version': claim['claim_version'], 'sha256': canonical_digest(claim),
+            'value_sha256': canonical_digest(value), 'label_pointer': '/object/source_wording/text',
+            'label': wording['text'], 'language': wording['language']}
 
 
 def build_claim_navigation_descriptor(
@@ -242,6 +267,8 @@ def build_claim_navigation_descriptor(
 
     Registry/template must come from ``load_claim_navigation_registry``.
     Failure priority is mapping, object, endpoint types/names, statuses, render.
+    A template opt-in can name exact historical-time source wording; it does
+    not convert temporal values or widen source-profile admission.
     Source-profile and legacy Claim validators retain source admission authority.
     """
     template = registry.get('claim_navigation_template')
@@ -271,12 +298,21 @@ def build_claim_navigation_descriptor(
             or candidates[0][0].get('assertion_mode') != 'reified-claim'):
         return unavailable('predicate-not-understood')
     relation, mapping = candidates[0]
-    if not isinstance(claim.get('object'), str) or object_node.get('node_kind') != 'identity':
+    value = claim.get('object')
+    temporal = ('historical-time-source-wording-v1' in template.get('object_label_adapters', [])
+                and (relation.get('source_claim_profile') or {}).get('reader') == 'historical-temporal-v1'
+                and isinstance(value, dict) and value.get('role') == 'historical-time'
+                and isinstance(value.get('kind'), str)
+                and value.get('kind') in {'date-assertion', 'interval-assertion', 'relative-order', 'unknown-date'}
+                and object_node.get('node_kind') == 'literal')
+    if not temporal and (not isinstance(value, str) or object_node.get('node_kind') != 'identity'):
         return unavailable('object-not-identity')
-    if not _navigation_endpoint_types(subject_node, object_node, relation, entity_registry):
+    if not _navigation_endpoint_types(subject_node, object_node, relation, entity_registry,
+                                      object_kind='temporal-assertion' if temporal else None):
         return unavailable('endpoint-type-not-understood')
     subject = _navigation_source_endpoint(subject_node, claim.get('subject_ref'))
-    target = _navigation_source_endpoint(object_node, claim['object'])
+    target = (_navigation_time_endpoint(object_node, claim) if temporal
+              else _navigation_source_endpoint(object_node, claim['object']))
     if subject is None or target is None:
         return unavailable('source-name-unavailable')
     statuses = {}

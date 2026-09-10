@@ -405,11 +405,12 @@ class KnowledgeContractTests(unittest.TestCase):
             with self.subTest(case=case), self.assertRaisesRegex(ValueError, 'record history relation'):
                 build(candidate)
 
-    def _claim_navigation_fixture(self):
+    def _claim_navigation_fixture(self, claim_ref=None):
         sys.path.insert(0, str(self.repo_root / 'scripts'))
         from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
         payload = json.loads((self.repo_root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
-        trace = next(value for value in payload['claim_traces'] if value['predicate'] == 'translated_by')
+        trace = next(value for value in payload['claim_traces']
+                     if (value['claim_ref'] == claim_ref if claim_ref else value['predicate'] == 'translated_by'))
         edges = [edge for edge in payload['edges'] if edge.get('claim_ref') == trace['claim_ref']]
         identities = {trace['claim_node_id'], *(edge[key] for edge in edges for key in ('from_id', 'to_id'))}
         source = {'nodes': [node for node in payload['nodes'] if node['node_id'] in identities],
@@ -427,6 +428,66 @@ class KnowledgeContractTests(unittest.TestCase):
     def _navigation_graph(self, source, registry=None):
         return build_knowledge_graph(*self.fixture(), source, self.entity_type_registry,
                                      registry or self.relation_type_registry)
+
+    def test_claim_navigation_temporal_wording_is_exact_nonstandalone_source_context(self):
+        from tos_access.knowledge import _lens_carrier
+        source, raw, subject, target, refresh = self._claim_navigation_fixture(
+            'tos.claim.jenseits-1886-commission.date')
+        original = copy.deepcopy(raw['properties']['source_claim'])
+        descriptor = raw['properties']['navigation_descriptor']
+        self.assertEqual(descriptor['state'], 'ready')
+        self.assertEqual(descriptor['object']['label'], '03. 06.1886')
+        self.assertEqual(descriptor['object']['language'], 'de')
+        self.assertEqual(descriptor['object']['label_pointer'], '/object/source_wording/text')
+        self.assertNotIn('identity_ref', descriptor['object'])
+        self.assertFalse(descriptor['standalone'])
+        for language in ('ru', 'en'):
+            self.assertIn('03. 06.1886', descriptor['title'][language])
+            self.assertNotIn('1886-06-03', descriptor['title'][language])
+        graph = self._navigation_graph(source)
+        normalized = next(node for node in graph['nodes'] if node['native_id'] == raw['node_id'])
+        self.assertEqual(normalized['attributes']['source_claim'], original)
+        self.assertFalse(normalized['attributes'].get('human_forms'))
+        for detail in ('full', 'compact'):
+            packet = _lens_carrier(normalized, detail, language='en')
+            self.assertFalse(packet['display']['provenance']['source_title_available'])
+            self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+        old = copy.deepcopy(self.relation_type_registry)
+        old['claim_navigation_template'].pop('object_label_adapters')
+        old['claim_navigation_template']['template_version'] = 1
+        refresh(old)
+        self.assertEqual(raw['properties']['navigation_descriptor']['reason'], 'object-not-identity')
+        self._navigation_graph(source, old)
+
+    def test_claim_navigation_temporal_carrier_rejects_forged_value_and_source_return(self):
+        for mutation in ('value', 'label', 'claim-digest', 'value-digest', 'node-id', 'source-ref',
+                         'source-line', 'duplicate-literal'):
+            source, raw, subject, target, _ = self._claim_navigation_fixture(
+                'tos.claim.jenseits-1886-commission.date')
+            if mutation == 'value': target['properties']['value']['calendar'] = 'invented'
+            elif mutation == 'label': raw['properties']['navigation_descriptor']['object']['label'] = '1886-06-03'
+            elif mutation == 'claim-digest': target['source_sha256'] = '0' * 64
+            elif mutation == 'value-digest': target['properties']['value_sha256'] = '0' * 64
+            elif mutation == 'node-id': target['node_id'] += '0'
+            elif mutation == 'source-ref': target['source_ref'] = 'ToS/not-the-claim.jsonl'
+            elif mutation == 'source-line': target['source_line'] += 1
+            else: source['nodes'].append(copy.deepcopy(target))
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                self._navigation_graph(source)
+
+    def test_claim_navigation_temporal_adapter_requires_explicit_versioned_opt_in(self):
+        schema = json.loads((self.repo_root / 'ToS/contracts/semantic-relation-type-registry.schema.json').read_text())
+        for value in ([], ['unknown-reader'], 'historical-time-source-wording-v1',
+                      ['historical-time-source-wording-v1'] * 2):
+            registry = copy.deepcopy(self.relation_type_registry)
+            registry['claim_navigation_template']['object_label_adapters'] = value
+            with self.subTest(adapter=value):
+                self.assertFalse(Draft202012Validator(schema).is_valid(registry))
+                self.assertFalse(validate_semantic_registries(self.entity_type_registry, registry)['valid'])
+        registry = copy.deepcopy(self.relation_type_registry)
+        registry['claim_navigation_template']['template_version'] = 1
+        self.assertFalse(Draft202012Validator(schema).is_valid(registry))
+        self.assertFalse(validate_semantic_registries(self.entity_type_registry, registry)['valid'])
 
     def test_claim_navigation_preserves_context_without_claiming_source_wording(self):
         from tos_access.knowledge import _lens_carrier, knowledge_scene

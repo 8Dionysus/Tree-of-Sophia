@@ -465,7 +465,8 @@ endpoint names remain whole, exact source strings. Status wording describes
 what the source record declares, not the outcome of a later assessment.
 
 Only a unique concrete reified predicate mapping with understood domain/range
-and identity endpoints is eligible. An exact mapping label takes precedence;
+is eligible. Without an explicit object adapter, both endpoints must be
+identities. An exact mapping label takes precedence;
 a relation-family label is usable only when that entry has one Claim-predicate
 mapping. Endpoint names bind `/preferred_label`, or the native artifact adapter's
 explicit `/custody/inventory_numbers/0`. An arbitrary carrier pointer, ID-derived
@@ -476,7 +477,8 @@ not understood/available, or output over budget. No partial title is substituted
 
 The descriptor binds the exact template/version, full source Claim/version,
 used predicate entry and mapping, and both endpoint records/versions/names by
-canonical JSON digests. It does not depend on unrelated registry entries.
+canonical JSON digests (or the explicit typed-value adapter binding below).
+It does not depend on unrelated registry entries.
 The Claim's entire qualifications, alternatives, evidence and unknown fields
 remain source context. The field catalogue does not assert that the named
 relation is true; it must never stand in for omitted negation, time, conditions,
@@ -499,6 +501,26 @@ repurposing of template identity, reader, purpose or owner. Removing or changing
 that contract incompatibly requires an explicit migration, not a UI heuristic.
 See [TOS-D-0057](../../docs/decisions/TOS-D-0057-source-owned-claim-navigation.md)
 for this boundary's rationale. Full legacy HumanForm migration remains separate.
+
+Template version 2 opts into `historical-time-source-wording-v1` through the
+optional `object_label_adapters` list. This adapter requires the existing
+`historical-temporal-v1` source profile and an understood temporal range. It
+copies only the whole `/object/source_wording/text` from a historical-time date,
+interval, relative-order or unknown-date value, preserving its declared language
+(including explicit null). It neither formats the normalized value nor supplies
+a missing calendar, year numbering, precision or date. The literal carrier binds
+the same full Claim, source file/line, Claim version/digest, exact object digest
+and derived literal ID; it does not create an identity record for a value.
+Canonical comparisons preserve false versus zero inside the retained value.
+
+The result remains a nonstandalone navigation field catalogue. The original
+Claim's qualifications, attribution, uncertainty, source-declared review status
+and complete raw temporal object remain necessary reading context; an exact
+wording string does not make a dating exact or accepted. Missing wording, an
+unknown adapter/type, wrong range, ambiguous literal, stale binding or over-budget
+title still produces no partial ready descriptor. A version-1 template without
+the adapter retains identity-only behavior. The explicit successor rationale is
+[TOS-D-0062](../../docs/decisions/TOS-D-0062-typed-time-claim-navigation.md).
 
 ### Command behavior
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 41,
+  "registry_version": 42,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -17,12 +17,13 @@
   "fallback_relation_type_id": "tos.relation.unmapped",
   "claim_navigation_template": {
     "template_id": "tos.navigation-template.claim-reference",
-    "template_version": 1,
+    "template_version": 2,
     "reader": "claim-navigation-v1",
     "purpose": "claim-navigation-only",
     "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
     "default_language": "ru",
     "max_output_bytes": 8192,
+    "object_label_adapters": ["historical-time-source-wording-v1"],
     "marker": {"ru": "Запись утверждения", "en": "Claim record"},
     "status_labels": {
       "epistemic_status": {

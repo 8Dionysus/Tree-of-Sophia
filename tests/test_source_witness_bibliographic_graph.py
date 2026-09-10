@@ -414,6 +414,59 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             without = build_payload(root)
             self.assertTrue(all('navigation_descriptor' not in node['properties'] for node in without['nodes']))
 
+    def test_claim_navigation_temporal_source_wording_and_canonical_value_guards(self):
+        from source_witness_bibliographic_graph_common import _literal_node, _navigation_time_endpoint
+        if str(REPO_ROOT / 'access/src') not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT / 'access/src'))
+        from tos_access.knowledge import _claim_navigation_time_endpoint
+        payload = json.loads(GRAPH_PATH.read_text())
+        raw = next(node for node in payload['nodes']
+                   if node['node_id'] == 'claim:tos.claim.jenseits-1886-commission.date')
+        claim = copy.deepcopy(raw['properties']['source_claim'])
+        subject = next(node for node in payload['nodes'] if node['node_id'] == 'identity:' + claim['subject_ref'])
+        relations = load_claim_navigation_registry(REPO_ROOT)
+        entities = json.loads((REPO_ROOT / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
+        def literal(value_claim):
+            return _literal_node(value_claim['object'], value_claim, {
+                'source_claim_file_ref': raw['source_ref'], 'source_claim_line': raw['source_line'],
+                'claim_sha256': canonical_digest(value_claim)})
+        for kind, addition in (
+                ('date-assertion', {'value': 'unparsed source value'}),
+                ('interval-assertion', {'interval': {'start': 'unparsed start'}}),
+                ('relative-order', {'relative': {'relation': 'before', 'anchor_ref': claim['subject_ref']}}),
+                ('unknown-date', {})):
+            selected = copy.deepcopy(claim)
+            selected['object'] = {'kind': kind, 'role': 'historical-time', 'calendar': None,
+                'year_numbering': None, 'certainty': 'unknown',
+                'source_wording': {'text': 'Uncertain α — no calendar inferred.', 'language': None},
+                'extensions': {'test-number': 0}, **addition}
+            target = literal(selected)
+            descriptor = build_claim_navigation_descriptor(selected, subject, target, relations, entities)
+            self.assertEqual(descriptor['state'], 'ready')
+            self.assertEqual(descriptor['object']['label'], selected['object']['source_wording']['text'])
+            self.assertEqual(descriptor['claim']['sha256'], canonical_digest(selected))
+            self.assertEqual(descriptor['object']['value_sha256'], canonical_digest(selected['object']))
+            self.assertFalse(descriptor['standalone'])
+            for check in (_navigation_time_endpoint, _claim_navigation_time_endpoint):
+                self.assertEqual(check(target, selected), descriptor['object'])
+                forged = copy.deepcopy(target)
+                forged['properties']['value']['extensions']['test-number'] = False
+                self.assertIsNone(check(forged, selected))
+            absent = copy.deepcopy(selected)
+            del absent['object']['source_wording']
+            self.assertEqual(build_claim_navigation_descriptor(absent, subject, literal(absent),
+                relations, entities)['reason'], 'source-name-unavailable')
+        for kind in ('future-time-kind', [], None):
+            invalid = copy.deepcopy(claim)
+            invalid['object']['kind'] = kind
+            self.assertEqual(build_claim_navigation_descriptor(invalid, subject, literal(invalid),
+                relations, entities)['reason'], 'object-not-identity')
+        wrong_range = copy.deepcopy(relations)
+        next(row for row in wrong_range['relations'] if row['relation_type_id'] == 'tos.relation.historical-dating')[
+            'range_type_ids'] = ['tos.entity.agent']
+        self.assertEqual(build_claim_navigation_descriptor(claim, subject, literal(claim),
+            wrong_range, entities)['reason'], 'endpoint-type-not-understood')
+
     def test_claim_navigation_failure_reasons_and_priority_are_closed(self):
         with self.claim_navigation_fixture() as (_root, claim, subject, target, relations, entities, _projection):
             def outcome(c=claim, s=subject, o=target, r=relations, e=entities):

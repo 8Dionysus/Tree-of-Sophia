@@ -137,3 +137,7 @@
 ## 2026-09-09
 
 - [TOS-D-0061 - TOS-D-0061 Landed Segmented KAG Provider Pin](../TOS-D-0061-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0061-landed-segmented-kag-provider-pin.md`)
+
+## 2026-09-10
+
+- [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
