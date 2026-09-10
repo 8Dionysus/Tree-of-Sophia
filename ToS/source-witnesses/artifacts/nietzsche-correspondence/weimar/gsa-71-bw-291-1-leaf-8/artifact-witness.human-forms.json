@@ -1,0 +1,109 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+    "version": 1,
+    "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.carrier-name",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+        "version": 1,
+        "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": "/custody/inventory_numbers/0"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": "/custody"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": "/layer_separation"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": "/authority"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": "/rights_ref"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.nietzsche-letter-705.carrier-source-note",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+        "version": 1,
+        "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": "/path_identity/note"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+            "version": 1,
+            "digest": "sha256:072e0e2981db0b8b739a96868d350d0b10cae9c4a715f050f62f4e8b40b23af6"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/artifact-source-witness-v2.schema.json",
+  "artifact_id": "tos.artifact.nietzsche-correspondence.weimar.gsa-71-bw-291-1-leaf-8",
+  "artifact_kind": "manuscript_object",
+  "authority": {
+    "canon_authority": false,
+    "evidence_status": "metadata_witness",
+    "graph_authority": false,
+    "publication_authority": false,
+    "review_status": "unreviewed",
+    "semantic_authority": false,
+    "source_text_admitted": false,
+    "visibility": "public_metadata_only"
+  },
+  "bibliography": [
+    {
+      "citation": "KGB 3.3, 193, Nr. 705 — печатная ссылка, сообщаемая архивной записью 4752",
+      "role": "catalog_publication",
+      "source_ref": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+    }
+  ],
+  "composite_layer": {
+    "external_refs": [],
+    "is_physical_artifact_identity": false,
+    "relationship": "Критический текст и печатная ссылка не отождествляются с физическим листом; отдельная идентичность scholarly composite здесь не исследована.",
+    "status": "unknown"
+  },
+  "created_at": "2026-09-10T06:49:40Z",
+  "custody": {
+    "current_repository": "Goethe- und Schiller-Archiv, Klassik Stiftung Weimar (по каталогу)",
+    "inventory_numbers": [
+      "GSA 71/BW 291,1 Bl 8"
+    ],
+    "source_ref": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+  },
+  "dating": {
+    "certainty": "reported",
+    "display_date": "3.6.1886, по архивной записи; дата изготовления бумаги не установлена",
+    "period_label": "Каталожная датировка письма; не физическая датировка носителя",
+    "period_stage_separation_required": true,
+    "source_ref": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+  },
+  "digital_catalog_record": {
+    "api_url": null,
+    "checked_at": "2026-09-10T06:39:10.555Z",
+    "mutable": true,
+    "provider": "Klassik Stiftung Weimar / Goethe- und Schiller-Archiv",
+    "record_id": "4752",
+    "record_url": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752",
+    "response_fingerprints": [
+      {
+        "byte_size": 20421,
+        "captured": false,
+        "sha256": "c5d675782be8190b528f822d6439c730c7cce0938809636556d6ea934f3c7c2e",
+        "surface": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+      }
+    ]
+  },
+  "discovery_ref": "ToS/source-witnesses/discovery/runs/nietzsche-letter-705-carrier-metadata.2026-09-10.v1.json",
+  "find_context": {
+    "documentation_limit": "Происхождение и история поступления физического листа не исследованы; места корреспонденции Наумбург и Лейпциг не являются местом находки.",
+    "excavation_numbers": [],
+    "findspot": null,
+    "site": null,
+    "source_note": null,
+    "source_ref": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+  },
+  "identifiers": [
+    {
+      "scheme": "GSA shelfmark and leaf",
+      "source_ref": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752",
+      "value": "GSA 71/BW 291,1 Bl 8"
+    }
+  ],
+  "inscription_layer": {
+    "availability": "unknown",
+    "language_status": "unknown",
+    "normalized_language_code": null,
+    "provider_language_code": null,
+    "script": null,
+    "source_refs": [
+      "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+    ],
+    "translation_stored": false,
+    "transliteration_stored": false
+  },
+  "layer_separation": {
+    "artifact_is_philosophy": false,
+    "catalog_record_is_inscription": false,
+    "inscription_is_composite": false,
+    "physical_artifact_is_catalog_record": false,
+    "sign_has_fixed_translation": false,
+    "visual_is_artifact": false
+  },
+  "maker": {
+    "agent_ref": "model:codex",
+    "human_review_performed": false,
+    "maker_type": "model"
+  },
+  "path_identity": {
+    "basis": "repository_identity",
+    "note": "По каталогу Goethe- und Schiller-Archiv, запись 4752: один лист письма Ницше Науманну, GSA 71/BW 291,1 Bl 8, с указанной датой 3 июня 1886 года. Это сообщаемая архивная идентичность носителя, отдельно от интеллектуального документа, печатной редакции и цифровых изображений; автографичность, доставка, физическая датировка бумаги и права повторного использования не установлены.",
+    "provider_independent": true
+  },
+  "philosophy_planting_refs": [],
+  "physical_description": {
+    "height_mm": null,
+    "material": "Не установлено по прочитанным каталожным полям; сообщается один лист.",
+    "source_ref": "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752",
+    "thickness_mm": null,
+    "width_mm": null
+  },
+  "provenance_event_ref": "tos.event.source-creation.nietzsche-letter-705-artifact.2026-09-10",
+  "record_version": 1,
+  "research_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md",
+  "rights_ref": "ToS/source-witnesses/rights/nietzsche-letter-705-carrier-metadata.2026-09-10.json",
+  "schema_version": "tos_artifact_source_witness_v2",
+  "scholarly_classification": {
+    "classification_is_interpretive": true,
+    "corpus_labels": [],
+    "genre": "Архивный носитель письма, по каталогу; не независимое палеографическое заключение",
+    "source_refs": [
+      "https://ores.klassik-stiftung.de/ords/f?p=406:2:::::P2_ID:4752"
+    ]
+  },
+  "visual_layers": []
+}
