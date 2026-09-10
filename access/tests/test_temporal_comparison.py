@@ -22,7 +22,7 @@ ACCESS = Path(__file__).resolve().parents[1]
 ROOT = ACCESS.parent
 sys.path.insert(0, str(ACCESS / 'src'))
 
-from tos_access.knowledge import KnowledgeGraphIndex, build_knowledge_graph
+from tos_access.knowledge import KnowledgeGraphIndex, build_knowledge_graph, _lens_carrier
 from tos_access.core import ToSAccessCore
 from tos_access.lens_pagination import KnowledgeRevisionConflict
 from tos_access.temporal_comparison import (
@@ -315,6 +315,10 @@ class TemporalComparisonTests(unittest.TestCase):
             nodes = [node for node in graph['nodes'] if node['id'] in identifiers]
             case = {'name': name, 'graph': {'source_revision': graph['source_revision'], 'nodes': nodes}, 'request': request,
                     'raw_nodes': [json.dumps(node, ensure_ascii=False, separators=(',', ':')) for node in nodes]}
+            if name == 'document-native-numbers':
+                node = index.node_ids[request['left']['node_id']][0]
+                case['delivery'] = {'node': node, 'full': _lens_carrier(node, 'full', language='en'),
+                                    'compact': _lens_carrier(node, 'compact', language='en')}
             try:
                 case['expected'] = compare_temporal_claims(graph, request, graph_index=index)
             except TemporalReadModelInvalid as error:
@@ -411,6 +415,19 @@ class TemporalComparisonTests(unittest.TestCase):
                 self.assertEqual(result['comparison']['status'], expected, result['comparison'])
                 if expected == 'comparable': self.assertEqual(result['comparison']['relation'], 'before')
                 else: self.assertIsNone(result['comparison']['relation'])
+                if name == 'document-native-numbers':
+                    node = index.node_ids[request['left']['node_id']][0]
+                    original = copy.deepcopy(node)
+                    full = _lens_carrier(node, 'full', language='en')
+                    compact = _lens_carrier(node, 'compact', language='en')
+                    self.assertEqual(full['semantics'], original['semantics'])
+                    reduced = copy.deepcopy(original['semantics'])
+                    reduced['claim'].pop('source_canonical_json')
+                    self.assertEqual(compact['semantics'], reduced)
+                    self.assertEqual(compact['attributes'], {})
+                    self.assertEqual(compact['source_refs'], original['source_refs'])
+                    self.assertEqual(compact['content_revision'], original['content_revision'])
+                    self.assertEqual(node, original)
 
     def test_document_canonical_companion_limit_counts_utf8_bytes(self):
         from tos_access.knowledge import _temporal_source_canonical

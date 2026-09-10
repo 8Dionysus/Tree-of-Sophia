@@ -734,7 +734,7 @@
         "annotation": {"type": "object"},
         "claim": {"type": "object", "properties": {
           "source_canonical_json": {"type": ["string", "null"], "maxLength": 262144,
-            "description": "Only the document-catalogue-temporal-v1 reader: exact source-owner canonical Claim bytes, at most 262144 UTF-8 bytes. Null, absent, over-budget or inconsistent material cannot authorize comparison. Original Claim remains in attributes.source_claim; this companion is not a new identity or assessment."}
+            "description": "Only the document-catalogue-temporal-v1 reader: exact source-owner canonical Claim bytes, at most 262144 UTF-8 bytes. Full inspection retains this field; compact carriers omit it. Null, absent, over-budget or inconsistent material cannot authorize comparison. Original Claim remains in attributes.source_claim; this companion is not a new identity or assessment."}
         }},
         "record_version": {
           "type": "object", "additionalProperties": false,

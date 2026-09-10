@@ -8,9 +8,11 @@ import { HttpError, type Item } from '../src/common.ts';
 import { KnowledgeRevisionConflict } from '../src/lens-pagination.ts';
 import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson, type TemporalRequest } from '../src/temporal-comparison.ts';
 import { knowledgeTemporalCompareD1 } from '../src/knowledge-store.ts';
+import { lensCarrier, type KnowledgeNode } from '../src/knowledge.ts';
 
 type Fixture = { name: string; graph: { source_revision: string; nodes: Item[] };
   raw_nodes: string[];
+  delivery?: {node: KnowledgeNode; full: KnowledgeNode; compact: KnowledgeNode};
   request: TemporalRequest; expected?: Item; error_status?: number; error?: string };
 
 let cachedFixtures: Fixture[] | undefined;
@@ -25,6 +27,34 @@ function fixtures(): Fixture[] {
     'print(json.dumps(TemporalComparisonTests().transport_cases()))',
   ].join(';')], { cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
     encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }));
+}
+
+function rowKeyVariants(fixture: Fixture): {name: string; nodes: string[]; ambiguous: boolean}[] {
+  const claim = fixture.graph.nodes.find(node => node.id === fixture.request.left.node_id)!;
+  const valueId = ((claim.semantics as Item).claim as Item).object_node_id;
+  return [
+    {name: 'escaped-keys-and-whitespace', ambiguous: false, nodes: fixture.raw_nodes.map(raw =>
+      ' \n' + raw.replace(/"(attributes|source_claim|semantics|time|raw|value)"(?=\s*:)/g,
+        (_, key: string) => '"\\u' + key.charCodeAt(0).toString(16).padStart(4, '0') + key.slice(1) + '"') + '\n ')},
+    {name: 'duplicate-escaped-selected-key', ambiguous: true, nodes: fixture.raw_nodes.map(raw => {
+      const node = JSON.parse(raw) as Item;
+      // The second decoded attributes key wins in JSON.parse. Its JSON
+      // round-trip loses 1.0/unsafe-integer number spelling, while the first
+      // literal key still carries the original source bytes. Never mix them.
+      return node.id === valueId ? raw.slice(0, -1) + ',"\\u0061ttributes":' + JSON.stringify(node.attributes) + '}' : raw;
+    })},
+  ];
+}
+
+function assertRowKeyResult(result: Item, fixture: Fixture, ambiguous: boolean): void {
+  if (!ambiguous) assert.deepEqual(result, fixture.expected);
+  else {
+    const comparison = result.comparison as Item;
+    assert.equal(comparison.status, 'undetermined');
+    assert.equal(comparison.relation, null);
+    assert.ok((comparison.reasons as Item[]).some(reason => reason.side === 'left'
+      && reason.code === 'document-catalogue-exact-source-binding-inconsistent'));
+  }
 }
 
 test('exact temporal envelopes and all retained context match Python', async t => {
@@ -59,6 +89,20 @@ test('exact temporal envelopes and all retained context match Python', async t =
   }
   assert.equal(normalizeTemporalComparisonRequest({ ...fixture.request,
     left: { ...fixture.request.left, node_id: '😀'.repeat(1024) } }).left.node_id.length, 2048);
+});
+
+test('native document compact delivery and exact row key identity remain separate', async () => {
+  const fixture = fixtures().find(value => value.name === 'document-native-numbers')!;
+  const delivery = fixture.delivery!, original = structuredClone(delivery.node);
+  assert.deepEqual(lensCarrier(delivery.node, 'full', 'en'), delivery.full);
+  assert.deepEqual(lensCarrier(delivery.node, 'compact', 'en'), delivery.compact);
+  assert.equal(Object.hasOwn(delivery.compact.semantics.claim as Item, 'source_canonical_json'), false);
+  assert.deepEqual(delivery.node, original);
+  for (const variant of rowKeyVariants(fixture)) {
+    const nodes = variant.nodes.map(temporalNodeFromJson);
+    assertRowKeyResult(await compareTemporalOperands(fixture.graph.source_revision, fixture.request,
+      async id => nodes.filter(node => node.id === id)), fixture, variant.ambiguous);
+  }
 });
 
 test('Worker HTTP and indexed D1 agree; stale or malformed selections fail closed', async t => {
@@ -109,6 +153,17 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
           // Exact source number spelling remains in the unchanged canonical
           // string; compare that as part of the full packet, never rehash it.
           assert.deepEqual(packet, JSON.parse(JSON.stringify(fixture.expected)));
+        }
+        if (fixture.name === 'document-native-numbers') for (const variant of rowKeyVariants(fixture)) {
+          await db.batch([db.prepare('DELETE FROM knowledge_nodes'), ...variant.nodes.map(raw =>
+            db.prepare('INSERT INTO knowledge_nodes VALUES (?,?)').bind(JSON.parse(raw).id, raw))]);
+          assertRowKeyResult(await knowledgeTemporalCompareD1(db, fixture.request), fixture, variant.ambiguous);
+          const response = await mf.dispatchFetch('http://localhost/api/knowledge/temporal/compare', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(fixture.request),
+          });
+          assert.equal(response.status, 200, variant.name);
+          assertRowKeyResult(await response.json() as Item,
+            {...fixture, expected: JSON.parse(JSON.stringify(fixture.expected))}, variant.ambiguous);
         }
       });
     }

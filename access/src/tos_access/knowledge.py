@@ -4998,6 +4998,13 @@ def _lens_carrier(item: dict[str, Any], detail: str, *, language: str | None = N
     # those roots, so it must omit the optional sidecar, never dangle pointers.
     result = item if detail == 'full' else {**{key: value for key, value in item.items()
                                              if key not in {'source_record', 'readable_context'}}, 'attributes': {}}
+    if detail != 'full' and isinstance(item.get('semantics'), dict):
+        claim = item['semantics'].get('claim')
+        if isinstance(claim, dict) and 'source_canonical_json' in claim:
+            # Exact source bytes belong to full inspection/comparison, not a
+            # second whole Claim hidden inside a compact semantic envelope.
+            result['semantics'] = {**item['semantics'], 'claim': {
+                key: value for key, value in claim.items() if key != 'source_canonical_json'}}
     # Selection belongs to delivery, not the immutable normalized content digest.
     if language is not None:
         result = {**result, 'display_selection': _display_selection(item, language)}

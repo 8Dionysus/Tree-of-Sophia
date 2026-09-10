@@ -76,7 +76,10 @@ identity. A bounded `semantics.claim.source_canonical_json` companion preserves
 source canonical bytes (262144 UTF-8 bytes maximum); a missing or inconsistent
 companion refuses comparison as `undetermined`. The temporal D1 adapter checks
 the actual row JSON number tokens, including floats and large integers, without
-reconstructing source hashes through JavaScript numbers. Original metadata and
+reconstructing source hashes through JavaScript numbers. Escaped JSON member
+names retain their decoded identity; duplicate selected names refuse binding.
+Full inspection retains the companion, while compact carriers omit only this
+field from Claim semantics. Original metadata and
 its roles remain unchanged. Unknown calendars stay unknown; two different
 otherwise-comparable roles are `unsupported`.
 

@@ -819,7 +819,16 @@ export function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T
     const result = {...item, display_selection: displaySelection(item, language)};
     if (Object.hasOwn(record(item.attributes), 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language)});
   // Optional readable context is usable only with the exact raw roots it binds.
-  if (detail !== 'full') { result.attributes = {}; delete result.source_record; delete result.readable_context; }
+  if (detail !== 'full') {
+    result.attributes = {}; delete result.source_record; delete result.readable_context;
+    const semantics = record(item.semantics), claim = record(semantics.claim);
+    if (Object.hasOwn(claim, 'source_canonical_json')) {
+      // Keep semantic references, but never embed a second whole source Claim
+      // in compact delivery. The normalized item/full inspection is unchanged.
+      result.semantics = {...semantics, claim: Object.fromEntries(
+        Object.entries(claim).filter(([key]) => key !== 'source_canonical_json'))};
+    }
+  }
   return result;
 }
 

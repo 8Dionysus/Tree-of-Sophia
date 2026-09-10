@@ -78,6 +78,8 @@ function sameJson(left: unknown, right: unknown): boolean {
 // JSON.parse validates the whole document first; this scanner only finds exact
 // top-level member spans, without reparsing or inventing canonical bytes.
 function memberText(text: string, selected: string): string | null {
+  text = text.trim();
+  if (!text.startsWith('{')) return null;
   let start = 1, depth = 0, quoted = false, escaped = false;
   const parts: string[] = [];
   for (let pos = 1; pos < text.length; pos++) {
@@ -93,10 +95,14 @@ function memberText(text: string, selected: string): string | null {
       parts.push(text.slice(start, pos)); start = pos + 1;
     }
   }
-  const prefix = JSON.stringify(selected);
-  const found = parts.map(part => part.trim()).filter(part => part.startsWith(prefix)
-    && /^\s*:/.test(part.slice(prefix.length)));
-  return found.length === 1 ? found[0]!.slice(prefix.length).replace(/^\s*:\s*/, '') : null;
+  const found: string[] = [];
+  for (const part of parts) {
+    const member = part.trim().match(/^("(?:[^"\\]|\\.)*")\s*:\s*([\s\S]*)$/);
+    // JSON string escapes affect key identity, never the retained number
+    // tokens. Escaped aliases must not hide a duplicate selected member.
+    if (member && JSON.parse(member[1]!) === selected) found.push(member[2]!);
+  }
+  return found.length === 1 ? found[0]! : null;
 }
 
 // Canonicalize already validated JSON while preserving every number token.

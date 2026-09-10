@@ -146,6 +146,8 @@ The read-only operations are available through all backend adapters:
   calendar or year numbering returns `undetermined`, never an inferred date;
   this new reader carries a source-owner canonical JSON companion in
   `semantics.claim.source_canonical_json`, bounded to 262144 UTF-8 bytes.
+  This companion is available to full inspection and temporal comparison;
+  compact carriers omit it while retaining the other Claim semantics and refs.
   Missing, over-budget or mismatched bytes return `undetermined`. Python and
   the Worker bind the whole Claim, value and literal identity; the Worker
   preserves number tokens from the actual D1 row instead of reconstructing
