@@ -1,0 +1,184 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "claim-display:tos.claim.nietzsche-letter-705.catalogue-origin:2026-09-10",
+      "request_digest": "sha256:e20f5d2c110bcf0dc9c20e48585adc7e0d025ceccff62336d596a0e11738dbe9",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1/letter-705-qualified-display",
+      "owner_configuration": "sha256:b7d2b1be165ddd66c082623ba53a3cb65664de2ea68931fc25b73ef25903fc3e",
+      "recorded_at": "2026-09-10T15:09:55.951740+00:00",
+      "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+      "previous_source": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+        "version": 1,
+        "digest": "sha256:a99d5587bd873ef505a48022923ae691d59e47a1fe84f9a7c09670617365caeb"
+      },
+      "source": {
+        "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+        "version": 2,
+        "digest": "sha256:00d14c95e860b75aafeeb78a0bd4630c8c1ed54ce822d373c5cd5603069d7046"
+      },
+      "previous_revision": "sha256:e4b367a5b2aef8cbd7a9b0d8ecd15199f0dbf35e38369a585064a453ef6e7a25",
+      "archive_path": "ToS/source-witnesses/.record-revisions/cdbc484e141776b39eacdf73a5dc47d44b9ea60b281537d49a70d8097bc42259-e4b367a5b2aef8cbd7a9b0d8ecd15199f0dbf35e38369a585064a453ef6e7a25",
+      "dependencies": "sha256:5fcaf4d9e99afc5858d828e7f9e1408905e225e8d6cfba9ee91408094935ced4",
+      "source_bindings": {
+        "objects": {
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e",
+            "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 1
+          },
+          "tos.place.naumburg-an-der-saale": {
+            "source_ref": "ToS/source-witnesses/places/naumburg-an-der-saale/place.json",
+            "source_sha256": "sha256:88e1b010910526035ad66384d8ef8353abff95ee6c0329ffc1de7e40b2a5abbd",
+            "canonical_record_sha256": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md",
+            "source_sha256": "sha256:cd330647ba8f3b33ed78648b3010dbe5e4347879cbb165e346a52c48b865b76d",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md",
+            "source_sha256": "sha256:f2b0f1498980b76eccaa9e7695ea2619ef81c241ae2c12c51733969563f51cbf",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-origin-statement",
+          "version": 1,
+          "digest": "sha256:0026fc099d8f65aa0e162e09351faf9e2d7ec249cbd57268011e60f37f28b135"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-origin-name",
+          "version": 1,
+          "digest": "sha256:232f4acaa5628c146d043161c4cc521cc200aa33b6215e67adce37c81c4d0c1d"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-origin-caption",
+          "version": 1,
+          "digest": "sha256:6716728d63ff4d2619c4ae2ab366f938173a124af765ae79be1ff80e4e84e91a"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.catalogue-origin-hover",
+          "version": 1,
+          "digest": "sha256:852031c144c14cd06c6a8d0372d01ba78043b887d37312d4f90807b014cab14f"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "claim-display:tos.claim.nietzsche-letter-705.catalogue-origin:2026-09-10",
+        "expected_configuration": "sha256:b7d2b1be165ddd66c082623ba53a3cb65664de2ea68931fc25b73ef25903fc3e",
+        "expected_dependencies": "sha256:5fcaf4d9e99afc5858d828e7f9e1408905e225e8d6cfba9ee91408094935ced4",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md",
+              "source_sha256": "sha256:cd330647ba8f3b33ed78648b3010dbe5e4347879cbb165e346a52c48b865b76d"
+            },
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            },
+            "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md",
+              "source_sha256": "sha256:f2b0f1498980b76eccaa9e7695ea2619ef81c241ae2c12c51733969563f51cbf"
+            }
+          },
+          "objects": {
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+              "record_version": 1,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e"
+            },
+            "tos.place.naumburg-an-der-saale": {
+              "canonical_record_sha256": "sha256:ab717f2d9949a693807ce28ca878b9f4e152dd02f5af79dac1e72e1bbffff2da",
+              "record_version": 1,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/places/naumburg-an-der-saale/place.json",
+              "source_sha256": "sha256:88e1b010910526035ad66384d8ef8353abff95ee6c0329ffc1de7e40b2a5abbd"
+            }
+          }
+        },
+        "expected_revision": "sha256:e4b367a5b2aef8cbd7a9b0d8ecd15199f0dbf35e38369a585064a453ef6e7a25",
+        "expected_source": {
+          "digest": "sha256:a99d5587bd873ef505a48022923ae691d59e47a1fe84f9a7c09670617365caeb",
+          "id": "tos.claim.nietzsche-letter-705.catalogue-origin",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "По карточке: Naumburg → Leipzig"
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "GSA, Eintrag: исходное место по каталогу. Наумбург-на-Заале сопоставлен предварительно; написание или отправка здесь не установлены."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Каталожное исходное место"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            }
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-statement"
+          },
+          {
+            "field_id": "claim.name",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-name"
+          },
+          {
+            "field_id": "claim.caption",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-caption"
+          },
+          {
+            "field_id": "claim.hover",
+            "form_id": "tos.form.nietzsche-letter-705.catalogue-origin-hover"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,328 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "claim-display:tos.claim.nietzsche-letter-705.sender:2026-09-10",
+      "request_digest": "sha256:b959d61b7faefb85356ffb9d97721fa03697af1492abca92af6e69e6968db9e7",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1/letter-705-qualified-display",
+      "owner_configuration": "sha256:560ea93858f148a827936c9259361b85e0836f3028b2327612f13e80f571aa9e",
+      "recorded_at": "2026-09-10T15:07:17.868811+00:00",
+      "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+      "previous_source": {
+        "id": "tos.claim.nietzsche-letter-705.sender",
+        "version": 1,
+        "digest": "sha256:bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6"
+      },
+      "source": {
+        "id": "tos.claim.nietzsche-letter-705.sender",
+        "version": 2,
+        "digest": "sha256:59e51f69ccafbe19cbc88b95263711585da04612c78b67c27448f10c03ef5549"
+      },
+      "previous_revision": "sha256:5af81e662e3b36dbb291fccfb8f41b3ca90a9ba60592d7f8c94d1b56135e2a66",
+      "archive_path": "ToS/source-witnesses/.record-revisions/4ad96451aba00fea963c09fccfb1129ec388e641d3b95a978120a59fd158ec8e-5af81e662e3b36dbb291fccfb8f41b3ca90a9ba60592d7f8c94d1b56135e2a66",
+      "dependencies": "sha256:ac446c3c05905cbe8fc7e0db30d25feffb11b490e62982ad4d065e46668e25aa",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.friedrich-nietzsche": {
+            "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+            "source_sha256": "sha256:49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab",
+            "canonical_record_sha256": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          },
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e",
+            "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.nietzsche-letter-705.sender.statement-ru",
+          "version": 2,
+          "digest": "sha256:367817635fbf2d19d521e0dd3fd0f9e07a1298d62a8dd8b1d5fb639a253a595d"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.sender-name",
+          "version": 1,
+          "digest": "sha256:40f73722288bf87d9cc9c10e4b1a18f8fd7a826d4a2198caf2d3ec0473f9f6c8"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.sender-caption",
+          "version": 1,
+          "digest": "sha256:ca36d01ba1e8eeee8b44c66640f7cd0e4d70349af20d26da3235908f980d2998"
+        },
+        {
+          "id": "tos.form.nietzsche-letter-705.sender-hover",
+          "version": 1,
+          "digest": "sha256:be49c16c86a4468f22a7fa1780080dfa010da41326779e923785c2239745e968"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "claim-display:tos.claim.nietzsche-letter-705.sender:2026-09-10",
+        "expected_configuration": "sha256:560ea93858f148a827936c9259361b85e0836f3028b2327612f13e80f571aa9e",
+        "expected_dependencies": "sha256:ac446c3c05905cbe8fc7e0db30d25feffb11b490e62982ad4d065e46668e25aa",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            }
+          },
+          "objects": {
+            "tos.agent.friedrich-nietzsche": {
+              "canonical_record_sha256": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+              "source_sha256": "sha256:49352dc6ae11c5d0ba800e737a7a407b7813f3585850eacbeacd1fdf059f8aab"
+            },
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+              "record_version": 1,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e"
+            }
+          }
+        },
+        "expected_revision": "sha256:5af81e662e3b36dbb291fccfb8f41b3ca90a9ba60592d7f8c94d1b56135e2a66",
+        "expected_source": {
+          "digest": "sha256:bb3496c05896464a63bd8d130d67f55dad84ce78fe7d0c3c76c7622ff7fa4ad6",
+          "id": "tos.claim.nietzsche-letter-705.sender",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "eKGWB указывает Ницше отправителем; это не доказательство доставки."
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "eKGWB указывает Ницше и приводит подпись. Это редакционная атрибуция, не проверка почерка или доставки."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Атрибуция отправителя письма № 705"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            },
+            "statement_script": null
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.nietzsche-letter-705.sender.statement-ru"
+          },
+          {
+            "field_id": "claim.name",
+            "form_id": "tos.form.nietzsche-letter-705.sender-name"
+          },
+          {
+            "field_id": "claim.caption",
+            "form_id": "tos.form.nietzsche-letter-705.sender-caption"
+          },
+          {
+            "field_id": "claim.hover",
+            "form_id": "tos.form.nietzsche-letter-705.sender-hover"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "claim-display:tos.claim.jenseits-1886-commission.letter-705:2026-09-10",
+      "request_digest": "sha256:85e91db7d32c14c2a44f25916c69b942ac57798887ad4b401e35d40ce9a8934f",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1/letter-705-qualified-display",
+      "owner_configuration": "sha256:f6f83dbdf5bfb86be299c034df450873b00ebaa7e203ec8f92f56e6d576b241d",
+      "recorded_at": "2026-09-10T15:08:13.552952+00:00",
+      "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+      "previous_source": {
+        "id": "tos.claim.jenseits-1886-commission.letter-705",
+        "version": 1,
+        "digest": "sha256:d71177f035aa4ecafdc60a7ceca1a117a7dd9cdec0f5bb7a1604aadc8825c3ee"
+      },
+      "source": {
+        "id": "tos.claim.jenseits-1886-commission.letter-705",
+        "version": 2,
+        "digest": "sha256:cd424ececaa9cef231ac47da3974175b40839a1184258b4e024308ddef547878"
+      },
+      "previous_revision": "sha256:21b86d3dcf99322786e2dfbd4ba9072279f450413b116c5dc766f9b3b3b2bbe2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/59ac2d7de67c8cc48e7537acc03fcffb7dd072829f8eb4f2dca80f3b2fe2c99c-21b86d3dcf99322786e2dfbd4ba9072279f450413b116c5dc766f9b3b3b2bbe2",
+      "dependencies": "sha256:abf03136c43ff9444b1560b6746c07dfd3b4d1271e71520886f6735e081dfe7e",
+      "source_bindings": {
+        "objects": {
+          "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission": {
+            "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+            "source_sha256": "sha256:3cccbb7f974e91e218fa00a14190d16d48b2b4f5b1a28b6fe5cc01cdfec2bf2b",
+            "canonical_record_sha256": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+            "schema_version": "tos_historical_record_v1",
+            "record_version": 2
+          },
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e",
+            "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+            "source_sha256": "sha256:d42bd276dc0b323e98283fa7f8e7514ed9267212aa2a5352ba9da54256e475b2",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jenseits-1886-commission.letter-705.statement-ru",
+          "version": 2,
+          "digest": "sha256:9e055bfbb05d3064b47d8b46d0663f72a135e98d1724757e27f3c3fb0fcb3990"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.letter-705-name",
+          "version": 1,
+          "digest": "sha256:8339ff1fabe4c03d650eaaa7a876bdf95013bd2151615526599b1bc00aeaeec0"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.letter-705-caption",
+          "version": 1,
+          "digest": "sha256:c72b4007ccefd8709c08275486669bbf027f8ab3e681b56d7a9d714128fade54"
+        },
+        {
+          "id": "tos.form.jenseits-1886-commission.letter-705-hover",
+          "version": 1,
+          "digest": "sha256:d0a897a782eea51f08c95da1e41d220d785bec8c907b8e9afd59286469217a42"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "claim-display:tos.claim.jenseits-1886-commission.letter-705:2026-09-10",
+        "expected_configuration": "sha256:f6f83dbdf5bfb86be299c034df450873b00ebaa7e203ec8f92f56e6d576b241d",
+        "expected_dependencies": "sha256:abf03136c43ff9444b1560b6746c07dfd3b4d1271e71520886f6735e081dfe7e",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md",
+              "source_sha256": "sha256:d42bd276dc0b323e98283fa7f8e7514ed9267212aa2a5352ba9da54256e475b2"
+            },
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            }
+          },
+          "objects": {
+            "tos.historical-event.friedrich-nietzsche.jenseits-1886-commission": {
+              "canonical_record_sha256": "sha256:0ba156dfc3354a0d6f9fa4c69085fd771a5fbaa0ff6ae7933009ec440f18a23f",
+              "record_version": 2,
+              "schema_version": "tos_historical_record_v1",
+              "source_ref": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-event.json",
+              "source_sha256": "sha256:3cccbb7f974e91e218fa00a14190d16d48b2b4f5b1a28b6fe5cc01cdfec2bf2b"
+            },
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:848c8221bfa02a9f2cea9729c4ea28765c828e18c444d399d48ea8b7856922b5",
+              "record_version": 1,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:7438af2a6b90c1a705c04c650a74e0635525c0450f303079a20d47b372446b6e"
+            }
+          }
+        },
+        "expected_revision": "sha256:21b86d3dcf99322786e2dfbd4ba9072279f450413b116c5dc766f9b3b3b2bbe2",
+        "expected_source": {
+          "digest": "sha256:d71177f035aa4ecafdc60a7ceca1a117a7dd9cdec0f5bb7a1604aadc8825c3ee",
+          "id": "tos.claim.jenseits-1886-commission.letter-705",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "display_fields": {
+              "caption": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "По Зоммеру, № 705 связан с заказом печати; немедленное начало — характеристика комментария."
+              },
+              "hover": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Зоммер ссылается на № 705 при описании заказа 3 июня 1886 года. Само письмо просит ускорить печать; письмо и комментарий не независимые свидетельства."
+              },
+              "name": {
+                "language": "ru",
+                "script": "Cyrl",
+                "text": "Письмо № 705 в описании заказа печати"
+              },
+              "schema_version": "tos_claim_display_fields_v1"
+            },
+            "statement_script": null
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jenseits-1886-commission.letter-705.statement-ru"
+          },
+          {
+            "field_id": "claim.name",
+            "form_id": "tos.form.jenseits-1886-commission.letter-705-name"
+          },
+          {
+            "field_id": "claim.caption",
+            "form_id": "tos.form.jenseits-1886-commission.letter-705-caption"
+          },
+          {
+            "field_id": "claim.hover",
+            "form_id": "tos.form.jenseits-1886-commission.letter-705-hover"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Добавить явно атрибутированные короткие формы для сцены и наведения, сохранив полное исходное утверждение, все оговорки и прежние версии. Это не изменение исторических оснований или содержательный допуск.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}
