@@ -15,19 +15,6 @@ status. ToS traces how ideas
 descend, diverge, inherit, and return across languages, traditions, places,
 and time while preserving uncertainty and competing readings.
 
-## WebMCP Challenge — what was built
-
-The source-first Tree predates the challenge; [`access/`](access/README.md)
-contains the 2026 WebMCP submission completed in
-[PR #189](https://github.com/8Dionysus/Tree-of-Sophia/pull/189).
-
-- Codex discovers stable and selection-bound tools through `document.modelContext`.
-- Human focus and agent actions share one revisioned page state and command core.
-- Evidence Lens exposes provenance, competing readings, gaps, and bounded conclusions.
-- Codex reroutes around disputed edges and updates the human-visible graph.
-- Hypotheses and proposals stay traceable, local, noncanonical, and pending human review.
-- No model API, API key, or separate MCP connection is required.
-
 ## Quick start
 
 With Python 3.11+, run
