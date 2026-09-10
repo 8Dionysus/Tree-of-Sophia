@@ -118,6 +118,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install standalone candidate validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+
       - name: Build and validate standalone product candidate
         run: |
           mkdir -p dist
