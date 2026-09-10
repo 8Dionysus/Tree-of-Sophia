@@ -10,6 +10,7 @@ import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeSearchD1Indexed, kn
 
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
+import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
 
 const knowledgeExplorationMigration = readFileSync(
   new URL('../migrations/0001-exploration.sql', import.meta.url),
@@ -26,6 +27,10 @@ function decodeIndexedCursor(value: string): Record<string, unknown> {
 
 function encodeIndexedCursor(value: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function decodeDeliveredHumanForms(value: unknown): ReturnType<typeof selectHumanForms> {
+  return decodeHumanFormSelection(value) as ReturnType<typeof selectHumanForms>;
 }
 
 function hasHttpStatus(status: number) {
@@ -562,7 +567,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
     assert.deepEqual(formResult, pythonForms);
     const delivered = (formResult.nodes as KnowledgeGraph['nodes'])[0]!;
     assert.deepEqual(delivered.attributes, {});
-    const selectedForms = delivered.human_form_selection as ReturnType<typeof selectHumanForms>;
+    const selectedForms = decodeDeliveredHumanForms(delivered.human_form_selection);
     assert.equal(selectedForms.roles.name!.state, 'ready');
     assert.equal(selectedForms.roles.hover!.state, 'ready');
     assert.equal(selectedForms.roles.name!.packet!.display_text, 'По ту сторону добра и зла');
@@ -582,7 +587,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
         "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
         {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: formSpec}), encoding:'utf8'}));
       assert.deepEqual(edge, pythonAssessed);
-      const forms = ((edge.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection as ReturnType<typeof selectHumanForms>);
+      const forms = decodeDeliveredHumanForms((edge.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection);
       assert.equal(forms.roles.hover!.state === 'ready', state === 'ready');
       if (state === 'ready') assert.deepEqual(forms.roles.hover!.packet, packet);
       if (state === 'invalid') assert.equal(forms.state, 'invalid');
@@ -601,7 +606,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
       {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), input: JSON.stringify({graph: scoped, spec: claimSpec}), encoding:'utf8'}));
     assert.deepEqual(claimResult, pythonClaim);
-    const claimPacket = ((claimResult.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection as ReturnType<typeof selectHumanForms>).roles.statement!.packet!;
+    const claimPacket = decodeDeliveredHumanForms((claimResult.nodes as KnowledgeGraph['nodes'])[0]!.human_form_selection).roles.statement!.packet!;
     assert.equal(claimPacket.standalone_reading, false);
     assert.equal(claimPacket.admission, null);
     assert.deepEqual((claimPacket.context as {value: unknown}[])[0]!.value, claimNode.attributes.source_claim);
@@ -1121,7 +1126,8 @@ test('Claim forms bind the assertion rather than its object in Python and Worker
   const wrongIdentity = structuredClone(node);
   wrongIdentity.entity_id = 'tos.letter.not-the-claim';
   const changed = structuredClone(node);
-  (changed.attributes.source_claim as Record<string, unknown>).claim_version = 2;
+  const changedClaim = changed.attributes.source_claim as Record<string, unknown>;
+  changedClaim.claim_version = (changedClaim.claim_version as number) + 1;
   const missing = structuredClone(node);
   delete missing.attributes.source_claim;
   const cases = [node, conflicting, wrongIdentity, changed, missing];
