@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -18,6 +19,91 @@ from tests.test_source_owner_claim_profiles import OwnerLocalClaimFixture, CLAIM
 from test_occurrence_growth import copy_contracts
 import source_commands as source
 import source_owner_claim_commands as private
+
+
+class PrivateClaimRevisionIntegrityTests(unittest.TestCase):
+    """Pure retained-form reconstruction; the archive transport is in memory."""
+
+    def setUp(self):
+        self.path = Path('synthetic/claims/history/source-claims.jsonl')
+        self.context = SimpleNamespace(public_root=ROOT)
+        self.validator = source._validator()
+        self.previous = {'schema_version': 'tos_semantic_relation_claim_v1',
+            'claim_id': 'tos.claim.synthetic.history', 'claim_version': 1,
+            'claim_type': 'relation', 'assertion_layer': 'linguistic_analysis',
+            'subject_ref': 'tos.occurrence.synthetic.history', 'predicate': 'occurrence_has_form',
+            'object': 'tos.lexical-form.synthetic.history', 'evidence_refs': [],
+            'maker': {'maker_type': 'model', 'agent_ref': 'model:historical-actor'},
+            'epistemic_status': 'uncertain', 'review_status': 'unreviewed', 'visibility': 'local_only',
+            'qualifiers': {'statement': 'Синтетическая возможность, не установленный факт.',
+                'statement_language': 'ru', 'statement_script': 'Cyrl',
+                'display_fields': {'schema_version': 'tos_claim_display_fields_v1',
+                    'name': {'text': 'Синтетическая возможность', 'language': 'ru', 'script': 'Cyrl'}}}}
+        self.form_id = 'tos.form.synthetic.history-statement'
+        initial = source.prepare_claim_change(self.previous, None, 'model:historical-actor',
+                                              self.form_id, 'claim.statement')
+        self.prior = source._apply(None, private.revisions._subject(self.previous), [initial])
+        request = {'fields': {'qualifiers': {'statement': 'Исправленная синтетическая возможность.'}},
+                   'forms': [{'form_id': self.form_id, 'field_id': 'claim.statement'}]}
+        revised = private.revisions._advance(self.previous, request['fields'])
+        change = source.prepare_claim_change(revised, self.prior, 'model:historical-actor',
+                                             self.form_id, 'claim.statement')
+        result = source._apply(self.prior, private.revisions._subject(revised), [change])
+        later = source.prepare_claim_change(revised, result, 'model:later-actor', self.form_id, 'claim.statement')
+        self.forms = {self.previous['claim_id']: source._apply(result, private.revisions._subject(revised), [later])}
+        self.receipt = {'principal_id': 'model:historical-actor', 'request': request,
+            'previous_source': private.revisions._subject(self.previous).ref,
+            'source': private.revisions._subject(revised).ref, 'forms': [source._form_ref(change['form'])]}
+        self.formname = source.claim_forms_path(self.path, self.previous['claim_id']).name
+        self.archived = {self.path.name: source._canonical(self.previous) + b'\n',
+                         self.formname: source._canonical(self.prior)}
+        # Integrity does not authorize these deliberately absent current grants.
+        # The command entry point still checks current access and identity scope.
+        self.config = {'schema_version': private.CONFIG, 'source_path': self.path.as_posix(),
+                       'principal_id': 'model:current-actor', 'allowed_operations': [], 'allowed_form_ids': []}
+
+    def verify(self, *, receipt=None, archived=None, forms=None):
+        with patch.object(private.transport, '_read_archive_files',
+                          return_value=(self.archived if archived is None else archived, [])), \
+                patch.object(private.transport, '_form_grammar', return_value=(self.validator, None, {})):
+            return private._verify_revision_forms(self.config, self.context, self.path,
+                self.receipt if receipt is None else receipt, self.forms if forms is None else forms)
+
+    def test_integrity_uses_exact_owner_grammar_without_current_grant_or_materialization(self):
+        with patch.object(private, '_forms', side_effect=AssertionError('not a new form command')), \
+                patch.object(private, '_materialize', side_effect=AssertionError('not a new materialization')), \
+                patch.object(source, '_check_claim_form_changes', side_effect=AssertionError('not a current grant')), \
+                patch.object(source, '_validator', side_effect=AssertionError('use the selected owner grammar')):
+            archived, locations = self.verify()
+        self.assertEqual(archived, self.archived)
+        self.assertEqual(locations, [])
+
+    def test_integrity_rejects_substituted_result_broken_predecessor_and_missing_retention(self):
+        wrong = copy.deepcopy(self.receipt)
+        wrong['forms'] = [source._form_ref(self.prior['forms'][0])]
+        with self.assertRaises(source.JournalCorruption):
+            self.verify(receipt=wrong)
+        broken = copy.deepcopy(self.prior)
+        broken['forms'][0]['revises'] = source._form_ref(broken['forms'][0])
+        with self.assertRaises(source.JournalCorruption):
+            self.verify(archived={**self.archived, self.formname: source._canonical(broken)})
+        with self.assertRaises(source.JournalCorruption):
+            self.verify(forms={self.previous['claim_id']: self.prior})
+
+    def test_private_history_does_not_acquire_public_display_field_grammar(self):
+        receipt = copy.deepcopy(self.receipt)
+        name_id = 'tos.form.synthetic.history-name'
+        receipt['request']['forms'].append({'form_id': name_id, 'field_id': 'claim.name'})
+        revised = private.revisions._advance(self.previous, receipt['request']['fields'])
+        change = source.prepare_claim_change(revised, self.prior, receipt['principal_id'],
+            name_id, 'claim.name', allowed_field_ids=('claim.name',))
+        receipt['forms'].append(source._form_ref(change['form']))
+        # This is mechanically reconstructible for the wider public adapter,
+        # but it is not a valid historical private statement-only correction.
+        private.revisions._verify_archived_form_result(self.archived, self.config, receipt,
+                                                       self.previous, form_validator=self.validator)
+        with self.assertRaises(source.JournalCorruption):
+            self.verify(receipt=receipt)
 
 
 class PrivateClaimCommandTests(unittest.TestCase):

@@ -9,6 +9,31 @@ family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the
 compact API, typed owner handles and limits: implemented is not authorized-now,
 and access adapters remain read-only.
 
+### Explicit Claim display fields
+
+`public-source-forms` also exposes `tos_local_claim_form_owner_v2`, selected by
+one `claim_id` as before. In addition to the v1 fields it requires a nonempty,
+unique `allowed_field_ids` list drawn from `claim.statement`, `claim.name`,
+`claim.caption` and `claim.hover`. Only exact source-copy changes are accepted
+by this new delegation. The source Claim must explicitly declare the versioned
+`qualifiers.display_fields` contract for the three compact fields. No field is
+guessed, shortened, translated or admitted by the command. Every materialized
+field retains its whole exact Claim as required context.
+
+Public Claim-correction configurations may add `allowed_form_field_ids` with
+the same finite selectors; omission preserves statement-only behavior. This
+does not replace document-date, structured-value, reference-value or layer
+permission. The operation must rebind all current forms with the successor
+Claim, and both old and new selected fields remain in scope. Current scope
+also checks exact retained predecessor forms on retry. Older public v1,
+private and compound configurations acquire no new source-copy selectors.
+Discovery separates existing `source_fields` from actually permitted fields.
+
+See [Human Forms](../../../../ToS/doctrine/HUMAN_FORMS.md#explicit-compact-claim-fields)
+and `ToS/contracts/claim-display-fields.schema.json` for source wording,
+unknown-version and assessment boundaries. Materialization readiness does not
+prove compact delivery budget or UI acceptance; those need consumer checks.
+
 ### Catalogue-assigned Document dates
 
 Discovery exposes `public-claim-create-document-catalogue-v1` and

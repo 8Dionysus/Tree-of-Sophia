@@ -1655,6 +1655,241 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             self.assertIsNone(stale['materializations'][0]['display_text'])
             self.assertIsNone(stale['materializations'][0]['admission'])
 
+    def test_claim_display_fields_are_opt_in_complete_and_language_bound(self):
+        from source_witness_human_forms import claim_field_catalog
+        from source_record_profiles import SourceClaimProfiles
+        with self.creation() as (root, owner, config, claim, request, *_):
+            ref = 'ToS/contracts/claim-display-fields.schema.json'
+            (root / ref).write_bytes((ROOT / ref).read_bytes())
+            claim['qualifiers'].update(statement='Условная атрибуция, не установленный факт.',
+                statement_language='ru', statement_script='Cyrl', display_fields={
+                    'schema_version': 'tos_claim_display_fields_v1',
+                    'name': {'text': 'Условная атрибуция', 'language': 'ru', 'script': 'Cyrl'},
+                    'caption': {'text': 'Nicht nachgewiesen', 'language': 'de', 'script': 'Latn'},
+                    'hover': {'text': 'Свидетельства недостаточны; принадлежность не установлена.',
+                              'language': 'ru', 'script': 'Cyrl'}})
+            before = copy.deepcopy(claim)
+            profiles = SourceClaimProfiles(root)
+            profiles.validate(claim)
+            self.assertIn(ref, profiles.input_digests)
+            fields = claim_field_catalog(claim)
+            self.assertEqual([row['field_id'] for row in fields],
+                             ['claim.statement', 'claim.name', 'claim.caption', 'claim.hover'])
+            self.assertTrue(all(row['context'] == [''] for row in fields))
+            self.assertEqual(fields[2]['language'], 'de')
+            self.assertEqual(claim, before)
+            for mutation in ('missing-statement', 'missing-language', 'invalid-script', 'oversize', 'extra-field'):
+                changed = copy.deepcopy(claim)
+                q = changed['qualifiers']
+                if mutation == 'missing-statement':
+                    del q['statement']
+                elif mutation == 'missing-language':
+                    del q['display_fields']['name']['language']
+                elif mutation == 'invalid-script':
+                    q['display_fields']['name']['script'] = 'Cyrillic'
+                elif mutation == 'oversize':
+                    q['display_fields']['name']['text'] = 'я' * 161
+                else:
+                    q['display_fields']['assessment'] = 'accepted'
+                with self.subTest(mutation=mutation):
+                    with self.assertRaises(ValueError):
+                        profiles.validate(changed)
+                    with self.assertRaises(ValueError):
+                        claim_field_catalog(changed)
+            for opaque in ({'schema_version': 'future', 'unknown': [False, None, 'Ω']},
+                           {'name': 'An unversioned field'}, False):
+                changed = copy.deepcopy(claim)
+                changed['qualifiers']['display_fields'] = opaque
+                profiles.validate(changed)
+                self.assertEqual([row['field_id'] for row in claim_field_catalog(changed)], ['claim.statement'])
+                self.assertEqual(changed['qualifiers']['display_fields'], opaque)
+
+    def test_claim_display_forms_require_explicit_fields_on_prepare_apply_revision_and_replay(self):
+        with self.creation() as (root, owner, creator, claim, creation, rebuild, graph_fixture):
+            ref = 'ToS/contracts/claim-display-fields.schema.json'
+            (root / ref).write_bytes((ROOT / ref).read_bytes())
+            claim['qualifiers'].update(statement='Только условная атрибуция; не исторический факт.',
+                statement_language='ru', statement_script='Cyrl', display_fields={
+                    'schema_version': 'tos_claim_display_fields_v1',
+                    'name': {'text': 'Условная атрибуция', 'language': 'ru', 'script': 'Cyrl'},
+                    'caption': {'text': 'Не подтверждена', 'language': 'ru', 'script': 'Cyrl'},
+                    'hover': {'text': 'Синтетический пример; авторство не установлено.', 'language': 'ru', 'script': 'Cyrl'}})
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim]})
+            creation.update(expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+            commands.run_local_command(owner, creation)
+            source = root / creator['source_path']
+            original_receipt = source.with_name('source-create-receipt.json').read_bytes()
+            fields = ['claim.statement', 'claim.name', 'claim.caption', 'claim.hover']
+            form_ids = ['tos.form.test.display-' + field.split('.')[1] for field in fields]
+            selections = [dict(form_id=identity, field_id=field) for identity, field in zip(form_ids, fields)]
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                   'authority_ref', 'expires_at')}
+            config.update(schema_version='tos_local_claim_form_owner_v2', claim_id=claim['claim_id'],
+                allowed_operations=['form.create', 'form.revise'], allowed_form_ids=form_ids, allowed_field_ids=fields)
+            owner.write_text(json.dumps(config))
+            changes = []
+            for selection in selections:
+                prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare', **selection})
+                changes.append(prepared['prepared_change'])
+            request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                'command_id': 'synthetic:display-forms', 'expected_source': prepared['source'],
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': prepared['revision'],
+                'changes': changes}
+            legacy = {key: value for key, value in config.items() if key != 'allowed_field_ids'}
+            legacy['schema_version'] = 'tos_local_claim_form_owner_v1'
+            owner.write_text(json.dumps(legacy))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare', **selections[1]})
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)  # Raw apply is not a prepare bypass.
+            self.assertFalse((root / prepared['target_path']).exists())
+            owner.write_text(json.dumps(config))
+            result = commands.run_local_command(owner, request)
+            self.assertEqual({view['role'] for view in result['materializations']}, {'statement', 'name', 'caption', 'hover'})
+            for view in result['materializations']:
+                self.assertEqual(view['state'], 'ready')
+                self.assertEqual(view['context'][0]['value'], claim)
+                self.assertFalse(view['standalone_reading'])
+                self.assertIsNone(view['admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
+            node = next(n for n in graph['nodes'] if n['entity_id'] == claim['claim_id'])
+            from tos_access.knowledge import select_human_forms
+            roles = select_human_forms(node, 'ru')['roles']
+            self.assertEqual(roles['name']['packet']['display_text'], 'Условная атрибуция')
+            owner.write_text(json.dumps({**config, 'allowed_field_ids': ['claim.statement']}))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, request)  # Current revocation also denies a retry.
+            owner.write_text(json.dumps(legacy))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare', 'form_id': form_ids[1], 'field_id': 'claim.statement'})
+            revision = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                     'authority_ref', 'expires_at')}
+            revision.update(schema_version='tos_local_claim_revision_owner_v1', claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['qualifiers'],
+                allowed_evidence_refs=creator['allowed_evidence_refs'], allowed_form_ids=form_ids)
+            q = copy.deepcopy(claim['qualifiers'])
+            q['display_fields']['name']['text'] = 'Уточнённая условная атрибуция'
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'qualifiers': q}, 'forms': selections, 'reason': 'Synthetic name correction; no assessment.'}
+            owner.write_text(json.dumps(revision))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, proposal)
+            revision['allowed_form_field_ids'] = fields
+            owner.write_text(json.dumps(revision))
+            preview = commands.run_local_command(owner, proposal)
+            revise = {**proposal, 'operation': 'claim.revise', 'command_id': 'synthetic:display-correction',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                'expected_inputs': preview['source_bindings']}
+            corrected = commands.run_local_command(owner, revise)
+            self.assertEqual(corrected['source']['version'], 2)
+            self.assertTrue(commands.run_local_command(owner, revise)['replayed'])
+            self.assertEqual(source.with_name('source-create-receipt.json').read_bytes(), original_receipt)
+            history_path = source.with_name('claim-revision-history.json')
+            exact_history = history_path.read_bytes()
+            corrupted = json.loads(exact_history)
+            corrupted['receipts'][0]['forms'][1] = commands._form_ref(changes[0]['form'])
+            history_path.write_bytes(commands._canonical(corrupted) + b'\n')
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, revise)
+            history_path.write_bytes(exact_history)
+            retained = json.loads((root / result['target_path']).read_bytes())
+            self.assertEqual(len(retained['prior_forms']), 4)
+            self.assertEqual({form['form_version'] for form in retained['forms']}, {2})
+            # Reassign the named form to the statement under both field grants.
+            # A later retry still needs the exact historical name predecessor,
+            # even though neither current form nor request selects claim.name.
+            converted = copy.deepcopy(proposal)
+            converted['forms'][1]['field_id'] = 'claim.statement'
+            converted['fields']['qualifiers']['statement'] += ' Уточнение.'
+            preview = commands.run_local_command(owner, converted)
+            conversion = {**converted, 'operation': 'claim.revise', 'command_id': 'synthetic:display-role-correction',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                'expected_inputs': preview['source_bindings']}
+            commands.run_local_command(owner, conversion)
+            limited = {**revision, 'allowed_form_field_ids': ['claim.statement', 'claim.caption', 'claim.hover']}
+            owner.write_text(json.dumps(limited))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, conversion)
+            revision.pop('allowed_form_field_ids')
+            owner.write_text(json.dumps(revision))
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, revise)
+
+    def test_claim_display_receipt_scope_ignores_later_independent_successors(self):
+        from claim_revisions import _subject
+        claim = {'claim_id': 'tos.claim.synthetic.display-history', 'claim_version': 1,
+            'qualifiers': {'statement': 'Synthetic statement only.', 'statement_language': 'en',
+                'statement_script': 'Latn', 'display_fields': {
+                    'schema_version': 'tos_claim_display_fields_v1',
+                    'name': {'text': 'Synthetic name', 'language': 'en', 'script': 'Latn'}}}}
+        identity = 'tos.form.synthetic.display-history'
+        first = commands.prepare_claim_change(claim, None, 'model:synthetic', identity, 'claim.statement')
+        payload = commands._apply(None, _subject(claim), [first])
+        second = commands.prepare_claim_change(claim, payload, 'model:synthetic', identity, 'claim.statement')
+        payload = commands._apply(payload, _subject(claim), [second])
+        later = commands.prepare_claim_change(claim, payload, 'model:synthetic', identity, 'claim.name',
+                                               allowed_field_ids=commands.CLAIM_FORM_FIELDS)
+        payload = commands._apply(payload, _subject(claim), [later])
+        statement_only = {'schema_version': 'tos_local_claim_revision_owner_v1'}
+        commands._check_claim_form_receipt_scope(statement_only, payload, [commands._form_ref(second['form'])])
+        with self.assertRaises(PermissionError):
+            commands._check_claim_form_receipt_scope(statement_only, payload, [commands._form_ref(later['form'])])
+        returned = commands.prepare_claim_change(claim, payload, 'model:synthetic', identity, 'claim.statement')
+        with self.assertRaises(PermissionError):
+            commands._check_claim_form_changes(statement_only, [returned], historical_forms=payload['forms'])
+        with self.assertRaises(commands.JournalConflict):
+            commands._check_claim_form_changes(statement_only, [{**returned, 'expected_form': None}],
+                                               historical_forms=payload['forms'])
+        with self.assertRaises(commands.JournalConflict):
+            commands._check_claim_form_changes(statement_only, [{**second, 'operation': 'form.create'}],
+                                               historical_forms=payload['prior_forms'])
+
+    def test_claim_display_raw_retry_checks_exact_result_not_later_successor(self):
+        with self.creation() as (root, owner, creator, claim, creation, *_):
+            ref = 'ToS/contracts/claim-display-fields.schema.json'
+            (root / ref).write_bytes((ROOT / ref).read_bytes())
+            claim['qualifiers'].update(statement='Synthetic statement.', statement_language='en',
+                statement_script='Latn', display_fields={'schema_version': 'tos_claim_display_fields_v1',
+                    'name': {'text': 'Synthetic name', 'language': 'en', 'script': 'Latn'}})
+            prepared = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'claims': [claim]})
+            creation.update(expected_dependencies=prepared['expected_dependencies'], expected_inputs=prepared['source_bindings'])
+            commands.run_local_command(owner, creation)
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                                                   'authority_ref', 'expires_at')}
+            identity = 'tos.form.synthetic.display-retry'
+            config.update(schema_version='tos_local_claim_form_owner_v2', claim_id=claim['claim_id'],
+                allowed_operations=['form.create', 'form.revise'], allowed_form_ids=[identity],
+                allowed_field_ids=['claim.statement', 'claim.name'])
+            owner.write_text(json.dumps(config))
+            requests = []
+            for field in ('claim.statement', 'claim.name'):
+                preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                    'operation': 'prepare', 'form_id': identity, 'field_id': field})
+                request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
+                    'command_id': 'synthetic:' + field, 'expected_source': preview['source'],
+                    'expected_configuration': preview['owner_configuration'], 'expected_revision': preview['revision'],
+                    'changes': [preview['prepared_change']]}
+                result = commands.run_local_command(owner, request)
+                requests.append(request)
+            owner.write_text(json.dumps({**config, 'allowed_field_ids': ['claim.statement']}))
+            self.assertTrue(commands.run_local_command(owner, requests[0])['replayed'])
+            with self.assertRaises(PermissionError):
+                commands.run_local_command(owner, requests[1])
+            target = root / result['target_path']
+            payload = json.loads(target.read_bytes())
+            payload['growth_history'][0]['results'] = [commands._form_ref(payload['forms'][0])]
+            target.write_bytes(commands._canonical(payload) + b'\n')
+            with self.assertRaises(commands.JournalCorruption):
+                commands.run_local_command(owner, requests[0])
+
     def test_claim_form_refusals_preserve_source_and_do_not_publish(self):
         with self.creation() as (root, owner, config, claim, request, *_):
             claim['qualifiers'].update(statement='Не доказано.', statement_language='x-fixture')

@@ -541,6 +541,7 @@ class SourceClaimProfiles:
         self.mappings, self.profiles, self.relations = {}, {}, {}
         self.schema_routes, self.schemas, self.validators, self.base_validators = {}, {}, {}, {}
         self.temporal_validators = {}
+        self.claim_display_validator = None
         self.value_validators = {}
         self.member_structure_validators = {}
         if len({entry['relation_type_id'] for entry in self.registry['relations']}) != len(self.registry['relations']):
@@ -730,6 +731,14 @@ class SourceClaimProfiles:
                 raise SourceProfileError('source claim violates the shared structured value contract or declared kind')
         except Unresolvable as error:
             raise SourceProfileError('source claim schema has an undeclared dependency') from error
+        display = claim.get('qualifiers', {}).get('display_fields')
+        if isinstance(display, dict) and display.get('schema_version') == 'tos_claim_display_fields_v1':
+            if self.claim_display_validator is None:
+                self.claim_display_validator, _ = _schema_route(self.root, {
+                    'schema_ref': 'ToS/contracts/claim-display-fields.schema.json',
+                    'schema_dependencies': [CORPUS_REF]}, self.input_digests, self.schemas)
+            if not self.claim_display_validator.is_valid(claim['qualifiers']):
+                raise SourceProfileError('source Claim display fields violate their explicit contract')
         if predicate in document_catalogue.FIELDS:
             try:
                 document_catalogue.validate_attribution(claim)

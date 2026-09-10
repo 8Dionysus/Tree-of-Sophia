@@ -26,6 +26,13 @@ from knowledge_assessment import Record
 
 MAX_SET_BYTES = 2_097_152
 MAX_SET_OUTPUT_BYTES = 262_144
+CLAIM_DISPLAY_SCHEMA = 'ToS/contracts/claim-display-fields.schema.json'
+CLAIM_DISPLAY_VERSION = 'tos_claim_display_fields_v1'
+CLAIM_FORM_FIELDS = {
+    'claim.statement': ('statement', '/qualifiers/statement'),
+    **{f'claim.{role}': (role, f'/qualifiers/display_fields/{role}/text')
+       for role in ('name', 'caption', 'hover')},
+}
 
 
 class AssessedFormSnapshot:
@@ -283,21 +290,41 @@ explicitly unavailable, not silently rendered under a more permissive role.
     return _materialize_forms(subject, metadata_field_catalog(source), form_set, access_allowed=access_allowed)
 
 
+@lru_cache(maxsize=1)
+def _claim_display_validator():
+    schemas = [json.loads((ROOT / ref).read_text()) for ref in
+               (CLAIM_DISPLAY_SCHEMA, 'ToS/contracts/corpus-record.schema.json')]
+    registry = Registry().with_resources((schema['$id'], Resource.from_contents(schema)) for schema in schemas)
+    return Draft202012Validator(schemas[0], registry=registry)
+
+
 def claim_field_catalog(source: dict) -> list[dict]:
-    """Only the complete declared statement; the entire Claim guards its reading.
+    """Whole authored fields only; the entire Claim guards every reading.
 
     A source profile validates the Claim before calling this adapter. No label,
     endpoint name, predicate or assessment is synthesized into a statement.
     """
     qualifiers = source.get('qualifiers') or {}
+    display = qualifiers.get('display_fields')
+    understood = isinstance(display, dict) and display.get('schema_version') == CLAIM_DISPLAY_VERSION
+    if understood and not _claim_display_validator().is_valid(qualifiers):
+        raise ValueError('Claim display fields violate their explicit source contract')
     statement = qualifiers.get('statement')
     if not isinstance(statement, str) or not statement.strip():
         return []
     language, script = qualifiers.get('statement_language'), qualifiers.get('statement_script')
     if not _field_language_validator().is_valid({'notes': {'language': language, 'script': script}}):
         raise ValueError('claim statement language/script violates the source-form contract')
-    return [{'field_id': 'claim.statement', 'pointer': '/qualifiers/statement', 'role': 'statement',
-             'language': language, 'script': script, 'context': ['']}]
+    result = [{'field_id': 'claim.statement', 'pointer': '/qualifiers/statement', 'role': 'statement',
+               'language': language, 'script': script, 'context': ['']}]
+    if understood:
+        for role in ('name', 'caption', 'hover'):
+            if role in display:
+                wording = display[role]
+                result.append({'field_id': f'claim.{role}', 'pointer': CLAIM_FORM_FIELDS[f'claim.{role}'][1],
+                               'role': role, 'language': wording['language'], 'script': wording['script'],
+                               'context': ['']})
+    return result
 
 
 def materialize_claim_forms(source: dict, form_set: dict, *, access_allowed: bool) -> list[dict]:

@@ -40,6 +40,7 @@ def configuration(config):
         'allowed_evidence_refs', 'allowed_form_ids'}
         | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set())
         | ({'allowed_related_claim_refs'} if config['schema_version'] in identity_proposals.REVISION_CONFIGS else set())
+        | ({'allowed_form_field_ids'} if 'allowed_form_field_ids' in config else set())
         | ({'allowed_layer_transitions'} if layer_allowed else set()))
     if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
             source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG, document_catalogue.REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
@@ -61,6 +62,7 @@ def configuration(config):
     if values_allowed:
         from source_claim_commands import validate_value_scope
         validate_value_scope(config)
+    source._claim_form_field_ids(config)
     if config['schema_version'] in identity_proposals.REVISION_CONFIGS:
         from source_claim_commands import validate_identity_scope
         validate_identity_scope(config)
@@ -146,7 +148,7 @@ def _archive_config(config, identity):
     return {**config, 'record_id': identity}
 
 
-def _read_archive(root, config, receipt, *, read_files=None):
+def _read_archive(root, config, receipt, *, read_files=None, form_validator=None, form_field_ids=None):
     read_files = read_files if read_files is not None else packages._read_archive_files
     identity = receipt['previous_source']['id']
     files, locations = read_files(root, _archive_config(config, identity), receipt)
@@ -156,10 +158,43 @@ def _read_archive(root, config, receipt, *, read_files=None):
     if 'request' in receipt and _subject(_advance(previous, receipt['request']['fields'],
             receipt['request'].get('layer_transition'))).ref != receipt['source']:
         raise source.JournalCorruption('retained correction does not produce the recorded Claim successor')
+    if 'request' in receipt:
+        _verify_archived_form_result(files, config, receipt, previous,
+                                    form_validator=form_validator, form_field_ids=form_field_ids)
     return files, locations
 
 
-def _history(files, config, *, archive_reader=None):
+def _verify_archived_form_result(files, config, receipt, previous, *, form_validator=None, form_field_ids=None):
+    """Reconstruct history, without granting any current write authority."""
+    formname = source.claim_forms_path(Path(config['source_path']), previous['claim_id']).name
+    prior = source._json_object(files[formname]) if formname in files else None
+    if prior is not None:
+        source._validate_history(prior, validator=form_validator)
+    request = receipt['request']
+    revised = _advance(previous, request['fields'], request.get('layer_transition'))
+    try:
+        selections = request['forms']
+        if (not isinstance(selections, list) or not 1 <= len(selections) <= 32
+                or len({item['form_id'] for item in selections}) != len(selections)):
+            raise ValueError('invalid retained form selectors')
+        for selection in selections:
+            source._keys(selection, {'form_id', 'field_id'})
+        if not any(item['field_id'] == 'claim.statement' for item in selections):
+            raise ValueError('retained correction omitted its complete statement')
+        if prior is not None and {form['form_id'] for form in prior['forms']} - {
+                item['form_id'] for item in selections}:
+            raise ValueError('retained correction did not rebind every prior form')
+        changes = [source.prepare_claim_change(revised, prior, receipt['principal_id'], **item,
+            allowed_field_ids=source.CLAIM_FORM_FIELDS if form_field_ids is None else form_field_ids)
+            for item in selections]
+        source._apply(prior, _subject(revised), changes, validator=form_validator)
+        if [source._form_ref(change['form']) for change in changes] != receipt['forms']:
+            raise ValueError('result references differ from reconstructed changes')
+    except (KeyError, TypeError, ValueError, PermissionError) as error:
+        raise source.JournalCorruption('Claim correction forms differ from their exact archived request') from error
+
+
+def _history(files, config, *, archive_reader=None, form_validator=None):
     archive_reader = archive_reader if archive_reader is not None else _read_archive
     history = source._json_object(files[HISTORY]) if HISTORY in files else {
         'schema_version': 'tos_claim_revision_history_v1', 'source_path': config['source_path'], 'receipts': []}
@@ -189,6 +224,12 @@ def _history(files, config, *, archive_reader=None):
                 or receipt['source']['version'] != receipt['previous_source']['version'] + 1):
             raise source.JournalCorruption('broken Claim correction receipt')
         archived, _ = archive_reader(Path(config['source_root']), config, receipt)
+        formname = source.claim_forms_path(Path(config['source_path']), receipt['source']['id']).name
+        payload = source._json_object(files[formname])
+        source._validate_history(payload, validator=form_validator)
+        retained = [source._form_ref(form) for form in [*payload['forms'], *payload.get('prior_forms', ())]]
+        if any(ref not in retained for ref in receipt['forms']):
+            raise source.JournalCorruption('Claim correction result forms are no longer retained')
         before = archived[SOURCE_CLAIM_BASENAME]
         if expected is None and any(record.get('claim_version') != 1 for record in _claims(before).values()):
             raise source.JournalCorruption('Claim correction history is missing its initial stream')
@@ -277,10 +318,13 @@ def _scope(config, request, record, *, profiles=None):
     if not isinstance(selections, list) or not 1 <= len(selections) <= 32:
         raise ValueError('Claim correction requires bounded source-copy forms')
     seen = set()
+    allowed_form_fields = source._claim_form_field_ids(config)
     for item in selections:
         source._keys(item, {'form_id', 'field_id'})
         if item['form_id'] not in config['allowed_form_ids'] or item['form_id'] in seen:
             raise PermissionError('Claim form is repeated or outside delegated scope')
+        if item['field_id'] not in allowed_form_fields:
+            raise PermissionError('Claim correction form field is not explicitly delegated')
         seen.add(item['form_id'])
 
 
@@ -320,7 +364,10 @@ def _proposal(config, path, files, record, request):
             sibling = source._json_object(raw)
             if selected_ids & {f['form_id'] for f in sibling['forms']}:
                 raise source.JournalConflict('Claim correction cannot reuse a sibling form identity')
-    changes = [source.prepare_claim_change(revised, payload, config['principal_id'], **item) for item in request['forms']]
+    changes = [source.prepare_claim_change(revised, payload, config['principal_id'], **item,
+               allowed_field_ids=source._claim_form_field_ids(config)) for item in request['forms']]
+    source._check_claim_form_changes(config, changes, payload['forms'] if payload else (),
+                                     historical_forms=payload.get('prior_forms', ()) if payload else ())
     value = source._apply(payload, _subject(revised), changes)
     views = source.materialize_claim_forms(revised, value, access_allowed=True)
     if not all(v['state'] == 'ready' for v in views) or not any(v['role'] == 'statement' for v in views):
@@ -352,6 +399,7 @@ def run_command(owner, config, configuration_digest, path, request):
             'revision': packages._revision(files), 'command_operations': ['describe', 'prepare-revise', OPERATION, 'inspect-version'],
             'supported_operations': [OPERATION], 'allowed_operations': config['allowed_operations'],
             'allowed_fields': config['allowed_fields'], 'allowed_form_ids': config['allowed_form_ids'],
+            'allowed_form_field_ids': source._claim_form_field_ids(config),
             **({key: config[key] for key in ('allowed_object_values', 'allowed_object_refs')}
                if 'allowed_object_values' in config else {}),
             **({'allowed_layer_transitions': config['allowed_layer_transitions']}
@@ -390,6 +438,10 @@ def run_command(owner, config, configuration_digest, path, request):
             if receipt['command_id'] == request['command_id']:
                 if receipt['request_digest'] != digest or receipt['source']['id'] != config['claim_id']:
                     raise source.JournalConflict('Claim correction command identity was reused')
+                formname = source.claim_forms_path(path, config['claim_id']).name
+                form_set = source._json_object(files[formname])
+                source._validate_history(form_set)
+                source._check_claim_form_receipt_scope(config, form_set, receipt['forms'])
                 from source_claim_commands import reference_replay_snapshot
                 replay_records = [record]
                 if SourceClaimProfiles(root).profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', *identity_proposals.READERS}:

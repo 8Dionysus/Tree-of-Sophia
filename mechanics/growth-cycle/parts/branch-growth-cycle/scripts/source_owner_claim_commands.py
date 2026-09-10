@@ -243,6 +243,8 @@ def _forms(config, context, record, payload, selections, *, rebind=False):
         if payload['subject']['id'] != record['claim_id'] or rebind and {form['form_id'] for form in payload['forms']} - seen:
             raise PermissionError('Claim correction must explicitly rebind every current form of this Claim')
     changes = [source.prepare_claim_change(record, payload, config['principal_id'], **row) for row in selections]
+    source._check_claim_form_changes(config, changes, payload['forms'] if payload else (),
+                                     historical_forms=payload.get('prior_forms', ()) if payload else ())
     value = source._apply(payload, revisions._subject(record), changes, validator=validator)
     views = _materialize(record, value, context)
     if not all(view['state'] == 'ready' for view in views) or not any(view['role'] == 'statement' for view in views):
@@ -277,10 +279,12 @@ def _prepare_create(config, context, path, request, *, exclude=None):
     return files, dependencies, bindings, views
 
 
-def _archive_reader(context):
+def _archive_reader(context, *, form_validator=None):
+    validator = form_validator if form_validator is not None else transport._form_grammar(context)[0]
     def read(root, config, receipt):
         return revisions._read_archive(root, config, receipt,
-            read_files=lambda _root, selected, retained: transport._read_archive_files(context, selected, retained))
+            read_files=lambda _root, selected, retained: transport._read_archive_files(context, selected, retained),
+            form_validator=validator, form_field_ids=('claim.statement',))
     return read
 
 
@@ -298,9 +302,10 @@ def _inspect(config, context, path):
     formnames = {source.claim_forms_path(path, identity).name: identity for identity in records}
     if set(files) - BASE_FILES - {transport.RECEIPT_FILE, revisions.HISTORY} - formnames.keys():
         raise source.JournalCorruption('private Claim package has unbound files')
-    history = revisions._history(files, _history_config(config, context), archive_reader=_archive_reader(context))
-    forms, identities = {}, set()
     validator = transport._form_grammar(context)[0]
+    history = revisions._history(files, _history_config(config, context),
+        archive_reader=_archive_reader(context, form_validator=validator), form_validator=validator)
+    forms, identities = {}, set()
     for name, identity in formnames.items():
         payload = source._json_object(files[name])
         source._validate_history(payload, validator=validator)
@@ -311,7 +316,8 @@ def _inspect(config, context, path):
             raise PermissionError('private Claim form identity is undelegated or shared by siblings')
         identities |= selected
         forms[identity] = payload
-    archives = [_verify_revision_forms(config, context, path, receipt, forms)[0] for receipt in history['receipts']]
+    archives = [_verify_revision_forms(config, context, path, receipt, forms,
+                form_validator=validator)[0] for receipt in history['receipts']]
     creation = _creation_integrity(config, context, path, files, records, forms, archives)
     commands = [creation['command_id'], *(row['command_id'] for row in history['receipts']),
                 *(row['command_id'] for value in forms.values() for row in value.get('growth_history', []))]
@@ -384,16 +390,14 @@ def _creation_integrity(config, context, path, files, records, forms, archives):
         raise source.JournalCorruption('private Claim creation evidence is malformed or inconsistent') from error
 
 
-def _verify_revision_forms(config, context, path, receipt, forms):
-    archived, locations = _archive_reader(context)(context.public_root, config, receipt)
+def _verify_revision_forms(config, context, path, receipt, forms, *, form_validator=None):
+    # The archive reader reconstructs the exact old result using its historical
+    # actor and private statement-only grammar. This is integrity, not today's
+    # form grant or a new materialization/admission of the retained source.
+    archived, locations = _archive_reader(context, form_validator=form_validator)(context.public_root, config, receipt)
     identity = receipt['previous_source']['id']
-    previous = revisions._claims(archived[path.name])[identity]
-    revised = revisions._advance(previous, receipt['request']['fields'])
-    prior = source._json_object(archived[source.claim_forms_path(path, identity).name])
-    _, _, refs = _forms({**config, 'principal_id': receipt['principal_id']}, context, revised, prior,
-                        receipt['request']['forms'], rebind=True)
     retained = {source._canonical(source._form_ref(form)) for form in [*forms[identity]['forms'], *forms[identity]['prior_forms']]}
-    if refs != receipt['forms'] or any(source._canonical(ref) not in retained for ref in refs):
+    if any(source._canonical(ref) not in retained for ref in receipt['forms']):
         raise source.JournalCorruption('private Claim correction forms differ from their exact retained request')
     return archived, locations
 
@@ -404,6 +408,7 @@ def _result(config, digest, path, context, *, state=None, identity=None, receipt
         'supported_operations': list(OPERATIONS), 'allowed_operations': config['allowed_operations'],
         'command_operations': ['describe', 'prepare-create', 'claims.create', 'prepare-revise', 'claim.revise', 'prepare', 'apply', 'inspect-version'],
         'allowed_claim_ids': config['allowed_claim_ids'], 'allowed_form_ids': config['allowed_form_ids'],
+        'allowed_form_field_ids': source._claim_form_field_ids(config),
         'allowed_subject_refs': config['allowed_subject_refs'], 'allowed_object_refs': config['allowed_object_refs'],
         **({'allowed_object_values': config['allowed_object_values']} if 'allowed_object_values' in config else {}),
         'allowed_predicates': config['allowed_predicates'], 'allowed_evidence_refs': config['allowed_evidence_refs'],
@@ -539,6 +544,9 @@ def run_command(owner, config, digest, path, request):
         change = source.prepare_claim_change(state['records'][identity], state['forms'][identity], config['principal_id'],
                                              request['form_id'], request['field_id'])
         transport._form_changes({'changes': [change]}, config)
+        payload = state['forms'][identity]
+        source._check_claim_form_changes(config, [change], payload['forms'] if payload else (),
+                                         historical_forms=payload.get('prior_forms', ()) if payload else ())
         response['prepared_change'] = change
     elif operation == 'inspect-version':
         receipt = next((row for row in state['history']['receipts']
@@ -619,7 +627,9 @@ def _update(owner, config, digest, context, path, request):
     if operation == 'claim.revise':
         revisions._scope(config, request, record, profiles=SourceClaimProfiles(context.public_root))
     else:
-        transport._form_changes(request, config)
+        changes = transport._form_changes(request, config)
+        source._check_claim_form_changes(config, changes, payload['forms'] if payload else (),
+                                         historical_forms=payload.get('prior_forms', ()) if payload else ())
     receipts = [(row, 'claim.revise', row['source']['id']) for row in state['history']['receipts']]
     receipts += [(row, 'apply', key) for key, value in state['forms'].items() for row in value.get('growth_history', [])]
     creation = source._json_object(files[transport.RECEIPT_FILE])
@@ -638,6 +648,8 @@ def _update(owner, config, digest, context, path, request):
                 or receipt['previous_revision'] != request['expected_revision']
                 or receipt['results'] != [source._form_ref(change['form']) for change in request['changes']]):
             raise source.JournalCorruption('private Claim form retry differs from its exact request')
+        if operation == 'claim.revise':
+            source._check_claim_form_receipt_scope(config, payload, receipt['forms'])
         proposed = None
         if (operation == 'claim.revise'
                 and SourceClaimProfiles(context.public_root).profiles[record['predicate']]['reader'] == REFERENCE_READER):
@@ -679,6 +691,8 @@ def _update(owner, config, digest, context, path, request):
         if request['expected_dependencies'] != state['dependencies'] or request['expected_inputs'] != state['bindings']:
             raise source.JournalConflict('private Claim form grounding is stale')
         changes = transport._form_changes(request, config)
+        source._check_claim_form_changes(config, changes, payload['forms'] if payload else (),
+                                         historical_forms=payload.get('prior_forms', ()) if payload else ())
         value = source._apply(payload, revisions._subject(record), changes, validator=transport._form_grammar(context)[0])
         sibling_ids = {form['form_id'] for key, other in state['forms'].items() if key != identity
                        for form in [*other['forms'], *other['prior_forms']]}

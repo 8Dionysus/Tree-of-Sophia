@@ -26,7 +26,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
         schemas = {schema for handler in handlers for schema in handler.owner_schemas}
         self.assertEqual(schemas, {
             'tos_local_source_command_owner_v1', *source.CREATION_CONFIGS,
-            *source.PROFILE_CREATION_CONFIGS, *source.CORPUS_CREATION_CONFIGS, source.CLAIM_FORM_CONFIG,
+            *source.PROFILE_CREATION_CONFIGS, *source.CORPUS_CREATION_CONFIGS, *source.CLAIM_FORM_CONFIGS,
             source.REVISION_CONFIG, source.PROFILE_REVISION_CONFIG, source.CORPUS_REVISION_CONFIG,
             *source.SELECTED_REVISION_CONFIGS, source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG,
             source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG,

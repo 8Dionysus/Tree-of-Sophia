@@ -37,7 +37,7 @@ if str(ROOT / 'scripts') not in sys.path:
     sys.path.insert(0, str(ROOT / 'scripts'))
 from source_witness_human_forms import MAX_SET_BYTES, _validator, materialize_metadata_forms, metadata_field_catalog
 from source_witness_human_forms import claim_field_catalog, claim_forms_path, materialize_claim_forms
-from source_witness_human_forms import metadata_subject
+from source_witness_human_forms import metadata_subject, CLAIM_FORM_FIELDS
 
 OPERATIONS = ('form.create', 'form.revise')
 CREATION_OPERATION = 'historical.create'
@@ -67,6 +67,8 @@ CLAIM_REFERENCE_CONFIG = 'tos_local_claim_create_owner_v4'
 CLAIM_REFERENCE_REVISION_CONFIG = 'tos_local_claim_revision_owner_v4'
 CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
+CLAIM_DISPLAY_FORM_CONFIG = 'tos_local_claim_form_owner_v2'
+CLAIM_FORM_CONFIGS = {CLAIM_FORM_CONFIG, CLAIM_DISPLAY_FORM_CONFIG}
 TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
 OWNER_PROFILE_CONFIG = 'tos_local_owner_profile_command_v1'
 OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
@@ -113,7 +115,7 @@ def _builtin_configuration(config, path):
     profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
     revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
                                                *CORPUS_SELECTED_REVISION_CONFIGS}
-    claim_forms = config.get('schema_version') == CLAIM_FORM_CONFIG
+    claim_forms = config.get('schema_version') in CLAIM_FORM_CONFIGS
     captures_provenance = profile_creation or corpus_creation or config.get('schema_version') == 'tos_local_historical_create_owner_v2'
     _keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
                    'authority_ref', 'allowed_form_ids', 'allowed_operations', 'expires_at'}
@@ -125,8 +127,9 @@ def _builtin_configuration(config, path):
           | ({'record_id', 'allowed_fields'} if revision else set())
           | ({'profile_type_id'} if profile_revision else set())
           | ({'claim_id'} if claim_forms else set())
+          | ({'allowed_field_ids'} if config.get('schema_version') == CLAIM_DISPLAY_FORM_CONFIG else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, CLAIM_FORM_CONFIG, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, *CLAIM_FORM_CONFIGS, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -176,6 +179,7 @@ def _builtin_configuration(config, path):
             or relative.name.endswith('.human-forms.json')):
         raise PermissionError('source-command target must be explicit source metadata')
     if claim_forms:
+        _claim_form_field_ids(config)
         claim_forms_path(root / relative, config['claim_id'])
         _, _, contracts = _claim_form_source(root / relative, root, config['claim_id'])
         return config, _digest(_canonical({'configuration': config, 'source_contracts': contracts})), root / relative
@@ -477,7 +481,66 @@ def _changes(request, config):
         if identifier in identifiers:
             raise ValueError('a batch must change each form identity once')
         identifiers.add(identifier)
+    if config.get('schema_version') in {*CLAIM_FORM_CONFIGS, OWNER_CLAIM_CONFIG, OWNER_CLAIM_REFERENCE_CONFIG}:
+        _check_claim_form_changes(config, changes)
     return changes
+
+
+def _claim_form_field_ids(config):
+    """An older grant never acquires new display-field selectors implicitly."""
+    values = (config['allowed_field_ids'] if config.get('schema_version') == CLAIM_DISPLAY_FORM_CONFIG
+              else config.get('allowed_form_field_ids', ['claim.statement']))
+    if (not isinstance(values, list) or not 1 <= len(values) <= len(CLAIM_FORM_FIELDS)
+            or any(not isinstance(value, str) or value not in CLAIM_FORM_FIELDS for value in values)
+            or len(set(values)) != len(values)):
+        raise ValueError('Claim forms require a bounded explicit known field scope')
+    return values
+
+
+def _check_claim_form_changes(config, changes, current_forms=(), *, historical_forms=()):
+    """Check actual bindings, also on raw apply, predecessor changes and replay.
+
+    Exact source/version/language/context validation remains with application
+    and materialization. This gate checks authority without requiring a retry
+    to bind the newest source or resurrect an earlier ready materialization.
+    """
+    allowed = _claim_form_field_ids(config)
+    for change in changes:
+        form = change['form']
+        predecessor = change.get('expected_form')
+        if predecessor != form.get('revises'):
+            raise JournalConflict('Claim form request differs from its bound predecessor')
+        if 'operation' in change and ((change['operation'] == 'form.create') != (predecessor is None)
+                or (predecessor is None and form.get('form_version') != 1)):
+            raise JournalConflict('Claim form operation differs from its retained lineage')
+    selected_ids = {change['form']['form_id'] for change in changes}
+    forms = [change['form'] for change in changes]
+    forms.extend(form for form in current_forms if form['form_id'] in selected_ids)
+    predecessors = [change.get('expected_form') for change in changes if change.get('expected_form') is not None]
+    forms.extend(form for form in historical_forms if _form_ref(form) in predecessors)
+    for form in forms:
+        content = form.get('content', {})
+        if content.get('kind') != 'source-copy':
+            if config.get('schema_version') == CLAIM_DISPLAY_FORM_CONFIG:
+                raise PermissionError('display-field delegation permits only exact source copies')
+            continue  # Historical v1 non-copy proposals remain unassessed.
+        binding = form.get('bindings', {}).get(content.get('slot'), {})
+        if not any((form.get('role'), binding.get('pointer')) == CLAIM_FORM_FIELDS[field]
+                   for field in allowed):
+            raise PermissionError('Claim source-copy field is outside delegated scope')
+
+
+def _check_claim_form_receipt_scope(config, payload, refs):
+    """A historical correction retry retains both result and predecessor scope."""
+    retained = [*payload['forms'], *payload.get('prior_forms', ())]
+    selected = []
+    for ref in refs:
+        matches = [form for form in retained if _form_ref(form) == ref]
+        if len(matches) != 1:
+            raise JournalCorruption('Claim correction receipt form is not exactly retained')
+        selected.append({'form': matches[0], 'expected_form': matches[0].get('revises')})
+    # A later independent successor is not part of this historical operation.
+    _check_claim_form_changes(config, selected, historical_forms=retained)
 
 
 def _apply(payload, subject, changes, *, validator=None):
@@ -516,7 +579,9 @@ def prepare_metadata_change(source, payload, principal_id, form_id, field_id):
     return _prepare_form_change(subject, metadata_field_catalog(source), payload, principal_id, form_id, field_id)
 
 
-def prepare_claim_change(source, payload, principal_id, form_id, field_id):
+def prepare_claim_change(source, payload, principal_id, form_id, field_id, *, allowed_field_ids=('claim.statement',)):
+    if field_id not in allowed_field_ids:
+        raise PermissionError('Claim form field is not explicitly delegated')
     subject = Record.from_payload(source['claim_id'], source['claim_version'], source)
     return _prepare_form_change(subject, claim_field_catalog(source), payload, principal_id, form_id, field_id)
 
@@ -1382,7 +1447,7 @@ def _run_configured_command(owner_config, config, configuration, source_path, re
 
 
 def _run_form_command(owner_config, config, configuration, source_path, request):
-    claim_id = config['claim_id'] if config['schema_version'] == CLAIM_FORM_CONFIG else None
+    claim_id = config['claim_id'] if config['schema_version'] in CLAIM_FORM_CONFIGS else None
     field_catalog = claim_field_catalog if claim_id is not None else metadata_field_catalog
     materialize = materialize_claim_forms if claim_id is not None else materialize_metadata_forms
     prepare_change = prepare_claim_change if claim_id is not None else prepare_metadata_change
@@ -1409,6 +1474,7 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
                 'source_fields': [{key: value for key, value in field.items() if key not in ('pointer', 'context')}
                                   for field in field_catalog(source)],
                 'allowed_form_ids': config['allowed_form_ids'],
+                **({'allowed_field_ids': _claim_form_field_ids(config)} if claim_id is not None else {}),
                 **({'source_contracts': source_contracts} if source_contracts is not None else {}),
                 'forms': [_form_ref(form) for form in payload['forms']] if payload else [],
                 'materializations': materialize(source, payload, access_allowed=True) if payload else [],
@@ -1420,7 +1486,11 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
         source_raw, source, subject, target, raw, payload = snapshot
         if request['form_id'] not in config['allowed_form_ids']:
             raise PermissionError('prepared form is outside the delegated identity scope')
-        change = prepare_change(source, payload, config['principal_id'], request['form_id'], request['field_id'])
+        change = prepare_change(source, payload, config['principal_id'], request['form_id'], request['field_id'],
+                                **({'allowed_field_ids': _claim_form_field_ids(config)} if claim_id is not None else {}))
+        if claim_id is not None:
+            _check_claim_form_changes(config, [change], payload['forms'] if payload else (),
+                                      historical_forms=payload.get('prior_forms', ()) if payload else ())
         if change['operation'] not in config['allowed_operations']:
             raise PermissionError('prepared operation is not delegated')
         response = result(snapshot)
@@ -1440,11 +1510,18 @@ def _run_form_command(owner_config, config, configuration, source_path, request)
         changes = _changes(request, config)  # Current revocation also applies to replay.
         snapshot = _snapshot(source_path, Path(config['source_root']), claim_id)
         source_raw, source, subject, target, raw, payload = snapshot
+        if claim_id is not None:
+            _check_claim_form_changes(config, changes, historical_forms=(
+                [*payload['forms'], *payload.get('prior_forms', ())] if payload else ()))
         for receipt in payload.get('growth_history', []) if payload else []:
             if receipt['command_id'] == request['command_id']:
                 if receipt['request_digest'] != request_digest:
                     raise JournalConflict('command identity was reused for different input')
+                if claim_id is not None and receipt['results'] != [_form_ref(change['form']) for change in changes]:
+                    raise JournalCorruption('Claim form receipt differs from its exact request results')
                 return result(snapshot, receipt, True)
+        if claim_id is not None:
+            _check_claim_form_changes(config, changes, payload['forms'] if payload else ())
         if (request['expected_source'] != subject.ref or request['expected_configuration'] != configuration
                 or request['expected_revision'] != (_digest(raw) if raw is not None else None)):
             raise JournalConflict('expected source, configuration or form-set revision is stale')
@@ -1486,10 +1563,12 @@ def _builtin_handlers():
         contract.operation('prepare', {'field_id', 'form_id'}, definition='Prepare one source-copy form for an explicit field.', grants=OPERATIONS),
         contract.operation('apply', {'command_id', 'expected_source', 'expected_revision', 'expected_configuration', 'changes'},
             definition='Create or revise explicitly selected forms while retaining predecessors.', mutation='human_forms', grants=OPERATIONS))
-    forms = contract.Handler('public-source-forms', ('tos_local_source_command_owner_v1', CLAIM_FORM_CONFIG),
+    forms = contract.Handler('public-source-forms', ('tos_local_source_command_owner_v1', *sorted(CLAIM_FORM_CONFIGS)),
         form_ops, _run_form_command, 'Human forms of existing public native/profile metadata or one declared Claim.',
-        typed_handles=(*contract.FORM_HANDLES, *contract.RECORD_HANDLES, *contract.CLAIM_HANDLES),
-        preconditions=('Form writes cannot change the source record or Claim, and require exact delegated form identities.',))
+        typed_handles=(*contract.FORM_HANDLES, *contract.RECORD_HANDLES, *contract.CLAIM_HANDLES,
+                       'ToS/contracts/claim-display-fields.schema.json'),
+        preconditions=('Form writes cannot change the source record or Claim, and require exact delegated form identities.',
+            'Claim v1 copies only the statement; v2 separately scopes exact known display fields and requires whole-Claim context.',))
     def creator(identifier, schemas, name, definition, handles, *, historical=False, selection=None, preconditions=()):
         proposal = {'record', 'forms'} | ({'claims'} if historical else set())
         return contract.Handler(identifier, tuple(schemas), (contract.describe(),

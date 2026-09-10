@@ -459,6 +459,44 @@ The three real letter-705 Claim statements have source-copy forms. Their
 wording remains Russian with unspecified script, their assertions remain
 unreviewed, and their materializations grant no semantic admission.
 
+### Explicit compact Claim fields
+
+A Claim may opt into `qualifiers.display_fields.schema_version =
+tos_claim_display_fields_v1`. The source contract
+`ToS/contracts/claim-display-fields.schema.json` defines optional `name`,
+`caption` and `hover` wordings, each with explicit text, nullable language and
+nullable script. It requires the complete statement and its language/script
+declarations. Bounds of 160, 320 and 2048 Unicode code points are authoring
+limits, not a license to truncate. Unknown markers and unversioned values
+remain uninterpreted source data; a malformed understood version is refused.
+
+`claim.name`, `claim.caption` and `claim.hover` copy only their complete declared
+fields. As for `claim.statement`, the **entire exact Claim** is mandatory
+context and the result is not standalone. Names should identify the Claim,
+not reassert a shortened proposition. Captions and hover wording must preserve
+material negation, attribution, uncertainty, dispute and scope. Source-visible
+authoring/review owns that judgment; schema validity and mechanical source-copy
+readiness cannot approve a misleading abbreviation. Source correction, form
+revision, substantive assessment and scoped admission remain separate events.
+
+The existing `tos_local_claim_form_owner_v1`, private Claim grants and compound
+creation grants retain statement-only source-copy authority. The separate
+`tos_local_claim_form_owner_v2` requires an exact `allowed_field_ids` list and
+permits only source copies. Claim-correction grants may explicitly add
+`allowed_form_field_ids`; absence means statement-only. This option does not
+replace the separate date/value/layer grants or widen their predicate scope.
+Preparation, raw application and retry check the selected field and the exact
+current/retained predecessor. Revoking a name field cannot be bypassed by a
+retry whose resulting form has already changed to a statement.
+
+Source validation and command dependencies bind the display schema when its
+marker is understood. Changing wording advances the Claim and all explicitly
+rebound forms together, retaining source and form predecessors. No existing
+record or unknown extension is automatically migrated. Ordinary HumanForm
+delivery budgets still apply: a ready source materialization does not prove
+that a multi-role packet fits compact access or has been accepted by the UI.
+The rationale is [TOS-D-0064](../../docs/decisions/TOS-D-0064-scoped-claim-display-fields.md).
+
 ### Source-owned Claim navigation
 
 The relation registry may declare one versioned `claim_navigation_template`
