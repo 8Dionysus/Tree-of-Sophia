@@ -87,6 +87,10 @@ of a date, attribution or qualifier. A `claim_ref` remains governing context:
 it identifies the assertion being discussed, not an endorsement. Unrecognized
 schemas and extension fields remain unclassified; the reader does not infer
 schema support from a matching field name or from an ID prefix.
+The separately declared `tos_document_catalogue_claim_v1` uses these same
+finite Claim labels. Its whole catalogue attribution, selected source field,
+wording and unresolved calendar remain governing source values, not a new
+historical assertion or language inference by the presentation vocabulary.
 
 `complete` means coverage of the returned context, not understanding, quality,
 acceptance or semantic completeness of the source. The bounded companion

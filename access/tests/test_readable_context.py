@@ -153,6 +153,36 @@ class ReadableContextTests(unittest.TestCase):
         self.assertEqual(entry['binding']['source_pointer'], '/claim_ref')
         self.assertFalse(result['performs_semantic_assessment'])
 
+    def test_document_catalogue_context_preserves_null_calendar_and_field_selection(self):
+        # Synthetic metadata exercises the declared profile, not a catalogue observation.
+        record = {'schema_version': 'tos_document_catalogue_claim_v1',
+                  'claim_id': 'tos.claim.test.catalogue-context', 'claim_version': 1,
+                  'claim_type': 'relation', 'assertion_layer': 'bibliographic_assertion',
+                  'predicate': 'document_catalogue_date', 'subject_ref': 'tos.letter.test.catalogue',
+                  'object': {'kind': 'date-assertion', 'role': 'catalogue-assigned-document-date',
+                             'value': '1886-06-03', 'calendar': None, 'year_numbering': None,
+                             'certainty': 'exact', 'source_wording': {'text': '3.6.1886', 'language': None}},
+                  'qualifiers': {'catalogue_attribution': {'evidence_ref': 'test:synthetic-catalogue',
+                                 'source_field': 'Eintrag', 'field_role': 'assigned-date',
+                                 'source_wording': {'text': '3.6.1886', 'language': None}},
+                                 'dispatch_established': False},
+                  'epistemic_status': 'reported', 'review_status': 'unreviewed',
+                  'visibility': 'public_metadata_only', 'evidence_refs': ['test:synthetic-catalogue']}
+        item = {'attributes': {'source_claim': record}, 'semantics': {}}
+        before = copy.deepcopy(item)
+        result = self.build(item)
+        self.assertEqual(result['state'], 'complete')
+        entries = {e['key']: e for e in result['contexts'][0]['entries']}
+        for field in ('object', 'qualifiers', 'epistemic_status', 'review_status', 'evidence_refs'):
+            self.assertEqual(entries[field]['category'], 'governing')
+            self.assertEqual(entries[field]['value'], record[field])
+        self.assertIsNone(entries['object']['value']['calendar'])
+        self.assertIsNone(entries['object']['value']['year_numbering'])
+        self.assertFalse(entries['qualifiers']['value']['dispatch_established'])
+        self.assertIsNone(entries['object']['language'])
+        self.assertFalse(result['performs_semantic_assessment'])
+        self.assertEqual(item, before)
+
     def test_budget_returns_exact_roots_and_no_partial_ready(self):
         item = real_freedom()
         registry = copy.deepcopy(self.registry)

@@ -1,11 +1,11 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 37,
+  "registry_version": 38,
   "context_presentation": {
     "schema_version": "tos_context_presentation_v1",
     "presentation_id": "tos.context-presentation.governing",
-    "presentation_version": 2,
+    "presentation_version": 3,
     "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
     "purpose": "source-context-reading-not-assessment",
     "default_language": "ru",
@@ -20,6 +20,7 @@
       "tos_artifact_source_witness_v2",
       "tos_claim_packet_v1",
       "tos_corpus_record_v1",
+      "tos_document_catalogue_claim_v1",
       "tos_document_record_v1",
       "tos_formation_relation_claim_v1",
       "tos_historical_claim_v1",

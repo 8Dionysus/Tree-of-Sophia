@@ -60,3 +60,23 @@ Next owner: foundation integration for the vocabulary dependency refresh and
 actual reader reread; source HumanForm growth for substantive compact wording.
 No new durable decision is needed: the existing finite, explicitly versioned
 context vocabulary law is applied without changing its authority boundary.
+
+## Catalogue-schema continuation
+
+After the separate Document catalogue grammar was reviewed and integrated at
+`43a9b45f1580b59dd596aaf79990b54115626d4a`, its exact
+`tos_document_catalogue_claim_v1` selector was added to the same vocabulary.
+Presentation 2 → 3 and entity registry 37 → 38 retain explicit invalidation.
+No finite field rule is broadened. The qualified catalogue attribution and
+null calendar/numbering remain source values, not inferred historical time.
+
+The whole focused readable-context module passed again in
+`tos-root-catalogue-context-20260910.service` (exit 0, 112.5 MiB peak, zero
+swap). A synthetic new-profile context checks exact field-selection wording,
+null calendar/numbering, a false dispatch qualification and unchanged input.
+It is not source evidence. Registry transition against the exact parent above
+passed in `tos-root-catalogue-context-registry-20260910.service` (exit 0,
+41.9 MiB peak, zero swap). Manual source-boundary review finds no change to
+admission, date meaning, language authority or unknown-field treatment.
+Worker/D1 role support is being implemented separately; neither this selector
+nor the local checks establish its execution or the full G5 requirement.
