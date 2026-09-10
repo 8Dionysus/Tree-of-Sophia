@@ -110,9 +110,13 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
       for (const relationId of [...legs, ...details]) removed.add(relationId);
       for (const relationId of details) detailVertices.add(byNode.get(String(byRelation.get(relationId)!.to_id))!);
       let wording: string | null = null;
+      let wordingMode = 'claim-with-mandatory-context';
       const roles = record(record(node.human_form_selection).roles);
       for (const role of ['caption', 'statement', 'hover']) if (record(roles[role]).state === 'ready') {
-        wording = `/human_form_selection/roles/${role}/packet`; break;
+        const shared = record(node.human_form_selection).schema_version === 'tos_human_form_selection_v2';
+        wording = `/human_form_selection/roles/${role}` + (shared ? '' : '/packet');
+        if (shared) wordingMode = 'claim-with-shared-form-context-v2';
+        break;
       }
       if (wording === null) {
         const fields = record(record(node.display_selection).fields);
@@ -124,7 +128,7 @@ function compactClaimScene(nodes: Item[], relations: Item[], vertices: SceneVert
         from_id: byNode.get(String(claim.subject_node_id))!, to_id: byNode.get(String(claim.object_node_id))!,
         claim_node_id: id, relation_type_id: claim.relation_type_id,
         node_ids: [claim.subject_node_id, id, claim.object_node_id], relation_ids: legs, detail_relation_ids: details,
-        reading: {mode: 'claim-with-mandatory-context', node_id: id, content_revision: node.content_revision,
+        reading: {mode: wordingMode, node_id: id, content_revision: node.content_revision,
           wording_pointer: wording, wording_state: wording ? 'available' : 'missing',
           context_pointers: ['/semantics', '/epistemic'], relation_context_ids: [...legs, ...details], standalone: false}});
     }
@@ -817,7 +821,7 @@ async function digest(value: unknown): Promise<string> {
 
 export function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail'], language: string): T {
     const result = {...item, display_selection: displaySelection(item, language)};
-    if (Object.hasOwn(record(item.attributes), 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language)});
+    if (Object.hasOwn(record(item.attributes), 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language, 'shared-v2')});
   // Optional readable context is usable only with the exact raw roots it binds.
   if (detail !== 'full') {
     result.attributes = {}; delete result.source_record; delete result.readable_context;
@@ -897,7 +901,7 @@ export async function finalizeKnowledgeLens(
   const truncatedNodes = Math.max(0, executionCounts.matched_nodes - spec.limits.nodes);
   const truncatedRelations = Math.max(0, executionCounts.eligible_relations - finalRelations.length);
   const fingerprint = await digest({
-    execution_version: "tos-lens-execution-v6",
+    execution_version: "tos-lens-execution-v7",
     source_revision: sourceRevision,
     lens: Object.fromEntries(Object.entries(spec).filter(([key]) => key !== 'pagination')),
     nodes: finalNodes.map((item) => [item.id, item.content_revision ?? ""]),

@@ -982,6 +982,7 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
             "access/deploy/cloudflare-worker/scripts/build_stages.py",
             "access/deploy/cloudflare-worker/scripts/incremental_runtime.py",
             "access/src/tos_access/knowledge.py",
+            "access/src/tos_access/human_form_codec.py",
             "access/src/tos_access/normalization_cache.py",
             "access/src/tos_access/processing.py",
         ],

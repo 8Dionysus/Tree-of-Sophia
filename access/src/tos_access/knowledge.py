@@ -15,6 +15,7 @@ from .normalization_cache import active_cache, normalization_processor_digest
 from .processing import Input
 from .lens_pagination import normalize_pagination, paginate_lens
 from .readable_context import ReadableContextCompiler, presentation_catalog, validate_vocabulary
+from .human_form_codec import bounded_cost, encode_human_form_selection
 
 
 KNOWLEDGE_SOURCES = (
@@ -826,13 +827,27 @@ def _native_metadata_identity(source):
     return field
 
 
-def select_human_forms(item: dict[str, Any], language: str = 'auto') -> dict[str, Any]:
+def select_human_forms(item: dict[str, Any], language: str = 'auto', *, representation: str = 'inline-v1') -> dict[str, Any]:
     """Deliver source materializations intact; do not re-assess or rank truth.
 
 The adapters bind metadata records or a distinct declared Claim. Other owners must supply an
 equally explicit source record binding before this reader can select their
 forms. A source-snapshot admission is not a freshly evaluated runtime grant.
 """
+    if representation not in ('inline-v1', 'shared-v2'):
+        raise ValueError('invalid human form representation')
+    shared = representation == 'shared-v2'
+    def delivered(value):
+        return encode_human_form_selection(value) if shared else copy.deepcopy(value)
+
+    def delivery_cost(value):
+        if not shared:
+            return _form_delivery_cost(value)
+        try:
+            return _form_delivery_cost(encode_human_form_selection(value, enforce_budget=False))
+        except ValueError:
+            return math.inf
+
     if not isinstance(language, str) or len(language) > 128 or (language not in {'auto', 'original'} and not _LANGUAGE_KEY.fullmatch(language)):
         raise ValueError('invalid human form language preference')
     if not isinstance(item.get('content_revision'), str) or not re.fullmatch(r'[a-f0-9]{64}', item['content_revision']):
@@ -851,14 +866,22 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
         packet = {**result, 'state': state, 'roles': {role: empty() for role in HUMAN_FORM_ROLES},
                 'source_ref': None if state == 'over-budget' else result['source_ref'],
                 'candidates': [], 'issues': [issue]}
-        if _form_delivery_cost(packet) > HUMAN_FORM_SELECTION_BUDGET:
+        if delivery_cost(packet) > HUMAN_FORM_SELECTION_BUDGET:
             packet['source_ref'] = None
-        return packet
+        return delivered(packet)
 
     if not isinstance(forms, list) or len(forms) > 32:
         return stop('invalid', 'forms.invalid-or-excessive-collection')
+    if shared:
+        try:
+            bounded_cost(forms, 32 * 65_536)
+            if any(isinstance(packet, dict) and isinstance(packet.get('admission'), dict)
+                   and 'limit_refs' in packet['admission'] for packet in forms):
+                raise ValueError('reserved admission.limit_refs')
+        except ValueError:
+            return stop('invalid', 'forms.invalid-shared-codec-input')
     if not forms:
-        return result if _form_delivery_cost(result) <= HUMAN_FORM_SELECTION_BUDGET else stop('over-budget', 'forms.inspect-collection-separately')
+        return delivered(result) if delivery_cost(result) <= HUMAN_FORM_SELECTION_BUDGET else stop('over-budget', 'forms.inspect-collection-separately')
     record = attributes.get('source_record')
     claim = attributes.get('source_claim')
     if record is not None and claim is not None:
@@ -915,7 +938,7 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
         ready.append(packet)
         if not _form_language_context_valid(packet):
             return stop('invalid', 'forms.invalid-language-context')
-    if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+    if delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
         return stop('over-budget', 'forms.inspect-collection-separately')
     choices = []
     for role in HUMAN_FORM_ROLES:
@@ -949,18 +972,18 @@ forms. A source-snapshot admission is not a freshly evaluated runtime grant.
             result['roles'][role]['state'] = 'unavailable'
     # Reserve every role's reference before allocating intact packets. Requested
     # language must not be starved by earlier roles using unrelated fallbacks.
-    if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+    if delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
         return stop('over-budget', 'forms.inspect-collection-separately')
     priority = {'exact-language': 0, 'original': 0, 'automatic': 0,
                 'less-specific-language': 1, 'fallback': 2}
     for role, reason, packet in sorted(choices, key=lambda choice: priority[choice[1]]):
         reference_only = result['roles'][role]
         result['roles'][role] = {'state': 'ready', 'reason': reason, 'form': packet['form'], 'packet': packet}
-        if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+        if delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
             result['roles'][role] = reference_only
-    if _form_delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
+    if delivery_cost(result) > HUMAN_FORM_SELECTION_BUDGET:
         return stop('over-budget', 'forms.inspect-collection-separately')
-    return copy.deepcopy(result)
+    return delivered(result)
 
 
 def _source_refs(item: dict[str, Any], *fallbacks: str | None) -> list[str]:
@@ -4625,10 +4648,14 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
             removed.update([*legs, *details])
             detail_vertices.update(by_node[by_relation[id]['to_id']] for id in details)
             wording = None
+            wording_mode = 'claim-with-mandatory-context'
             selection = node.get('human_form_selection', {})
             for role in ('caption', 'statement', 'hover'):
                 if selection.get('roles', {}).get(role, {}).get('state') == 'ready':
-                    wording = f'/human_form_selection/roles/{role}/packet'
+                    shared = node.get('human_form_selection', {}).get('schema_version') == 'tos_human_form_selection_v2'
+                    wording = f'/human_form_selection/roles/{role}' + ('' if shared else '/packet')
+                    if shared:
+                        wording_mode = 'claim-with-shared-form-context-v2'
                     break
             if wording is None:
                 fields = node.get('display_selection', {}).get('fields', {})
@@ -4641,7 +4668,7 @@ def _compact_claim_scene(nodes, relations, vertices, arcs, by_node, focus_node_i
                           'claim_node_id': identifier, 'relation_type_id': claim['relation_type_id'],
                           'node_ids': [claim['subject_node_id'], identifier, claim['object_node_id']],
                           'relation_ids': legs, 'detail_relation_ids': details,
-                          'reading': {'mode': 'claim-with-mandatory-context', 'node_id': identifier,
+                          'reading': {'mode': wording_mode, 'node_id': identifier,
                                       'content_revision': node['content_revision'], 'wording_pointer': wording,
                                       'wording_state': 'available' if wording else 'missing',
                                       'context_pointers': ['/semantics', '/epistemic'],
@@ -4923,7 +4950,7 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     truncated_nodes = max(0, len(matched_node_ids) - spec["limits"]["nodes"])
     truncated_relations = max(0, eligible_relation_count - len(final_relations))
     fingerprint_material = {
-        "execution_version": "tos-lens-execution-v6",
+        "execution_version": "tos-lens-execution-v7",
         "source_revision": graph.get("source_revision"),
         "lens": {k: v for k, v in public_spec.items() if k != 'pagination'},
         "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],
@@ -5009,7 +5036,7 @@ def _lens_carrier(item: dict[str, Any], detail: str, *, language: str | None = N
     if language is not None:
         result = {**result, 'display_selection': _display_selection(item, language)}
         if 'human_forms' in (item.get('attributes') or {}):
-            result['human_form_selection'] = select_human_forms(item, language)
+            result['human_form_selection'] = select_human_forms(item, language, representation='shared-v2')
     return result
 
 
@@ -5551,7 +5578,7 @@ def knowledge_catalog(
         },
         "lenses": saved_lens_specs(corpus, philosophy),
         "capabilities": {
-            "execution_version": "tos-lens-execution-v6",
+            "execution_version": "tos-lens-execution-v7",
             "property_filters": {"selector": "property_id", "scope": "node-query-and-path-node-query",
                                  "binding": "same-graph-snapshot", "field_and_property_id": "mutually-exclusive",
                                  "unknown_value": "does-not-match-except-exists-false",

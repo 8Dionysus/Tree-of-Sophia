@@ -1,4 +1,5 @@
 /** Bounded source-form delivery, not generation, assessment or admission. */
+import {boundedFormCost, encodeHumanFormSelection} from '../../../shared/human-form-selection-codec.ts';
 type Item = Record<string, unknown>;
 type ExactRef = {id: string; version: number; digest: string};
 type RoleSelection = {state: string; reason: string; form: ExactRef | null; packet: Item | null};
@@ -116,7 +117,15 @@ export function formDeliveryCost(value: unknown): number {
   throw new Error('human form contains a non-JSON value');
 }
 
-export function selectHumanForms(item: Item, language = 'auto') {
+export function selectHumanForms(item: Item, language = 'auto', representation = 'inline-v1') {
+  if (!['inline-v1', 'shared-v2'].includes(representation)) throw new Error('invalid human form representation');
+  const shared = representation === 'shared-v2';
+  const delivered = (value: Item) => shared ? encodeHumanFormSelection(value) : structuredClone(value);
+  const deliveryCost = (value: Item) => {
+    if (!shared) return formDeliveryCost(value);
+    try { return formDeliveryCost(encodeHumanFormSelection(value, {enforceBudget: false})); }
+    catch { return Infinity; }
+  };
   if (typeof language !== 'string' || language.length > 128 || (!['auto', 'original'].includes(language) && !LANGUAGE.test(language))) {
     throw new Error('invalid human form language preference');
   }
@@ -133,11 +142,17 @@ export function selectHumanForms(item: Item, language = 'auto') {
   const stop = (state: string, issue: string) => {
     const packet = {...result, state, roles: Object.fromEntries(HUMAN_FORM_ROLES.map(role => [role, empty()])),
       source_ref: state === 'over-budget' ? null : result.source_ref, candidates: [], issues: [issue]};
-    if (formDeliveryCost(packet) > HUMAN_FORM_SELECTION_BUDGET) packet.source_ref = null;
-    return packet;
+    if (deliveryCost(packet) > HUMAN_FORM_SELECTION_BUDGET) packet.source_ref = null;
+    return delivered(packet);
   };
   if (!Array.isArray(forms) || forms.length > 32) return stop('invalid', 'forms.invalid-or-excessive-collection');
-  if (!forms.length) return formDeliveryCost(result) <= HUMAN_FORM_SELECTION_BUDGET ? result : stop('over-budget', 'forms.inspect-collection-separately');
+  if (shared) {
+    try {
+      boundedFormCost(forms, 32 * 65_536);
+      if (forms.some(packet => Object.hasOwn(record(record(packet).admission), 'limit_refs'))) throw new Error('reserved admission.limit_refs');
+    } catch { return stop('invalid', 'forms.invalid-shared-codec-input'); }
+  }
+  if (!forms.length) return deliveryCost(result) <= HUMAN_FORM_SELECTION_BUDGET ? delivered(result) : stop('over-budget', 'forms.inspect-collection-separately');
   if (attributes.source_record != null && attributes.source_claim != null) {
     return stop('invalid', 'forms.ambiguous-source-record-binding');
   }
@@ -200,7 +215,7 @@ export function selectHumanForms(item: Item, language = 'auto') {
     ready.push(packet);
     if (!languageContextValid(packet)) return stop('invalid', 'forms.invalid-language-context');
   }
-  if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
+  if (deliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
   const choices: {role: string; reason: string; packet: Item; form: ExactRef}[] = [];
   for (const role of HUMAN_FORM_ROLES) {
     const candidates = ready.filter(packet => packet.role === role);
@@ -232,14 +247,14 @@ export function selectHumanForms(item: Item, language = 'auto') {
   }
   // Reserve every role's reference before allocating intact packets. Requested
   // language must not be starved by earlier roles using unrelated fallbacks.
-  if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
+  if (deliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
   const priority: Record<string, number> = {'exact-language': 0, original: 0, automatic: 0,
     'less-specific-language': 1, fallback: 2};
   for (const {role, reason, packet, form} of choices.sort((a, b) => priority[a.reason]! - priority[b.reason]!)) {
     const referenceOnly = result.roles[role]!;
     result.roles[role] = {state: 'ready', reason, form, packet};
-    if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) result.roles[role] = referenceOnly;
+    if (deliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) result.roles[role] = referenceOnly;
   }
-  if (formDeliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
-  return structuredClone(result);
+  if (deliveryCost(result) > HUMAN_FORM_SELECTION_BUDGET) return stop('over-budget', 'forms.inspect-collection-separately');
+  return delivered(result);
 }
