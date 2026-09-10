@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5144,
     "human_scope": {
-      "bytes": 11076456,
+      "bytes": 11076693,
       "count": 2601,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -111,12 +111,12 @@
           "lines": 55
         },
         "tos": {
-          "bytes": 9876827,
+          "bytes": 9877064,
           "count": 2309,
-          "lines": 124008
+          "lines": 124009
         }
       },
-      "lines": 145358
+      "lines": 145359
     },
     "surface_kind_counts": {
       "executable": 360,
@@ -167,7 +167,7 @@
         "human": 2309,
         "structured": 17333
       },
-      "tracked_surface_bytes": 1044491997,
+      "tracked_surface_bytes": 1044503467,
       "tracked_surface_count": 19739
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "056611997375134eada976dfa5a7a1120b27d1433071e84ff58ceb3d423f0fe2",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "52292b52f88dc4143b794bc908f3cc2133579fbf834c471912a7039b21e44562",
+  "tracked_surface_digest": "1b0d3af7aa0abf33423a7213796fae62d176fb645ab54c25785e47d90d9b28bd",
   "tracked_surfaces": [
     {
       "bytes": 1736,
@@ -3119,11 +3119,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 103986591,
+      "bytes": 103990168,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/tos_corpus_index.min.json",
-      "sha256": "adad8f928448fba9b02d3d2e7375f5a3e1366e8cfd0b42c2e85b99b2765fcc43",
+      "sha256": "6d9f8ffb162e467cdd69bde822de4ab88ec91fefa76ee90066eeebe8e4d9fac4",
       "surface_kind": "structured"
     },
     {
@@ -26551,6 +26551,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 775927,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-english-sujato-20260909.json",
+      "sha256": "732d0bb7b8fd39b8ed8bb634df958d29d07889bcd0c5ad1ca24b5606664a3fc6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 671723,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-pali-20260909.json",
+      "sha256": "6d6988b5fc9760072a64541ccae58d5a72c9a851a1af87ad62ad49c42348b830",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 177266,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -26636,22 +26652,6 @@
       "family_id": "tos",
       "path": "ToS/philosophy/source-planting-preparation/third-wave-20260908.json",
       "sha256": "f97d477b234e9f9dffeddd7309713d48173ecac9557b3c55b548e01582905c92",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 671723,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/thirteenth-pali-wave-20260909.json",
-      "sha256": "6d6988b5fc9760072a64541ccae58d5a72c9a851a1af87ad62ad49c42348b830",
-      "surface_kind": "structured"
-    },
-    {
-      "bytes": 775927,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/philosophy/source-planting-preparation/thirteenth-translations-wave-20260909.json",
-      "sha256": "732d0bb7b8fd39b8ed8bb634df958d29d07889bcd0c5ad1ca24b5606664a3fc6",
       "surface_kind": "structured"
     },
     {
@@ -29755,7 +29755,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/source-registries/COVERAGE.md",
-      "sha256": "cec4e7e85bb91898dfd0fe05595a5d16cd8095cef95c6354627d013e6325f27a",
+      "sha256": "71ef4fd9d5f07b436eebafdf31a7b7067e398b53be9593e23d8d834c686f3d86",
       "surface_kind": "human"
     },
     {
@@ -49647,11 +49647,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 336,
+      "bytes": 573,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/README.md",
-      "sha256": "3f58a0a1399a80eaf2f11af1e1e46031678de07b7c45560d83ce7519288f7984",
+      "sha256": "4e97e739e83dc919ce413cb878d824395f7f3e22db5697b3a43d05ad929f88c9",
       "surface_kind": "human"
     },
     {
@@ -52975,11 +52975,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 4678,
+      "bytes": 4684,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/execution/create_metadata_forms.py",
-      "sha256": "1981d86c52ca2b3854488ffbe40d429564ebe9adfa03465efcc917faa776efca",
+      "sha256": "49fab9b1f6d7cdba7de8927c82f7c53f903a2f0f0443068aefa6e779a15ea8e2",
       "surface_kind": "executable"
     },
     {
@@ -52988,14 +52988,6 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/execution/engine-history/acquire_registry_sources.py",
       "sha256": "f5a473f044d8b44c8030bf0547bd2df6984936bfdc7add48a095e55978ec351e",
-      "surface_kind": "executable"
-    },
-    {
-      "bytes": 32628,
-      "currentness": "tracked_source_snapshot",
-      "family_id": "tos",
-      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/execution/engine-history/prepare_registry_sources.py",
-      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
       "surface_kind": "executable"
     },
     {
@@ -53031,11 +53023,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 15766,
+      "bytes": 15774,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/execution/prepare_bilara_batch.py",
-      "sha256": "8998008d78d5e059fff09d09f941adf56015b86a0a49160934f9910860a97949",
+      "sha256": "9530cef9bfbe2ee273a8ea8db64f2183ce2b0c6d4349c7fb59c9888edc0aa163",
       "surface_kind": "executable"
     },
     {
@@ -53055,12 +53047,20 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 451621,
+      "bytes": 451627,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/human-form-companions.json",
-      "sha256": "88ba3d2ddd2ce72274928342d90e36049a0480d73b844299418b2aacf5cd37b2",
+      "sha256": "59b75015cd7e2a964c3a08f4d80219df72bce32d168d4921eb7544bedb3da291",
       "surface_kind": "structured"
+    },
+    {
+      "bytes": 32628,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60",
+      "surface_kind": "executable"
     },
     {
       "bytes": 52751,
@@ -53071,19 +53071,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1307569,
+      "bytes": 1307575,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/manifest.json",
-      "sha256": "9fe93a20d1bc10a458209ef4f8ea75e330d056a500549e519343fa2b1c5cc4de",
+      "sha256": "30fa8cb4e1e7b58f11610acea75db904cf16e18904fe78532d92f6d17d1cfea1",
       "surface_kind": "structured"
     },
     {
-      "bytes": 584,
+      "bytes": 1798,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/preparation-checkpoint-receipt.json",
-      "sha256": "61dad67fb3531ec61c850ecf8200b2c3a4e5d181b0b7ac1618cba54cadf52a11",
+      "sha256": "a713a7fb95f62b985874e906740b2ed1df2c0cfc01d06626306164ca0afc4cee",
       "surface_kind": "structured"
     },
     {
@@ -53095,11 +53095,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1588628,
+      "bytes": 1589726,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/queue.preparation.v1.json",
-      "sha256": "78c163e306224764e64b3eff450438ecbc0e1cb9badd8cdbb741900d2f6ac2b4",
+      "sha256": "66981f9d1cecbb78526eb5462f3f0ac8d7281cb6c017cec577d01fad88261942",
       "surface_kind": "structured"
     },
     {
@@ -53111,11 +53111,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1224955,
+      "bytes": 1226053,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/readiness.preparation.v1.json",
-      "sha256": "23c2c32bf27a8c03dc137a2b3896542dfede3ec079f1d6e0c9aa671036463f38",
+      "sha256": "61b12a142f2967a64531a455ff1877c140103f2aab80a5edb33efa5d393852d4",
       "surface_kind": "structured"
     },
     {
@@ -54631,11 +54631,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6411,
+      "bytes": 6424,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/execution/create_metadata_forms.py",
-      "sha256": "0c4d4beccc2ec875934922971c01d4462892ce1c26d54de990905042c71f0090",
+      "sha256": "53125be0d82b51eac09fe57ff3fc6e550134128163c8a287ce8697bc196353b3",
       "surface_kind": "executable"
     },
     {
@@ -54655,11 +54655,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 539120,
+      "bytes": 539133,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/human-form-companions.json",
-      "sha256": "8724b4ad3d32bf995831cd8ef57121359f021718fac2e21f6a77d96d614b0c94",
+      "sha256": "2a22efed18f61244d36497433cc1931582607630102ef3319d98ef41cd99af4e",
       "surface_kind": "structured"
     },
     {
@@ -54671,19 +54671,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1695910,
+      "bytes": 1695918,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/manifest.json",
-      "sha256": "646a8c0236b0b88e614db62f852d37083ada1ad5667c0478659c8ec86b3d48e1",
+      "sha256": "823bd2299be91d36743b30b5d2bc40baeb028a7d6cda49bd3fd1d645fb7654b4",
       "surface_kind": "structured"
     },
     {
-      "bytes": 594,
+      "bytes": 1804,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/preparation-checkpoint-receipt.json",
-      "sha256": "363a1da939160acae912e70e834ed5de3a59a7b479d6d437815d622723560bae",
+      "sha256": "db56bb72ba1187516d0a528725c56f68528f17ba5c06e2440a05ae2f12c7dce3",
       "surface_kind": "structured"
     },
     {
@@ -54695,11 +54695,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1926698,
+      "bytes": 1928186,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/queue.preparation.v1.json",
-      "sha256": "459ebf5a17f3a2f5110032062e4f26ee5499091d47b005b23af29e9dac1cd694",
+      "sha256": "939015a49bbfd2c8b07700e0effef3f9b1c30faf84a006f8ff48f3b14b8ef90b",
       "surface_kind": "structured"
     },
     {
@@ -54711,11 +54711,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1478490,
+      "bytes": 1479978,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/readiness.preparation.v1.json",
-      "sha256": "1ec50950d81f5563fcb3b1e63ff9ea80a78d20fe3dc5eafa8181889b92958c80",
+      "sha256": "af25ce5b0e18e0ef16cab547b3f11cec8ad786d6adea2909b4dfc6ae0d3f5b9b",
       "surface_kind": "structured"
     },
     {

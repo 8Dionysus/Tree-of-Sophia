@@ -110,7 +110,7 @@ def prepare(translated):
     expected=186 if translated else 183
     if len(targets)!=expected or len({t['ids']['work'] for t in targets})!=expected:raise ValueError('reviewed distinct Work scope differs')
     payload=b''.join((json.dumps(p,ensure_ascii=False,separators=(',',':'))+'\n').encode() for p in packages);(base/'prepared-source-packages.jsonl').write_bytes(payload)
-    branch_ref='ToS/philosophy/source-planting-preparation/thirteenth-'+('translations' if translated else 'pali')+'-wave-20260909.json'
+    branch_ref='ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-'+('english-sujato' if translated else 'pali')+'-20260909.json'
     write(ROOT/branch_ref,{'schema_version':'tos_source_planting_preparation_batch_v1','status':'prepared-not-planted','review_scope':f'{expected} exact Bilara '+('English versions attached to existing Works' if translated else 'new Pali discourse witnesses'),'reviewer_ref':'model:codex','targets':plans})
     observations=[read(p) for p in sorted((BATCH_ROOT/'evidence').glob('*.receipt.json'))]+[read(ROOT/(p+'.receipt.json')) for p in old_refs]
     write(base/'selection-review.json',{'reviewer_ref':'model:codex','observed_at':observed,'candidates':selections,'selected':expected,'deferred':0,'reused_existing':0 if translated else 3,'new_source_bodies_acquired':False})

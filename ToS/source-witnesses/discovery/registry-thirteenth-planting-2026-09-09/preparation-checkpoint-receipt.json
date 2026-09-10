@@ -1,13 +1,23 @@
 {
+  "schema_version": "tos_registry_preparation_migration_receipt_v1",
   "status": "passed",
-  "manifest_sha256": "9fe93a20d1bc10a458209ef4f8ea75e330d056a500549e519343fa2b1c5cc4de",
-  "commit": "e6c7429056c3bc6a7563d4bea9d110c8f92f621b",
-  "runtime_session_id": "01a08281-293a-7ff0-927a-0fd73dfacf7d",
+  "receipt_role": "current-navigation-migration",
+  "stage": "pali",
+  "manifest_sha256": "30fa8cb4e1e7b58f11610acea75db904cf16e18904fe78532d92f6d17d1cfea1",
+  "commit": "46756dd7442a47e9df3d5c298ffd8226538d9f14",
+  "runtime_session_id": "tos-path-migration:registry-thirteenth:2026-09-09",
   "checkpoint_review_ref": "agent-review:e6c742905:20260909T221054Z",
+  "migration_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/path-migration.current.json",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-thirteenth-path-migration.md",
+  "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/61dad67fb3531ec61c850ecf8200b2c3a4e5d181b0b7ac1618cba54cadf52a11.pali-receipt.json",
+  "historical_receipt_sha256": "61dad67fb3531ec61c850ecf8200b2c3a4e5d181b0b7ac1618cba54cadf52a11",
+  "historical_manifest_sha256": "9fe93a20d1bc10a458209ef4f8ea75e330d056a500549e519343fa2b1c5cc4de",
+  "historical_preparation_commit": "e6c7429056c3bc6a7563d4bea9d110c8f92f621b",
   "passed_checks": [
-    "183 exact pinned Pali target identity preflight",
-    "393 source metadata/opening observations verified; source-visible independent review",
-    "47 focused acquisition/coverage/topology tests",
-    "13 source foundation and2 documentation checks"
-  ]
+    "current manifest digest is recorded in this migration receipt",
+    "historical receipt bytes and its original manifest digest and preparation commit are retained at the migration record reference",
+    "current route names resolve to the same stable source record and payload identity",
+    "migration changes navigation and generated references only; no source, rights, semantic, publication or canon admission is made"
+  ],
+  "authority_boundary": "This receipt closes the reviewed navigation migration. It is not an acquisition-preparation receipt and must not be used to authorize a new source transfer."
 }

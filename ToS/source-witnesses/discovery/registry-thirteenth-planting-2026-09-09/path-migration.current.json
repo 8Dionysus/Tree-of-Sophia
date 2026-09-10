@@ -1,0 +1,51 @@
+{
+  "schema_version": "tos_source_witness_path_migration_v1",
+  "status": "current",
+  "migration_id": "tos.source-witnesses.registry-thirteenth.navigation-2026-09-09",
+  "owner_ref": "ToS/source-witnesses/AGENTS.md",
+  "migration_review_ref": "ToS/review-ledger/2026-09-10-registry-thirteenth-path-migration.md",
+  "applied_to_commit": "46756dd7442a47e9df3d5c298ffd8226538d9f14",
+  "migration_reason": "Current preparation navigation names the early Buddhist Nikaya branch and the language/version role; sequence labels remain historical provenance.",
+  "identity_boundary": {
+    "stable_record_ids_unchanged": true,
+    "payload_bytes_unchanged": true,
+    "preparation_input_bytes_retained": true,
+    "historical_receipts_retained": true,
+    "semantic_or_rights_admission": false
+  },
+  "current_routes": [
+    {
+      "role": "pali-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-pali-20260909.json",
+      "sha256": "6d6988b5fc9760072a64541ccae58d5a72c9a851a1af87ad62ad49c42348b830"
+    },
+    {
+      "role": "english-preparation",
+      "path": "ToS/philosophy/source-planting-preparation/early-buddhist-nikaya-english-sujato-20260909.json",
+      "sha256": "732d0bb7b8fd39b8ed8bb634df958d29d07889bcd0c5ad1ca24b5606664a3fc6"
+    },
+    {
+      "role": "historical-engine-snapshot",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/engine-history/prepare_registry_sources.py",
+      "sha256": "9eb8a6716795b3cf2af58183d287ca1582c0a01a382592133199bb5aa9d61c60"
+    }
+  ],
+  "current_manifests": [
+    {
+      "stage": "pali",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/manifest.json",
+      "sha256": "30fa8cb4e1e7b58f11610acea75db904cf16e18904fe78532d92f6d17d1cfea1",
+      "historical_manifest_sha256": "9fe93a20d1bc10a458209ef4f8ea75e330d056a500549e519343fa2b1c5cc4de",
+      "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/61dad67fb3531ec61c850ecf8200b2c3a4e5d181b0b7ac1618cba54cadf52a11.pali-receipt.json"
+    },
+    {
+      "stage": "english",
+      "path": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/translations/manifest.json",
+      "sha256": "823bd2299be91d36743b30b5d2bc40baeb028a7d6cda49bd3fd1d645fb7654b4",
+      "historical_manifest_sha256": "646a8c0236b0b88e614db62f852d37083ada1ad5667c0478659c8ec86b3d48e1",
+      "historical_receipt_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/preparation-inputs/363a1da939160acae912e70e834ed5de3a59a7b479d6d437815d622723560bae.english-receipt.json"
+    }
+  ],
+  "historical_record_ref": "ToS/source-witnesses/discovery/registry-thirteenth-planting-2026-09-09/legacy/path-migration.json",
+  "authority_boundary": "Navigation migration only. The historical preparation receipts remain bound to their original manifest bytes and commits; the current migration checkpoint records route parity and does not authorize a new acquisition or alter source, rights, semantic, publication or canon state."
+}
