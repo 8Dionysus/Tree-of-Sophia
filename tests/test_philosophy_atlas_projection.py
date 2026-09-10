@@ -17,11 +17,14 @@ if str(SCRIPTS) not in sys.path:
 
 from philosophy_atlas_projection_common import (  # noqa: E402
     ENDPOINT_ALIASES_REF,
+    BACKLOG_FIELDS,
+    DOSSIER_MANIFEST_REF,
     AuthoredAtlasSnapshot,
     CANDIDATE_NODES_REFS,
     CANDIDATE_RELATIONS_REFS,
     PROJECTION_PATH,
     build_payload,
+    build_dossier_source_backlogs,
     render_payload,
     validate_authored_source_context,
 )
@@ -33,6 +36,8 @@ class AuthoredAtlasSnapshotTest(unittest.TestCase):
         schemas = [json.loads((REPO_ROOT / 'ToS/contracts' / name).read_bytes())
                    for name in ('philosophy-atlas-projection.schema.json', 'philosophy-graph-projection.schema.json')]
         self.assertEqual(schemas[0]['$defs']['authoredSourceProperties'], schemas[1]['$defs']['authoredSourceProperties'])
+        for definition in ('dossierSourceBacklogs', 'dossierBacklogFamily', 'backlogSourceRecord'):
+            self.assertEqual(schemas[0]['$defs'][definition], schemas[1]['$defs'][definition])
         context = {'source_record': {'unknown': [None, False, '', {}, []]},
             'source_record_ref': 'ToS/philosophy/atlas/example.jsonl', 'source_file_sha256': '0' * 64,
             'source_record_sha256': '1' * 64, 'source_format': 'jsonl', 'source_row': 1, 'source_line': 2}
@@ -114,6 +119,134 @@ class AuthoredAtlasSnapshotTest(unittest.TestCase):
                 AuthoredAtlasSnapshot(root).rows(ref, 'row_id')
 
 
+class DossierSourceBacklogTest(unittest.TestCase):
+    def fixture(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        base = 'ToS/philosophy/atlas/dossiers/'
+        refs = {family: base + filename for family, filename in zip(BACKLOG_FIELDS,
+            ('source-anchor-backlog.jsonl', 'term-index.jsonl', 'transmission-backlog.jsonl'))}
+        (root / base).mkdir(parents=True)
+        manifest = {'branch_id': 'philosophy.atlas.dossiers', **refs}
+        (root / DOSSIER_MANIFEST_REF).write_text(json.dumps(manifest))
+        parent = {'dossier_id': 'prepared', 'branch_path': 'ToS/philosophy/eras/example',
+                  'source_document': 'prepared.docx', **{field: 0 for field in BACKLOG_FIELDS.values()}}
+        for ref in refs.values():
+            (root / ref).write_bytes(b'')
+        raw_record = {'dossier_id': parent['dossier_id'], 'atlas_row_id': parent['dossier_id'],
+            'source_document': parent['source_document'], 'branch_path': parent['branch_path'],
+            'source_ref': refs['source_anchor_backlog'], 'source_table_index': 8, 'source_row_index': 1,
+            'anchor_kind': 'risk_control_source_need', 'source_local_id': 'local-only',
+            'unknown': {'null': None, 'false': False, 'empty': [], 'object': {}, 'text': ''}}
+        return root, refs, manifest, parent, raw_record
+
+    def item(self, root, parent, snapshot, backlogs):
+        ref = 'ToS/philosophy/atlas/dossiers/index.jsonl'
+        (root / ref).write_text(json.dumps(parent) + '\n')
+        _, context = snapshot.rows(ref, 'dossier_id')[0]
+        return {'node_id': 'atlas-dossier:' + parent['dossier_id'], 'source_ref': ref,
+                'properties': {**context, 'source_backlogs': backlogs[parent['dossier_id']]}}
+
+    def test_unkeyed_records_keep_duplicates_unknown_fields_and_exact_line_locators(self):
+        root, refs, _, parent, record = self.fixture()
+        raw = ('\n' + json.dumps(record) + '\n\n' + json.dumps(record) + '\n').encode()
+        (root / refs['source_anchor_backlog']).write_bytes(raw)
+        parent['source_anchor_count'] = 2
+        original = copy.deepcopy(record)
+        snapshot = AuthoredAtlasSnapshot(root)
+        backlogs = build_dossier_source_backlogs(snapshot, [parent])
+        family = backlogs['prepared']['source_anchor_backlog']
+        self.assertEqual([entry['source_record'] for entry in family['records']], [record, record])
+        self.assertEqual([entry['source_row'] for entry in family['records']], [1, 2])
+        self.assertEqual([entry['source_line'] for entry in family['records']], [2, 4])
+        self.assertEqual(family['source_file_sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(family['record_count'], 2)
+        for entry in family['records']:
+            self.assertEqual(set(entry), {'source_record', 'source_record_ref', 'source_file_sha256',
+                'source_record_sha256', 'source_format', 'source_row', 'source_line'})
+            self.assertNotIn('record_id', entry['source_record'])
+        validate_authored_source_context(self.item(root, parent, snapshot, backlogs))
+        family['records'][0]['source_record']['unknown']['null'] = 'changed copy'
+        self.assertIsNone(family['records'][1]['source_record']['unknown']['null'])
+        self.assertEqual(record, original)
+        snapshot.verify_current()
+        self.assertEqual((root / refs['source_anchor_backlog']).read_bytes(), raw)
+
+    def test_empty_families_remain_explicit_but_missing_source_does_not_become_empty(self):
+        root, refs, _, parent, _ = self.fixture()
+        snapshot = AuthoredAtlasSnapshot(root)
+        backlogs = build_dossier_source_backlogs(snapshot, [parent])
+        self.assertEqual(set(backlogs['prepared']), set(BACKLOG_FIELDS))
+        for family, ref in refs.items():
+            self.assertEqual(backlogs['prepared'][family], {'source_ref': ref,
+                'source_file_sha256': hashlib.sha256(b'').hexdigest(), 'record_count': 0, 'records': []})
+        validate_authored_source_context(self.item(root, parent, snapshot, backlogs))
+        (root / refs['term_index']).unlink()
+        with self.assertRaisesRegex(ValueError, 'exact regular'):
+            build_dossier_source_backlogs(AuthoredAtlasSnapshot(root), [parent])
+
+    def test_ambiguous_manifest_refs_and_unmatched_parent_or_count_fail_closed(self):
+        root, refs, manifest, parent, record = self.fixture()
+        (root / DOSSIER_MANIFEST_REF).write_text(json.dumps({**manifest, 'term_index': refs['source_anchor_backlog']}))
+        with self.assertRaisesRegex(ValueError, 'ambiguous source family'):
+            build_dossier_source_backlogs(AuthoredAtlasSnapshot(root), [parent])
+        (root / DOSSIER_MANIFEST_REF).write_text(json.dumps(manifest))
+        parent['source_anchor_count'] = 1
+        for altered in ({**record, 'dossier_id': 'unowned'}, {**record, 'atlas_row_id': 'other'},
+                        {**record, 'source_document': 'other.docx'}, {**record, 'branch_path': 'other'},
+                        {**record, 'source_ref': refs['term_index']}):
+            raw = json.dumps(altered).encode()
+            (root / refs['source_anchor_backlog']).write_bytes(raw)
+            with self.subTest(altered=altered), self.assertRaises(ValueError):
+                build_dossier_source_backlogs(AuthoredAtlasSnapshot(root), [parent])
+            self.assertEqual((root / refs['source_anchor_backlog']).read_bytes(), raw)
+        (root / refs['source_anchor_backlog']).write_text(json.dumps(record))
+        parent['source_anchor_count'] = 2
+        with self.assertRaisesRegex(ValueError, 'declared dossier count'):
+            build_dossier_source_backlogs(AuthoredAtlasSnapshot(root), [parent])
+
+    def test_backlog_source_drift_including_empty_stream_changes_the_snapshot(self):
+        root, refs, _, parent, _ = self.fixture()
+        for target in (DOSSIER_MANIFEST_REF, refs['term_index']):
+            snapshot = AuthoredAtlasSnapshot(root)
+            build_dossier_source_backlogs(snapshot, [parent])
+            path = root / target
+            raw = path.read_bytes()
+            path.write_bytes(raw + b'\n')
+            with self.subTest(target=target), self.assertRaisesRegex(ValueError, 'source changed'):
+                snapshot.verify_current()
+            path.write_bytes(raw)
+
+    def test_portable_backlog_context_rejects_ambiguous_locator_parent_and_raw_substitution(self):
+        root, refs, _, parent, record = self.fixture()
+        (root / refs['source_anchor_backlog']).write_text(json.dumps(record) + '\n' + json.dumps(record))
+        parent['source_anchor_count'] = 2
+        snapshot = AuthoredAtlasSnapshot(root)
+        item = self.item(root, parent, snapshot, build_dossier_source_backlogs(snapshot, [parent]))
+        validate_authored_source_context(item)
+        changes = [('source_row', 1), ('source_line', 1), ('source_file_sha256', 'f' * 64),
+                   ('source_record_ref', refs['term_index']), ('source_record', {**record, 'dossier_id': 'other'})]
+        for field, value in changes:
+            altered = copy.deepcopy(item)
+            altered['properties']['source_backlogs']['source_anchor_backlog']['records'][1][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                validate_authored_source_context(altered)
+        altered = copy.deepcopy(item)
+        altered['properties']['source_backlogs']['term_index']['source_ref'] = refs['source_anchor_backlog']
+        with self.assertRaisesRegex(ValueError, 'ambiguous'):
+            validate_authored_source_context(altered)
+        from jsonschema import Draft202012Validator
+        for name in ('philosophy-atlas-projection.schema.json', 'philosophy-graph-projection.schema.json'):
+            schema = json.loads((REPO_ROOT / 'ToS/contracts' / name).read_bytes())
+            validator = Draft202012Validator({'$defs': schema['$defs'], '$ref': '#/$defs/authoredSourceProperties'})
+            validator.validate(item['properties'])
+            for field, value in (('source_row', True), ('source_pointer', ''), ('record_id', 'invented')):
+                altered = copy.deepcopy(item['properties'])
+                altered['source_backlogs']['source_anchor_backlog']['records'][0][field] = value
+                self.assertFalse(validator.is_valid(altered))
+
+
 class PhilosophyAtlasProjectionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -143,6 +276,45 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["candidate_nodes"], 7193)
         self.assertEqual(payload["counts"]["candidate_relations"], 8564)
         self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 458)
+
+    def test_all_backlog_source_records_return_once_under_their_exact_parent(self) -> None:
+        payload = json.loads(PROJECTION_PATH.read_bytes())
+        dossiers = {row['properties']['source_record']['dossier_id']: row
+                    for row in payload['nodes'] if row['node_type'] == 'prepared-dossier'}
+        manifest = json.loads((REPO_ROOT / DOSSIER_MANIFEST_REF).read_bytes())
+        checked = 0
+        for family, count_field in BACKLOG_FIELDS.items():
+            ref = manifest[family]
+            raw = (REPO_ROOT / ref).read_bytes()
+            digest = hashlib.sha256(raw).hexdigest()
+            returned = {}
+            for identity, node in dossiers.items():
+                context = node['properties']['source_backlogs'][family]
+                self.assertEqual(context['source_ref'], ref)
+                self.assertEqual(context['source_file_sha256'], digest)
+                self.assertEqual(context['record_count'], len(context['records']))
+                self.assertEqual(context['record_count'], node['properties']['source_record'][count_field])
+                for entry in context['records']:
+                    self.assertNotIn(entry['source_row'], returned)
+                    self.assertEqual(entry['source_record']['dossier_id'], identity)
+                    returned[entry['source_row']] = entry
+            ordinal = 0
+            for line, content in enumerate(raw.splitlines(), start=1):
+                if not content.strip():
+                    continue
+                ordinal += 1
+                record = json.loads(content)
+                context = returned[ordinal]
+                canonical = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+                self.assertEqual(context, {'source_record': record, 'source_record_ref': ref,
+                    'source_file_sha256': digest, 'source_record_sha256': hashlib.sha256(canonical).hexdigest(),
+                    'source_format': 'jsonl', 'source_row': ordinal, 'source_line': line})
+                checked += 1
+            self.assertEqual(len(returned), ordinal)
+        self.assertEqual(checked, 17599)
+        for family in BACKLOG_FIELDS:
+            self.assertEqual(dossiers['T3-57']['properties']['source_backlogs'][family]['records'], [])
+        self.assertEqual(dossiers['T3-43']['properties']['source_backlogs']['term_index']['records'], [])
 
     def test_every_existing_source_row_and_manifest_returns_exact_full_context(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_bytes())

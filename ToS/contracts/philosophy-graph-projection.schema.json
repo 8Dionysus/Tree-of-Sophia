@@ -161,6 +161,7 @@
       "type": "object",
       "properties": {
         "source_record": {"type": "object"},
+        "source_backlogs": {"$ref": "#/$defs/dossierSourceBacklogs"},
         "source_record_ref": {"type": "string", "pattern": "^ToS/philosophy/"},
         "source_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "source_record_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -175,6 +176,7 @@
       "dependentRequired": {
         "source_record": ["source_record_ref", "source_file_sha256", "source_record_sha256", "source_format"],
         "source_format": ["source_record"],
+        "source_backlogs": ["source_record"],
         "endpoint_alias_source": ["endpoint_alias_ref", "endpoint_alias_pointers"]
       },
       "allOf": [
@@ -617,6 +619,40 @@
         "expand_to": {
           "$ref": "#/$defs/string_array"
         }
+      }
+    },
+    "dossierSourceBacklogs": {
+      "description": "Complete source rows grouped under an existing dossier, not new graph identities or semantic assertions. Family source refs follow the authored dossier manifest. Empty records means no rows for this dossier, not a missing source file.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_anchor_backlog", "term_index", "transmission_backlog"],
+      "properties": {
+        "source_anchor_backlog": {"$ref": "#/$defs/dossierBacklogFamily"},
+        "term_index": {"$ref": "#/$defs/dossierBacklogFamily"},
+        "transmission_backlog": {"$ref": "#/$defs/dossierBacklogFamily"}
+      }
+    },
+    "dossierBacklogFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_ref", "source_file_sha256", "record_count", "records"],
+      "properties": {
+        "source_ref": {"type": "string", "pattern": "^ToS/philosophy/.*[.]jsonl$"},
+        "source_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "record_count": {"type": "integer", "minimum": 0},
+        "records": {"type": "array", "items": {"$ref": "#/$defs/backlogSourceRecord"}}
+      }
+    },
+    "backlogSourceRecord": {
+      "description": "An occurrence at an exact byte-snapshot JSONL locator. Identical records on different lines remain distinct occurrences; the locator is not a stable source identity.",
+      "allOf": [{"$ref": "#/$defs/authoredSourceProperties"}],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_record", "source_record_ref", "source_file_sha256", "source_record_sha256", "source_format", "source_row", "source_line"],
+      "properties": {
+        "source_record": {}, "source_record_ref": {}, "source_file_sha256": {},
+        "source_record_sha256": {}, "source_format": {"const": "jsonl"},
+        "source_row": {}, "source_line": {}
       }
     },
     "projected_node": {

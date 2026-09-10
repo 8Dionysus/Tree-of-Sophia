@@ -272,6 +272,45 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'existing atlas endpoint'):
             _retain_authored_material({candidate['node_id']: candidate}, [relation], {}, {})
 
+    def test_backlog_source_context_survives_graph_and_ordinary_dossier_inspection(self) -> None:
+        access_source = REPO_ROOT / 'access/src'
+        if str(access_source) not in sys.path:
+            sys.path.insert(0, str(access_source))
+        from tos_access.core import ToSAccessCore
+        from tos_access.knowledge import build_knowledge_graph
+        payload = self.load_projection()
+        atlas = json.loads((REPO_ROOT / 'ToS/derived-exports/philosophy_atlas_projection.min.json').read_bytes())
+        atlas_dossiers = {node['node_id']: node for node in atlas['nodes'] if node['node_type'] == 'prepared-dossier'}
+        graph_nodes = {node['node_id']: node for node in payload['nodes']}
+        expected = sum(sum(family['record_count'] for family in node['properties']['source_backlogs'].values())
+                       for node in atlas_dossiers.values())
+        self.assertEqual(expected, 17599)
+        for identity, node in atlas_dossiers.items():
+            self.assertEqual(graph_nodes[identity]['properties']['source_backlogs'], node['properties']['source_backlogs'])
+        registries = [json.loads((REPO_ROOT / 'ToS/doctrine/semantic-interchange' / name).read_bytes())
+                      for name in ('entity-types.v1.json', 'relation-types.v1.json')]
+        graph = build_knowledge_graph({}, payload, {}, *registries)
+        normalized_nodes = {node['id']: node for node in graph['nodes']}
+        for identity, node in atlas_dossiers.items():
+            self.assertEqual(normalized_nodes['philosophy:' + identity]['attributes']['source_backlogs'],
+                             node['properties']['source_backlogs'])
+        core = ToSAccessCore.discover(tos_root=REPO_ROOT)
+        with patch.object(ToSAccessCore, 'philosophy_projection', return_value=payload), \
+                patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph):
+            # Real large, ordinary, partially empty and wholly empty dossiers.
+            # Full-node inspection has no raw-attribute byte cap; relation_limit
+            # does not truncate the selected node or its source-record arrays.
+            for identity in ('atlas-dossier:A01', 'atlas-dossier:T3-51', 'atlas-dossier:T3-43', 'atlas-dossier:T3-57'):
+                direct = core.philosophy_node(identity)['node']
+                inspected = core.knowledge_node('philosophy:' + identity, relation_limit=0)
+                normalized = inspected['matches'][0]
+                self.assertEqual(normalized['attributes']['source_backlogs'], direct['properties']['source_backlogs'])
+                self.assertEqual(normalized['source_record']['field_map']['attributes.source_backlogs'],
+                                 '/properties/source_backlogs')
+                self.assertEqual(normalized['view_ids'], graph_nodes[identity]['view_ids'])
+                self.assertEqual(inspected['related_relations'], [])
+                self.assertEqual(json.loads(json.dumps(direct, ensure_ascii=False)), direct)
+
     def test_global_fingerprint_binds_unlensed_content_not_only_ids(self) -> None:
         node = {'node_id': 'candidate-node:unlensed', 'view_ids': [], 'properties': {'unknown': None}}
         original = _build_snapshot_review(views=[], nodes=[node], edges=[], clusters=[])

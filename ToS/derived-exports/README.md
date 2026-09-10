@@ -82,9 +82,27 @@ Every existing authored candidate node/relation remains globally inspectable,
 including candidates selected by no current lens and their existing endpoint
 closure. Such records have `view_ids: []`; source-owned view filters, view
 membership and cluster denominators do not expand. Global fingerprints bind
-unlensed bodies as well as IDs. Separate source-anchor, term and transmission
-backlogs retain their existing atlas owner routes; this return does not invent
-new identity families or claim those backlogs have a complete graph grammar.
+unlensed bodies as well as IDs.
+
+Existing `atlas-dossier:{dossier_id}` nodes also expose `properties.source_backlogs`:
+`source_anchor_backlog`, `term_index` and `transmission_backlog`. Each family
+returns its authored manifest's `source_ref`, exact `source_file_sha256`,
+`record_count` and full `records` array of the same JSONL source envelopes.
+All records remain under their source-declared dossier; all three families
+remain present when their record arrays are empty. A missing source file is
+an error, not an empty family. Raw source-local IDs, original DOCX coordinates,
+status, constraints and unknown fields are retained without semantic mapping.
+
+These backlogs have no global stable record IDs. Address an occurrence by the
+existing dossier ID, family source ref, exact file digest and `source_row` /
+`source_line`; this is a snapshot locator, not a minted corpus or graph identity.
+Identical rows on distinct source lines remain distinct occurrences. Branch
+anchor mirrors are not counted a second time. Reviewed discovery leads keep
+their separate, limited source selectors and do not confer acceptance on the
+backlog. No new nodes, relations, lens membership or canon status are created.
+Ordinary philosophy and knowledge node inspection returns these arrays intact;
+its relation limit does not truncate node attributes. The separate human-Form
+selection byte budget does not apply to full raw-record inspection.
 
 The epistemic evidence projection joins two bounded, public-safe research
 scenes to explicit source, review, canon, claim, and rights return routes. It
