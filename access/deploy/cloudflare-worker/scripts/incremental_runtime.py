@@ -20,8 +20,87 @@ PRIMARY_KEYS = {
     'philosophy_review_packets': ('view_id',), 'corpus_items': ('collection', 'ord'),
     'corpus_edges': ('ord',), 'corpus_packs': ('id',), 'knowledge_nodes': ('id',),
     'knowledge_relations': ('id',),
+    'knowledge_search_documents': ('kind', 'position'),
+    'knowledge_search_grams': ('kind', 'n', 'gram', 'position'),
+    'knowledge_search_gram_stats': ('kind', 'n', 'gram'),
 }
-INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES \((.*)\);$', re.S)
+INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES (.*);$', re.S)
+
+
+def sql_value_literals(text: str) -> list[str]:
+    """Split one producer VALUES row without interpreting its literals."""
+    result = []
+    start = 0
+    quoted = False
+    depth = 0
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "'":
+            if quoted and index + 1 < len(text) and text[index + 1] == "'":
+                index += 2
+                continue
+            quoted = not quoted
+        elif not quoted and char == '(':
+            depth += 1
+        elif not quoted and char == ')':
+            depth -= 1
+            if depth < 0:
+                raise ValueError('invalid producer SQL value literals')
+        elif char == ',' and not quoted and depth == 0:
+            result.append(text[start:index].strip())
+            start = index + 1
+        index += 1
+    if quoted or depth:
+        raise ValueError('invalid producer SQL value literals')
+    result.append(text[start:].strip())
+    if any(not value for value in result):
+        raise ValueError('invalid producer SQL value literals')
+    return result
+
+
+def sql_value_rows(text: str) -> list[str]:
+    """Split a bounded INSERT VALUES list into parenthesis-free row bodies."""
+    rows = []
+    index = 0
+    length = len(text)
+    while index < length:
+        while index < length and text[index].isspace():
+            index += 1
+        if index >= length or text[index] != '(':
+            raise ValueError('invalid producer SQL VALUES rows')
+        start = index + 1
+        depth = 1
+        quoted = False
+        index += 1
+        while index < length:
+            char = text[index]
+            if char == "'":
+                if quoted and index + 1 < length and text[index + 1] == "'":
+                    index += 2
+                    continue
+                quoted = not quoted
+            elif not quoted and char == '(':
+                depth += 1
+            elif not quoted and char == ')':
+                depth -= 1
+                if depth == 0:
+                    rows.append(text[start:index].strip())
+                    index += 1
+                    break
+            index += 1
+        else:
+            raise ValueError('invalid producer SQL VALUES rows')
+        if quoted or depth:
+            raise ValueError('invalid producer SQL VALUES rows')
+        while index < length and text[index].isspace():
+            index += 1
+        if index == length:
+            return rows
+        if text[index] != ',':
+            raise ValueError('invalid producer SQL VALUES rows')
+        index += 1
+    return rows
 
 
 def sql_prefix_values(text: str, count: int) -> list[str]:
@@ -93,20 +172,28 @@ class DeltaRecorder:
                 raise ValueError('unregistered incremental table: ' + table)
             columns = [col.strip() for col in columns_text.split(',')]
             positions = [columns.index(key) for key in PRIMARY_KEYS[table]]
-            prefix = sql_prefix_values(values_text, max(positions) + 1)
-            values = [prefix[position] for position in positions]
-            key = json.dumps(values, ensure_ascii=False, separators=(',', ':'))
-            self.pending = table, key, values, [statement]
+            rows = sql_value_rows(values_text)
+            if len(rows) == 1:
+                values = sql_value_literals(rows[0])
+                key_values = [values[position] for position in positions]
+                key = json.dumps(key_values, ensure_ascii=False, separators=(',', ':'))
+                self.pending = table, key, key_values, [statement]
+            else:
+                # The producer batches only independent posting/stat rows.
+                # Split them before indexing so unchanged rows can be omitted
+                # from a delta and changed rows can be staged individually.
+                for row in rows:
+                    values = sql_value_literals(row)
+                    key_values = [values[position] for position in positions]
+                    key = json.dumps(key_values, ensure_ascii=False, separators=(',', ':'))
+                    row_statement = f'INSERT INTO {table}_next ({columns_text}) VALUES ({row});'
+                    self._record(table, key, key_values, [row_statement])
         elif self.pending and statement.startswith(f'UPDATE {self.pending[0]}_next SET '):
             self.pending[3].append(statement)
         else:
             self.flush()
 
-    def flush(self):
-        if not self.pending:
-            return
-        table, key, values, statements = self.pending
-        self.pending = None
+    def _record(self, table: str, key: str, values: list[str], statements: list[str]):
         if key in self.index[table]:
             raise ValueError(f'duplicate producer row {table}:{key}')
         digest = hashlib.sha256('\n'.join(statements).encode()).hexdigest()
@@ -124,6 +211,13 @@ class DeltaRecorder:
         self.write(f'INSERT INTO {stage}_keys VALUES ({", ".join(values)});')
         for statement in statements:
             self.write(statement.replace(table + '_next', stage, 1))
+
+    def flush(self):
+        if not self.pending:
+            return
+        table, key, values, statements = self.pending
+        self.pending = None
+        self._record(table, key, values, statements)
 
     def finish(self) -> dict:
         self.flush()

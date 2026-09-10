@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 import os
+import shutil
 from pathlib import Path
 from contextlib import closing
 from types import SimpleNamespace
@@ -87,6 +88,113 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 schema=root/'ToS/contracts/semantic-entity-type-registry.schema.json'
                 schema.write_text(schema.read_text()+'\n')
                 self.assertNotEqual(builder.build_inputs(core),before)
+
+    def test_real_builder_search_delta_add_edit_delete_replay_and_stale_guard(self):
+        import copy
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        def serving_snapshot(database):
+            tables = (
+                'edge_meta',
+                'knowledge_search_documents',
+                'knowledge_search_grams',
+                'knowledge_search_gram_stats',
+            )
+            snapshot = {}
+            for table in tables:
+                order = ','.join(PRIMARY_KEYS[table])
+                snapshot[table] = database.execute(
+                    f'SELECT * FROM {table} ORDER BY {order}'
+                ).fetchall()
+            return snapshot
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            runtime = root / 'runtime'
+            runtime.mkdir()
+            with patch.object(builder, 'REPO_ROOT', root):
+                source_core = ToSAccessCore.discover(root)
+                source_graph = source_core.knowledge_graph()
+                # Keep the fixture build bounded while still using the actual
+                # producer, including its batched posting/stat rows.
+                graph_v1 = copy.deepcopy(source_graph)
+                graph_v1['source_revision'] = 'search-integration-v1'
+                graph_v1['nodes'] = copy.deepcopy(source_graph['nodes'][:3])
+                graph_v1['relations'] = copy.deepcopy(source_graph['relations'][:1])
+                graph_v2 = copy.deepcopy(graph_v1)
+                graph_v2['source_revision'] = 'search-integration-v2'
+                graph_v2['nodes'][0]['display']['title']['default'] = 'Edited fixture node'
+                deleted_id = graph_v2['nodes'][1]['id']
+                graph_v2['nodes'] = [graph_v2['nodes'][0], graph_v2['nodes'][2]]
+                added = copy.deepcopy(graph_v1['nodes'][1])
+                added['id'] = 'fixture:added-node'
+                added['native_id'] = 'fixture:added-node'
+                added['display']['title']['default'] = 'Added fixture node'
+                graph_v2['nodes'].append(added)
+
+                first_sql = runtime / 'read-model.v1.sql'
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v1):
+                    revision_v1 = builder.data_revision(source_core)
+                    builder.build_read_model_sql(source_core, first_sql, revision_v1)
+                shutil.copy2(runtime / 'read-model.rows.json', runtime / 'read-model.deployed.rows.json')
+
+                first_database = root / 'first.sqlite'
+                with closing(sqlite3.connect(first_database)) as database:
+                    database.executescript(first_sql.read_text(encoding='utf-8'))
+                    before = serving_snapshot(database)
+                    before_ids = {row[2] for row in before['knowledge_search_documents']}
+
+                second_sql = runtime / 'read-model.v2.sql'
+                with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v2):
+                    revision_v2 = builder.data_revision(source_core)
+                    result = builder.build_read_model_sql(source_core, second_sql, revision_v2)
+                delta_sql = runtime / 'read-model.delta.sql'
+                delta_text = delta_sql.read_text(encoding='utf-8')
+                self.assertIn('knowledge_search_documents', delta_text)
+                self.assertIn('knowledge_search_grams', delta_text)
+                self.assertIn('knowledge_search_gram_stats', delta_text)
+                self.assertNotIn('INSERT INTO knowledge_search_gram_stats(kind,n,gram,postings) SELECT', delta_text)
+                self.assertGreater(result['delta']['changed_rows'], 0)
+                self.assertGreater(result['delta']['removed_rows'], 0)
+
+                delta_database = root / 'delta.sqlite'
+                with closing(sqlite3.connect(delta_database)) as database:
+                    database.executescript(first_sql.read_text(encoding='utf-8'))
+                    stale_baseline = serving_snapshot(database)
+                    database.executescript(delta_text)
+                    after = serving_snapshot(database)
+                    self.assertNotEqual(stale_baseline, after)
+                    self.assertIn('fixture:added-node', {row[2] for row in after['knowledge_search_documents']})
+                    self.assertNotIn(deleted_id, {row[2] for row in after['knowledge_search_documents']})
+                    replayed = serving_snapshot(database)
+                    database.executescript(delta_text)
+                    self.assertEqual(replayed, serving_snapshot(database))
+
+                full_database = root / 'full.sqlite'
+                with closing(sqlite3.connect(full_database)) as database:
+                    database.executescript(second_sql.read_text(encoding='utf-8'))
+                    expected = serving_snapshot(database)
+                self.assertEqual(after, expected)
+                self.assertNotEqual(before, after)
+                self.assertNotEqual(before_ids, {row[2] for row in after['knowledge_search_documents']})
+
+                stale_database = root / 'stale.sqlite'
+                with closing(sqlite3.connect(stale_database)) as database:
+                    database.executescript(first_sql.read_text(encoding='utf-8'))
+                    database.execute(
+                        "UPDATE edge_meta SET json_chunk=? WHERE key='data_revision' AND part=0",
+                        (json.dumps({'sha256': 'f' * 64}),),
+                    )
+                    database.commit()
+                    with self.assertRaisesRegex(sqlite3.IntegrityError, 'stale delta baseline'):
+                        database.executescript(delta_text)
+                    self.assertEqual(
+                        database.execute("SELECT json_chunk FROM edge_meta WHERE key='data_revision' AND part=0").fetchone()[0],
+                        json.dumps({'sha256': 'f' * 64}),
+                    )
 
     def test_build_stage_restart_integrity_inputs_and_lock(self):
         from build_stages import BuildStages, build_lock, fingerprint, tree_paths
@@ -384,6 +492,25 @@ class IncrementalRuntimeTests(unittest.TestCase):
             self.assertEqual(row['values'], ["'a''b,c'"])
             self.assertEqual(len(row['digest']), 64)
             self.assertEqual(recorder.summary()['changed_rows'], 1)
+
+    def test_batched_search_rows_are_indexed_individually(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'patch.sql'
+            recorder = DeltaRecorder(path, 'a' * 64, 'test-schema')
+            recorder.observe(
+                "INSERT INTO knowledge_search_grams_next (kind,n,gram,position) VALUES "
+                "('nodes',3,'a''b,c',0),('nodes',3,'def',1);"
+            )
+            recorder.observe(
+                "INSERT INTO knowledge_search_gram_stats_next (kind,n,gram,postings) VALUES "
+                "('nodes',3,'a''b,c',1),('nodes',3,'def',1);"
+            )
+            index = recorder.finish()
+            self.assertEqual(len(index['rows']['knowledge_search_grams']), 2)
+            self.assertEqual(len(index['rows']['knowledge_search_gram_stats']), 2)
+            grams = list(index['rows']['knowledge_search_grams'].values())
+            self.assertIn(["'a''b,c'", '0'], [row['values'][2:] for row in grams])
+            self.assertEqual(recorder.summary()['changed_rows'], 4)
 
     def test_schema_change_requires_full_baseline(self):
         with tempfile.TemporaryDirectory() as directory:

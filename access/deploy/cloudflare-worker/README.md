@@ -138,8 +138,12 @@ separator. Other large imports prepare one bounded file at a time using a source
 byte offset; the next file is not written until the caller has consumed the
 previous file. Owned scratch is removed on completion, error or cancellation.
 Python is therefore also required by this large-file deploy path. No giant
-JavaScript string, new SQL serialization, key grammar or read-model schema is
-introduced; already-generated multiline SQL remains compatible.
+JavaScript string is introduced, and the bounded statement framing and key
+grammar remain stable. Producer read-model v7 emits search posting and
+gram-stat rows as bounded multi-row `_next` inserts so the incremental recorder
+can stage them; the corresponding schema version invalidates older row
+baselines. Already-generated multiline SQL remains compatible with the local
+bootstrap parser.
 Input must remain the trusted, immutable producer file throughout the import.
 The chunker rejects observed file replacement or metadata changes between reads;
 framing alone is not SQL syntax/safety validation or a cryptographic integrity

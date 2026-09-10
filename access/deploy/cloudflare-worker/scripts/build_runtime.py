@@ -35,7 +35,7 @@ STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
-READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v6"
+READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v7"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
 SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
@@ -801,6 +801,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
     # legacy v1 compatibility plane and are also used for exact substring
     # verification after a posting candidate is selected.
     search_posting_count = 0
+    search_gram_stats: dict[tuple[str, str], int] = {}
     for kind, source_items in (("nodes", knowledge_nodes), ("relations", knowledge_relations)):
         for position, item in enumerate(source_items):
             normalized = normalize_paths(item, REPO_ROOT)
@@ -837,12 +838,24 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             search_posting_count += len(grams)
             if search_posting_count > SEARCH_READ_MODEL_MAX_POSTINGS:
                 raise RuntimeError("knowledge search posting budget exceeded")
+            for gram in grams:
+                search_gram_stats[(kind, gram)] = search_gram_stats.get((kind, gram), 0) + 1
             append_batched_inserts(
                 statements,
                 "knowledge_search_grams_next",
                 ("kind", "n", "gram", "position"),
                 ((sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(position)) for gram in grams),
             )
+
+    append_batched_inserts(
+        statements,
+        "knowledge_search_gram_stats_next",
+        ("kind", "n", "gram", "postings"),
+        (
+            (sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(postings))
+            for (kind, gram), postings in sorted(search_gram_stats.items())
+        ),
+    )
 
     for table in (
         "edge_meta",
@@ -887,7 +900,6 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             "CREATE INDEX knowledge_search_grams_lookup_idx ON knowledge_search_grams(kind,n,gram,position);",
             "CREATE INDEX knowledge_search_documents_source_kind_idx ON knowledge_search_documents(kind,source_graph,kind_id,position);",
             "CREATE INDEX knowledge_search_documents_source_predicate_idx ON knowledge_search_documents(kind,source_graph,predicate_id,position);",
-            "INSERT INTO knowledge_search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,COUNT(*) FROM knowledge_search_grams GROUP BY kind,n,gram;",
             "PRAGMA optimize;",
         )
     )
