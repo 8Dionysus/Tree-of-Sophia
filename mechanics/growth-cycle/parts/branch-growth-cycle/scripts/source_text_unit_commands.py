@@ -149,7 +149,7 @@ def configuration(config, *, owner_config):
     return config, digest, path
 
 
-def _inventory_paths(context, *, exclude=None):
+def _inventory_paths(context, *, exclude=None, additional_patterns=()):
     """Bounded native ID-owner metadata only, never payloads or local content."""
     paths, visited = [], 0
     for root, start in ((context.public_root, context.public_root / 'ToS/source-witnesses'),
@@ -180,7 +180,8 @@ def _inventory_paths(context, *, exclude=None):
                           or fnmatch.fnmatchcase(entry.name, '*source-text-layer*.json')
                           or fnmatch.fnmatchcase(entry.name, '*source-anchor*.json')
                           or fnmatch.fnmatchcase(entry.name, '*anchor*.jsonl')
-                          or 'provenance' in entry.name and entry.name.endswith('.jsonl')):
+                          or 'provenance' in entry.name and entry.name.endswith('.jsonl')
+                          or any(fnmatch.fnmatchcase(entry.name, pattern) for pattern in additional_patterns)):
                         if not stat.S_ISREG(info.st_mode):
                             raise PermissionError('native identity metadata must be a regular non-symlink file')
                         paths.append((path.relative_to(root).as_posix(), path))

@@ -80,6 +80,14 @@ correction, Unicode normalization and recording supplied OCR/transcription.
 One independent grant chooses one operation; reported upstream methods are not
 provider execution receipts and new layers do not inherit prior quality.
 
+The existing translation-alignment owner also exposes its additive
+[native record route](NATIVE_TRANSLATION_ALIGNMENT.md) through
+`owner-local-native-translation-alignment`: exact private create/revise,
+metadata-only version inspection and retained native recovery. Its stable
+Alignment subject, descriptive record and Claim versions remain distinct.
+Capturing a supplied mapping never claims an executed aligner or assessed
+translation; legacy packet-v1 review semantics remain unchanged.
+
 Assessment-journal and semantic-registry evolution remain explicit owner
 handoffs, not operations dispatched by this front door. Access CLI, HTTP,
 WebMCP and native MCP remain read-only access surfaces; this catalogue does not

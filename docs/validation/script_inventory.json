@@ -405,6 +405,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_alignment_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md",
+      "source_truth": ["ToS/doctrine/CORPUS_FOUNDATION.md", "ToS/contracts/native-translation-alignment-record-v1.schema.json", "ToS/contracts/translation-alignment-packet-v1.schema.json", "ToS/contracts/native-text-unit-binding.schema.json", "ToS/contracts/owner-local-source-context.schema.json", "ToS/contracts/provenance-event-v2.schema.json"],
+      "reads": ["independently protected exact native proposal/read grants, two source/target unit selections and supplied mapping/qualifications", "both native metadata and current rights before exact representation bytes, bounded immutable predecessor/competing records and Claim hashes inside exact prior records", "existing bounded source identity walk, exact input/runtime/implementation pins and retained private receipt/recovery packages"],
+      "writes": ["one new immutable mode-0700 private descriptive version package with mode-0600 record, configuration, input pins, request, environment, annotation provenance and source-create receipt", "existing shared/public-then-private writer locks and retained native no-replace construction plan/stage"],
+      "side_effects": "explicit alignment.create or alignment.revise; stable Alignment subject, descriptive next Claim version or distinct remapped Claim, immutable competing records; exact replay/history inspection/recovery with current grants and deadline; no legacy v1 rewrite, aligner/provider execution, translation quality, source mutation, acceptance, publication, KAG, network or deployment",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_alignment_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

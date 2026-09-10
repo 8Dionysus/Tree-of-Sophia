@@ -759,6 +759,16 @@ The most restrictive source, target, or packet visibility follows every
 derivative. TEI, Web Annotation, XLIFF, TMX, and graph views are therefore
 rebuildable projections, never the authority for the alignment or translation.
 
+The additive [native translation-alignment record](../contracts/native-translation-alignment-record-v1.schema.json)
+keeps that owner's mapping and rights grammar while separating an unversioned
+Alignment subject from exact descriptive record and Claim versions. Ordinary
+description preserves the subject, source scope and mapping; a remapping uses
+a new Claim, and a competing proposal a distinct Alignment. Exact predecessor
+record bytes and the Claim inside them own succession, not a changed label or
+an inline predecessor. Its [native command route](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md)
+captures supplied proposals only; it neither reinterprets historical v1 reviews
+nor grants translation quality by executing a constructor or replay.
+
 The authoritative chain is:
 
 ```text

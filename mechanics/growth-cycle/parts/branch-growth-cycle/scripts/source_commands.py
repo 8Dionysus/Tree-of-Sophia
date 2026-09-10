@@ -1016,6 +1016,23 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
                 for item in group:
                     if item['entity_ref'].endswith('/content.txt'):
                         item['media_type'] = 'text/plain; charset=utf-8'
+        if native_inputs.get('native_alignment') is True:
+            event['activity']['event_type'] = 'annotation'
+            event['activity']['warnings'][0] = (
+                'Both exact native text closures verified and a supplied mapping recorded; '
+                'no aligner, translation or source-visible assessment executed; atomic publication follows.')
+            event['method']['procedure']['purpose'] = (
+                'Capture a supplied stand-off translation-alignment proposal against two exact native '
+                'TextLayer/segmentation/anchor closures, with explicit record and Claim succession.')
+            event['reproducibility']['known_gaps'][0] = (
+                'Mapping, techniques, epistemic qualification and maker attribution are supplied proposals; '
+                'no aligner execution, translation quality, semantic equivalence or review is established.')
+            event['reproducibility']['replay_scope'] = (
+                'Exact native source, retained request/configuration/implementation and immutable proposal '
+                'construction; not execution of an upstream aligner or deterministic provenance timestamps.')
+            for relation in event['derivations']:
+                if relation['relation'] == 'selection_from':
+                    relation['description'] = 'Exact source dependency for a supplied alignment proposal, not an executed aligner or translation equivalence.'
         if native_inputs.get('native_derivation') is not None:
             # Internal fixed TextLayer adapter only. In particular annotation
             # of supplied OCR bytes must never fabricate an OCR execution.
@@ -1460,6 +1477,7 @@ def command_handlers():
     import source_native_metadata_commands
     import source_text_unit_commands
     import source_text_layer_commands
+    import source_alignment_commands
     import source_owner_profile_commands
     import source_owner_claim_commands
     import source_expression_commands
@@ -1471,7 +1489,7 @@ def command_handlers():
     import source_link_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions, source_native_metadata_commands,
-        source_text_unit_commands, source_text_layer_commands, source_owner_profile_commands, source_owner_claim_commands,
+        source_text_unit_commands, source_text_layer_commands, source_alignment_commands, source_owner_profile_commands, source_owner_claim_commands,
         source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands,
         source_collection_commands, source_artifact_commands, source_link_commands)
         for handler in module.command_handlers()))

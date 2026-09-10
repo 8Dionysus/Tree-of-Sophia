@@ -850,6 +850,14 @@ explicit contracts; no public collector gains access to the private store.
 Pure-constructor and command/CLI tests use synthetic evidence, not historical
 or linguistic acceptance.
 
+### Confidential native translation alignment
+
+The distinct [native translation-alignment route](docs/NATIVE_TRANSLATION_ALIGNMENT.md)
+uses the same source front door and private no-replace/recovery machinery for
+supplied mappings between two exact native source closures. It owns immutable
+descriptive and Claim succession without rekeying the Alignment subject,
+leaves legacy translation packet-v1 unchanged, and cannot assess translation.
+
 ### Confidential owner-local source profiles
 
 `source_commands.py` selects `source_owner_profile_commands.py` only for the
