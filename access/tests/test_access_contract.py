@@ -1697,6 +1697,24 @@ class CoreContractTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "archive digest"):
                 validate_standalone.validate_bundle(bundle)
 
+    def test_standalone_zip_streams_payloads_and_preserves_determinism(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            stage = root / "stage"
+            stage.mkdir()
+            payload = b"query-store-bytes\0" * 100000
+            (stage / "knowledge.sqlite3").write_bytes(payload)
+            (stage / "run.py").write_text("pass\n")
+            first, second = root / "first.zip", root / "second.zip"
+            with patch.object(Path, "read_bytes", side_effect=AssertionError("whole-file read")):
+                build_standalone._write_deterministic_zip(stage, first)
+                build_standalone._write_deterministic_zip(stage, second)
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+            with zipfile.ZipFile(first) as archive:
+                self.assertEqual(archive.read("knowledge.sqlite3"), payload)
+                self.assertEqual(archive.getinfo("run.py").external_attr >> 16, 0o755)
+                self.assertEqual(archive.getinfo("knowledge.sqlite3").date_time, build_standalone.FIXED_ZIP_TIME)
+
     def test_standalone_builder_compiles_a_partitioned_query_store_fixture(self) -> None:
         from scripts.partitioned_projection_common import write_partitioned_payload
         from tos_access.query_store import QueryStore
@@ -1790,8 +1808,24 @@ class CoreContractTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
+            for generated in ("build/lib/stale.bin", "deploy/cloudflare-worker/runtime/stale.sqlite3", ".wrangler/state/stale.sqlite3"):
+                path = fixture_access / generated
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"must not enter package")
             bundle = root / "fixture-standalone.zip"
-            manifest = build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
+            compile_original = build_standalone._compile_query_store
+
+            def compile_with_changed_binding(*args):
+                path, metadata = compile_original(*args)
+                metadata["input_bindings"] = {**metadata["input_bindings"], "changed": "digest"}
+                return path, metadata
+
+            with patch.object(build_standalone, "_compile_query_store", side_effect=compile_with_changed_binding):
+                with self.assertRaisesRegex(RuntimeError, "inputs differ from staged"):
+                    build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
+            self.assertFalse(bundle.exists())
+            with patch("tos_access.knowledge_compile.compile_knowledge_store", side_effect=AssertionError("preloaded compiler used")):
+                manifest = build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
             self.assertTrue(bundle.is_file())
             self.assertEqual(manifest["source_ref"], "partitioned-fixture-ref")
             self.assertIn("query-compiler-v3", manifest["source_fingerprint_scope"])
@@ -1813,6 +1847,7 @@ class CoreContractTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as extracted_raw:
                 extracted = Path(extracted_raw)
                 with zipfile.ZipFile(bundle) as archive:
+                    self.assertFalse(any("stale." in name for name in archive.namelist()))
                     archive.extractall(extracted)
                 subjects = json.loads(
                     (extracted / "bundle.manifest.json").read_text(encoding="utf-8")

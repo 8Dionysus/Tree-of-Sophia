@@ -370,8 +370,36 @@ def _compile_query_store(
     output: Path,
     allowlist: Mapping[str, Any],
     compiled_subject: Mapping[str, Any],
+    *,
+    _isolated: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
     """Compile one immutable standalone query snapshot from its contract record."""
+    if not _isolated:
+        # A caller may already have another checkout's tos_access in sys.modules.
+        # A fresh interpreter binds execution to the requested compiler source.
+        probe = """
+import json, runpy, sys
+from pathlib import Path
+request = json.load(sys.stdin)
+root = Path(request['root'])
+sys.path.insert(0, str(root / 'access' / 'src'))
+builder = runpy.run_path(request['builder'])
+path, metadata = builder['_compile_query_store'](
+    root, Path(request['output']), request['allowlist'], request['subject'], _isolated=True)
+print(json.dumps({'path': str(path), 'metadata': metadata}))
+"""
+        result = subprocess.run(
+            [sys.executable, "-I", "-c", probe],
+            input=json.dumps({"root": str(repo_root.resolve()), "output": str(output.resolve()),
+                              "builder": str(Path(__file__).resolve()),
+                              "allowlist": dict(allowlist), "subject": dict(compiled_subject)}),
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError(f"isolated query-store compilation failed: {result.stderr}")
+        payload = json.loads(result.stdout)
+        return Path(payload["path"]), payload["metadata"]
+    compiler_digest_before = _query_store_compiler_fingerprint(repo_root)
     access_src = repo_root / "access" / "src"
     if access_src.as_posix() not in sys.path:
         sys.path.insert(0, access_src.as_posix())
@@ -432,6 +460,8 @@ def _compile_query_store(
     if metadata.get("snapshot_bindings") != input_bindings or metadata.get("complete") is not True:
         raise RuntimeError("compiled query-store output is not bound to the declared source subjects")
     compiler_digest = _query_store_compiler_fingerprint(repo_root)
+    if compiler_digest != compiler_digest_before:
+        raise RuntimeError("query-store compiler changed during compilation")
     return candidate, {
         "schema": schema,
         "compiler_version": compiler_version,
@@ -486,11 +516,12 @@ def source_fingerprint(repo_root: Path, allowlist: dict[str, Any]) -> str:
         digest.update(compiled_subject["builder_module"].encode("utf-8") + b"\0")
         digest.update(_query_store_compiler_fingerprint(repo_root).encode("ascii") + b"\n")
     access_root = repo_root / "access"
-    ignored_parts = {"node_modules", "__pycache__", ".pytest_cache", "runtime_data", "web_dist"}
+    ignored_parts = {"node_modules", "__pycache__", ".pytest_cache", "runtime_data", "web_dist", "runtime", ".wrangler", "build"}
     paths = [
         path
         for path in access_root.rglob("*")
         if path.is_file() and not (set(path.relative_to(access_root).parts) & ignored_parts)
+        and not any(part.endswith((".pyc", ".egg-info")) for part in path.relative_to(access_root).parts)
     ]
     paths.extend(_runtime_subject_paths(repo_root, allowlist))
     for path in sorted(set(paths), key=lambda item: item.relative_to(repo_root).as_posix()):
@@ -501,8 +532,8 @@ def source_fingerprint(repo_root: Path, allowlist: dict[str, Any]) -> str:
 
 
 def _ignored(_: str, names: list[str]) -> set[str]:
-    blocked = {"node_modules", "__pycache__", ".pytest_cache", "runtime_data", "web_dist"}
-    return {name for name in names if name in blocked or name.endswith(".pyc")}
+    blocked = {"node_modules", "__pycache__", ".pytest_cache", "runtime_data", "web_dist", "runtime", ".wrangler", "build"}
+    return {name for name in names if name in blocked or name.endswith((".pyc", ".egg-info"))}
 
 
 def _scan_portable_code(access_root: Path) -> None:
@@ -523,7 +554,10 @@ def _write_deterministic_zip(stage_root: Path, output: Path) -> None:
             info = zipfile.ZipInfo(relative, FIXED_ZIP_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if path.name.endswith(".py") else 0o644) << 16
-            archive.writestr(info, path.read_bytes(), compresslevel=9)
+            info.file_size = path.stat().st_size
+            info._compresslevel = 9
+            with path.open("rb") as source, archive.open(info, "w", force_zip64=info.file_size >= zipfile.ZIP64_LIMIT) as target:
+                shutil.copyfileobj(source, target, length=1024 * 1024)
 
 
 def build_bundle(
@@ -632,6 +666,14 @@ def build_bundle(
                 allowlist,
                 compiled_subject,
             )
+            # The source checkout may change while the offline compiler runs.
+            # Bind the compiled bytes to the inputs and code actually shipped,
+            # not merely to a later snapshot observed in the live checkout.
+            staged_bindings = _query_store_input_bindings(runtime_data, allowlist, compiled_subject)
+            if query_store_metadata["input_bindings"] != staged_bindings:
+                raise RuntimeError("compiled query-store inputs differ from staged bundle subjects")
+            if query_store_metadata["compiler_sha256"] != _query_store_compiler_fingerprint(stage):
+                raise RuntimeError("compiled query-store compiler differs from staged bundle code")
             generated_subject = {
                 "subject_id": compiled_subject["subject_id"],
                 "source_path": query_store_relative.as_posix(),

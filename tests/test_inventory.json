@@ -138,6 +138,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_streaming_wheel.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/AGENTS.md",
+      "protects": "bounded wheel package-data reads, ZIP64, RECORD integrity, build hook restoration, and source archive to installed resource portability",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_streaming_wheel.py",
+      "failure_route": "Fix the access core, adapter, contract, profile, or bundle boundary before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_knowledge_contract.py",
       "home": "access",
       "home_scope": "product-local",

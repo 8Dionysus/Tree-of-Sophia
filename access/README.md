@@ -420,7 +420,11 @@ the completed snapshot. Missing, stale or incompatible stores report
 `query store build required`. The compiler requires SQLite FTS5 trigram support;
 `--search-accelerator scan` explicitly chooses the bounded-memory scan fallback.
 Standalone packaging compiles its own artifact, includes the exact projection
-closures, and records separate source/compiler and output identities. See
+closures, and records separate source/compiler and output identities. Compilation
+runs in a fresh interpreter and checks the inputs and compiler against the
+staged package before publication. ZIP and wheel writers stream runtime files;
+installation validation separates wheel building from installation to release
+the disposable build copy before creating the installed snapshot. See
 [partitioned projection storage](../ToS/derived-exports/PARTITIONED_PROJECTIONS.md)
 and the [runtime data allowlist](contracts/runtime-data.v1.json).
 

@@ -403,6 +403,28 @@
       "disposition": "keep"
     },
     {
+      "path": "access/packaging/tos_build_backend.py",
+      "family": "standalone_bundle_builder",
+      "organ_lane": "release",
+      "owner_surface": "access/AGENTS.md",
+      "source_truth": [
+        "access/pyproject.toml",
+        "access/contracts/runtime-data.v1.json"
+      ],
+      "reads": [
+        "access/pyproject.toml",
+        "access/src/tos_access/"
+      ],
+      "writes": [
+        "wheel and source archives selected by the PEP 517 frontend"
+      ],
+      "side_effects": "creates setuptools build metadata and build trees plus requested wheel or source archives; streams existing runtime bytes without compiling or publishing",
+      "validation_lane": "standalone_access",
+      "ci_inclusion": "release",
+      "test_target": "access/tests/test_streaming_wheel.py",
+      "disposition": "keep"
+    },
+    {
       "path": "access/packaging/validate_standalone.py",
       "family": "standalone_bundle_validator",
       "organ_lane": "release",

@@ -7,6 +7,7 @@ import itertools
 import json
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -871,7 +872,26 @@ print(json.dumps({"ok": True, "doctor": report, "view_id": view_id}))
         if create_venv.returncode:
             raise RuntimeError(f"venv creation failed: {create_venv.stdout}\n{create_venv.stderr}")
         venv_python = venv_root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        install_target = (extracted / "access").as_posix() + ("[mcp]" if with_mcp else "")
+        # Build and install as separate phases so the setuptools build/lib
+        # copy does not coexist with another full installed query snapshot.
+        build_tree = extracted / "access/build"
+        if build_tree.exists():
+            raise RuntimeError("bundle unexpectedly contains a package build tree")
+        wheel_dir = temp / "wheels"
+        wheel_build = subprocess.run(
+            [venv_python.as_posix(), "-m", "pip", "wheel", "--no-deps",
+             "--wheel-dir", wheel_dir.as_posix(), (extracted / "access").as_posix()],
+            cwd=outside, env=env, text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, check=False,
+        )
+        if wheel_build.returncode:
+            raise RuntimeError(f"standalone wheel build failed: {wheel_build.stdout}\n{wheel_build.stderr}")
+        wheels = list(wheel_dir.glob("tree_of_sophia_access-*.whl"))
+        if len(wheels) != 1:
+            raise RuntimeError("standalone build did not produce exactly one access wheel")
+        if build_tree.exists():
+            shutil.rmtree(build_tree)
+        install_target = wheels[0].as_posix() + ("[mcp]" if with_mcp else "")
         install_command = [venv_python.as_posix(), "-m", "pip", "install"]
         if not with_mcp:
             install_command.append("--no-deps")
