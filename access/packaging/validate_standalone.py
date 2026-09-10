@@ -783,7 +783,7 @@ def validate_bundle(
         env = {
             key: value
             for key, value in os.environ.items()
-            if key not in {"TOS_ROOT", "AOA_TOS_ROOT", "PYTHONPATH"}
+            if key not in {"TOS_ROOT", "AOA_TOS_ROOT", "TOS_QUERY_STORE_PATH", "PYTHONPATH"}
         }
         env["PYTHONPATH"] = package_src.as_posix()
         probe = """
