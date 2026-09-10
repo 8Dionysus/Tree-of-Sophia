@@ -16,6 +16,7 @@ from build_source_witness_catalog import (artifact_catalog_entry, artifact_displ
                                          composite_catalog_entry, load_composite_record, composite_display_fields, COMPOSITE_SCHEMA)
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
 from source_record_profiles import SourceRecordProfiles
+from partitioned_projection_common import PROJECTION_PART_ROOTS, ordered_rows, schema_validator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -185,6 +186,12 @@ def tracked_tos_paths() -> tuple[Path, ...]:
         if not raw_ref:
             continue
         path = REPO_ROOT / raw_ref.decode("utf-8")
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        # The projection root describes its own content-addressed closure.
+        # Indexing transport objects as source resources creates self-recursion
+        # and duplicates the graph's physical storage layout in corpus meaning.
+        if any(relative.startswith(root + "/") for root in PROJECTION_PART_ROOTS):
+            continue
         # Physical payload bytes belong to the source-witness artifact/item
         # stores, not to this metadata/read-model resource index.
         if path.is_file() and "payload" not in path.relative_to(TOS_ROOT).parts:
@@ -309,8 +316,9 @@ def build_branches(source_home: dict[str, Any], diagnostics: list[dict[str, str]
 def build_manifests(
     diagnostics: list[dict[str, str]],
     tracked_paths: tuple[Path, ...],
+    storage=None,
 ) -> list[dict[str, Any]]:
-    manifests: list[dict[str, Any]] = []
+    manifests = storage.sequence() if storage is not None else []
     source_home_seen = False
     for path in (candidate for candidate in tracked_paths if candidate.name.endswith(".manifest.json")):
         path_ref = repo_ref(path)
@@ -342,9 +350,7 @@ def build_manifests(
         diagnostics.append({"level": "error", "path": source_home_ref, "message": "missing source-home manifest"})
     elif not source_home_seen:
         payload = load_json(source_home_path)
-        manifests.insert(
-            0,
-            {
+        entry = {
                 "path": source_home_ref,
                 "manifest_kind": "source_home_manifest",
                 "owner_branch": "ToS",
@@ -353,16 +359,23 @@ def build_manifests(
                 "branch_id": None,
                 "declared_path": payload.get("home") if isinstance(payload.get("home"), str) else None,
                 "sha256": sha256(source_home_path),
-            },
-        )
+            }
+        if storage is None:
+            manifests.insert(0, entry)
+        else:
+            manifests.append(entry)
+    # The logical order is independent of the build storage implementation.
+    # Path-component ordering differs from the declared string path key.
+    manifests.sort(key=lambda row: str(row['path']))
     return manifests
 
 
 def build_nodes(
     diagnostics: list[dict[str, str]],
     tracked_paths: tuple[Path, ...],
+    storage=None,
 ) -> list[dict[str, Any]]:
-    nodes: list[dict[str, Any]] = []
+    nodes = storage.sequence() if storage is not None else []
     for path in (candidate for candidate in tracked_paths if candidate.name == "node.json"):
         path_ref = repo_ref(path)
         try:
@@ -391,6 +404,7 @@ def build_nodes(
                 "properties": dict(payload),
             }
         )
+    nodes.sort(key=lambda row: str(row['source_path']))
     return nodes
 
 
@@ -403,9 +417,10 @@ def read_edge_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
 def build_relations(
     diagnostics: list[dict[str, str]],
     tracked_paths: tuple[Path, ...],
+    storage=None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-    relation_packs: list[dict[str, Any]] = []
-    relation_edges: list[dict[str, str]] = []
+    relation_packs = storage.sequence() if storage is not None else []
+    relation_edges = storage.sequence() if storage is not None else []
     for path in (candidate for candidate in tracked_paths if candidate.name == "edges.csv"):
         path_ref = repo_ref(path)
         try:
@@ -441,11 +456,16 @@ def build_relations(
                     "status": str(row.get("status") or ("canon" if path_ref.startswith("ToS/canon/") else "unmarked")),
                 }
             )
+    # Relation-pack traversal follows source-path order, while the exported
+    # collection contract declares the package and edge identities as its
+    # logical order.  Keep both list and disk-backed builds on that order.
+    relation_packs.sort(key=lambda row: str(row['path']))
+    relation_edges.sort(key=lambda row: (str(row.get("pack_id", "")), str(row.get("edge_id", ""))))
     return relation_packs, relation_edges
 
 
-def build_resources(tracked_paths: tuple[Path, ...]) -> list[dict[str, Any]]:
-    resources: list[dict[str, Any]] = []
+def build_resources(tracked_paths: tuple[Path, ...], storage=None) -> list[dict[str, Any]]:
+    resources = storage.sequence() if storage is not None else []
     for path in tracked_paths:
         path_ref = repo_ref(path)
         if path_ref == SELF_REF:
@@ -460,19 +480,19 @@ def build_resources(tracked_paths: tuple[Path, ...]) -> list[dict[str, Any]]:
                 "size_bytes": path.stat().st_size,
             }
         )
+    resources.sort(key=lambda row: str(row['path']))
     return resources
 
 
-def _jsonl(path: Path) -> list[dict[str, Any]]:
+def _jsonl(path: Path):
     if not path.is_file():
-        return []
-    return [
-        payload
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-        for payload in (json.loads(line),)
-        if isinstance(payload, dict)
-    ]
+        return
+    with path.open(encoding="utf-8") as stream:
+        for line in stream:
+            if line.strip():
+                payload = json.loads(line)
+                if isinstance(payload, dict):
+                    yield payload
 
 
 def _source_navigation_branch_kind(path_ref: str) -> str:
@@ -621,12 +641,13 @@ def project_text_packet(packet: dict[str, Any], source_ref: str) -> tuple[list[d
 
 
 def build_source_navigation(diagnostics: list[dict[str, str]], *,
-                            assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+                            assessed_forms: AssessedFormSnapshot | None = None,
+                            storage=None) -> dict[str, Any]:
     """Join authored topology and source records into a read-only descent graph."""
 
-    nodes: dict[str, dict[str, Any]] = {}
-    edges: dict[str, dict[str, Any]] = {}
-    rights: list[dict[str, Any]] = []
+    nodes = storage.mapping() if storage is not None else {}
+    edges = storage.mapping() if storage is not None else {}
+    rights = storage.sequence() if storage is not None else []
     version_reader = None
 
     def add_node(
@@ -1013,7 +1034,7 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
                 }
             )
 
-    projected_nodes = [nodes[key] for key in sorted(nodes)]
+    projected_nodes = ordered_rows(storage, nodes.values(), "node_id")
     if assessed_forms is not None:
         if not isinstance(assessed_forms, AssessedFormSnapshot):
             raise TypeError('assessed forms require an explicit protected owner snapshot')
@@ -1030,8 +1051,8 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
         ),
         "counts": {"nodes": len(nodes), "edges": len(edges), "rights": len(rights)},
         "nodes": projected_nodes,
-        "edges": [edges[key] for key in sorted(edges)],
-        "rights": sorted(rights, key=lambda item: item["rights_id"]),
+        "edges": ordered_rows(storage, edges.values(), "edge_id"),
+        "rights": ordered_rows(storage, rights, "rights_id"),
     }
 
 
@@ -1040,7 +1061,7 @@ def load_schema() -> dict[str, Any]:
 
 
 def validate_payload_schema(payload: dict[str, Any]) -> None:
-    validator = Draft202012Validator(load_schema())
+    validator = schema_validator(load_schema())
     errors = sorted(validator.iter_errors(payload), key=lambda error: list(error.absolute_path))
     if errors:
         error = errors[0]
@@ -1048,16 +1069,16 @@ def validate_payload_schema(payload: dict[str, Any]) -> None:
         raise ValueError(f"schema violation at {path.lstrip('.') or '<root>'}: {error.message}")
 
 
-def build_payload(*, assessed_forms: AssessedFormSnapshot | None = None) -> dict[str, Any]:
+def build_payload(*, assessed_forms: AssessedFormSnapshot | None = None, storage=None) -> dict[str, Any]:
     diagnostics: list[dict[str, str]] = []
     tracked_paths = tracked_tos_paths()
     source_home = load_json(TOS_ROOT / "source_home.manifest.json")
     branches = build_branches(source_home, diagnostics)
-    manifests = build_manifests(diagnostics, tracked_paths)
-    nodes = build_nodes(diagnostics, tracked_paths)
-    relation_packs, relation_edges = build_relations(diagnostics, tracked_paths)
-    resources = build_resources(tracked_paths)
-    source_navigation = build_source_navigation(diagnostics, assessed_forms=assessed_forms)
+    manifests = build_manifests(diagnostics, tracked_paths, storage)
+    nodes = build_nodes(diagnostics, tracked_paths, storage)
+    relation_packs, relation_edges = build_relations(diagnostics, tracked_paths, storage)
+    resources = build_resources(tracked_paths, storage)
+    source_navigation = build_source_navigation(diagnostics, assessed_forms=assessed_forms, storage=storage)
     payload: dict[str, Any] = {
         "schema_version": "tos_corpus_index_v1",
         "schema_ref": SCHEMA_REF,

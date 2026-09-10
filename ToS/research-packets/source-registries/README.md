@@ -82,6 +82,8 @@ remaining leads. `coverage.current.json.gz` retains every registry/gap row ID,
 reviewed target, candidate owner reference and branch link. It derives from the
 existing reconciliation, reviewed preparation manifests, acquisition provenance
 and actual planting records; it is not a new identity or acceptance registry.
+Nested stages, including translation packages, are included only with their own
+exact manifest-bound preparation review receipt.
 A selected book never exhausts a corpus-level lead, and no reviewed link is
 not evidence that the work is absent under another owner identity.
 

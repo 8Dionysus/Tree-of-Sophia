@@ -12,8 +12,11 @@ changes review state, or writes to the corpus.
 ## Development install
 
 Create a local environment with `python -m venv .venv`, install the product
-with `.venv/bin/python -m pip install -e 'access[mcp,dev]'`, then use
-`.venv/bin/tos doctor`, `.venv/bin/tos serve`, or `.venv/bin/tos mcp`.
+with `.venv/bin/python -m pip install -e 'access[mcp,dev]'`, then compile the
+query snapshot with `.venv/bin/python -m tos_access.knowledge_compile --root .`.
+After compilation, use `.venv/bin/tos doctor`, `.venv/bin/tos serve`, or
+`.venv/bin/tos mcp`. Recompile after changing the input projections or semantic
+registries.
 
 `tos serve` is loopback-only by default and serves the checked-in production
 web assets plus the JSON API. `tos mcp` uses stdio unless a loopback-only
@@ -384,11 +387,14 @@ change (including normalized content under an unchanged source revision) returns
 **400**. Restart from focus on 409/410; no historical data is silently substituted.
 MCP communicates the corresponding errors as tool failures, not HTTP statuses.
 
-The local core indexes one immutable normalized snapshot once and reads local
-adjacency thereafter. It still loads that snapshot in memory; checkpoint copying
+For partitioned corpus and bibliographic inputs, the local core reads an
+explicitly compiled SQLite snapshot through indexed identity and adjacency
+queries. Requests never assemble the complete graph or compile a missing store.
+Short substring and unindexed property selectors can scan disk rows; request
+state and returned packets still follow the declared limits. Checkpoint copying
 and serialization scale with visited state. The serialized checkpoint cache is
-bounded to 128 entries / 32 MiB, separately from the graph and adjacency index.
-This is not multi-process durable storage or production load qualification.
+bounded to 128 entries / 32 MiB. This is not multi-process durable checkpoint
+storage or production load qualification.
 No tree records, source payloads or review decisions are written. The local
 service does not write files. The Worker writes only a disposable D1 cache:
 128 checkpoints / 32 MiB total, at most 1 MiB per stored state or response.
@@ -402,8 +408,28 @@ D1 publications increment a monotonic clock to reject even A -> B -> A changes
 during a multi-query read. Concurrent continuations atomically select one replay
 response and successor. See the [edge route](deploy/cloudflare-worker/README.md).
 
-The offline builder now schedules a resumable dependency DAG for normalization:
-source/type -> node -> endpoint title -> relation. Unchanged intermediate output
+Compile the read model explicitly after rebuilding its source projections:
+
+```bash
+PYTHONPATH=access/src python -m tos_access.knowledge_compile --root .
+```
+
+The default output is `ToS/derived-exports/runtime/knowledge.sqlite3`, an ignored
+build artifact. Its exact input manifests, registries and compiler version bind
+the completed snapshot. Missing, stale or incompatible stores report
+`query store build required`. The compiler requires SQLite FTS5 trigram support;
+`--search-accelerator scan` explicitly chooses the bounded-memory scan fallback.
+Standalone packaging compiles its own artifact, includes the exact projection
+closures, and records separate source/compiler and output identities. See
+[partitioned projection storage](../ToS/derived-exports/PARTITIONED_PROJECTIONS.md)
+and the [runtime data allowlist](contracts/runtime-data.v1.json).
+
+The legacy offline normalization path schedules a resumable dependency DAG:
+
+source/type -> node -> endpoint title -> relation. Partitioned compilation uses
+the same normalization and semantic construction rules with disk-backed
+collections; it does not currently reuse that legacy DAG cache. In the legacy
+path, unchanged intermediate output
 stops downstream recomputation; completed steps survive failed builds. Final node
 materialization and per-node, per-relation and per-Claim checks now reuse results
 bound to actual input and dependency digests. Changed or missing evidence, review

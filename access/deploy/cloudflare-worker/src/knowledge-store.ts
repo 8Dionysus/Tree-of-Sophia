@@ -85,14 +85,19 @@ async function knowledgeJsonRows(
 function searchFragment(alias: string, needle: string): SqlFragment {
   // Near-limit records keep their lossless JSON in a payload table and omit
   // the duplicated search copy. Ordinary rows keep the cheaper search_text
-  // path; compact rows fall back to their query JSON and payload chunks.
+  // path; compact rows use a dedicated lower-cased, overlapping projection.
+  // The JSON/payload fallback remains for snapshots produced before the
+  // search projection was introduced and for the compact query envelope.
   const payload = alias === "n" ? "knowledge_node_payload" : "knowledge_relation_payload";
+  const searchChunks = alias === "n" ? "knowledge_node_search_chunks" : "knowledge_relation_search_chunks";
   return {
     sql: `(instr(${alias}.search_text, ?) > 0 OR (${alias}.search_text = '' AND
       (instr(lower(${alias}.json), ?) > 0 OR EXISTS (
         SELECT 1 FROM ${payload} p WHERE p.id = ${alias}.id AND instr(lower(p.json_chunk), ?) > 0
+      ) OR EXISTS (
+        SELECT 1 FROM ${searchChunks} p WHERE p.id = ${alias}.id AND instr(p.search_chunk, ?) > 0
       ))))`,
-    bindings: [needle, needle, needle],
+    bindings: [needle, needle, needle, needle],
   };
 }
 

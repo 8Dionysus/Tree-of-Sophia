@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from .core import ToSAccessCore
+from .projection_store import ProjectionReader, is_partitioned
+from .query_store import DEFAULT_RELATIVE_PATH, QueryStoreRequired
 
 SUPPORTED_INDEX_SCHEMAS = {"tos_corpus_index_v1"}
 SUPPORTED_GRAPH_SCHEMAS = {
@@ -44,6 +46,19 @@ def _check(check_id: str, ok: bool, *, required: bool = True, **details: Any) ->
     return {"check_id": check_id, "ok": ok, "required": required, **details}
 
 
+def _query_store_path(core: ToSAccessCore) -> Path:
+    configured = os.environ.get("TOS_QUERY_STORE_PATH")
+    path = Path(configured).expanduser() if configured else core.tos_root / DEFAULT_RELATIVE_PATH
+    return path if path.is_absolute() else core.tos_root / path
+
+
+def _corpus_header(core: ToSAccessCore) -> dict[str, Any]:
+    """Read a partition manifest header without materializing its collections."""
+    if is_partitioned(core.index_path):
+        return ProjectionReader(core.index_path).metadata()
+    return core.index()
+
+
 def doctor_report(
     *,
     tos_root: str | Path | None = None,
@@ -55,10 +70,37 @@ def doctor_report(
     core = ToSAccessCore.discover(tos_root=tos_root)
     checks: list[dict[str, Any]] = []
 
+    query_store = None
+    query_store_path = _query_store_path(core)
+    try:
+        query_store = core._query_store()
+    except (OSError, QueryStoreRequired, RuntimeError, ValueError) as exc:
+        checks.append(
+            _check(
+                "query-store",
+                False,
+                path=query_store_path.as_posix(),
+                error=str(exc),
+            )
+        )
+    else:
+        if query_store is not None:
+            checks.append(
+                _check(
+                    "query-store",
+                    True,
+                    path=query_store.path.as_posix(),
+                    revision=query_store.revision,
+                )
+            )
+
     checks.append(_check("corpus-index-present", core.index_exists(), path=core.index_path.as_posix()))
     if core.index_exists():
         try:
-            index = core.index()
+            # A partitioned source has no bounded logical JSON document at its
+            # root. Health/readiness inspection must stay on the manifest
+            # header even when the compiled query store is missing.
+            index = query_store.corpus_payload() if query_store is not None else _corpus_header(core)
         except (OSError, RuntimeError, ValueError) as exc:
             checks.append(
                 _check(

@@ -35,6 +35,13 @@ The current generated export surfaces are:
 - `graph/source-witness-bibliographic-claims.min.json`
 - `lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 
+The corpus index and bibliographic graph entry files are small
+`tos_partitioned_projection_v1` manifests. Their exact content-addressed part
+closures carry the logical records. Read
+[PARTITIONED_PROJECTIONS.md](PARTITIONED_PROJECTIONS.md) for format bounds,
+source parity, explicit offline query compilation and consumer migration.
+Ordinary access queries read the compiled SQLite artifact selectively.
+
 Most summarize the current Zarathustra route for downstream consumers while
 pointing back to ToS-owned authority and compatibility surfaces. The
 source-witness bibliographic graph instead spans the bounded current Nietzsche

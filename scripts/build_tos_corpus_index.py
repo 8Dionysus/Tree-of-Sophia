@@ -7,6 +7,7 @@ import argparse
 
 from tos_corpus_index_common import REPO_ROOT, TOS_CORPUS_INDEX_PATH, build_payload, render_payload
 from source_witness_human_forms import add_assessed_build_arguments, assessed_build_input, write_assessed_candidate
+from partitioned_projection_common import build_storage, write_partitioned_payload, check_partitioned_payload
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,9 +27,8 @@ def main() -> int:
         assessed, target = assessed_build_input(args, REPO_ROOT, TOS_CORPUS_INDEX_PATH)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
-    payload = build_payload(assessed_forms=assessed)
-    rendered = render_payload(payload)
     if assessed is not None:
+        rendered = render_payload(build_payload(assessed_forms=assessed))
         if args.check:
             assessed.verify_current()
             if target.read_text(encoding='utf-8') != rendered:
@@ -38,15 +38,14 @@ def main() -> int:
             write_assessed_candidate(target, rendered, assessed)
             print(f'[ok] wrote local assessed corpus candidate: {target}')
         return 0
-    TOS_CORPUS_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if args.check:
-        current = TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8")
-        if current != rendered:
-            raise SystemExit("ToS/derived-exports/tos_corpus_index.min.json is out of date")
-        print("[ok] verified ToS/derived-exports/tos_corpus_index.min.json")
-        return 0
-    TOS_CORPUS_INDEX_PATH.write_text(rendered, encoding="utf-8")
-    print("[ok] wrote ToS/derived-exports/tos_corpus_index.min.json")
+    with build_storage() as storage:
+        payload = build_payload(storage=storage)
+        if args.check:
+            check_partitioned_payload(TOS_CORPUS_INDEX_PATH, payload)
+            print("[ok] verified partitioned ToS corpus index and its complete closure")
+        else:
+            write_partitioned_payload(TOS_CORPUS_INDEX_PATH, payload, prune=True)
+            print("[ok] wrote partitioned ToS corpus index")
     return 0
 
 

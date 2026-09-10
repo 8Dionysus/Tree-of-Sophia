@@ -11,19 +11,20 @@ from source_witness_bibliographic_graph_common import (
     render_payload,
     validate_payload_schema,
 )
+from partitioned_projection_common import build_storage, check_partitioned_payload
 
 
 def main() -> int:
-    expected = build_payload()
-    try:
-        current = json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError) as exc:
-        raise SystemExit(f"cannot read bibliographic claim graph: {exc}") from exc
+    with build_storage() as storage:
+        expected = build_payload(storage=storage)
+        check_partitioned_payload(GRAPH_PATH, expected)
+        return validate_graph(expected, expected, storage)
+
+
+def validate_graph(current, expected, storage=None):
+    # Parity checks bind the committed parts to the exact source rebuild;
+    # these independent relation/time assertions still inspect every row.
     validate_payload_schema(current)
-    if render_payload(current) != render_payload(expected):
-        raise SystemExit(
-            "source-witness bibliographic claim graph differs from the canonical rebuild"
-        )
 
     counts = current["counts"]
     if counts["source_claims"] != counts["claim_traces"]:
@@ -39,12 +40,26 @@ def main() -> int:
     if current["relation_model"]["runtime_owner"] != "abyss-stack":
         raise SystemExit("runtime graph ownership must remain in abyss-stack")
 
-    nodes = {node["node_id"]: node for node in current["nodes"]}
-    claim_nodes = {
-        node["properties"]["claim_ref"]: node["node_id"]
+    make_map = storage.mapping if storage is not None else dict
+    def validation_facts(node):
+        if storage is None:
+            return node
+        properties = node.get("properties", {})
+        method = properties.get("method")
+        version = properties.get("schema_version")
+        procedure = method.get("procedure") if version == "tos_provenance_event_v2" and isinstance(method, dict) else method
+        procedure = {"name": procedure.get("name")} if isinstance(procedure, dict) else None
+        return {"node_kind": node.get("node_kind"), "properties": {
+            "started_at": properties.get("started_at"), "ended_at": properties.get("ended_at"),
+            "schema_version": version,
+            "method": {"procedure": procedure} if version == "tos_provenance_event_v2" else procedure}}
+
+    nodes = make_map((node["node_id"], validation_facts(node)) for node in current["nodes"])
+    claim_nodes = make_map(
+        (node["properties"]["claim_ref"], node["node_id"])
         for node in current["nodes"]
         if node["node_kind"] == "claim"
-    }
+    )
     for edge in current["edges"]:
         if edge["from_id"] != claim_nodes.get(edge["claim_ref"]):
             raise SystemExit(f"{edge['edge_id']}: edge does not start at its claim node")

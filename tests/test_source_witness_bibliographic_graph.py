@@ -34,9 +34,47 @@ from source_witness_bibliographic_graph_common import (  # noqa: E402
     render_payload,
 )
 from source_witness_human_forms import load_metadata_forms, materialize_metadata_forms
+from partitioned_projection_common import (  # noqa: E402
+    build_storage,
+    is_partitioned,
+    json_chunks,
+)
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls._projection_storage_cm = None
+        cls._projection_storage = None
+        cls._real_projection_partitioned = is_partitioned(GRAPH_PATH)
+        if cls._real_projection_partitioned:
+            cls._projection_storage_cm = build_storage()
+            cls._projection_storage = cls._projection_storage_cm.__enter__()
+            try:
+                cls._real_payload = load_verified_projection(
+                    storage=cls._projection_storage
+                )
+                cls._real_parity_verified = True
+            except BaseException:
+                cls._projection_storage_cm.__exit__(*sys.exc_info())
+                cls._projection_storage_cm = None
+                cls._projection_storage = None
+                raise
+        else:
+            cls._real_payload = load_verified_projection()
+            cls._real_parity_verified = False
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        try:
+            if cls._projection_storage_cm is not None:
+                cls._projection_storage_cm.__exit__(None, None, None)
+        finally:
+            cls._projection_storage_cm = None
+            cls._projection_storage = None
+            super().tearDownClass()
+
     @contextmanager
     def claim_navigation_fixture(self):
         """Only synthetic Claim associations; names retain their source bytes."""
@@ -3708,8 +3746,9 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             self.assertEqual(node['properties']['event_type'], event['activity']['event_type'])
             self.assertIn(ref, projection['input_digests'])
             import validate_source_witness_bibliographic_graph as validator
+            from partitioned_projection_common import write_partitioned_payload
             target = root / 'projection.json'
-            target.write_text(render_payload(projection))
+            write_partitioned_payload(target, projection)
             with patch.object(validator, 'GRAPH_PATH', target), patch.object(
                     validator, 'build_payload', return_value=projection):
                 self.assertEqual(validator.main(), 0)
@@ -4240,13 +4279,25 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 load_metadata_forms(root, 'outside.json', source, access_allowed=True)
 
     def load_projection(self) -> dict[str, object]:
-        return json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
+        return self._real_payload
+
+    def verified_projection(self) -> dict[str, object]:
+        return self._real_payload
+
+    def _query_real_projection(self, payload: dict[str, object], **selectors):
+        """Run one real projection query with disposable result indexes."""
+        with build_storage() as storage:
+            result = query_projection(payload, storage=storage, **selectors)
+        return result
 
     def test_generated_projection_matches_builder(self) -> None:
-        self.assertEqual(
-            GRAPH_PATH.read_text(encoding="utf-8"),
-            render_payload(build_payload()),
-        )
+        if self._real_projection_partitioned:
+            self.assertTrue(self._real_parity_verified)
+        else:
+            self.assertEqual(
+                GRAPH_PATH.read_text(encoding="utf-8"),
+                render_payload(build_payload()),
+            )
 
     def test_projection_is_claim_reified_and_complete(self) -> None:
         payload = self.load_projection()
@@ -4282,17 +4333,19 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_final_validator_accepts_source_owned_historical_layer_but_no_invented_layer(self):
         import validate_source_witness_bibliographic_graph as validator
+        from partitioned_projection_common import write_partitioned_payload
+        from tos_access.projection_store import ProjectionStoreError
         with self.historical_fixture() as (root, history, real, claims, rebuild):
             projection = rebuild()
             target = root / 'projection.json'
-            target.write_text(render_payload(projection))
+            write_partitioned_payload(target, projection)
             with patch.object(validator, 'GRAPH_PATH', target), patch.object(
                     validator, 'build_payload', return_value=projection):
                 self.assertEqual(validator.main(), 0)
                 bad = copy.deepcopy(projection)
                 bad['graph_layers'].append('invented-unowned-layer')
-                target.write_text(render_payload(bad))
-                with self.assertRaises((BibliographicGraphBuildError, SystemExit)):
+                write_partitioned_payload(target, bad)
+                with self.assertRaises((BibliographicGraphBuildError, ProjectionStoreError, SystemExit)):
                     validator.main()
 
     def test_every_edge_returns_to_claim_evidence_maker_event_and_review(self) -> None:
@@ -4421,7 +4474,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
 
     def test_projection_contains_no_local_payload_route(self) -> None:
         payload = self.load_projection()
-        serialized = json.dumps(payload, ensure_ascii=False)
+        serialized = "".join(json_chunks(payload))
         self.assertNotIn("/srv/", serialized)
         self.assertNotIn("/home/", serialized)
         for node in payload["nodes"]:
@@ -4527,11 +4580,11 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 _load_claim_catalog(temp_root)
 
     def test_exact_claim_query_returns_complete_source_bundle(self) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         claim_ref = (
             "tos.claim.edition.ecce-homo.insel-1908.edited-by-raoul-richter"
         )
-        result = query_projection(payload, claim_ref=claim_ref)
+        result = self._query_real_projection(payload, claim_ref=claim_ref)
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["result_count"], 1)
         match = result["matches"][0]
@@ -4556,12 +4609,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertTrue(match["edges"])
 
     def test_query_uses_exact_and_semantics(self) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         subject_ref = (
             "tos.collection.friedrich-nietzsche."
             "works-in-two-volumes-volume-2-mysl-1996"
         )
-        result = query_projection(
+        result = self._query_real_projection(
             payload,
             subject_ref=subject_ref,
             predicate="contains_work",
@@ -4580,8 +4633,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             )
 
     def test_first_publication_chronology_remains_claim_scoped_literal(self) -> None:
-        payload = load_verified_projection()
-        result = query_projection(
+        payload = self.verified_projection()
+        result = self._query_real_projection(
             payload,
             predicate="first_publication_chronology",
         )
@@ -4608,9 +4661,9 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_provision_activity_query_preserves_literal_and_normalized_routes(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         leipzig_ref = "tos.place.leipzig"
-        result = query_projection(
+        result = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref=leipzig_ref,
@@ -4647,7 +4700,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 )
             )
 
-        modern_successor = query_projection(
+        modern_successor = self._query_real_projection(
             payload,
             normalized_ref="tos.organization.insel-verlag-berlin",
         )
@@ -4657,7 +4710,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_zarathustra_parts_1_to_4_provision_queries_remain_distinct(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         part_1_ref = (
             "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
             "chemnitz-schmeitzner-1883-part-1"
@@ -4678,7 +4731,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz"
         )
 
-        by_place = query_projection(
+        by_place = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref="tos.place.chemnitz",
@@ -4712,7 +4765,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 )
             )
 
-        by_organization = query_projection(
+        by_organization = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref=organization_ref,
@@ -4728,7 +4781,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         }
         exact_claim_refs = set()
         for subject_ref, year in expected_years.items():
-            exact = query_projection(
+            exact = self._query_real_projection(
                 payload,
                 subject_ref=subject_ref,
                 predicate="provision_activity",
@@ -4744,7 +4797,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             )
         self.assertEqual(3, len(exact_claim_refs))
 
-        part_4 = query_projection(
+        part_4 = self._query_real_projection(
             payload,
             subject_ref=part_4_ref,
             predicate="provision_activity",
@@ -4766,7 +4819,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         )
         self.assertEqual(4, len(exact_claim_refs | {part_4_match["claim_ref"]}))
 
-        person_gnd = query_projection(
+        person_gnd = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref="118823698",
@@ -4777,12 +4830,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_antonovsky_1913_provision_query_separates_publisher_and_printer(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         edition_ref = (
             "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
             "saint-petersburg-zhizn-dlya-vsekh-1913"
         )
-        result = query_projection(
+        result = self._query_real_projection(
             payload,
             subject_ref=edition_ref,
             predicate="provision_activity",
@@ -4834,7 +4887,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 {edge["edge_kind"] for edge in match["edges"]},
             )
 
-        posse = query_projection(
+        posse = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref="tos.agent.vladimir-posse",
@@ -4845,12 +4898,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_naumann_1893_provision_query_separates_publisher_and_printer(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         edition_ref = (
             "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
             "leipzig-c-g-naumann-1893"
         )
-        result = query_projection(
+        result = self._query_real_projection(
             payload,
             subject_ref=edition_ref,
             predicate="provision_activity",
@@ -4885,7 +4938,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 )
             )
 
-        printer = query_projection(
+        printer = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref="tos.organization.druckerei-c-g-naumann-leipzig",
@@ -4903,12 +4956,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_jenseits_1886_provision_query_preserves_shared_literal_and_roles(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         edition_ref = (
             "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese."
             "leipzig-c-g-naumann-1886"
         )
-        result = query_projection(
+        result = self._query_real_projection(
             payload,
             subject_ref=edition_ref,
             predicate="provision_activity",
@@ -4956,7 +5009,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             )
         )
 
-        publisher = query_projection(
+        publisher = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref="tos.organization.c-g-naumann-verlag-leipzig",
@@ -4974,12 +5027,12 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_genealogie_1892_provision_query_preserves_page_split_and_roles(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         edition_ref = (
             "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral."
             "leipzig-c-g-naumann-1892-second"
         )
-        result = query_projection(
+        result = self._query_real_projection(
             payload,
             subject_ref=edition_ref,
             predicate="provision_activity",
@@ -5030,7 +5083,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             )
         )
 
-        printer = query_projection(
+        printer = self._query_real_projection(
             payload,
             predicate="provision_activity",
             normalized_ref="tos.organization.druckerei-c-g-naumann-leipzig",
@@ -5048,7 +5101,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_antonovsky_translation_queries_preserve_expression_identity(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         agent_ref = "tos.agent.yuri-antonovsky"
         expression_1911 = (
             "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
@@ -5067,25 +5120,25 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "ru-antonovsky-cultural-revolution"
         )
 
-        result_1911 = query_projection(
+        result_1911 = self._query_real_projection(
             payload,
             subject_ref=expression_1911,
             object_ref=agent_ref,
             predicate="translated_by",
         )
-        result_1913 = query_projection(
+        result_1913 = self._query_real_projection(
             payload,
             subject_ref=expression_1913,
             object_ref=agent_ref,
             predicate="translated_by",
         )
-        result_1996 = query_projection(
+        result_1996 = self._query_real_projection(
             payload,
             subject_ref=expression_1996,
             object_ref=agent_ref,
             predicate="translated_by",
         )
-        result_2007 = query_projection(
+        result_2007 = self._query_real_projection(
             payload,
             subject_ref=expression_2007,
             object_ref=agent_ref,
@@ -5131,7 +5184,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             )
         )
 
-        agent_result = query_projection(
+        agent_result = self._query_real_projection(
             payload,
             object_ref=agent_ref,
             predicate="translated_by",
@@ -5139,9 +5192,9 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual(5, agent_result["result_count"])
 
     def test_foundation_topology_queries_return_all_three_relation_families(self) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         work_ref = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
-        work_result = query_projection(
+        work_result = self._query_real_projection(
             payload,
             subject_ref=work_ref,
             predicate="has_expression",
@@ -5164,7 +5217,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "tos.edition.friedrich-nietzsche.works-in-two-volumes."
             "moscow-mysl-1996-volume-2"
         )
-        embodiment_result = query_projection(
+        embodiment_result = self._query_real_projection(
             payload,
             subject_ref=expression_ref,
             object_ref=edition_ref,
@@ -5189,7 +5242,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
             "leipzig-c-g-naumann-1893"
         )
-        exemplar_result = query_projection(
+        exemplar_result = self._query_real_projection(
             payload,
             subject_ref=edition_with_two_items,
             predicate="exemplified_by",
@@ -5200,8 +5253,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         )
 
     def test_embodiment_topology_does_not_assert_textual_equivalence(self) -> None:
-        payload = load_verified_projection()
-        result = query_projection(
+        payload = self.verified_projection()
+        result = self._query_real_projection(
             payload,
             subject_ref=(
                 "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
@@ -5226,7 +5279,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "tos.edition.friedrich-nietzsche.also-sprach-zarathustra."
             "saint-petersburg-vaisberg-gershunin-typography-1907-third"
         )
-        exact = query_projection(
+        exact = self._query_real_projection(
             payload,
             subject_ref=expression_1907,
             object_ref=edition_1907,
@@ -5241,7 +5294,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_reader_1899_queries_preserve_positive_topology_and_negative_authorship(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         work_ref = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
         expression_ref = (
             "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
@@ -5256,21 +5309,21 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             "ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts"
         )
 
-        work_expression = query_projection(
+        work_expression = self._query_real_projection(
             payload,
             subject_ref=work_ref,
             object_ref=expression_ref,
             predicate="has_expression",
         )
         self.assertEqual(1, work_expression["result_count"])
-        expression_edition = query_projection(
+        expression_edition = self._query_real_projection(
             payload,
             subject_ref=expression_ref,
             object_ref=edition_ref,
             predicate="embodied_by",
         )
         self.assertEqual(1, expression_edition["result_count"])
-        edition_item = query_projection(
+        edition_item = self._query_real_projection(
             payload,
             subject_ref=edition_ref,
             object_ref=item_ref,
@@ -5278,14 +5331,14 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         )
         self.assertEqual(1, edition_item["result_count"])
 
-        translated_by = query_projection(
+        translated_by = self._query_real_projection(
             payload,
             subject_ref=expression_ref,
             predicate="translated_by",
         )
         self.assertEqual("no_match", translated_by["status"])
         self.assertEqual(0, translated_by["result_count"])
-        derivation = query_projection(
+        derivation = self._query_real_projection(
             payload,
             subject_ref=expression_ref,
             predicate="is_derivative_of",
@@ -5296,7 +5349,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
     def test_nani_1899_queries_preserve_topology_responsibility_and_negative_derivation(
         self,
     ) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         work_ref = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
         expression_ref = (
             "tos.expression.friedrich-nietzsche.also-sprach-zarathustra."
@@ -5321,7 +5374,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
             (edition_ref, item_ref, "exemplified_by"),
             (expression_ref, agent_ref, "translated_by"),
         ):
-            result = query_projection(
+            result = self._query_real_projection(
                 payload,
                 subject_ref=subject_ref,
                 object_ref=object_ref,
@@ -5335,7 +5388,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 claim_properties["visibility"],
             )
 
-        manufacture = query_projection(
+        manufacture = self._query_real_projection(
             payload,
             subject_ref=edition_ref,
             predicate="provision_activity",
@@ -5346,7 +5399,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual("manufacture", source_claim["object"]["provision_kind"])
         self.assertEqual("printer", source_claim["object"]["agents"][0]["role"])
 
-        derivation = query_projection(
+        derivation = self._query_real_projection(
             payload,
             subject_ref=expression_ref,
             predicate="is_derivative_of",
@@ -5354,7 +5407,7 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual("no_match", derivation["status"])
         self.assertEqual(0, derivation["result_count"])
 
-        same_as = query_projection(
+        same_as = self._query_real_projection(
             payload,
             subject_ref=expression_ref,
             predicate="same_as",
@@ -5363,8 +5416,8 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual(0, same_as["result_count"])
 
     def test_expression_derivation_queries_preserve_direction_and_absent_edges(self) -> None:
-        payload = load_verified_projection()
-        result = query_projection(payload, predicate="is_derivative_of")
+        payload = self.verified_projection()
+        result = self._query_real_projection(payload, predicate="is_derivative_of")
         self.assertEqual(result["result_count"], 2)
         pairs = {
             (
@@ -5411,29 +5464,34 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertTrue(pairs.isdisjoint(unsupported_pairs))
 
     def test_query_no_match_is_explicit_and_deterministic(self) -> None:
-        payload = load_verified_projection()
-        first = query_projection(payload, claim_ref="tos.claim.missing")
-        second = query_projection(payload, claim_ref="tos.claim.missing")
+        payload = self.verified_projection()
+        first = self._query_real_projection(payload, claim_ref="tos.claim.missing")
+        second = self._query_real_projection(payload, claim_ref="tos.claim.missing")
         self.assertEqual(first, second)
         self.assertEqual(first["status"], "no_match")
         self.assertEqual(first["result_count"], 0)
         self.assertEqual(first["matches"], [])
 
     def test_query_requires_selector_and_rejects_silent_truncation(self) -> None:
-        payload = load_verified_projection()
+        payload = self.verified_projection()
         with self.assertRaisesRegex(
             BibliographicGraphBuildError,
             "at least one exact query selector",
         ):
-            query_projection(payload)
+            self._query_real_projection(payload)
         with self.assertRaisesRegex(
             BibliographicGraphBuildError,
             "exceeding explicit limit 20",
         ):
-            query_projection(payload, review_status="unreviewed")
+            self._query_real_projection(payload, review_status="unreviewed")
 
     def test_verified_loader_rejects_projection_fingerprint_drift(self) -> None:
-        payload = self.load_projection()
+        # Materialization is intentional here: this test edits a complete
+        # temporary monolith, while ordinary real-root tests keep collections
+        # disk-backed through ``verified_projection``.
+        from partitioned_projection_common import load_projection
+
+        payload = load_projection(GRAPH_PATH)
         payload["claim_traces"][0]["predicate"] = "tampered_predicate"
         with tempfile.TemporaryDirectory() as temporary:
             graph_path = Path(temporary) / "graph.json"

@@ -169,5 +169,33 @@
       "path": "ToS/source-witnesses/**/payload/",
       "reason": "local or restricted source bytes never enter the standalone runtime bundle"
     }
+  ],
+  "partitioned_subject_policy": {
+    "format": "tos_partitioned_projection_v1",
+    "inclusion": "exact-verified-manifest-closure",
+    "discovery_glob_allowed": false,
+    "source_authority": "ToS/derived-exports/PARTITIONED_PROJECTIONS.md"
+  },
+  "compiled_subjects": [
+    {
+      "subject_id": "tos-compiled-query-store",
+      "output_path": "ToS/derived-exports/runtime/knowledge.sqlite3",
+      "builder_module": "tos_access.knowledge_compile",
+      "required_when": "partitioned_projection_inputs",
+      "input_subject_ids": [
+        "tos-corpus-index",
+        "tos-philosophy-graph",
+        "tos-source-witness-bibliographic-claim-graph",
+        "tos-semantic-entity-type-registry",
+        "tos-semantic-relation-type-registry"
+      ],
+      "consumer_roles": [
+        "query-core",
+        "http-reader",
+        "native-mcp"
+      ],
+      "identity_rule": "exact input manifest digests and packaged compiler identity; output digest recorded separately",
+      "authority": "disposable read model, no source or semantic admission"
+    }
   ]
 }

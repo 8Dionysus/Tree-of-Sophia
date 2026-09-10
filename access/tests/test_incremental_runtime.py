@@ -88,6 +88,73 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 schema.write_text(schema.read_text()+'\n')
                 self.assertNotEqual(builder.build_inputs(core),before)
 
+    def test_partitioned_worker_emits_source_navigation_tables_and_chunks_large_rows(self):
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from scripts.partitioned_projection_common import write_partitioned_payload
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            philosophy = root / 'ToS/derived-exports/philosophy_graph_projection.min.json'
+            philosophy_payload = json.loads(philosophy.read_text())
+            philosophy_payload['review_packets'].append({'view_id': 'direct-only', 'unresolved_diagnostics': []})
+            philosophy.write_text(json.dumps(philosophy_payload))
+
+            index = root / 'ToS/derived-exports/tos_corpus_index.min.json'
+            index_payload = json.loads(index.read_text())
+            large_note = 'needle-' + ('x' * 2_100_000)
+            index_payload['source_navigation']['nodes'][1]['properties']['large_note'] = large_note
+            write_partitioned_payload(index, index_payload)
+
+            bibliography = root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json'
+            bibliography_payload = json.loads(bibliography.read_text())
+            bibliography_payload['input_digests'] = {}
+            write_partitioned_payload(bibliography, bibliography_payload)
+            (root / 'access/web/dist/index.html').write_text(
+                '<script src="/static/assets/tos-graph.js"></script>'
+            )
+
+            core = ToSAccessCore.discover(root)
+            with patch.object(builder, 'REPO_ROOT', root):
+                manifest = builder.build(core, root / 'dist', root / 'runtime')
+
+            self.assertEqual(manifest['read_model_schema'], 'tos_cloudflare_edge_read_model_v9')
+            self.assertFalse((root / 'dist/__edge/source-navigation/all.json').exists())
+            self.assertEqual(manifest['counts']['source_navigation_nodes'], 7)
+            self.assertGreater(manifest['counts']['source_navigation_node_payload_chunks'], 0)
+
+            with closing(sqlite3.connect(':memory:')) as database:
+                database.executescript((root / 'runtime/read-model.sql').read_text())
+                self.assertEqual(
+                    database.execute('SELECT count(*) FROM source_navigation_nodes').fetchone()[0],
+                    7,
+                )
+                self.assertEqual(
+                    database.execute('SELECT count(*) FROM source_navigation_edges').fetchone()[0],
+                    6,
+                )
+                properties, inline_json = database.execute(
+                    "SELECT properties_json, json FROM source_navigation_nodes WHERE node_id='tos.work.fixture'"
+                ).fetchone()
+                self.assertEqual(json.loads(properties), {})
+                self.assertEqual(inline_json, '')
+                payload = ''.join(
+                    row[0]
+                    for row in database.execute(
+                        "SELECT json_chunk FROM source_navigation_node_payload "
+                        "WHERE id='tos.work.fixture' ORDER BY part"
+                    )
+                )
+                self.assertEqual(json.loads(payload)['properties']['large_note'], large_note)
+                top = json.loads(
+                    database.execute(
+                        "SELECT group_concat(json_chunk, '') FROM edge_meta WHERE key='source_navigation_top'"
+                    ).fetchone()[0]
+                )
+                self.assertEqual(top['schema_version'], 'tos_source_navigation_v1')
+
     def test_build_stage_restart_integrity_inputs_and_lock(self):
         from build_stages import BuildStages, build_lock, fingerprint, tree_paths
         with tempfile.TemporaryDirectory() as directory:

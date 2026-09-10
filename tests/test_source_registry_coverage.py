@@ -10,7 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from build_source_registry_coverage import (
-    assess_target, classify_record, compressed as coverage_compressed,
+    assess_target, classify_record, compressed as coverage_compressed, build, PACKET,
 )
 from build_source_registry_reconciliation import compressed as reconciliation_compressed
 from source_registry_common import encoded
@@ -52,6 +52,36 @@ class RegistryCoverageTests(unittest.TestCase):
         plants = {ids['work']: [('branch/source-planting.json', {'source_witness': {'record_ref': paths['work']},
             'status': 'source_witness_planted', 'discovery_ref': 'source/discovery.json'})]}
         return target, plants, write
+
+    def test_nested_reviewed_stage_is_counted_and_stale_receipt_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); target, plants, write = self.fixture(root)
+            record = {'record_id': 'registry:fixture', 'source_record_id': 'R1',
+                      'corpus_id': 'fixture', 'document_id': 'D1', 'kind': 'registry',
+                      'owner_matches': []}
+            target['registry_sources'] = [{'entry_id': record['record_id']}]
+            write(str(PACKET / 'current.json'), {'snapshot_id': 'fixture'})
+            packet = root / PACKET
+            (packet / 'reconciliation.current.json.gz').write_bytes(coverage_compressed({
+                'snapshot_id': 'fixture', 'records': [record], 'owner_sources': []}))
+            plant = plants[target['ids']['work']][0][1]
+            plant['source_witness']['work_id'] = target['ids']['work']
+            write('ToS/philosophy/fixture/source-planting.json', plant)
+            stage = 'ToS/source-witnesses/discovery/batch/translations'
+            write(stage + '/manifest.json', {
+                'schema_version': 'tos_registry_first_planting_preparation_v1',
+                'targets': [target]})
+            self.assertEqual(build(root)['summary']['selected_items'], 0)
+            receipt = {'status': 'passed', 'checkpoint_review_ref': 'review:fixture',
+                       'manifest_sha256': hashlib.sha256((root / stage / 'manifest.json').read_bytes()).hexdigest()}
+            write(stage + '/preparation-checkpoint-receipt.json', receipt)
+            value = build(root)
+            self.assertEqual(value['summary']['selected_items_planted'], 1)
+            self.assertEqual(value['records'][0]['status'], 'selected_versions_planted')
+            self.assertFalse(value['records'][0]['lead_scope_exhausted'])
+            write(stage + '/preparation-checkpoint-receipt.json', {**receipt, 'manifest_sha256': 'stale'})
+            with self.assertRaisesRegex(ValueError, 'exact reviewed preparation receipt'):
+                build(root)
 
     def test_recorded_acquisition_is_portable_and_local_existence_is_separate(self):
         with tempfile.TemporaryDirectory() as directory:

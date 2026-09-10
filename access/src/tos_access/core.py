@@ -23,6 +23,9 @@ from .knowledge import (
     search_knowledge_graph,
 )
 from .exploration import ExplorationService, exploration_capabilities
+from .query_store import QueryStore, QueryStoreRequired, DEFAULT_RELATIVE_PATH
+from .projection_store import load_projection
+import hashlib
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -441,8 +444,56 @@ class ToSAccessCore:
     _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
     _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
 
+    _query_backend: Any = field(default=None, init=False, repr=False, compare=False)
+    _query_signature: Any = field(default=None, init=False, repr=False, compare=False)
+    _query_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+
     def __post_init__(self):
-        self._exploration = ExplorationService(self.knowledge_graph)
+        self._exploration = ExplorationService(self.knowledge_graph, query_store_provider=self._query_store)
+
+    def _query_store(self):
+        """Select an explicit completed snapshot, never build during a request."""
+        configured = os.environ.get('TOS_QUERY_STORE_PATH')
+        path = Path(configured).expanduser() if configured else self.tos_root / DEFAULT_RELATIVE_PATH
+        if not path.is_absolute():
+            path = self.tos_root / path
+        inputs = {
+            INDEX_RELATIVE_PATH.as_posix(): self.index_path,
+            PHILOSOPHY_PROJECTION_RELATIVE_PATH.as_posix(): self.philosophy_graph_projection_path,
+            BIBLIOGRAPHIC_GRAPH_RELATIVE_PATH.as_posix(): self.bibliographic_graph_path,
+            ENTITY_TYPE_REGISTRY_RELATIVE_PATH.as_posix(): self.entity_type_registry_path,
+            RELATION_TYPE_REGISTRY_RELATIVE_PATH.as_posix(): self.relation_type_registry_path,
+        }
+        # Legacy small fixtures retain their existing explicit in-memory mode.
+        # A partitioned root requires the compiled store even if it is missing.
+        partitioned = False
+        for candidate in (self.index_path, self.bibliographic_graph_path):
+            if candidate.is_file() and candidate.stat().st_size < 4 * 1024 * 1024:
+                header = _read_json(candidate)
+                if header.get('schema_version') == 'tos_partitioned_projection_v1' or header.get('schema') == 'tos_partitioned_projection_v1':
+                    partitioned = True
+        if not configured and not path.is_file() and not partitioned:
+            return None
+        if not path.is_file():
+            raise QueryStoreRequired(f'query store build required: missing {path}; run explicit offline builder')
+        try:
+            signature = tuple((str(p.resolve()), st.st_ino, st.st_mtime_ns, st.st_ctime_ns, st.st_size)
+                              for p in [path, *inputs.values()] for st in [p.stat()])
+        except FileNotFoundError as exc:
+            raise QueryStoreRequired('query store build required: snapshot input is missing') from exc
+        with self._query_lock:
+            if signature != self._query_signature:
+                bindings = {}
+                for name, candidate in inputs.items():
+                    digest = hashlib.sha256()
+                    with candidate.open('rb') as source:
+                        for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                            digest.update(chunk)
+                    bindings[name] = digest.hexdigest()
+                self._query_backend = QueryStore(path, snapshot_bindings=bindings)
+                self._query_signature = signature
+            return self._query_backend
+
 
     def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._exploration.explore(request)
@@ -531,7 +582,8 @@ class ToSAccessCore:
         return self.index_path.is_file()
 
     def index(self) -> dict[str, Any]:
-        return _read_json(self.index_path)
+        """Explicit full corpus export; selective query routes avoid this call."""
+        return load_projection(self.index_path)
 
     def source_navigation(self, *, bibliographic_only: bool = False) -> dict[str, Any]:
         navigation = self.index().get("source_navigation")
@@ -557,23 +609,22 @@ class ToSAccessCore:
     ) -> dict[str, Any]:
         """Walk downward through the authored source-navigation projection."""
 
-        navigation = self.source_navigation(bibliographic_only=True)
+        store = self._query_store()
+        navigation = store.metadata['source_navigation_header'] if store else self.source_navigation(bibliographic_only=True)
         bounded_depth = _bounded_int(max_depth, 8, 1, 8)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
-        nodes_by_id = {
-            str(node.get("node_id")): node
-            for node in navigation.get("nodes", [])
-            if isinstance(node, dict) and isinstance(node.get("node_id"), str)
-        }
+        if store:
+            nodes_by_id = store.source_nodes()
+            outgoing = store.source_edges('outgoing')
+        else:
+            nodes_by_id = {str(node['node_id']): node for node in navigation.get('nodes', [])}
+            outgoing = {}
+            for edge in navigation.get('edges', []):
+                outgoing.setdefault(str(edge['from_id']), []).append(edge)
+            for edges in outgoing.values():
+                edges.sort(key=lambda edge: str(edge.get('edge_id') or ''))
         if node_id not in nodes_by_id:
-            raise KeyError(f"unknown ToS source-navigation node: {node_id}")
-        outgoing: dict[str, list[dict[str, Any]]] = {}
-        for edge in navigation.get("edges", []):
-            if not isinstance(edge, dict) or not isinstance(edge.get("from_id"), str):
-                continue
-            outgoing.setdefault(str(edge["from_id"]), []).append(edge)
-        for edge_list in outgoing.values():
-            edge_list.sort(key=lambda edge: str(edge.get("edge_id") or ""))
+            raise KeyError(f'unknown ToS source-navigation node: {node_id}')
 
         queue: deque[tuple[str, int]] = deque([(node_id, 0)])
         depths = {node_id: 0}
@@ -614,12 +665,11 @@ class ToSAccessCore:
     def source_dossier(self, object_id: str, limit: int = 300) -> dict[str, Any]:
         """Return compact human and agent-facing context for one Work or Link."""
 
-        navigation = self.source_navigation(bibliographic_only=True)
+        store = self._query_store()
+        navigation = store.metadata['source_navigation_header'] if store else self.source_navigation(bibliographic_only=True)
         bounded_limit = _bounded_int(limit, 300, 1, 300)
-        nodes_by_id = {
-            str(node.get("node_id")): node
-            for node in navigation.get("nodes", [])
-            if isinstance(node, dict) and isinstance(node.get("node_id"), str)
+        nodes_by_id = store.source_nodes() if store else {
+            str(node['node_id']): node for node in navigation.get('nodes', [])
         }
         selected = nodes_by_id.get(object_id)
         if selected is None:
@@ -627,25 +677,31 @@ class ToSAccessCore:
         if selected.get("node_kind") not in {"work", "link"}:
             raise ValueError("dossiers are currently available for Work and Link objects")
 
-        all_edges = sorted(
-            [edge for edge in navigation.get("edges", []) if isinstance(edge, dict)],
-            key=lambda edge: str(edge.get("edge_id") or ""),
-        )
-        incoming: dict[str, list[dict[str, Any]]] = {}
-        semantic_outgoing: dict[str, list[dict[str, Any]]] = {}
         bibliographic_predicates = {"has_expression", "embodied_by", "exemplified_by"}
         link_predicates = {"described_by", "metadata_at", "downloadable_at", "rights_statement_at"}
-        for edge in all_edges:
-            left = edge.get("from_id")
-            right = edge.get("to_id")
-            if not isinstance(left, str) or not isinstance(right, str):
-                continue
-            incoming.setdefault(right, []).append(edge)
-            if edge.get("edge_kind") == "authored_item_manifest" or (
-                edge.get("edge_kind") == "evidence_claim"
-                and edge.get("predicate_id") in bibliographic_predicates | link_predicates
-            ):
-                semantic_outgoing.setdefault(left, []).append(edge)
+        if store:
+            incoming = store.source_edges('incoming')
+            semantic_outgoing = store.source_edges('outgoing', semantic=True)
+        else:
+            all_edges = sorted(
+                [edge for edge in navigation.get("edges", []) if isinstance(edge, dict)],
+                key=lambda edge: str(edge.get("edge_id") or ""),
+            )
+            incoming: dict[str, list[dict[str, Any]]] = {}
+            semantic_outgoing: dict[str, list[dict[str, Any]]] = {}
+            bibliographic_predicates = {"has_expression", "embodied_by", "exemplified_by"}
+            link_predicates = {"described_by", "metadata_at", "downloadable_at", "rights_statement_at"}
+            for edge in all_edges:
+                left = edge.get("from_id")
+                right = edge.get("to_id")
+                if not isinstance(left, str) or not isinstance(right, str):
+                    continue
+                incoming.setdefault(right, []).append(edge)
+                if edge.get("edge_kind") == "authored_item_manifest" or (
+                    edge.get("edge_kind") == "evidence_claim"
+                    and edge.get("predicate_id") in bibliographic_predicates | link_predicates
+                ):
+                    semantic_outgoing.setdefault(left, []).append(edge)
 
         component_ids = {object_id}
         component_edges: dict[str, dict[str, Any]] = {}
@@ -786,7 +842,7 @@ class ToSAccessCore:
                         frontier.append((target, [*node_path, target], [*edge_path, str(edge.get("edge_id") or "")]))
         rights = [
             record
-            for record in navigation.get("rights", [])
+            for record in (store.rights(component_ids) if store else navigation.get("rights", []))
             if isinstance(record, dict)
             and set(_string_list(record.get("scope_refs"))) & component_ids
         ]
@@ -902,7 +958,7 @@ class ToSAccessCore:
         return payload
 
     def bibliographic_graph(self) -> dict[str, Any]:
-        payload = _read_json(self.bibliographic_graph_path)
+        payload = load_projection(self.bibliographic_graph_path)
         if payload.get("schema_version") != "tos_source_witness_bibliographic_graph_v1":
             raise RuntimeError(
                 "ToS bibliographic claim graph schema_version must be "
@@ -949,8 +1005,22 @@ class ToSAccessCore:
             )
         return payload
 
+    def knowledge_header(self) -> dict[str, Any]:
+        """Read completed snapshot metadata without exporting graph records."""
+        if store := self._query_store():
+            return dict(store.header)
+        return {key: value for key, value in self.knowledge_graph().items() if key not in ('nodes', 'relations')}
+
+    def corpus_header(self) -> dict[str, Any]:
+        """Read corpus metadata without loading source-navigation records."""
+        if store := self._query_store():
+            return store.corpus_payload(('graph_views',))
+        return self.index()
+
     def knowledge_graph(self) -> dict[str, Any]:
-        """Return one normalized, display-complete read model over public ToS material."""
+        """Explicit full export; ordinary query routes use the bounded store."""
+        if store := self._query_store():
+            return {**store.header, 'nodes': list(store.rows('knowledge_nodes')), 'relations': list(store.rows('knowledge_relations'))}
         index_stat = self.index_path.stat()
         philosophy_stat = self.philosophy_graph_projection_path.stat()
         bibliographic_stat = self.bibliographic_graph_path.stat()
@@ -976,6 +1046,8 @@ class ToSAccessCore:
 
     def knowledge_catalog(self) -> dict[str, Any]:
         """Describe the compositional grammar, vocabulary, and stored lens specs."""
+        if store := self._query_store():
+            return store.metadata['catalog']
         index_stat = self.index_path.stat()
         philosophy_stat = self.philosophy_graph_projection_path.stat()
         bibliographic_stat = self.bibliographic_graph_path.stat()
@@ -1031,6 +1103,8 @@ class ToSAccessCore:
         limit: int = 40,
     ) -> dict[str, Any]:
         """Search the normalized human/agent knowledge surface without choosing a legacy mode."""
+        if store := self._query_store():
+            return store.search(query, sources=sources, kind_ids=kind_ids, predicate_ids=predicate_ids, offset=offset, limit=limit)
         graph = self.knowledge_graph()
         with self._search_lock:
             if self._search_index is None or self._search_index.graph is not graph:
@@ -1049,11 +1123,15 @@ class ToSAccessCore:
 
     def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
         """Inspect one normalized node (or all namespaced matches for a native ID)."""
+        if store := self._query_store():
+            return store.inspect_node(node_id, relation_limit)
         graph = self.knowledge_graph()
         return inspect_knowledge_node(graph, node_id, relation_limit, graph_index=self._current_graph_index(graph))
 
     def knowledge_relation(self, relation_id: str) -> dict[str, Any]:
         """Inspect one normalized relation and its display-complete endpoints."""
+        if store := self._query_store():
+            return store.inspect_relation(relation_id)
         graph = self.knowledge_graph()
         return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
 
@@ -1076,6 +1154,8 @@ class ToSAccessCore:
         profile: str = "overview",
     ) -> dict[str, Any]:
         """Construct a bounded radial lens around one exact or unambiguous node identity."""
+        if store := self._query_store():
+            return store.focus(node_id, sources=sources, depth=depth, direction=direction, predicate_ids=predicate_ids, node_limit=node_limit, relation_limit=relation_limit, profile=profile)
         return focus_knowledge_node(
             self.knowledge_graph(),
             node_id,
@@ -1090,6 +1170,8 @@ class ToSAccessCore:
 
     def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict[str, Any]:
         """Compile and execute a bounded read-only lens supplied by a human or agent."""
+        if store := self._query_store():
+            return store.execute_lens(spec)
         return execute_knowledge_lens(self.knowledge_graph(), spec)
 
     def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
@@ -1105,7 +1187,8 @@ class ToSAccessCore:
 
     def status(self) -> dict[str, Any]:
         exists = self.index_exists()
-        payload = self.index() if exists else {}
+        store = self._query_store() if exists else None
+        payload = store.corpus_payload(('graph_views',)) if store else (self.index() if exists else {})
         return {
             "schema": "tos_corpus_mcp_status_v1",
             "index_exists": exists,
@@ -1217,7 +1300,8 @@ class ToSAccessCore:
         )
 
     def summary(self) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        payload = store.corpus_payload(('branches', 'graph_views')) if store else self.index()
         return {
             "schema": "tos_corpus_mcp_summary_v1",
             "status": self.status(),
@@ -1308,6 +1392,8 @@ class ToSAccessCore:
         }
 
     def search(self, query: str, limit: int = 20, resource_kind: str | None = None) -> dict[str, Any]:
+        if store := self._query_store():
+            return self._search_payload(query, resource_kind, store.corpus_search(query, _bounded_int(limit, 20, 1, 100), resource_kind))
         payload = self.index()
         needle = query.lower().strip()
         limit = _bounded_int(limit, 20, 1, 100)
@@ -1346,7 +1432,16 @@ class ToSAccessCore:
         owner_branch: str | None = None,
         limit: int = 100,
     ) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        if store:
+            clauses, values = [], []
+            for name, value in [('resource_kind', resource_kind), ('owner_branch', owner_branch)]:
+                if value:
+                    clauses.append("json_extract(payload,'$." + name + "')=?")
+                    values.append(value)
+            payload = {**store.metadata['corpus_header'], 'resources': list(store.raw('corpus/resources', where=' AND '.join(clauses) or '1', params=values, limit=_bounded_int(limit,100,1,1000)))}
+        else:
+            payload = self.index()
         limit = _bounded_int(limit, 100, 1, 1000)
         items = []
         for resource in payload.get("resources", []):
@@ -1369,7 +1464,13 @@ class ToSAccessCore:
         }
 
     def node(self, node_id: str) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        if store:
+            payload = store.corpus_payload(('relation_packs',))
+            payload['nodes'] = list(store.raw('corpus/nodes', where="json_extract(payload,'$.node_id')=?", params=[node_id]))
+            payload['relation_edges'] = list(store.raw('corpus/relation_edges', where="json_extract(payload,'$.from_id')=? OR json_extract(payload,'$.to_id')=?", params=[node_id,node_id]))
+        else:
+            payload = self.index()
         pack_paths = _relation_pack_paths(payload)
         matches = [
             node
@@ -1410,7 +1511,13 @@ class ToSAccessCore:
         }
 
     def relation_pack(self, pack_id: str) -> dict[str, Any]:
-        payload = self.index()
+        store = self._query_store()
+        if store:
+            payload = dict(store.metadata['corpus_header'])
+            payload['relation_packs'] = list(store.raw('corpus/relation_packs', where="json_extract(payload,'$.pack_id')=?", params=[pack_id]))
+            payload['relation_edges'] = list(store.raw('corpus/relation_edges', where="json_extract(payload,'$.pack_id')=?", params=[pack_id]))
+        else:
+            payload = self.index()
         pack_paths = _relation_pack_paths(payload)
         packs = [
             pack
@@ -1433,8 +1540,22 @@ class ToSAccessCore:
         }
 
     def graph_view(self, view_id: str, limit: int = 100) -> dict[str, Any]:
-        payload = self.index()
         limit = _bounded_int(limit, 100, 1, 1000)
+        store = self._query_store()
+        if store:
+            payload = store.corpus_payload(('graph_views', 'relation_packs'))
+            payload['branches'] = list(store.raw('corpus/branches', limit=limit))
+            if view_id == 'route-graph':
+                pack_ids = [pack['pack_id'] for pack in payload['relation_packs'] if pack.get('owner_branch') == 'ToS/canon']
+                clause, values = store.membership("json_extract(payload,'$.pack_id')", pack_ids)
+            else:
+                clause, values = "json_extract(payload,'$.owner_branch')=?", ['ToS/candidate-intake']
+            payload['relation_edges'] = list(store.raw('corpus/relation_edges', where=clause, params=values, limit=limit)) if view_id != 'corpus-topology' else []
+            endpoint_ids = {e[f] for e in payload['relation_edges'] for f in ('from_id','to_id')}
+            clause, values = store.membership("json_extract(payload,'$.node_id')", endpoint_ids)
+            payload['nodes'] = list(store.raw('corpus/nodes', where=clause, params=values))
+        else:
+            payload = self.index()
         view = next(
             (item for item in payload.get("graph_views", []) if isinstance(item, dict) and item.get("view_id") == view_id),
             None,
@@ -1565,7 +1686,7 @@ class ToSAccessCore:
         }
 
     def packet(self, query: str = "", view_id: str | None = None, limit: int = 20) -> dict[str, Any]:
-        payload = self.index()
+        payload = self.corpus_header()
         limit = _bounded_int(limit, 20, 1, 100)
         search = self.search(query=query, limit=limit) if query else {"result_count": 0, "results": []}
         view_packet = self.graph_view(view_id, limit=limit) if view_id else None
@@ -2804,7 +2925,7 @@ class ToSAccessCore:
         if uri == "tos-corpus://summary":
             return self.summary()
         if uri == "tos-corpus://graph-views":
-            payload = self.index()
+            payload = self.corpus_header()
             return {"schema": "tos_corpus_mcp_graph_views_v1", "graph_views": _supported_corpus_views(payload)}
         prefix = "tos-corpus://graph-view/"
         if uri.startswith(prefix):

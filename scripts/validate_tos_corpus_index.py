@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 
 from tos_corpus_index_common import TOS_CORPUS_INDEX_PATH, build_payload, render_payload, validate_payload_schema
+from partitioned_projection_common import build_storage, check_partitioned_payload, DiskSequence
 
 
 def error_diagnostics(payload: dict[str, object]) -> list[dict[str, object]]:
@@ -44,7 +45,7 @@ def require_declared_authority_layers(payload: dict[str, object]) -> None:
         "resources",
     ):
         collection = payload.get(collection_name, [])
-        if not isinstance(collection, list):
+        if not isinstance(collection, (list, DiskSequence)):
             continue
         for item in collection:
             if isinstance(item, dict) and isinstance(item.get("authority_layer"), str):
@@ -55,15 +56,14 @@ def require_declared_authority_layers(payload: dict[str, object]) -> None:
 
 
 def main() -> int:
-    expected_payload = build_payload()
-    current_payload = json.loads(TOS_CORPUS_INDEX_PATH.read_text(encoding="utf-8"))
-    validate_payload_schema(current_payload)
-    require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
-    require_no_error_diagnostics(current_payload, "committed ToS corpus index")
-    require_declared_authority_layers(current_payload)
-    if render_payload(current_payload) != render_payload(expected_payload):
-        raise SystemExit("ToS/derived-exports/tos_corpus_index.min.json does not match the canonical rebuild")
-
+    with build_storage() as storage:
+        expected_payload = build_payload(storage=storage)
+        reader = check_partitioned_payload(TOS_CORPUS_INDEX_PATH, expected_payload)
+        require_no_error_diagnostics(expected_payload, "rebuilt ToS corpus index")
+        require_declared_authority_layers(expected_payload)
+        # Exact closure parity above binds every current row to this validated
+        # source rebuild. The remaining root assertions need only metadata.
+        current_payload = reader.metadata()
     counts = current_payload.get("counts", {})
     if counts.get("branches", 0) < 10:
         raise SystemExit("ToS corpus index must include the full source-home branch set")

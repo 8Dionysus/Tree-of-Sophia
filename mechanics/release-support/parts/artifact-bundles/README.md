@@ -34,3 +34,19 @@ isolated subject-store materialization.
 Generated bundle directories, registry records, subject stores, and sidecars
 are generated evidence under ignored `dist/` paths. They are not authored ToS
 meaning and are not checked into the repository.
+
+## Partitioned projection closure
+
+The static `generated_readmodel.bundle.json` manifest declares exact
+`artifact_subjects.path` entries. The OS Abyss resolver does not recursively
+follow a `tos_partitioned_projection_v1` root into its digest-named parts. The
+ToS validator therefore resolves each declared partition root through the
+owner `ProjectionReader` and rejects the bundle before sidecar or trust work
+when any manifest or part is absent from the exact subject list; a glob does
+not satisfy this requirement.
+
+Until this owner surface has a reviewed generated bundle manifest, or an
+equivalent consumer contract that carries the per-snapshot closure, the
+static ABI bundle cannot admit the new partitioned corpus. Return that
+admission here after closure support exists; a successful source or access
+build does not widen the current artifact subject set.

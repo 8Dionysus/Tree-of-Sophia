@@ -853,13 +853,13 @@
       "whitespace_tokens": 392
     },
     {
-      "bytes": 34692,
+      "bytes": 35016,
       "exists": true,
-      "lines": 912,
+      "lines": 920,
       "path": "docs/validation/validation_lanes.json",
       "role": "executable validation command authority",
-      "sha256": "bf73a85b2282d526a6534b5cdfe31e99c740c50efd4a76e778c454e37a19bd72",
-      "whitespace_tokens": 2545
+      "sha256": "083f6c69661f14a936ed05820f2f25d74c7c5a41e218ddfcfdf5e8c3f76cc4a7",
+      "whitespace_tokens": 2569
     },
     {
       "bytes": 9588,
@@ -907,22 +907,22 @@
       "whitespace_tokens": 1837
     },
     {
-      "bytes": 217228,
+      "bytes": 221119,
       "exists": true,
-      "lines": 3610,
+      "lines": 3914,
       "path": "docs/validation/script_inventory.json",
       "role": "deterministic script coverage and side-effect inventory",
-      "sha256": "1757993c85ca32d84425ecd8f5588fd75b2996fd54d603b857aa06a35b3019a4",
-      "whitespace_tokens": 12161
+      "sha256": "e0f14f374f04876ffd645385dcc4ac0dbcf2baf7cbc341f5ac028dd73152b41c",
+      "whitespace_tokens": 12409
     },
     {
-      "bytes": 5208,
+      "bytes": 5288,
       "exists": true,
-      "lines": 152,
+      "lines": 153,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "ec434ceef755ae22c87ccf5894ed50c4e3ff76f571c436a233653ab33739dc15",
-      "whitespace_tokens": 430
+      "sha256": "a9d1a2bec7dc4894394fc1c931618b717d6f659a0ec6abd9b547a86f2f6b957a",
+      "whitespace_tokens": 436
     },
     {
       "bytes": 930,
@@ -1622,7 +1622,7 @@
       ]
     },
     {
-      "additional_context_tokens": 2217,
+      "additional_context_tokens": 2277,
       "completion_evidence": [
         {
           "bytes": 1384,
@@ -1634,22 +1634,22 @@
           "whitespace_tokens": 185
         },
         {
-          "bytes": 38910,
+          "bytes": 40320,
           "exists": true,
-          "lines": 633,
+          "lines": 659,
           "path": "access/README.md",
           "role": "completion",
-          "sha256": "12aa74b78a6e4f61d8b5f2f8067652be03601e5fe0f2aac0d339662013f5a402",
-          "whitespace_tokens": 5028
+          "sha256": "ae15fe343d12072e7adb903df23f4865e6baca403032f5c16cf3853868b037d1",
+          "whitespace_tokens": 5190
         },
         {
-          "bytes": 25586,
+          "bytes": 44520,
           "exists": true,
-          "lines": 570,
+          "lines": 958,
           "path": "access/packaging/validate_standalone.py",
           "role": "completion",
-          "sha256": "1161dddedd90377a6373190cc34676529f7880db9597ef4f6c81f9c53f1d0d32",
-          "whitespace_tokens": 1810
+          "sha256": "f8f0d8d73baae6559774a03ae029efc0c33e977e51b8bd2d6dfc0d50ff2def11",
+          "whitespace_tokens": 3483
         }
       ],
       "id": "standalone_access_product",
@@ -1669,13 +1669,13 @@
           "whitespace_tokens": 1811
         },
         {
-          "bytes": 7729,
+          "bytes": 8792,
           "exists": true,
-          "lines": 173,
+          "lines": 201,
           "path": "access/contracts/runtime-data.v1.json",
           "role": "on_demand",
-          "sha256": "56b4e8aecd4e8f07f483171f795fc2270795e53d7facc04bd10a812dde72d905",
-          "whitespace_tokens": 384
+          "sha256": "1f36daf612ac8cebf9694c5f5a070539fa29a1955ba57cbd65bab705996a1dee",
+          "whitespace_tokens": 444
         },
         {
           "bytes": 362,
@@ -1704,22 +1704,22 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 25586,
+          "bytes": 44520,
           "exists": true,
-          "lines": 570,
+          "lines": 958,
           "path": "access/packaging/validate_standalone.py",
           "role": "validation",
-          "sha256": "1161dddedd90377a6373190cc34676529f7880db9597ef4f6c81f9c53f1d0d32",
-          "whitespace_tokens": 1810
+          "sha256": "f8f0d8d73baae6559774a03ae029efc0c33e977e51b8bd2d6dfc0d50ff2def11",
+          "whitespace_tokens": 3483
         },
         {
-          "bytes": 95565,
+          "bytes": 103199,
           "exists": true,
-          "lines": 1801,
+          "lines": 1943,
           "path": "access/tests/test_access_contract.py",
           "role": "validation",
-          "sha256": "42c6e3cc7212d66ab7c48057096eec52ec09f9b54e200f02395d973c1d5eda7e",
-          "whitespace_tokens": 4779
+          "sha256": "d71d90a3f820d03ccfed04d210527856711fbee69802fad47e01991ba6178cd2",
+          "whitespace_tokens": 5196
         },
         {
           "bytes": 23014,
@@ -2060,7 +2060,7 @@
       ]
     },
     {
-      "additional_context_tokens": 5689,
+      "additional_context_tokens": 5719,
       "completion_evidence": [
         {
           "bytes": 6605,
@@ -2072,13 +2072,13 @@
           "whitespace_tokens": 826
         },
         {
-          "bytes": 34692,
+          "bytes": 35016,
           "exists": true,
-          "lines": 912,
+          "lines": 920,
           "path": "docs/validation/validation_lanes.json",
           "role": "completion",
-          "sha256": "bf73a85b2282d526a6534b5cdfe31e99c740c50efd4a76e778c454e37a19bd72",
-          "whitespace_tokens": 2545
+          "sha256": "083f6c69661f14a936ed05820f2f25d74c7c5a41e218ddfcfdf5e8c3f76cc4a7",
+          "whitespace_tokens": 2569
         },
         {
           "bytes": 2089,
@@ -2090,13 +2090,13 @@
           "whitespace_tokens": 205
         },
         {
-          "bytes": 5208,
+          "bytes": 5288,
           "exists": true,
-          "lines": 152,
+          "lines": 153,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "ec434ceef755ae22c87ccf5894ed50c4e3ff76f571c436a233653ab33739dc15",
-          "whitespace_tokens": 430
+          "sha256": "a9d1a2bec7dc4894394fc1c931618b717d6f659a0ec6abd9b547a86f2f6b957a",
+          "whitespace_tokens": 436
         }
       ],
       "id": "release_validation",
@@ -2116,13 +2116,13 @@
           "whitespace_tokens": 260
         },
         {
-          "bytes": 34692,
+          "bytes": 35016,
           "exists": true,
-          "lines": 912,
+          "lines": 920,
           "path": "docs/validation/validation_lanes.json",
           "role": "on_demand",
-          "sha256": "bf73a85b2282d526a6534b5cdfe31e99c740c50efd4a76e778c454e37a19bd72",
-          "whitespace_tokens": 2545
+          "sha256": "083f6c69661f14a936ed05820f2f25d74c7c5a41e218ddfcfdf5e8c3f76cc4a7",
+          "whitespace_tokens": 2569
         },
         {
           "bytes": 14444,
@@ -2143,13 +2143,13 @@
           "whitespace_tokens": 617
         },
         {
-          "bytes": 5208,
+          "bytes": 5288,
           "exists": true,
-          "lines": 152,
+          "lines": 153,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "ec434ceef755ae22c87ccf5894ed50c4e3ff76f571c436a233653ab33739dc15",
-          "whitespace_tokens": 430
+          "sha256": "a9d1a2bec7dc4894394fc1c931618b717d6f659a0ec6abd9b547a86f2f6b957a",
+          "whitespace_tokens": 436
         }
       ],
       "owner_exists": true,

@@ -4,6 +4,7 @@ import importlib.util
 import hashlib
 import json
 import os
+import shutil
 import socket
 import sqlite3
 import sys
@@ -16,6 +17,7 @@ from unittest.mock import patch
 import urllib.error
 import urllib.request
 from pathlib import Path
+import zipfile
 
 from jsonschema import Draft202012Validator
 
@@ -41,6 +43,10 @@ def load_script(name: str, path: Path) -> object:
 validate_standalone = load_script(
     "validate_standalone",
     ACCESS_ROOT / "packaging/validate_standalone.py",
+)
+build_standalone = load_script(
+    "build_standalone_bundle",
+    ACCESS_ROOT / "packaging/build_standalone_bundle.py",
 )
 edge_build = load_script(
     "edge_build_runtime",
@@ -918,7 +924,13 @@ class CoreContractTests(unittest.TestCase):
                 thread.join(timeout=5)
 
     def test_standalone_validator_accepts_split_web_contracts(self) -> None:
-        validate_standalone._validate_contracts(REPO_ROOT)
+        # The repository's partitioned source path has a multi-gigabyte
+        # compiled snapshot.  Validation must stream its row schemas and must
+        # never fall back to the explicit full graph/export routes.
+        with patch.object(ToSAccessCore, "knowledge_graph", side_effect=AssertionError("validator exported full graph")), \
+                patch("tos_access.projection_store.ProjectionReader.materialize", side_effect=AssertionError("validator materialized projection")), \
+                patch.object(validate_standalone._QueryStoreRows, "__getitem__", side_effect=AssertionError("validator used random row access")):
+            validate_standalone._validate_contracts(REPO_ROOT)
 
     def test_projection_v2_materializes_global_membership(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -1684,6 +1696,136 @@ class CoreContractTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(RuntimeError, "archive digest"):
                 validate_standalone.validate_bundle(bundle)
+
+    def test_standalone_builder_compiles_a_partitioned_query_store_fixture(self) -> None:
+        from scripts.partitioned_projection_common import write_partitioned_payload
+        from tos_access.query_store import QueryStore
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+
+            # Keep the fixture's source shape realistic: corpus and
+            # bibliography are manifest roots with content-addressed parts,
+            # while the philosophy projection remains a bounded legacy input.
+            for relative in (
+                "ToS/derived-exports/tos_corpus_index.min.json",
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+            ):
+                path = root / relative
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if payload.get("schema_version") == "tos_source_witness_bibliographic_graph_v1":
+                    payload["input_digests"] = {}
+                write_partitioned_payload(path, payload)
+
+            # The package builder fingerprints and ships the access source.
+            # Copy only the owner package and its delivery inputs so this
+            # remains a small bounded fixture instead of a repository copy.
+            fixture_access = root / "access"
+            shutil.copytree(ACCESS_ROOT / "src", fixture_access / "src", dirs_exist_ok=True)
+            shutil.copytree(ACCESS_ROOT / "contracts", fixture_access / "contracts", dirs_exist_ok=True)
+            shutil.copytree(ACCESS_ROOT / "profiles", fixture_access / "profiles", dirs_exist_ok=True)
+            shutil.copytree(ACCESS_ROOT / "web/dist", fixture_access / "web/dist", dirs_exist_ok=True)
+            for name in ("pyproject.toml", "README.md"):
+                shutil.copy2(ACCESS_ROOT / name, fixture_access / name)
+
+            allowlist = {
+                "schema_version": "tos_access_runtime_data_allowlist_v1",
+                "owner_repo": "Tree-of-Sophia",
+                "publication_posture": "fixture-only",
+                "partitioned_subject_policy": {
+                    "format": "tos_partitioned_projection_v1",
+                    "inclusion": "exact-verified-manifest-closure",
+                    "discovery_glob_allowed": False,
+                    "source_authority": "fixture-only",
+                },
+                "subjects": [
+                    {
+                        "subject_id": "fixture-corpus-index",
+                        "source_path": "ToS/derived-exports/tos_corpus_index.min.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-philosophy-graph",
+                        "source_path": "ToS/derived-exports/philosophy_graph_projection.min.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-bibliographic-graph",
+                        "source_path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-entity-types",
+                        "source_path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+                        "required": True,
+                    },
+                    {
+                        "subject_id": "fixture-relation-types",
+                        "source_path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+                        "required": True,
+                    },
+                ],
+                "compiled_subjects": [
+                    {
+                        "subject_id": "tos-compiled-query-store",
+                        "output_path": "ToS/derived-exports/runtime/knowledge.sqlite3",
+                        "builder_module": "tos_access.knowledge_compile",
+                        "required_when": "partitioned_projection_inputs",
+                        "input_subject_ids": [
+                            "fixture-corpus-index",
+                            "fixture-philosophy-graph",
+                            "fixture-bibliographic-graph",
+                            "fixture-entity-types",
+                            "fixture-relation-types",
+                        ],
+                        "consumer_roles": ["query-core", "http-reader", "native-mcp"],
+                        "identity_rule": "exact input manifest digests and packaged compiler identity; output digest recorded separately",
+                        "authority": "disposable read model, no source or semantic admission",
+                    }
+                ],
+            }
+            (fixture_access / "contracts/runtime-data.v1.json").write_text(
+                json.dumps(allowlist, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            bundle = root / "fixture-standalone.zip"
+            manifest = build_standalone.build_bundle(root, bundle, "partitioned-fixture-ref")
+            self.assertTrue(bundle.is_file())
+            self.assertEqual(manifest["source_ref"], "partitioned-fixture-ref")
+            self.assertIn("query-compiler-v3", manifest["source_fingerprint_scope"])
+
+            query_subject = next(
+                item for item in manifest["subjects"]
+                if item.get("subject_id") == "tos-compiled-query-store"
+            )
+            self.assertTrue(query_subject["generated"])
+            self.assertEqual(
+                query_subject["source_path"],
+                "ToS/derived-exports/runtime/knowledge.sqlite3",
+            )
+            self.assertEqual(
+                query_subject["compiler"]["compiler_paths"],
+                list(build_standalone.QUERY_STORE_COMPILER_PATHS),
+            )
+
+            with tempfile.TemporaryDirectory() as extracted_raw:
+                extracted = Path(extracted_raw)
+                with zipfile.ZipFile(bundle) as archive:
+                    archive.extractall(extracted)
+                subjects = json.loads(
+                    (extracted / "bundle.manifest.json").read_text(encoding="utf-8")
+                )["subjects"]
+                partitioned = [item for item in subjects if item.get("closure")]
+                self.assertTrue(partitioned)
+                self.assertTrue(any(len(item["closure"]) > 1 for item in partitioned))
+
+                validate_standalone._validate_query_store_artifact(extracted, subjects)
+                query_path = extracted / query_subject["bundle_path"]
+                store = QueryStore(query_path)
+                self.assertEqual(store.metadata["schema"], "tos_query_store_v1")
+                self.assertTrue(store.search("Alpha")["nodes"])
 
     @unittest.skipUnless(importlib.util.find_spec("mcp"), "mcp dependency is not installed")
     def test_native_mcp_builds_over_portable_root(self) -> None:

@@ -11,7 +11,7 @@ import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from 
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
   return JSON.parse(execFileSync('python3', ['-c',
-    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text());n=next(n for n in g['nodes'] if n['properties'].get('identity_ref')=='tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese');print(json.dumps(_normalize_node(n,'source-claims')))"],
+    "import sys,json,pathlib;sys.path.insert(0,'access/src');from tos_access.knowledge import _normalize_node;from tos_access.projection_store import ProjectionReader,is_partitioned,load_projection;p=pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json');n=ProjectionReader(p).get('nodes','identity:tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese') if is_partitioned(p) else next(n for n in load_projection(p)['nodes'] if n['properties'].get('identity_ref')=='tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese');print(json.dumps(_normalize_node(n,'source-claims')))"],
     {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding:'utf8'}));
 }
 
@@ -36,8 +36,9 @@ function claimFormNode(): KnowledgeGraph['nodes'][number] {
     "import sys,json,pathlib;sys.path[:0]=['access/src','mechanics/growth-cycle/parts/branch-growth-cycle/scripts']",
     'from source_commands import prepare_claim_change, materialize_claim_forms',
     'from tos_access.knowledge import _normalize_node',
-    "g=json.loads(pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())",
-    "n=next(n for n in g['nodes'] if n['properties'].get('claim_ref')=='tos.claim.nietzsche-letter-705.sender')",
+    "from tos_access.projection_store import ProjectionReader,is_partitioned,load_projection",
+    "p=pathlib.Path('ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json')",
+    "n=ProjectionReader(p).get('nodes','claim:tos.claim.nietzsche-letter-705.sender') if is_partitioned(p) else next(n for n in load_projection(p)['nodes'] if n['properties'].get('claim_ref')=='tos.claim.nietzsche-letter-705.sender')",
     "c=n['properties']['source_claim']",
     "f=prepare_claim_change(c,None,'software:test-only','tos.form.test.claim','claim.statement')['form']",
     "s={'schema_version':'tos_human_form_set_v1','subject':f['subject'],'forms':[f],'prior_forms':[]}",
@@ -60,7 +61,10 @@ from tos_access.knowledge import (_entity_registry_indexes, _relation_registry_i
     _source_claim_kind, _finalize_knowledge_node, _stable_digest, _exact_record_digest,
     execute_knowledge_lens, knowledge_scene)
 root = pathlib.Path('.')
-raw = json.loads((root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json').read_text())
+from tos_access.projection_store import ProjectionReader,is_partitioned,load_projection
+projection_path = root / 'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json'
+reader = ProjectionReader(projection_path) if is_partitioned(projection_path) else None
+raw = None if reader else load_projection(projection_path)
 entities = json.loads((root / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
 relations = json.loads((root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
 claim_ids = {
@@ -68,12 +72,15 @@ claim_ids = {
     'tos.claim.topology.expression-edition.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.embodied-by.saint-petersburg-stasyulevich-1899-nine-fragments',
     'tos.claim.topology.work-expression.friedrich-nietzsche.also-sprach-zarathustra.has-expression.ru-nani-1899-nine-fragments',
 }
-traces = [trace for trace in raw['claim_traces'] if trace['claim_ref'] in claim_ids]
+traces = ([reader.get('claim_traces', key) for key in sorted(claim_ids)] if reader
+          else [trace for trace in raw['claim_traces'] if trace['claim_ref'] in claim_ids])
 assert len(traces) == len(claim_ids)
 selected_ids = {trace[key] for trace in traces for key in ('claim_node_id', 'subject_node_id', 'object_node_id')}
-incident_edges = [edge for edge in raw['edges'] if edge['claim_ref'] in claim_ids]
+incident_edges = ([reader.get('edges', key) for key in sorted({key for trace in traces for key in trace['edge_ids']})]
+                  if reader else [edge for edge in raw['edges'] if edge['claim_ref'] in claim_ids])
 full_ids = selected_ids | {edge[key] for edge in incident_edges for key in ('from_id', 'to_id')}
-selected = [copy.deepcopy(node) for node in raw['nodes'] if node['node_id'] in full_ids]
+selected = ([reader.get('nodes', key) for key in sorted(full_ids)] if reader
+            else [copy.deepcopy(node) for node in raw['nodes'] if node['node_id'] in full_ids])
 by_native = {node['node_id']: node for node in selected}
 entity_entries, entity_mappings, entity_fallback = _entity_registry_indexes(entities)
 relation_entries, relation_mappings, relation_fallback = _relation_registry_indexes(relations)
@@ -138,7 +145,7 @@ print(json.dumps({'graph': graph, 'fullGraph': full_graph,
     'claims': sorted('source-claims:claim:' + identity for identity in claim_ids),
     'versions': sorted(node['id'] for node in derived_versions),
     'cases': [{'spec': spec, 'expected': execute_knowledge_lens(graph, spec)} for spec in specs]}))
-`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 4 * 1024 * 1024}));
+`], {cwd: fileURLToPath(new URL('../../../../', import.meta.url)), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024}));
 }
 
 const graph: KnowledgeGraph = {
@@ -192,8 +199,10 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
       db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
       db.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
       db.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE INDEX kn_from ON knowledge_relations(from_id)"),
       db.prepare("CREATE INDEX kn_to ON knowledge_relations(to_id)"),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?) ").bind(JSON.stringify({sha256: graph.source_revision})),
@@ -634,8 +643,10 @@ test('Claim navigation and exact record versions survive RU/EN compact/full D1 r
       db.prepare('CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)'),
       db.prepare('CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)'),
       db.prepare('CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))'),
+      db.prepare('CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))'),
       db.prepare('CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)'),
       db.prepare('CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))'),
+      db.prepare('CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))'),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({sha256: source.source_revision})),
       db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({source_revision: source.source_revision, authority_boundary: source.authority_boundary})),
       ...source.nodes.map(n => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)').bind(
@@ -955,6 +966,7 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
   }));
   try {
     const db = await mf.getD1Database("DB");
+    const unicodeNeedle = "ПЕРЕХОД-Σ-РУС";
     const full = {
       id: "source-claims:provenance_event:oversized",
       entity_id: "tos.event.oversized",
@@ -964,16 +976,29 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
       type_id: "tos.entity.provenance-event",
       display: { title: { default: "Oversized event" } },
       attributes: { event_type: "annotation" },
-      source_record: { payload: { token: "needle-only-in-payload", filler: "x".repeat(120_000) } },
+      source_record: { payload: { token: "needle-only-in-payload", boundary: "", filler: "x".repeat(120_000) } },
     };
+    const emptyBoundaryJson = JSON.stringify(full);
+    const boundaryValueOffset = emptyBoundaryJson.indexOf('"boundary":""') + '"boundary":"'.length;
+    const markerStart = 32_000 - Math.ceil(unicodeNeedle.length / 2);
+    full.source_record.payload.boundary = "x".repeat(Math.max(1, markerStart - boundaryValueOffset)) + unicodeNeedle + "suffix";
     const fullJson = JSON.stringify(full);
     const split = Math.floor(fullJson.length / 2);
+    const searchText = fullJson.toLocaleLowerCase();
+    const searchChunks: string[] = [];
+    for (let start = 0; start < searchText.length; start += 32_000 - 4_096) {
+      searchChunks.push(searchText.slice(start, start + 32_000));
+    }
+    assert(fullJson.indexOf(unicodeNeedle) < 32_000);
+    assert(fullJson.indexOf(unicodeNeedle) + unicodeNeedle.length > 32_000);
     await db.batch([
       db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (key, part))"),
       db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, summary_text TEXT, search_text TEXT, json TEXT)"),
       db.prepare("CREATE TABLE knowledge_node_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_node_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
       db.prepare("CREATE TABLE knowledge_relation_payload (id TEXT, part INTEGER, json_chunk TEXT, PRIMARY KEY (id, part))"),
+      db.prepare("CREATE TABLE knowledge_relation_search_chunks (id TEXT, part INTEGER, search_chunk TEXT, PRIMARY KEY (id, part))"),
       db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({ sha256: "a".repeat(64) })),
       db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({ source_revision: "a".repeat(64), authority_boundary: {} })),
       db.prepare("INSERT INTO knowledge_nodes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(
@@ -982,6 +1007,7 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
       ),
       db.prepare("INSERT INTO knowledge_node_payload VALUES (?, ?, ?)").bind(full.id, 0, fullJson.slice(0, split)),
       db.prepare("INSERT INTO knowledge_node_payload VALUES (?, ?, ?)").bind(full.id, 1, fullJson.slice(split)),
+      ...searchChunks.map((chunk, part) => db.prepare("INSERT INTO knowledge_node_search_chunks VALUES (?, ?, ?)").bind(full.id, part, chunk)),
     ]);
     const packet = await knowledgeNodeD1(db, full.id, 0);
     assert.deepEqual(packet.matches, [full]);
@@ -994,6 +1020,15 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
       limit: 10,
     });
     assert.deepEqual(search.nodes, [full]);
+    const unicodeSearch = await knowledgeSearchD1(db, {
+      query: unicodeNeedle,
+      sources: ["source-claims"],
+      kindIds: [],
+      predicateIds: [],
+      offset: 0,
+      limit: 10,
+    });
+    assert.deepEqual(unicodeSearch.nodes, [full]);
   } finally {
     await mf.dispose();
   }

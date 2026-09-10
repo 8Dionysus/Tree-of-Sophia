@@ -1411,6 +1411,66 @@
       "focused_target": "tests/test_zarathustra_concept_workbench_v1.py",
       "failure_route": "Fix the frozen workbench plan, source/work scope, exact occurrence layer, context compiler, request expansion, concept query route, candidate relation ceiling, or private boundary before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_partitioned_projections.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "graph_exports",
+      "owner_surface": "ToS/derived-exports/PARTITIONED_PROJECTIONS.md",
+      "protects": "source-backed disk staging preserves canonical fields, claim traces and omitted-edge rejection",
+      "coverage_authority": "tests/AGENTS.md root unittest discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_partitioned_projections.py",
+      "failure_route": "Fix the corpus-index schema, source-home map, or builder before changing test expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_projection_store.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "projection_query_storage",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/projection_store.py",
+      "protects": "bounded partition integrity, stable placement, snapshot binding and explicit materialization",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_projection_store.py",
+      "failure_route": "Fix the partitioned projection or compiled query owner while preserving logical semantics.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_knowledge_compile.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "projection_query_storage",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/knowledge_compile.py",
+      "protects": "atomic offline compilation, source bindings and disk-backed semantic derivation",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_knowledge_compile.py",
+      "failure_route": "Fix the partitioned projection or compiled query owner while preserving logical semantics.",
+      "disposition": "keep"
+    },
+    {
+      "path": "access/tests/test_query_store.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "projection_query_storage",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/query_store.py",
+      "protects": "selective read-only query parity, literal search and missing or stale artifact boundaries",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_query_store.py",
+      "failure_route": "Fix the partitioned projection or compiled query owner while preserving logical semantics.",
+      "disposition": "keep"
     }
   ]
 }

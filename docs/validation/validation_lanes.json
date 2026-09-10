@@ -667,6 +667,10 @@
     ],
     "standalone_access": [
       {
+        "label": "compile standalone query snapshot",
+        "command": ["python", "access/src/tos_access/knowledge_compile.py", "--root", "."]
+      },
+      {
         "label": "run standalone access contract tests",
         "command": ["python", "-m", "unittest", "discover", "-s", "access/tests"]
       },
@@ -812,6 +816,10 @@
       {
         "label": "validate epistemic evidence projection",
         "command": ["python", "scripts/validate_epistemic_evidence_projection.py"]
+      },
+      {
+        "label": "compile standalone query snapshot",
+        "command": ["python", "access/src/tos_access/knowledge_compile.py", "--root", "."]
       },
       {
         "label": "run standalone access contract tests",

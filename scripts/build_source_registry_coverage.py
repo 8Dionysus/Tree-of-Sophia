@@ -107,7 +107,7 @@ def build(root: Path = ROOT, *, verify_local: bool = False) -> dict:
             plantings[p['source_witness']['work_id']].append((path.relative_to(root).as_posix(), p))
     selected = defaultdict(dict)
     targets = {}
-    for path in sorted((root / 'ToS/source-witnesses/discovery').glob('*/manifest.json')):
+    for path in sorted((root / 'ToS/source-witnesses/discovery').rglob('manifest.json')):
         manifest = read(path)
         if manifest.get('schema_version') != 'tos_registry_first_planting_preparation_v1':
             continue
