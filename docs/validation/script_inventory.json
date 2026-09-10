@@ -188,13 +188,20 @@
       "owner_surface": "access/AGENTS.md",
       "source_truth": [
         "access/src/tos_access/core.py",
+        "access/src/tos_access/knowledge.py",
+        "access/src/tos_access/published_read_metadata.py",
         "ToS/derived-exports/tos_corpus_index.min.json",
         "ToS/derived-exports/philosophy_graph_projection.min.json",
+        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
         "ToS/derived-exports/epistemic_evidence_projection.min.json",
-        "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json"
+        "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+        "ToS/source-witnesses/access-requests/public-ledger"
       ],
       "reads": [
-        "the built access web app and four allowlisted ToS access inputs through ToSAccessCore"
+        "the built access web app, corpus/philosophy/bibliographic projections, semantic registries, evidence projection and post-planting audit through ToSAccessCore",
+        "public access-request ledger, portable contracts and declared versioned producer dependencies, including prepared-reader metadata"
       ],
       "writes": [
         "ignored Cloudflare static assets, a local D1 read-model import, and a build manifest"
@@ -202,7 +209,7 @@
       "side_effects": "replaces only ignored local dist and runtime outputs; no remote D1 write, deployment, source mutation, KAG generation, or authority effect",
       "validation_lane": "standalone_access",
       "ci_inclusion": "focused-tests",
-      "test_target": "access/deploy/cloudflare-worker/test/common.test.ts",
+      "test_target": "access/tests/test_incremental_runtime.py",
       "disposition": "keep"
     },
     {
