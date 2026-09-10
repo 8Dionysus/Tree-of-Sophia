@@ -133,9 +133,45 @@ class ReadableContextTests(unittest.TestCase):
         self.assertEqual(extensions['category'], 'unclassified')
         self.assertEqual(extensions['value'], {'negation': False, 'calendar': None})
         item['attributes']['source_claim']['schema_version'] = 'tos_historical_claim_v999'
-        unknown = next(c for c in self.build(item)['contexts']
-                       if c['origin_pointer'] == '/attributes/source_claim')
-        self.assertTrue(all(e['category'] == 'unclassified' for e in unknown['entries']))
+        unknown_before = copy.deepcopy(item)
+        unknown = self.build(item)
+        # Unknown-schema presentation of the grown source exceeds the unchanged
+        # owner budget. It must refuse the whole sidecar, not omit qualifiers.
+        self.assertEqual(unknown['state'], 'requires-exact-context')
+        self.assertEqual(unknown['reason'], 'context-presentation-budget')
+        self.assertEqual(unknown['exact_context_pointers'],
+                         ['/semantics/assertion_contexts', '/attributes/source_claim'])
+        self.assertEqual(unknown['contexts'], [])
+        self.assertEqual(unknown['exact_materials'], [])
+        self.assertEqual(unknown['coverage'], {'input_contexts': 2, 'returned_contexts': 0,
+                                             'entries': 0, 'unclassified_entries': 0})
+        self.assertFalse(unknown['performs_semantic_assessment'])
+        self.assertFalse(unknown['performs_translation'])
+        self.assertEqual(item, unknown_before)
+
+    def test_small_unknown_claim_schema_does_not_inherit_known_field_classification(self):
+        # A bounded synthetic record isolates schema dispatch from source growth.
+        record = {'schema_version': 'tos_historical_claim_v999',
+                  'claim_id': 'tos.claim.test.unknown-context', 'claim_version': 1,
+                  'review_status': 'unreviewed', 'object': {'calendar': None},
+                  'qualifiers': {'negation': False, 'zero': 0, 'empty': ''},
+                  'evidence_refs': []}
+        item = _normalize_node({'node_id': 'claim:' + record['claim_id'], 'node_type': 'claim',
+                                'properties': {'source_claim': record}}, 'source-claims')
+        before = copy.deepcopy(item)
+        result = self.build(item)
+        self.assertEqual(result['state'], 'complete')
+        context = next(context for context in result['contexts']
+                       if context['origin_pointer'] == '/attributes/source_claim')
+        self.assertEqual(context['origin_pointer'], '/attributes/source_claim')
+        self.assertEqual({entry['key']: entry['value'] for entry in context['entries']}, record)
+        for entry in context['entries']:
+            self.assertEqual(entry['category'], 'unclassified')
+            self.assertEqual(entry['value_mode'], 'source-value')
+            self.assertIsNone(entry['value_label'])
+            self.assertEqual(entry['value_pointer'], '/attributes/source_claim/' + entry['key'])
+            self.assertEqual(entry['binding']['source_pointer'], '/' + entry['key'])
+        self.assertEqual(item, before)
 
     def test_claim_context_reference_is_visible_and_not_an_identity_or_admission(self):
         payload = {'claim_ref': 'tos.claim.test.context-subject'}

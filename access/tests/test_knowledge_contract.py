@@ -514,6 +514,7 @@ class KnowledgeContractTests(unittest.TestCase):
 
     def test_claim_navigation_temporal_wording_is_exact_nonstandalone_source_context(self):
         from tos_access.knowledge import _lens_carrier
+        from tos_access.human_form_codec import decode_human_form_selection
         source, raw, subject, target, refresh = self._claim_navigation_fixture(
             'tos.claim.jenseits-1886-commission.date')
         original = copy.deepcopy(raw['properties']['source_claim'])
@@ -530,11 +531,41 @@ class KnowledgeContractTests(unittest.TestCase):
         graph = self._navigation_graph(source)
         normalized = next(node for node in graph['nodes'] if node['native_id'] == raw['node_id'])
         self.assertEqual(normalized['attributes']['source_claim'], original)
-        self.assertFalse(normalized['attributes'].get('human_forms'))
+        forms = normalized['attributes']['human_forms']
+        self.assertTrue(forms)
+        self.assertEqual(forms, raw['properties']['human_forms'])
+        for form in forms:
+            self.assertEqual(form['state'], 'ready')
+            self.assertEqual(form['language'], 'ru')
+            self.assertFalse(form['standalone_reading'])
+            self.assertFalse(form['performs_semantic_assessment'])
+            self.assertTrue(any(entry['binding']['pointer'] == '' and entry['value'] == original
+                                for entry in form['context']))
         for detail in ('full', 'compact'):
             packet = _lens_carrier(normalized, detail, language='en')
             self.assertFalse(packet['display']['provenance']['source_title_available'])
             self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+            selected = decode_human_form_selection(packet['human_form_selection'])
+            for form in forms:
+                self.assertEqual(selected['roles'][form['role']]['packet'], form)
+        self.assertEqual(normalized['attributes']['source_claim'], original)
+
+        # Synthetic absence control: navigation alone must never become wording.
+        # Keep the real corpus forms intact, including their whole-Claim context.
+        no_forms = copy.deepcopy(source)
+        no_form_raw = next(node for node in no_forms['nodes'] if node['node_id'] == raw['node_id'])
+        no_form_raw['properties'].pop('human_forms')
+        no_form_raw['properties'].pop('human_forms_source_ref', None)
+        no_form_graph = self._navigation_graph(no_forms)
+        no_form_node = next(node for node in no_form_graph['nodes'] if node['native_id'] == raw['node_id'])
+        self.assertEqual(no_form_node['attributes']['source_claim'], original)
+        self.assertFalse(no_form_node['attributes'].get('human_forms'))
+        for detail in ('full', 'compact'):
+            packet = _lens_carrier(no_form_node, detail, language='en')
+            self.assertFalse(packet['display']['provenance']['source_title_available'])
+            self.assertFalse(packet['display_selection']['fields']['title']['content_available'])
+            self.assertNotIn('human_form_selection', packet)
+        self.assertEqual(raw['properties']['human_forms'], forms)
         old = copy.deepcopy(self.relation_type_registry)
         old['claim_navigation_template'].pop('object_label_adapters')
         old['claim_navigation_template']['template_version'] = 1
