@@ -39,7 +39,7 @@
       "family": "standalone_access_contract",
       "validation_lane": "standalone_access",
       "owner_surface": "access/COMPRESSED_SEARCH_V3.md",
-      "protects": "explicit service-only compressed search-v3 reference rank streams, short/common and Unicode matching, bounded chunk continuations, typed filters, stable addresses and tie ordering, atomic local delta rollback, publication incarnation and physical SQLite accounting",
+      "protects": "explicit service-only compressed search-v3 reference rank streams, short/common and Unicode matching, bounded chunk and metadata/output continuations, native typed filters, unique exact source identities, stable addresses and tie ordering, atomic local delta rollback, publication incarnation and physical SQLite accounting",
       "coverage_authority": "access/AGENTS.md standalone access validation",
       "mode": "blocking",
       "runtime_cost": "fast",

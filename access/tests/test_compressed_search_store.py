@@ -10,7 +10,8 @@ import unittest
 from unittest.mock import patch
 
 from tos_access.compressed_search_store import (
-    BLOCK_SIZE, MAX_ADDRESS, PreparedSearchDocument, SearchChange, SearchStore,
+    BLOCK_SIZE, MAX_ADDRESS, MAX_HEADER_BYTES, MIN_METADATA_BYTES, MIN_RESPONSE_BYTES,
+    PreparedSearchDocument, SearchChange, SearchStore,
     decode_postings, encode_postings, order_key,
 )
 from tos_access.knowledge import _knowledge_search_rank
@@ -43,6 +44,8 @@ class CompressedSearchStoreTests(unittest.TestCase):
             self.assertLessEqual(page["work"]["operations"], candidate_budget)
             self.assertLessEqual(page["work"]["verification_bytes"], verification_bytes)
             self.assertLessEqual(page["work"]["candidates"], candidate_budget)
+            self.assertLessEqual(page["work"]["metadata_bytes"], MIN_METADATA_BYTES)
+            self.assertEqual(page["work"]["response_bytes"], len(json.dumps(page, ensure_ascii=False, sort_keys=True).encode("utf-8", "surrogatepass")))
             self.assertEqual(page["returned_count"], len(page["matches"]))
             if cursor is not None:
                 self.assertIsNone(page["total_matching"])
@@ -134,6 +137,18 @@ class CompressedSearchStoreTests(unittest.TestCase):
         self.assertEqual(before["database_bytes"], before["file_bytes"])
         self.assertGreater(before["database_bytes"], publication["payload_bytes_written"] // 100)
         self.assertGreater(before["tables"]["search_document_terms"]["rows"], 270)
+        # Prefix replay across multiple blocks must not reread the metadata of
+        # each predecessor, including near the end of a 256-address block.
+        cursor, seen = None, []
+        for _ in range(271):
+            page = store.query_page(kind="node", page_size=1, cursor=cursor)
+            self.assertLessEqual(page["work"]["metadata_rows"], 3)
+            self.assertLess(page["work"]["metadata_bytes"], 4096)
+            seen.extend(row["doc_id"] for row in page["matches"])
+            if not page["has_more"]:
+                break
+            cursor = page["next_cursor"]
+        self.assertEqual(seen, list(range(1, 271)))
         with closing(sqlite3.connect(self.path)) as db:
             blocks_before = dict(((term, fence), payload) for term, fence, payload in db.execute("SELECT term_id,lower_fence,payload FROM search_blocks"))
             keys_before = dict(db.execute("SELECT doc_id,sort_key FROM search_documents"))
@@ -167,9 +182,9 @@ class CompressedSearchStoreTests(unittest.TestCase):
         print("COMPRESSED_SEARCH_FIXTURE " + json.dumps({"initial": before, "insert": delta, "delete": removed, "changed_blocks": changed, "initial_blocks": len(blocks_before)}, sort_keys=True))
 
     def test_same_lower_id_source_order_and_relocation(self):
-        items = [self.item("A"), self.item("a"), self.item("B")]
+        items = [self.item("AB"), self.item("ab"), self.item("B")]
         store, _, _ = self.publish(items)
-        inserted = PreparedSearchDocument.from_item(4, "node", self.item("a"), 1536)
+        inserted = PreparedSearchDocument.from_item(4, "node", self.item("Ab"), 1536)
         binding2 = {"source_revision": "ties-2"}
         SearchStore.apply_delta(self.path, expected_binding=self.binding, new_binding=binding2, changes=[SearchChange("insert", 4, inserted)])
         store = SearchStore(self.path, binding=binding2)
@@ -179,6 +194,33 @@ class CompressedSearchStoreTests(unittest.TestCase):
         SearchStore.apply_delta(self.path, expected_binding=binding2, new_binding=binding3, changes=[SearchChange("update", 4, moved)])
         store = SearchStore(self.path, binding=binding3)
         self.assertEqual([x["doc_id"] for x in self.drain(store)[0]], [1, 2, 3, 4])
+
+    def test_exact_native_type_id_filter_without_alias(self):
+        items = [self.item("a", type_id="entity:concept"), self.item("b", type_id="entity:artifact")]
+        store, _, _ = self.publish(items)
+        filters = {"type_id": ["entity:artifact"]}
+        self.assertEqual(self.drain(store, filters=filters)[0], self.reference(items, "", filters=filters))
+        with self.assertRaises(ValueError):
+            store.query_page(kind="node", filters={"node_type_id": ["entity:artifact"]})
+
+    def test_duplicate_source_identity_refused_initial_insert_update_rollback(self):
+        duplicates = [PreparedSearchDocument.from_item(i, "node", self.item("same"), i * 1024) for i in (1, 2)]
+        with self.assertRaisesRegex(ValueError, "duplicate exact source identity"):
+            SearchStore.publish_initial(self.path, binding=self.binding, documents=duplicates)
+        self.assertFalse(self.path.exists())
+        store, _, _ = self.publish([self.item("same"), self.item("other")])
+        duplicate = PreparedSearchDocument.from_item(3, "node", self.item("same"), 3072)
+        new_binding = {"source_revision": "identity-2"}
+        with self.assertRaisesRegex(ValueError, "duplicate exact source identity"):
+            SearchStore.apply_delta(self.path, expected_binding=self.binding, new_binding=new_binding, changes=[SearchChange("insert", 3, duplicate)])
+        self.assertEqual([x["doc_id"] for x in self.drain(store)[0]], [2, 1])
+        variant = PreparedSearchDocument.from_item(3, "node", self.item("Same"), 3072)
+        SearchStore.apply_delta(self.path, expected_binding=self.binding, new_binding=new_binding, changes=[SearchChange("insert", 3, variant)])
+        store = SearchStore(self.path, binding=new_binding)
+        duplicate_update = PreparedSearchDocument.from_item(3, "node", self.item("other"), 3072)
+        with self.assertRaisesRegex(ValueError, "duplicate exact source identity"):
+            SearchStore.apply_delta(self.path, expected_binding=new_binding, new_binding={"source_revision": "identity-3"}, changes=[SearchChange("update", 3, duplicate_update)])
+        self.assertEqual([x["id"] for x in self.drain(store)[0]], ["other", "same", "Same"])
 
     def test_publication_aba_rejects_old_reader_and_cursor(self):
         store, _, _ = self.publish([self.item("a"), self.item("b")])
@@ -220,6 +262,64 @@ class CompressedSearchStoreTests(unittest.TestCase):
             SearchStore.apply_delta(self.path, expected_binding=self.binding, new_binding={"source_revision": "over-quota"}, changes=[SearchChange("insert", 2, large)])
         self.assertEqual([x["id"] for x in self.drain(store)[0]], ["a"])
         self.assertLessEqual(store.storage_stats()["database_bytes"], 131072)
+
+    def test_minimum_metadata_giant_ids_and_verified_response_deferral(self):
+        items = [self.item(chr(97 + i) * 400000, "same", technical="x" * 70000 + "needle") for i in range(5)]
+        store, _, _ = self.publish(items)
+        cursor, seen = None, []
+        for _ in range(1000):
+            page = store.query_page(kind="node", query="needle", page_size=100, cursor=cursor,
+                                    verification_bytes=8192, max_metadata_bytes=MIN_METADATA_BYTES,
+                                    max_response_bytes=MIN_RESPONSE_BYTES)
+            self.assertLessEqual(page["work"]["metadata_bytes"], MIN_METADATA_BYTES)
+            self.assertLessEqual(page["work"]["response_bytes"], MIN_RESPONSE_BYTES)
+            self.assertLessEqual(page["work"]["metadata_rows"], page["work"]["candidates"] + 2)
+            seen.extend(row["doc_id"] for row in page["matches"])
+            if not page["has_more"]:
+                break
+            self.assertNotEqual(cursor, page["next_cursor"])
+            cursor = page["next_cursor"]
+        else:
+            self.fail("admitted giant singleton did not make bounded progress")
+        self.assertEqual(seen, [1, 2, 3, 4, 5])
+        # Larger metadata budget reaches the response cap after verifying the
+        # next long row. Its saved matched state must not repeat text reads.
+        page = store.query_page(kind="node", query="needle", page_size=100,
+                                candidate_budget=4096, verification_bytes=8 * 1024 * 1024,
+                                max_metadata_bytes=64 * 1024 * 1024,
+                                max_response_bytes=MIN_RESPONSE_BYTES)
+        self.assertEqual([row["doc_id"] for row in page["matches"]], [1, 2, 3, 4])
+        self.assertEqual(page["next_cursor"]["state"]["partial"]["stage"], "matched")
+        resumed = store.query_page(kind="node", query="needle", page_size=1,
+                                   cursor=page["next_cursor"], verification_bytes=8192,
+                                   max_metadata_bytes=MIN_METADATA_BYTES, max_response_bytes=MIN_RESPONSE_BYTES)
+        self.assertEqual([row["doc_id"] for row in resumed["matches"]], [5])
+        self.assertEqual(resumed["work"]["verification_bytes"], 0)
+
+    def test_corrupted_cursor_predecessor_refused(self):
+        store, _, _ = self.publish([self.item("a"), self.item("b"), self.item("c")])
+        cursor = store.query_page(kind="node", page_size=1)["next_cursor"]
+        with closing(sqlite3.connect(self.path)) as db:
+            term = db.execute("SELECT term_id FROM search_terms WHERE plane=3 AND n=0").fetchone()[0]
+            db.execute("UPDATE search_blocks SET posting_count=2,payload=? WHERE term_id=?", (encode_postings([2, 3]), term))
+            db.commit()
+        with self.assertRaisesRegex(ValueError, "predecessor is not a member"):
+            store.query_page(kind="node", cursor=cursor)
+
+    def test_complete_header_and_query_framing_caps(self):
+        store, _, _ = self.publish([self.item("a")])
+        with self.assertRaisesRegex(ValueError, "complete framed search header"):
+            SearchStore(self.path, binding={"pad": "x" * MAX_HEADER_BYTES})
+        with self.assertRaisesRegex(ValueError, "complete framed search query/filter"):
+            store.query_page(kind="node", filters={"source_graph": ["x" * 65536]})
+        for options in ({"max_metadata_bytes": MIN_METADATA_BYTES - 1}, {"max_response_bytes": MIN_RESPONSE_BYTES - 1}):
+            with self.assertRaises(ValueError):
+                store.query_page(kind="node", **options)
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("UPDATE search_header SET header=?", ("x" * (MAX_HEADER_BYTES + 1),))
+            db.commit()
+        with self.assertRaisesRegex(ValueError, "oversized stored search header"):
+            store.query_page(kind="node")
 
     def test_codec_byte_order_and_invalid_publication(self):
         values = ["", "\0", "a", "a\0", "aA", "aa", "\ud800", "\ue000", "\U00010000", "\U0010ffff"]

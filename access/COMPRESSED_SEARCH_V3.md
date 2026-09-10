@@ -21,6 +21,8 @@ page = store.query_page(
     kind="node", query="a", filters={"kind_id": ["concept"]},
     page_size=50, cursor=None, candidate_budget=256,
     verification_bytes=65536,
+    max_metadata_bytes=4 * 1024 * 1024,
+    max_response_bytes=4 * 1024 * 1024,
 )
 SearchStore.apply_delta(
     path, expected_binding=old_header, new_binding=new_header,
@@ -33,11 +35,17 @@ The initial publisher creates an absent path exclusively. Failure removes only
 that new file. It accepts prepared normalized carriers from the offline owner;
 it does not discover a corpus, normalize source meaning, or verify owner truth.
 The owner must bind the exact carrier population, content and source order in
-the supplied nonempty header. This independent header includes the search
-algorithm and Python Unicode-data version, not the counter-v9 header.
+the supplied nonempty header. This independent header includes storage version
+2, the search algorithm and Python Unicode-data version, not the counter-v9
+header. Earlier unversioned service fixtures must be rebuilt; they are not
+silently admitted with missing identity constraints or old filter framing.
+The complete framed header is capped at 65536 UTF-8 bytes. The separate framed
+query/kind/filter input is also capped at 65536 bytes before hashing or reads.
 
 `doc_id` is an integer address in `1..2**53-1`, not source identity or ranking.
-Initial addresses must be unique. Each subsequently inserted address exceeds
+Initial addresses and exact `(kind, identifier)` identities must be unique;
+case variants remain distinct. Duplicate source identities are refused, never
+silently deduplicated or admitted under another address. Each inserted address exceeds
 the stored high-water mark; deleted addresses cannot be reused. Updates retain
 their address. A delta lists each address once and new addresses in ascending
 allocation order. Address kind/source-identity changes must be explicit owner
@@ -74,11 +82,31 @@ snapshot-bound carrier join, not complete source-return packets.
 `has_more` means candidate work remains, not that another match is proved.
 An empty page with continuation is valid. Page size is 1..100; the work budget
 is 2..4096 operations (candidate checks plus value/chunk checks). Verification
-reads are 8192..8388608 bytes, including reread overlap. Posting directory
-lookups/decode overhead is separately reported as blocks/entries read: at most
-256 prefix entries can be replayed at each phase's starting block, without a
-full posting scan or query-time sort. Term selection costs at most the bounded
-query's distinct grams per phase and is separate from verification work.
+reads are 8192..8388608 bytes, including reread overlap. Metadata has a separate
+4194304-byte minimum/default and 67108864-byte maximum. Actual header/key,
+document JSON-ID/filter/sort-key and compressed-block bytes are charged before
+admission. Narrow length probes precede variable-width fetches. Integer-only
+probes and query-control reads have separate counters rather than pretending
+their SQLite/Python object overhead is a payload-byte measurement.
+
+The starting block can decode at most 256 prefix entries, then locates the
+exact predecessor address and skips the prefix without loading its document
+metadata. Only the predecessor's key is read once. A missing predecessor in its
+bound block is corruption, not permission to scan forward. Fence bytes stay in
+SQL; directory probes, blocks decoded and posting entries are reported
+separately. The 4-MiB minimum covers the maximal framed header, predecessor
+key and one admitted metadata row, ensuring a new singleton can progress.
+Term selection costs at most the bounded query's distinct grams per phase and
+is separate from verification work. No full posting scan or query-time sort
+is introduced.
+
+Response framing has a 4194304-byte default, 1908192-byte minimum and 16777216-byte
+maximum, measured as UTF-8 `json.dumps(..., ensure_ascii=False, sort_keys=True)`
+including the cursor and accounting fields. Its minimum admits every supported
+single ID without narrowing IDs. A result that does not fit after earlier
+matches remains unconsumed with an integrity-bound `matched` continuation;
+the next page need not reread its already verified long text. A later full
+carrier join must account for its own response/row budgets separately.
 
 The cursor is compact even for large IDs: its predecessor address resolves to
 the bound stored order key. It preserves phase, within-document value/byte
@@ -92,7 +120,10 @@ No request computes a graph digest or loads the corpus.
 `returned_count` is always exact. `total_matching` is exact only when an initial
 request exhausts the whole kind stream; it is null on every continued page,
 including the last. Consumers may sum the returned counts from a full traversal.
-Filters are per-kind source/kind/predicate/type value lists (at most 100 each).
+Filters are per-kind source/kind/predicate/type value lists (at most 100 each):
+node fields are `source_graph`, `kind_id`, `type_id`; relation fields are
+`source_graph`, `predicate_id`, `relation_type_id`. There is no `node_type_id`
+alias.
 Empty lists do not filter. Values remain typed: false, zero, string-zero and
 null are not coerced into one source value. Public adapters still own reference
 source-name validation and default source selection.
@@ -125,7 +156,7 @@ are explicit service-slice admission limits, not full-corpus feasibility proof.
 `storage_stats()` reports physical page/file bytes, all six data-table row
 counts and per-object `dbstat` bytes when that SQLite extension exists. Its
 full aggregate scan is an offline diagnostic, never a query preflight. A
-270-document synthetic test measured 1196032 total bytes: 802816 reverse
+270-document synthetic test measured 1204224 total bytes: 802816 reverse
 membership bytes, 110592 block bytes and the separately counted dictionary,
 fence index, text, value, document and schema pages. Insert-before changed
 282/1373 blocks without other address/order-key changes. This is not a real

@@ -20,6 +20,7 @@ from typing import Any, Iterable
 
 SCHEMA = "tos_knowledge_search_compressed_v3"
 ALGORITHM = "python-lower-json-default-order-v1"
+STORAGE_VERSION = 2
 BLOCK_SIZE = 256
 CHUNK_SIZE = 32768
 MAX_ADDRESS = 2**53 - 1
@@ -27,6 +28,12 @@ MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
 MAX_ROW_BYTES = 1_900_000
 MAX_TERMS_PER_DOCUMENT = 200_000
 MAX_VALUES_PER_DOCUMENT = 8192
+MAX_HEADER_BYTES = 65536
+MAX_QUERY_BYTES = 65536
+MIN_METADATA_BYTES = 4 * 1024 * 1024
+MIN_RESPONSE_BYTES = MAX_ROW_BYTES + 8192
+RESPONSE_OVERHEAD_BYTES = 4096
+MAX_BLOCK_BYTES = BLOCK_SIZE * 8
 
 
 def _json(value: Any) -> str:
@@ -120,7 +127,7 @@ class PreparedSearchDocument:
         return cls(doc_id, kind, item.get("id"), source_order, _json(item).lower(),
                    (str(item.get("id") or "").lower(), str(item.get("native_id") or "").lower()) + values(fields[0]),
                    tuple(v for field in fields for v in values(field)),
-                   {key: item.get(key) for key in ("source_graph", "kind_id", "predicate_id", "node_type_id", "relation_type_id")})
+                   {key: item.get(key) for key in ("source_graph", "kind_id", "predicate_id", "type_id", "relation_type_id")})
 
 
 @dataclass(frozen=True)
@@ -132,7 +139,7 @@ class SearchChange:
 
 DDL = """
 CREATE TABLE search_header (singleton INTEGER PRIMARY KEY CHECK(singleton=1), header TEXT NOT NULL, cursor_key BLOB NOT NULL, high_water INTEGER NOT NULL, max_pages INTEGER NOT NULL);
-CREATE TABLE search_documents (doc_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, identifier BLOB NOT NULL, sort_key BLOB NOT NULL, filters BLOB NOT NULL, UNIQUE(kind,sort_key));
+CREATE TABLE search_documents (doc_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, identifier BLOB NOT NULL, sort_key BLOB NOT NULL, filters BLOB NOT NULL, UNIQUE(kind,sort_key), UNIQUE(kind,identifier));
 CREATE TABLE search_values (doc_id INTEGER NOT NULL, category TEXT NOT NULL, field INTEGER NOT NULL, byte_length INTEGER NOT NULL, PRIMARY KEY(doc_id,category,field)) WITHOUT ROWID;
 CREATE TABLE search_text_chunks (doc_id INTEGER NOT NULL, category TEXT NOT NULL, field INTEGER NOT NULL, chunk INTEGER NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(doc_id,category,field,chunk)) WITHOUT ROWID;
 CREATE TABLE search_terms (term_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, plane INTEGER NOT NULL, n INTEGER NOT NULL, term_key BLOB NOT NULL, posting_count INTEGER NOT NULL, UNIQUE(kind,plane,n,term_key));
@@ -256,6 +263,9 @@ class _Writer:
 
     def replace(self, document: PreparedSearchDocument, *, insert: bool) -> None:
         key, new_terms = self.prepare(document)
+        same_identity = self.db.execute("SELECT doc_id FROM search_documents WHERE kind=? AND identifier=?", (document.kind, _bytes(_json(document.identifier)))).fetchone()
+        if same_identity is not None and same_identity[0] != document.doc_id:
+            raise ValueError("duplicate exact source identity")
         old = self.db.execute("SELECT kind,sort_key FROM search_documents WHERE doc_id=?", (document.doc_id,)).fetchone()
         if insert == (old is not None):
             raise ValueError("insert/update existence mismatch")
@@ -307,7 +317,10 @@ class SearchStore:
     def _header(binding: dict[str, Any]) -> str:
         if not isinstance(binding, dict) or not binding:
             raise ValueError("an explicit nonempty owner snapshot binding is required")
-        return _json({"schema": SCHEMA, "algorithm": ALGORITHM, "unicode_version": unicodedata.unidata_version, "snapshot": binding})
+        header = _json({"schema": SCHEMA, "storage_version": STORAGE_VERSION, "algorithm": ALGORITHM, "unicode_version": unicodedata.unidata_version, "snapshot": binding})
+        if len(_bytes(header)) > MAX_HEADER_BYTES:
+            raise ValueError("complete framed search header exceeds 65536 bytes")
+        return header
 
     def __init__(self, path: str | Path, *, binding: dict[str, Any]):
         self.path = Path(path)
@@ -323,9 +336,16 @@ class SearchStore:
         db.execute("PRAGMA query_only=ON")
         return db
 
-    def _check(self, db: sqlite3.Connection) -> bytes:
+    def _check(self, db: sqlite3.Connection, work: dict | None = None) -> bytes:
+        lengths = db.execute("SELECT length(CAST(header AS BLOB)),length(cursor_key) FROM search_header WHERE singleton=1").fetchone()
+        if lengths is None or type(lengths[0]) is not int or lengths[0] > MAX_HEADER_BYTES or lengths[1] != 32:
+            raise ValueError("invalid or oversized stored search header")
         row = db.execute("SELECT header,cursor_key FROM search_header WHERE singleton=1").fetchone()
-        if row is None or row[0] != self.header or (hasattr(self, "generation") and row[1] != self.generation):
+        if work is not None:
+            work["metadata_probes"] += 1
+            work["metadata_rows"] += 1
+            work["metadata_bytes"] += sum(lengths)
+        if row is None or row[0] != self.header or not isinstance(row[1], bytes) or (hasattr(self, "generation") and row[1] != self.generation):
             raise ValueError("search store snapshot/algorithm binding mismatch; restart query")
         return row[1]
 
@@ -427,21 +447,54 @@ class SearchStore:
         return best[2]
 
     @staticmethod
-    def _candidates(db: sqlite3.Connection, term: int, after: bytes, work: dict):
-        block = db.execute("SELECT lower_fence,payload FROM search_blocks INDEXED BY search_blocks_nonempty WHERE term_id=? AND lower_fence<=? AND posting_count>0 ORDER BY lower_fence DESC LIMIT 1", (term, after)).fetchone()
-        if block is None:
-            block = db.execute("SELECT lower_fence,payload FROM search_blocks INDEXED BY search_blocks_nonempty WHERE term_id=? AND posting_count>0 ORDER BY lower_fence LIMIT 1", (term,)).fetchone()
-        while block is not None:
-            fence, payload = block
+    def _candidates(db: sqlite3.Connection, term: int, after_id: int, kind: str, work: dict, max_bytes: int, position: dict):
+        """Yield addresses only; None means the metadata budget needs a page.
+
+        The cursor predecessor is an exact member of this immutable term.
+        Skip its block prefix by address, without loading earlier metadata.
+        Fence bytes stay in SQL; the caller supplies each consumed row's key.
+        """
+        if after_id:
+            probe = db.execute("SELECT length(CAST(sort_key AS BLOB)) FROM search_documents WHERE doc_id=? AND kind=?", (after_id, kind)).fetchone()
+            work["metadata_probes"] += 1
+            if probe is None or type(probe[0]) is not int or probe[0] > MAX_ROW_BYTES:
+                raise ValueError("invalid cursor predecessor metadata")
+            row = db.execute("SELECT sort_key FROM search_documents WHERE doc_id=?", (after_id,)).fetchone()
+            if not isinstance(row[0], bytes):
+                raise ValueError("cursor predecessor sort key is not a byte key")
+            position["last_key"] = row[0]
+            work["metadata_bytes"] += probe[0]
+            work["metadata_rows"] += 1
+            suffix, args, order = "lower_fence<=?", (term, row[0]), "DESC"
+        else:
+            suffix, args, order = "1", (term,), "ASC"
+        first = True
+        while True:
+            base = f"FROM search_blocks INDEXED BY search_blocks_nonempty WHERE term_id=? AND {suffix} AND posting_count>0 ORDER BY lower_fence {order} LIMIT 1"
+            probe = db.execute("SELECT length(payload) " + base, args).fetchone()
+            work["directory_probes"] += 1
+            if probe is None:
+                if first:
+                    raise ValueError("selected term or cursor predecessor has no posting block")
+                return
+            if type(probe[0]) is not int or not 1 <= probe[0] <= MAX_BLOCK_BYTES:
+                raise ValueError("invalid posting block size")
+            if work["metadata_bytes"] + probe[0] > max_bytes:
+                yield None
+                return
+            payload = db.execute("SELECT payload " + base, args).fetchone()[0]
+            work["metadata_bytes"] += len(payload)
             work["blocks_decoded"] += 1
-            for address in decode_postings(payload):
-                work["posting_entries_read"] += 1
-                row = db.execute("SELECT identifier,sort_key,filters FROM search_documents WHERE doc_id=?", (address,)).fetchone()
-                if row is None:
-                    raise ValueError("posting references missing document")
-                if row[1] > after:
-                    yield address, row
-            block = db.execute("SELECT lower_fence,payload FROM search_blocks INDEXED BY search_blocks_nonempty WHERE term_id=? AND lower_fence>? AND posting_count>0 ORDER BY lower_fence LIMIT 1", (term, fence)).fetchone()
+            addresses = decode_postings(payload)
+            work["posting_entries_read"] += len(addresses)
+            if first and after_id:
+                if after_id not in addresses:
+                    raise ValueError("cursor predecessor is not a member of its posting block")
+                addresses = addresses[addresses.index(after_id) + 1:]
+            first = False
+            for address in addresses:
+                yield address
+            suffix, args, order = "lower_fence>?", (term, position["last_key"]), "ASC"
 
     @staticmethod
     def _read(db: sqlite3.Connection, doc_id: int, category: str, field: int, start: int, length: int) -> bytes:
@@ -459,6 +512,8 @@ class SearchStore:
     @classmethod
     def _verify(cls, db: sqlite3.Connection, address: int, needle: bytes, state: dict, work: dict, max_work: int, max_bytes: int) -> bool | None:
         """Return full-text match, or None with resumable rank/text progress."""
+        if state["stage"] == "matched":
+            return True
         while work["operations"] < max_work:
             category, field, offset = state["stage"], state["field"], state["offset"]
             row = db.execute("SELECT field,byte_length FROM search_values WHERE doc_id=? AND category=? AND field>=? ORDER BY field LIMIT 1", (address, category, field)).fetchone()
@@ -501,7 +556,7 @@ class SearchStore:
             state.update(field=field + 1 if offset == length else field, offset=0 if offset == length else offset)
         return None
 
-    def query_page(self, *, kind: str, query: str = "", filters: dict[str, list[Any]] | None = None, page_size: int = 50, cursor: dict | None = None, candidate_budget: int = 256, verification_bytes: int = 65536) -> dict:
+    def query_page(self, *, kind: str, query: str = "", filters: dict[str, list[Any]] | None = None, page_size: int = 50, cursor: dict | None = None, candidate_budget: int = 256, verification_bytes: int = 65536, max_metadata_bytes: int = MIN_METADATA_BYTES, max_response_bytes: int = 4 * 1024 * 1024) -> dict:
         if kind not in ("node", "relation"):
             raise ValueError("kind must be node or relation")
         normalized = str(query).strip()
@@ -511,15 +566,21 @@ class SearchStore:
         _integer(page_size, "page_size", 1, 100)
         _integer(candidate_budget, "candidate_budget", 2, 4096)
         _integer(verification_bytes, "verification_bytes", 8192, 8 * 1024 * 1024)
+        _integer(max_metadata_bytes, "max_metadata_bytes", MIN_METADATA_BYTES, 64 * 1024 * 1024)
+        _integer(max_response_bytes, "max_response_bytes", MIN_RESPONSE_BYTES, 16 * 1024 * 1024)
         filters = {} if filters is None else filters
-        allowed = {"source_graph", "kind_id", "node_type_id"} if kind == "node" else {"source_graph", "predicate_id", "relation_type_id"}
+        allowed = {"source_graph", "kind_id", "type_id"} if kind == "node" else {"source_graph", "predicate_id", "relation_type_id"}
         if not isinstance(filters, dict) or set(filters) - allowed or any(not isinstance(v, list) or len(v) > 100 for v in filters.values()):
             raise ValueError("invalid per-kind filters")
-        query_hash = hashlib.sha256(_bytes(_json([self.header, kind, needle, filters]))).hexdigest()
+        query_frame = _bytes(_json([kind, needle, filters]))
+        if len(query_frame) > MAX_QUERY_BYTES:
+            raise ValueError("complete framed search query/filter exceeds 65536 bytes")
+        query_hash = hashlib.sha256(_bytes(self.header) + b"\0" + query_frame).hexdigest()
         db = self._connect()
         try:
             db.execute("BEGIN")  # Header and all reads share one SQLite snapshot.
-            cursor_key = self._check(db)
+            work = {"candidates": 0, "operations": 0, "verification_bytes": 0, "blocks_decoded": 0, "posting_entries_read": 0, "metadata_bytes": 0, "metadata_rows": 0, "metadata_probes": 0, "directory_probes": 0, "response_bytes": 0}
+            cursor_key = self._check(db, work)
             if cursor is None:
                 state = {"query": query_hash, "phase": 0 if needle else 3, "after": 0, "partial": None, "expires": int(time.time()) + 900}
             else:
@@ -536,7 +597,7 @@ class SearchStore:
                 _integer(state["expires"], "cursor expiry", 1, MAX_ADDRESS)
                 if state["partial"] is not None:
                     partial = state["partial"]
-                    if not isinstance(partial, dict) or set(partial) != {"doc_id", "stage", "field", "offset", "rank"} or partial["stage"] not in ("identity", "visible", "full"):
+                    if not isinstance(partial, dict) or set(partial) != {"doc_id", "stage", "field", "offset", "rank"} or partial["stage"] not in ("identity", "visible", "full", "matched"):
                         raise ValueError("invalid partial search cursor")
                     _integer(partial["doc_id"], "cursor doc_id", 1, MAX_ADDRESS)
                     _integer(partial["field"], "cursor field", 0, MAX_DOCUMENT_BYTES)
@@ -544,28 +605,34 @@ class SearchStore:
                     _integer(partial["rank"], "cursor rank", 0, 3)
                 if state["query"] != query_hash or state["expires"] <= time.time():
                     raise ValueError("search cursor query/snapshot mismatch or expiry")
-            work = {"candidates": 0, "operations": 0, "verification_bytes": 0, "blocks_decoded": 0, "posting_entries_read": 0}
             matches = []
+            match_bytes = 0
             while state["phase"] < 4 and len(matches) < page_size and work["operations"] < candidate_budget:
                 phase = state["phase"]
                 term = self._term(db, kind, phase, needle)
                 if term is None:
                     state.update(phase=phase + 1, after=0, partial=None)
                     continue
-                after = b""
-                if state["after"]:
-                    prior = db.execute("SELECT sort_key FROM search_documents WHERE doc_id=? AND kind=?", (state["after"], kind)).fetchone()
-                    if prior is None:
-                        raise ValueError("cursor predecessor missing from selected snapshot")
-                    after = prior[0]
                 exhausted = True
-                for address, row in self._candidates(db, term, after, work):
+                position = {}
+                for address in self._candidates(db, term, state["after"], kind, work, max_metadata_bytes, position):
                     exhausted = False
-                    if work["operations"] >= candidate_budget:
+                    if address is None or work["operations"] >= candidate_budget:
                         break
-                    identifier, key, raw_filters = row
+                    lengths = db.execute("SELECT length(CAST(identifier AS BLOB)),length(CAST(sort_key AS BLOB)),length(CAST(filters AS BLOB)) FROM search_documents WHERE doc_id=? AND kind=?", (address, kind)).fetchone()
+                    work["metadata_probes"] += 1
                     work["operations"] += 1
                     work["candidates"] += 1
+                    if lengths is None or any(type(value) is not int or value < 0 for value in lengths) or sum(lengths) > MAX_ROW_BYTES:
+                        raise ValueError("posting references missing or oversized document metadata")
+                    if work["metadata_bytes"] + sum(lengths) > max_metadata_bytes:
+                        break
+                    identifier, key, raw_filters = db.execute("SELECT identifier,sort_key,filters FROM search_documents WHERE doc_id=?", (address,)).fetchone()
+                    if any(not isinstance(value, bytes) for value in (identifier, key, raw_filters)):
+                        raise ValueError("document metadata does not use byte framing")
+                    work["metadata_bytes"] += sum(lengths)
+                    work["metadata_rows"] += 1
+                    position["last_key"] = key
                     # Literal false/zero/null remain JSON values, never coerced.
                     doc_filters = json.loads(raw_filters)
                     if any(values and not any(type(doc_filters.get(field)) is type(v) and doc_filters.get(field) == v for v in values) for field, values in filters.items()):
@@ -579,7 +646,14 @@ class SearchStore:
                             state["partial"] = partial
                             break
                         if found and partial["rank"] == phase:
-                            matches.append({"doc_id": address, "id": json.loads(identifier), "rank": phase})
+                            match = {"doc_id": address, "id": json.loads(identifier), "rank": phase}
+                            size = len(_bytes(_json(match))) + 2
+                            if match_bytes + size + RESPONSE_OVERHEAD_BYTES > max_response_bytes:
+                                partial.update(stage="matched", field=0, offset=0)
+                                state["partial"] = partial
+                                break
+                            matches.append(match)
+                            match_bytes += size
                         state.update(after=address, partial=None)
                     if len(matches) >= page_size or work["operations"] >= candidate_budget:
                         break
@@ -593,7 +667,15 @@ class SearchStore:
             if has_more:
                 encoded = _bytes(_json(state))
                 next_cursor = {"state": state, "mac": hmac.new(cursor_key, encoded, hashlib.sha256).hexdigest()}
-            return {"schema": SCHEMA, "matches": matches, "returned_count": len(matches), "total_matching": len(matches) if cursor is None and not has_more else None, "has_more": has_more, "next_cursor": next_cursor, "work": work}
+            result = {"schema": SCHEMA, "matches": matches, "returned_count": len(matches), "total_matching": len(matches) if cursor is None and not has_more else None, "has_more": has_more, "next_cursor": next_cursor, "work": work}
+            for _ in range(4):
+                size = len(_bytes(_json(result)))
+                if size == work["response_bytes"]:
+                    break
+                work["response_bytes"] = size
+            if work["response_bytes"] > max_response_bytes:
+                raise ValueError("search response framing exceeded its reserved overhead")
+            return result
         finally:
             db.close()
 
