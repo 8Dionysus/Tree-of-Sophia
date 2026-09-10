@@ -323,12 +323,12 @@ across requests/restarts. SQLite may use its ordinary WAL coordination sidecars;
 `mode=ro` and `query_only` prohibit database writes, not SQLite's filesystem
 coordination protocol.
 
-Search, lens, focus and exploration are not yet supported by this opt-in slice;
-exploration reports unavailable. The default, without these two arguments,
+Search, lens and focus are not yet supported by this opt-in slice.
+Exploration uses the prepared service described below. The default, without these two arguments,
 retains the existing compatibility route. This is not completion of the broader
 cold-reader or addressed-source publication work, nor a production activation.
 
-The separate `PublishedExplorationService(reader, ...)` API provides native-v6
+`PublishedExplorationService(reader, ...)` provides native-v6
 exploration over the same pinned reader. Each page uses bounded identity and
 two-sided adjacency keyset windows; it does not load the catalog, build a graph,
 count the whole neighborhood or use offset scans. Its full stream preserves
@@ -355,8 +355,13 @@ rollback journal can temporarily add approximately one database cap plus SQLite
 headers. Expired and evicted records are pruned on successful transactions and
 free pages reused; this is disposable query state, not source history. Replay and
 successor must fit together. The capability response exposes the actual mode,
-limits, database cap, overhead and cleanup boundary. This service API alone does
-not activate the core/server route or establish real-corpus performance.
+limits, database cap, overhead and cleanup boundary. The explicitly selected
+prepared core routes `knowledge_explore` and its capability response to this
+same service. `ToSAccessCore.discover(..., published_exploration_checkpoint_path=...)`
+selects persistent checkpoints; without that additional constructor argument,
+the prepared core keeps process-local checkpoints. No environment variable,
+request field or default server configuration activates persistence. This wiring
+does not establish real-corpus performance or a deployed service.
 
 ## Constructor boundaries
 

@@ -44,6 +44,7 @@ from .search_read_model import (
 from .exploration import ExplorationService, exploration_capabilities
 from .temporal_comparison import compare_temporal_claims
 from .published_read_model import PublishedKnowledgeReadModel, PublishedReadModelError
+from .published_exploration import PublishedExplorationService
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -485,6 +486,7 @@ class ToSAccessCore:
     search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS
     published_read_model_path: Path | None = None
     published_read_model_expected: dict[str, Any] | None = None
+    published_exploration_checkpoint_path: Path | None = None
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
     _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
@@ -521,6 +523,8 @@ class ToSAccessCore:
     def __post_init__(self):
         if (self.published_read_model_path is None) != (self.published_read_model_expected is None):
             raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
+        if self.published_exploration_checkpoint_path is not None and self.published_read_model_path is None:
+            raise ValueError("persistent exploration checkpoints require an explicitly selected prepared reader")
         if self.published_read_model_path is not None:
             path = Path(self.published_read_model_path).expanduser()
             if not path.is_absolute():
@@ -534,15 +538,22 @@ class ToSAccessCore:
                 self.search_read_model_path = self.tos_root / self.search_read_model_path
         if self.search_read_model_max_bytes < 4096:
             raise ValueError("search_read_model_max_bytes must be at least one SQLite page")
-        self._exploration = ExplorationService(self.knowledge_graph)
+        if self._prepared_reader is None:
+            self._exploration = ExplorationService(self.knowledge_graph)
+        else:
+            checkpoint = self.published_exploration_checkpoint_path
+            if checkpoint is not None:
+                checkpoint = Path(checkpoint).expanduser()
+                if not checkpoint.is_absolute():
+                    checkpoint = self.tos_root / checkpoint
+            self._exploration = PublishedExplorationService(self._prepared_reader, checkpoint_path=checkpoint)
 
     def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
         return self._exploration.explore(request)
 
     def knowledge_exploration_contracts(self) -> dict[str, Any]:
-        capabilities = exploration_capabilities()
-        if self._prepared_reader is not None:
-            capabilities["available"] = False
+        capabilities = (self._exploration.capability() if self._prepared_reader is not None
+                        else exploration_capabilities())
         return {
             "capabilities": capabilities,
             "request": _read_json(self.tos_root / "access/contracts/exploration-request.v1.schema.json"),
@@ -568,11 +579,12 @@ class ToSAccessCore:
         search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
         published_read_model_path: str | Path | None = None,
         published_read_model_expected: dict[str, Any] | None = None,
+        published_exploration_checkpoint_path: str | Path | None = None,
     ) -> "ToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
-        The prepared route currently serves catalog and full node/relation
-        inspection only. Other knowledge operations refuse instead of silently
+        The prepared route serves catalog, full node/relation inspection and
+        bounded exploration. Other knowledge operations refuse instead of silently
         rebuilding the graph. No environment variable activates this opt-in.
         """
         root = _discover_root(tos_root)
@@ -651,6 +663,8 @@ class ToSAccessCore:
             search_read_model_max_verify_chars=search_read_model_max_verify_chars,
             published_read_model_path=Path(published_read_model_path) if published_read_model_path is not None else None,
             published_read_model_expected=published_read_model_expected,
+            published_exploration_checkpoint_path=(Path(published_exploration_checkpoint_path)
+                                                  if published_exploration_checkpoint_path is not None else None),
         )
 
     def index_exists(self) -> bool:

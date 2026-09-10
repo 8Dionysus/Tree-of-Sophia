@@ -224,6 +224,33 @@ class PublishedExplorationTests(unittest.TestCase):
         return PublishedExplorationService(self.reader, checkpoint_path=self.path.parent / "checkpoints.sqlite",
                                            work_limit=2, **options)
 
+    def test_core_prepared_exploration_routes_without_fallback_and_persists_explicitly(self):
+        checkpoint = self.path.parent / "core-checkpoints.sqlite"
+        before = hashlib.sha256(self.path.read_bytes()).hexdigest()
+        def core(**options):
+            return ToSAccessCore.discover(self.root, published_read_model_path=self.path,
+                                         published_read_model_expected=self.binding, **options)
+        with patch("tos_access.core.build_knowledge_graph", side_effect=AssertionError("full graph")), patch(
+                "tos_access.search_read_model.SQLiteKnowledgeSearchReadModel._snapshot_digest", side_effect=AssertionError("whole digest")):
+            default = core()
+            self.assertIs(default._exploration.reader, default._prepared_reader)
+            self.assertFalse(default.knowledge_exploration_contracts()["capabilities"]["restart_survival"])
+            self.assertFalse(checkpoint.exists())
+            selected = core(published_exploration_checkpoint_path=checkpoint)
+            capabilities = selected.knowledge_exploration_contracts()["capabilities"]
+            self.assertTrue(capabilities["available"])
+            self.assertTrue(capabilities["restart_survival"])
+            self.assertEqual(capabilities["storage"], "owner-selected-private-sqlite")
+            first = selected.knowledge_explore({"focus_node_id": "node:00", "profile": "all",
+                                               "max_depth": 3, "page_nodes": 1, "page_relations": 1})
+            request = {"cursor": first["page"]["next_cursor"]}
+            result = selected.knowledge_explore(request)
+            restarted = core(published_exploration_checkpoint_path=checkpoint)
+            self.assertEqual(restarted.knowledge_explore(request), result)
+        self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(), before)
+        with self.assertRaises(ValueError):
+            ToSAccessCore.discover(self.root, published_exploration_checkpoint_path=checkpoint)
+
     def test_persistent_restart_concurrent_replay_and_successor_are_atomic(self):
         first = self.persistent().explore({"focus_node_id": "node:00", "max_depth": 3})
         request = {"cursor": first["page"]["next_cursor"]}

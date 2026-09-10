@@ -117,7 +117,8 @@ with patch('tos_access.core.build_knowledge_graph', side_effect=AssertionError('
     assert core.knowledge_catalog()['schema'] == 'tos_knowledge_catalog_v1'
     assert core.knowledge_node(sys.argv[4])['matches']
     assert core.knowledge_relation(sys.argv[5])['endpoints']
-    assert core.knowledge_exploration_contracts()['capabilities']['available'] is False
+    assert core.knowledge_exploration_contracts()['capabilities']['available'] is True
+    assert core.knowledge_explore({'focus_node_id': sys.argv[4], 'max_depth': 0})['status'] == 'complete'
     try: core.knowledge_graph()
     except PublishedReadModelError: pass
     else: raise AssertionError('hidden fallback')
