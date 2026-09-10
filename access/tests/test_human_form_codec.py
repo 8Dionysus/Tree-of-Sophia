@@ -11,7 +11,7 @@ from tos_access.human_form_codec import (
     ROLES, WIRE_BUDGET, bounded_cost, decode_human_form_selection,
     encode_human_form_selection,
 )
-from tos_access.knowledge import select_human_forms
+from tos_access.knowledge import _form_delivery_cost, select_human_forms
 
 
 def ref(name):
@@ -59,6 +59,7 @@ class HumanFormCodecTests(unittest.TestCase):
             expected = len(json.dumps(value, ensure_ascii=False).encode('utf-8', errors='backslashreplace'))
             with self.subTest(value=repr(value)):
                 self.assertEqual(bounded_cost(value, expected), expected)
+                self.assertEqual(_form_delivery_cost(value), expected)
                 with self.assertRaises(ValueError):
                     bounded_cost(value, expected - 1)
 

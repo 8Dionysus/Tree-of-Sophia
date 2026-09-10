@@ -654,7 +654,7 @@ HUMAN_FORM_SELECTION_BUDGET = 16_384
 def _form_delivery_cost(value: Any) -> int:
     """Conservative JSON byte ceiling, shared with the Worker (not token cost)."""
     if isinstance(value, str):
-        return len(json.dumps(value, ensure_ascii=False).encode('utf-8', errors='backslashreplace'))
+        return len(json.encoder.encode_basestring(value).encode('utf-8', errors='backslashreplace'))
     if value is None or isinstance(value, bool):
         return 5
     if isinstance(value, (int, float)):
