@@ -293,6 +293,20 @@
       "disposition": "keep"
     },
     {
+      "path": "scripts/native_owner_ocr.py",
+      "family": "projection_helper",
+      "organ_lane": "shared-library",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md",
+      "source_truth": ["ToS/contracts/source-text-layer.schema.json", "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md"],
+      "reads": ["independently pinned clean abyss-stack verifier source and exact existing-key signed execution metadata", "separately granted exact owner OCR output only during recording; copied receipt/signature/public-key metadata only during native metadata resolution"],
+      "writes": [],
+      "side_effects": "shell-free bounded invocation of the exact owner verification modes only; never OCR execution, runtime provisioning, network, retry execution, rights or quality admission",
+      "validation_lane": "source_witness_foundation",
+      "ci_inclusion": "focused-tests",
+      "test_target": "mechanics/growth-cycle/tests/test_source_text_layer_commands.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/native_text_layer_assessment.py",
       "family": "source_assessment_selection",
       "organ_lane": "mechanics/part-owned",
@@ -430,6 +444,20 @@
       "validation_lane": "mechanics_local",
       "ci_inclusion": "release",
       "test_target": "mechanics/growth-cycle/tests/test_source_alignment_commands.py",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_public_native_commands.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md",
+      "source_truth": ["ToS/contracts/public-native-text-create-owner.schema.json", "ToS/contracts/public-native-text-authority.schema.json", "ToS/contracts/source-text-layer.schema.json", "ToS/contracts/source-anchor-v2.schema.json", "ToS/contracts/source-text-unit-packet-v1.schema.json", "ToS/contracts/rights-record.schema.json"],
+      "reads": ["independent protected current-account public-native grant, exact retained operator scope, positive output rights and license bindings before source text", "bounded project-authored UTF-8 range with existing acquired native corpus metadata, exact public source dependencies, native identity inventory and retained retry files"],
+      "writes": ["one new exact public native layer/anchor/first-segmentation/content package with public plan, input/runtime/request/provenance and source-create receipt", "source and recovery locks plus private retained plan/output outside source discovery using the common no-replace installer"],
+      "side_effects": "literal public project-text native construction, exact replay and inspected recovery; no private-grant expansion, third-party import, source overwrite, rights creation, implicit Occurrence, linguistic judgment, assessment, admission, external publication or deployment",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_source_public_native_commands.py",
       "disposition": "keep"
     },
     {
