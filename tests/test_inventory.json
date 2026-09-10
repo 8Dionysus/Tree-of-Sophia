@@ -171,6 +171,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_published_exploration.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "standalone_access_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/src/tos_access/published_exploration.py",
+      "protects": "native-v6 full-stream and typed-origin parity over bounded published keyset reads, source-checked replay, optional private restart checkpoints, atomic cross-process continuation and fail-closed rollback",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_published_exploration.py",
+      "failure_route": "Fix prepared traversal or disposable checkpoint transactions without full graph construction, hidden source writes, stale replay, changed native page semantics or dangling continuation state.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_incremental_runtime.py",
       "home": "access",
       "home_scope": "product-local",

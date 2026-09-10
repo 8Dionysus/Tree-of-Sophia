@@ -328,6 +328,36 @@ exploration reports unavailable. The default, without these two arguments,
 retains the existing compatibility route. This is not completion of the broader
 cold-reader or addressed-source publication work, nor a production activation.
 
+The separate `PublishedExplorationService(reader, ...)` API provides native-v6
+exploration over the same pinned reader. Each page uses bounded identity and
+two-sided adjacency keyset windows; it does not load the catalog, build a graph,
+count the whole neighborhood or use offset scans. Its full stream preserves
+native query, ordering, work units, page limits, v2 origin closure and terminal
+status. The opaque snapshot hash is instead SHA256 of compact JSON containing
+`tos_published_exploration_snapshot_v1`, the native execution version and the
+complete selected publication binding. Random cursors and this runtime-specific
+hash are not portable identifiers.
+
+By default checkpoints remain bounded process memory and do not survive restart.
+An explicit constructor-only `checkpoint_path` selects a separate private 0600
+SQLite query-state file and reports `restart_survival: true`. The parent directory
+must already exist. The source read model and symlink paths are refused. A
+cross-process write transaction atomically commits replay and successor after
+the read-only source snapshot check; failures leave the previous state intact.
+Every replay rechecks the selected source binding and epoch. UTC wall-clock
+expiry persists across restart; backwards clock movement refuses without changes.
+Schema/execution mismatch, busy state or corruption fails closed without reset,
+migration or source revision reselection.
+
+Persistent capacity separately limits records, logical payload bytes and SQLite
+database pages. DELETE-journal mode avoids unbounded WAL growth; a transaction's
+rollback journal can temporarily add approximately one database cap plus SQLite
+headers. Expired and evicted records are pruned on successful transactions and
+free pages reused; this is disposable query state, not source history. Replay and
+successor must fit together. The capability response exposes the actual mode,
+limits, database cap, overhead and cleanup boundary. This service API alone does
+not activate the core/server route or establish real-corpus performance.
+
 ## Constructor boundaries
 
 Construction coverage is deliberately bounded: selectors, type ancestry,

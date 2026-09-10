@@ -228,6 +228,7 @@ class PublishedKnowledgeReadModel:
     def _read(self, operation: Callable[[_Read, dict], Any]):
         before = _file_state(self.path)
         read = None
+        operation_running = False
         try:
             with closing(self._connect()) as connection:
                 if _file_state(self.path) != before:
@@ -238,8 +239,14 @@ class PublishedKnowledgeReadModel:
                 indexes = read.query("SELECT name FROM sqlite_master WHERE type='index' AND name IN (SELECT value FROM json_each(?))", (_compact(_INDEXES),))
                 if {row["name"] for row in indexes} != set(_INDEXES):
                     raise PublishedReadModelError("prepared reader adjacency/identity migration is unavailable")
+                operation_running = True
                 result = operation(read, top)
-                if len(_compact(result).encode("utf-8")) > self.limits.max_response_bytes:
+                operation_running = False
+                try:
+                    response_bytes = len(_compact(result).encode("utf-8"))
+                except (UnicodeError, ValueError, RecursionError) as error:
+                    raise PublishedReadModelError("prepared response contains invalid JSON values") from error
+                if response_bytes > self.limits.max_response_bytes:
                     raise PublishedReadBudgetExceeded("prepared response exceeds its byte budget")
                 connection.execute("COMMIT")
                 # New read transaction: the previous transaction could legally
@@ -252,8 +259,12 @@ class PublishedKnowledgeReadModel:
                 return result
         except PublishedReadModelError:
             raise
-        except (UnicodeError, ValueError, RecursionError) as error:
+        except (UnicodeError, RecursionError) as error:
             raise PublishedReadModelError("prepared response contains invalid JSON values") from error
+        except ValueError as error:
+            if operation_running:
+                raise  # Preserve the query API's typed validation/conflict errors.
+            raise PublishedReadModelError("prepared metadata contains invalid JSON values") from error
         except sqlite3.Error as error:
             if read is not None and read.exhausted:
                 raise PublishedReadBudgetExceeded("prepared inspection exceeds its SQLite work budget") from error
