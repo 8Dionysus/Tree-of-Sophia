@@ -19,7 +19,16 @@ and all members must be Artifacts, not digital Items, intellectual portions
 or scholarly composites. Joining, position, original completeness, custody
 and restoration are not inferred from component membership.
 
-All three reuse `structured-reference-value-v1` with the explicit
+Entity registry 34 / relation registry 39 add `collection_member_order`
+(Collection → qualified Work ordering). Its `collection-membership-versions-v1`
+basis adapter binds an exact Collection version and one existing positive
+`contains_work` Claim version per member, rather than creating membership.
+Current and retained native versions are resolved without latest fallback;
+retained legacy Collection streams expose only their available current version
+and explicitly do not claim a native correction chain. Missing basis bytes
+refuse preparation or projection; they never invent historical membership.
+
+All four reuse `structured-reference-value-v1` with the explicit
 `object_reference_set.structure_adapter: scoped-members-v1`. Concrete profile
 bounds remain authoritative: existing motif proposals still permit only 2–8
 Occurrences; these structural profiles permit 1–128 members. The shared schema
@@ -47,8 +56,8 @@ source-visible quality assessment. No template infers order from labels or
 serialization. Existing publication-Collection membership remains on its
 separate `contains_work` compound-operation route.
 
-These contracts provide bounded intellectual/physical parts and research
-membership, not automatic publication-Collection order or a global
+These contracts provide bounded intellectual/physical parts, research
+membership and attributed publication-Collection order, not a global
 accepted containment DAG. A future concrete predicate can reuse the adapter
 and shared shape without adding a per-type writer or graph screen; its meaning,
 endpoint family, evidence, schema and review route must still be declared.

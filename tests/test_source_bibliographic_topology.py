@@ -20,7 +20,7 @@ import source_owner_claim_commands
 from source_bibliographic_topology import (
     BibliographicTopologyError, validate_current_topology, validate_work_expression_delta, validate_expression_edition_delta,
 )
-from source_record_profiles import SourceClaimProfiles, SourceProfileError, SourceRecordProfiles
+from source_record_profiles import SourceClaimProfiles, SourceProfileError, SourceRecordProfiles, ground_collection_order
 from validate_source_witness_foundation import _legacy_topology_configuration, _topology_evidence_matches
 
 
@@ -38,11 +38,11 @@ class ScopedCompositionTests(unittest.TestCase):
 
     def fixture(self, kind='intellectual-part-composition', count=3):
         _, _, _, claim = delta()
-        member_kind = 'artifact' if kind == 'physical-part-composition' else 'textual-fragment'
+        member_kind = {'physical-part-composition': 'artifact', 'collection-member-order': 'work'}.get(kind, 'textual-fragment')
         members = [f'tos.{member_kind}.synthetic.{index}' for index in range(count)]
         subject_kind = {'intellectual-part-composition': 'work',
                         'physical-part-composition': 'artifact',
-                        'research-corpus-membership': 'research-corpus'}[kind]
+                        'research-corpus-membership': 'research-corpus', 'collection-member-order': 'collection'}[kind]
         subject = WORK_ID if subject_kind == 'work' else f'tos.{subject_kind}.synthetic'
         value = {'kind': kind, 'members': members,
             'source_wording': {'text': 'Synthetic scoped composition; no source truth claimed.', 'language': 'en', 'script': 'Latn'},
@@ -54,12 +54,16 @@ class ScopedCompositionTests(unittest.TestCase):
             'extensions': {'unknown': [None, False, 0], 'members': ['tos.agent.inert']}}
         claim.update(schema_version='tos_source_member_structure_claim_v1', subject_ref=subject,
             predicate=kind.replace('-', '_'), object=value, assertion_layer='scholarly_report')
+        if kind == 'collection-member-order':
+            value['collection_version'] = {'id': subject, 'version': 4, 'digest': 'sha256:' + 'c' * 64}
+            value['membership_versions'] = [{'id': f'tos.claim.member.{index}', 'version': 1,
+                'digest': 'sha256:' + 'd' * 64} for index in range(count)]
         objects = {subject: {'record_id': subject, 'record_type': subject_kind}}
         objects.update({ref: {'record_id': ref, 'record_type': member_kind} for ref in members})
         return claim, objects
 
     def test_typed_parts_and_corpus_members_preserve_complete_value_and_dependencies(self):
-        for kind in ('intellectual-part-composition', 'physical-part-composition', 'research-corpus-membership'):
+        for kind in ('intellectual-part-composition', 'physical-part-composition', 'research-corpus-membership', 'collection-member-order'):
             with self.subTest(kind=kind):
                 claim, objects = self.fixture(kind)
                 original = copy.deepcopy(claim)
@@ -68,6 +72,101 @@ class ScopedCompositionTests(unittest.TestCase):
                 self.assertEqual(claim, original)
                 self.assertNotIn(claim['claim_id'], self.profiles.identity_refs(claim))
                 self.assertNotIn('tos.agent.inert', self.profiles.identity_refs(claim))
+
+    def order_basis(self):
+        claim, objects = self.fixture('collection-member-order')
+        value = claim['object']
+        def provenance(name):
+            return {'catalog': {'source_ref': 'catalog/' + name, 'sha256': 'sha256:' + '1' * 64},
+                    'history': {'source_ref': None, 'sha256': None},
+                    'source': {'source_ref': name, 'record_sha256': 'sha256:' + '2' * 64, 'archive_blob_ref': None}}
+        collection = {'status': 'available', 'record': {'record_id': claim['subject_ref'], 'record_type': 'collection',
+            'membership_claim_refs': [ref['id'] for ref in value['membership_versions']]},
+            'provenance': provenance('collection.json'), 'version_status': 'historical'}
+        memberships = {ref['id']: {'status': 'available', 'record': {
+            'schema_version': 'tos_claim_packet_v1', 'claim_type': 'bibliographic',
+            'assertion_layer': 'bibliographic_assertion',
+            'predicate': 'contains_work', 'subject_ref': claim['subject_ref'], 'object': member},
+            'provenance': provenance(ref['id']), 'version_status': 'current'}
+            for ref, member in zip(value['membership_versions'], value['members'])}
+        return claim, objects, collection, memberships
+
+    def test_collection_order_uses_exact_historical_basis_without_creating_membership(self):
+        claim, objects, collection, memberships = self.order_basis()
+        self.profiles.validate(claim, objects)
+        original = copy.deepcopy((claim, collection, memberships))
+        metadata, claims = Mock(), Mock()
+        metadata.resolve.return_value = collection
+        claims.resolve.side_effect = lambda ref: memberships[ref['id']]
+        result = ground_collection_order(claim, metadata, claims)
+        metadata.resolve.assert_called_once_with(claim['object']['collection_version'])
+        self.assertEqual([call.args[0] for call in claims.resolve.call_args_list], claim['object']['membership_versions'])
+        self.assertFalse(result['establishes_membership'])
+        self.assertFalse(result['grants_admission'])
+        self.assertEqual(result['collection']['version_status'], 'historical')
+        self.assertEqual((claim, collection, memberships), original)
+        metadata.verify_current.assert_called_once()
+        claims.verify_current.assert_called_once()
+
+    def test_collection_order_rejects_wrong_basis_without_latest_fallback(self):
+        changes = ('metadata-missing', 'wrong-collection', 'wrong-type', 'undeclared',
+                   'membership-missing', 'negative', 'wrong-predicate', 'wrong-subject', 'wrong-member', 'duplicate-member',
+                   'native-missing-polarity')
+        for change in changes:
+            with self.subTest(change=change):
+                claim, objects, collection, memberships = self.order_basis()
+                first = next(iter(memberships.values()))
+                if change == 'metadata-missing':
+                    collection.update(status='missing', reason='exact-version-not-retained')
+                elif change == 'wrong-collection':
+                    collection['record']['record_id'] = 'tos.collection.other'
+                elif change == 'wrong-type':
+                    collection['record']['record_type'] = 'work'
+                elif change == 'undeclared':
+                    collection['record']['membership_claim_refs'] = []
+                elif change == 'membership-missing':
+                    first.update(status='missing', reason='exact-version-not-retained')
+                elif change == 'negative':
+                    first['record']['polarity'] = 'negative'
+                elif change == 'wrong-predicate':
+                    first['record']['predicate'] = 'related_to'
+                elif change == 'wrong-subject':
+                    first['record']['subject_ref'] = 'tos.collection.other'
+                elif change == 'wrong-member':
+                    first['record']['object'] = 'tos.work.outside'
+                elif change == 'duplicate-member':
+                    first['record']['object'] = list(memberships.values())[1]['record']['object']
+                else:
+                    first['record'].update(schema_version='tos_source_relation_claim_v1', claim_type='relation')
+                metadata, claims = Mock(), Mock()
+                metadata.resolve.return_value = collection
+                claims.resolve.side_effect = lambda ref: memberships[ref['id']]
+                with self.assertRaises(SourceProfileError):
+                    ground_collection_order(claim, metadata, claims)
+
+    def test_collection_binding_shape_cannot_hide_authority_in_an_extension(self):
+        for change in ('missing', 'wrong-collection', 'duplicate', 'short', 'bool-version', 'wrong-kind'):
+            with self.subTest(change=change):
+                claim, objects = self.fixture('collection-member-order')
+                value = claim['object']
+                if change == 'missing':
+                    value['extensions']['membership_versions'] = value.pop('membership_versions')
+                elif change == 'wrong-collection':
+                    value['collection_version']['id'] = 'tos.collection.other'
+                elif change == 'duplicate':
+                    value['membership_versions'][1] = copy.deepcopy(value['membership_versions'][0])
+                elif change == 'short':
+                    value['membership_versions'].pop()
+                elif change == 'bool-version':
+                    value['collection_version']['version'] = True
+                else:
+                    value['membership_versions'][0]['id'] = 'tos.work.not-a-claim'
+                with self.assertRaises(SourceProfileError):
+                    self.profiles.validate(claim, objects)
+        claim, objects = self.fixture()
+        claim['object']['collection_version'] = {'id': 'tos.collection.synthetic', 'version': 1, 'digest': 'sha256:' + 'c' * 64}
+        with self.assertRaises(SourceProfileError):
+            self.profiles.validate(claim, objects)
 
     def test_physical_parts_do_not_recast_digital_items_or_intellectual_parts(self):
         for wrong_kind in ('item', 'work', 'textual-fragment', 'composite', 'research-corpus'):

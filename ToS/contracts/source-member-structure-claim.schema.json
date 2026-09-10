@@ -7,7 +7,7 @@
     {"required": ["qualifiers"], "properties": {
       "schema_version": {"const": "tos_source_member_structure_claim_v1"},
       "claim_type": {"const": "relation"},
-      "predicate": {"enum": ["intellectual_part_composition", "physical_part_composition", "research_corpus_membership"]},
+      "predicate": {"enum": ["intellectual_part_composition", "physical_part_composition", "research_corpus_membership", "collection_member_order"]},
       "object": {"$ref": "https://tree-of-sophia.local/ToS/contracts/scoped-member-structure.schema.json"},
       "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"], "properties": {
         "statement": {"type": "string", "pattern": "\\S"},
@@ -17,7 +17,8 @@
     }},
     {"if": {"properties": {"predicate": {"const": "intellectual_part_composition"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "intellectual-part-composition"}}}}}},
     {"if": {"properties": {"predicate": {"const": "research_corpus_membership"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "research-corpus-membership"}}}}}},
-    {"if": {"properties": {"predicate": {"const": "physical_part_composition"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "physical-part-composition"}}}}}}
+    {"if": {"properties": {"predicate": {"const": "physical_part_composition"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "physical-part-composition"}}}}}},
+    {"if": {"properties": {"predicate": {"const": "collection_member_order"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "collection-member-order"}}}}}}
   ],
   "unevaluatedProperties": false
 }

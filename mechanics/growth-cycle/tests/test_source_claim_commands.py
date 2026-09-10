@@ -130,6 +130,92 @@ class ReferenceValueAuthorizationTests(unittest.TestCase):
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_collection_order_create_replay_projection_and_missing_exact_basis(self):
+        """Artificial order over a test Collection, never evidence about an edition."""
+        from claim_revisions import _subject
+        from source_record_profiles import SourceProfileError
+        from build_source_witness_catalog import render_outputs, write_outputs
+        with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):
+            for name in ('source-structured-value', 'scoped-member-structure', 'source-member-structure-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            subject = 'tos.collection.synthetic.order'
+            collection_ref = 'ToS/source-witnesses/collections/synthetic/order/collection.json'
+            membership_ref = collection_ref.replace('collection.json', 'membership-claims.jsonl')
+            members = [claim['subject_ref']]
+            collection = {'schema_version': 'tos_corpus_record_v1', 'record_type': 'collection',
+                'record_id': subject, 'record_version': 1, 'preferred_label': 'Synthetic Collection',
+                'notes': 'Artificial fixture. No historical collection is asserted.',
+                'identity_status': 'provisional', 'variant_labels': [], 'external_identifiers': [],
+                'same_as_posture': 'no_equivalence_claim', 'source_refs': claim['evidence_refs'],
+                'membership_claim_refs': ['tos.claim.synthetic.membership'],
+                'field_languages': {field: {'language': 'en', 'script': 'Latn'} for field in ('preferred_label', 'notes')}}
+            membership = {**copy.deepcopy(claim), 'claim_id': collection['membership_claim_refs'][0],
+                'schema_version': 'tos_claim_packet_v1', 'claim_type': 'bibliographic',
+                'assertion_layer': 'bibliographic_assertion', 'subject_ref': subject,
+                'predicate': 'contains_work', 'object': members[0], 'reviews': [],
+                'provenance_event_ref': 'tos.event.historical-fixture-capture'}
+            membership.pop('polarity', None)
+            (root / collection_ref).parent.mkdir(parents=True)
+            (root / collection_ref).write_bytes(commands._canonical(collection))
+            original_membership = commands._canonical(membership) + b'\n'
+            (root / membership_ref).write_bytes(original_membership)
+            rebuild()
+            value = {'kind': 'collection-member-order', 'members': members,
+                'collection_version': {'id': subject, 'version': 1, 'digest': commands._digest(commands._canonical(collection))},
+                'membership_versions': [_subject(membership).ref],
+                'source_wording': {'text': 'Synthetic one-member order only.', 'language': 'en', 'script': 'Latn'},
+                'source_scope': 'This test selection.', 'coverage': 'partial',
+                'membership_basis': 'Exact test membership; not a new membership declaration.',
+                'ordering': {'mode': 'total', 'basis': 'Test ordering.', 'precedes': []},
+                'limitations': 'No historical order or accepted membership.'}
+            claim.update(schema_version='tos_source_member_structure_claim_v1', subject_ref=subject,
+                predicate='collection_member_order', object=value, assertion_layer='scholarly_report',
+                qualifiers={'statement': value['source_wording']['text'], 'statement_language': 'en', 'statement_script': 'Latn'})
+            creator.update(schema_version=commands.CLAIM_REFERENCE_CONFIG, allowed_predicates=[claim['predicate']],
+                allowed_subject_refs=[subject], allowed_object_refs=members, allowed_object_values=[copy.deepcopy(value)])
+            owner.write_text(json.dumps(creator))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            # Even a fresh exact-value grant cannot replace missing source evidence.
+            wrong = copy.deepcopy(value)
+            wrong['membership_versions'][0]['digest'] = 'sha256:' + 'f' * 64
+            creator['allowed_object_values'] = [wrong]
+            owner.write_text(json.dumps(creator))
+            with self.assertRaisesRegex(SourceProfileError, 'exact membership basis unavailable'):
+                commands.run_local_command(owner, {**proposal, 'claims': [{**claim, 'object': wrong}]})
+            self.assertFalse((root / creator['source_path']).parent.exists())
+            creator['allowed_object_values'] = [value]
+            owner.write_text(json.dumps(creator))
+            prepared = commands.run_local_command(owner, proposal)
+            basis = prepared['source_bindings']['collection_orders'][claim['claim_id']]
+            self.assertFalse(basis['establishes_membership'])
+            self.assertEqual(basis['memberships'][0]['ref'], value['membership_versions'][0])
+            request = {**proposal, 'operation': 'claims.create', 'command_id': 'synthetic:collection-order',
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings']}
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            projection = rebuild()
+            graph, _, _ = fixture.historical_knowledge(root, projection)
+            literal = next(node for node in graph['nodes'] if node['type_id'] == 'tos.entity.collection-member-order')
+            self.assertEqual(literal['attributes']['value'], value)
+            claim_node = next(node for node in projection['nodes'] if node.get('properties', {}).get('claim_ref') == claim['claim_id'])
+            self.assertEqual(claim_node['properties']['collection_order_basis']['memberships'][0]['ref'], value['membership_versions'][0])
+            self.assertEqual(projection['input_digests'][membership_ref], commands._digest(original_membership)[7:])
+            from tos_access.knowledge import focus_knowledge_node
+            for center in (subject, members[0]):
+                self.assertIn(claim['claim_id'], {node['entity_id'] for node in focus_knowledge_node(graph, center, depth=2)['nodes']})
+            self.assertEqual((root / collection_ref).read_bytes(), commands._canonical(collection))
+            self.assertEqual((root / membership_ref).read_bytes(), original_membership)
+            # Simulate loss of the bound legacy version in this disposable fixture.
+            # An unrelated newer version must not be silently substituted by the graph.
+            membership['claim_version'] += 1
+            (root / membership_ref).write_bytes(commands._canonical(membership) + b'\n')
+            write_outputs(root, render_outputs(root))
+            with self.assertRaisesRegex(SourceProfileError, 'exact membership basis unavailable'):
+                rebuild()
+
     def test_scoped_composition_create_revise_replay_and_member_focus(self):
         """Synthetic composition of real metadata; not a historical part claim."""
         with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):

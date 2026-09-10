@@ -18,6 +18,7 @@ from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms
 from source_object_link_read import LegacyObjectLinkReader
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
                                     SOURCE_CLAIM_BASENAME, CLAIM_REGISTRY_REF, CLAIM_CONTRACT_REF,
+                                    ground_collection_order,
                                     _read_json as _read_profile_json)
 from build_source_witness_catalog import (OPTIONAL_RECORD_FILES, ADAPTED_RECORD_FILES,
                                          CatalogBuildError, artifact_catalog_entry, load_artifact_record, load_link_record,
@@ -1308,6 +1309,7 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
     for record in objects.values():
         _add_node(nodes, _identity_node(record))
 
+    order_metadata_reader = order_claim_reader = None
     for entry in claim_entries:
         claim = _load_source_claim(entry, repo_root=repo_root, profiles=claim_profiles, legacy_links=legacy_links)
         if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
@@ -1338,6 +1340,16 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         _add_node(nodes, object_node)
 
         claim_node = _claim_node(entry, claim)
+        if (Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME
+                and claim_profiles.profiles[claim['predicate']].get('object_reference_set', {}).get(
+                    'basis_adapter') == 'collection-membership-versions-v1'):
+            if order_metadata_reader is None:
+                from metadata_version_reader import MetadataVersionReader
+                from claim_version_reader import ClaimVersionReader
+                order_metadata_reader, order_claim_reader = MetadataVersionReader(repo_root), ClaimVersionReader(repo_root)
+            claim_node['properties']['collection_order_basis'] = ground_collection_order(
+                claim, order_metadata_reader, order_claim_reader)
+            input_digests.update(claim_node['properties']['collection_order_basis']['input_digests'])
         if entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
             claim_node['properties'].update(legacy_links.context(entry['source_claim_line'], claim))
         descriptor = build_claim_navigation_descriptor(
@@ -1633,6 +1645,9 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         raise PublicationChanged('catalog bytes changed during bibliographic projection')
     if legacy_links is not None:
         legacy_links.verify_current()
+    if order_metadata_reader is not None:
+        order_metadata_reader.verify_current()
+        order_claim_reader.verify_current()
     return payload
 
 

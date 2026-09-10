@@ -21,8 +21,13 @@
       }
     },
     "limitations": {"$ref": "#/$defs/nonBlank"},
+    "collection_version": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"},
+    "membership_versions": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"}},
     "extensions": {"type": "object", "description": "Preserved without interpreting additional references or order rules."}
   },
+  "if": {"properties": {"kind": {"const": "collection-member-order"}}, "required": ["kind"]},
+  "then": {"required": ["collection_version", "membership_versions"]},
+  "else": {"not": {"anyOf": [{"required": ["collection_version"]}, {"required": ["membership_versions"]}]}},
   "unevaluatedProperties": false,
   "$defs": {
     "nonBlank": {"type": "string", "pattern": "\\S"},

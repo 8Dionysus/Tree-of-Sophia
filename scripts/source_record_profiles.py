@@ -161,6 +161,72 @@ def validate_member_structure(claim):
                 ready.append(after)
     if visited != len(members):
         raise SourceProfileError('composition order is cyclic within this Claim')
+    if value['kind'] == 'collection-member-order':
+        collection = value['collection_version']
+        bindings = value['membership_versions']
+        if (not identity_proposals.exact_ref(collection)
+                or collection['id'] != claim['subject_ref'] or not collection['id'].startswith('tos.collection.')
+                or len(bindings) != len(members)
+                or len({ref['id'] for ref in bindings}) != len(bindings)
+                or any(not identity_proposals.exact_ref(ref, claim=True) for ref in bindings)):
+            raise SourceProfileError('Collection order requires one exact membership binding per member and its own Collection version')
+
+
+def ground_collection_order(claim, metadata_reader, claim_reader):
+    """Verify an attributed order's existing membership basis, not its truth.
+
+    Historical refs remain historical: current endpoint labels cannot rebind
+    the order. Missing old bytes fail closed. Callers retain returned bindings
+    and verify both reader snapshots before publication.
+    """
+    value = claim['object']
+    collection = metadata_reader.resolve(value['collection_version'])
+    if collection['status'] != 'available':
+        raise SourceProfileError('Collection order exact metadata basis unavailable: ' + str(collection['reason']))
+    record = collection['record']
+    if record.get('record_type') != 'collection' or record.get('record_id') != claim['subject_ref']:
+        raise SourceProfileError('Collection order metadata basis has wrong identity or type')
+    declared = record.get('membership_claim_refs', [])
+    bound, members, input_digests = [], set(), {}
+    def bind_files(provenance):
+        # These are fixed verifier-owned fields, never arbitrary source JSON.
+        for section in ('catalog', 'history'):
+            item = provenance[section]
+            if item.get('source_ref') is not None and item.get('sha256') is not None:
+                input_digests[item['source_ref']] = item['sha256'].removeprefix('sha256:')
+        item = provenance['source']
+        location = item['archive_blob_ref'] or item['source_ref']
+        input_digests[location] = (item.get('record_sha256') or item['stream_sha256']).removeprefix('sha256:')
+        if item.get('archive_manifest_ref') is not None:
+            input_digests[item['archive_manifest_ref']] = item['archive_manifest_sha256'].removeprefix('sha256:')
+    bind_files(collection['provenance'])
+    for ref in value['membership_versions']:
+        result = claim_reader.resolve(ref)
+        if result['status'] != 'available':
+            raise SourceProfileError('Collection order exact membership basis unavailable: ' + str(result['reason']))
+        member = result['record']
+        legacy = (member.get('schema_version') == 'tos_claim_packet_v1'
+                  and member.get('claim_type') == 'bibliographic')
+        native = (member.get('schema_version') == 'tos_source_relation_claim_v1'
+                  and member.get('claim_type') == 'relation')
+        if (not (legacy or native)
+                or member.get('assertion_layer') not in {'bibliographic_assertion', 'scholarly_report'}
+                or ref['id'] not in declared or member.get('subject_ref') != claim['subject_ref']
+                or member.get('predicate') != 'contains_work'
+                or member.get('polarity', 'positive' if legacy else None) != 'positive'
+                or member.get('object') not in value['members'] or member['object'] in members):
+            raise SourceProfileError('Collection order binding is not distinct positive membership in the exact Collection')
+        members.add(member['object'])
+        bind_files(result['provenance'])
+        bound.append({'ref': ref, 'provenance': result['provenance'], 'version_status': result['version_status']})
+    if members != set(value['members']):
+        raise SourceProfileError('Collection order does not close over its exact member set')
+    metadata_reader.verify_current()
+    claim_reader.verify_current()
+    return {'collection': {'ref': value['collection_version'], 'provenance': collection['provenance'],
+                           'version_status': collection['version_status']}, 'memberships': bound,
+            'input_digests': dict(sorted(input_digests.items())),
+            'establishes_membership': False, 'grants_admission': False}
 
 
 class SourceRecordProfiles:
@@ -532,6 +598,14 @@ class SourceClaimProfiles:
                 raise SourceProfileError('semantic relation profile requires a semantic endpoint')
             if profile['reader'] == REFERENCE_VALUE_READER:
                 members = profile['object_reference_set']
+                if (('basis_adapter' in members or profile['value_kind'] == 'collection-member-order')
+                        and (members.get('basis_adapter') != 'collection-membership-versions-v1'
+                             or members.get('structure_adapter') != 'scoped-members-v1'
+                             or profile['value_kind'] != 'collection-member-order'
+                             or predicate != 'collection_member_order'
+                             or entry['domain_type_ids'] != ['tos.entity.collection']
+                             or members['member_type_ids'] != ['tos.entity.work'])):
+                    raise SourceProfileError('Collection order requires its exact membership basis adapter and endpoint types')
                 if members['min_items'] > members['max_items']:
                     raise SourceProfileError('reference value member bounds are reversed')
                 for type_id in members['member_type_ids']:

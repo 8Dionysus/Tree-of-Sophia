@@ -71,6 +71,21 @@ component membership alone proves neither a join, relative placement, original
 completeness nor successful restoration. This is not custody or ownership.
 Any relative order retains its physical/source basis and temporal scope.
 
+`collection_member_order` orders Works already linked through `contains_work`;
+it does not create or duplicate membership. Its whole value binds one exact
+Collection metadata version and exactly one positive membership Claim version
+for each selected Work. Every membership must be declared by that Collection
+version. Those versions may be retained historical versions; a later label,
+description or membership change does not silently rebind this order.
+Missing exact bytes are unavailable, never permission to substitute the latest.
+Legacy `collections/<owner>/<collection>/membership-claims.jsonl` has a narrow
+current-only exact reader, with no claim of a native correction chain or
+fabricated pre-baseline history. Its absent polarity retains the declared
+positive legacy membership meaning; native Claims require explicit polarity.
+Preparation and projection verify the same basis. Structural verification
+does not admit membership truth or ordering quality. The entire exact value,
+including its version bindings, requires a separately scoped write grant.
+
 The shared `scoped-members-v1` adapter treats `/object/members` as an unordered
 typed dependency set, bounded at 128 members per Claim. Its separate ordering
 is `unordered`, `partial` or `total`, with a source-stated basis and explicit

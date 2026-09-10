@@ -14,7 +14,7 @@ import time
 import source_commands as source
 import source_command_contracts as contract
 import source_identity_proposals as identity_proposals
-from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles, SOURCE_CLAIM_BASENAME
+from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles, SOURCE_CLAIM_BASENAME, ground_collection_order
 
 OPERATION = 'claims.create'
 MODULE_REF = 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py'
@@ -251,12 +251,17 @@ def _ground_claims(config, claims, *, initial):
         raise ValueError('initial claim stream exceeds its bounded byte budget')
     source_bindings = {'objects': {}, 'evidence': {}}
     proposals = [claim for claim in claims if profiles.profiles[claim['predicate']]['reader'] == identity_proposals.READER]
-    if proposals:
+    orders = [claim for claim in claims if profiles.profiles[claim['predicate']].get(
+        'object_reference_set', {}).get('basis_adapter') == 'collection-membership-versions-v1']
+    if proposals or orders:
         from metadata_version_reader import MetadataVersionReader
         from claim_version_reader import ClaimVersionReader
         metadata_reader, claim_reader = MetadataVersionReader(root), ClaimVersionReader(root)
         source_bindings['identity_proposals'] = {claim['claim_id']: identity_proposals.ground(
             claim, profiles, metadata_reader, claim_reader) for claim in proposals}
+        if orders:
+            source_bindings['collection_orders'] = {claim['claim_id']: ground_collection_order(
+                claim, metadata_reader, claim_reader) for claim in orders}
     for identity in sorted({identity for claim in claims for identity in profiles.identity_refs(claim)}):
         entry = objects[identity]
         source_raw = source._read(root / entry['source_record_ref'], source.MAX_SET_BYTES)
@@ -293,6 +298,9 @@ def _ground_claims(config, claims, *, initial):
              'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
              'scripts/build_source_witness_catalog.py',
              'scripts/source_witness_bibliographic_graph_common.py')}}))
+    if proposals or orders:
+        metadata_reader.verify_current()
+        claim_reader.verify_current()
     return {SOURCE_CLAIM_BASENAME: raw}, dependencies, source_bindings
 
 

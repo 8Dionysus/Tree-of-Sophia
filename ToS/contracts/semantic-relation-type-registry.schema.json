@@ -109,6 +109,7 @@
             "min_items": {"type": "integer", "minimum": 1, "maximum": 128},
             "max_items": {"type": "integer", "minimum": 1, "maximum": 128},
             "structure_adapter": {"const": "scoped-members-v1", "description": "Execute the shared bounded composition/order contract, including no self membership, exact member closure, local acyclicity and total-order completeness. No other JSON fields select code."},
+            "basis_adapter": {"const": "collection-membership-versions-v1", "description": "Require exact Collection metadata and contains_work Claim versions; order cannot independently create membership."},
             "subject_is_member": {"type": "boolean"}
           }
         },

@@ -295,5 +295,62 @@ class ClaimVersionReaderTests(unittest.TestCase):
                 self.resolve(invalid)
 
 
+class LegacyMembershipReaderTests(unittest.TestCase):
+    setUp = ClaimVersionReaderTests.setUp
+    sync_catalog = ClaimVersionReaderTests.sync_catalog
+    change_catalog = ClaimVersionReaderTests.change_catalog
+    resolve = ClaimVersionReaderTests.resolve
+    assert_unavailable = ClaimVersionReaderTests.assert_unavailable
+    def legacy(self):
+        self.relative = 'ToS/source-witnesses/collections/synthetic/volume/membership-claims.jsonl'
+        self.path = self.root / self.relative
+        self.path.parent.mkdir(parents=True)
+        self.record.update(schema_version='tos_claim_packet_v1', claim_type='bibliographic',
+            predicate='contains_work', assertion_layer='bibliographic_assertion',
+            subject_ref='tos.collection.synthetic', object='tos.work.synthetic')
+        self.path.write_bytes(source._canonical(self.record) + b'\n')
+        self.sync_catalog()
+
+    def test_legacy_current_only_preserves_raw_record_and_never_scans_collection_descendants(self):
+        self.legacy()
+        (self.path.parent / 'payload').mkdir()
+        (self.path.parent / 'payload/secret').write_bytes(b'NEVER READ')
+        with patch.object(Path, 'iterdir', side_effect=AssertionError('no directory enumeration')):
+            result = self.resolve()
+        self.assertEqual(result['status'], 'available', result)
+        self.assertEqual(result['record'], self.record)
+        self.assertFalse(result['provenance']['history']['correction_chain_verified'])
+        self.assertIsNone(result['provenance']['source']['package_revision'])
+        ref = claims._subject(self.record).ref
+        self.assert_unavailable(self.resolve({**ref, 'version': 2}), 'missing', 'exact-version-not-retained')
+        self.assert_unavailable(self.resolve({**ref, 'digest': 'sha256:' + 'f' * 64}), 'stale')
+
+    def test_legacy_drift_and_duplicate_and_mistyped_membership_fail_closed(self):
+        self.legacy()
+        instance = reader.ClaimVersionReader(self.root)
+        self.assertEqual(instance.resolve(claims._subject(self.record).ref)['status'], 'available')
+        self.path.write_bytes(self.path.read_bytes() + b'\n')
+        self.assert_unavailable(instance.resolve(claims._subject(self.record).ref), 'stale')
+        for fields in ({'predicate': 'authored_by'}, {'polarity': 'negative'}, {'object': 'tos.item.synthetic'},
+                       {'subject_ref': 'tos.work.synthetic'}, {'claim_type': 'relation'}):
+            with self.subTest(fields=fields):
+                self.path.write_bytes(source._canonical({**self.record, **fields}) + b'\n')
+                self.sync_catalog()
+                self.assert_unavailable(self.resolve(), 'corrupt')
+        self.path.write_bytes((source._canonical(self.record) + b'\n') * 2)
+        self.sync_catalog()
+        self.assert_unavailable(self.resolve(), 'corrupt')
+
+    def test_legacy_locator_cannot_open_arbitrary_streams(self):
+        self.legacy()
+        for path in ('ToS/source-witnesses/relations/x/membership-claims.jsonl',
+                     'ToS/source-witnesses/collections/synthetic/volume/payload/membership-claims.jsonl',
+                     'ToS/source-witnesses/collections/synthetic/volume/other.jsonl'):
+            with self.subTest(path=path):
+                self.change_catalog(source_claim_file_ref=path)
+                with patch.object(reader.ClaimVersionReader, '_package', side_effect=AssertionError('no source read')):
+                    self.assert_unavailable(self.resolve(), 'access-restricted')
+
+
 if __name__ == '__main__':
     unittest.main()

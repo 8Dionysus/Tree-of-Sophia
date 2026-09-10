@@ -50,10 +50,17 @@ def _source_path(value):
     path = Path(value)
     if (path.is_absolute() or path.as_posix() != value or '\\' in value
             or path.parts[:2] != ('ToS', 'source-witnesses') or len(path.parts) < 4
-            or path.name != SOURCE_CLAIM_BASENAME or path.is_relative_to(OWNER_LOCAL_HOME)
+            or not (path.name == SOURCE_CLAIM_BASENAME or _legacy_membership_path(path))
+            or path.is_relative_to(OWNER_LOCAL_HOME)
             or any(part in FORBIDDEN or part.startswith('.') for part in path.parts)):
         raise _Unavailable('access-restricted', 'source-outside-public-claim-metadata')
     return path
+
+
+def _legacy_membership_path(path):
+    return (len(path.parts) == 6 and path.parts[:3] == ('ToS', 'source-witnesses', 'collections')
+            and path.name == 'membership-claims.jsonl'
+            and all(re.fullmatch(r'[a-z0-9]+(?:[.-][a-z0-9]+)*', part) for part in path.parts[3:5]))
 
 
 def _metadata_name(name):
@@ -221,6 +228,35 @@ class ClaimVersionReader:
     def _package(self, relative):
         if relative in self._packages:
             return self._packages[relative]
+        if _legacy_membership_path(relative):
+            # Retained legacy streams have no native correction receipts. Read
+            # only this file, never a Collection's descendants or payloads.
+            raw = self._snapshot.read(self.root / relative, source.MAX_COMMAND_BYTES,
+                                      'legacy-membership-stream-byte-budget')
+            records = claims._claims(raw)
+            for record in records.values():
+                if record.get('visibility') not in PUBLIC:
+                    raise _Unavailable('access-restricted', 'claim-stream-not-public-metadata')
+                if (record.get('schema_version') != 'tos_claim_packet_v1'
+                        or record.get('claim_type') != 'bibliographic'
+                        or record.get('predicate') != 'contains_work'
+                        or record.get('assertion_layer') != 'bibliographic_assertion'
+                        or record.get('polarity', 'positive') != 'positive'
+                        or not isinstance(record.get('subject_ref'), str)
+                        or not record['subject_ref'].startswith('tos.collection.')
+                        or not isinstance(record.get('object'), str)
+                        or not record['object'].startswith('tos.work.')
+                        or not _ref(claims._subject(record).ref)):
+                    raise source.JournalCorruption('invalid retained Collection membership Claim')
+            bindings = _stream_bindings(raw, relative, None)
+            package = {'current': {identity: _version(record, bindings[identity])
+                                   for identity, record in records.items()}, 'historical': {},
+                       'history': {'source_ref': None, 'sha256': None, 'receipt_count': 0,
+                                   'correction_chain_verified': False,
+                                   'adapter': 'retained-collection-membership-v1'}}
+            self.verify_current()
+            self._packages[relative] = package
+            return package
         root, snapshot = self.root, self._snapshot
         config = {'source_root': str(root), 'source_path': relative.as_posix()}
         snapshot.package(root / relative.parent)
