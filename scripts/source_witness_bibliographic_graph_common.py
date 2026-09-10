@@ -13,7 +13,7 @@ import unicodedata
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
-from source_metadata_snapshot import PublicationSnapshot, PublicationChanged
+from source_metadata_snapshot import PublicationSnapshot, PublicationChanged, PublicationStateError, _read_owned
 from source_witness_human_forms import AssessedFormSnapshot, load_metadata_forms, load_claim_forms
 from source_object_link_read import LegacyObjectLinkReader
 from source_record_profiles import (SourceRecordProfiles, SourceClaimProfiles, SourceProfileError,
@@ -875,6 +875,81 @@ def validate_external_citation_address(address: str) -> None:
         raise BibliographicGraphBuildError('external citation requires a credential-free HTTP(S) address') from error
 
 
+def _public_evidence_title(repo_root, evidence_ref, claim=None, entry=None):
+    """Read one public review/research-note H1, not a general path resolver.
+
+    The existing verified public Claim catalog selects the exact reference.
+    Git availability is not a runtime input or source/assessment admission.
+    Reuse the protected owner metadata reader for the exact bytes and digest.
+    """
+    path = Path(evidence_ref)
+    families = {('ToS', 'review-ledger'): 'catalogued-review-note-h1',
+                ('ToS', 'research-packets', 'foundation-laboratory-2026-07'): 'catalogued-research-lead-h1'}
+    origin = families.get(path.parts[:-1])
+    if origin is None or path.suffix != '.md' or path.as_posix() != evidence_ref:
+        return None
+    if (not isinstance(claim, dict) or not isinstance(entry, dict)
+            or claim.get('visibility') not in {'public', 'public_metadata_only'}
+            or entry.get('visibility') != claim['visibility']
+            or entry.get('claim_id') != claim.get('claim_id')
+            or entry.get('claim_sha256') != canonical_digest(claim)
+            or evidence_ref not in [*claim.get('evidence_refs', []), *claim.get('counterevidence_refs', [])]):
+        return None
+    try:
+        raw = _read_owned(repo_root / evidence_ref, 1_048_576)
+    except PublicationChanged:
+        raise
+    except PublicationStateError:
+        # Oversized metadata cannot supply a bounded title. Existing source
+        # fixity remains separate; do not call a partial prefix a source title.
+        return None
+    except (PermissionError, OSError) as error:
+        raise BibliographicGraphBuildError('review evidence title requires protected regular metadata') from error
+    first = raw.split(b'\n', 1)[0].removesuffix(b'\r')
+    title = None
+    if len(first) <= 4096:
+        try:
+            heading = first.decode('utf-8')
+        except UnicodeError:
+            heading = ''
+        if (heading.startswith('# ') and heading[2:].strip() and len(heading[2:]) <= 240
+                and not any(unicodedata.category(char).startswith('C') for char in heading)):
+            title = heading[2:]
+    return hashlib.sha256(raw).hexdigest(), title, origin
+
+
+def _evidence_display(evidence_ref, kind, source_ref, *, source_label=None, source_line=None,
+                      source_title_origin='source-metadata-label'):
+    """Readable navigation from metadata already resolved by the owner builder.
+
+    Never open a document, follow a URL, or infer a HumanForm/assessment here.
+    A path/address is a navigation fallback, not the title of its contents.
+    """
+    def bounded(value, limit):
+        return value if len(value) <= limit else value[:limit - 1] + '…'
+
+    supplied = isinstance(source_label, str) and bool(source_label.strip()) and len(source_label) <= 240
+    if supplied:
+        title, title_origin = source_label, source_title_origin
+    elif kind == 'repo_path':
+        title, title_origin = bounded(Path(evidence_ref).name, 240), 'repository-filename-fallback'
+    elif kind == 'external_citation':
+        title, title_origin = bounded(evidence_ref, 240), 'citation-address-fallback'
+    else:
+        slot = f':{source_line}' if source_line is not None else ''
+        title = bounded(f'{kind.replace("_", " ")} · {Path(source_ref).name}{slot}', 240)
+        title_origin = 'source-slot-fallback'
+    summary = (f'External citation; remote content not observed. Address declared by the citing Claim: {evidence_ref}.'
+               if kind == 'external_citation' else
+               f'{kind.replace("_", " ").capitalize()} evidence reference: {evidence_ref}. '
+               f'Return to {source_ref}' + (f':{source_line}' if source_line is not None else '') + '.')
+    return {'title': {'default': title}, 'summary': {'default': bounded(summary, 1024)},
+        'summary_state': 'metadata-synthesis', 'provenance': {
+            'title': title_origin, 'summary': 'evidence-reference-navigation',
+            'source_title_available': supplied, 'source_summary_available': False,
+            'human_form_authority': 'none', 'source_ref': source_ref}}
+
+
 def _external_citation_node(address, claim, entry, *, citation_status='tracked_claim'):
     """One source-returnable citation occurrence, not a remote-content object."""
     validate_external_citation_address(address)
@@ -892,6 +967,7 @@ def _external_citation_node(address, claim, entry, *, citation_status='tracked_c
     return {'node_id': _node_id('evidence', canonical_json([claim['claim_id'], address])),
         'node_kind': 'evidence', 'source_ref': entry['source_claim_file_ref'],
         'source_line': entry['source_claim_line'], 'source_sha256': entry['claim_sha256'],
+        'display': _evidence_display(address, 'external_citation', entry['source_claim_file_ref']),
         'properties': {'evidence_ref': address, 'evidence_kind': 'external_citation',
             'citing_claim_ref': claim['claim_id'], 'citation_status': citation_status,
             'resolved': False, 'remote_content_sha256': None,
@@ -916,11 +992,15 @@ def _evidence_node(
             raise BibliographicGraphBuildError(
                 f"{evidence_ref}: claim evidence path does not exist"
             )
+        review_title = _public_evidence_title(repo_root, evidence_ref, citing_claim, claim_entry)
         return {
             "node_id": node_id,
             "node_kind": "evidence",
             "source_ref": evidence_ref,
-            "source_sha256": file_digest(path),
+            "source_sha256": review_title[0] if review_title is not None else file_digest(path),
+            "display": _evidence_display(evidence_ref, 'repo_path', evidence_ref,
+                source_label=review_title[1] if review_title is not None else None,
+                source_title_origin=review_title[2] if review_title is not None else 'source-metadata-label'),
             "properties": {
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "repo_path",
@@ -936,6 +1016,8 @@ def _evidence_node(
             "source_ref": indexed["source_ref"],
             "source_line": indexed["source_line"],
             "source_sha256": indexed["source_sha256"],
+            "display": _evidence_display(evidence_ref, 'anchor', indexed['source_ref'],
+                                         source_line=indexed['source_line']),
             "properties": {
                 **dict(anchor),
                 "evidence_ref": evidence_ref,
@@ -954,6 +1036,8 @@ def _evidence_node(
             "node_kind": "evidence",
             "source_ref": identity["source_record_ref"],
             "source_sha256": identity["record_sha256"],
+            "display": _evidence_display(evidence_ref, 'identity', identity['source_record_ref'],
+                                         source_label=identity.get('preferred_label')),
             "properties": {
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "identity",
@@ -969,6 +1053,8 @@ def _evidence_node(
             "source_ref": indexed["source_ref"],
             "source_line": indexed["source_line"],
             "source_sha256": indexed["source_sha256"],
+            "display": _evidence_display(evidence_ref, 'provenance_event', indexed['source_ref'],
+                                         source_line=indexed['source_line']),
             "properties": {
                 "evidence_ref": evidence_ref,
                 "evidence_kind": "provenance_event",

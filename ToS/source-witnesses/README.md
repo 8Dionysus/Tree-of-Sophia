@@ -148,6 +148,31 @@ reviewed public-safe derivative. Filesystem paths are human navigation and may
 improve through reviewed migrations. A path change never silently changes
 object or claim identity.
 
+Evidence nodes carry a bounded readable `display` from owner metadata.
+An identity can reuse its catalog `preferred_label`. Direct Markdown
+notes in `ToS/review-ledger/` and in
+`ToS/research-packets/foundation-laboratory-2026-07/` can supply their exact first
+H1 when that exact reference is selected by the existing verified public Claim
+catalog. The citing Claim, digest and public visibility must agree with its
+catalog entry; an unselected local file is not eligible. Git tracking remains
+an authoring concern, not a runtime dependency: an exported source snapshot
+with the same catalog and bytes yields the same title without `.git`.
+This selected-public-Evidence route uses the protected owner metadata reader:
+no symlink component or special file, at most 1 MiB, same-read file digest,
+change/replacement detection, and a first-line UTF-8 header of at most 4096 bytes.
+Research titles retain research-lead provenance, not source-witness authority.
+Other repository references or missing/overlong headings use the exact filename;
+anchors and provenance events use their source-file slot, and external citations
+use the declared address.
+Fallbacks remain explicitly marked as navigation, not supplied source titles.
+Descriptions explain the reference role and source return, not the contents or
+credibility of the evidence; external content remains unobserved. This route
+does not scan arbitrary document headings, open source payloads, fetch remote
+titles, create HumanForms, translate names, or confer assessment authority.
+Full addresses, source references, IDs and digests remain unchanged in their
+existing fields even when the display's 240-character title or 1024-character
+description is shortened.
+
 For an explicit source-first migration observation, run
 `python scripts/source_witness_projection_coverage.py --rows` from the repository.
 It verifies the public catalog against its current sources, enumerates every

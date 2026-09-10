@@ -309,6 +309,28 @@
         },
         "properties": {
           "type": "object"
+        },
+        "display": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "summary", "summary_state", "provenance"],
+          "properties": {
+            "title": {"type": "object", "additionalProperties": false, "required": ["default"], "properties": {"default": {"type": "string", "minLength": 1, "maxLength": 240}}},
+            "summary": {"type": "object", "additionalProperties": false, "required": ["default"], "properties": {"default": {"type": "string", "minLength": 1, "maxLength": 1024}}},
+            "summary_state": {"const": "metadata-synthesis"},
+            "provenance": {
+              "type": "object", "additionalProperties": false,
+              "required": ["title", "summary", "source_title_available", "source_summary_available", "human_form_authority", "source_ref"],
+              "properties": {
+                "title": {"enum": ["source-metadata-label", "catalogued-review-note-h1", "catalogued-research-lead-h1", "repository-filename-fallback", "citation-address-fallback", "source-slot-fallback"]},
+                "summary": {"const": "evidence-reference-navigation"},
+                "source_title_available": {"type": "boolean"},
+                "source_summary_available": {"const": false},
+                "human_form_authority": {"const": "none"},
+                "source_ref": {"$ref": "#/$defs/repoRelativePath"}
+              }
+            }
+          }
         }
       }
     },

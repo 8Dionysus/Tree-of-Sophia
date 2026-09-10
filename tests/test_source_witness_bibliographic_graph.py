@@ -37,6 +37,130 @@ from source_witness_human_forms import load_metadata_forms, materialize_metadata
 
 
 class SourceWitnessBibliographicGraphTest(unittest.TestCase):
+    def evidence_title_context(self, ref, *, real=False):
+        if real:
+            from source_witness_bibliographic_graph_common import _load_source_claim
+            with (REPO_ROOT / CLAIM_CATALOG_REF).open(encoding='utf-8') as stream:
+                entry = next(row for line in stream if (row := json.loads(line))
+                             and ref in row.get('evidence_refs', []))
+            return _load_source_claim(entry, repo_root=REPO_ROOT), entry
+        claim = {'claim_id': 'tos.claim.synthetic.title', 'visibility': 'public_metadata_only',
+                 'evidence_refs': [ref]}
+        entry = {'claim_id': claim['claim_id'], 'visibility': claim['visibility'],
+                 'claim_sha256': canonical_digest(claim)}
+        return claim, entry
+
+    def test_evidence_repository_name_uses_exact_tracked_public_review_heading(self):
+        from source_witness_bibliographic_graph_common import _evidence_node
+        if str(REPO_ROOT / 'access/src') not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT / 'access/src'))
+        from tos_access.knowledge import _node_display
+        ref = 'ToS/review-ledger/2026-09-07-jgb-freedom-source-reading.md'
+        expected_digest = hashlib.sha256((REPO_ROOT / ref).read_bytes()).hexdigest()
+        claim, entry = self.evidence_title_context(ref, real=True)
+        with patch.object(Path, 'read_text', side_effect=AssertionError('unbounded text read is not authorized')):
+            node = _evidence_node(ref, repo_root=REPO_ROOT, anchors={}, objects={}, events={},
+                                  citing_claim=claim, claim_entry=entry)
+        self.assertEqual(node['node_id'], 'evidence:sha256:3b5ad5eec8f6e5af5c55a1e03cc22d148ef5c7ef0846b2920782b60739e5388c')
+        self.assertEqual(node['source_sha256'], expected_digest)
+        self.assertEqual(node['source_ref'], ref)
+        display = _node_display(node, 'evidence', [ref])
+        self.assertEqual(display['title']['default'], 'JGB 19 and 21: source-visible research reading, 2026-09-07')
+        self.assertIn(ref, display['summary']['default'])
+        self.assertEqual(display['provenance']['title'], 'catalogued-review-note-h1')
+        self.assertTrue(display['provenance']['source_title_available'])
+        self.assertFalse(display['provenance']['source_summary_available'])
+        self.assertEqual(display['summary_state'], 'metadata-synthesis')
+        self.assertNotIn('human_form_selection', node['properties'])
+
+    def test_evidence_research_heading_retains_research_lead_provenance(self):
+        from source_witness_bibliographic_graph_common import _evidence_node
+        for filename, title in (
+            ('JENSEITS_1886_HISTORICAL_EPISODE_RESEARCH.md', 'Jenseits 1886: commissioning episode — source-reading note v1'),
+            ('JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md', 'Letter 705: critical text and identified archival carrier')):
+            ref = 'ToS/research-packets/foundation-laboratory-2026-07/' + filename
+            claim, entry = self.evidence_title_context(ref, real=True)
+            node = _evidence_node(ref, repo_root=REPO_ROOT, anchors={}, objects={}, events={},
+                                  citing_claim=claim, claim_entry=entry)
+            self.assertEqual(node['display']['title']['default'], title)
+            self.assertEqual(node['display']['provenance']['title'], 'catalogued-research-lead-h1')
+            self.assertEqual(node['source_sha256'], hashlib.sha256((REPO_ROOT / ref).read_bytes()).hexdigest())
+
+    def test_evidence_heading_reader_rejects_scope_escape_and_unsafe_metadata(self):
+        from source_witness_bibliographic_graph_common import _public_evidence_title
+        from source_metadata_snapshot import PublicationChanged
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            directory = root / 'ToS/review-ledger'
+            directory.mkdir(parents=True)
+            good = directory / 'good.md'
+            good.write_bytes('# Источник λόγος\n\nNo interpretation.\n'.encode())
+            ref = 'ToS/review-ledger/good.md'
+            claim, entry = self.evidence_title_context(ref)
+            def read_title(selected=ref, selected_claim=claim, selected_entry=entry):
+                return _public_evidence_title(root, selected, selected_claim, selected_entry)
+            # A source snapshot without .git has the same catalogued title.
+            self.assertEqual(read_title()[1], 'Источник λόγος')
+            for excluded in ('ToS/source-witnesses/works/private/payload/text.md',
+                             'ToS/review-ledger/nested/hidden.md', 'ToS/review-ledger/../private.md',
+                             'ToS/research-packets/deep-research/private.md', '/tmp/private.md'):
+                with patch('source_witness_bibliographic_graph_common._read_owned', side_effect=AssertionError('out of scope')):
+                    self.assertIsNone(read_title(excluded))
+            (directory / 'untracked.md').write_text('# Untracked\n')
+            with patch('source_witness_bibliographic_graph_common._read_owned', side_effect=AssertionError('not tracked')):
+                self.assertIsNone(read_title('ToS/review-ledger/untracked.md'))
+                self.assertIsNone(read_title(selected_entry={**entry, 'claim_sha256': '0' * 64}))
+                self.assertIsNone(read_title(selected_claim={**claim, 'visibility': 'private'}))
+                self.assertIsNone(read_title(selected_entry=None))
+            for raw in (b'No heading\n', b'# \xff\n', b'# ' + b'x' * 241 + b'\n', b'# Name\x00\n'):
+                good.write_bytes(raw)
+                self.assertIsNone(read_title()[1])
+            good.write_bytes(b'# Good\n' + b'x' * 1_048_576)
+            self.assertIsNone(read_title())
+            good.unlink()
+            good.symlink_to(directory / 'untracked.md')
+            with self.assertRaises(BibliographicGraphBuildError):
+                read_title()
+            good.unlink()
+            good.write_text('# Good\n')
+            with patch('source_witness_bibliographic_graph_common._read_owned', side_effect=PublicationChanged('changed')):
+                with self.assertRaises(PublicationChanged):
+                    read_title()
+
+    def test_evidence_identity_label_and_anchor_event_slots_preserve_source_returns(self):
+        from source_witness_bibliographic_graph_common import _evidence_node
+        identity_ref = 'tos.work.synthetic'
+        identity = {'source_record_ref': 'ToS/source-witnesses/works/synthetic/work.json',
+                    'record_sha256': 'a' * 64, 'preferred_label': 'Περὶ ψυχῆς'}
+        node = _evidence_node(identity_ref, repo_root=REPO_ROOT, anchors={},
+                              objects={identity_ref: identity}, events={})
+        self.assertEqual(node['display']['title']['default'], identity['preferred_label'])
+        self.assertTrue(node['display']['provenance']['source_title_available'])
+        self.assertEqual(node['source_sha256'], identity['record_sha256'])
+        indexed = {'source_ref': 'ToS/source-witnesses/works/synthetic/anchors.jsonl',
+                   'source_sha256': 'b' * 64, 'source_line': 7,
+                   'payload': {'anchor_id': 'tos.anchor.synthetic', 'quote': 'not a title'}}
+        for kind in ('anchor', 'provenance_event'):
+            kwargs = {'anchors': {}, 'objects': {}, 'events': {}}
+            kwargs['anchors' if kind == 'anchor' else 'events']['tos.' + kind + '.synthetic'] = indexed
+            node = _evidence_node('tos.' + kind + '.synthetic', repo_root=REPO_ROOT, **kwargs)
+            self.assertIn('anchors.jsonl:7', node['display']['title']['default'])
+            self.assertNotIn('not a title', node['display']['title']['default'])
+            self.assertFalse(node['display']['provenance']['source_title_available'])
+            self.assertEqual(node['source_line'], 7)
+            self.assertEqual(node['source_sha256'], indexed['source_sha256'])
+
+    def test_evidence_display_is_bounded_without_claiming_truncated_names_as_source_titles(self):
+        from source_witness_bibliographic_graph_common import _evidence_display
+        display = _evidence_display('https://example.invalid/' + 'x' * 4000, 'external_citation',
+                                    'ToS/source-witnesses/relations/synthetic/source-claims.jsonl')
+        self.assertLessEqual(len(display['title']['default']), 240)
+        self.assertLessEqual(len(display['summary']['default']), 1024)
+        display = _evidence_display('tos.work.synthetic', 'identity',
+                                    'ToS/source-witnesses/works/synthetic/work.json', source_label='x' * 241)
+        self.assertFalse(display['provenance']['source_title_available'])
+        self.assertEqual(display['provenance']['title'], 'source-slot-fallback')
+
     def test_source_coverage_requires_complete_fields_and_keeps_conflicting_carriers_visible(self):
         from source_witness_projection_coverage import observe_record
         record = {'record_id': 'tos.agent.synthetic', 'record_version': 1,
@@ -205,6 +329,10 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
                 self.assertIsNone(node['properties']['remote_content_sha256'])
                 self.assertFalse(node['properties']['resolved'])
                 self.assertEqual(node['properties']['observation_posture'], 'address_only_not_observed')
+                self.assertEqual(node['display']['title']['default'], address)
+                self.assertEqual(node['display']['provenance']['title'], 'citation-address-fallback')
+                self.assertFalse(node['display']['provenance']['source_title_available'])
+                self.assertEqual(node['display']['provenance']['human_form_authority'], 'none')
                 changed = {**source_claim, 'claim_version': 2}
                 successor = _external_citation_node(address, changed, {'claim_id': changed['claim_id'],
                     'source_claim_file_ref': node['source_ref'], 'source_claim_line': node['source_line'],
