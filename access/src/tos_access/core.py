@@ -520,6 +520,15 @@ class ToSAccessCore:
     _published_source_inputs: dict[str, bytes] | None = field(
         default=None, init=False, repr=False, compare=False
     )
+    _published_catalog: dict[str, Any] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_catalog_graph: dict[str, Any] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_catalog_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
     _addressed_graph: dict[str, Any] | None = field(default=None, init=False, repr=False, compare=False)
     _addressed_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
         default=None, init=False, repr=False, compare=False
@@ -1063,6 +1072,9 @@ class ToSAccessCore:
                     self._published_graph = graph
                     self._published_source_inputs = self._canonical_source_inputs(source_inputs)
                     self._published_source_state = state_after
+                    self._published_catalog = None
+                    self._published_catalog_graph = None
+                    self._published_catalog_source_state = None
                     return graph
             raise RuntimeError("ToS knowledge source projections changed during graph build")
 
@@ -1342,6 +1354,9 @@ class ToSAccessCore:
                 updated["report"]["input_traversal"]["source_scan"] = "complete-direct-carrier-set"
             self._published_source_inputs = self._canonical_source_inputs(source_inputs)
             self._published_graph = graph
+            self._published_catalog = None
+            self._published_catalog_graph = None
+            self._published_catalog_source_state = None
             self._addressed_graph = graph
             self._addressed_source_state = state_after
             self._published_source_state = state_after
@@ -1370,6 +1385,15 @@ class ToSAccessCore:
                 state_before = self._knowledge_input_state()
                 if self._published_source_state != state_before:
                     continue
+                if (
+                    self._published_catalog is not None
+                    and self._published_catalog_graph is graph
+                    and self._published_catalog_source_state == state_before
+                ):
+                    state_after = self._knowledge_input_state()
+                    if state_before == state_after:
+                        return {"graph": graph, "catalog": self._published_catalog}
+                    continue
                 corpus = self.index()
                 philosophy = self.philosophy_projection()
                 entity_registry = self.entity_type_registry()
@@ -1384,6 +1408,9 @@ class ToSAccessCore:
                     entity_registry,
                     relation_registry,
                 )
+                self._published_catalog = catalog
+                self._published_catalog_graph = graph
+                self._published_catalog_source_state = state_after
                 return {"graph": graph, "catalog": catalog}
             raise RuntimeError("ToS knowledge source projections changed during catalog build")
 

@@ -736,7 +736,15 @@ class CoreContractTests(unittest.TestCase):
 
             # Every ordinary consumer observes the same addressed revision,
             # including the aggregate catalog and resumable exploration.
-            catalog = core.knowledge_catalog()
+            with patch.object(
+                core_module,
+                "build_knowledge_catalog",
+                wraps=core_module.build_knowledge_catalog,
+            ) as build_catalog:
+                catalog = core.knowledge_catalog()
+                repeated_catalog = core.knowledge_catalog()
+            self.assertIs(repeated_catalog, catalog)
+            self.assertEqual(build_catalog.call_count, 1)
             search = core.knowledge_search('CAS addressed edit')
             node = core.knowledge_node('philosophy:a')
             relation = core.knowledge_relation(published['relations'][0]['id'])
