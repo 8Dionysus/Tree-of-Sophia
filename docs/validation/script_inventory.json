@@ -517,6 +517,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+      "family": "source_growth_commands",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "source_truth": ["ToS/doctrine/HUMAN_FORMS.md", "ToS/contracts/historical-claim.schema.json", "ToS/contracts/claim-display-fields.schema.json", "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py"],
+      "reads": ["exact protected historical Claim revision/form grant and captured historical.create v2 package with separate record and Claim histories", "public source-located current and prior HumanForms for identity collision checks; historical schema/registry/evidence closure", "fixed import/dispatch dependency of source_commands, Claim revisions/version reader and source_witness_human_forms; not a request-selected executable"],
+      "writes": ["only through shared Claim revision or form commands: exact selected descriptive qualifier successor, adjacent forms, retained archives/history and stable writer locks"],
+      "side_effects": "explicit new versioned legacy family; preserves schema, Claim IDs, structural qualifiers, endpoints, evidence, maker and original creation bytes; no schema migration, private scan, source truth assessment or admission; read-only Claim origin verification does not certify separate Event archives",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_historical_claim_adapter.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
       "family": "source_growth_commands",
       "organ_lane": "mechanics/part-owned",

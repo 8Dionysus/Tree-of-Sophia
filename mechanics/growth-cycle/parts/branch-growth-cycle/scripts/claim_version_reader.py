@@ -18,6 +18,7 @@ import claim_revisions as claims
 import source_commands as source
 import source_revisions as packages
 from source_record_profiles import SOURCE_CLAIM_BASENAME
+from source_historical_claims import is_path as historical_claim_path
 from source_owner_context import OWNER_LOCAL_HOME
 from source_metadata_snapshot import PublicationSnapshot, PublicationStateError, PublicationPending, PublicationChanged
 from build_source_witness_catalog import verify_catalog_publication, CatalogBuildError
@@ -50,7 +51,7 @@ def _source_path(value):
     path = Path(value)
     if (path.is_absolute() or path.as_posix() != value or '\\' in value
             or path.parts[:2] != ('ToS', 'source-witnesses') or len(path.parts) < 4
-            or not (path.name == SOURCE_CLAIM_BASENAME or _legacy_membership_path(path))
+            or not (path.name == SOURCE_CLAIM_BASENAME or _legacy_membership_path(path) or historical_claim_path(path))
             or path.is_relative_to(OWNER_LOCAL_HOME)
             or any(part in FORBIDDEN or part.startswith('.') for part in path.parts)):
         raise _Unavailable('access-restricted', 'source-outside-public-claim-metadata')
@@ -65,9 +66,10 @@ def _legacy_membership_path(path):
 
 def _metadata_name(name):
     # Empty form-writer lock files are part of retained public source packages.
-    lock = re.fullmatch(r'\.source-claims\.[a-f0-9]{64}\.human-forms\.json\.writer\.lock', name)
+    lock = re.fullmatch(r'\.(source-claims|historical-claims)\.[a-f0-9]{64}\.human-forms\.json\.writer\.lock', name)
+    record_lock = re.fullmatch(r'\.historical-(event|process|state)\.human-forms\.json\.writer\.lock', name)
     if (Path(name).name != name or '\\' in name or name in FORBIDDEN
-            or name.startswith('.') and not lock):
+            or name.startswith('.') and not (lock or record_lock)):
         raise _Unavailable('access-restricted', 'package-outside-public-metadata')
 
 
@@ -262,14 +264,26 @@ class ClaimVersionReader:
         snapshot.package(root / relative.parent)
         snapshot.mark(root / relative)
         files = packages._package(root / relative.parent)
-        records = _public_records(files[SOURCE_CLAIM_BASENAME])
+        basename = claims._stream_name(config)
+        records = _public_records(files[basename])
+        if historical_claim_path(relative):
+            from source_historical_claims import validate, CONTRACT_REFS
+            contract_inputs = {ref: source._digest(snapshot.read(root / ref, source.MAX_SET_BYTES,
+                'historical-claim-contract-byte-budget')) for ref in CONTRACT_REFS}
+            for record in records.values():
+                if validate(root, record) != contract_inputs:
+                    raise source.JournalConflict('historical Claim contracts changed during exact read')
         historical = {}
+        archive_cache = {}
         if claims.HISTORY in files:
             receipts = source._json_object(files[claims.HISTORY]).get('receipts')
             if isinstance(receipts, list) and len(receipts) > packages.MAX_REVISIONS:
                 raise _Unavailable('over-budget', 'correction-receipt-count-budget')
 
         def archive_reader(archive_root, archive_config, receipt):
+            cache_key = source._digest(source._canonical(receipt))
+            if cache_key in archive_cache:
+                return archive_cache[cache_key]
             if (not _ref(receipt['previous_source']) or not _ref(receipt['source'])
                     or not isinstance(receipt['previous_revision'], str)
                     or not HASH.fullmatch(receipt['previous_revision'])):
@@ -300,30 +314,36 @@ class ClaimVersionReader:
                 archived, locations = claims._read_archive(archive_root, archive_config, receipt)
             except FileNotFoundError as error:
                 raise _Unavailable('missing', 'retained-archive-file-missing') from error
-            previous = _public_records(archived[SOURCE_CLAIM_BASENAME])
+            previous = _public_records(archived[basename])
             key = _key(receipt['previous_source'])
             if key in historical:
                 raise source.JournalCorruption('duplicate retained exact Claim version')
-            bindings = _stream_bindings(archived[SOURCE_CLAIM_BASENAME], relative,
-                                       receipt['previous_revision'], locations[SOURCE_CLAIM_BASENAME])
+            bindings = _stream_bindings(archived[basename], relative,
+                                       receipt['previous_revision'], locations[basename])
             historical[key] = _version(previous[key[0]], bindings[key[0]], receipt)
+            archive_cache[cache_key] = archived, locations
             return archived, locations
 
         try:
             history = claims._history(files, config, archive_reader=archive_reader)
+            if historical_claim_path(relative):
+                from source_historical_claims import verify_claim_capture
+                verify_claim_capture(root, relative.as_posix(), files, archive_reader=archive_reader)
         except source.JournalConflict:
             raise
         except (ValueError, TypeError, KeyError, AttributeError, RecursionError) as error:
             raise _Unavailable('corrupt', 'history-integrity-failed') from error
         revision = packages._revision(files)
-        bindings = _stream_bindings(files[SOURCE_CLAIM_BASENAME], relative, revision)
+        bindings = _stream_bindings(files[basename], relative, revision)
         package = {
             'current': {identity: _version(record, bindings[identity])
                         for identity, record in records.items()},
             'historical': historical,
             'history': {'source_ref': (relative.parent / claims.HISTORY).as_posix(),
                         'sha256': source._digest(files[claims.HISTORY]) if claims.HISTORY in files else None,
-                        'receipt_count': len(history['receipts']), 'correction_chain_verified': True},
+                        'receipt_count': len(history['receipts']), 'correction_chain_verified': True,
+                        **({'adapter': 'captured-historical-claim-v1', 'record_history_verified': False}
+                           if historical_claim_path(relative) else {})},
         }
         self.verify_current()
         self._packages[relative] = package

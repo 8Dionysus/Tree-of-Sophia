@@ -413,11 +413,12 @@ def load_metadata_forms(repo_root: Path, source_ref: str, source: dict, *, acces
 
 def claim_forms_path(source_path: Path, claim_id: str) -> Path:
     """Bounded adjacent filename, stable under row reorder; never a caller path."""
-    if (source_path.name != 'source-claims.jsonl' or not isinstance(claim_id, str)
+    from source_historical_claims import is_path as historical_claim_path
+    if ((source_path.name != 'source-claims.jsonl' and not historical_claim_path(source_path)) or not isinstance(claim_id, str)
             or not re.fullmatch(r'tos\.claim\.[a-z0-9]+(?:[.-][a-z0-9]+)*', claim_id)):
         raise ValueError('Claim forms require a declared source stream and stable Claim identity')
     suffix = hashlib.sha256(claim_id.encode('utf-8')).hexdigest()
-    return source_path.with_name(f'source-claims.{suffix}.human-forms.json')
+    return source_path.with_name(f'{source_path.stem}.{suffix}.human-forms.json')
 
 
 def load_claim_forms(repo_root: Path, source_ref: str, source: dict, *, access_allowed: bool):

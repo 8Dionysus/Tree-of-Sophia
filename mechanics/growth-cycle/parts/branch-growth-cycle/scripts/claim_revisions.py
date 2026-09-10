@@ -30,20 +30,22 @@ def _layer_transition(value):
     return value['from'], value['to']
 
 
-def configuration(config):
+def configuration(config, *, family=None):
     values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG,
         source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, document_catalogue.REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
     layer_allowed = config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG
-    allowed_fields = {'assertion_layer'} if layer_allowed else FIELDS | ({'object'} if values_allowed else set())
+    allowed_fields = family.FIELDS if family is not None else {'assertion_layer'} if layer_allowed else FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
         'authority_ref', 'expires_at', 'claim_id', 'allowed_operations', 'allowed_fields',
         'allowed_evidence_refs', 'allowed_form_ids'}
         | ({'allowed_object_values', 'allowed_object_refs'} if values_allowed else set())
         | ({'allowed_related_claim_refs'} if config['schema_version'] in identity_proposals.REVISION_CONFIGS else set())
         | ({'allowed_form_field_ids'} if 'allowed_form_field_ids' in config else set())
+        | (family.CONFIG_FIELDS if family is not None else set())
         | ({'allowed_layer_transitions'} if layer_allowed else set()))
     if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
-            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG, document_catalogue.REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
+            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG, document_catalogue.REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS,
+            *([family.REVISION_CONFIG] if family is not None else [])}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -79,10 +81,29 @@ def configuration(config):
     os.close(source._owned_path(root, directory=True))
     if (relative.is_absolute() or relative.as_posix() != config['source_path'] or '..' in relative.parts
             or relative.parts[:2] != ('ToS', 'source-witnesses') or len(relative.parts) < 4
-            or relative.name != SOURCE_CLAIM_BASENAME
+            or relative.name != (family.BASENAME if family is not None else SOURCE_CLAIM_BASENAME)
             or any(p in {'catalog', 'payload', 'local-content'} for p in relative.parts)):
         raise PermissionError('Claim correction requires an exact source metadata stream')
     return config, source._digest(source._canonical(config)), root / relative
+
+
+def _stream_name(config):
+    """Fixed metadata families only; callers cannot supply an adapter or filename."""
+    from source_historical_claims import BASENAME, is_path
+    path = Path(config['source_path'])
+    if path.name == SOURCE_CLAIM_BASENAME:
+        return SOURCE_CLAIM_BASENAME
+    if is_path(path):
+        return BASENAME
+    raise source.JournalCorruption('unknown Claim history source family')
+
+
+def _family(config):
+    from source_historical_claims import REVISION_CONFIG
+    if config.get('schema_version') == REVISION_CONFIG:
+        import source_historical_claims
+        return source_historical_claims
+    return None
 
 
 def _claims(raw):
@@ -152,7 +173,7 @@ def _read_archive(root, config, receipt, *, read_files=None, form_validator=None
     read_files = read_files if read_files is not None else packages._read_archive_files
     identity = receipt['previous_source']['id']
     files, locations = read_files(root, _archive_config(config, identity), receipt)
-    previous = _claims(files[SOURCE_CLAIM_BASENAME]).get(identity)
+    previous = _claims(files[_stream_name(config)]).get(identity)
     if previous is None or _subject(previous).ref != receipt['previous_source']:
         raise source.JournalCorruption('archive does not preserve the exact previous Claim')
     if 'request' in receipt and _subject(_advance(previous, receipt['request']['fields'],
@@ -203,7 +224,7 @@ def _history(files, config, *, archive_reader=None, form_validator=None):
             or not isinstance(history['receipts'], list) or len(history['receipts']) > packages.MAX_REVISIONS):
         raise source.JournalCorruption('invalid shared Claim correction history')
     if not history['receipts'] and any(record.get('claim_version') != 1
-            for record in _claims(files[SOURCE_CLAIM_BASENAME]).values()):
+            for record in _claims(files[_stream_name(config)]).values()):
         raise source.JournalCorruption('noninitial Claim stream is missing its correction history')
     expected, commands = None, set()
     for receipt in history['receipts']:
@@ -230,7 +251,7 @@ def _history(files, config, *, archive_reader=None, form_validator=None):
         retained = [source._form_ref(form) for form in [*payload['forms'], *payload.get('prior_forms', ())]]
         if any(ref not in retained for ref in receipt['forms']):
             raise source.JournalCorruption('Claim correction result forms are no longer retained')
-        before = archived[SOURCE_CLAIM_BASENAME]
+        before = archived[_stream_name(config)]
         if expected is None and any(record.get('claim_version') != 1 for record in _claims(before).values()):
             raise source.JournalCorruption('Claim correction history is missing its initial stream')
         if expected is not None and before != expected:
@@ -238,7 +259,7 @@ def _history(files, config, *, archive_reader=None, form_validator=None):
         previous = _claims(before)[receipt['previous_source']['id']]
         expected = _replace(before, _advance(previous, request['fields'], request.get('layer_transition')))
         commands.add(receipt['command_id'])
-    if expected is not None and files[SOURCE_CLAIM_BASENAME] != expected:
+    if expected is not None and files[_stream_name(config)] != expected:
         raise source.JournalCorruption('current Claim stream is not its retained revision head')
     return history
 
@@ -252,6 +273,9 @@ def creation_source_files(files, config, *, archive_reader=None):
 
 
 def _scope(config, request, record, *, profiles=None):
+    family = _family(config)
+    if family is not None:
+        family.scope(config, request, record)
     if OPERATION not in config['allowed_operations']:
         raise PermissionError('Claim correction is not delegated')
     if record.get('predicate') in {'has_expression', 'embodied_by', 'exemplified_by'}:
@@ -286,8 +310,9 @@ def _scope(config, request, record, *, profiles=None):
         verify_compound(Path(config['source_root']), config['source_path'], record)
         validate_qualified_link_claim(record)
     from source_claim_commands import value_is_delegated, _value_scope
-    profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
-    if (profiles.profiles[record['predicate']]['reader'] == document_catalogue.READER
+    profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root'])) if family is None else None
+    reader = profiles.profiles[record['predicate']]['reader'] if profiles is not None else None
+    if (reader == document_catalogue.READER
             or config['schema_version'] == document_catalogue.REVISION_CONFIG):
         # Even wording-only revisions and replay need the new reader grant.
         _value_scope(config, record, profiles)
@@ -295,7 +320,7 @@ def _scope(config, request, record, *, profiles=None):
     if (config['schema_version'] in identity_proposals.REVISION_CONFIGS and record.get('predicate') !=
             identity_proposals.READER_PREDICATES[identity_proposals.CONFIG_READERS[config['schema_version']]]):
         raise PermissionError('identity proposal correction cannot revise another Claim family')
-    if profiles.profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', *identity_proposals.READERS}:
+    if reader in {'structured-reference-value-v1', *identity_proposals.READERS}:
         # Wording-only changes and retries must not bypass this new reader's
         # permission boundary. Both present and proposed member roles remain
         # separately in scope; only the proposed exact value is writable.
@@ -344,10 +369,15 @@ def _proposal(config, path, files, record, request):
         from source_link_commands import validate_qualified_link_claim, IMPLEMENTATIONS as responsibility_implementations
         validate_qualified_link_claim(revised)
     from source_claim_commands import _ground_claims
-    _, grounding, bindings = _ground_claims(config, [revised], initial=False)
+    family = _family(config)
+    _, grounding, bindings = (family.ground(config, revised) if family is not None else
+                              _ground_claims(config, [revised], initial=False))
+    if family is not None:
+        responsibility_implementations = (*responsibility_implementations, family.MODULE_REF)
     dependencies = source._digest(source._canonical({'grounding': grounding,
         'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py',
+             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py',
              'scripts/source_witness_human_forms.py', 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
              'ToS/contracts/human-form.schema.json', 'ToS/contracts/human-form-set.schema.json',
              'ToS/contracts/human-form-template.schema.json',
@@ -387,8 +417,12 @@ def run_command(owner, config, configuration_digest, path, request):
         record = records.get(config['claim_id'])
         if record is None:
             raise source.JournalConflict('delegated Claim is absent')
-        profiles = SourceClaimProfiles(root)
-        profiles.validate(record)
+        family = _family(config)
+        if family is not None:
+            family.inspect(config, path, files, record)
+        else:
+            profiles = SourceClaimProfiles(root)
+            profiles.validate(record)
         return files, record, _history(files, config)
 
     def result(files, record, receipt=None, replayed=False):
@@ -444,13 +478,13 @@ def run_command(owner, config, configuration_digest, path, request):
                 source._check_claim_form_receipt_scope(config, form_set, receipt['forms'])
                 from source_claim_commands import reference_replay_snapshot
                 replay_records = [record]
-                if SourceClaimProfiles(root).profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', *identity_proposals.READERS}:
+                if _family(config) is None and SourceClaimProfiles(root).profiles[record['predicate']]['reader'] in {'structured-reference-value-v1', *identity_proposals.READERS}:
                     archived, _ = _read_archive(root, config, receipt)
                     previous = _claims(archived[path.name])[config['claim_id']]
                     retained = _advance(previous, request['fields'], request.get('layer_transition'))
                     if retained != record:
                         replay_records.append(retained)
-                snapshot = reference_replay_snapshot(config, replay_records)
+                snapshot = reference_replay_snapshot(config, replay_records) if _family(config) is None else None
                 response = result(files, record, receipt, True)
                 if snapshot is not None and (source._configuration(owner)[1:] != (configuration_digest, path)
                         or packages._package(path.parent) != files

@@ -34,6 +34,48 @@ and `ToS/contracts/claim-display-fields.schema.json` for source wording,
 unknown-version and assessment boundaries. Materialization readiness does not
 prove compact delivery budget or UI acceptance; those need consumer checks.
 
+### Captured legacy historical Claims
+
+`legacy-historical-claim-revision` and `legacy-historical-claim-forms` are
+separate adapters for `history/**/historical-claims.jsonl`, not aliases of the
+native `source-claims.jsonl` profile. Their owner schemas are respectively
+`tos_local_historical_claim_revision_owner_v1` and
+`tos_local_historical_claim_form_owner_v1`. Both require exact `claim_id`,
+`historical_record_id`, `creation_receipt_sha256` (the prefixed raw SHA-256),
+protected account/root/path/authority/expiry, selected form IDs and explicit
+`allowed_form_field_ids`. Existing grants do not acquire either adapter.
+
+Revision uses the existing `describe`, `prepare-revise`, `claim.revise` and
+`inspect-version` shapes. `allowed_fields` can contain only `qualifiers`;
+`allowed_qualifier_fields` selects `statement`, `statement_language`,
+`statement_script` and/or `display_fields`. `allowed_evidence_refs` stays empty.
+No object, subject, predicate, layer, evidence, maker, admission, version tag or
+existing structural qualifier is writable. Revisions advance the Claim version
+and rebind every current form, including the full statement, through the shared
+flat-package lock/CAS/archive/exchange route. Other rows retain their exact bytes.
+
+The separate form grant uses `describe`, `prepare` and `apply` with the ordinary
+form command shape, and only exact source copies of selected fields. Every
+compact field retains the whole Claim. Allocated form IDs are checked against
+current and retained forms reached through public record/Claim source locators;
+the adapter does not scan private/native payloads. No form write revises a Claim.
+
+Both writing routes require complete captured `historical.create` v2 origin.
+Original request, receipt, environment and provenance bytes remain immutable;
+historical record revisions and shared Claim revisions keep independent chains
+in the same package. Creation replay proves the initial Claim stream through
+its retained archives rather than comparing corrected rows with initial hashes.
+Uncaptured older packages remain read-only and need their own migration route.
+
+The read-only exact Claim version reader follows this legacy family explicitly,
+preserving its schema and IDs. It budgets its current package, contracts and
+Claim archives, and checks captured Claim origin; it does not traverse or certify
+the HistoricalEvent's separate record archives (`record_history_verified: false`).
+The mutating adapter additionally verifies those record archives. Graph and
+assessed-form consumers use the same adjacent Claim forms, not fabricated
+labels, Event prose, or a new profile/schema coercion. Readiness and retained
+origin are not historical assessment, public-use admission, or current authority.
+
 ### Catalogue-assigned Document dates
 
 Discovery exposes `public-claim-create-document-catalogue-v1` and

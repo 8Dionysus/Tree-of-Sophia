@@ -66,6 +66,21 @@
       "disposition": "keep"
     },
     {
+      "path": "access/tests/test_readable_context.py",
+      "home": "access",
+      "home_scope": "product-local",
+      "family": "readable_source_context_contract",
+      "validation_lane": "standalone_access",
+      "owner_surface": "access/contracts/knowledge-graph.v1.schema.json",
+      "protects": "source-bound readable context without translation or assessment, exact form/value/number/schema preservation, governing and unknown fields, historical and catalogue qualification visibility, bounded exact-material fallback, versioned vocabulary and normalization-cache invalidation, full versus compact carrier contract",
+      "coverage_authority": "access/AGENTS.md standalone access validation",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "access/tests/test_readable_context.py",
+      "failure_route": "Fix readable-context compilation, vocabulary or exact source bindings without hiding unknown qualifications, coercing numeric identity, fabricating translation or dropping mandatory context.",
+      "disposition": "keep"
+    },
+    {
       "path": "access/tests/test_processing.py",
       "home": "access",
       "home_scope": "product-local",
@@ -1293,6 +1308,21 @@
       "runtime_cost": "fast",
       "focused_target": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
       "failure_route": "Fix the source Claim adapter or declared profile contract without widening write authority or discarding source history.",
+      "disposition": "keep"
+    },
+    {
+      "path": "mechanics/growth-cycle/tests/test_historical_claim_adapter.py",
+      "home": "mechanics/growth-cycle/tests",
+      "home_scope": "mechanic-level",
+      "family": "source_growth_command_contract",
+      "validation_lane": "mechanics_local",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
+      "protects": "captured historical Claim family with explicit new grants, frozen structural fields and original creation bytes, interleaved Event/Claim histories, separate full-context forms, exact read budget and limited Event-history scope, stale publication and corrupted capture/archive refusals; synthetic statements are not historical acceptance",
+      "coverage_authority": "mechanics_local lane discovery",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "mechanics/growth-cycle/tests/test_historical_claim_adapter.py",
+      "failure_route": "Fix the explicit legacy adapter or common retained-history mechanism without rewriting captured origins, coercing legacy schemas or widening old grants.",
       "disposition": "keep"
     },
     {

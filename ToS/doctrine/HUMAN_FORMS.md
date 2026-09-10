@@ -445,7 +445,12 @@ the Claim node (not its subject or object), and binds the adjacent file digest.
 Python and Worker/D1 choose forms from `source_claim.claim_id/claim_version`
 and the source digest. A carrier exposing both metadata and Claim bindings is
 ambiguous and refused. This does not alter the stronger source Claim or create
-a direct fact edge. Legacy Claim streams still need their own adapter migration.
+a direct fact edge. Legacy Claim streams still need an explicit family adapter,
+not silent native-profile coercion. Captured `historical.create` v2 packages have
+a separately delegated descriptive historical Claim/form adapter in the
+[Growth command route](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#captured-legacy-historical-claims).
+It preserves the historical schema, initial creation evidence and independent
+record/Claim histories. Uncaptured legacy packages remain outside that writer.
 
 The separate `tos_local_claim_form_owner_v1` Growth delegation uses the common
 form commands below, selected by one exact `claim_id`. Its original creation

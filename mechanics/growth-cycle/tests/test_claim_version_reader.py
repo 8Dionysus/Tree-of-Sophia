@@ -65,7 +65,9 @@ class ClaimVersionReaderTests(unittest.TestCase):
         """Retain actual byte-bound packages with the existing pure helpers.
 
         This constructs synthetic receipts, not a delegated production command.
-        No owner configuration, grant, assessment or form materializer is used.
+        No owner configuration, grant or assessment is used. The same pure
+        source-copy preparation/application path as the writer supplies the
+        now-required retained form evidence; this is not a production receipt.
         """
         files = packages._package(self.path.parent)
         previous = claims._claims(files[self.path.name])[identity]
@@ -73,11 +75,18 @@ class ClaimVersionReaderTests(unittest.TestCase):
         history = source._json_object(files[claims.HISTORY]) if claims.HISTORY in files else {
             'schema_version': 'tos_claim_revision_history_v1', 'source_path': self.relative, 'receipts': []}
         request = {'operation': 'claim.revise', 'command_id': 'test:correction-' + str(len(history['receipts']) + 1),
-            'fields': {'qualifiers': {'statement': statement}}, 'forms': [], 'reason': 'Synthetic test only.',
+            'fields': {'qualifiers': {'statement': statement}},
+            'forms': [{'form_id': identity.replace('tos.claim.', 'tos.form.', 1) + '.statement',
+                       'field_id': 'claim.statement'}], 'reason': 'Synthetic test only.',
             'expected_source': previous_ref, 'expected_revision': revision,
             'expected_configuration': 'sha256:' + '0' * 64, 'expected_dependencies': 'sha256:' + '1' * 64,
             'expected_inputs': {}}
         revised = claims._advance(previous, request['fields'])
+        form_path = source.claim_forms_path(self.path, identity)
+        prior_forms = source._json_object(files[form_path.name]) if form_path.name in files else None
+        changes = [source.prepare_claim_change(revised, prior_forms, 'test:synthetic', **selection)
+                   for selection in request['forms']]
+        forms = source._apply(prior_forms, claims._subject(revised), changes)
         archive = packages._archive(self.root, {**self.navigation, 'record_id': identity},
             files, claims._subject(previous), revision, reader=claims._read_archive)
         receipt = {'command_id': request['command_id'], 'request_digest': source._digest(source._canonical(request)),
@@ -86,9 +95,11 @@ class ClaimVersionReaderTests(unittest.TestCase):
             'reason': request['reason'], 'previous_source': previous_ref, 'source': claims._subject(revised).ref,
             'previous_revision': revision, 'archive_path': archive.as_posix(),
             'dependencies': request['expected_dependencies'], 'source_bindings': request['expected_inputs'],
-            'changed_fields': sorted(request['fields']), 'forms': [], 'grants_admission': False, 'request': request}
+            'changed_fields': sorted(request['fields']), 'forms': [source._form_ref(change['form']) for change in changes],
+            'grants_admission': False, 'request': request}
         history['receipts'].append(receipt)
         self.path.write_bytes(claims._replace(files[self.path.name], revised))
+        form_path.write_bytes(packages._encode(forms))
         (self.path.parent / claims.HISTORY).write_bytes(packages._encode(history))
         self.sync_catalog()
         return previous, revised, receipt

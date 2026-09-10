@@ -737,7 +737,9 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
     if subject.id not in paths or form.id not in paths:
         raise PermissionError('native evidence needs its own explicit form adapter')
     source_path, form_path = paths[subject.id], paths[form.id]
-    expected = (claim_forms_path(source_path, subject.id) if source_path.name == 'source-claims.jsonl'
+    from source_historical_claims import is_path as historical_claim_path
+    is_claim = source_path.name == 'source-claims.jsonl' or historical_claim_path(source_path)
+    expected = (claim_forms_path(source_path, subject.id) if is_claim
                 else source_path.with_name(source_path.stem + '.human-forms.json'))
     package = form_sets.get(form_path.as_posix())
     validator = (owner_local_form_validator if owner_local_form_validator is not None else _validator())
@@ -752,7 +754,7 @@ def _materialize_source_form(config, sourced, form_sets, engine, context, histor
             raise PermissionError('form bindings require explicit source-selected records')
     required_context, source_languages = [SourceBinding(subject, '')], ()
     if body['content']['kind'] == 'source-copy':
-        catalog = (claim_field_catalog(subject.payload) if source_path.name == 'source-claims.jsonl'
+        catalog = (claim_field_catalog(subject.payload) if is_claim
                    else metadata_field_catalog(subject.payload))
         field = source_copy_field(subject, body, catalog)
         if field is None:

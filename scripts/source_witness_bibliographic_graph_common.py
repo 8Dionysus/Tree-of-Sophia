@@ -558,15 +558,30 @@ def _historical_claim_contract(repo_root: Path) -> tuple:
         if len(candidates) != 1:
             raise BibliographicGraphBuildError('historical predicate must have exactly one registry mapping')
         predicates[predicate] = candidates[0]
-    return historical_schema_validator(repo_root, claim=True), entries, mappings, predicates
+    return historical_schema_validator(repo_root, claim=True), entries, mappings, predicates, repo_root
+
+
+def _historical_display_inputs(repo_root, claim):
+    """The opt-in display contract belongs to this source root, not a template."""
+    display = claim.get('qualifiers', {}).get('display_fields')
+    inputs = {}
+    if isinstance(display, dict) and display.get('schema_version') == 'tos_claim_display_fields_v1':
+        from source_record_profiles import _schema_route
+        validator, _ = _schema_route(repo_root, {
+            'schema_ref': 'ToS/contracts/claim-display-fields.schema.json',
+            'schema_dependencies': ['ToS/contracts/corpus-record.schema.json']}, inputs, {})
+        if not validator.is_valid(claim['qualifiers']):
+            raise BibliographicGraphBuildError('historical Claim display fields violate their explicit contract')
+    return inputs
 
 
 def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[str, Any]],
-                               contract: tuple) -> None:
+                               contract: tuple) -> dict[str, str]:
     """Apply the owner schema and registry domains, never evaluate historical truth."""
-    validator, entries, mappings, predicates = contract
+    validator, entries, mappings, predicates, repo_root = contract
     if not validator.is_valid(claim):
         raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical claim schema violation")
+    display_inputs = _historical_display_inputs(repo_root, claim)
     relation = predicates[claim['predicate']]
     for field, allowed in (('subject_ref', relation['domain_type_ids']), ('object', relation['range_type_ids'])):
         if field == 'object' and claim['predicate'] == 'historical_dating':
@@ -586,6 +601,7 @@ def _validate_historical_claim(claim: dict[str, Any], objects: dict[str, dict[st
             pending.extend(entries.get(kind, {}).get('parent_type_ids', []))
         if not ancestry.intersection(allowed):
             raise BibliographicGraphBuildError(f"{claim['claim_id']}: historical {field} violates registry domain/range")
+    return display_inputs
 
 
 def _load_source_claim(
@@ -1441,7 +1457,7 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
         elif entry['source_claim_file_ref'] == OBJECT_LINK_CLAIM_REF:
             legacy_links.validate(claim, objects)
         elif claim.get('predicate') in HISTORICAL_PREDICATES:
-            _validate_historical_claim(claim, objects, historical_contract)
+            input_digests.update(_validate_historical_claim(claim, objects, historical_contract))
         claim_id = str(claim["claim_id"])
         subject_ref = str(claim["subject_ref"])
         subject_entry = objects.get(subject_ref)
@@ -1480,7 +1496,7 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication) -> dict[str,
             claim, subject_node, object_node, navigation_registry, profiles.registry)
         if descriptor is not None:
             claim_node['properties']['navigation_descriptor'] = descriptor
-        if Path(entry['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME:
+        if Path(entry['source_claim_file_ref']).name in {SOURCE_CLAIM_BASENAME, 'historical-claims.jsonl'}:
             try:
                 forms = load_claim_forms(repo_root, entry['source_claim_file_ref'], claim, access_allowed=True)
             except (ValueError, OSError) as exc:

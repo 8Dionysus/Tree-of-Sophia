@@ -68,7 +68,8 @@ CLAIM_REFERENCE_REVISION_CONFIG = 'tos_local_claim_revision_owner_v4'
 CLAIM_LAYER_REVISION_CONFIG = 'tos_local_claim_layer_revision_owner_v1'
 CLAIM_FORM_CONFIG = 'tos_local_claim_form_owner_v1'
 CLAIM_DISPLAY_FORM_CONFIG = 'tos_local_claim_form_owner_v2'
-CLAIM_FORM_CONFIGS = {CLAIM_FORM_CONFIG, CLAIM_DISPLAY_FORM_CONFIG}
+HISTORICAL_CLAIM_FORM_CONFIG = 'tos_local_historical_claim_form_owner_v1'
+CLAIM_FORM_CONFIGS = {CLAIM_FORM_CONFIG, CLAIM_DISPLAY_FORM_CONFIG, HISTORICAL_CLAIM_FORM_CONFIG}
 TEXT_UNIT_CONFIG = 'tos_local_text_unit_create_owner_v1'
 OWNER_PROFILE_CONFIG = 'tos_local_owner_profile_command_v1'
 OWNER_CLAIM_CONFIG = 'tos_local_owner_claim_command_v1'
@@ -312,6 +313,9 @@ def _claim_form_source(source_path, root, claim_id):
     if len(selected) != 1:
         raise ValueError('delegated Claim must resolve exactly once in the source stream')
     source = selected[0]
+    from source_historical_claims import is_path as historical_claim_path, validate as validate_historical_claim
+    if historical_claim_path(source_path):
+        return raw, source, validate_historical_claim(root, source)
     profiles = SourceClaimProfiles(root)
     profiles.validate(source)
     total_bytes = len(raw)
@@ -521,7 +525,7 @@ def _check_claim_form_changes(config, changes, current_forms=(), *, historical_f
     for form in forms:
         content = form.get('content', {})
         if content.get('kind') != 'source-copy':
-            if config.get('schema_version') == CLAIM_DISPLAY_FORM_CONFIG:
+            if config.get('schema_version') in {CLAIM_DISPLAY_FORM_CONFIG, HISTORICAL_CLAIM_FORM_CONFIG}:
                 raise PermissionError('display-field delegation permits only exact source copies')
             continue  # Historical v1 non-copy proposals remain unassessed.
         binding = form.get('bindings', {}).get(content.get('slot'), {})
@@ -1257,7 +1261,11 @@ def _creation_replay(config, source_path, request, receipt):
         files = _package(source_path.parent)
     extras = set(files) - expected_files - {'source-create-receipt.json'}
     lockname = '.' + formname + '.writer.lock'
-    if extras - {HISTORY, lockname} or files.get(lockname, b''):
+    legacy_initial_claims, legacy_additions = None, set()
+    if config['schema_version'] in CREATION_CONFIGS and extras - {HISTORY, lockname}:
+        from source_historical_claims import creation_lineage
+        legacy_initial_claims, legacy_additions = creation_lineage(Path(config['source_root']), source_path, files, request)
+    if extras - {HISTORY, lockname} - legacy_additions or files.get(lockname, b''):
         raise JournalCorruption('creation package contains unbound files')
     if not expected_files <= files.keys():
         raise JournalCorruption('creation package is incomplete')
@@ -1296,6 +1304,8 @@ def _creation_replay(config, source_path, request, receipt):
         raise JournalCorruption('retained initial forms no longer match the source-copy request')
     for name, binding in receipt['files'].items():
         raw = original_files[name] if name == source_path.name else files[name]
+        if name == 'historical-claims.jsonl' and legacy_initial_claims is not None:
+            raw = legacy_initial_claims
         if name == formname and (forms['prior_forms'] or forms.get('growth_history')):
             raw = _encode(retained_set)
         if binding != {'sha256': _digest(raw), 'bytes': len(raw)}:
@@ -1563,7 +1573,7 @@ def _builtin_handlers():
         contract.operation('prepare', {'field_id', 'form_id'}, definition='Prepare one source-copy form for an explicit field.', grants=OPERATIONS),
         contract.operation('apply', {'command_id', 'expected_source', 'expected_revision', 'expected_configuration', 'changes'},
             definition='Create or revise explicitly selected forms while retaining predecessors.', mutation='human_forms', grants=OPERATIONS))
-    forms = contract.Handler('public-source-forms', ('tos_local_source_command_owner_v1', *sorted(CLAIM_FORM_CONFIGS)),
+    forms = contract.Handler('public-source-forms', ('tos_local_source_command_owner_v1', CLAIM_FORM_CONFIG, CLAIM_DISPLAY_FORM_CONFIG),
         form_ops, _run_form_command, 'Human forms of existing public native/profile metadata or one declared Claim.',
         typed_handles=(*contract.FORM_HANDLES, *contract.RECORD_HANDLES, *contract.CLAIM_HANDLES,
                        'ToS/contracts/claim-display-fields.schema.json'),
@@ -1620,11 +1630,13 @@ def command_handlers():
     import source_artifact_commands
     import source_link_commands
     import source_public_native_commands
+    import source_historical_claims
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions, source_native_metadata_commands,
         source_text_unit_commands, source_text_layer_commands, source_alignment_commands, source_owner_profile_commands, source_owner_claim_commands,
         source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands,
-        source_collection_commands, source_artifact_commands, source_link_commands, source_public_native_commands)
+        source_collection_commands, source_artifact_commands, source_link_commands, source_public_native_commands,
+        source_historical_claims)
         for handler in module.command_handlers()))
     schemas = [schema for handler in handlers for schema in handler.owner_schemas]
     if len(set(schemas)) != len(schemas) or len({handler.handler_id for handler in handlers}) != len(handlers):
