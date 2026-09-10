@@ -189,3 +189,9 @@ configurations before opening the private source context. This route grants
 neither publication nor diplomatic fidelity, full translation verification or
 canon. Source comparison tests and synthetic journal tests are separate from
 actual language competence and real source-visible quality assessment.
+
+The separate [image/OCR comparison v6](NATIVE_IMAGE_OCR_ASSESSMENT.md) accepts
+one authenticated retained PDF-page raw OCR layer or one explicitly selected
+operator-created synthetic PNG result. It leaves this v5 EPUB comparison
+unchanged, separates local reading from assistant disclosure, and carries
+method-specific limits into current layer admission and dependent quality.

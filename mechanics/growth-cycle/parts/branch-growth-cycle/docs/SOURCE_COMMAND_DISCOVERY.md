@@ -88,6 +88,15 @@ Alignment subject, descriptive record and Claim versions remain distinct.
 Capturing a supplied mapping never claims an executed aligner or assessed
 translation; legacy packet-v1 review semantics remain unchanged.
 
+The distinct `owner-local-text-layer-record-owner-ocr` handler records one
+authenticated signed `abyss-stack` OCR result under a separate protected grant.
+It calls only the pinned owner's verification modes, never OCR execution;
+copied signed metadata remains independently verifiable without reading text.
+The distinct `owner-local-text-layer-record-owner-page-ocr` handler retains
+the original PDF identity and separately pinned retained page image, authenticates
+the owner's new execution/capture receipt and never claims a fresh render.
+Neither handler grants image disclosure or textual quality.
+
 Assessment-journal and semantic-registry evolution remain explicit owner
 handoffs, not operations dispatched by this front door. Access CLI, HTTP,
 WebMCP and native MCP remain read-only access surfaces; this catalogue does not

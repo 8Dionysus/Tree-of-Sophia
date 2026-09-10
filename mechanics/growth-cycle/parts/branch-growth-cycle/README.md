@@ -1278,6 +1278,12 @@ dependencies, withdrawal behavior and bounded journal coordination. It uses
 the existing policy engine and immutable journal; v1–v4 and public adapter
 boundaries remain unchanged.
 
+The separate [image/OCR comparison v6](docs/NATIVE_IMAGE_OCR_ASSESSMENT.md)
+adds bounded retained-PDF-page and operator-created synthetic-PNG profiles,
+each over an authenticated owner OCR layer. Historical pages remain
+undisclosed by this profile; synthetic assistant disclosure needs its own
+exact current grant. Comparison readiness is not quality admission.
+
 ### Descriptions bound to native text
 
 The registry-declared `source-text-unit-v1` profile adapter connects a public

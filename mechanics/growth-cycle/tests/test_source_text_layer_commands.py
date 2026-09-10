@@ -598,6 +598,151 @@ class NativeLayerDerivationTests(unittest.TestCase):
         self.assertEqual(retained['material']['reported_maker']['maker_type'], 'human')
         self.assertEqual(retained['material']['provider_execution'], 'not_observed')
 
+    def owner_ocr(self):
+        from source_text_layer_proposal import derivation_policy
+        self.supplied('text-layer.record-ocr')
+        self.config.update(schema_version=layers.OWNER_OCR_CONFIG,
+            allowed_operations=[layers.OWNER_OCR_OPERATION], language='de',
+            policy=derivation_policy(layers.OWNER_OCR_OPERATION))
+        self.owner_files = {'owner-ocr-receipt.json': b'{"synthetic":"receipt"}',
+            'owner-ocr-signature.sigstore.json': b'{"synthetic":"signature"}', 'owner-ocr-signer.pub': b'synthetic public key'}
+        self.config['material'] = {'authority_ref': 'operator:synthetic-authenticated-evidence-read',
+            'expires_at': '2099-01-01T00:00:00Z', 'access_allowed': True,
+            'receipt_root': str(self.base / 'owner-receipt'), 'owner_source_root': str(self.base / 'owner-source'),
+            'owner_source_ref': 'commit:' + 'a' * 40, 'adapter_sha256': 'b' * 64,
+            'receipt_sha256': source._digest(self.owner_files['owner-ocr-receipt.json'])[7:],
+            'signature_sha256': source._digest(self.owner_files['owner-ocr-signature.sigstore.json'])[7:],
+            'public_key_sha256': source._digest(self.owner_files['owner-ocr-signer.pub'])[7:],
+            'content_sha256': source._digest(self.supplied_text.encode())[7:], 'byte_size': len(self.supplied_text.encode())}
+        self.write_owner()
+
+    def test_owner_ocr_records_verified_receipt_without_retry_execution_or_quality(self):
+        import native_owner_ocr
+        self.owner_ocr()
+        with (patch.object(layers, 'verify_owner_ocr', return_value=self.supplied_text.encode()) as verified,
+              patch.object(layers, 'evidence_bytes', return_value=self.owner_files)):
+            self.created()
+            files = self.output()
+            self.assertTrue(self.invoke(self.request)['replayed'])
+            self.assertEqual(self.output(), files)
+            self.assertGreater(verified.call_count, 0)
+        row = json.loads(files[self.path.name])
+        self.assertEqual(len(files), 12)
+        self.assertTrue(json.loads(files['derivation-policy.json'])['provider_execution_verified'])
+        self.assertEqual(row['admission']['review_status'], 'unreviewed')
+        self.assertEqual(row['admission']['accepted_uses'], [])
+        event = json.loads(files['source-create-provenance.jsonl'])
+        self.assertEqual(event['activity']['event_type'], 'annotation')
+        self.assertEqual(event['method']['model_invocations'], [])
+        self.assertIn('not executed', event['activity']['warnings'][0])
+        context = OwnerLocalSourceContext.load(self.seed.context_path)
+        resolver = NativeTextBindingResolver(self.public, owner_context=context)
+        with patch.object(native_owner_ocr, 'verify_owner_ocr', return_value={}) as metadata:
+            self.assertTrue(resolver.resolve_layer(self.binding(self.config['source_path']))['metadata_verified'])
+            self.assertIsNotNone(metadata.call_args.kwargs['metadata_paths'])
+        self.assertTrue(all(category != 'content' for _, category in resolver._inputs))
+        self.assertEqual(self.seed.payload.read_bytes(), self.seed.original)
+
+    def test_owner_ocr_requires_distinct_grant_and_authenticated_result_after_rights(self):
+        self.owner_ocr()
+        self.config['schema_version'] = layers.DERIVE_CONFIG
+        self.write_owner()
+        with self.assertRaises(PermissionError):
+            self.prepare()
+        self.config['schema_version'] = layers.OWNER_OCR_CONFIG
+        self.write_owner()
+        with patch.object(layers, 'verify_owner_ocr', side_effect=ValueError('signature refusal')):
+            with self.assertRaisesRegex(ValueError, 'signature refusal'):
+                self.prepare()
+        self.config['derivation_access']['rights_record_refs'] = self.config['derivation_access']['rights_record_refs'][:1]
+        self.write_owner()
+        with patch.object(layers, 'verify_owner_ocr', side_effect=AssertionError('rights failure read owner result')):
+            with self.assertRaises(PermissionError):
+                self.prepare()
+        self.assertFalse(self.path.parent.exists())
+
+    def owner_page_ocr(self):
+        from source_text_layer_proposal import derivation_policy
+        self.owner_ocr()
+        original = b'%PDF-1.7\nsynthetic original PDF File, not a historical page'
+        digest = source._digest(original)[7:]
+        self.pdf_path = self.seed.payload.parent / 'source-page.pdf'
+        self.pdf_path.write_bytes(original)
+        self.pdf_path.chmod(0o600)
+        fixture = self.seed.fixture
+        fixture.manifest['payload_files'].append({'file_id': 'tos.file.sha256.' + digest, 'relative_path': 'payload/source-page.pdf',
+            'original_basename': 'source-page.pdf', 'media_type': 'application/pdf', 'byte_size': len(original),
+            'sha256': digest, 'fixity_verified_at': '2026-01-01T00:00:00Z'})
+        fixture.rights['scope_refs'].append('tos.file.sha256.' + digest)
+        fixture.write_json(fixture.manifest_ref, fixture.manifest)
+        fixture.write_json(fixture.rights_ref, fixture.rights)
+        self.config.update(schema_version=layers.OWNER_PAGE_OCR_CONFIG, allowed_operations=[layers.OWNER_PAGE_OCR_OPERATION],
+            policy=derivation_policy(layers.OWNER_PAGE_OCR_OPERATION), manifest_sha256=fixture.file_digest(fixture.manifest_ref))
+        self.config['source_scope'].update(file_ref='tos.file.sha256.' + digest, file_sha256=digest)
+        self.config['source_access']['byte_size'] = len(original)
+        self.config['derivation_access']['rights_record_refs'][0]['sha256'] = fixture.file_digest(fixture.rights_ref)
+        anchor = copy.deepcopy(fixture.anchor)
+        anchor.update(anchor_id='tos.anchor.sid-' + '7' * 32, passage_id=None, resolution_status='locator_only', review_status='unreviewed', review_ref=None)
+        anchor['target'].update(item_id=self.config['source_scope']['item_ref'], file_id='tos.file.sha256.' + digest,
+            file_sha256=digest, media_type='application/pdf')
+        anchor['selector_payload'] = {'kind': 'selector_expression', 'expression': {'mode': 'single', 'selector': {
+            'state': {'state_type': 'digest_state', 'representation_ref': fixture.item_home + '/payload/source-page.pdf',
+                'representation_sha256': digest, 'media_type': 'application/pdf'},
+            'selector': {'type': 'page_region', 'page_identity': {'page_number': 44}, 'x': 0, 'y': 0, 'width': 1,
+                'height': 1, 'coordinate_space': 'normalized_0_1'}}}}
+        ref = self.seed.prefix + 'source-page-anchor.v2.json'
+        self.write_private(ref, encode(anchor))
+        self.config['input'] = {'kind': 'retained_pdf_page', 'anchor': {'anchor_id': anchor['anchor_id'], 'record_ref': ref,
+            'record_sha256': source._digest(encode(anchor))[7:]}}
+        self.config['material']['input_representation'] = page_input_binding(self.config['source_scope'])
+        self.write_owner()
+
+    def test_retained_page_owner_ocr_preserves_original_source_return_and_new_capture_limits(self):
+        import native_owner_ocr
+        self.owner_page_ocr()
+        original = self.pdf_path.read_bytes()
+        with (patch.object(layers, 'verify_owner_ocr', return_value=self.supplied_text.encode()) as owner,
+              patch.object(layers, 'evidence_bytes', return_value=self.owner_files)):
+            self.created()
+            before = self.output()
+            self.assertTrue(self.invoke(self.request)['replayed'])
+            self.assertEqual(before, self.output())
+            self.assertIs(owner.call_args.kwargs['retained_page'], True)
+        row = json.loads(before[self.path.name])
+        self.assertEqual(row['source_binding']['source_file_sha256'], source._digest(original)[7:])
+        self.assertNotEqual(row['source_binding']['source_file_sha256'], self.config['material']['input_representation']['input_sha256'])
+        self.assertEqual(row['admission']['accepted_uses'], [])
+        event = json.loads(before['source-create-provenance.jsonl'])
+        self.assertEqual(event['method']['model_invocations'], [])
+        self.assertTrue(any('does not claim fresh rendering' in warning for warning in event['activity']['warnings']))
+        resolver = NativeTextBindingResolver(self.public, owner_context=OwnerLocalSourceContext.load(self.seed.context_path))
+        with patch.object(native_owner_ocr, 'verify_owner_ocr', return_value={}) as owner:
+            self.assertTrue(resolver.resolve_layer(self.binding(self.config['source_path']))['metadata_verified'])
+            self.assertIs(owner.call_args.kwargs['retained_page'], True)
+            self.assertIsNotNone(owner.call_args.kwargs['metadata_paths'])
+        self.assertTrue(all(category != 'content' for _, category in resolver._inputs))
+        self.assertEqual(self.pdf_path.read_bytes(), original)
+        self.assertEqual(self.seed.files(), self.prior_files)
+
+    def test_retained_page_binding_and_rights_fail_before_original_or_owner_content_read(self):
+        self.owner_page_ocr()
+        initial = copy.deepcopy(self.config)
+        for mutation in ('page', 'source', 'profile', 'input-kind', 'rights-digest', 'rights-scope'):
+            self.config = copy.deepcopy(initial)
+            binding = self.config['material']['input_representation']
+            if mutation == 'page': binding['page_number'] = 43
+            elif mutation == 'source': binding['source_file_sha256'] = 'f' * 64
+            elif mutation == 'profile': self.config['schema_version'] = layers.OWNER_OCR_CONFIG
+            elif mutation == 'input-kind': self.config['input']['kind'] = 'acquired_file'
+            elif mutation == 'rights-digest': self.config['derivation_access']['rights_record_refs'][0]['sha256'] = 'f' * 64
+            else: self.config['derivation_access']['rights_record_refs'] = self.config['derivation_access']['rights_record_refs'][:1]
+            self.write_owner()
+            with (self.subTest(mutation=mutation), patch.object(layers, '_payload', side_effect=AssertionError('unbound page read original PDF')),
+                  patch.object(layers, 'verify_owner_ocr', side_effect=AssertionError('unbound page read owner text')),
+                  self.assertRaises((ValueError, PermissionError))):
+                self.prepare()
+            self.assertFalse(self.path.parent.exists())
+
     def test_supplied_model_transcription_does_not_create_a_model_invocation(self):
         from source_text_layer_proposal import derivation_policy
         self.supplied('text-layer.record-transcription')
@@ -817,13 +962,14 @@ class NativeLayerDerivationTests(unittest.TestCase):
         self.assertFalse(self.path.parent.exists())
         self.assertTrue(content.read_bytes().endswith(b'foreign'))
 
-    def test_derivation_write_grant_cannot_supply_current_assessment_read_authority(self):
+    def test_extraction_assessment_explicitly_refuses_new_method_and_old_basis(self):
         import native_text_layer_assessment as assessment
         self.created()
-        with patch.object(assessment.NativeTextBindingResolver, '_read', side_effect=AssertionError('source read')):
-            with self.assertRaises(ValueError):
-                assessment.NativeLayerAssessmentSources(OwnerLocalSourceContext.load(self.seed.context_path),
-                    [{'binding': self.binding(self.config['source_path'])}], {})
+        reader = object.__new__(assessment.NativeLayerAssessmentSources)
+        reader.context = OwnerLocalSourceContext.load(self.seed.context_path)
+        reader._read = source._read
+        with self.assertRaisesRegex(ValueError, 'only the bounded private EPUB extraction profile'):
+            reader._metadata({'binding': self.binding(self.config['source_path'])})
 
     def test_describe_discovery_and_result_do_not_disclose_native_content(self):
         with patch.object(layers, '_prepare_derivation', side_effect=AssertionError('describe opened source')):
@@ -834,6 +980,80 @@ class NativeLayerDerivationTests(unittest.TestCase):
             for secret in (self.seed.content.decode(), self.config['source_path'], self.prior['layer_id'], str(self.owner)):
                 self.assertNotIn(secret, value)
             self.assertFalse(result['grants_admission'])
+
+
+class NativeOwnerOCRBridgeTests(unittest.TestCase):
+    def test_exact_bridge_can_only_verify_and_rejects_unbound_owner_json(self):
+        import base64
+        from types import SimpleNamespace
+        import native_owner_ocr as bridge
+        material = {'authority_ref': 'synthetic:read', 'expires_at': '2099-01-01T00:00:00Z',
+            'access_allowed': True, 'receipt_root': '/synthetic/packet', 'owner_source_root': '/synthetic/owner',
+            'owner_source_ref': 'commit:' + 'a' * 40, 'adapter_sha256': 'b' * 64,
+            'receipt_sha256': 'c' * 64, 'signature_sha256': 'd' * 64, 'public_key_sha256': 'e' * 64,
+            'content_sha256': source._digest(b'exact text')[7:], 'byte_size': 10}
+        scope = {'synthetic': 'exact scope'}
+        result = {key: material[key] for key in ('receipt_sha256', 'signature_sha256', 'public_key_sha256')}
+        result.update(ok=True, receipt={'owner': {'source_ref': material['owner_source_ref'], 'adapter_sha256': material['adapter_sha256']},
+            'source_scope': scope, 'language': 'deu', 'output_sha256': material['content_sha256'], 'output_bytes': 10},
+            content_base64=base64.b64encode(b'exact text').decode())
+        calls = []
+        def run(argv, **kwargs):
+            calls.append((argv, kwargs))
+            return SimpleNamespace(returncode=0, stdout=encode(result))
+        with patch.object(bridge, '_adapter', return_value=Path('/synthetic/owner') / bridge.ADAPTER), patch.object(bridge.subprocess, 'run', side_effect=run):
+            self.assertEqual(bridge.verify_owner_ocr(material, source_scope=scope, language='de'), b'exact text')
+            self.assertIn('verify', calls[-1][0])
+            self.assertNotIn('execute', calls[-1][0])
+            self.assertIs(calls[-1][1]['shell'], False)
+            self.assertNotIn('COSIGN_PASSWORD', calls[-1][1]['env'])
+            result['receipt']['source_scope'] = {'synthetic': 'other source'}
+            with self.assertRaises(ValueError):
+                bridge.verify_owner_ocr(material, source_scope=scope, language='de')
+            result['receipt']['source_scope'] = scope
+            paths = {name: Path('/synthetic/copied') / name for name in bridge.EVIDENCE}
+            with self.assertRaisesRegex(ValueError, 'unexpectedly disclosed text'):
+                bridge.verify_owner_ocr(material, source_scope=scope, language='de', metadata_paths=paths)
+            result.pop('content_base64')
+            bridge.verify_owner_ocr(material, source_scope=scope, language='de', metadata_paths=paths)
+            self.assertIn('verify-record', calls[-1][0])
+            self.assertNotIn('--emit-content', calls[-1][0])
+            self.assertNotIn('--receipt-root', calls[-1][0])
+
+    def test_retained_page_bridge_requires_independent_original_page_and_png_binding(self):
+        import base64
+        from types import SimpleNamespace
+        import native_owner_ocr as bridge
+        scope = {'file_ref': 'tos.file.sha256.' + '1' * 64, 'file_sha256': '1' * 64}
+        binding = page_input_binding(scope)
+        material = {'authority_ref': 'synthetic:read', 'expires_at': '2099-01-01T00:00:00Z', 'access_allowed': True,
+            'receipt_root': '/synthetic/packet', 'owner_source_root': '/synthetic/owner', 'owner_source_ref': 'commit:' + 'a' * 40,
+            'adapter_sha256': 'b' * 64, 'receipt_sha256': 'c' * 64, 'signature_sha256': 'd' * 64, 'public_key_sha256': 'e' * 64,
+            'content_sha256': source._digest(b'exact text')[7:], 'byte_size': 10, 'input_representation': binding}
+        result = {key: material[key] for key in ('receipt_sha256', 'signature_sha256', 'public_key_sha256')}
+        result.update(ok=True, receipt={'schema_version': 'tos_retained_pdf_page_ocr_execution_v1',
+            'owner': {'source_ref': material['owner_source_ref'], 'adapter_sha256': material['adapter_sha256']},
+            'source_scope': scope, 'language': 'deu', 'output_sha256': material['content_sha256'], 'output_bytes': 10,
+            'input_representation': copy.deepcopy(binding), 'input_verification': {'render_execution': 'not_performed', 'historical_receipt_signature': 'absent'}},
+            content_base64=base64.b64encode(b'exact text').decode())
+        with patch.object(bridge, '_adapter', return_value=Path('/synthetic/owner') / bridge.PAGE_ADAPTER), patch.object(bridge.subprocess, 'run', side_effect=lambda *a, **kw: SimpleNamespace(returncode=0, stdout=encode(result))):
+            self.assertEqual(bridge.verify_owner_ocr(material, source_scope=scope, language='de', retained_page=True), b'exact text')
+            for key, changed in (('page_number', 45), ('input_sha256', 'f' * 64), ('sample_plan_sha256', 'f' * 64)):
+                result['receipt']['input_representation'] = {**binding, key: changed}
+                with self.subTest(key=key), self.assertRaises(ValueError):
+                    bridge.verify_owner_ocr(material, source_scope=scope, language='de', retained_page=True)
+            with self.assertRaises(ValueError):
+                bridge.verify_owner_ocr(material, source_scope=scope, language='de')
+
+
+def page_input_binding(scope):
+    return {'schema_version': 'tos_retained_pdf_page_input_binding_v1', 'source_file_ref': scope['file_ref'],
+        'source_file_sha256': scope['file_sha256'], 'page_number': 44, 'page_index_origin': 1, 'render_id': 'synthetic-render',
+        'sample_id': 'synthetic-page-44', 'render_manifest_sha256': '2' * 64, 'render_receipt_sha256': '3' * 64,
+        'sample_plan_sha256': '4' * 64, 'input_file_ref': 'tos.file.sha256.' + '5' * 64, 'input_sha256': '5' * 64,
+        'input_bytes': 100, 'media_type': 'image/png', 'width_pixels': 10, 'height_pixels': 20, 'renderer': 'poppler-pdftoppm',
+        'renderer_version': '26.01.0', 'resolution_dpi': 300, 'render_execution': 'retained-not-observed-this-run',
+        'historical_receipt_signature': 'absent'}
 
 
 if __name__ == '__main__':

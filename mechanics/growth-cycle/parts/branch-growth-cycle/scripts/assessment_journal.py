@@ -1018,7 +1018,7 @@ def _quality_basis(layer, admission, use, validator):
         'use': use, 'scope': layer['scope'], 'policy': admission['policy'],
         'assessment_refs': admission['assessment_refs'], 'status': admission['status'],
         'can_use': admission['can_use'] is True and layer['read_ready'] is True,
-        'limits': admission['limits'], 'visibility': 'local_only',
+        'limits': list(dict.fromkeys([*admission['limits'], *layer.get('comparison_limits', ())])), 'visibility': 'local_only',
         'publication_authorized': False, 'performs_semantic_assessment': False}
     validator.validate(body)
     return Record.from_payload(identity, 1, body, origin_id=layer['record'].origin_id)
@@ -1055,7 +1055,8 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
         raise PermissionError('assessment consumer does not accept this source-owner version')
     fields = {'schema_version', 'uid', 'principal_id', 'execution_profile',
               'policy', 'authorities', 'competencies', 'records', 'subjects', 'journal_directory'}
-    layer_quality = config.get('schema_version') == 'tos_local_assessment_owner_v5'
+    image_quality = config.get('schema_version') == 'tos_local_assessment_owner_v6'
+    layer_quality = image_quality or config.get('schema_version') == 'tos_local_assessment_owner_v5'
     owner_local = layer_quality or config.get('schema_version') == 'tos_local_assessment_owner_v4'
     native_bound = owner_local or config.get('schema_version') == 'tos_local_assessment_owner_v3'
     source_bound = native_bound or config.get('schema_version') == 'tos_local_assessment_owner_v2'
@@ -1070,7 +1071,7 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
     if layer_quality:
         fields |= {'native_text_layers', 'quality_dependencies'}
     _keys(config, fields)
-    if (config['schema_version'] not in PUBLIC_SOURCE_OWNER_VERSIONS | {'tos_local_assessment_owner_v4', 'tos_local_assessment_owner_v5'}
+    if (config['schema_version'] not in PUBLIC_SOURCE_OWNER_VERSIONS | {'tos_local_assessment_owner_v4', 'tos_local_assessment_owner_v5', 'tos_local_assessment_owner_v6'}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or not isinstance(config['principal_id'], str) or not config['principal_id'].strip()):
         raise PermissionError('configuration does not bind this local account')
@@ -1095,7 +1096,10 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
             native_selections.append({'binding': selection['binding'], 'origin_id': selection['origin_id'], 'read_scope': scope})
         _validate_native_selections({**config, 'native_text_units': native_selections})
         if layer_quality:
-            from native_text_layer_assessment import NativeLayerAssessmentSources, preflight_layer_selections
+            if image_quality:
+                from native_page_ocr_assessment import NativePageOCRAssessmentSources as NativeLayerAssessmentSources, preflight_page_selections as preflight_layer_selections
+            else:
+                from native_text_layer_assessment import NativeLayerAssessmentSources, preflight_layer_selections
             preflight_layer_selections(config['native_text_layers'], config['subjects'])
             _validate_quality_dependencies(config['quality_dependencies'], config['subjects'])
         owner_context = OwnerLocalSourceContext.load(config['source_context_ref'])
@@ -1499,6 +1503,9 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
                 raise JournalConflict('source quality or parent history changed before returning its dependent view')
             if journal._load(identifier)[0] != result['revision']:
                 raise JournalConflict('source assessment history changed before returning the current view')
+        if selected_layer is not None and selected_layer.get('comparison_limits'):
+            result['current_admission']['limits'] = list(dict.fromkeys([
+                *result['current_admission']['limits'], *selected_layer['comparison_limits']]))
         return {'schema_version': 'tos_local_assessment_result_v1', 'owner_snapshot': snapshot,
                 'authentication': 'local-unix-account', 'result': result,
                 **({'visibility': 'local_only', 'publication_authorized': False} if owner_local else {})}

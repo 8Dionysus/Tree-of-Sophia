@@ -71,13 +71,18 @@ def _metadata_ref(value):
 
 
 def preflight_layer_selections(selections, subjects):
+    return _preflight_layer_selections(selections, subjects)
+
+
+def _preflight_layer_selections(selections, subjects, *, original_limit=MAX_ORIGINAL_BYTES,
+                                maximum_layers=MAX_LAYERS, extra_fields=()):
     """Pure validation of ALL grants/scopes before any context or source I/O.
 
     Original byte_size is charged per exact selection, including repeated
     originals: this conservative preflight does not infer file identity from
     metadata it has not yet been authorized to read. No truncation is allowed.
     """
-    if type(selections) is not list or len(selections) > MAX_LAYERS or type(subjects) is not dict:
+    if type(selections) is not list or len(selections) > maximum_layers or type(subjects) is not dict:
         _fail('native layer selection exceeds its bounded scope')
     try:
         if len(_canonical({'selections': selections, 'subjects': subjects})) > MAX_RECORD_BYTES:
@@ -87,7 +92,7 @@ def preflight_layer_selections(selections, subjects):
     seen, original_bytes = set(), 0
     now = datetime.now(timezone.utc)
     for selection in selections:
-        _keys(selection, {'binding', 'origin_id', 'source_access', 'payload_access'})
+        _keys(selection, {'binding', 'origin_id', 'source_access', 'payload_access', *extra_fields})
         binding = selection['binding']
         _keys(binding, {'schema_version', 'text_layer', 'source_record_refs'})
         target = binding['text_layer']
@@ -123,11 +128,11 @@ def preflight_layer_selections(selections, subjects):
             if (grant['read_scope'] != 'exact_acquired_file' or grant['access_allowed'] is not True
                     or not _string(grant['authority_ref']) or expires.tzinfo is None or expires <= now
                     or type(grant['payload_root']) is not str or type(grant['byte_size']) is not int
-                    or not 1 <= grant['byte_size'] <= MAX_ORIGINAL_BYTES):
+                    or not 1 <= grant['byte_size'] <= original_limit):
                 raise PermissionError('native layer payload grant is absent, expired or over budget')
             _absolute(grant['payload_root'])  # Lexical validation only; no resolve/open.
             original_bytes += grant['byte_size']
-            if original_bytes > MAX_ORIGINAL_BYTES:
+            if original_bytes > original_limit:
                 _fail('native layer original inputs exceed the aggregate byte budget')
         scope = subjects.get(target['layer_id'])
         _keys(scope, {'record', 'assertion_layer', 'risk', 'languages', 'maker_id', 'requested_use', 'access_allowed'})
@@ -158,7 +163,7 @@ class NativeLayerAssessmentSources:
     """One current source comparison snapshot; all returns remain local-only."""
 
     def __init__(self, context, selections, subjects):
-        preflight_layer_selections(selections, subjects)
+        self._preflight(selections, subjects)
         if not isinstance(context, OwnerLocalSourceContext):
             _fail('native layer assessment requires its independently selected owner context')
         self.context, self.records, self.layers, self.contracts = context, [], {}, {}
@@ -189,9 +194,13 @@ class NativeLayerAssessmentSources:
         self._read_deadline = None
 
     def _check_selections(self):
-        preflight_layer_selections(*self._provided)
+        self._preflight(*self._provided)
         if _canonical({'selections': self._provided[0], 'subjects': self._provided[1]}) != self._selection_bytes:
             raise JournalConflict('native layer access selection changed during comparison')
+
+    @staticmethod
+    def _preflight(selections, subjects):
+        preflight_layer_selections(selections, subjects)
 
     def _payload_deadline(self, deadline):
         """A bounded read cannot outlive any current exact input grant."""

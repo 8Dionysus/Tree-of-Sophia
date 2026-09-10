@@ -250,6 +250,11 @@ class NativeTextBindingResolver:
                         self._validate_schema_resource(name)
                         dependency = _json(self._read((CONTRACT_HOME / name).as_posix(), schema=True))
                         registry = registry.with_resource(dependency['$id'], Resource.from_contents(dependency))
+                elif schema_name == 'native-page-ocr-comparison.schema.json':
+                    name = 'native-text-layer-comparison.schema.json'
+                    self._validate_schema_resource(name)
+                    dependency = _json(self._read((CONTRACT_HOME / name).as_posix(), schema=True))
+                    registry = registry.with_resource(dependency['$id'], Resource.from_contents(dependency))
                 self._validators[schema_name] = Draft202012Validator(
                     schema, format_checker=FormatChecker(), registry=registry)
             except (ValueError, SchemaError) as error:
@@ -440,7 +445,8 @@ class NativeTextBindingResolver:
                 raise NativeTextBindingError('native predecessor identity or content binding differs')
             previous_layers.append(previous)
             self._layer_dependencies(previous, visiting=visiting | {layer['layer_id']}, record_ref=target['record_ref'])
-        if configuration is not None and configuration.get('schema_version') == 'tos_local_text_layer_derive_owner_v1':
+        if configuration is not None and configuration.get('schema_version') in {
+                'tos_local_text_layer_derive_owner_v1', 'tos_local_text_layer_record_owner_ocr_v1', 'tos_local_text_layer_record_owner_page_ocr_v1'}:
             self._derived_metadata(layer, configuration, previous_layers, record_ref=record_ref)
 
     def _derived_metadata(self, layer, config, previous_layers, *, record_ref=None):
@@ -450,25 +456,31 @@ class NativeTextBindingResolver:
         upgrades. This does not replay a reported OCR provider or adopt quality.
         """
         from source_text_layer_proposal import DERIVE_OPERATIONS
+        from native_owner_ocr import (OWNER_OCR_OPERATION, OWNER_OCR_CONFIG, OWNER_OCR_PROFILES, OWNER_PAGE_OCR_OPERATION,
+            verify_owner_ocr, validate_page_anchor)
         try:
             operation = config['allowed_operations'][0]
+            observed = operation in OWNER_OCR_PROFILES and config['schema_version'] == OWNER_OCR_PROFILES[operation]
+            retained_page = observed and operation == OWNER_PAGE_OCR_OPERATION
+            operations = {name: 'ocr' for name in OWNER_OCR_PROFILES} if observed else DERIVE_OPERATIONS
             rep, derivation, maker = layer['representation'], layer['derivation'], layer['derivation']['maker']
             base = Path(config['source_path']).parent
             policy = self._record(layer['editorial_policy']['policy_ref'], expected=layer['editorial_policy']['policy_sha256'])
             scope = layer['source_binding']
             exact_scope = {key: scope[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')}
             exact_scope.update(file_ref=scope['source_file_ref'], file_sha256=scope['source_file_sha256'])
-            role = ('normalized_text' if operation == 'text-layer.normalize' else 'raw_ocr' if operation == 'text-layer.record-ocr'
+            role = ('normalized_text' if operation == 'text-layer.normalize' else 'raw_ocr' if operation in {'text-layer.record-ocr', *OWNER_OCR_PROFILES}
                     else 'machine_transcription' if derivation['method'] == 'model_transcription' else 'diplomatic_transcription')
-            if (config['allowed_operations'] != [operation] or operation not in DERIVE_OPERATIONS
+            if (config['allowed_operations'] != [operation] or operation not in operations
+                    or (config['schema_version'] in OWNER_OCR_PROFILES.values()) is not observed
                     or record_ref is not None and config['source_path'] != record_ref
                     or config['source_scope'] != exact_scope or config['identities']['layer_id'] != layer['layer_id']
                     or config['identities']['provenance_event_id'] != layer['provenance_event_ref']
-                    or derivation['method'] not in ({'manual_transcription', 'model_transcription'} if operation == 'text-layer.record-transcription' else {DERIVE_OPERATIONS[operation]})
+                    or derivation['method'] not in ({'manual_transcription', 'model_transcription'} if operation == 'text-layer.record-transcription' else {operations[operation]})
                     or config['policy'] != policy
                     or policy['schema_version'] != 'tos_native_text_layer_derivation_policy_v1'
                     or policy['operation'] != operation or policy['method'] != derivation['method']
-                    or policy['provider_execution_verified'] is not False or policy['inherited_quality'] != 'not-transferred'
+                    or policy['provider_execution_verified'] is not observed or policy['inherited_quality'] != 'not-transferred'
                     or layer['layer_role'] != role
                     or config['language'] != rep['language'] or rep['content_ref'] != (base / 'content.txt').as_posix()
                     or rep['character_normalization'] != policy['unicode_normalization']
@@ -497,9 +509,27 @@ class NativeTextBindingResolver:
                 if (previous_layers or layer['layer_version'] != 1 or layer['supersedes_layer_ref'] is not None
                         or scope['anchors'] != [{'anchor_id': target['anchor_id'], 'anchor_record_ref': target['record_ref'],
                                                  'anchor_record_sha256': target['record_sha256']}]
-                        or config['material']['provider_execution'] != 'not_observed'
+                        or not observed and config['material']['provider_execution'] != 'not_observed'
                         or rep['content_sha256'] != config['material']['content_sha256']):
                     raise NativeTextBindingError('native supplied result differs from its exact source/byte declaration')
+                if observed:
+                    if config['input']['kind'] != ('retained_pdf_page' if retained_page else 'acquired_file'):
+                        raise NativeTextBindingError('native owner OCR input kind differs from its distinct protected profile')
+                    if retained_page:
+                        original_anchor = self._record(target['record_ref'], expected=target['record_sha256'])
+                        validate_page_anchor(original_anchor, config['material']['input_representation'], exact_scope)
+                    paths = {}
+                    for name, key in (('owner-ocr-receipt.json', 'receipt_sha256'),
+                            ('owner-ocr-signature.sigstore.json', 'signature_sha256'), ('owner-ocr-signer.pub', 'public_key_sha256')):
+                        ref = (base / name).as_posix()
+                        self._read(ref, expected=config['material'][key], support=True)
+                        if self._owner_context is None:
+                            raise NativeTextBindingError('owner OCR metadata needs its exact private source context')
+                        paths[name] = self._owner_context.path(ref)
+                    try:
+                        verify_owner_ocr(config['material'], source_scope=exact_scope, language=rep['language'], metadata_paths=paths, retained_page=retained_page)
+                    except (ValueError, OSError) as error:
+                        raise NativeTextBindingError('native owner OCR metadata does not independently authenticate') from error
         except (KeyError, TypeError, IndexError) as error:
             raise NativeTextBindingError('native derived layer has malformed retained configuration') from error
 
@@ -515,7 +545,7 @@ class NativeTextBindingResolver:
             config = _json(raw)
         except NativeTextBindingError:
             return  # Opaque legacy method configuration, not this adapter.
-        if config.get('schema_version') != 'tos_local_text_layer_derive_owner_v1':
+        if config.get('schema_version') not in {'tos_local_text_layer_derive_owner_v1', 'tos_local_text_layer_record_owner_ocr_v1', 'tos_local_text_layer_record_owner_page_ocr_v1'}:
             return
         from source_text_layer_proposal import MAX_DERIVED_TEXT_BYTES, MAX_EDITS
         rep = layer['representation']

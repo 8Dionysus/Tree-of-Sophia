@@ -279,6 +279,20 @@
       "disposition": "keep"
     },
     {
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/native_page_ocr_assessment.py",
+      "family": "source_assessment_selection",
+      "organ_lane": "mechanics/part-owned",
+      "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_IMAGE_OCR_ASSESSMENT.md",
+      "source_truth": ["ToS/doctrine/KNOWLEDGE_ASSESSMENT.md", "ToS/contracts/native-page-ocr-comparison.schema.json", "ToS/contracts/native-text-layer-comparison.schema.json", "scripts/native_owner_ocr.py"],
+      "reads": ["independent current original File, exact retained image and optional synthetic disclosure grants before IO", "authenticated owner OCR metadata and unchanged layer/source/anchor/rights closure; exact granted original and PNG bytes; raw OCR only after rights", "fixed clean owner receipt verifier with no OCR or rendering; current identity, grant, image and source snapshots"],
+      "writes": [],
+      "side_effects": "Private v6 image comparison with original PDF and retained PNG distinct, unsigned historical rendering never reattested; only explicit operator-created synthetic PNG may carry exact assistant disclosure; comparison availability is not source-visible judgment, competence, quality admission, publication or canon",
+      "validation_lane": "mechanics_local",
+      "ci_inclusion": "release",
+      "test_target": "mechanics/growth-cycle/tests/test_native_page_ocr_assessment.py",
+      "disposition": "keep"
+    },
+    {
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/native_text_layer_assessment.py",
       "family": "source_assessment_selection",
       "organ_lane": "mechanics/part-owned",

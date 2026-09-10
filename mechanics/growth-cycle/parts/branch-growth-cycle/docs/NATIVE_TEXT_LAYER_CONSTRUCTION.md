@@ -301,6 +301,28 @@ predecessors and original source, then use the existing assessment journal for
 a separate current purpose-scoped quality basis. Construction and comparison
 do not themselves establish real-source acceptance or Foundation-wide quality.
 
+## Authenticated OCR of a retained PDF page
+
+The distinct `tos_local_text_layer_record_owner_page_ocr_v1` protected profile
+selects only `text-layer.record-owner-page-ocr`. Its input kind is
+`retained_pdf_page`; original `source_scope` and whole-page anchor still name
+the exact acquired PDF, never the derived PNG. It retains all independently
+issued source, derivation, output and authenticated-evidence grants of the
+owner OCR route, plus exact `material.input_representation` binding to the
+retained image, one-based page, frozen render manifest/sample plan and unsigned
+historical receipt. The fixed `abyss-stack` retained-page verifier authenticates
+the new OCR execution and honest current input-verification capture. ToS never
+runs a renderer or OCR provider through this recording operation.
+
+The immutable 12-file package includes copied signed receipt, signature and
+public key. Metadata-only source resolution authenticates these three files
+without opening the original PDF, PNG or OCR text. Exact content reads bind
+the signed output digest. Recording/recovery cannot reexecute OCR, sign an old
+rendering event retroactively or mark raw OCR reviewed. The separate
+[image/OCR assessment v6](NATIVE_IMAGE_OCR_ASSESSMENT.md) owns current
+source-visible comparison and disclosure bounds; old supplied `record-ocr`
+continues to mean supplied unverified origin, not observed execution.
+
 ## No-replace commit, replay and retained recovery
 
 Both new routes use existing source-owner locks and atomic no-replace directory
