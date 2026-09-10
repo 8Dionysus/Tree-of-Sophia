@@ -1,0 +1,128 @@
+{
+  "schema_version": "tos_work_expression_receipt_v1",
+  "operation": "work.expression.create",
+  "transaction_id": "sha256:c422c71df87198ea6d46e7d6f2e13d0f2435ff31472625e92f67ec9dec574d2c",
+  "command_id": "tos.event.sid-c8469b6591b14cb4870358618736c137",
+  "request_digest": "sha256:0c77f2de25b51478bc30d8eb08ed0328b155f228779822640967d52704ec1076",
+  "principal_id": "agent:codex-tos-public-native-occurrence",
+  "authority_ref": "operator:tos-foundation-v1",
+  "owner_configuration": "sha256:a2807103c8d0e44bd2376ac39a50f67cb27157d6edb45afe8784b1d4c724476c",
+  "recorded_at": "2026-09-10T01:45:33.778278+00:00",
+  "scope": {
+    "allowed_claim_form_ids": [
+      "tos.form.sid-a6942509f012425abbd27a5e167922ac"
+    ],
+    "allowed_expression_form_ids": [
+      "tos.form.sid-4499af33ce98498dbec5d8d9904716bc"
+    ],
+    "allowed_work_form_ids": [
+      "tos.form.sid-6b503ffbe2b34529bad16753e23791ac"
+    ],
+    "claim_id": "tos.claim.sid-b8341308e71049bbacab6fd057563dc9",
+    "expression_id": "tos.expression.sid-cede0d111ef7427d8acfac8c6997e241",
+    "expression_source_path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json",
+    "provenance_event_id": "tos.event.sid-c8469b6591b14cb4870358618736c137",
+    "work_id": "tos.work.sid-264c1ef4300f444c850494627ff8ce5f",
+    "work_source_path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json"
+  },
+  "dependencies": "sha256:e5c073a6d332ce42db5b063226b7889035e78623d14a715a13b96985ff24fbfd",
+  "parent_before": {
+    "id": "tos.work.sid-264c1ef4300f444c850494627ff8ce5f",
+    "version": 1,
+    "digest": "sha256:9ead77286c82345cb7e1b99bfd9384646e62fb0bdd7aad3be31a22046e2d663a"
+  },
+  "parent_after": {
+    "id": "tos.work.sid-264c1ef4300f444c850494627ff8ce5f",
+    "version": 2,
+    "digest": "sha256:4371fe97e2d37ced885975f6eefc4a9671c5fdb7f10ccd4a9c53ef009213c2d2"
+  },
+  "parent_revision": "sha256:c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449",
+  "parent_archive_ref": "ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449",
+  "parent_transition_sha256": "sha256:21deff7e292acae173142dd88cbe79ccada049bd38827c5591cefbd74e2979bf",
+  "parent_before_files": {
+    "work.json": {
+      "sha256": "sha256:0fbb729a3519b402208d53be31a5b909a9dfb21a75f1fdf6b64985a85558fe6d",
+      "bytes": 955
+    },
+    "work.human-forms.json": {
+      "sha256": "sha256:4e4d378eafa86176fb1ff5c2dd51de2438dc8e1bed33d04af41de26ba18b853c",
+      "bytes": 2100
+    }
+  },
+  "expression": {
+    "id": "tos.expression.sid-cede0d111ef7427d8acfac8c6997e241",
+    "version": 1,
+    "digest": "sha256:703bed134498dc223044043f5bd6e18505ff828e1498d9802497d0f6af667149"
+  },
+  "claim": {
+    "id": "tos.claim.sid-b8341308e71049bbacab6fd057563dc9",
+    "version": 1,
+    "digest": "sha256:f4d2102f50500f4235b05372f3cda9122ccce8e24efa6ba4768ef99b372f0f05"
+  },
+  "forms": {
+    "work": [
+      {
+        "id": "tos.form.sid-6b503ffbe2b34529bad16753e23791ac",
+        "version": 2,
+        "digest": "sha256:8bfe15d355afe2b362a302eb5797b0d5f90a1567146f350c2afc5fabe67128a1"
+      }
+    ],
+    "expression": [
+      {
+        "id": "tos.form.sid-4499af33ce98498dbec5d8d9904716bc",
+        "version": 1,
+        "digest": "sha256:0c283f291ea2a1c70f3e8ae7fe92672aa9c78dc34574e99b9a77e417a744e73d"
+      }
+    ],
+    "claim": [
+      {
+        "id": "tos.form.sid-a6942509f012425abbd27a5e167922ac",
+        "version": 1,
+        "digest": "sha256:72f7b62b9e4c7ea15731ac181c96cca2d1a2b7148206e8b50cc3d97573217738"
+      }
+    ]
+  },
+  "files": {
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json": {
+      "sha256": "sha256:72b2b405a67475ed5d62a93d8acc44228af9465ad959e58003827a73b44c4994",
+      "bytes": 1011
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.human-forms.json": {
+      "sha256": "sha256:a492e6c44ad7127b308d5cde143f1ff9d7191ee46a40934a947c0c75de44a92a",
+      "bytes": 4113
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/source-revision-history.json": {
+      "sha256": "sha256:b360f15384a87a50efa6bcb8f0df74309d9ecc30b1ca8cf9e4bbab9d687c9d53",
+      "bytes": 6548
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json": {
+      "sha256": "sha256:a14841b7944141f1f12e2f54569defbcbf929ee3818dab6623ab531e2e95d654",
+      "bytes": 1053
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.human-forms.json": {
+      "sha256": "sha256:3b68b3622bee9b6cd7fbc1aa7b53ab42fdd5b025ca269dfe31d9756e3ab2a51e",
+      "bytes": 2136
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl": {
+      "sha256": "sha256:229fcea0f40d320f15a671b1695881374dcfc814dee8fba3403b31e3cfaef420",
+      "bytes": 1051
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.d285a13c464ec786f2e1bbbe622e10d57bb1a722ef20c6bc78b92d44c62cdc11.human-forms.json": {
+      "sha256": "sha256:79ffe398c8a0bae3d6d88412a49ea4b3942e8da5f9291a043008ea661d3cc784",
+      "bytes": 1486
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-request.json": {
+      "sha256": "sha256:3b973b9eba105ac433ded4817ee301535d3baa9af46b4ea12ef3bcdfe8fec315",
+      "bytes": 3204
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-environment.json": {
+      "sha256": "sha256:123346d4a012b864ddbcd6e858b133666692cacf09f24515b4ae782542e14276",
+      "bytes": 325
+    },
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-provenance.jsonl": {
+      "sha256": "sha256:43cbcc21e92a3b10ea9c64bbe606dc66b92cf5889b57ee10e2cc307b711c6ccf",
+      "bytes": 13249
+    }
+  },
+  "grants_admission": false
+}

@@ -743,6 +743,19 @@ claiming provider execution. All use the same bounded private recovery route
 and remain unreviewed. The construction contract above names the exact grant
 shapes and the still-separate method-specific source-visible assessment owner.
 
+### Public project-text native construction
+
+The independent `tos_public_native_text_create_owner_v1` grant exposes
+`native-text.create` through the same source front door. It selects one exact
+existing project-authored UTF-8 documentation range, already acquired as an
+Item/File, and writes one new native TextLayer/Anchor plus an explicitly
+supplied first TextUnit partition. It does not widen private grants, import
+third-party historical text, or create an Occurrence implicitly.
+
+The [public construction contract](docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md)
+owns its exact positive rights/authority gate, limits, retained recovery and
+separate downstream source creation. Private originals remain private.
+
 ### Confidential native TextUnit creation
 
 `source_commands.py` dispatches the separately selected

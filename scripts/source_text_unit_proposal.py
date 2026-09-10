@@ -1,11 +1,13 @@
-"""Pure bounded construction of one private native segmentation proposal.
+"""Pure bounded construction of one native segmentation proposal.
 
 The caller supplies already-resolved source metadata, exact decoded UTF-8
 text, delegated identities and an independently authorized scope. This module
 performs no source, schema or configuration reads and grants no permission.
 The command owner must validate input and output against its pinned native
 schemas, check cross-package identity collisions, and guard publication with
-the original source/context snapshot. The result is confidential source data.
+the original source/context snapshot. The original builders return confidential
+source data; the independent public wrapper requires an already public,
+publication-authorized layer and never changes a private grant.
 """
 from __future__ import annotations
 
@@ -391,4 +393,29 @@ def build_text_unit_proposal(*, verified_layer, exact_text, scope,
     _json_bytes(packet)
     if _source_text_unit_v1_issues(packet, text=exact_text):
         _fail("constructed proposal violates the existing native evidence contract")
+    return packet
+
+
+def build_public_text_unit_proposal(**inputs):
+    """Separate public-source assembly, never a visibility switch in a grant.
+
+    The command owner must independently verify exact public rights and
+    publication authority before calling this pure builder. The private
+    constructor and its caller contracts remain unchanged. Only a first
+    segmentation of a declared public layer is supported here.
+    """
+    layer = inputs.get('verified_layer')
+    if (inputs.get('verified_packet') is not None or not isinstance(layer, dict)
+            or layer.get('representation', {}).get('content_visibility') != 'public'
+            or layer['representation'].get('publication_authorized') is not True
+            or layer['representation'].get('tracked_content') is not True
+            or layer['representation'].get('storage') != 'tracked'
+            or not layer['representation'].get('publication_authority_refs')):
+        _fail('public first segmentation needs its independently authorized public layer')
+    packet = build_text_unit_proposal(**inputs)
+    packet['rights_and_visibility'].update(source_visibility='public',
+        packet_visibility='public', effective_visibility='public',
+        publication_authorized=True, private_source_used=False)
+    if _source_text_unit_v1_issues(packet, text=inputs['exact_text']):
+        _fail('public first segmentation violates its existing evidence contract')
     return packet

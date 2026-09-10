@@ -875,7 +875,8 @@ def _validator_for_provenance(root):
 
 def _capture_creation_provenance(config, request, files, started_at, started_ns,
                                  *, procedure_name=None, additional_software_refs=(),
-                                 native_inputs=None, owner_local_metadata=False):
+                                 native_inputs=None, owner_local_metadata=False,
+                                 public_native_inputs=None):
     """Capture buffer serialization, not upstream research or future publication.
 
     The event and its hash-bearing receipt travel with the atomic directory.
@@ -1074,6 +1075,39 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
                 item['content_disclosure'] = 'private_content'
         event['method']['configuration_binding'] = binding('source-create-owner-configuration.json')
         event['rights_and_visibility'].update(intended_uses=['local_research'], content_visibility='local_only')
+    if public_native_inputs is not None:
+        if native_inputs is not None or owner_local_metadata:
+            raise ValueError('public and confidential native capture are distinct internal adapters')
+        event['activity']['event_type'] = 'native_extraction'
+        event['activity']['warnings'][0] = (
+            'Exact project-authored UTF-8 range and explicit partition captured; atomic source publication follows. '
+            'No textual, linguistic, semantic or rights assessment was performed.')
+        event['entities']['inputs'].extend(public_native_inputs['entities'])
+        for group in event['entities'].values():
+            for item in group:
+                item['availability'] = 'tracked'
+                item['content_disclosure'] = 'public_content'
+                if item['entity_ref'].endswith('/content.txt'):
+                    item['media_type'] = 'text/plain; charset=utf-8'
+        event['method']['configuration_binding'] = binding('construction-plan.json')
+        event['method']['procedure']['purpose'] = (
+            'Capture a literal UTF-8 source range and proposed segmentation under independently supplied '
+            'project-text public authority; preserve original source bytes and separate native identities.')
+        event['rights_and_visibility'].update(rights_record_bindings=public_native_inputs['rights'],
+            intended_uses=['public_metadata', 'publication'], content_visibility='public_content',
+            publication_authorized=True, publication_authority_bindings=public_native_inputs['authority'])
+        event['reproducibility']['known_gaps'][0] = (
+            'Project authorship, licensing and delegated publication scope are supplied owner evidence, '
+            'not granted or authenticated by this unsigned process; no model or human assessment is executed.')
+        event['reproducibility']['replay_scope'] = (
+            'Exact source range and proposed partition with bound inputs, implementation and public plan; '
+            'not content correctness or deterministic timestamps. Protected grant paths are not published.')
+        for index, item in enumerate(public_native_inputs['entities']):
+            event['derivations'].append({
+                'derivation_id': config['provenance_event_id'].replace('tos.event.', 'tos.derivation.', 1) + f'.public-native-{index}',
+                'input_entity_ref': item['entity_ref'], 'output_entity_ref': config['source_path'],
+                'relation': 'selection_from', 'influence_asserted': True,
+                'description': 'Exact project-text construction dependency, not historical influence or assessment.'})
     _validator_for_provenance(Path(config['source_root'])).validate(event)
     files['source-create-provenance.jsonl'] = _canonical(event) + b'\n'
 
@@ -1487,11 +1521,12 @@ def command_handlers():
     import source_collection_commands
     import source_artifact_commands
     import source_link_commands
+    import source_public_native_commands
     handlers = (*_builtin_handlers(), *(handler for module in (
         source_claim_commands, claim_revisions, source_revisions, source_selected_revisions, source_native_metadata_commands,
         source_text_unit_commands, source_text_layer_commands, source_alignment_commands, source_owner_profile_commands, source_owner_claim_commands,
         source_expression_commands, source_responsibility_commands, source_edition_commands, source_item_commands,
-        source_collection_commands, source_artifact_commands, source_link_commands)
+        source_collection_commands, source_artifact_commands, source_link_commands, source_public_native_commands)
         for handler in module.command_handlers()))
     schemas = [schema for handler in handlers for schema in handler.owner_schemas]
     if len(set(schemas)) != len(schemas) or len({handler.handler_id for handler in handlers}) != len(handlers):

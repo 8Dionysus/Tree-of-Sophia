@@ -19,6 +19,44 @@ import build_source_resource_inventories as inventories
 
 
 class SourceResourceInventoryTests(unittest.TestCase):
+    def test_plain_utf8_preserves_fixity_bom_newlines_and_inert_markup(self):
+        from unittest.mock import patch
+        from jsonschema import Draft202012Validator
+        raw = b'\xef\xbb\xbf' + '[remote](https://example.invalid)\r\n<script>no execution</script>\rCafe\u0301\n'.encode()
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'source.md'
+            path.write_bytes(raw)
+            entry = {'file_id': 'tos.file.synthetic-utf8', 'sha256': inventories._sha256_bytes(raw),
+                     'media_type': 'text/markdown', 'relative_path': 'payload/source.md'}
+            with patch.object(inventories, '_run', side_effect=AssertionError('plain text ran a renderer')):
+                result = inventories.build_file_inventory(path, entry)
+            self.assertEqual(path.read_bytes(), raw)
+            observation = result['utf8_observation']
+            self.assertEqual(observation['bom_byte_count'], 3)
+            self.assertEqual(observation['code_point_count'], len(raw.decode('utf-8')))
+            self.assertEqual([observation[key] for key in ('crlf_count', 'lone_cr_count', 'lone_lf_count')], [1, 1, 1])
+            self.assertEqual(observation['normalization_observation'], 'nfd')
+            self.assertFalse(observation['normalization_performed'])
+            self.assertFalse(observation['markup_interpretation_performed'])
+            self.assertEqual(result['resources'][0]['sha256'], entry['sha256'])
+            self.assertEqual(result['resources'][0]['locator'], {'byte_start': 0, 'byte_end': len(raw)})
+            self.assertNotIn('remote', json.dumps(result))
+            schema = json.loads((REPO_ROOT / 'ToS/contracts/source-resource-inventory.schema.json').read_bytes())
+            Draft202012Validator({'$defs': schema['$defs'], '$ref': '#/$defs/fileInventory'}).validate(result)
+
+    def test_plain_utf8_refuses_invalid_encoding_nul_oversize_and_wrong_fixity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'source.txt'
+            for raw in (b'', b'\xff', b'a\x00b', b'a' * (inventories.MAX_PLAIN_UTF8_BYTES + 1)):
+                path.write_bytes(raw)
+                with self.subTest(size=len(raw)), self.assertRaises(inventories.InventoryBuildError):
+                    inventories.build_file_inventory(path, {'file_id': 'tos.file.synthetic', 'sha256': inventories._sha256_bytes(raw),
+                        'media_type': 'text/plain', 'relative_path': 'payload/source.txt'})
+            path.write_bytes(b'valid text')
+            with self.assertRaises(inventories.InventoryBuildError):
+                inventories.build_file_inventory(path, {'file_id': 'tos.file.synthetic', 'sha256': '0' * 64,
+                    'media_type': 'text/plain', 'relative_path': 'payload/source.txt'})
+
     @staticmethod
     def _write_manifest_fixture(
         repo_root: Path, *, byte_size: int, sha256: str

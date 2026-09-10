@@ -534,6 +534,10 @@ page-break/division structure, or provider DjVu/ABBYY OCR page geometry and
 counts. Text-bearing EPUB, TEI, and OCR resources may carry only one-way
 normalized fingerprints and character or word counts. The inventory cannot
 accept a reading, settle an edition, clear rights, or expose source text.
+The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
+Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
+and observed Unicode-form facts only. It neither rewrites bytes nor interprets
+markup, follows links, executes code or supplies a TextLayer/segmentation.
 
 Large working derivatives, model caches, OCR scratch, page renders, and
 benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,

@@ -215,8 +215,8 @@ class NativeItemTests(unittest.TestCase):
                 self.assertNotIn(str(self.recovery_root).encode(), raw, str(path))
 
     def test_unsupported_format_retained_without_acquired_metadata(self):
-        self.input.write_bytes(b'Synthetic unsupported plain text.\n')
-        self.config.update(media_type='text/plain', byte_size=self.input.stat().st_size,
+        self.input.write_bytes(b'Synthetic opaque octet stream.\n')
+        self.config.update(media_type='application/octet-stream', byte_size=self.input.stat().st_size,
             sha256=hashlib.sha256(self.input.read_bytes()).hexdigest())
         self.owner.write_text(json.dumps(self.config))
         before = self.edition_path.read_bytes()
@@ -232,6 +232,26 @@ class NativeItemTests(unittest.TestCase):
         result = commands.run_local_command(self.owner, recovery)
         self.assertEqual(result['deposit']['state'], 'rolled-back-retained')
         self.assertEqual(deposit.destination(self.config).read_bytes(), self.input.read_bytes())
+
+    def test_plain_utf8_markdown_adoption_keeps_raw_bytes_and_inert_inventory(self):
+        raw = b'\xef\xbb\xbf# Inert source\r\n' + '[link](https://example.invalid) cafe\u0301\r'.encode()
+        self.input.write_bytes(raw)
+        self.config.update(media_type='text/markdown', byte_size=len(raw), sha256=hashlib.sha256(raw).hexdigest(),
+                           payload_basename='source.md', original_basename='source.md')
+        self.owner.write_text(json.dumps(self.config))
+        request = self.request()
+        self.assertEqual(request['inventory']['profile'], 'plain_utf8_file_v1')
+        result = commands.run_local_command(self.owner, request)
+        self.assertTrue(result['deposit']['metadata_committed'])
+        self.assertEqual(deposit.destination(self.config).read_bytes(), raw)
+        self.assertEqual(self.input.read_bytes(), raw)
+        inventory = json.loads((self.root / self.config['item_source_path']).with_name('resource-inventory.json').read_bytes())
+        observation = inventory['files'][0]['utf8_observation']
+        self.assertEqual(observation['bom_byte_count'], 3)
+        self.assertEqual(observation['crlf_count'], 1)
+        self.assertEqual(observation['lone_cr_count'], 1)
+        self.assertFalse(observation['normalization_performed'])
+        self.assertFalse(observation['markup_interpretation_performed'])
 
     def test_metadata_crash_rollback_preserves_canonical_colocated_payload(self):
         self.config['payload_root'] = str(self.root / 'ToS/source-witnesses')

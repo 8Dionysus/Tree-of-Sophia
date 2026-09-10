@@ -405,6 +405,118 @@ def build_text_layer_proposal(*, exact_text, source_scope, identities, refs,
     return {"layer": layer, "anchor": anchor, "policy": owned_policy, "content": content}
 
 
+PUBLIC_UTF8_POLICY = {
+    'schema_version': 'tos_project_utf8_range_policy_v1',
+    'method': 'tos.project-authored.utf8-range.v1',
+    'encoding': 'UTF-8-strict', 'position_unit': 'unicode_code_point',
+    'interval': 'half_open', 'unicode_normalization': 'none',
+    'whitespace': 'preserve-including-CRLF-and-leading-or-trailing-space',
+    'markup': 'literal-source-characters-not-rendered',
+    'selection': 'one-exact-contiguous-range-no-rewrite',
+    'source_posture': 'independently-authorized-project-authored-text',
+    'quality_assessment': 'not-performed',
+}
+
+
+def build_public_utf8_layer(*, source_text, source_selector, source_media_type,
+                           source_scope, identities, refs, maker, language,
+                           rights_record_refs, publication_authority_refs):
+    """Literal range capture under a distinct public-source caller contract.
+
+    No I/O or rights judgment occurs here. The original File and selected
+    representation retain separate identities and coordinates. This is not
+    the private extraction builder with its visibility flag changed.
+    """
+    _keys(source_scope, {'work_ref', 'expression_ref', 'edition_ref', 'item_ref', 'file_ref', 'file_sha256'}, 'source scope')
+    _keys(identities, {'layer_id', 'anchor_id', 'passage_id', 'provenance_event_id'}, 'delegated identities')
+    _keys(refs, {'layer_ref', 'anchor_ref', 'content_ref', 'policy_ref', 'configuration_ref',
+                'configuration_sha256', 'source_ref'}, 'public source refs')
+    _keys(source_selector, {'start', 'end'}, 'source selector')
+    _keys(maker, {'maker_type', 'agent_ref', 'method', 'version'}, 'capture maker')
+    if (type(source_text) is not str or not source_text or len(source_text.encode('utf-8')) > 131072
+            or any(type(source_selector[k]) is not int for k in ('start', 'end'))
+            or not 0 <= source_selector['start'] < source_selector['end'] <= len(source_text)
+            or source_media_type not in {'text/plain', 'text/markdown'}
+            or maker['maker_type'] != 'software'
+            or any(not isinstance(maker[k], str) or not maker[k].strip() for k in ('agent_ref', 'method', 'version'))
+            or hashlib.sha256(source_text.encode('utf-8')).hexdigest() != source_scope['file_sha256']
+            or source_scope['file_ref'] != 'tos.file.sha256.' + source_scope['file_sha256']):
+        _fail('public capture needs one exact bounded source and literal range')
+    for kind in ('work', 'expression', 'edition', 'item', 'file'):
+        _identity(source_scope[kind + '_ref'], kind)
+    for key, kind in (('layer_id', 'text-layer'), ('anchor_id', 'anchor'),
+                      ('passage_id', 'passage'), ('provenance_event_id', 'event')):
+        _identity(identities[key], kind, opaque=True)
+    for key, value in refs.items():
+        _digest(value) if key == 'configuration_sha256' else _ref(value)
+    for bindings in (rights_record_refs, publication_authority_refs):
+        if not isinstance(bindings, list) or not 1 <= len(bindings) <= 16:
+            _fail('public capture requires bounded independent rights and publication evidence')
+        for binding in bindings:
+            _keys(binding, {'ref', 'sha256'}, 'public evidence binding')
+            _ref(binding['ref'])
+            _digest(binding['sha256'])
+        if len({row['ref'] for row in bindings}) != len(bindings):
+            _fail('public evidence bindings repeat a reference')
+    text = source_text[source_selector['start']:source_selector['end']]
+    content = text.encode('utf-8')
+    content_digest = hashlib.sha256(content).hexdigest()
+    owned_maker = {**copy.deepcopy(maker), 'configuration_ref': refs['configuration_ref'],
+                   'configuration_digest': refs['configuration_sha256']}
+    anchor = {
+        '$schema': ANCHOR_SCHEMA, 'schema_version': 'tos_source_anchor_v2',
+        'anchor_id': identities['anchor_id'], 'anchor_version': 1,
+        'passage_id': identities['passage_id'],
+        'target': {'item_id': source_scope['item_ref'], 'file_id': source_scope['file_ref'],
+                   'file_sha256': source_scope['file_sha256'], 'media_type': source_media_type},
+        'selector_payload': {'kind': 'selector_expression', 'expression': {
+            'mode': 'single', 'selector': {
+                'state': {'state_type': 'digest_state', 'representation_ref': refs['source_ref'],
+                          'representation_sha256': source_scope['file_sha256'],
+                          'media_type': source_media_type, 'character_normalization': 'none'},
+                'selector': {'type': 'text_position', **source_selector,
+                             'position_unit': 'unicode_code_point', 'interval': 'half_open'}}}},
+        'publication_boundary': {'record_storage': 'tracked', 'source_content_visibility': 'public',
+                                 'source_text_in_record': False, 'public_payload_expected': False},
+        'selector_method': {key: value for key, value in owned_maker.items() if key != 'agent_ref'},
+        'resolution_status': 'locator_only', 'review_status': 'unreviewed', 'review_ref': None,
+        'provenance_event_ref': identities['provenance_event_id'], 'supersedes_anchor_ref': None,
+    }
+    layer = {
+        '$schema': LAYER_SCHEMA, 'schema_version': 'tos_source_text_layer_v1',
+        'layer_id': identities['layer_id'], 'layer_version': 1, 'supersedes_layer_ref': None,
+        'layer_role': 'machine_transcription',
+        'source_binding': {**{key: source_scope[key] for key in ('work_ref', 'expression_ref', 'edition_ref', 'item_ref')},
+            'source_file_ref': source_scope['file_ref'], 'source_file_sha256': source_scope['file_sha256'],
+            'anchor_contract': 'tos_source_anchor_v2', 'anchors': [{'anchor_id': identities['anchor_id'],
+                'anchor_record_ref': refs['anchor_ref'], 'anchor_record_sha256': hashlib.sha256(record_bytes(anchor)).hexdigest()}]},
+        'representation': {'content_file_id': 'tos.file.sha256.' + content_digest, 'content_ref': refs['content_ref'],
+            'content_sha256': content_digest, 'media_type': 'text/plain', 'charset': 'UTF-8', 'language': language,
+            'text_scope': {'start': 0, 'end': len(text), 'position_unit': 'unicode_code_point', 'interval': 'half_open'},
+            'character_normalization': 'none', 'line_break_posture': 'source_preserved', 'storage': 'tracked',
+            'content_visibility': 'public', 'tracked_content': True, 'publication_authorized': True,
+            'rights_record_refs': copy.deepcopy(rights_record_refs),
+            'publication_authority_refs': copy.deepcopy(publication_authority_refs)},
+        'derivation': {'method': 'structural_extraction', 'input_layers': [], 'maker': owned_maker,
+            'preservation_goal': 'source_near', 'loss_posture': 'preservation_intended', 'silent_changes_allowed': False,
+            'change_payload': {'kind': 'none'}},
+        'editorial_policy': {'policy_ref': refs['policy_ref'],
+            'policy_sha256': hashlib.sha256(record_bytes(PUBLIC_UTF8_POLICY)).hexdigest(),
+            'transcription_goal': 'machine_candidate', 'historical_language_preserved': False,
+            'printing_errors_silently_corrected': False, 'typography_posture': 'preserve',
+            'layout_posture': 'preserve', 'unicode_normalization': 'none',
+            'uncertainty_representation': 'explicit-never-silent', 'method_declared': True},
+        'uncertainty': {'status': 'none', 'annotations': []},
+        'admission': {'mechanical_status': 'materialized', 'review_status': 'unreviewed', 'review_ref': None,
+            'human_review_performed': False, 'human_language_competence': 'not_assessed', 'language_competence_evidence_refs': [],
+            'accepted_uses': [], 'automatic_validation_complete': False, 'model_output_is_ground_truth': False,
+            'validator_proves_content_truth': False, 'routine_human_task_created': False, 'promotion_authorized': False},
+        'provenance_event_ref': identities['provenance_event_id'], 'authority_boundary': AUTHORITY_BOUNDARY,
+    }
+    record_bytes(layer)
+    return {'layer': layer, 'anchor': anchor, 'policy': copy.deepcopy(PUBLIC_UTF8_POLICY), 'content': content}
+
+
 # A separate additive construction profile. These ceilings bound both content
 # and the explicit in-record edit evidence; no quadratic diff is computed.
 DERIVE_CONFIG = "tos_local_text_layer_derive_owner_v1"

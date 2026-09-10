@@ -117,7 +117,7 @@ Rollback of an already committed adoption is rejected without changing stage,
 source or publication state. Reversing acquired metadata needs another owner
 operation, not recovery.
 
-The initial native inventory profile is bounded EPUB only: at most 2048
+The original native inventory profile is bounded EPUB: at most 2048
 members, 1 MiB central-directory bytes, 16 MiB per expanded member and 64 MiB
 total expansion, and 256 KiB serialized inventory; ordinary single-disk ZIP
 using only STORED or DEFLATED compression, no duplicate/unsafe members or
@@ -125,7 +125,19 @@ encryption. Other codecs are rejected before decoder creation (an LZMA member
 can otherwise request a large dictionary before expanded-byte checks).
 Actual member streams are bounded before invoking the existing
 `build_file_inventory` enumerator. It emits resource structure/counts and
-one-way fingerprints, not source text. Other formats, unsupported ZIP profiles
+one-way fingerprints, not source text.
+
+The separate `plain_utf8_file_v1` profile supports `text/plain` and
+`text/markdown` up to 128 KiB. It enumerates one complete inert file with exact
+raw-byte fixity and extent, strict UTF-8 encoding/BOM, code-point count
+(including any BOM), CRLF/lone-CR/lone-LF counts, terminal newline and observed
+Unicode normalization form/version. Nothing normalizes, renders, executes,
+follows links, expands Markdown includes, extracts language units or outputs
+source text. Invalid encoding, NUL-bearing, empty and over-budget files are
+outside this profile. Raw bytes remain with the acquired File; normalized or
+segmented text requires a separate source event.
+
+Other formats, unsupported ZIP profiles
 and parse/budget failures return an explicit limitation, retain the copied
 file and private continuation, and create **no acquired Item metadata**. The
 next owner is the inventory profile route; no fake empty inventory is emitted.

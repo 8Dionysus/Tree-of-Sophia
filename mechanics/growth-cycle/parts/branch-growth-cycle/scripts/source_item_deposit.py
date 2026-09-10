@@ -24,7 +24,7 @@ import zlib
 import source_commands as source
 import source_metadata_transactions as transactions
 from source_metadata_snapshot import _identity, _open_owned
-from build_source_resource_inventories import build_file_inventory, InventoryBuildError
+from build_source_resource_inventories import build_file_inventory, InventoryBuildError, MAX_PLAIN_UTF8_BYTES
 
 STAGE_FILE = 'item-deposit.json'
 SCHEMA = 'tos_item_deposit_stage_v1'
@@ -148,11 +148,15 @@ def observe(config, *, inventory=True):
 
 
 def _inventory_budget(path, config):
-    """The first native adoption supports only bounded EPUB enumeration.
+    """Native adoption supports bounded EPUB or inert exact UTF-8 enumeration.
 
     Other existing inventory profiles remain available to their legacy owner;
     this adapter does not imply those parsers have resource bounds they lack.
     """
+    if config['media_type'] in {'text/plain', 'text/markdown'}:
+        if not 1 <= config['byte_size'] <= MAX_PLAIN_UTF8_BYTES:
+            raise InventoryBuildError('plain UTF-8 input exceeds the bounded native profile')
+        return
     if config['media_type'] != 'application/epub+zip':
         raise InventoryBuildError('native adoption needs a bounded supported inventory profile')
     # Bound central-directory parsing itself before ZipFile allocates one

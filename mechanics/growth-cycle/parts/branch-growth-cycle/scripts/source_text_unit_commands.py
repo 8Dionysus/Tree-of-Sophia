@@ -149,11 +149,13 @@ def configuration(config, *, owner_config):
     return config, digest, path
 
 
-def _inventory_paths(context, *, exclude=None, additional_patterns=()):
+def _inventory_paths(context, *, exclude=None, additional_patterns=(), include_private=True):
     """Bounded native ID-owner metadata only, never payloads or local content."""
     paths, visited = [], 0
-    for root, start in ((context.public_root, context.public_root / 'ToS/source-witnesses'),
-                        (context.private_root, context.private_root / context.private_prefix)):
+    roots = [(context.public_root, context.public_root / 'ToS/source-witnesses')]
+    if include_private:
+        roots.append((context.private_root, context.private_root / context.private_prefix))
+    for root, start in roots:
         if not start.exists():
             raise ValueError('native identity home is absent')
         pending = [start]
@@ -161,7 +163,7 @@ def _inventory_paths(context, *, exclude=None, additional_patterns=()):
             directory = pending.pop()
             if directory == exclude:
                 continue  # Only after exact replay package verification.
-            if root == context.private_root:
+            if include_private and root == context.private_root:
                 _private_directory(context, directory)
             else:
                 os.close(source._owned_path(directory, directory=True))
@@ -192,8 +194,8 @@ def _inventory_paths(context, *, exclude=None, additional_patterns=()):
     return sorted(paths)
 
 
-def _identity_snapshot(context, config, *, exclude=None, identities=None):
-    paths = _inventory_paths(context, exclude=exclude)
+def _identity_snapshot(context, config, *, exclude=None, identities=None, include_private=True):
+    paths = _inventory_paths(context, exclude=exclude, include_private=include_private)
     remaining, inputs, owned, record_count = MAX_INVENTORY_BYTES, {}, set(), 0
     for ref, path in paths:
         raw = context.read_bytes(path, min(MAX_INVENTORY_FILE_BYTES, remaining))
@@ -227,7 +229,7 @@ def _identity_snapshot(context, config, *, exclude=None, identities=None):
                 raise ValueError('native identity metadata has an unsupported owner shape')
     if set(_delegated_ids(config) if identities is None else identities) & owned:
         raise source.JournalConflict('a delegated native identity already has an owner')
-    if paths != _inventory_paths(context, exclude=exclude):
+    if paths != _inventory_paths(context, exclude=exclude, include_private=include_private):
         raise source.JournalConflict('native identity membership changed during inspection')
     return source._digest(source._canonical(inputs))
 

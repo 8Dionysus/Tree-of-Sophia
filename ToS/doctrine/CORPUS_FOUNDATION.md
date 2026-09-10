@@ -406,6 +406,16 @@ or linguistic analysis. The first real use is one DTA paragraph at
 stored privately and projected only as text-free tracked identity, digest,
 range, provenance, and authority records.
 
+An independently delegated public project-text constructor may instead select
+an exact UTF-8 range of an already retained project-authored document. Its
+original File, new representation File, TextLayer and first segmentation keep
+distinct identities and rights scope. Positive output rights plus exact
+operator-scoped authority are required before text access; neither a nearby
+license nor successful construction supplies authority. This route preserves
+the selected code points literally, creates no assessment, and authorizes no
+external deployment. Its operation and recovery belong to the
+[public construction contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md).
+
 PDF embedded text is a different source observation. For the exact
 Antonovsky/Prometey 1911 page-6 opening paragraph, pinned Poppler bbox output
 is retained as a private diagnostic byproduct and its mechanically selected

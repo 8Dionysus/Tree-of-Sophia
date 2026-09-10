@@ -696,51 +696,68 @@ def install_private_package(context, target, files, *, request, guard, verify_re
     it is never deleted or overwritten. One control per exact target/command
     prevents failed retries from creating an unbounded family of stages.
     """
-    units._private_directory(context, target.parent)
+    return install_native_package(target, files, request=request, guard=guard,
+        verify_retained=verify_retained, control=_control_path(context, target, request),
+        control_root=context.private_root, target_ref=target.relative_to(context.private_root).as_posix(),
+        ensure_directory=lambda path: units._private_directory(context, path),
+        read_control=lambda control: _control_files(context, control),
+        read_package=lambda path: _private_package(context, path),
+        read_file=lambda path, limit: private_read(path, limit, private_root=context.private_root))
+
+
+def install_native_package(target, files, *, request, guard, verify_retained,
+                           control, control_root, target_ref, ensure_directory,
+                           read_control, read_package, read_file):
+    """Shared no-replace staging under explicit caller-owned storage policy.
+
+    Public and private callers have distinct grants and path/read policies.
+    This primitive neither selects those policies from data nor interprets
+    visibility. Existing private recovery plans retain their exact format.
+    """
+    ensure_directory(target.parent)
     target_pins = deposit._pins(target)
-    control = _control_path(context, target, request)
     if not os.path.lexists(control):
         control.mkdir(mode=0o700)
-        source._sync_directory(context.private_root)
+        source._sync_directory(control_root)
         plan = {'schema_version': 'tos_native_construction_stage_v1',
-            'target_ref': target.relative_to(context.private_root).as_posix(),
+            'target_ref': target_ref,
             'request_digest': source._digest(source._canonical(request)),
             'files': {name: base64.b64encode(body).decode('ascii') for name, body in files.items()}}
         raw = _encoded(plan)
         if len(raw) > MAX_CONTROL_BYTES:
             raise ValueError('private construction recovery plan exceeds its bounded byte budget')
         _write_new(control / 'plan.json', raw)
-    plan, retained = _control_files(context, control)
+    plan, retained = read_control(control)
     control_pins = deposit._pins(control / 'plan.json')
-    if (plan['target_ref'] != target.relative_to(context.private_root).as_posix()
+    if (plan['target_ref'] != target_ref
             or plan['request_digest'] != source._digest(source._canonical(request))):
         raise source.JournalConflict('private construction control belongs to another exact target or command')
     verify_retained(retained)
     guard()
-    if deposit._pins(control / 'plan.json') != control_pins or _control_files(context, control) != (plan, retained):
+    if deposit._pins(control / 'plan.json') != control_pins or read_control(control) != (plan, retained):
         raise source.JournalConflict('private construction recovery control changed before staging')
     output = control / 'output'
     if not os.path.lexists(output):
         output.mkdir(mode=0o700)
         source._sync_directory(control)
-    units._private_directory(context, output)
+    ensure_directory(output)
     if _bounded_names(output, MAX_FILES) - set(retained):
         raise source.JournalCorruption('private construction stage contains unbound output')
     for name, raw in retained.items():
         path = output / name
         if os.path.lexists(path):
-            if private_read(path, len(raw), private_root=context.private_root) != raw:
+            if read_file(path, len(raw)) != raw:
                 raise source.JournalCorruption('private construction has torn or changed staged bytes; retained for owner review')
         else:
             _write_new(path, raw)
-    if _private_package(context, output) != retained:
+    if read_package(output) != retained:
         raise source.JournalConflict('private staged construction differs from its retained plan')
     guard()
     if (deposit._pins(target) != target_pins or deposit._pins(control / 'plan.json') != control_pins
-            or _control_files(context, control) != (plan, retained)):
+            or read_control(control) != (plan, retained)):
         raise source.JournalConflict('private construction destination ancestor or recovery control changed before commit')
     source._publish_new_directory(output, target)
-    if _private_package(context, target) != retained:
+    if read_package(target) != retained:
         raise source.JournalCorruption('committed private construction failed its stored-byte verification')
     return retained
 

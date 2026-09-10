@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/public-native-text-authority.schema.json",
+  "title": "Exact operator-scoped project-text public native authority evidence",
+  "description": "Source-owned capture of actual delegated scope, not authority manufactured by successful parsing, licensing inference or quality assessment.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "authority_id", "record_version", "operator_scope", "granted_to", "issued_at", "expires_at", "source", "source_scope", "license_bindings", "output_scope", "permissions", "external_publication_authorized", "human_review_performed", "scope_statement"],
+  "properties": {
+    "schema_version": {"const": "tos_public_native_text_authority_v1"},
+    "authority_id": {"type": "string", "minLength": 1}, "record_version": {"const": 1},
+    "operator_scope": {"type": "object", "additionalProperties": false,
+      "required": ["operator_ref", "goal_sha256", "holder_task_ref", "delegated_by"],
+      "properties": {"operator_ref": {"type": "string", "minLength": 1}, "goal_sha256": {"$ref": "public-native-text-create-owner.schema.json#/$defs/sha256"}, "holder_task_ref": {"type": "string", "minLength": 1}, "delegated_by": {"type": "string", "minLength": 1}}},
+    "granted_to": {"type": "string", "minLength": 1},
+    "issued_at": {"type": "string", "format": "date-time"}, "expires_at": {"type": "string", "format": "date-time"},
+    "source": {"$ref": "public-native-text-create-owner.schema.json#/$defs/input"},
+    "source_scope": {"$ref": "source-text-unit-packet-v1.schema.json#/$defs/sourceScope"},
+    "license_bindings": {"type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "public-native-text-create-owner.schema.json#/$defs/binding"}},
+    "output_scope": {"type": "object", "additionalProperties": false,
+      "required": ["package_ref", "native_identities", "content_file_id", "content_sha256"],
+      "properties": {"package_ref": {"$ref": "public-native-text-create-owner.schema.json#/$defs/sourceRef"},
+        "native_identities": {"type": "array", "minItems": 1, "maxItems": 1024, "uniqueItems": true, "items": {"type": "string", "pattern": "^tos\\."}},
+        "content_file_id": {"type": "string", "pattern": "^tos\\.file\\.sha256\\.[a-f0-9]{64}$"},
+        "content_sha256": {"$ref": "public-native-text-create-owner.schema.json#/$defs/sha256"}}},
+    "permissions": {"const": ["native_public_representation", "native_public_segmentation", "source_branch_local_reader"]},
+    "external_publication_authorized": {"const": false},
+    "human_review_performed": {"const": false},
+    "scope_statement": {"type": "string", "minLength": 1}
+  }
+}

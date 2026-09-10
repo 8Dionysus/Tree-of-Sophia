@@ -36,6 +36,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
             'tos_local_text_unit_create_owner_v2', 'tos_local_text_layer_create_owner_v1',
             'tos_local_text_layer_derive_owner_v1',
             'tos_local_native_alignment_owner_v1',
+            'tos_public_native_text_create_owner_v1',
             source.OWNER_CLAIM_CONFIG, source.OWNER_CLAIM_REFERENCE_CONFIG,
             'tos_local_work_expression_owner_v1', 'tos_local_expression_responsibility_owner_v1',
             'tos_local_expression_edition_owner_v1', 'tos_local_item_adoption_owner_v1',

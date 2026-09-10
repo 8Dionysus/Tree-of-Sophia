@@ -1,0 +1,55 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+      "file_sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+      "media_type": "text/markdown",
+      "profile": "plain_utf8_file_v1",
+      "resources": [
+        {
+          "byte_size": 3320,
+          "locator": {
+            "byte_end": 3320,
+            "byte_start": 0
+          },
+          "media_type": "text/markdown",
+          "resource_id": "plain-utf8-file",
+          "resource_kind": "plain_text_file",
+          "sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+          "structural_role": "contents"
+        }
+      ],
+      "summary": {
+        "resource_count": 1
+      },
+      "utf8_observation": {
+        "bom_byte_count": 0,
+        "code_point_count": 3311,
+        "code_point_count_includes_bom": true,
+        "crlf_count": 0,
+        "encoding": "UTF-8",
+        "lone_cr_count": 0,
+        "lone_lf_count": 46,
+        "markup_interpretation_performed": false,
+        "normalization_observation": "nfc",
+        "normalization_performed": false,
+        "terminal_newline": "lf",
+        "unicode_version": "16.0.0"
+      }
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.sid-54c4a601f0924fcda954aced8cbef9ca",
+  "inventory_version": 1,
+  "supersedes_inventory_ref": null,
+  "authority_boundary": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+}
