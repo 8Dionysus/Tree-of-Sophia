@@ -4800,23 +4800,41 @@ def _focus_payload(
     }
 
 
-def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, Any]:
+def execute_knowledge_lens(
+    graph: dict[str, Any], spec_value: Any, *, graph_index: KnowledgeGraphIndex | None = None,
+) -> dict[str, Any]:
+    """Execute the same lens, optionally reusing an immutable snapshot's index.
+
+    A missing index keeps the unindexed path; no hidden process-wide graph or
+    result cache is created. Delivery forms and pagination are never cached.
+    """
     public_spec = normalize_lens_spec(spec_value)
     spec = _bind_query_properties(graph, public_spec)
     sources = set(spec["sources"])
-    nodes = [item for item in _objects(graph.get("nodes")) if item.get("source_graph") in sources]
-    relations = [item for item in _objects(graph.get("relations")) if item.get("source_graph") in sources]
-    all_nodes_by_id = {str(item["id"]): item for item in nodes}
-    carrier_groups = _identity_carrier_groups(nodes) if spec['traversal']['profile'] == 'overview' else {}
-    focus_node = _resolve_focus_node(nodes, spec["seed"]["focus_node_id"])
+    scope = None
+    if graph_index is not None:
+        graph_index.require_snapshot(graph)
+        scope = graph_index.lens_scope(sources)
+    nodes = (scope.nodes if scope is not None else
+             [item for item in _objects(graph.get("nodes")) if item.get("source_graph") in sources])
+    relations = (scope.relations if scope is not None else
+                 [item for item in _objects(graph.get("relations")) if item.get("source_graph") in sources])
+    all_nodes_by_id = scope.nodes_by_id if scope is not None else {str(item["id"]): item for item in nodes}
+    carrier_groups = ((scope.carrier_groups if scope is not None else _identity_carrier_groups(nodes))
+                      if spec['traversal']['profile'] == 'overview' else {})
+    focus_node = (scope.resolve_focus(spec["seed"]["focus_node_id"]) if scope is not None else
+                  _resolve_focus_node(nodes, spec["seed"]["focus_node_id"]))
     selected_ids = set(spec["seed"]["node_ids"])
     text_query = str(spec["seed"]["text_query"]).lower()
 
     candidates = []
-    adjacency: dict[str, list] = {}
-    for relation in sorted(relations, key=lambda item: item['id']):
-        for endpoint in set((relation['from_id'], relation['to_id'])):
-            adjacency.setdefault(endpoint, []).append(relation)
+    if scope is not None:
+        adjacency = scope.path_adjacency
+    else:
+        adjacency = {}
+        for relation in sorted(relations, key=lambda item: item['id']):
+            for endpoint in set((relation['from_id'], relation['to_id'])):
+                adjacency.setdefault(endpoint, []).append(relation)
     path_budget = [100_000]
     path_proofs = {}
     if spec["node_query"]["enabled"]:
@@ -4847,8 +4865,9 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
         selected_nodes.setdefault(str(item["id"]), item)
         inclusion.setdefault(item['id'], {'kind': 'selector', 'path_witnesses': path_proofs.get(item['id'], [])})
 
-    relation_candidates = []
-    if spec["relation_query"]["enabled"]:
+    plan = scope.relation_plan(spec) if scope is not None else None
+    relation_candidates = plan.items if plan is not None else []
+    if plan is None and spec["relation_query"]["enabled"]:
         relation_candidates = [
             item
             for item in relations
@@ -4860,7 +4879,8 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
                 or item.get("predicate_id") in set(spec["traversal"]["predicate_ids"])
             )
         ]
-    relation_candidates = _sort_items(relation_candidates, spec["composition"]["sort_relations"])
+    if plan is None:
+        relation_candidates = _sort_items(relation_candidates, spec["composition"]["sort_relations"])
 
     frontier = list(selected_nodes)
     identity_expansion_limited = False
@@ -4882,10 +4902,19 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
                                   'entity_id': node['entity_id'], 'depth': depth}
             frontier.append(node_id)
         next_frontier: list[str] = []
-        for relation in relation_candidates:
+        frontier_order = {node_id: rank for rank, node_id in enumerate(frontier)} if plan is not None else None
+        for relation in plan.incident(frontier) if plan is not None else relation_candidates:
+            # The remaining pairs cannot change either selection or its reasons.
+            if (plan is not None and len(selected_nodes) >= spec['limits']['nodes']
+                    and len(traversed_relation_ids) >= spec['limits']['relations']):
+                break
             relation_id = str(relation["id"])
             touched = False
-            for node_id in frontier:
+            relation_origins = (sorted(
+                (identifier for identifier in {str(relation['from_id']), str(relation['to_id'])}
+                 if identifier in frontier_order), key=frontier_order.__getitem__)
+                if frontier_order is not None else frontier)
+            for node_id in relation_origins:
                 for neighbor_id in _relation_neighbors(relation, node_id, spec["traversal"]["direction"]):
                     touched = True
                     if neighbor_id not in selected_nodes and neighbor_id in all_nodes_by_id and len(selected_nodes) < spec["limits"]["nodes"]:
@@ -4903,7 +4932,12 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
     selection_basis = set(selected_nodes)
     selected_relations: list[dict[str, Any]] = []
     eligible_relation_count = 0
-    for relation in relation_candidates:
+    # Repeated relation IDs can admit a nonincident record via a traversed ID.
+    # Keep the original complete endpoint pass for that ambiguous carrier shape.
+    endpoint_candidates = (plan.incident(selection_basis)
+                           if plan is not None and endpoint_policy != 'independent'
+                           and not plan.has_duplicate_ids else relation_candidates)
+    for relation in endpoint_candidates:
         left = str(relation["from_id"])
         right = str(relation["to_id"])
         left_selected = left in selection_basis
@@ -5051,6 +5085,7 @@ def focus_knowledge_node(
     node_limit: int = 200,
     relation_limit: int = 400,
     profile: str = "overview",
+    graph_index: KnowledgeGraphIndex | None = None,
 ) -> dict[str, Any]:
     """Build one radial LensSpec around an exact or uniquely namespaced node identity."""
     identifier = _string(node_id)
@@ -5092,6 +5127,7 @@ def focus_knowledge_node(
             },
             "limits": {"nodes": node_limit, "relations": relation_limit, "groups": 100},
         },
+        graph_index=graph_index,
     )
 
 
@@ -5753,6 +5789,10 @@ class KnowledgeGraphIndex:
     """
 
     def __init__(self, graph):
+        # Query-only imports must not invalidate the normalization fingerprint.
+        from collections import OrderedDict
+        from threading import RLock
+
         self.graph = graph
         self.node_ids, self.node_entities, self.node_native_ids = {}, {}, {}
         for node in _objects(graph.get('nodes')):
@@ -5775,6 +5815,21 @@ class KnowledgeGraphIndex:
                 if isinstance(endpoint, str):
                     adjacency.setdefault(endpoint, []).append(position)
         self.adjacency = {identifier: tuple(positions) for identifier, positions in adjacency.items()}
+        # Bounds count derived scopes/plans, not the bytes of the source graph.
+        self._lens_scopes = OrderedDict()
+        self._lens_lock = RLock()
+
+    def lens_scope(self, sources):
+        key = tuple(sorted(sources))
+        with self._lens_lock:
+            scope = self._lens_scopes.get(key)
+            if scope is None:
+                scope = _KnowledgeLensScope(self, frozenset(sources))
+                self._lens_scopes[key] = scope
+                if len(self._lens_scopes) > 4:
+                    self._lens_scopes.popitem(last=False)
+            self._lens_scopes.move_to_end(key)
+            return scope
 
     def require_snapshot(self, graph):
         if graph is not self.graph:
@@ -5791,6 +5846,86 @@ class KnowledgeGraphIndex:
         positions = {position for identifier in node_ids
                      for position in self.adjacency.get(identifier, ())}
         return sorted(positions, key=self._relation_order)
+
+
+class _LensAdjacency:
+    """Lazy source filtering in the index's stable relation/position order."""
+
+    def __init__(self, relations, adjacency, sources):
+        self.relations, self.adjacency, self.sources = relations, adjacency, sources
+
+    def get(self, identifier, default=()):
+        return (self.relations[position] for position in self.adjacency.get(identifier, ())
+                if self.relations[position].get('source_graph') in self.sources)
+
+
+class _LensRelationPlan:
+    def __init__(self, relations, adjacency, positions, spec):
+        predicate_ids = set(spec['traversal']['predicate_ids'])
+        overview = spec['traversal']['profile'] == 'overview'
+        positions = [position for position in positions if spec['relation_query']['enabled']
+                     and _matches_group(relations[position], spec['relation_query'])
+                     and (not overview or (
+                         relations[position].get('predicate_id') not in OVERVIEW_EXCLUDED_PREDICATES
+                         and relations[position].get('relation_type_id') not in OVERVIEW_EXCLUDED_RELATION_TYPES))
+                     and (not predicate_ids or relations[position].get('predicate_id') in predicate_ids)]
+        # Mirror _sort_items: mixed directions and stable duplicate records matter.
+        positions.sort(key=lambda position: str(relations[position].get('id') or ''))
+        for rule in reversed(spec['composition']['sort_relations']):
+            positions.sort(key=lambda position: str(_field(relations[position], rule['field']) or '').lower(),
+                           reverse=rule['direction'] == 'desc')
+        self.relations, self.adjacency = relations, adjacency
+        self.ranks = {position: rank for rank, position in enumerate(positions)}
+        self.items = tuple(relations[position] for position in positions)
+        self.has_duplicate_ids = len({str(item['id']) for item in self.items}) != len(self.items)
+
+    def incident(self, node_ids):
+        positions = {position for identifier in node_ids for position in self.adjacency.get(identifier, ())
+                     if position in self.ranks}
+        return (self.relations[position] for position in sorted(positions, key=self.ranks.__getitem__))
+
+
+class _KnowledgeLensScope:
+    """Snapshot-local reference views; neither copied payloads nor new authority."""
+
+    def __init__(self, index, sources):
+        from collections import OrderedDict
+        from threading import RLock
+
+        self.sources = sources
+        self.nodes = tuple(item for item in _objects(index.graph.get('nodes')) if item.get('source_graph') in sources)
+        self.nodes_by_id = {str(item['id']): item for item in self.nodes}
+        self.carrier_groups = _identity_carrier_groups(self.nodes)
+        self.all_relations, self.adjacency = index.relations, index.adjacency
+        self.positions = tuple(position for position, item in enumerate(index.relations)
+                               if item.get('source_graph') in sources)
+        self.relations = tuple(index.relations[position] for position in self.positions)
+        self.identity_tables = (index.node_ids, index.node_entities, index.node_native_ids)
+        self.path_adjacency = _LensAdjacency(index.relations, index.adjacency, sources)
+        self._plans = OrderedDict()
+        self._lock = RLock()
+
+    def resolve_focus(self, requested_id):
+        if requested_id is None:
+            return None
+        matches = [item for table in self.identity_tables for item in table.get(requested_id, ())
+                   if item.get('source_graph') in self.sources]
+        return _resolve_focus_node(matches, requested_id)
+
+    def relation_plan(self, spec):
+        # spec is property-bound from this exact snapshot before any cache lookup.
+        key = json.dumps([spec['relation_query'], spec['traversal']['profile'],
+                          spec['traversal']['predicate_ids'], spec['composition']['sort_relations']],
+                         sort_keys=True, separators=(',', ':'))
+        with self._lock:
+            plan = self._plans.get(key)
+            if plan is None:
+                plan = _LensRelationPlan(self.all_relations, self.adjacency, self.positions, spec)
+                self._plans[key] = plan
+                if len(self._plans) > 2:
+                    self._plans.popitem(last=False)
+            self._plans.move_to_end(key)
+            return plan
 
 
 class KnowledgeSearchIndex:
