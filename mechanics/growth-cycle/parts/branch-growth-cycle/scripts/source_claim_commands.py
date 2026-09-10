@@ -14,6 +14,7 @@ import time
 import source_commands as source
 import source_command_contracts as contract
 import source_identity_proposals as identity_proposals
+import source_document_catalogue as document_catalogue
 from source_record_profiles import SourceClaimProfiles, SourceRecordProfiles, SOURCE_CLAIM_BASENAME, ground_collection_order
 
 OPERATION = 'claims.create'
@@ -24,14 +25,14 @@ PACKAGE_FILES = {SOURCE_CLAIM_BASENAME, 'source-create-request.json', 'source-cr
 
 def configuration(config):
     values_allowed = config['schema_version'] in {
-        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, *identity_proposals.CREATE_CONFIGS}
+        source.CLAIM_VALUE_CONFIG, source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, document_catalogue.CREATE_CONFIG, *identity_proposals.CREATE_CONFIGS}
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'maker_type', 'source_root',
         'source_path', 'authority_ref', 'expires_at', 'provenance_event_id', 'allowed_operations',
         'allowed_claim_ids', 'allowed_subject_refs', 'allowed_object_refs', 'allowed_predicates',
         'allowed_evidence_refs'} | ({'allowed_object_values'} if values_allowed else set())
         | ({'allowed_related_claim_refs'} if config['schema_version'] in identity_proposals.CREATE_CONFIGS else set()))
     if (config['schema_version'] not in {source.CLAIM_CONFIG, source.CLAIM_VALUE_CONFIG,
-            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, *identity_proposals.CREATE_CONFIGS} or type(config['uid']) is not int
+            source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_REFERENCE_CONFIG, document_catalogue.CREATE_CONFIG, *identity_proposals.CREATE_CONFIGS} or type(config['uid']) is not int
             or config['uid'] != os.getuid() or config['maker_type'] not in {'human', 'software', 'model'}
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -67,6 +68,8 @@ def configuration(config):
     profiles = SourceClaimProfiles(root)
     if set(config['allowed_predicates']) - profiles.profiles.keys():
         raise PermissionError('claim creation can delegate only declared source predicates')
+    if config['schema_version'] == document_catalogue.CREATE_CONFIG and config['allowed_predicates'] != [document_catalogue.PREDICATE]:
+        raise PermissionError('document catalogue date delegation cannot create another predicate')
     if (config['schema_version'] in identity_proposals.CREATE_CONFIGS and config['allowed_predicates'] != [
             identity_proposals.READER_PREDICATES[identity_proposals.CONFIG_READERS[config['schema_version']]]]):
         raise PermissionError('identity proposal delegation cannot create other predicates')
@@ -93,7 +96,7 @@ def value_is_delegated(config, value):
     if (config['schema_version'] not in {source.CLAIM_VALUE_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
                                        source.CLAIM_STRUCTURED_CONFIG, source.CLAIM_STRUCTURED_REVISION_CONFIG,
                                        source.CLAIM_REFERENCE_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG,
-                                       source.OWNER_CLAIM_REFERENCE_CONFIG, *identity_proposals.CONFIGS}
+                                       source.OWNER_CLAIM_REFERENCE_CONFIG, *document_catalogue.CONFIGS, *identity_proposals.CONFIGS}
             or not isinstance(value, dict)
             or source._canonical(value) not in {source._canonical(v) for v in config['allowed_object_values']}):
         return False
@@ -146,6 +149,11 @@ def _scope(config, claims, *, profiles=None):
 def _value_scope(config, claim, profiles):
     """Check declared value scope before new writes and exact replays alike."""
     reader = profiles.profiles[claim['predicate']]['reader']
+    if reader == document_catalogue.READER or config['schema_version'] in document_catalogue.CONFIGS:
+        if (reader != document_catalogue.READER or claim['predicate'] != document_catalogue.PREDICATE
+                or config['schema_version'] not in document_catalogue.CONFIGS
+                or not value_is_delegated(config, claim['object'])):
+            raise PermissionError('document catalogue date requires its separate exact value delegation')
     if reader in identity_proposals.READERS:
         if identity_proposals.CONFIG_READERS.get(config['schema_version']) != reader:
             raise PermissionError('identity proposals require a separate exact plan delegation')
@@ -293,7 +301,7 @@ def _ground_claims(config, claims, *, initial):
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
-             'scripts/source_record_profiles.py', identity_proposals.MODULE_REF,
+             'scripts/source_record_profiles.py', identity_proposals.MODULE_REF, document_catalogue.MODULE_REF,
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py',
              'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
@@ -450,6 +458,7 @@ def command_handlers():
     return tuple(contract.Handler('public-claim-create-' + version, (schema,), operations, run_command,
         'Create declared public Claims; ' + values + '.', configure=lambda config, owner_config: configuration(config),
         typed_handles=(*contract.CLAIM_HANDLES, 'ToS/contracts/source-structured-value.schema.json', 'ToS/contracts/historical-claim.schema.json',
+                       *([document_catalogue.SCHEMA_REF] if schema == document_catalogue.CREATE_CONFIG else []),
                        *([identity_proposals.READER_SCHEMAS[identity_proposals.CONFIG_READERS[schema]][1]]
                          if schema in identity_proposals.CREATE_CONFIGS else [])),
         profile_selection='Exact predicate selects source_claim_profile in relation-types.v1.json; ' + values + '.',
@@ -460,5 +469,6 @@ def command_handlers():
             ('v2', source.CLAIM_VALUE_CONFIG, 'separately allowlisted temporal values'),
             ('v3', source.CLAIM_STRUCTURED_CONFIG, 'separately allowlisted structured values, not reference-bearing values'),
             ('v4', source.CLAIM_REFERENCE_CONFIG, 'separately allowlisted structured reference values and exact identity dependencies'),
+            ('document-catalogue-v1', document_catalogue.CREATE_CONFIG, 'only exact catalogue-assigned Document date values; no historical occurrence or place assertion'),
             ('identity-v1', identity_proposals.CREATE_CONFIG, 'identity-transition-v1 proposals only; no subject ID changes or inherited admission'),
             ('identity-v2', identity_proposals.CREATE_CONFIG_V2, 'identity-transition-v2 exact source or opted-in semantic subject proposals only; no identity mutation or admission')))

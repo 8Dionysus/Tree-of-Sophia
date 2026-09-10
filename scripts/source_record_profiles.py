@@ -18,6 +18,7 @@ from referencing.exceptions import Unresolvable
 
 from source_owner_context import OWNER_LOCAL_HOME
 import source_identity_proposals as identity_proposals
+import source_document_catalogue as document_catalogue
 
 REGISTRY_REF = 'ToS/doctrine/semantic-interchange/entity-types.v1.json'
 CONTRACT_REF = 'ToS/contracts/semantic-entity-type-registry.schema.json'
@@ -567,6 +568,15 @@ class SourceClaimProfiles:
                     for mapping in other['source_mappings']) for other in self.registry['relations']):
                 raise SourceProfileError('source predicate has another relation owner')
             semantic_endpoint = False
+            if predicate in document_catalogue.FIELDS or profile['reader'] == document_catalogue.READER:
+                expected_reader = document_catalogue.READER if predicate == document_catalogue.PREDICATE else 'identity-relation-v1'
+                if (predicate not in document_catalogue.FIELDS or profile['reader'] != expected_reader
+                        or entry['domain_type_ids'] != ['tos.entity.document']
+                        or entry['range_type_ids'] != ['tos.entity.temporal-assertion' if predicate == document_catalogue.PREDICATE else 'tos.entity.place']
+                        or profile['assertion_layers'] != ['bibliographic_assertion']
+                        or [(route['schema_version'], route['schema_ref']) for route in profile['schemas']]
+                           != [(document_catalogue.SCHEMA_VERSION, document_catalogue.SCHEMA_REF)]):
+                    raise SourceProfileError('document catalogue profile requires its exact field, Document domain and schema')
             for endpoint, type_id in ((endpoint, type_id) for endpoint in ('domain_type_ids', 'range_type_ids')
                                       for type_id in entry[endpoint]):
                 if profile['reader'] in identity_proposals.READERS and endpoint == 'domain_type_ids':
@@ -583,8 +593,8 @@ class SourceClaimProfiles:
                                'tos.entity.unmapped', 'tos.entity.unresolved-endpoint'}:
                     raise SourceProfileError('source relation profile requires a specific domain and range')
                 ancestry = self.ancestry(type_id)
-                if profile['reader'] == 'historical-temporal-v1':
-                    expected = ('tos.entity.historical-situation' if endpoint == 'domain_type_ids'
+                if profile['reader'] in {'historical-temporal-v1', document_catalogue.READER}:
+                    expected = (('tos.entity.document' if profile['reader'] == document_catalogue.READER else 'tos.entity.historical-situation') if endpoint == 'domain_type_ids'
                                 else 'tos.entity.temporal-assertion')
                     if expected not in ancestry:
                         raise SourceProfileError('historical temporal profile requires historical domain and temporal value range')
@@ -634,10 +644,10 @@ class SourceClaimProfiles:
         return _type_ancestry(self.entities, type_id, visiting)
 
     def is_temporal(self, claim):
-        return self.profiles[claim['predicate']]['reader'] == 'historical-temporal-v1'
+        return self.profiles[claim['predicate']]['reader'] in {'historical-temporal-v1', document_catalogue.READER}
 
     def is_value(self, claim):
-        return self.profiles[claim['predicate']]['reader'] in {'historical-temporal-v1', *STRUCTURED_VALUE_READERS}
+        return self.profiles[claim['predicate']]['reader'] in {'historical-temporal-v1', document_catalogue.READER, *STRUCTURED_VALUE_READERS}
 
     def reference_members(self, claim):
         """Only the declared fixed slot is interpreted; arbitrary JSON stays inert."""
@@ -699,8 +709,10 @@ class SourceClaimProfiles:
             self.base_validators[key] = Draft202012Validator(self.schemas[CLAIM_BASE_REF], registry=registry,
                                                              format_checker=FormatChecker())
             if self.is_temporal(claim):
+                temporal_ref, temporal_def = ((document_catalogue.SCHEMA_REF, 'documentDate')
+                    if self.profiles[predicate]['reader'] == document_catalogue.READER else (TEMPORAL_VALUE_REF, 'historicalDate'))
                 self.temporal_validators[key] = Draft202012Validator(
-                    {'$ref': self.schemas[TEMPORAL_VALUE_REF]['$id'] + '#/$defs/historicalDate'},
+                    {'$ref': self.schemas[temporal_ref]['$id'] + '#/$defs/' + temporal_def},
                     registry=registry, format_checker=FormatChecker())
             if self.profiles[predicate]['reader'] in STRUCTURED_VALUE_READERS:
                 self.value_validators[key] = Draft202012Validator(self.schemas[STRUCTURED_VALUE_REF],
@@ -718,6 +730,11 @@ class SourceClaimProfiles:
                 raise SourceProfileError('source claim violates the shared structured value contract or declared kind')
         except Unresolvable as error:
             raise SourceProfileError('source claim schema has an undeclared dependency') from error
+        if predicate in document_catalogue.FIELDS:
+            try:
+                document_catalogue.validate_attribution(claim)
+            except ValueError as error:
+                raise SourceProfileError(str(error)) from error
         members = self.reference_members(claim)
         if key in self.member_structure_validators:
             if not self.member_structure_validators[key].is_valid(claim['object']):

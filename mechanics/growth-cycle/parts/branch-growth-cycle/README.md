@@ -9,6 +9,29 @@ family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the
 compact API, typed owner handles and limits: implemented is not authorized-now,
 and access adapters remain read-only.
 
+### Catalogue-assigned Document dates
+
+Discovery exposes `public-claim-create-document-catalogue-v1` and
+`public-claim-revision-document-catalogue-v1`. Their protected owner schemas are
+`tos_local_document_catalogue_date_create_owner_v1` and
+`tos_local_document_catalogue_date_revision_owner_v1`. They use the existing
+creation/revision request shapes and exact `allowed_object_values`; create
+permits only `document_catalogue_date`. Revision requires the new grant even
+for wording-only edits and replay, and both current and proposed values must
+be explicitly allowed. These schemas cannot create or revise another family.
+
+The source contract is `ToS/contracts/document-catalogue-claim.schema.json`.
+Copy source wording without normalizing it into a citation. A full qualified
+statement, language/script and exact catalogue attribution are mandatory;
+the existing `claim.statement` form route retains the complete Claim context.
+Unknown calendar or year numbering remain unknown. No grant follows from
+discovery or a readable profile. Public v1–v4 and private owner-local grants
+do not gain this date reader. `document_catalogue_origin` and
+`document_catalogue_destination` remain separately allowlisted identity
+relations using existing public Claim creation, not a new grant hierarchy.
+No actual composition, sending, receipt, historical event or Place creation
+is authorized by a catalogue-field operation.
+
 [Native Expression/Edition growth](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md)
 adds one separately delegated provisional Edition and exact `embodied_by`
 Claim without creating an Item/File or changing global bibliographic cardinality.

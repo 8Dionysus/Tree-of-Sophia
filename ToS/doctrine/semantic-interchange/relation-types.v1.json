@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 42,
+  "registry_version": 43,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -17,13 +17,13 @@
   "fallback_relation_type_id": "tos.relation.unmapped",
   "claim_navigation_template": {
     "template_id": "tos.navigation-template.claim-reference",
-    "template_version": 2,
+    "template_version": 3,
     "reader": "claim-navigation-v1",
     "purpose": "claim-navigation-only",
     "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
     "default_language": "ru",
     "max_output_bytes": 8192,
-    "object_label_adapters": ["historical-time-source-wording-v1"],
+    "object_label_adapters": ["historical-time-source-wording-v1", "document-catalogue-time-source-wording-v1"],
     "marker": {"ru": "Запись утверждения", "en": "Claim record"},
     "status_labels": {
       "epistemic_status": {
@@ -50,6 +50,9 @@
     }
   },
   "relations": [
+{"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"lifecycle":"stable","owner_ref":"ToS/contracts/document-catalogue-claim.schema.json","domain_type_ids":["tos.entity.document"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","supersedes_relation_type_id":null,"relation_type_id":"tos.relation.document-catalogue-date","labels":{"default":"assigned date","en":"assigned date","ru":"датировка по каталогу"},"inverse_labels":{"default":"catalogue attribution for Document","en":"catalogue attribution for Document","ru":"каталожная атрибуция документа"},"definition":"An attributed catalogue date field for one Document. The exact source field, wording and cited evidence remain explicit. This does not establish composition, dispatch, receipt or any associated historical event.","range_type_ids":["tos.entity.temporal-assertion"],"source_mappings":[{"source_graph":"source-claims","source_predicate_id":"document_catalogue_date","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"document-catalogue-temporal-v1","assertion_layers":["bibliographic_assertion"],"schemas":[{"schema_version":"tos_document_catalogue_claim_v1","schema_ref":"ToS/contracts/document-catalogue-claim.schema.json","schema_dependencies":["ToS/contracts/historical-claim.schema.json","ToS/contracts/corpus-record.schema.json"]}]}},
+{"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"lifecycle":"stable","owner_ref":"ToS/contracts/document-catalogue-claim.schema.json","domain_type_ids":["tos.entity.document"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","supersedes_relation_type_id":null,"relation_type_id":"tos.relation.document-catalogue-origin","labels":{"default":"catalogued origin","en":"catalogued origin","ru":"место отправления по каталогу"},"inverse_labels":{"default":"catalogue attribution for Document","en":"catalogue attribution for Document","ru":"каталожная атрибуция документа"},"definition":"An attributed catalogue origin field for one Document. The exact source field, wording and cited evidence remain explicit. This does not establish composition, dispatch, receipt or any associated historical event.","range_type_ids":["tos.entity.place"],"source_mappings":[{"source_graph":"source-claims","source_predicate_id":"document_catalogue_origin","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["bibliographic_assertion"],"schemas":[{"schema_version":"tos_document_catalogue_claim_v1","schema_ref":"ToS/contracts/document-catalogue-claim.schema.json","schema_dependencies":["ToS/contracts/historical-claim.schema.json","ToS/contracts/corpus-record.schema.json"]}]}},
+{"parent_relation_type_ids":["tos.relation.related"],"abstract":false,"lifecycle":"stable","owner_ref":"ToS/contracts/document-catalogue-claim.schema.json","domain_type_ids":["tos.entity.document"],"directionality":"directed","transitive":false,"inverse_relation_type_id":null,"cardinality":{"per_subject_min":null,"per_subject_max":null,"per_object_min":null,"per_object_max":null},"assertion_mode":"reified-claim","evidence_required":true,"review_requirement":"recorded","supersedes_relation_type_id":null,"relation_type_id":"tos.relation.document-catalogue-destination","labels":{"default":"catalogued destination","en":"catalogued destination","ru":"место назначения по каталогу"},"inverse_labels":{"default":"catalogue attribution for Document","en":"catalogue attribution for Document","ru":"каталожная атрибуция документа"},"definition":"An attributed catalogue destination field for one Document. The exact source field, wording and cited evidence remain explicit. This does not establish composition, dispatch, receipt or any associated historical event.","range_type_ids":["tos.entity.place"],"source_mappings":[{"source_graph":"source-claims","source_predicate_id":"document_catalogue_destination","scope":"claim-predicate"}],"source_claim_profile":{"profile_version":1,"reader":"identity-relation-v1","assertion_layers":["bibliographic_assertion"],"schemas":[{"schema_version":"tos_document_catalogue_claim_v1","schema_ref":"ToS/contracts/document-catalogue-claim.schema.json","schema_dependencies":["ToS/contracts/historical-claim.schema.json","ToS/contracts/corpus-record.schema.json"]}]}},
     {
       "relation_type_id": "tos.relation.subject-identity-transition-proposal",
       "parent_relation_type_ids": ["tos.relation.related"],

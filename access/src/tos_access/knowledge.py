@@ -189,10 +189,14 @@ def _claim_navigation_template_violations(registry: dict[str, Any]) -> list[str]
             or template['owner_ref'] != 'ToS/doctrine/HUMAN_FORMS.md'
             or type(template['max_output_bytes']) is not int or not 128 <= template['max_output_bytes'] <= 16384):
         return invalid
-    if 'object_label_adapters' in template and (
-            template['object_label_adapters'] != ['historical-time-source-wording-v1']
-            or template['template_version'] < 2):
-        return invalid
+    if 'object_label_adapters' in template:
+        adapters = template['object_label_adapters']
+        if (not isinstance(adapters, list) or not 1 <= len(adapters) <= 2
+                or any(not isinstance(adapter, str) or adapter not in {
+                    'historical-time-source-wording-v1', 'document-catalogue-time-source-wording-v1'} for adapter in adapters)
+                or len(set(adapters)) != len(adapters) or template['template_version'] < 2
+                or 'document-catalogue-time-source-wording-v1' in adapters and template['template_version'] < 3):
+            return invalid
     renderings, statuses = template['renderings'], template['status_labels']
     status_keys = {'epistemic_status': {'observed', 'inferred', 'reported', 'interpreted', 'uncertain', 'disputed'},
                    'review_status': {'unreviewed', 'accepted', 'accepted_with_limits', 'rejected',
@@ -1152,7 +1156,7 @@ def _source_claim_kind(item: dict[str, Any], claim_predicate: str | None = None,
         return "provenance-event"
     if node_kind != "literal":
         return node_kind
-    if source_profile and source_profile.get('reader') == 'historical-temporal-v1':
+    if source_profile and source_profile.get('reader') in {'historical-temporal-v1', 'document-catalogue-temporal-v1'}:
         return 'temporal-assertion'
     if source_profile and source_profile.get('reader') in {'structured-value-v1', 'structured-reference-value-v1', 'identity-transition-v1', 'identity-transition-v2'}:
         return source_profile['value_kind']
@@ -2290,9 +2294,11 @@ def _expected_claim_navigation(
         return unavailable('predicate-not-understood')
     entry, mapping = candidates[0]
     value = claim.get('object')
-    temporal = ('historical-time-source-wording-v1' in template.get('object_label_adapters', [])
-                and (entry.get('source_claim_profile') or {}).get('reader') == 'historical-temporal-v1'
-                and isinstance(value, dict) and value.get('role') == 'historical-time'
+    reader = (entry.get('source_claim_profile') or {}).get('reader')
+    temporal_adapter = {'historical-temporal-v1': ('historical-time-source-wording-v1', 'historical-time'),
+                        'document-catalogue-temporal-v1': ('document-catalogue-time-source-wording-v1', 'catalogue-assigned-document-date')}.get(reader)
+    temporal = (temporal_adapter is not None and temporal_adapter[0] in template.get('object_label_adapters', [])
+                and isinstance(value, dict) and value.get('role') == temporal_adapter[1]
                 and isinstance(value.get('kind'), str)
                 and value['kind'] in {'date-assertion', 'interval-assertion', 'relative-order', 'unknown-date'}
                 and object_node.get('node_kind') == 'literal')
@@ -2985,6 +2991,8 @@ def build_knowledge_graph(
             "source_predicate_id": source_predicate_id,
             "relation_type_id": relation_type_id,
             "predicate_mapping_status": "mapped" if relation_type_id != fallback_relation_type_id else "unmapped",
+            **({'source_claim_profile': copy.deepcopy(relation_entries[relation_type_id]['source_claim_profile'])}
+               if relation_entries.get(relation_type_id, {}).get('source_claim_profile', {}).get('reader') == 'document-catalogue-temporal-v1' else {}),
             "subject_node_id": subject_id,
             "subject_entity_id": (subject or {}).get("entity_id"),
             "object_node_id": object_id,

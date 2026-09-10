@@ -698,6 +698,37 @@ authored records and histories intact.
 
 ## Documents and declared source claims
 
+Relation registry version 43 adds three catalogue-field attributions, not
+event predicates: `document_catalogue_date` (Document → TemporalAssertion),
+`document_catalogue_origin` and `document_catalogue_destination` (Document →
+Place). Letter inherits this Document domain. The latter two retain
+`identity-relation-v1`; their separate predicates and required field roles
+prevent origin/destination collapse. No generic Thing → Place relation is added.
+
+`tos_document_catalogue_claim_v1` requires a qualified statement and
+`qualifiers.catalogue_attribution`: an `evidence_ref` present in the Claim's
+evidence, the original `source_field` label, an exact `field_role`
+(`assigned-date`, `origin`, or `destination`) and original `source_wording`.
+These are attributed declarations; validating their shape does not fetch the
+catalogue or establish that its field is accurate. Date wording must match the
+whole value's `source_wording`, including language. Catalogue-field spelling is
+source data, not a hard-coded provider-specific field vocabulary.
+
+Only `document-catalogue-temporal-v1` reads the date value. Its role is
+`catalogue-assigned-document-date`; date, interval and explicit unknown reuse
+the established elementary time-field contracts without a historical role or
+relative anchor. Unknown calendar/year numbering stay null and cannot become
+comparison keys. Historical dating/place profiles and grants retain their
+old domains. A catalogue date is not a composition, dispatch, receipt or
+commissioning date; a catalogue location does not establish where any event
+actually happened. Such claims need their own evidence and owner grammar.
+
+The date reader has separately discoverable creation/revision delegations;
+old public v1–v4 and owner-local grants do not acquire it. Place attributions
+use the existing exact-predicate identity delegation. Neither this grammar nor
+the semantic/operation catalogs issue a grant or create a Place/Claim. See
+[TOS-D-0063](../../../docs/decisions/TOS-D-0063-document-catalogue-attributions.md).
+
 Entity registry version 8 adds Document under the broader IntellectualObject
 root and Letter under Document. Neither inherits Work or Artifact. Their
 descriptions, versions and source-copy forms use `source-metadata-record` and

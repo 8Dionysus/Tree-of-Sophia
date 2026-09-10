@@ -140,6 +140,10 @@ The read-only operations are available through all backend adapters:
   of two exact source Claims selected from one snapshot. Discover the request
   schema through `/api/knowledge/contracts`; unknown grounds remain unknown,
   and the result keeps both full Claim contexts without accepting either;
+  the separately declared `catalogue-assigned-document-date` role compares
+  only with the same role after exact Document/profile/source/value binding.
+  It does not compare a letter's catalogue date as an event date. Unknown
+  calendar or year numbering returns `undetermined`, never an inferred date;
 - `POST /api/knowledge/lenses/compile` executes an arbitrary validated
   LensSpec. This `POST` carries structured query data only and creates no
   server state;

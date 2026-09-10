@@ -531,6 +531,18 @@ title still produces no partial ready descriptor. A version-1 template without
 the adapter retains identity-only behavior. The explicit successor rationale is
 [TOS-D-0062](../../docs/decisions/TOS-D-0062-typed-time-claim-navigation.md).
 
+Template version 3 additionally opts into
+`document-catalogue-time-source-wording-v1` only for the separate
+`document-catalogue-temporal-v1` profile and
+`catalogue-assigned-document-date` role. It retains the same exact Claim,
+literal, source-file/line and value binding, not a formatted normalized date.
+The full catalogue field attribution remains mandatory context. Actual
+source-copy HumanForms continue through `claim.statement`, whose complete
+source-authored qualified statement is bound to the entire Claim. The short
+catalogue date is not promoted to a standalone HumanForm or event assertion.
+Version-2 historical navigation is unchanged; no old template silently gains
+the new adapter.
+
 ### Command behavior
 
 The source owner may delegate `form.create` and `form.revise` for explicitly

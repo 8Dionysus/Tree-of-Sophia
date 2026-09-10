@@ -16,6 +16,7 @@
 - [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 - [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## access/contract
 
@@ -92,6 +93,7 @@
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 - [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## derived-export
 
@@ -194,6 +196,7 @@
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 - [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## documentation/families
 
@@ -263,6 +266,10 @@
 ## mechanics/growth
 
 - [TOS-D-0051 - Competent agent assessment and scoped admission](../TOS-D-0051-competent-agent-assessment-and-scoped-admission.md) (`docs/decisions/TOS-D-0051-competent-agent-assessment-and-scoped-admission.md`)
+
+## mechanics/growth-cycle
+
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## mechanics/questbook
 

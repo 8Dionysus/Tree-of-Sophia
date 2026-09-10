@@ -11,6 +11,7 @@ import re
 import source_commands as source
 import source_command_contracts as contract
 import source_identity_proposals as identity_proposals
+import source_document_catalogue as document_catalogue
 import source_revisions as packages
 from source_record_profiles import SourceClaimProfiles, SOURCE_CLAIM_BASENAME
 
@@ -31,7 +32,7 @@ def _layer_transition(value):
 
 def configuration(config):
     values_allowed = config['schema_version'] in {source.CLAIM_VALUE_REVISION_CONFIG,
-        source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
+        source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, document_catalogue.REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
     layer_allowed = config['schema_version'] == source.CLAIM_LAYER_REVISION_CONFIG
     allowed_fields = {'assertion_layer'} if layer_allowed else FIELDS | ({'object'} if values_allowed else set())
     source._keys(config, {'schema_version', 'uid', 'principal_id', 'source_root', 'source_path',
@@ -41,7 +42,7 @@ def configuration(config):
         | ({'allowed_related_claim_refs'} if config['schema_version'] in identity_proposals.REVISION_CONFIGS else set())
         | ({'allowed_layer_transitions'} if layer_allowed else set()))
     if (config['schema_version'] not in {source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
-            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
+            source.CLAIM_STRUCTURED_REVISION_CONFIG, source.CLAIM_REFERENCE_REVISION_CONFIG, source.CLAIM_LAYER_REVISION_CONFIG, document_catalogue.REVISION_CONFIG, *identity_proposals.REVISION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[k], str) or not config[k].strip() for k in ('principal_id', 'authority_ref'))
             or source._instant(config['expires_at']) <= datetime.now(timezone.utc)
@@ -245,6 +246,11 @@ def _scope(config, request, record, *, profiles=None):
         validate_qualified_link_claim(record)
     from source_claim_commands import value_is_delegated, _value_scope
     profiles = profiles if profiles is not None else SourceClaimProfiles(Path(config['source_root']))
+    if (profiles.profiles[record['predicate']]['reader'] == document_catalogue.READER
+            or config['schema_version'] == document_catalogue.REVISION_CONFIG):
+        # Even wording-only revisions and replay need the new reader grant.
+        _value_scope(config, record, profiles)
+        _value_scope(config, {**record, 'object': fields.get('object', record['object'])}, profiles)
     if (config['schema_version'] in identity_proposals.REVISION_CONFIGS and record.get('predicate') !=
             identity_proposals.READER_PREDICATES[identity_proposals.CONFIG_READERS[config['schema_version']]]):
         raise PermissionError('identity proposal correction cannot revise another Claim family')
@@ -445,6 +451,7 @@ def command_handlers():
             ('v2', source.CLAIM_VALUE_REVISION_CONFIG, 'descriptive fields and separately allowlisted temporal value replacement'),
             ('v3', source.CLAIM_STRUCTURED_REVISION_CONFIG, 'descriptive fields and separately allowlisted structured value replacement'),
             ('v4', source.CLAIM_REFERENCE_REVISION_CONFIG, 'descriptive fields and separately allowlisted reference-bearing value replacement'),
+            ('document-catalogue-v1', document_catalogue.REVISION_CONFIG, 'only separately delegated catalogue-assigned Document date corrections, including wording-only changes'),
             ('identity-v1', identity_proposals.REVISION_CONFIG, 'identity proposal descriptions only; exact participants, mapping and predecessor proposal remain frozen'),
             ('identity-v2', identity_proposals.REVISION_CONFIG_V2, 'V2 source or opted-in semantic subject proposal descriptions only; exact topology and prior proposal remain frozen'),
             ('layer-v1', source.CLAIM_LAYER_REVISION_CONFIG, 'only an explicitly allowlisted assertion-layer transition')):
@@ -456,6 +463,7 @@ def command_handlers():
             contract.inspect_version()), run_command, 'Correct one declared public Claim: ' + scope + '.',
             configure=lambda config, owner_config: configuration(config),
             typed_handles=(*contract.CLAIM_HANDLES, *contract.FORM_HANDLES, 'ToS/contracts/source-structured-value.schema.json',
+                           *([document_catalogue.SCHEMA_REF] if schema == document_catalogue.REVISION_CONFIG else []),
                            *([identity_proposals.READER_SCHEMAS[identity_proposals.CONFIG_READERS[schema]][1]]
                              if schema in identity_proposals.REVISION_CONFIGS else [])),
             profile_selection='The current Claim predicate and exact source_claim_profile remain unchanged; ' + scope + '.',

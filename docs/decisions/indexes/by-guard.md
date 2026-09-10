@@ -53,6 +53,7 @@
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 - [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## claim separation
 
@@ -135,6 +136,7 @@
 
 - [TOS-D-0057 - Source-owned Claim navigation without manufactured assertion wording](../TOS-D-0057-source-owned-claim-navigation.md) (`docs/decisions/TOS-D-0057-source-owned-claim-navigation.md`)
 - [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## exact identity
 
@@ -436,6 +438,10 @@
 
 - [TOS-D-0051 - Competent agent assessment and scoped admission](../TOS-D-0051-competent-agent-assessment-and-scoped-admission.md) (`docs/decisions/TOS-D-0051-competent-agent-assessment-and-scoped-admission.md`)
 
+## scoped delegation
+
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
+
 ## script topology
 
 - [TOS-D-0011 - Script Topology Coverage](../TOS-D-0011-script-topology-coverage.md) (`docs/decisions/TOS-D-0011-script-topology-coverage.md`)
@@ -518,6 +524,7 @@
 - [TOS-D-0058 - Backend-defined knowledge lenses](../TOS-D-0058-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0058-backend-defined-knowledge-lenses.md`)
 - [TOS-D-0059 - Stable semantic interchange registry](../TOS-D-0059-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0059-stable-semantic-interchange-registry.md`)
 - [TOS-D-0062 - Typed historical-time source wording in Claim navigation](../TOS-D-0062-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0062-typed-time-claim-navigation.md`)
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## source-home symmetry
 
@@ -539,6 +546,10 @@
 
 - [TOS-D-0020 - Corpus Evidence Spine And Witness Storage](../TOS-D-0020-corpus-evidence-spine-and-witness-storage.md) (`docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md`)
 - [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
+
+## temporal roles
+
+- [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 
 ## terminal receipt
 

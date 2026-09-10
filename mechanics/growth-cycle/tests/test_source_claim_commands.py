@@ -130,6 +130,160 @@ class ReferenceValueAuthorizationTests(unittest.TestCase):
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_document_catalogue_date_owner_to_comparison_and_forms(self):
+        """Synthetic catalogue attributions over copied Letter metadata, never real dates."""
+        import source_document_catalogue as catalogue
+        from source_record_profiles import SourceClaimProfiles, SourceProfileError
+        from build_source_witness_catalog import collect_records
+        from source_claim_commands import _scope
+        sys.path.insert(0, str(ROOT / 'access/src'))
+        from tos_access.temporal_comparison import compare_temporal_claims
+        from tos_access.knowledge import KnowledgeGraphIndex
+        with self.creation() as (root, owner, config, first, _, rebuild, fixture):
+            for name in ('document-catalogue-claim', 'document-record', 'source-metadata-record'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            ref = 'ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            path.write_bytes((ROOT / ref).read_bytes())
+            letter = json.loads(path.read_bytes())
+            wording = {'text': '03. 06.1886', 'language': 'de'}
+            value = {'kind': 'date-assertion', 'role': catalogue.ROLE, 'calendar': 'proleptic-gregorian',
+                     'year_numbering': 'astronomical', 'certainty': 'exact',
+                     'value': '1886-06-03', 'source_wording': wording}
+            attribution = {'evidence_ref': first['evidence_refs'][0], 'source_field': 'Datierung',
+                           'field_role': 'assigned-date', 'source_wording': wording}
+            first.update(schema_version=catalogue.SCHEMA_VERSION, predicate=catalogue.PREDICATE,
+                subject_ref=letter['record_id'], object=value, assertion_layer='bibliographic_assertion',
+                qualifiers={'statement': 'Synthetic catalogue assigns “03. 06.1886”; not a composition or dispatch assertion.',
+                    'statement_language': 'en', 'statement_script': 'Latn', 'catalogue_attribution': attribution})
+            second = copy.deepcopy(first)
+            second['claim_id'] = 'tos.claim.synthetic-catalogue-later'
+            second['object'].update(value='1886-06-04', source_wording={'text': '04. 06.1886', 'language': 'de'})
+            second['qualifiers']['catalogue_attribution']['source_wording'] = copy.deepcopy(second['object']['source_wording'])
+            second['qualifiers']['statement'] = 'Synthetic catalogue assigns “04. 06.1886”; not a dispatch assertion.'
+            unknown = copy.deepcopy(second)
+            unknown['claim_id'] = 'tos.claim.synthetic-catalogue-calendar-unknown'
+            unknown['object'].update(calendar=None, year_numbering=None)
+            objects = {record['record_id']: record for rows in collect_records(root).values() for record in rows}
+            profiles = SourceClaimProfiles(root)
+            profiles.validate(first, objects)
+            registry_path = root / 'ToS/doctrine/semantic-interchange/relation-types.v1.json'
+            original_registry = registry_path.read_bytes()
+            for field, invalid in [('domain_type_ids', ['tos.entity.historical-situation']),
+                                   ('range_type_ids', ['tos.entity.place'])]:
+                changed = json.loads(original_registry)
+                relation = next(r for r in changed['relations'] if r['relation_type_id'] == 'tos.relation.document-catalogue-date')
+                relation[field] = invalid
+                registry_path.write_text(json.dumps(changed))
+                with self.subTest(registry_field=field), self.assertRaises(SourceProfileError):
+                    SourceClaimProfiles(root)
+            registry_path.write_bytes(original_registry)
+            for bad in (
+                {**first, 'subject_ref': 'tos.historical-event.fixture'},
+                {**first, 'object': {**value, 'role': 'historical-time'}},
+                {**first, 'qualifiers': {**first['qualifiers'], 'catalogue_attribution': {**attribution, 'field_role': 'origin'}}},
+                {**first, 'qualifiers': {**first['qualifiers'], 'catalogue_attribution': {**attribution, 'evidence_ref': 'test:not-cited'}}},
+                {**first, 'object': {**value, 'source_wording': {'text': 'different', 'language': 'de'}}},
+            ):
+                with self.subTest(bad=bad), self.assertRaises(SourceProfileError):
+                    profiles.validate(bad, objects)
+            # Place roles reuse the existing exact identity writer; no new grant hierarchy.
+            for predicate, role in [('document_catalogue_origin', 'origin'), ('document_catalogue_destination', 'destination')]:
+                place = {**first, 'predicate': predicate, 'object': 'tos.place.chemnitz',
+                    'qualifiers': {**first['qualifiers'], 'catalogue_attribution': {**attribution,
+                        'field_role': role, 'source_field': role, 'source_wording': {'text': 'Chemnitz', 'language': 'de'}}}}
+                profiles.validate(place, objects)
+                _scope({**config, 'allowed_subject_refs': [first['subject_ref']], 'allowed_object_refs': [place['object']],
+                        'allowed_predicates': [predicate]}, [place], profiles=profiles)
+                with self.assertRaises(SourceProfileError):
+                    profiles.validate({**place, 'subject_ref': 'tos.historical-event.fixture'}, objects)
+            config.update(schema_version=catalogue.CREATE_CONFIG, allowed_claim_ids=[first['claim_id'], second['claim_id'], unknown['claim_id']],
+                allowed_subject_refs=[first['subject_ref']], allowed_object_refs=[],
+                allowed_predicates=[catalogue.PREDICATE], allowed_object_values=[value, second['object'], unknown['object']])
+            prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [first, second, unknown]}
+            for version in ('tos_local_claim_create_owner_v1', 'tos_local_claim_create_owner_v2',
+                            'tos_local_claim_create_owner_v3', 'tos_local_claim_create_owner_v4', commands.OWNER_CLAIM_REFERENCE_CONFIG):
+                selected = {**config, 'schema_version': version}
+                if version.endswith('_v1'):
+                    selected.pop('allowed_object_values')
+                with self.subTest(old_grant=version), self.assertRaises((PermissionError, ValueError)):
+                    _scope(selected, [first], profiles=profiles)
+            owner.write_text(json.dumps(config))
+            preview = commands.run_local_command(owner, prepare)
+            request = {**prepare, 'operation': 'claims.create', 'command_id': 'test:catalogue-dates',
+                'expected_configuration': preview['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            projection = rebuild()
+            graph, entities, registry = fixture.historical_knowledge(root, projection)
+            def compare(graph, right=second):
+                claims = [next(n for n in graph['nodes'] if n['entity_id'] == c['claim_id']) for c in (first, right)]
+                req = {'schema_version': 'tos_temporal_comparison_request_v1', 'source_revision': graph['source_revision'],
+                       **{side: {'node_id': node['id'], 'content_revision': node['content_revision']}
+                          for side, node in zip(('left', 'right'), claims)}}
+                return compare_temporal_claims(graph, req, graph_index=KnowledgeGraphIndex(graph))
+            compared = compare(graph)
+            self.assertEqual(compared['comparison']['status'], 'comparable', compared['comparison'])
+            self.assertEqual(compared['comparison']['relation'], 'before')
+            undetermined = compare(graph, unknown)
+            self.assertEqual(undetermined['comparison']['status'], 'undetermined')
+            self.assertIsNone(undetermined['right']['normalized_time']['calendar'])
+            self.assertNotIn('sort_start', undetermined['right']['normalized_time'])
+            self.assertEqual(compared['left']['claim']['attributes']['source_claim'], first)
+            self.assertEqual(compared['left']['value']['display']['title']['default'], wording['text'])
+            raw = next(n for n in projection['nodes'] if n.get('properties', {}).get('claim_ref') == first['claim_id'] and n['node_kind'] == 'claim')
+            self.assertIn(wording['text'], raw['properties']['navigation_descriptor']['title']['en'])
+            from source_witness_bibliographic_graph_common import build_claim_navigation_descriptor
+            source_node = next(n for n in projection['nodes'] if n['node_id'] == 'identity:' + first['subject_ref'])
+            value_node = next(n for n in projection['nodes'] if n['node_id'] == raw['properties']['navigation_descriptor']['object']['node_id'])
+            previous = copy.deepcopy(registry)
+            previous['claim_navigation_template'].update(template_version=2, object_label_adapters=['historical-time-source-wording-v1'])
+            self.assertEqual(build_claim_navigation_descriptor(first, source_node, value_node, previous, entities)['state'], 'unavailable')
+            for tamper in ('profile', 'source-digest', 'value-digest', 'literal-id', 'role', 'unknown-calendar'):
+                changed = copy.deepcopy(graph)
+                node = next(n for n in changed['nodes'] if n['entity_id'] == first['claim_id'])
+                literal = next(n for n in changed['nodes'] if n['id'] == node['semantics']['claim']['object_node_id'])
+                if tamper == 'profile': node['semantics']['claim']['source_claim_profile']['reader'] = 'historical-temporal-v1'
+                elif tamper == 'source-digest': literal['attributes']['source_sha256'] = '0' * 64
+                elif tamper == 'value-digest': literal['attributes']['value_sha256'] = '0' * 64
+                elif tamper == 'literal-id': literal['native_id'] = 'literal:another-value'
+                elif tamper == 'role': literal['semantics']['time']['role'] = 'historical-time'
+                else:
+                    # Missing calendar cannot gain ready keys from a damaged/stale normalizer.
+                    literal['semantics']['time']['calendar'] = None
+                self.assertEqual(compare(changed)['comparison']['status'], 'undetermined', tamper)
+            revision = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            revision.update(schema_version=catalogue.REVISION_CONFIG, claim_id=first['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['qualifiers'], allowed_object_refs=[],
+                allowed_object_values=[value], allowed_evidence_refs=config['allowed_evidence_refs'],
+                allowed_form_ids=['tos.form.synthetic-catalogue-statement'])
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'qualifiers': {'statement': 'Synthetic catalogue field: “03. 06.1886”. No writing, dispatch or receipt claim.'}},
+                'forms': [{'form_id': 'tos.form.synthetic-catalogue-statement', 'field_id': 'claim.statement'}],
+                'reason': 'Clarify synthetic attribution without changing its source wording.'}
+            for version in (1, 2, 3, 4):
+                old = {**revision, 'schema_version': f'tos_local_claim_revision_owner_v{version}'}
+                if version == 1:
+                    old.pop('allowed_object_values'); old.pop('allowed_object_refs')
+                owner.write_text(json.dumps(old))
+                with self.subTest(old_revision=version), self.assertRaises(PermissionError):
+                    commands.run_local_command(owner, change)
+            owner.write_text(json.dumps(revision))
+            preview = commands.run_local_command(owner, change)
+            correction = {**change, 'operation': 'claim.revise', 'command_id': 'test:catalogue-wording',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
+                'expected_inputs': preview['source_bindings']}
+            corrected = commands.run_local_command(owner, correction)
+            self.assertEqual({m['state'] for m in corrected['materializations']}, {'ready'})
+            self.assertTrue(commands.run_local_command(owner, correction)['replayed'])
+            self.assertEqual(commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': preview['source']})['record'], first)
+
     def test_collection_order_create_replay_projection_and_missing_exact_basis(self):
         """Artificial order over a test Collection, never evidence about an edition."""
         from claim_revisions import _subject

@@ -7,6 +7,8 @@ Only exact index lookups are used after the shared graph index is prepared.
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 import math
 import re
 
@@ -15,7 +17,7 @@ from .lens_pagination import KnowledgeRevisionConflict
 
 REQUEST_SCHEMA = 'tos_temporal_comparison_request_v1'
 RESULT_SCHEMA = 'tos_temporal_comparison_result_v1'
-SUPPORTED_TIME_ROLES = frozenset({'historical-time'})
+SUPPORTED_TIME_ROLES = frozenset({'historical-time', 'catalogue-assigned-document-date'})
 
 
 class TemporalReadModelInvalid(RuntimeError):
@@ -132,6 +134,12 @@ def _operand(ref, lookup):
     packet['normalized_time'] = copy.deepcopy(time)
     if 'raw' not in time or not _same_json(time['raw'], attributes['value']):
         return packet, 'undetermined', ['temporal-normalization-source-binding-inconsistent']
+    if (source.get('predicate') == 'document_catalogue_date'
+            or source.get('schema_version') == 'tos_document_catalogue_claim_v1'
+            or time.get('role') == 'catalogue-assigned-document-date'):
+        issue = _document_catalogue_binding(claim, value, source, semantics, time, lookup)
+        if issue:
+            return packet, 'undetermined', [issue]
     raw_issues = time.get('issues', [])
     if not isinstance(raw_issues, list) or any(not isinstance(issue, str) or not issue for issue in raw_issues):
         return packet, 'unsupported', ['temporal-normalization-issues-invalid']
@@ -171,6 +179,56 @@ def _operand(ref, lookup):
     if issues:
         return packet, 'undetermined', list(dict.fromkeys(issues))
     return packet, 'comparable', []
+
+
+def _document_catalogue_binding(claim, value, source, semantics, time, lookup):
+    """Only the explicit current profile may introduce this comparison role.
+
+    Full Claim/value/file binding remains in the packet. Catalogue attribution
+    is not validated against remote contents and never gains historical role.
+    """
+    profile = _fields(semantics.get('source_claim_profile'))
+    schemas = profile.get('schemas')
+    attribution = _fields(_fields(source.get('qualifiers')).get('catalogue_attribution'))
+    raw = _fields(source.get('object'))
+    if (source.get('predicate') != 'document_catalogue_date'
+            or source.get('schema_version') != 'tos_document_catalogue_claim_v1'
+            or source.get('assertion_layer') != 'bibliographic_assertion'
+            or semantics.get('relation_type_id') != 'tos.relation.document-catalogue-date'
+            or profile.get('reader') != 'document-catalogue-temporal-v1'
+            or profile.get('assertion_layers') != ['bibliographic_assertion']
+            or not isinstance(schemas, list) or len(schemas) != 1 or not isinstance(schemas[0], dict)
+            or schemas[0].get('schema_version') != source['schema_version']
+            or schemas[0].get('schema_ref') != 'ToS/contracts/document-catalogue-claim.schema.json'
+            or raw.get('role') != 'catalogue-assigned-document-date' or time.get('role') != raw['role']
+            or raw.get('kind') not in ('date-assertion', 'interval-assertion', 'unknown-date')
+            or attribution.get('field_role') != 'assigned-date'
+            or not isinstance(attribution.get('source_field'), str) or not attribution['source_field'].strip()
+            or not isinstance(source.get('evidence_refs'), list)
+            or attribution.get('evidence_ref') not in source['evidence_refs']
+            or not _same_json(attribution.get('source_wording'), raw.get('source_wording'))):
+        return 'document-catalogue-profile-binding-inconsistent'
+    subjects = lookup(semantics.get('subject_node_id')) if isinstance(semantics.get('subject_node_id'), str) else []
+    if (len(subjects) != 1 or subjects[0].get('entity_id') != source.get('subject_ref')
+            or subjects[0].get('source_graph') != 'source-claims'
+            or _fields(subjects[0].get('type_mapping')).get('status') != 'mapped'
+            or 'tos.entity.document' not in _fields(subjects[0].get('semantics')).get('type_ancestors', [])):
+        return 'document-catalogue-subject-binding-inconsistent'
+    # Canonical Claim bytes, not Python equality, bind Boolean/numeric fields.
+    def digest_of(payload):
+        return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
+            separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+    digest, value_digest = digest_of(source), digest_of(raw)
+    left, right = _fields(claim.get('attributes')), _fields(value.get('attributes'))
+    if (left.get('source_sha256') != digest or right.get('source_sha256') != digest
+            or right.get('value_sha256') != value_digest or digest_of(right.get('value')) != value_digest
+            or digest_of(time.get('raw')) != value_digest
+            or value.get('native_id') != 'literal:sha256:' + digest_of({'claim_ref': source['claim_id'], 'value': raw})
+            or type(left.get('source_line')) is not int or left['source_line'] < 1
+            or right.get('source_line') != left['source_line']
+            or claim.get('source_refs') != value.get('source_refs')):
+        return 'document-catalogue-exact-source-binding-inconsistent'
+    return None
 
 
 def _relation(left, right):

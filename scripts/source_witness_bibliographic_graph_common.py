@@ -299,9 +299,11 @@ def build_claim_navigation_descriptor(
         return unavailable('predicate-not-understood')
     relation, mapping = candidates[0]
     value = claim.get('object')
-    temporal = ('historical-time-source-wording-v1' in template.get('object_label_adapters', [])
-                and (relation.get('source_claim_profile') or {}).get('reader') == 'historical-temporal-v1'
-                and isinstance(value, dict) and value.get('role') == 'historical-time'
+    reader = (relation.get('source_claim_profile') or {}).get('reader')
+    temporal_adapter = {'historical-temporal-v1': ('historical-time-source-wording-v1', 'historical-time'),
+                        'document-catalogue-temporal-v1': ('document-catalogue-time-source-wording-v1', 'catalogue-assigned-document-date')}.get(reader)
+    temporal = (temporal_adapter is not None and temporal_adapter[0] in template.get('object_label_adapters', [])
+                and isinstance(value, dict) and value.get('role') == temporal_adapter[1]
                 and isinstance(value.get('kind'), str)
                 and value.get('kind') in {'date-assertion', 'interval-assertion', 'relative-order', 'unknown-date'}
                 and object_node.get('node_kind') == 'literal')
