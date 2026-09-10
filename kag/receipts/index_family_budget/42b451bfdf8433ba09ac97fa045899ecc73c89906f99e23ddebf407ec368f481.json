@@ -523,9 +523,9 @@
         "state": "present"
       },
       {
-        "bytes": 234757,
-        "content_digest": "290ba367c05e3f8c2e2a6bab42c41f5c857c06752f992d894c7bb193ce54dada",
-        "git_blob": "sha1:972c25e4bba113249f6b40357afc28446242b9c1",
+        "bytes": 235877,
+        "content_digest": "b61699486f778ebf2022444f55fd8ac2c5a2191b3668cde1203a465803336dfc",
+        "git_blob": "sha1:a5ca0b05c5193bef5545353726c7357f372bca13",
         "path": "scripts/prepare_landing.py",
         "state": "present"
       },
@@ -565,9 +565,9 @@
         "state": "present"
       },
       {
-        "bytes": 148835,
-        "content_digest": "23765ed0a67a676f3b80607b61a9f58dea1f4d0e926f6ad119d57202cd8cf66e",
-        "git_blob": "sha1:bec8f3e49ef13196cfb3b3903d350c1fad2a582e",
+        "bytes": 150172,
+        "content_digest": "a483ee03ed61ad71c4473851c1eed64d5210366ed55f752fc3006ba91a4d520d",
+        "git_blob": "sha1:d459daa2ab05149ed8ba26b878a8c1e6ec73f3ab",
         "path": "scripts/repo_local/portable_family.py",
         "state": "present"
       },
@@ -600,9 +600,9 @@
         "state": "present"
       },
       {
-        "bytes": 5134,
-        "content_digest": "fedc3686682e20a18e9a5b3d30dc44228943cc8fa93b2f1e833a97f21e2d9a91",
-        "git_blob": "sha1:df4c053abfa51b9bb383c612fdfceb520bac0859",
+        "bytes": 8135,
+        "content_digest": "f37f0980fc0985d0dc5ea175d90c64164d0b94e08f85a139955e89d2c2d7da40",
+        "git_blob": "sha1:2380703d832c0fc9a08172250fe142be34a1bcc3",
         "path": "scripts/validate_nested_agents.py",
         "state": "present"
       },
@@ -824,9 +824,9 @@
         "state": "present"
       },
       {
-        "bytes": 47589,
-        "content_digest": "1f6f563278ff883f0701744f14807a6f1b591b453cd7cf8cd160c6902c04a42a",
-        "git_blob": "sha1:79c38d3ce1c6b62ecf2a9dbd6fd6db215a41cde9",
+        "bytes": 47712,
+        "content_digest": "4d5f6a291f1ded875883df45e422a5b3cbccf9b220b0342351fc508fede190a8",
+        "git_blob": "sha1:121bfd8d55e1ebdfd05e914c9394670b44c46a23",
         "path": "scripts/validators/local_kag_subtree.py",
         "state": "present"
       },
@@ -1160,7 +1160,7 @@
         "state": "present"
       }
     ],
-    "identity_digest": "200be9d61380f2b9fbadf4eebaf3b75ae9014aa45ed0199d6d7577812c2b7a91",
+    "identity_digest": "d1d77185769f04b7635c36bbef86af90b1fed0bb838cca7e408cd5311fc39f9a",
     "owner": "aoa-kag",
     "procedure_manifest": {
       "action_inputs": [
@@ -1360,7 +1360,7 @@
       "schema_path": "schemas/repo-local-kag-budget-producer-manifest.schema.json"
     },
     "revision_binding": "content-addressed-procedure-import-closure-portable-runtime-contract-and-descriptor-io-v1",
-    "source_digest": "33a045fadeb39fd981761d3ebfaa4312af06e1dc6fb9478f143e9cec272a585c"
+    "source_digest": "4882f50ab3a09b04b02715510f2e5dbec13fa60a5032f98e9e043dc9e79f812e"
   },
   "reason": "Remove the obsolete WebMCP Challenge summary from the public README and refresh the source-linked owner family for this documentation candidate.",
   "repo": "Tree-of-Sophia",
