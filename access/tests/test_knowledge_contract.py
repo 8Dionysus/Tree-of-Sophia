@@ -2931,43 +2931,38 @@ class KnowledgeContractTests(unittest.TestCase):
         expected_unmapped = {
             "philosophy:edge:candidate-relation:table-i-a35-relation-019": {
                 "predicate_id": "figure_anchor",
+                "candidate_id": "table-i-a35-relation-019",
                 "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
                 "authority_posture": "prepared_research_candidate",
                 "canon_status": "pre-canon",
-                "review_posture": None,
-                "review_reason": None,
             },
             "philosophy:edge:candidate-relation:table-i-a35-relation-020": {
                 "predicate_id": "figure_anchor",
+                "candidate_id": "table-i-a35-relation-020",
                 "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
                 "authority_posture": "prepared_research_candidate",
                 "canon_status": "pre-canon",
-                "review_posture": None,
-                "review_reason": None,
             },
             "philosophy:edge:candidate-relation:table-i-a35-relation-021": {
                 "predicate_id": "figure_anchor",
+                "candidate_id": "table-i-a35-relation-021",
                 "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
                 "authority_posture": "prepared_research_candidate",
                 "canon_status": "pre-canon",
-                "review_posture": None,
-                "review_reason": None,
             },
             "philosophy:edge:candidate-relation:table-ii-t2-05-relation-027": {
                 "predicate_id": "translates_into",
+                "candidate_id": "table-ii-t2-05-relation-027",
                 "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
                 "authority_posture": "prepared_research_candidate",
                 "canon_status": "pre-canon",
-                "review_posture": "manual_review_required",
-                "review_reason": "table-ii master status B and confidence 4 require manual review under the package review policy",
             },
             "philosophy:edge:candidate-relation:table-ii-t2-56-relation-002": {
                 "predicate_id": "uses_medium",
+                "candidate_id": "table-ii-t2-56-relation-002",
                 "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
                 "authority_posture": "prepared_research_candidate",
                 "canon_status": "pre-canon",
-                "review_posture": "manual_review_required",
-                "review_reason": "Table II status C: information-system evidence must not be projected as a readable philosophical corpus",
             },
         }
         unmapped = {
@@ -2977,6 +2972,7 @@ class KnowledgeContractTests(unittest.TestCase):
         }
         self.assertEqual(set(unmapped), set(expected_unmapped))
         self.assertEqual(mapping["unmapped_relations"], len(expected_unmapped))
+        owner_records: dict[str, list[dict[str, object]]] = {}
         for relation_id, expected in expected_unmapped.items():
             relation = unmapped[relation_id]
             self.assertEqual(relation["source_graph"], "philosophy")
@@ -2986,11 +2982,29 @@ class KnowledgeContractTests(unittest.TestCase):
             payload = relation["source_record"]["payload"]
             self.assertEqual(payload["source_ref"], expected["source_ref"])
             properties = payload["properties"]
+            self.assertEqual(properties["candidate_id"], expected["candidate_id"])
             self.assertEqual(properties["source_record_ref"], expected["source_ref"])
+            source_records = owner_records.setdefault(
+                expected["source_ref"],
+                [
+                    json.loads(line)
+                    for line in (
+                        self.repo_root / expected["source_ref"]
+                    ).read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ],
+            )
+            owner_record = next(
+                record
+                for record in source_records
+                if record.get("candidate_id") == expected["candidate_id"]
+            )
+            self.assertEqual(properties["authority_posture"], owner_record.get("authority_posture"))
+            self.assertEqual(properties["canon_status"], owner_record.get("canon_status"))
+            self.assertEqual(properties.get("review_posture"), owner_record.get("review_posture"))
+            self.assertEqual(properties.get("review_reason"), owner_record.get("review_reason"))
             self.assertEqual(properties["authority_posture"], expected["authority_posture"])
             self.assertEqual(properties["canon_status"], expected["canon_status"])
-            self.assertEqual(properties.get("review_posture"), expected["review_posture"])
-            self.assertEqual(properties.get("review_reason"), expected["review_reason"])
         self.assertGreater(mapping["cross_layer_relations"], 0)
         self.assertEqual(graph["counts"]["semantic_validation"]["violations"], [])
 
