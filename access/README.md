@@ -575,6 +575,25 @@ to retain the timings and exact client/HTML hashes outside the checkout. This ch
 producer-consumer seam, not browser rendering, production or deployment. Neither
 command belongs in the fast test lane or modifies the UI checkout.
 
+Full knowledge carriers may include `readable_context`, a bounded presentation
+of the existing HumanForm and assertion contexts. `GET /api/knowledge/catalog`
+publishes its exact source-owned vocabulary as `context_presentation` with
+`id`, `version`, `source_ref`, canonical `digest`, and `payload`; catalog and
+carrier must belong to the same `source_revision`. The public contracts bundle
+includes `readable_context`, a thin reference to the graph schema definition.
+Entries preserve raw governing values, unknowns and exact record/form/pointer
+bindings. Deduplicated `exact_materials` retains canonical JSON text and hashes
+at actual raw origins; verify and use its lossless numeric lexemes for display,
+since ordinary JavaScript JSON numbers cannot preserve every source value.
+`complete` describes returned-context coverage, not semantic review
+or translation. Overflow yields `requires-exact-context` with exact roots;
+invalid bindings yield `unavailable`, with no partial ready context.
+Compact lenses omit this optional sidecar because its raw roots are absent;
+selected HumanForms retain their own mandatory context. Request full detail for
+readable context and verify its vocabulary and bindings before using it.
+Vocabulary/processor changes invalidate the derived stage. Carriers without
+context bypass that stage and do not acquire a duplicate cache record.
+
 Cold normalization preserves the existing public revision byte protocol. A
 bounded in-process cache reuses at most 4,096 short string tokens (up to 256
 characters); longer values are streamed without retention in that cache.

@@ -24,6 +24,7 @@
     },
     "fallback_type_id": {"$ref": "#/$defs/typeId"},
     "property_definitions": {"type": "array", "items": {"$ref": "#/$defs/propertyDefinition"}},
+    "context_presentation": {"$ref": "#/$defs/contextPresentation"},
     "types": {
       "type": "array",
       "minItems": 1,
@@ -31,6 +32,219 @@
     }
   },
   "$defs": {
+    "contextPresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "presentation_id",
+        "presentation_version",
+        "owner_ref",
+        "purpose",
+        "default_language",
+        "languages",
+        "max_output_bytes",
+        "max_entries",
+        "record_schema_versions",
+        "field_rules",
+        "unclassified"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_context_presentation_v1"
+        },
+        "presentation_id": {
+          "const": "tos.context-presentation.governing"
+        },
+        "presentation_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "owner_ref": {
+          "const": "ToS/doctrine/HUMAN_FORMS.md"
+        },
+        "purpose": {
+          "const": "source-context-reading-not-assessment"
+        },
+        "default_language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "languages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 32768
+        },
+        "max_entries": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "record_schema_versions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos_[a-z0-9_]+_v[0-9]+$"
+          }
+        },
+        "field_rules": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "field",
+              "targets",
+              "category",
+              "label",
+              "explanation",
+              "value_labels"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,95}$"
+              },
+              "targets": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 5,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "record",
+                    "assertion",
+                    "language-context",
+                    "subject-assessment",
+                    "assessment-snapshot"
+                  ]
+                }
+              },
+              "category": {
+                "enum": [
+                  "governing",
+                  "technical"
+                ]
+              },
+              "label": {
+                "type": "object",
+                "minProperties": 1,
+                "maxProperties": 8,
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                }
+              },
+              "explanation": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "minProperties": 1,
+                    "maxProperties": 8,
+                    "additionalProperties": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    },
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "value_labels": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "minProperties": 1,
+                    "maxProperties": 64,
+                    "additionalProperties": {
+                      "type": "object",
+                      "minProperties": 1,
+                      "maxProperties": 8,
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "unclassified": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "explanation"
+          ],
+          "properties": {
+            "label": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 8,
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+              }
+            },
+            "explanation": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 8,
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+              }
+            }
+          }
+        }
+      }
+    },
     "sourceRecordProfile": {
       "type": "object", "additionalProperties": false,
       "description": "A source-owned metadata reader contract, not an admission or write capability. Other source shapes retain their native adapters.",

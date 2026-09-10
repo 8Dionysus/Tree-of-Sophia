@@ -27,6 +27,533 @@
     "authority_boundary": {"$ref": "#/$defs/authorityBoundary"}
   },
   "$defs": {
+    "readableContext": {
+          "title": "Source-owned readable governing context, preserving exact raw bindings",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "state",
+            "reason",
+            "vocabulary",
+            "contexts",
+            "exact_materials",
+            "exact_context_pointers",
+            "coverage",
+            "performs_semantic_assessment",
+            "performs_translation"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "tos_readable_context_v1"
+            },
+            "state": {
+              "enum": [
+                "complete",
+                "requires-exact-context",
+                "unavailable"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "vocabulary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "version",
+                "source_ref",
+                "digest"
+              ],
+              "properties": {
+                "id": {
+                  "const": "tos.context-presentation.governing"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "source_ref": {
+                  "const": "ToS/doctrine/semantic-interchange/entity-types.v1.json"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                }
+              }
+            },
+            "exact_materials": {
+              "description": "Deduplicated existing canonical JSON text. Hash its UTF-8 bytes, retain number lexemes for display, and verify each real raw origin. A record binding resolves by record.digest plus source_pointer; other entries resolve by their exact value_pointer under a listed origin. This does not redefine original record or normalized graph digests.",
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["digest", "canonical_json", "origin_pointers"],
+                "properties": {
+                  "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"},
+                  "canonical_json": {"type": "string", "minLength": 1, "maxLength": 32768},
+                  "origin_pointers": {
+                    "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+                    "items": {"type": "string", "maxLength": 2048, "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"}
+                  }
+                }
+              }
+            },
+            "contexts": {
+              "type": "array",
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "origin_pointer",
+                  "form",
+                  "entries"
+                ],
+                "properties": {
+                  "origin_pointer": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                  },
+                  "form": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "version",
+                          "digest"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "digest": {
+                            "type": "string",
+                            "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "entries": {
+                    "type": "array",
+                    "maxItems": 256,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "key",
+                        "category",
+                        "label",
+                        "explanation",
+                        "value_mode",
+                        "value_label",
+                        "language",
+                        "script",
+                        "binding",
+                        "value_pointer"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "enum": [
+                            "governing",
+                            "technical",
+                            "unclassified"
+                          ]
+                        },
+                        "label": {
+                          "type": "object",
+                          "minProperties": 1,
+                          "maxProperties": 8,
+                          "additionalProperties": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1024
+                          },
+                          "propertyNames": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                          }
+                        },
+                        "explanation": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "minProperties": 1,
+                              "maxProperties": 8,
+                              "additionalProperties": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1024
+                              },
+                              "propertyNames": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "value_mode": {
+                          "enum": [
+                            "source-value",
+                            "vocabulary-value",
+                            "exact-reference"
+                          ]
+                        },
+                        "value": {},
+                        "value_label": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "minProperties": 1,
+                              "maxProperties": 8,
+                              "additionalProperties": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1024
+                              },
+                              "propertyNames": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "language": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "script": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "binding": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "record",
+                                "source_pointer"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "record"
+                                },
+                                "record": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "version",
+                                    "digest"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "version": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "digest": {
+                                      "type": "string",
+                                      "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                                    }
+                                  }
+                                },
+                                "source_pointer": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "source_record_digest",
+                                "source_pointer"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "assertion-context"
+                                },
+                                "source_record_digest": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                },
+                                "source_pointer": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "form",
+                                "subject",
+                                "packet_digest",
+                                "source_pointer"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "form-materialization"
+                                },
+                                "form": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "version",
+                                    "digest"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "version": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "digest": {
+                                      "type": "string",
+                                      "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                                    }
+                                  }
+                                },
+                                "subject": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "version",
+                                    "digest"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "version": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "digest": {
+                                      "type": "string",
+                                      "pattern": "^sha256:[a-f0-9]{64}$(?![\\s\\S])"
+                                    }
+                                  }
+                                },
+                                "packet_digest": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                },
+                                "source_pointer": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "value_pointer": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "category": {
+                                "const": "technical"
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "value_mode": {
+                                "const": "exact-reference"
+                              }
+                            },
+                            "not": {
+                              "required": [
+                                "value"
+                              ]
+                            }
+                          },
+                          "else": {
+                            "required": [
+                              "value"
+                            ],
+                            "properties": {
+                              "value_mode": {
+                                "enum": [
+                                  "source-value",
+                                  "vocabulary-value"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "category": {
+                                "const": "unclassified"
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "value_mode": {
+                                "const": "source-value"
+                              },
+                              "value_label": {
+                                "type": "null"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "exact_context_pointers": {
+              "type": "array",
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^(?:/(?:[^~/]|~[01])*)*$(?![\\s\\S])"
+              }
+            },
+            "coverage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "input_contexts",
+                "returned_contexts",
+                "entries",
+                "unclassified_entries"
+              ],
+              "properties": {
+                "input_contexts": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "returned_contexts": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64
+                },
+                "entries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 256
+                },
+                "unclassified_entries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 256
+                }
+              }
+            },
+            "performs_semantic_assessment": {
+              "const": false
+            },
+            "performs_translation": {
+              "const": false
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "requires-exact-context",
+                      "unavailable"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "contexts": {
+                    "maxItems": 0
+                  },
+                  "exact_materials": {
+                    "maxItems": 0
+                  },
+                  "exact_context_pointers": {
+                    "minItems": 1
+                  },
+                  "coverage": {
+                    "properties": {
+                      "returned_contexts": {
+                        "const": 0
+                      },
+                      "entries": {
+                        "const": 0
+                      },
+                      "unclassified_entries": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
     "scene": {
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "vertices", "arcs", "collapsed_relation_ids", "focus_vertex_id", "scope", "identity_rule", "authority"],
@@ -334,6 +861,7 @@
         "display": {"$ref": "#/$defs/nodeDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
         "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},
+        "readable_context": {"$ref": "#/$defs/readableContext"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
@@ -364,6 +892,7 @@
         "display": {"$ref": "#/$defs/relationDisplay"},
         "display_selection": {"$ref": "#/$defs/displaySelection"},
         "human_form_selection": {"$ref": "#/$defs/humanFormSelection"},
+        "readable_context": {"$ref": "#/$defs/readableContext"},
         "epistemic": {"$ref": "#/$defs/epistemic"},
         "graph_layers": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},
         "view_ids": {"type": "array", "items": {"$ref": "#/$defs/nonEmptyString"}, "uniqueItems": true},

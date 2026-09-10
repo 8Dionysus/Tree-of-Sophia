@@ -1,7 +1,1006 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 35,
+  "registry_version": 36,
+  "context_presentation": {
+    "schema_version": "tos_context_presentation_v1",
+    "presentation_id": "tos.context-presentation.governing",
+    "presentation_version": 1,
+    "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
+    "purpose": "source-context-reading-not-assessment",
+    "default_language": "ru",
+    "languages": [
+      "ru",
+      "en"
+    ],
+    "max_output_bytes": 32768,
+    "max_entries": 256,
+    "record_schema_versions": [
+      "tos_artifact_source_witness_v1",
+      "tos_artifact_source_witness_v2",
+      "tos_claim_packet_v1",
+      "tos_corpus_record_v1",
+      "tos_document_record_v1",
+      "tos_formation_relation_claim_v1",
+      "tos_historical_context_claim_v1",
+      "tos_historical_context_record_v1",
+      "tos_historical_record_v1",
+      "tos_intellectual_formation_record_v1",
+      "tos_lexical_description_record_v1",
+      "tos_linguistic_description_record_v1",
+      "tos_object_link_claim_v2",
+      "tos_occurrence_description_record_v1",
+      "tos_reception_record_v1",
+      "tos_research_corpus_record_v1",
+      "tos_scholarly_composite_claim_v1",
+      "tos_scholarly_composite_record_v1",
+      "tos_scholarly_composite_witness_v1",
+      "tos_semantic_description_record_v1",
+      "tos_semantic_relation_claim_v1",
+      "tos_sign_description_record_v1",
+      "tos_social_body_record_v1",
+      "tos_social_relation_claim_v1",
+      "tos_source_classification_claim_v1",
+      "tos_source_identity_transition_claim_v1",
+      "tos_source_lexical_translatability_claim_v1",
+      "tos_source_member_structure_claim_v1",
+      "tos_source_occurrence_motif_claim_v1",
+      "tos_source_relation_claim_v1",
+      "tos_source_temporal_claim_v1",
+      "tos_source_textual_survival_claim_v1",
+      "tos_textual_passage_claim_v1",
+      "tos_textual_passage_record_v1",
+      "tos_thought_description_record_v1",
+      "tos_thought_practice_record_v1",
+      "tos_thought_topic_record_v1"
+    ],
+    "field_rules": [
+      {
+        "field": "identity_status",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Статус идентификации",
+          "en": "Identification status"
+        },
+        "explanation": {
+          "ru": "Статус объявлен исходной записью; это не текущий допуск предмета.",
+          "en": "The source record declares this status; it is not a current admission of the subject."
+        },
+        "value_labels": {
+          "provisional": {
+            "ru": "Предварительная идентификация",
+            "en": "Provisional identification"
+          },
+          "verified": {
+            "ru": "В записи отмечено: идентификация проверена",
+            "en": "Source declaration: identification verified"
+          },
+          "disputed": {
+            "ru": "Идентификация оспаривается",
+            "en": "Identification disputed"
+          },
+          "superseded": {
+            "ru": "В записи отмечено: заменена последующей",
+            "en": "Source declaration: superseded"
+          }
+        }
+      },
+      {
+        "field": "same_as_posture",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Статус отождествления",
+          "en": "Equivalence posture"
+        },
+        "explanation": {
+          "ru": "Отсутствие заявления об эквивалентности не доказывает различность предметов.",
+          "en": "No equivalence claim does not establish that subjects are distinct."
+        },
+        "value_labels": {
+          "not_assessed": {
+            "ru": "Не оценивалось",
+            "en": "Not assessed"
+          },
+          "no_equivalence_claim": {
+            "ru": "Эквивалентность не заявлена",
+            "en": "No equivalence claim"
+          },
+          "candidate_equivalence": {
+            "ru": "Предложена эквивалентность",
+            "en": "Candidate equivalence"
+          },
+          "reviewed_equivalence": {
+            "ru": "В записи отмечено: эквивалентность рассмотрена",
+            "en": "Source declaration: reviewed equivalence"
+          },
+          "reviewed_distinct": {
+            "ru": "В записи отмечено: различность рассмотрена",
+            "en": "Source declaration: reviewed distinction"
+          }
+        }
+      },
+      {
+        "field": "polarity",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Полярность утверждения",
+          "en": "Assertion polarity"
+        },
+        "explanation": {
+          "ru": "Полярность не заменяет исходную формулировку, оговорки или оценку; отсутствие поля не означает положительность.",
+          "en": "Polarity does not replace source wording, qualifications or assessment; an absent field is not positive."
+        },
+        "value_labels": {
+          "positive": {
+            "ru": "Положительная",
+            "en": "Positive"
+          },
+          "negative": {
+            "ru": "Отрицательная",
+            "en": "Negative"
+          },
+          "unknown": {
+            "ru": "Неизвестна",
+            "en": "Unknown"
+          }
+        }
+      },
+      {
+        "field": "epistemic_status",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Заявленный познавательный статус",
+          "en": "Declared epistemic status"
+        },
+        "explanation": {
+          "ru": "Сохранён исходный статус; словарь не оценивает обоснованность утверждения.",
+          "en": "The source status is retained; this vocabulary does not assess the assertion."
+        },
+        "value_labels": {
+          "observed": {
+            "ru": "Наблюдаемое",
+            "en": "Observed"
+          },
+          "inferred": {
+            "ru": "Выведенное",
+            "en": "Inferred"
+          },
+          "reported": {
+            "ru": "Сообщённое",
+            "en": "Reported"
+          },
+          "interpreted": {
+            "ru": "Интерпретация",
+            "en": "Interpreted"
+          },
+          "uncertain": {
+            "ru": "Неопределённое",
+            "en": "Uncertain"
+          },
+          "disputed": {
+            "ru": "Оспариваемое",
+            "en": "Disputed"
+          }
+        }
+      },
+      {
+        "field": "review_status",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Статус рассмотрения в записи",
+          "en": "Review status in the record"
+        },
+        "explanation": {
+          "ru": "Исходный статус рассмотрения не равен текущему допуску. Решения, область использования и отзыв читаются отдельно.",
+          "en": "The source review status is not current admission. Decisions, allowed use and withdrawal are read separately."
+        },
+        "value_labels": {
+          "unreviewed": {
+            "ru": "Не рассмотрено",
+            "en": "Unreviewed"
+          },
+          "accepted": {
+            "ru": "В записи отмечено: принято",
+            "en": "Source declaration: accepted"
+          },
+          "accepted_with_limits": {
+            "ru": "В записи отмечено: принято с ограничениями",
+            "en": "Source declaration: accepted with limits"
+          },
+          "rejected": {
+            "ru": "В записи отмечено: отклонено",
+            "en": "Source declaration: rejected"
+          },
+          "ambiguous": {
+            "ru": "Неоднозначно",
+            "en": "Ambiguous"
+          },
+          "deferred": {
+            "ru": "Отложено",
+            "en": "Deferred"
+          },
+          "superseded": {
+            "ru": "Заменено последующим рассмотрением",
+            "en": "Superseded"
+          }
+        }
+      },
+      {
+        "field": "visibility",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Заявленная видимость",
+          "en": "Declared visibility"
+        },
+        "explanation": {
+          "ru": "Видимость метаданных не выдаёт права на содержимое, публикацию или новое использование.",
+          "en": "Metadata visibility grants no content access, publication or new-use rights."
+        },
+        "value_labels": {
+          "public": {
+            "ru": "Публичная запись",
+            "en": "Public record"
+          },
+          "public_metadata_only": {
+            "ru": "Публичны только метаданные",
+            "en": "Public metadata only"
+          },
+          "local_only": {
+            "ru": "Только локальный доступ",
+            "en": "Local only"
+          },
+          "private": {
+            "ru": "Закрытая запись",
+            "en": "Private record"
+          }
+        }
+      },
+      {
+        "field": "preferred_label",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Исходное имя",
+          "en": "Source name"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "variant_labels",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Варианты имени",
+          "en": "Name variants"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "notes",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Исходное описание",
+          "en": "Source description"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "semantic_scope",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Область смысла и критерий идентичности",
+          "en": "Semantic scope and identity criterion"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "semantic_content",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Содержательное описание",
+          "en": "Substantive description"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "form_identity",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Идентичность языковой формы",
+          "en": "Linguistic form identity"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "native_text_binding",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Связь с исходным текстом",
+          "en": "Native text binding"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "field_languages",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Язык и письменность исходных полей",
+          "en": "Source-field language and script"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "language",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Язык источника",
+          "en": "Source language"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "script",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Письменность источника",
+          "en": "Source script"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "assertion_layer",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Слой утверждения",
+          "en": "Assertion layer"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "claim_type",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Тип утверждения",
+          "en": "Claim type"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "subject_ref",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Предмет утверждения",
+          "en": "Assertion subject"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "predicate",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Отношение или свойство",
+          "en": "Predicate"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "object",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Содержание или второй предмет",
+          "en": "Value or other subject"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "proposition",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Исходная формулировка",
+          "en": "Source proposition"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "qualifiers",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Оговорки утверждения",
+          "en": "Assertion qualifications"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "negated",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Явное отрицание",
+          "en": "Explicit negation"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "condition",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Условие",
+          "en": "Condition"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "conditions",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Условия",
+          "en": "Conditions"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "attribution",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Атрибуция",
+          "en": "Attribution"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "scope",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Область действия",
+          "en": "Scope"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "temporal_context",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Временной контекст",
+          "en": "Temporal context"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "spatial_context",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Пространственный контекст",
+          "en": "Spatial context"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "confidence",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Заявленная уверенность",
+          "en": "Declared confidence"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "source_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Источники",
+          "en": "Sources"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "evidence_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Основания",
+          "en": "Evidence"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "supporting_quotes",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Цитируемые основания",
+          "en": "Supporting quotations"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "counterevidence_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Возражающие основания",
+          "en": "Counterevidence"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "alternative_claim_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Альтернативные утверждения",
+          "en": "Alternative assertions"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "competing_claim_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Конкурирующие утверждения",
+          "en": "Competing assertions"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "maker",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Автор записи",
+          "en": "Record maker"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "method_ref",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Метод",
+          "en": "Method"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "provenance_event_ref",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Событие происхождения",
+          "en": "Provenance event"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "assessment_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Отдельные оценки",
+          "en": "Separate assessments"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "review_refs",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Записи рассмотрения",
+          "en": "Review records"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "reviews",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Рассмотрения",
+          "en": "Reviews"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "supersedes_ref",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Предшествующая запись",
+          "en": "Preceding record"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "supersedes_claim_ref",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Предшествующее утверждение",
+          "en": "Preceding assertion"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "record_type",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Тип предметной записи",
+          "en": "Subject record type"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "external_identifiers",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Внешние идентификаторы",
+          "en": "External identifiers"
+        },
+        "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "subject_assessment",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Отдельная оценка предмета и её ограничения",
+          "en": "Separate subject assessment and limits"
+        },
+        "explanation": {
+          "ru": "Допуск формы не означает принятия её предмета; сохранены отдельные решения и отзывы.",
+          "en": "Form admission does not endorse its subject; separate decisions and withdrawals are retained."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "assessment_snapshot",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Граница наблюдаемой оценки",
+          "en": "Assessment snapshot boundary"
+        },
+        "explanation": {
+          "ru": "Снимок не является текущим разрешением исполнения, доступа или публикации.",
+          "en": "The snapshot is not current execution, access or publication permission."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "language_context",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Происхождение языка формы",
+          "en": "Form language provenance"
+        },
+        "explanation": {
+          "ru": "Язык формы и язык источника различаются; перевод или адаптация не выводятся из языка интерфейса.",
+          "en": "Form and source languages differ; translation or adaptation is not inferred from the interface language."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "schema_version",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "technical",
+        "label": {
+          "ru": "Версия схемы",
+          "en": "Schema version"
+        },
+        "explanation": {
+          "ru": "Точная механическая привязка остаётся в исходном контексте.",
+          "en": "The exact mechanical binding remains in the source context."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "record_id",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "technical",
+        "label": {
+          "ru": "Идентификатор записи",
+          "en": "Record identifier"
+        },
+        "explanation": {
+          "ru": "Точная механическая привязка остаётся в исходном контексте.",
+          "en": "The exact mechanical binding remains in the source context."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "record_version",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "technical",
+        "label": {
+          "ru": "Версия записи",
+          "en": "Record version"
+        },
+        "explanation": {
+          "ru": "Точная механическая привязка остаётся в исходном контексте.",
+          "en": "The exact mechanical binding remains in the source context."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "claim_id",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "technical",
+        "label": {
+          "ru": "Идентификатор утверждения",
+          "en": "Claim identifier"
+        },
+        "explanation": {
+          "ru": "Точная механическая привязка остаётся в исходном контексте.",
+          "en": "The exact mechanical binding remains in the source context."
+        },
+        "value_labels": null
+      },
+      {
+        "field": "claim_version",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "technical",
+        "label": {
+          "ru": "Версия утверждения",
+          "en": "Claim version"
+        },
+        "explanation": {
+          "ru": "Точная механическая привязка остаётся в исходном контексте.",
+          "en": "The exact mechanical binding remains in the source context."
+        },
+        "value_labels": null
+      }
+    ],
+    "unclassified": {
+      "label": {
+        "ru": "Неразобранное поле источника",
+        "en": "Unclassified source field"
+      },
+      "explanation": {
+        "ru": "Значение сохранено буквально; эта форма не объясняет и не переоценивает его.",
+        "en": "The value is retained verbatim; this presentation neither interprets nor reassesses it."
+      }
+    }
+  },
   "property_definitions": [
 {"property_id":"tos.property.composition-source-scope","field":"attributes.value.source_scope","labels":{"default":"Composition scope","ru":"Область состава","en":"Composition scope"},"definition":"The source-attributed composition scope of this exact Claim; not a global fact, completeness proof, historical chronology or admission.","value_type":"string","applies_to":["tos.entity.intellectual-part-composition","tos.entity.research-corpus-membership","tos.entity.physical-part-composition","tos.entity.collection-member-order"],"required":true,"inherited":true,"unit":null,"language":"source","operators":["eq","in","exists","contains"]},
 {"property_id":"tos.property.composition-coverage","field":"attributes.value.coverage","labels":{"default":"Declared composition coverage","ru":"Заявленная полнота состава","en":"Declared composition coverage"},"definition":"The source-attributed declared composition coverage of this exact Claim; not a global fact, completeness proof, historical chronology or admission.","value_type":"string","applies_to":["tos.entity.intellectual-part-composition","tos.entity.research-corpus-membership","tos.entity.physical-part-composition","tos.entity.collection-member-order"],"required":true,"inherited":true,"unit":null,"language":null,"operators":["eq","in","exists"]},

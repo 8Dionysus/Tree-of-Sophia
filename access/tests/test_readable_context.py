@@ -1,0 +1,261 @@
+"""Readable context preserves governing source data; coverage is not judgment."""
+import copy
+import hashlib
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+from jsonschema import Draft202012Validator
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'access/src'))
+sys.path.insert(0, str(ROOT / 'scripts'))
+from tos_access.knowledge import (_normalize_node, _stable_digest, knowledge_catalog,
+    validate_semantic_registries, build_knowledge_graph, _lens_carrier, _attach_readable_context)
+from tos_access.readable_context import (ReadableContextCompiler, ReadableContextError,
+    build_readable_context, presentation_catalog, validate_sidecar, validate_vocabulary, vocabulary_digest)
+from source_witness_human_forms import materialize_metadata_forms
+
+
+def real_freedom():
+    path = ROOT / 'ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json'
+    record = json.loads(path.read_text())
+    forms = json.loads(path.with_suffix('.human-forms.json').read_text())
+    return _normalize_node({'node_id': 'identity:' + record['record_id'], 'node_type': record['record_type'],
+        'properties': {'source_record': record,
+                       'human_forms': materialize_metadata_forms(record, forms, access_allowed=True)}}, 'source-navigation')
+
+
+def real_freedom_graph(*, numeric_control=False):
+    """Bounded public material; optional synthetic numeric extension is test-only."""
+    entities = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
+    relations = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
+    raw = real_freedom()['source_record']['payload']
+    if numeric_control:
+        raw = copy.deepcopy(raw)
+        raw['properties'].pop('human_forms')
+        raw['properties']['source_record']['unknown_numeric_extension'] = [1, 1.0, 9007199254740993, -0.0, 1e-7, 1e21, False]
+    corpus = {'source_navigation': {'nodes': [raw], 'edges': []}}
+    graph = build_knowledge_graph(corpus, {}, entity_type_registry=entities, relation_type_registry=relations)
+    return graph, knowledge_catalog(graph, corpus, {}, entities, relations)
+
+
+class ReadableContextTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.registry = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/entity-types.v1.json').read_text())
+        cls.relations = json.loads((ROOT / 'ToS/doctrine/semantic-interchange/relation-types.v1.json').read_text())
+        cls.schema = json.loads((ROOT / 'access/contracts/knowledge-graph.v1.schema.json').read_text())['$defs']['readableContext']
+
+    def build(self, item, registry=None):
+        result = build_readable_context(item, registry or self.registry, digest=_stable_digest)
+        Draft202012Validator(self.schema).validate(result)
+        return result
+
+    def test_real_forms_are_unchanged_and_languages_remain_source_declared(self):
+        item = real_freedom()
+        before = copy.deepcopy(item)
+        result = self.build(item)
+        self.assertEqual(item, before)
+        self.assertEqual(result['state'], 'complete')
+        self.assertEqual(result['coverage']['input_contexts'], 3)
+        entries = [e for c in result['contexts'] for e in c['entries']]
+        scope = next(e for e in entries if e['key'] == 'semantic_scope')
+        self.assertEqual(scope['language'], 'en')
+        self.assertEqual(scope['value'], item['attributes']['source_record']['semantic_scope'])
+        self.assertTrue(all(e['value'] == 'no_equivalence_claim' for e in entries if e['key'] == 'same_as_posture'))
+        self.assertFalse(result['performs_semantic_assessment'])
+        self.assertFalse(result['performs_translation'])
+
+    def test_unknown_members_enums_false_zero_null_and_empty_are_not_hidden(self):
+        item = real_freedom()
+        item['attributes'].pop('human_forms')
+        record = item['attributes']['source_record']
+        record.update(identity_status='future-owner-value', negation=False, conditions=[],
+                      scope=None, unknown_extension={'zero': 0, 'empty': '', 'boolean': False})
+        entries = {e['key']: e for e in self.build(item)['contexts'][0]['entries']}
+        self.assertEqual(entries['identity_status']['category'], 'unclassified')
+        self.assertIsNone(entries['identity_status']['value_label'])
+        for key in ('negation', 'conditions', 'scope', 'unknown_extension'):
+            self.assertNotEqual(entries[key]['category'], 'technical')
+            self.assertEqual(entries[key]['value'], record[key])
+        self.assertNotIn('value', entries['record_id'])
+
+    def test_exact_form_pointer_digest_version_and_bool_number_tampering_refused(self):
+        for mutation in ('pointer', 'digest', 'version', 'value'):
+            with self.subTest(mutation=mutation):
+                item = real_freedom()
+                entry = item['attributes']['human_forms'][0]['context'][0]
+                if mutation == 'pointer': entry['binding']['pointer'] = '/no~2such'
+                if mutation == 'digest': entry['binding']['record']['digest'] = 'sha256:' + '0' * 64
+                if mutation == 'version': entry['binding']['record']['version'] = True
+                if mutation == 'value': entry['value'] = False
+                self.assertEqual(self.build(item)['state'], 'unavailable')
+        item = real_freedom()
+        item['readable_context'] = self.build(item)
+        item['readable_context']['performs_translation'] = 0
+        with self.assertRaises(ReadableContextError): validate_sidecar(item, self.registry, digest=_stable_digest)
+
+    def test_unrecognized_schema_never_inherits_technical_or_governing_rules(self):
+        item = real_freedom()
+        item['attributes'].pop('human_forms')
+        item['attributes']['source_record']['schema_version'] = 'tos_future_source_v999'
+        self.assertTrue(all(e['category'] == 'unclassified' for e in self.build(item)['contexts'][0]['entries']))
+
+    def test_budget_returns_exact_roots_and_no_partial_ready(self):
+        item = real_freedom()
+        registry = copy.deepcopy(self.registry)
+        registry['context_presentation']['max_entries'] = 1
+        result = self.build(item, registry)
+        self.assertEqual(result['state'], 'requires-exact-context')
+        self.assertEqual(result['contexts'], [])
+        self.assertEqual(result['exact_materials'], [])
+        self.assertIn('/attributes/human_forms', result['exact_context_pointers'])
+        self.assertEqual(result['coverage']['input_contexts'], 3)
+
+    def test_vocabulary_evolution_dependency_and_catalog_exactness(self):
+        old = copy.deepcopy(self.registry)
+        changed = copy.deepcopy(old)
+        changed['context_presentation']['field_rules'][0]['label']['ru'] += ' уточнение'
+        self.assertTrue(validate_vocabulary(changed, old))
+        self.assertFalse(validate_semantic_registries(changed, self.relations, previous_entity_registry=old)['valid'])
+        changed['context_presentation']['presentation_version'] += 1
+        self.assertEqual(validate_vocabulary(changed, old), [])
+        self.assertNotEqual(ReadableContextCompiler(old, digest=_stable_digest).dependency,
+                            ReadableContextCompiler(changed, digest=_stable_digest).dependency)
+        item = real_freedom()
+        item['readable_context'] = self.build(item)
+        with self.assertRaises(ReadableContextError): validate_sidecar(item, changed, digest=_stable_digest)
+        catalog = presentation_catalog(old)
+        self.assertEqual(catalog['payload'], old['context_presentation'])
+        self.assertEqual(catalog['digest'], vocabulary_digest(catalog['payload']))
+        catalog['payload']['presentation_version'] = 999
+        self.assertEqual(old, self.registry)
+
+    def test_vocabulary_cannot_hide_unknown_or_governing_context(self):
+        for field in ('negation', 'conditions', 'semantic_scope', 'mysterious_qualifier'):
+            changed = copy.deepcopy(self.registry)
+            rule = changed['context_presentation']['field_rules'][0]
+            rule.update(field=field, category='technical')
+            self.assertTrue(validate_vocabulary(changed))
+        removed = copy.deepcopy(self.registry)
+        removed.pop('context_presentation')
+        self.assertTrue(validate_vocabulary(removed, self.registry))
+
+    def test_assertion_context_conflicts_and_boolean_values_keep_exact_bindings(self):
+        payload = {'polarity': False, 'conditions': None, 'unknown': {'negated': True},
+                   'numeric_control': [1, 1.0, 9007199254740993, -0.0, 1e-7, 1e21]}
+        digest = _stable_digest(payload)
+        item = {'attributes': {}, 'source_record': {'payload': payload, 'digest': digest},
+                'semantics': {'assertion_contexts': [{'schema_version': 'tos_assertion_context_v1',
+                    'binding_role': 'carrier', 'source_record_digest': digest,
+                    'source_refs': ['test:synthetic-conflict'],
+                    'interpretation': 'source-declared-not-semantic-assessment',
+                    'fields': {key: {'value': value, 'source_pointer': '/' + key} for key, value in payload.items()},
+                    'conflicts': [{'field': 'polarity',
+                        'lower_priority': {'value': False, 'source_pointer': '/polarity'},
+                        'higher_priority': {'value': True, 'source_pointer': '/unknown/negated'}}]}]}}
+        graph_schema = json.loads((ROOT / 'access/contracts/knowledge-graph.v1.schema.json').read_text())
+        Draft202012Validator({'$ref': '#/$defs/assertionContext', '$defs': graph_schema['$defs']}).validate(
+            item['semantics']['assertion_contexts'][0])
+        result = self.build(item)
+        self.assertEqual(result['state'], 'complete')
+        material, = result['exact_materials']
+        self.assertEqual(material['origin_pointers'], ['/semantics/assertion_contexts/0'])
+        self.assertIn('[1,1.0,9007199254740993,-0.0,1e-07,1e+21]', material['canonical_json'])
+        entries = {e['key']: e for e in result['contexts'][0]['entries']}
+        self.assertEqual(entries['polarity']['category'], 'unclassified')
+        self.assertIs(entries['polarity']['value'], False)
+        self.assertEqual(entries['conflicts']['value'], item['semantics']['assertion_contexts'][0]['conflicts'])
+        item['semantics']['assertion_contexts'][0]['fields']['polarity']['value'] = 0
+        self.assertEqual(self.build(item)['state'], 'unavailable')
+
+    def test_full_build_catalog_and_compact_transport_share_exact_contract(self):
+        graph, catalog = real_freedom_graph()
+        Draft202012Validator(json.loads((ROOT / 'access/contracts/knowledge-graph.v1.schema.json').read_text())).validate(graph)
+        node = next(n for n in graph['nodes'] if n['native_id'].startswith('identity:'))
+        self.assertEqual(catalog['source_revision'], graph['source_revision'])
+        self.assertEqual(catalog['context_presentation'], presentation_catalog(self.registry))
+        self.assertEqual(node['readable_context']['vocabulary'], {
+            key: catalog['context_presentation'][key] for key in ('id', 'version', 'source_ref', 'digest')})
+        validate_sidecar(node, self.registry, digest=_stable_digest)
+        for language in ('ru', 'en'):
+            full = _lens_carrier(node, 'full', language=language)
+            compact = _lens_carrier(node, 'compact', language=language)
+            self.assertEqual(full['readable_context'], node['readable_context'])
+            self.assertNotIn('readable_context', compact)
+            self.assertEqual(full['human_form_selection'], compact['human_form_selection'])
+            self.assertEqual(compact['attributes'], {})
+            forged = {**compact, 'readable_context': full['readable_context']}
+            with self.assertRaises(ReadableContextError):
+                validate_sidecar(forged, self.registry, digest=_stable_digest)
+
+    def test_contextless_carriers_do_not_copy_or_fill_normalization_cache(self):
+        from unittest.mock import Mock
+        from tos_access.normalization_cache import active_cache
+        item = _normalize_node({'node_id': 'test:contextless', 'properties': {}}, 'philosophy')
+        compiler = ReadableContextCompiler(self.registry, digest=_stable_digest)
+        cache = Mock()
+        token = active_cache.set(cache)
+        try:
+            self.assertIs(_attach_readable_context(item, compiler, 'node'), item)
+            cache.memo.assert_not_called()
+        finally:
+            active_cache.reset(token)
+
+    def test_cached_context_tracks_vocabulary_changes_without_changing_raw_forms(self):
+        from tos_access.normalization_cache import NormalizationCache
+        item = real_freedom()
+        changed = copy.deepcopy(self.registry)
+        changed['context_presentation']['presentation_version'] += 1
+        changed['context_presentation']['field_rules'][0]['label']['ru'] += ' (уточнение)'
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'context.sqlite'
+            compiler = ReadableContextCompiler(self.registry, digest=_stable_digest)
+            with NormalizationCache(path, 'test:bounded-context-dependency'):
+                first = _attach_readable_context(item, compiler, 'node')
+            with NormalizationCache(path, 'test:bounded-context-dependency') as cache:
+                repeated = _attach_readable_context(item, compiler, 'node')
+                self.assertEqual(first, repeated)
+                self.assertGreater(cache.hits, 0)
+            with NormalizationCache(path, 'test:bounded-context-dependency') as cache:
+                successor = _attach_readable_context(item, ReadableContextCompiler(changed, digest=_stable_digest), 'node')
+                self.assertGreater(cache.misses, 0)
+            self.assertNotEqual(first['content_revision'], successor['content_revision'])
+            self.assertNotEqual(first['readable_context']['vocabulary'], successor['readable_context']['vocabulary'])
+            self.assertEqual(first['attributes'], successor['attributes'])
+            self.assertEqual(item['attributes'], first['attributes'])
+
+    def test_exact_material_preserves_numbers_and_deduplicates_record_bindings(self):
+        raw = copy.deepcopy(real_freedom()['source_record']['payload'])
+        raw['properties'].pop('human_forms')
+        values = [1, 1.0, 9007199254740993, -0.0, 1e-7, 1e21, False]
+        raw['properties']['source_record']['unknown_numeric_extension'] = values
+        item = _normalize_node(raw, 'source-navigation')
+        sidecar = self.build(item)
+        self.assertEqual(sidecar['state'], 'complete')
+        material, = sidecar['exact_materials']
+        self.assertIn('[1,1.0,9007199254740993,-0.0,1e-07,1e+21,false]', material['canonical_json'])
+        self.assertEqual(material['digest'], 'sha256:' + hashlib.sha256(material['canonical_json'].encode()).hexdigest())
+        decoded = json.loads(material['canonical_json'])
+        self.assertIs(type(decoded['unknown_numeric_extension'][0]), int)
+        self.assertIs(type(decoded['unknown_numeric_extension'][1]), float)
+        self.assertEqual(material['origin_pointers'], ['/attributes/source_record'])
+        self.assertEqual(next(e for e in sidecar['contexts'][0]['entries']
+            if e['key'] == 'unknown_numeric_extension')['binding']['record']['digest'], material['digest'])
+        item['readable_context'] = copy.deepcopy(sidecar)
+        item['readable_context']['exact_materials'][0]['canonical_json'] = material['canonical_json'].replace('9007199254740993', '9007199254740992')
+        with self.assertRaises(ReadableContextError):
+            validate_sidecar(item, self.registry, digest=_stable_digest)
+        original = real_freedom()
+        result = self.build(original)
+        references = [e['binding']['record']['digest'] for c in result['contexts'] for e in c['entries'] if e['binding']['kind'] == 'record']
+        self.assertGreater(len(references), len(set(references)))
+        for reference in set(references):
+            self.assertEqual(sum(m['digest'] == reference for m in result['exact_materials']), 1)
+
+
+if __name__ == '__main__':
+    unittest.main()

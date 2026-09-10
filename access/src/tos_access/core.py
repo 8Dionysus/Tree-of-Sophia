@@ -48,6 +48,7 @@ SOURCE_GAP_LEDGER_RELATIVE_PATH = Path("ToS/source-witnesses/access-requests/pub
 KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "api": Path("access/contracts/knowledge-api.v1.json"),
     "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
+    "readable_context": Path("access/contracts/readable-context.v1.schema.json"),
     "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
     "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
     "temporal_comparison_request": Path("access/contracts/temporal-comparison-request.v1.schema.json"),

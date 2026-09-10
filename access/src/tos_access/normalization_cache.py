@@ -39,6 +39,7 @@ def normalization_processor_digest(path: Path):
     pending = [
         '_normalize_node', '_normalize_relation', 'validate_knowledge_semantics',
         '_finalize_knowledge_node', 'addressed_update_knowledge_graph',
+        '_attach_readable_context',
     ]
     selected = {}
     while pending:
@@ -50,7 +51,8 @@ def normalization_processor_digest(path: Path):
     material = [ast.dump(s, include_attributes=False) for s in imports]
     material.extend(ast.dump(selected[name], include_attributes=False) for name in sorted(selected))
     # These helpers own dependency projection and cache admission as well.
-    for helper in (Path(__file__), Path(__file__).with_name('processing.py')):
+    for helper in (Path(__file__), Path(__file__).with_name('processing.py'),
+                   Path(__file__).with_name('readable_context.py')):
         material.append(ast.dump(ast.parse(helper.read_text(encoding='utf-8')), include_attributes=False))
     material.append(str(sys.version_info[:2]))
     return hashlib.sha256('\n'.join(material).encode()).hexdigest()

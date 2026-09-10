@@ -182,6 +182,7 @@ export type LocalizedText = {
 };
 
 export type KnowledgeNode = {
+  readable_context?: Item;
   human_form_selection?: ReturnType<typeof selectHumanForms>;
   source_record?: Item;
   id: string;
@@ -209,6 +210,7 @@ export type KnowledgeNode = {
 };
 
 export type KnowledgeRelation = {
+  readable_context?: Item;
   human_form_selection?: ReturnType<typeof selectHumanForms>;
   source_record?: Item;
   id: string;
@@ -816,7 +818,8 @@ async function digest(value: unknown): Promise<string> {
 export function lensCarrier<T extends KnowledgeNode | KnowledgeRelation>(item: T, detail: LensSpec['detail'], language: string): T {
     const result = {...item, display_selection: displaySelection(item, language)};
     if (Object.hasOwn(record(item.attributes), 'human_forms')) Object.assign(result, {human_form_selection: selectHumanForms(item, language)});
-  if (detail !== 'full') { result.attributes = {}; delete result.source_record; }
+  // Optional readable context is usable only with the exact raw roots it binds.
+  if (detail !== 'full') { result.attributes = {}; delete result.source_record; delete result.readable_context; }
   return result;
 }
 

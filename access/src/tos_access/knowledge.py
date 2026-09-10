@@ -14,6 +14,7 @@ from typing import Any, Iterable
 from .normalization_cache import active_cache, normalization_processor_digest
 from .processing import Input
 from .lens_pagination import normalize_pagination, paginate_lens
+from .readable_context import ReadableContextCompiler, presentation_catalog, validate_vocabulary
 
 
 KNOWLEDGE_SOURCES = (
@@ -236,6 +237,8 @@ def validate_semantic_registries(
     """Validate hierarchy and crosswalk invariants without claiming semantic review."""
 
     violations: list[str] = []
+    violations.extend(validate_vocabulary(entity_registry if isinstance(entity_registry, dict) else {},
+        previous_entity_registry if isinstance(previous_entity_registry, dict) else None))
     entity_entries_list = _registry_items(entity_registry, "types")
     relation_entries_list = _registry_items(relation_registry, "relations")
     entity_entries: dict[str, dict[str, Any]] = {}
@@ -2962,6 +2965,9 @@ def build_knowledge_graph(
     nodes = [_finalize_knowledge_node(node, claim_updates.get(node['id']),
                                       sorted(inherited_views.get(node['id'], set())),
                                       literal_contexts.get(node['id'])) for node in nodes]
+    context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
+    nodes = [_attach_readable_context(node, context_compiler, 'node') for node in nodes]
+    relations = [_attach_readable_context(relation, context_compiler, 'relation') for relation in relations]
     nodes.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     relations.sort(key=lambda item: (str(item["source_graph"]), str(item["id"])))
     source_counts = Counter(str(item["source_graph"]) for item in nodes)
@@ -3318,6 +3324,7 @@ def addressed_update_knowledge_graph(
     updated_nodes = copy.deepcopy(old_nodes)
     updated_relations = copy.deepcopy(old_relations)
     nodes_by_id = {str(node.get("id")): node for node in updated_nodes if isinstance(node, dict)}
+    context_compiler = ReadableContextCompiler(entity_registry, digest=_stable_digest)
     # Use the replacement's display title while rebuilding incident relation
     # statements. Finalization adds only claim/views, not endpoint identity.
     nodes_by_id[old_node_id] = replacement_base
@@ -3367,7 +3374,9 @@ def addressed_update_knowledge_graph(
             raise AddressedUpdateError(
                 f"incident relation {relation_id} changed endpoints; rerun complete relation assembly"
             )
-        updated_relations[position] = replacement_relation
+        updated_relations[position] = _attach_readable_context(
+            replacement_relation, context_compiler, "relation"
+        )
         incident_relation_ids.append(relation_id)
 
     inherited_views = sorted({
@@ -3378,6 +3387,7 @@ def addressed_update_knowledge_graph(
         for view_id in _strings(relation.get("view_ids"))
     })
     replacement_node = _finalize_knowledge_node(replacement_base, None, inherited_views)
+    replacement_node = _attach_readable_context(replacement_node, context_compiler, "node")
     if replacement_node.get("id") != old_node_id:
         raise AddressedUpdateError("finalized addressed node changed its normalized address")
     updated_nodes[node_position] = replacement_node
@@ -3466,6 +3476,34 @@ def addressed_update_knowledge_graph(
 # second implementation (both names retain the same fail-closed contract).
 update_knowledge_graph_addressed = addressed_update_knowledge_graph
 apply_addressed_knowledge_update = addressed_update_knowledge_graph
+
+
+def _attach_readable_context(item, compiler, kind):
+    """Common full/addressed hook after all governing contexts, before revision."""
+    attributes = item.get('attributes') or {}
+    has_context = (attributes.get('source_record') is not None
+        or attributes.get('source_claim') is not None or bool(attributes.get('human_forms'))
+        or bool(item.get('semantics', {}).get('assertion_contexts')))
+    if (compiler.dependency is None or not has_context) and 'readable_context' not in item:
+        # Most graph carriers have no source context. They need neither a new
+        # revision nor a duplicate whole-carrier cache record for this stage.
+        return item
+    def compute():
+        result = dict(item)
+        sidecar = compiler.build(result)
+        if sidecar is None:
+            result.pop('readable_context', None)
+        else:
+            result['readable_context'] = sidecar
+        _stamp_content_revision(result)
+        return result
+    cache = active_cache.get()
+    if cache:
+        return cache.memo('readable-' + kind, item['id'], [
+            Input('context-carrier:' + kind + ':' + item['id'], item),
+            Input('context-presentation', compiler.dependency),
+        ], compute)
+    return compute()
 
 
 def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts=None):
@@ -4894,7 +4932,10 @@ def execute_knowledge_lens(graph: dict[str, Any], spec_value: Any) -> dict[str, 
 
 
 def _lens_carrier(item: dict[str, Any], detail: str, *, language: str | None = None) -> dict[str, Any]:
-    result = item if detail == 'full' else {**{key: value for key, value in item.items() if key != 'source_record'}, 'attributes': {}}
+    # Readable entries bind exact raw roots. Compact delivery does not carry
+    # those roots, so it must omit the optional sidecar, never dangle pointers.
+    result = item if detail == 'full' else {**{key: value for key, value in item.items()
+                                             if key not in {'source_record', 'readable_context'}}, 'attributes': {}}
     # Selection belongs to delivery, not the immutable normalized content digest.
     if language is not None:
         result = {**result, 'display_selection': _display_selection(item, language)}
@@ -5385,6 +5426,7 @@ def knowledge_catalog(
     return {
         "schema": "tos_knowledge_catalog_v1",
         "source_revision": graph.get("source_revision"),
+        "context_presentation": presentation_catalog(entity_type_registry),
         "contract_refs": {
             "public_bundle": "/api/knowledge/contracts",
             "knowledge_api": "access/contracts/knowledge-api.v1.json",
@@ -5393,6 +5435,7 @@ def knowledge_catalog(
             "temporal_comparison_request": "access/contracts/temporal-comparison-request.v1.schema.json",
             "temporal_comparison_result": "access/contracts/temporal-comparison-result.v1.schema.json",
             "knowledge_graph": "access/contracts/knowledge-graph.v1.schema.json",
+            "readable_context": "access/contracts/readable-context.v1.schema.json",
             "entity_type_registry_schema": "ToS/contracts/semantic-entity-type-registry.schema.json",
             "relation_type_registry_schema": "ToS/contracts/semantic-relation-type-registry.schema.json",
             "entity_type_registry": ENTITY_REGISTRY_REF,

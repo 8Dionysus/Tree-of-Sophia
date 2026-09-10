@@ -41,6 +41,58 @@ a character limit. If the bounded result cannot contain it, the result is
 
 ## Three production modes
 
+### Readable governing context
+
+The existing entity-type registry owns one versioned `context_presentation`
+vocabulary, under this doctrine. It supplies finite multilingual field labels
+and explanations, not source prose, translations, semantic judgments or grants.
+The normalized reader may attach `tos_readable_context_v1` without changing
+the raw HumanForm materialization, subject record or assertion context.
+The existing knowledge catalog exposes the exact vocabulary payload, identity,
+version and canonical digest under `context_presentation`; its `source_revision`
+binds that catalog to the graph snapshot. Consumers do not invent a dictionary.
+
+Every readable entry binds its exact raw value by a carrier JSON Pointer and
+the original record ID/version/digest or assertion-context source digest.
+Parent assessment, snapshot and linguistic context retain the exact complete
+materialization binding. Those envelopes remain reading context, not an access
+plane reassessment. Source language/script is copied only from an explicit
+source declaration; label language cannot become source language.
+
+The companion's deduplicated `exact_materials` carries existing canonical JSON
+text, its UTF-8 SHA-256 and actual carrier `origin_pointers`. This preserves
+numeric distinctions and large integers through readers whose JSON numbers
+otherwise lose precision. It does not redefine a source record digest or the
+normalized graph's existing IEEE-754 digest framing. Verify each text hash and
+raw origin. Resolve a record-bound value by the record digest and source pointer;
+resolve assertion and materialization values by their exact value pointer under
+a listed origin. Read and render numeric values from the verified text with
+number lexemes preserved, not from an already rounded transport value. Ordinary
+JSON parsing can check transport correspondence but cannot prove numeric-type
+identity. All material shares the same companion budget; refusal empties both
+entries and exact materials.
+
+Only enumerated owner-known mechanical fields may enter `technical` details.
+Governing scope, negation, conditions, attribution, conflicts, source language,
+unknown members and unknown enum values remain visible with their raw values.
+An unknown value is `unclassified`, never guessed from its name or ID. False,
+zero, null, empty values and absence remain distinct. Human-readable labels do
+not reduce mandatory context or make a nonstandalone form standalone.
+
+`complete` means coverage of the returned context, not understanding, quality,
+acceptance or semantic completeness of the source. The bounded companion
+refuses partial readiness: excess context produces `requires-exact-context`
+with exact root pointers; invalid bindings produce `unavailable`. Raw packets
+and historical references remain unchanged. A changed vocabulary requires a
+higher presentation version; vocabulary and processor changes invalidate the
+computed companion before source content changes. An older consumer must retain
+the exact raw context or explicitly decline the companion, never silently
+strip governing qualifications.
+Compact lens packets omit the optional sidecar because they omit its exact raw
+source roots. Full inspection retains both; selected HumanForms keep their own
+mandatory packet context. A compact packet cannot borrow a full packet's
+sidecar or imply that absent readable context means absent qualifications.
+
 ### Language and linguistic derivation
 
 An optional `language_context` binds one exact source-owned metadata object
