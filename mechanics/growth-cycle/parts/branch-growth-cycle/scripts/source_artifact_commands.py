@@ -159,6 +159,18 @@ def _read_inputs(root, record, bindings):
     if (discovery['target']['target_kind'] != 'artifact'
             or record['artifact_id'] not in discovery['target']['known_tos_refs']):
         raise PermissionError('Artifact discovery does not address this physical identity')
+    for fingerprint in record['digital_catalog_record']['response_fingerprints']:
+        if not fingerprint['captured']:
+            continue
+        matches = [result for channel in discovery['channels'] for result in channel['results']
+                   if result['result_url'] == fingerprint['surface']
+                   and result['snapshot']['state'] == 'captured'
+                   and result['snapshot']['sha256'] == fingerprint['sha256']
+                   and result['acquisition']['downloaded'] is True
+                   and result['acquisition']['sha256'] == fingerprint['sha256']
+                   and result['acquisition']['byte_size'] == fingerprint['byte_size']]
+        if not matches:
+            raise ValueError('Artifact retained response lacks its exact discovery snapshot and acquisition account')
     return {'bindings': bindings, 'schemas': schemas}
 
 

@@ -13,8 +13,13 @@ composition) and `research_corpus_membership` (ResearchCorpus → qualified
 research selection). The first accepts declared IntellectualObject subtypes;
 the latter accepts IntellectualObject, Expression, Edition, Item, Artifact,
 Collection and ResearchCorpus members. Neither is a generic Thing relation.
+Entity registry 33 / relation registry 38 add the separate
+`physical_part_composition` predicate and physical-part value: both its whole
+and all members must be Artifacts, not digital Items, intellectual portions
+or scholarly composites. Joining, position, original completeness, custody
+and restoration are not inferred from component membership.
 
-Both reuse `structured-reference-value-v1` with the explicit
+All three reuse `structured-reference-value-v1` with the explicit
 `object_reference_set.structure_adapter: scoped-members-v1`. Concrete profile
 bounds remain authoritative: existing motif proposals still permit only 2–8
 Occurrences; these structural profiles permit 1–128 members. The shared schema
@@ -42,8 +47,8 @@ source-visible quality assessment. No template infers order from labels or
 serialization. Existing publication-Collection membership remains on its
 separate `contains_work` compound-operation route.
 
-These contracts provide bounded intellectual part/research membership, not
-physical-part semantics, automatic publication-Collection order, or a global
+These contracts provide bounded intellectual/physical parts and research
+membership, not automatic publication-Collection order or a global
 accepted containment DAG. A future concrete predicate can reuse the adapter
 and shared shape without adding a per-type writer or graph screen; its meaning,
 endpoint family, evidence, schema and review route must still be declared.

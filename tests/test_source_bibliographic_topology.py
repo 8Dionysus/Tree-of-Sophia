@@ -38,8 +38,12 @@ class ScopedCompositionTests(unittest.TestCase):
 
     def fixture(self, kind='intellectual-part-composition', count=3):
         _, _, _, claim = delta()
-        members = [f'tos.textual-fragment.synthetic.{index}' for index in range(count)]
-        subject = WORK_ID if kind == 'intellectual-part-composition' else 'tos.research-corpus.synthetic'
+        member_kind = 'artifact' if kind == 'physical-part-composition' else 'textual-fragment'
+        members = [f'tos.{member_kind}.synthetic.{index}' for index in range(count)]
+        subject_kind = {'intellectual-part-composition': 'work',
+                        'physical-part-composition': 'artifact',
+                        'research-corpus-membership': 'research-corpus'}[kind]
+        subject = WORK_ID if subject_kind == 'work' else f'tos.{subject_kind}.synthetic'
         value = {'kind': kind, 'members': members,
             'source_wording': {'text': 'Synthetic scoped composition; no source truth claimed.', 'language': 'en', 'script': 'Latn'},
             'source_scope': 'Only this synthetic selection.', 'coverage': 'partial',
@@ -50,12 +54,12 @@ class ScopedCompositionTests(unittest.TestCase):
             'extensions': {'unknown': [None, False, 0], 'members': ['tos.agent.inert']}}
         claim.update(schema_version='tos_source_member_structure_claim_v1', subject_ref=subject,
             predicate=kind.replace('-', '_'), object=value, assertion_layer='scholarly_report')
-        objects = {subject: {'record_id': subject, 'record_type': 'work' if subject == WORK_ID else 'research-corpus'}}
-        objects.update({ref: {'record_id': ref, 'record_type': 'textual-fragment'} for ref in members})
+        objects = {subject: {'record_id': subject, 'record_type': subject_kind}}
+        objects.update({ref: {'record_id': ref, 'record_type': member_kind} for ref in members})
         return claim, objects
 
     def test_typed_parts_and_corpus_members_preserve_complete_value_and_dependencies(self):
-        for kind in ('intellectual-part-composition', 'research-corpus-membership'):
+        for kind in ('intellectual-part-composition', 'physical-part-composition', 'research-corpus-membership'):
             with self.subTest(kind=kind):
                 claim, objects = self.fixture(kind)
                 original = copy.deepcopy(claim)
@@ -64,6 +68,20 @@ class ScopedCompositionTests(unittest.TestCase):
                 self.assertEqual(claim, original)
                 self.assertNotIn(claim['claim_id'], self.profiles.identity_refs(claim))
                 self.assertNotIn('tos.agent.inert', self.profiles.identity_refs(claim))
+
+    def test_physical_parts_do_not_recast_digital_items_or_intellectual_parts(self):
+        for wrong_kind in ('item', 'work', 'textual-fragment', 'composite', 'research-corpus'):
+            for endpoint in ('subject', 'member'):
+                with self.subTest(wrong_kind=wrong_kind, endpoint=endpoint):
+                    claim, objects = self.fixture('physical-part-composition')
+                    ref = claim['subject_ref'] if endpoint == 'subject' else claim['object']['members'][0]
+                    objects[ref]['record_type'] = wrong_kind
+                    with self.assertRaisesRegex(SourceProfileError, 'domain/range'):
+                        self.profiles.validate(claim, objects)
+        claim, objects = self.fixture('physical-part-composition')
+        claim['object']['kind'] = 'intellectual-part-composition'
+        with self.assertRaises(SourceProfileError):
+            self.profiles.validate(claim, objects)
 
     def test_order_modes_are_local_and_serialization_does_not_supply_order(self):
         claim, objects = self.fixture()

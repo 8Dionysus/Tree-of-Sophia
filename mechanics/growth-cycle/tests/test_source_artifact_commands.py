@@ -79,6 +79,19 @@ class ArtifactCreationTests(unittest.TestCase):
             artifact.configuration(config)
             record = proposal['record']
             self.assertEqual(artifact.initial_record(config, record).id, config['record_id'])
+            for captured in (False, True):
+                retained = copy.deepcopy(record)
+                retained['digital_catalog_record']['response_fingerprints'][0]['captured'] = captured
+                if captured:
+                    with self.assertRaises(ValueError):
+                        artifact.initial_record(config, retained)
+                else:
+                    self.assertEqual(artifact.initial_record(config, retained).id, config['record_id'])
+                for authority in ('source_text_admitted', 'publication_authority'):
+                    forbidden = copy.deepcopy(retained)
+                    forbidden['authority'][authority] = True
+                    with self.subTest(captured=captured, authority=authority), self.assertRaises(ValueError):
+                        artifact.initial_record(config, forbidden)
             artifact._read_inputs(root, record, proposal['source_bindings'])
             for change in ({'artifact_id': 'tos.artifact.other'}, {'record_id': config['record_id']},
                            {'philosophy_planting_refs': ['ToS/philosophy/fabricated.md']},
@@ -97,6 +110,32 @@ class ArtifactCreationTests(unittest.TestCase):
                 wrong['source_bindings']['rights_ref']['ref'] = ref
                 with self.subTest(ref=ref), self.assertRaises(PermissionError):
                     artifact.configuration(wrong)
+
+    def test_captured_catalog_response_binds_discovery_not_publication(self):
+        with self.fixture() as (root, _, config, proposal, *_):
+            record = proposal['record']
+            fingerprint = record['digital_catalog_record']['response_fingerprints'][0]
+            fingerprint['captured'] = True
+            path = root / record['discovery_ref']
+            discovery = json.loads(path.read_bytes())
+            result = discovery['channels'][0]['results'][0]
+            result['result_url'] = fingerprint['surface']
+            result['snapshot'] = {'state': 'captured', 'format': 'static-snapshot',
+                'sha256': fingerprint['sha256'], 'reason': 'Synthetic private snapshot, no publication.'}
+            result['acquisition'] = {'downloaded': True, 'acquired_at': record['created_at'],
+                'byte_size': fingerprint['byte_size'], 'sha256': fingerprint['sha256'],
+                'event_ref': record['provenance_event_ref']}
+            raw = revisions._encode(discovery)
+            path.write_bytes(raw)
+            config['source_bindings']['discovery_ref']['sha256'] = source._digest(raw)[7:]
+            self.assertEqual(artifact.initial_record(config, record).id, config['record_id'])
+            self.assertFalse(record['authority']['publication_authority'])
+            for field, value in (('sha256', '0' * 64), ('byte_size', fingerprint['byte_size'] + 1),
+                                 ('surface', 'https://example.invalid/substituted')):
+                wrong = copy.deepcopy(record)
+                wrong['digital_catalog_record']['response_fingerprints'][0][field] = value
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    artifact.initial_record(config, wrong)
 
     def test_shared_creation_replay_catalog_and_portable_form_keep_native_identity(self):
         from metadata_version_reader import MetadataVersionReader

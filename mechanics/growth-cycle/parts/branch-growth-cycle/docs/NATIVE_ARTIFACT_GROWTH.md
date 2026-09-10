@@ -17,6 +17,16 @@ cover the Artifact with metadata-only visibility/redistribution. Discovery
 must address that exact Artifact identity. Research bytes are bound, not
 assessed, and no remote source or provider is fetched.
 
+V2 catalog fingerprints distinguish retained (`captured: true`) and
+unretained response bytes. A retained fingerprint must match a captured
+snapshot in the independently bound discovery record: exact response URL,
+SHA-256, acquisition SHA-256 and byte size. The snapshot's discovery event
+remains distinct from native metadata serialization. This metadata check does
+not inspect private snapshots, authenticate capture or grant public access;
+it refuses a retained claim without the exact source account. A private HTML
+snapshot may contain embedded text without becoming an admitted transcription.
+Historical v1 fingerprints and all false authority fields stay unchanged.
+
 Only a version-1, unreviewed v2 Artifact with no performed human review and an
 empty `philosophy_planting_refs` is writable. The source schema retains false
 text/semantic/graph/canon/publication authority. Text, transliteration,

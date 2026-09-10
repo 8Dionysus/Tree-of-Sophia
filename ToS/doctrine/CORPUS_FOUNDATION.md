@@ -62,6 +62,15 @@ IntellectualObject. This is not physical containment, bibliographic embodiment,
 collection membership or identity equivalence. The whole cannot be its own
 proper part. Competing divisions remain distinct versioned Claims.
 
+`physical_part_composition` is a distinct scoped account of proper material
+parts of physical Artifacts, including a fragmentary physical ensemble. It
+does not classify a digital Item, text portion or scholarly composite as a
+physical part. The source must qualify whether a component is attached,
+detached, conjecturally joined or known only through a reported inventory;
+component membership alone proves neither a join, relative placement, original
+completeness nor successful restoration. This is not custody or ownership.
+Any relative order retains its physical/source basis and temporal scope.
+
 The shared `scoped-members-v1` adapter treats `/object/members` as an unordered
 typed dependency set, bounded at 128 members per Claim. Its separate ordering
 is `unordered`, `partial` or `total`, with a source-stated basis and explicit
@@ -221,6 +230,12 @@ outputs of a fictitious discovery or philosophical planting. The actual
 semantic, rights, canon or publication admission remain explicit. Verified
 native serialization origin is distinct from retained legacy discovery
 provenance; neither can be substituted for a missing or corrupted other route.
+Its catalog-response fingerprint may report retained or unretained bytes;
+`captured` describes preservation, never public availability or permission.
+The separately bound discovery input records the exact snapshot and its
+access limits. An HTML snapshot that incidentally includes inscription text
+is not an admitted inscription layer or a publication grant. Existing v1
+records and their historical uncaptured fingerprints remain unchanged.
 
 The [scholarly-composite adapter](semantic-interchange/README.md#scholarly-composites-existing-source-adapter)
 likewise retains native composite identities and complete v1 records in both
