@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import sqlite3
 import sys
 import tempfile
@@ -17,6 +18,35 @@ from incremental_runtime import DeltaRecorder, PRIMARY_KEYS
 
 
 class IncrementalRuntimeTests(unittest.TestCase):
+    def test_data_revision_binds_catalog_even_when_graph_is_identical(self):
+        import copy
+        import build_runtime as builder
+        from test_access_contract import write_fixture
+        from tos_access.core import ToSAccessCore
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            graph = core.knowledge_graph()
+            catalog = core.knowledge_catalog()
+            changed_catalog = copy.deepcopy(catalog)
+            changed_catalog["capabilities"]["catalog_revision_probe"] = "changed"
+            with patch.object(builder, "REPO_ROOT", root), patch.object(
+                ToSAccessCore,
+                "knowledge_snapshot",
+                return_value={"graph": graph, "catalog": catalog},
+            ):
+                baseline = builder.data_revision(core)
+            with patch.object(builder, "REPO_ROOT", root), patch.object(
+                ToSAccessCore,
+                "knowledge_snapshot",
+                return_value={"graph": graph, "catalog": changed_catalog},
+            ):
+                changed = builder.data_revision(core)
+            self.assertEqual(graph, core.knowledge_graph())
+            self.assertNotEqual(baseline, changed)
+
     def test_cache_budget_cli_and_real_builder_admission(self):
         import build_runtime as builder
         from test_access_contract import write_fixture
@@ -110,6 +140,13 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 ).fetchall()
             return snapshot
 
+        def edge_meta_packet(database, key):
+            chunks = database.execute(
+                "SELECT json_chunk FROM edge_meta WHERE key=? ORDER BY part", (key,)
+            ).fetchall()
+            self.assertTrue(chunks, f"missing edge metadata: {key}")
+            return json.loads("".join(row[0] for row in chunks))
+
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_fixture(root)
@@ -121,11 +158,11 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 # Keep the fixture build bounded while still using the actual
                 # producer, including its batched posting/stat rows.
                 graph_v1 = copy.deepcopy(source_graph)
-                graph_v1['source_revision'] = 'search-integration-v1'
+                graph_v1['source_revision'] = 'a' * 64
                 graph_v1['nodes'] = copy.deepcopy(source_graph['nodes'][:3])
                 graph_v1['relations'] = copy.deepcopy(source_graph['relations'][:1])
                 graph_v2 = copy.deepcopy(graph_v1)
-                graph_v2['source_revision'] = 'search-integration-v2'
+                graph_v2['source_revision'] = 'b' * 64
                 graph_v2['nodes'][0]['display']['title']['default'] = 'Edited fixture node'
                 deleted_id = graph_v2['nodes'][1]['id']
                 graph_v2['nodes'] = [graph_v2['nodes'][0], graph_v2['nodes'][2]]
@@ -146,6 +183,31 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     database.executescript(first_sql.read_text(encoding='utf-8'))
                     before = serving_snapshot(database)
                     before_ids = {row[2] for row in before['knowledge_search_documents']}
+                    reader_top = edge_meta_packet(database, "knowledge_reader_top")
+                    self.assertEqual(reader_top["schema"], "tos_published_knowledge_reader_v1")
+                    self.assertEqual(reader_top["read_model_schema"], builder.READ_MODEL_SCHEMA_VERSION)
+                    self.assertEqual(reader_top["data_revision"], revision_v1)
+                    self.assertEqual(
+                        edge_meta_packet(database, "knowledge_catalog")["schema"],
+                        "tos_knowledge_catalog_v1",
+                    )
+                    node_json = database.execute(
+                        "SELECT id,json FROM knowledge_nodes ORDER BY id LIMIT 1"
+                    ).fetchone()
+                    node_digest = edge_meta_packet(
+                        database, f"knowledge_node_digest:{node_json[0]}"
+                    )
+                    self.assertEqual(
+                        node_digest["sha256"],
+                        hashlib.sha256(node_json[1].encode("utf-8")).hexdigest(),
+                    )
+                    deleted_json = database.execute(
+                        "SELECT id,json FROM knowledge_nodes WHERE id=?", (deleted_id,)
+                    ).fetchone()
+                    self.assertIsNotNone(
+                        edge_meta_packet(database, f"knowledge_node_digest:{deleted_json[0]}")
+                    )
+                    initial_catalog_sha = reader_top["catalog_sha256"]
 
                 second_sql = runtime / 'read-model.v2.sql'
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v2):
@@ -166,6 +228,31 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     stale_baseline = serving_snapshot(database)
                     database.executescript(delta_text)
                     after = serving_snapshot(database)
+                    self.assertEqual(
+                        edge_meta_packet(database, "knowledge_reader_top")["data_revision"],
+                        revision_v2,
+                    )
+                    updated_top = edge_meta_packet(database, "knowledge_reader_top")
+                    self.assertNotEqual(updated_top["catalog_sha256"], initial_catalog_sha)
+                    self.assertIsNone(
+                        database.execute(
+                            "SELECT 1 FROM edge_meta WHERE key=? LIMIT 1",
+                            (f"knowledge_node_digest:{deleted_id}",),
+                        ).fetchone()
+                    )
+                    edited_json = database.execute(
+                        "SELECT json FROM knowledge_nodes WHERE id=?", (graph_v2["nodes"][0]["id"],)
+                    ).fetchone()[0]
+                    self.assertNotEqual(
+                        hashlib.sha256(edited_json.encode("utf-8")).hexdigest(),
+                        node_digest["sha256"],
+                    )
+                    self.assertEqual(
+                        edge_meta_packet(
+                            database, f"knowledge_node_digest:{graph_v2['nodes'][0]['id']}"
+                        )["sha256"],
+                        hashlib.sha256(edited_json.encode("utf-8")).hexdigest(),
+                    )
                     self.assertNotEqual(stale_baseline, after)
                     self.assertIn('fixture:added-node', {row[2] for row in after['knowledge_search_documents']})
                     self.assertNotIn(deleted_id, {row[2] for row in after['knowledge_search_documents']})

@@ -23,6 +23,11 @@ from tos_access import core as access_core  # noqa: E402
 from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest  # noqa: E402
 from tos_access.processing import DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES  # noqa: E402
 from tos_access.search_read_model import SEARCH_NGRAM_SIZE, SQLiteKnowledgeSearchReadModel  # noqa: E402
+from tos_access.published_read_metadata import (  # noqa: E402
+    emitted_row_digest,
+    published_reader_metadata,
+    published_row_digest_key,
+)
 _builder_dir = str(Path(__file__).resolve().parent)
 if _builder_dir not in sys.path:
     sys.path.insert(0, _builder_dir)
@@ -35,7 +40,7 @@ STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
-READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v7"
+READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v8"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
 SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
@@ -370,7 +375,9 @@ def append_batched_inserts(
 def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> dict[str, Any]:
     philosophy = core.philosophy_projection()
     corpus = core.index()
-    knowledge = core.knowledge_graph()
+    knowledge_snapshot = core.knowledge_snapshot()
+    knowledge = knowledge_snapshot["graph"]
+    knowledge_catalog = knowledge_snapshot["catalog"]
     evidence = core.evidence_projection()
     audit = core.philosophy_audit_payload() if core.philosophy_audit_exists() else {}
     word_analysis_capability = core.zarathustra_word_analysis_public_capability()
@@ -479,6 +486,20 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             "matching_counts": "unknown-until-indexed-page-exhaustion",
         },
     }
+    # The reader envelope needs only the graph binding fields. Keep the
+    # producer's full graph out of this metadata copy; row JSON is emitted by
+    # the table loops below and catalog remains its own bounded projection.
+    reader_graph = {
+        key: knowledge.get(key)
+        for key in ("schema", "source_revision", "normalization_binding", "authority_boundary")
+    }
+    reader_metadata = published_reader_metadata(
+        normalize_paths(reader_graph, REPO_ROOT),
+        normalize_paths(knowledge_catalog, REPO_ROOT),
+        READ_MODEL_SCHEMA_VERSION,
+        revision,
+    )
+    metadata.update(reader_metadata)
     for key, value in metadata.items():
         for part, chunk in enumerate(chunk_text(compact_json(value))):
             statements.append(
@@ -758,6 +779,15 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
                 "json": item_json,
             },
         )
+        digest_key = published_row_digest_key("node", item_id)
+        for part, chunk in enumerate(chunk_text(compact_json(emitted_row_digest(item_json)))):
+            statements.append(
+                sql_insert(
+                    "edge_meta_next",
+                    ("key", "part", "json_chunk"),
+                    (sql_text(digest_key), str(part), sql_text(chunk)),
+                )
+            )
 
     knowledge_relations = object_list(knowledge.get("relations"))
     for item in knowledge_relations:
@@ -795,6 +825,15 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
                 "json": item_json,
             },
         )
+        digest_key = published_row_digest_key("relation", item_id)
+        for part, chunk in enumerate(chunk_text(compact_json(emitted_row_digest(item_json)))):
+            statements.append(
+                sql_insert(
+                    "edge_meta_next",
+                    ("key", "part", "json_chunk"),
+                    (sql_text(digest_key), str(part), sql_text(chunk)),
+                )
+            )
 
     # The indexed search plane stores only compact rank carriers and complete
     # 3-gram postings. The source JSON/search_text rows above remain the
@@ -936,7 +975,9 @@ def data_revision(core: ToSAccessCore) -> str:
     digest.update(READ_MODEL_CONTENT_VERSION.encode("utf-8"))
     digest.update(SEARCH_READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(b"\0")
-    knowledge = core.knowledge_graph()
+    knowledge_snapshot = core.knowledge_snapshot()
+    knowledge = knowledge_snapshot["graph"]
+    knowledge_catalog = knowledge_snapshot["catalog"]
     digest.update(str(knowledge.get("source_revision") or "").encode("utf-8"))
     digest.update(b"\0")
     # Query bindings are serving metadata, not row content. A code-only
@@ -951,6 +992,10 @@ def data_revision(core: ToSAccessCore) -> str:
             digest.update(b"\0")
             digest.update(str(item.get("content_revision") or "").encode("utf-8"))
             digest.update(b"\0")
+    # The published catalog is a persisted read surface. Bind its normalized
+    # emitted bytes so catalog-only changes cannot be skipped by deployment.
+    digest.update(compact_json(normalize_paths(knowledge_catalog, REPO_ROOT)).encode("utf-8"))
+    digest.update(b"\0")
     digest.update(
         compact_json(normalize_paths(core.zarathustra_word_analysis_public_capability(), REPO_ROOT)).encode("utf-8")
     )
@@ -1094,7 +1139,9 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
             "access/src/tos_access/knowledge.py",
             "access/src/tos_access/human_form_codec.py",
             "access/src/tos_access/normalization_cache.py",
+            "access/src/tos_access/published_read_metadata.py",
             "access/src/tos_access/processing.py",
+            "access/src/tos_access/search_read_model.py",
         ],
         "contract_refs": [
             "access/contracts/knowledge-api.v1.json",
@@ -1109,8 +1156,8 @@ def build(core: ToSAccessCore, output: Path, runtime: Path, *, cache_options=Non
             "ToS/doctrine/semantic-interchange/relation-types.v1.json",
         ],
         "revision_policy": {
-            "imports_when": "source data, normalized item content, capability data, or read-model schema changes",
-            "does_not_import_when": "only API, LensSpec grammar, catalog, documentation, or Worker code changes",
+            "imports_when": "source data, normalized item content, capability data, published catalog, or read-model schema changes",
+            "does_not_import_when": "only documentation or Worker-only code changes",
         },
         "counts": counts,
         "normalization_cache": normalization if normalization is not None else {'reused_steps': 0, 'computed_steps': 0},

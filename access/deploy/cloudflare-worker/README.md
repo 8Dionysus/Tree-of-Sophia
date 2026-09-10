@@ -108,10 +108,10 @@ its production deploy command is `npm run deploy:edge`.
 
 The deploy command first compares the generated `data_revision` with the live
 D1 metadata. That digest covers the allowlisted inputs, normalized row content,
-capability data, and the explicit read-model schema version. Unrelated
-contract, catalog, documentation, and code-only rebuilds skip the large row
-import when that revision is already current. A changed source, normalized
-row, capability, or read-model schema revision imports the newly generated D1 read model before
+capability data, the published catalog, and the explicit read-model schema
+version. Unrelated documentation and Worker-only code rebuilds skip the large
+row import when that revision is already current. A changed source, normalized
+row, capability, catalog, or read-model schema revision imports the newly generated D1 read model before
 deploying the Worker and static assets.
 `npm run deploy:edge:plan` performs the read-only revision check without
 importing or deploying, while `npm run load:remote` is the explicit recovery
@@ -139,11 +139,13 @@ byte offset; the next file is not written until the caller has consumed the
 previous file. Owned scratch is removed on completion, error or cancellation.
 Python is therefore also required by this large-file deploy path. No giant
 JavaScript string is introduced, and the bounded statement framing and key
-grammar remain stable. Producer read-model v7 emits search posting and
+grammar remain stable. Producer read-model v8 emits search posting and
 gram-stat rows as bounded multi-row `_next` inserts so the incremental recorder
-can stage them; the corresponding schema version invalidates older row
-baselines. Already-generated multiline SQL remains compatible with the local
-bootstrap parser.
+can stage them, and publishes the cold-reader metadata/catalog plus exact
+emitted-JSON digests for each knowledge node and relation through the same
+chunked `edge_meta` transaction. The corresponding schema version invalidates
+older row baselines. Already-generated multiline SQL remains compatible with
+the local bootstrap parser.
 Input must remain the trusted, immutable producer file throughout the import.
 The chunker rejects observed file replacement or metadata changes between reads;
 framing alone is not SQL syntax/safety validation or a cryptographic integrity
