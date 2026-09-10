@@ -452,9 +452,17 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       inputSchema: objectSchema({
         query: { type: "string", minLength: 3, maxLength: 256 },
         cursor: { type: "string", maxLength: 8192 },
+        limit: { type: "integer", minimum: 1, maximum: 6, default: 6 },
       }, ["query"]),
       annotations: { readOnlyHint: false, untrustedContentHint: true },
-    }, undefined, compactKnowledgeSearchResult),
+    }, undefined, compactKnowledgeSearchResult, (input) => ({
+      ...input,
+      // The page keeps up to forty results for the human UI, while the agent
+      // envelope is intentionally bounded to six per kind.  Binding this
+      // default before invoking the page command prevents a backend cursor
+      // from advancing past items that compaction cannot return.
+      limit: Math.max(1, Math.min(6, Math.trunc(Number(input.limit) || 6))),
+    })),
     commandTool(registry, "tos.page.find-source-gaps", {
       name: "tos.page.find-source-gaps",
       title: "Find recorded source-access gaps",

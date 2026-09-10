@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import base64
+import json
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 from pathlib import Path
@@ -293,6 +295,48 @@ class SearchReadModelTests(unittest.TestCase):
                 self.assertEqual([row["id"] for row in page.rows], ["node:actual"])
                 self.assertFalse(page.has_more)
                 self.assertGreaterEqual(page.candidate_rows, 2)
+            finally:
+                model.close()
+
+    def test_ranked_page_rejects_non_strict_inner_cursor_fields(self):
+        graph = self.graph()
+        with tempfile.TemporaryDirectory() as raw:
+            model = SQLiteKnowledgeSearchReadModel.build(graph, Path(raw) / "search.sqlite", max_bytes=4 * 1024 * 1024)
+            try:
+                first = model.ranked_page("nodes", "common", page_size=1)
+                self.assertIsNotNone(first.next_cursor)
+                cursor = first.next_cursor
+
+                def decode(value: str) -> dict:
+                    padded = value + "=" * (-len(value) % 4)
+                    return json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+
+                def encode(value: dict) -> str:
+                    return base64.urlsafe_b64encode(
+                        json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
+                    ).decode("ascii").rstrip("=")
+
+                payload = decode(cursor)
+                malformed = [
+                    {**payload, "extra": True},
+                    {**payload, "n": False},
+                    {**payload, "gram": ""},
+                    {**payload, "rank": True},
+                    {**payload, "rank": 4},
+                    {**payload, "id": ""},
+                    {**payload, "id": "NODE:0"},
+                    {**payload, "position": True},
+                    {**payload, "position": -1},
+                    {**payload, "expires_at": True},
+                    {**payload, "filters_digest": "wrong"},
+                ]
+                for candidate in malformed:
+                    with self.subTest(candidate=candidate):
+                        with self.assertRaises(SearchReadModelError):
+                            model.ranked_page("nodes", "common", cursor=encode(candidate), page_size=1)
+                expired = {**payload, "expires_at": 0}
+                with self.assertRaises(SearchReadModelSnapshotError):
+                    model.ranked_page("nodes", "common", cursor=encode(expired), page_size=1)
             finally:
                 model.close()
 

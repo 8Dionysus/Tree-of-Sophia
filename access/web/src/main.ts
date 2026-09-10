@@ -4369,6 +4369,7 @@ async function knowledgeSearch(
   requestedQuery?: string,
   requestedCursor?: string,
   signal?: AbortSignal,
+  requestedLimit = 40,
 ): Promise<Record<string, unknown>> {
   const requestRevision = ++searchRevision;
   const input = byId("search") as HTMLInputElement;
@@ -4377,7 +4378,7 @@ async function knowledgeSearch(
   const cursor = requestedCursor?.trim() || undefined;
   const payload = await queryOperations.invoke("tos.knowledge.search", {
     query,
-    limit: 40,
+    limit: requestedLimit,
     ...(cursor ? { cursor } : {}),
   }, { signal });
   signal?.throwIfAborted();
@@ -4561,6 +4562,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     commandString(input, "query"),
     commandString(input, "cursor") || undefined,
     execution.signal,
+    commandInteger(input, "limit", 40, 1, 40),
   ),
   "tos.page.find-source-gaps": async (input, execution) => {
     const query = commandString(input, "query");

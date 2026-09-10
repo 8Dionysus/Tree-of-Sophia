@@ -839,6 +839,8 @@ class SQLiteKnowledgeSearchReadModel:
         cursor_rank = 0
         cursor_id = ""
         cursor_position = -1
+        cursor_n: int | None = None
+        cursor_gram: str | None = None
         if cursor is not None:
             payload = _cursor_decode(cursor)
             if (
@@ -846,14 +848,50 @@ class SQLiteKnowledgeSearchReadModel:
                 or payload.get("kind") != kind
                 or payload.get("query") != needle
                 or payload.get("filters_digest") != filters_digest
-                or payload.get("ordering") != "rank-id-position"
-                or not isinstance(payload.get("rank"), int)
-                or not isinstance(payload.get("id"), str)
-                or not isinstance(payload.get("position"), int)
-                or not isinstance(payload.get("expires_at"), int)
-                or payload.get("expires_at") < int(time.time())
             ):
                 raise SearchReadModelSnapshotError("knowledge search cursor does not match this snapshot/query")
+            expected_keys = {
+                "schema",
+                "source_revision",
+                "kind",
+                "query",
+                "n",
+                "gram",
+                "position",
+                "filters_digest",
+                "issued_at",
+                "expires_at",
+                "ordering",
+                "rank",
+                "id",
+            }
+            if set(payload) != expected_keys:
+                raise SearchReadModelError("invalid knowledge search cursor")
+            if (
+                type(payload["n"]) is not int
+                or payload["n"] < 1
+                or not isinstance(payload["gram"], str)
+                or not payload["gram"]
+                or not isinstance(payload["filters_digest"], str)
+                or type(payload["issued_at"]) is not int
+                or payload["issued_at"] < 0
+                or type(payload["expires_at"]) is not int
+                or payload["expires_at"] < 0
+                or payload["ordering"] != "rank-id-position"
+                or type(payload["rank"]) is not int
+                or payload["rank"] < 0
+                or payload["rank"] > 3
+                or not isinstance(payload["id"], str)
+                or not payload["id"]
+                or payload["id"] != payload["id"].lower()
+                or type(payload["position"]) is not int
+                or payload["position"] < 0
+            ):
+                raise SearchReadModelError("invalid knowledge search cursor")
+            if payload["expires_at"] < int(time.time()):
+                raise SearchReadModelSnapshotError("knowledge search cursor has expired")
+            cursor_n = payload["n"]
+            cursor_gram = payload["gram"]
             cursor_rank = payload["rank"]
             cursor_id = payload["id"]
             cursor_position = payload["position"]
@@ -869,6 +907,8 @@ class SQLiteKnowledgeSearchReadModel:
                 ).fetchone()
                 stats.append((int(row[0]) if row else 0, gram))
             posting_count, selected_gram = min(stats, key=lambda pair: pair[0])
+            if cursor is not None and (cursor_n != SEARCH_NGRAM_SIZE or cursor_gram != selected_gram):
+                raise SearchReadModelError("invalid knowledge search cursor")
             if posting_count == 0:
                 return SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank", sql_pages=len(grams))
             if posting_count > max_candidates:

@@ -163,6 +163,67 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
   });
 
+  it("delivers every indexed result exactly once across bounded agent pages", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy", view_id: "chronology", graph_mode: "nodes", selected: null,
+      path_start_node_id: null, active_layers: [], active_predicates: [], deep_link: "http://tos.local/",
+      research_workspace: workspaceSummary(),
+    };
+    const nodes = Array.from({ length: 50 }, (_, index) => ({ id: `node:${index}`, kind: "node", label: `Node ${index}` }));
+    const relations = Array.from({ length: 50 }, (_, index) => ({ id: `edge:${index}`, kind: "relation", label: `Edge ${index}` }));
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.knowledge-search": (input) => {
+        const cursor = Number(input.cursor || 0);
+        const limit = Number(input.limit || 40);
+        const pageNodes = nodes.slice(cursor, cursor + limit);
+        const pageRelations = relations.slice(cursor, cursor + limit);
+        const next = cursor + limit < nodes.length ? String(cursor + limit) : null;
+        return {
+          schema: "tos_knowledge_search_indexed_v2",
+          query: input.query,
+          result_count: pageNodes.length + pageRelations.length,
+          nodes: pageNodes,
+          relations: pageRelations,
+          counts: { matching_nodes: null, matching_relations: null },
+          page: { next_cursor: next, has_more: next !== null },
+          source_revision: "revision:test",
+        };
+      },
+      "tos.page.select": vi.fn(),
+      "tos.page.show-neighborhood": vi.fn(),
+      "tos.page.start-path": vi.fn(),
+      "tos.page.find-path": vi.fn(),
+      "tos.page.reroute-without-selection": vi.fn(),
+      "tos.page.inspect-epistemic": vi.fn(),
+      "tos.page.clear-focus": vi.fn(),
+      ...workspaceNoopHandlers,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = { registerTool: vi.fn(async (tool: RegisteredTool) => { tools.set(tool.name, tool); }) };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+    await adapter.start();
+    const tool = tools.get("tos.page.knowledge-search")!;
+    const seenNodes: string[] = [];
+    const seenRelations: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const input = cursor ? { query: "fate", cursor } : { query: "fate" };
+      const result = JSON.parse((await tool.execute(input, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+      seenNodes.push(...result.nodes.map((item: { id: string }) => item.id));
+      seenRelations.push(...result.relations.map((item: { id: string }) => item.id));
+      expect(result.nodes.length).toBeLessThanOrEqual(6);
+      expect(result.relations.length).toBeLessThanOrEqual(6);
+      cursor = result.next_cursor;
+    } while (cursor);
+    expect(seenNodes).toHaveLength(50);
+    expect(new Set(seenNodes).size).toBe(50);
+    expect(seenNodes).toEqual(nodes.map((item) => item.id));
+    expect(seenRelations).toHaveLength(50);
+    expect(new Set(seenRelations).size).toBe(50);
+    expect(seenRelations).toEqual(relations.map((item) => item.id));
+    adapter.stop();
+  });
+
   it("keeps a large neighborhood on the page while returning a bounded agent envelope", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy", view_id: "chronology", graph_mode: "nodes",
