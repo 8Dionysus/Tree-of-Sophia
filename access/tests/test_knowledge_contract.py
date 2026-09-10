@@ -2923,7 +2923,74 @@ class KnowledgeContractTests(unittest.TestCase):
         )
         mapping = graph["counts"]["semantic_mapping"]
         self.assertEqual(mapping["unmapped_nodes"], 0)
-        self.assertEqual(mapping["unmapped_relations"], 0)
+        # The source-owner review explicitly retains five atlas edges whose
+        # predicates are not yet admitted to the semantic registry.  This is
+        # an exact, source-bound remainder—not a blanket allowance for unknown
+        # vocabulary.  Keep the edge identity, owner ref and review posture
+        # visible so a new unmapped carrier cannot hide behind this exception.
+        expected_unmapped = {
+            "philosophy:edge:candidate-relation:table-i-a35-relation-019": {
+                "predicate_id": "figure_anchor",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "review_posture": None,
+                "review_reason": None,
+            },
+            "philosophy:edge:candidate-relation:table-i-a35-relation-020": {
+                "predicate_id": "figure_anchor",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "review_posture": None,
+                "review_reason": None,
+            },
+            "philosophy:edge:candidate-relation:table-i-a35-relation-021": {
+                "predicate_id": "figure_anchor",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-i-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "review_posture": None,
+                "review_reason": None,
+            },
+            "philosophy:edge:candidate-relation:table-ii-t2-05-relation-027": {
+                "predicate_id": "translates_into",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "review_posture": "manual_review_required",
+                "review_reason": "table-ii master status B and confidence 4 require manual review under the package review policy",
+            },
+            "philosophy:edge:candidate-relation:table-ii-t2-56-relation-002": {
+                "predicate_id": "uses_medium",
+                "source_ref": "ToS/philosophy/graph-workbench/proposed-relations/table-ii-prepared-dossiers.jsonl",
+                "authority_posture": "prepared_research_candidate",
+                "canon_status": "pre-canon",
+                "review_posture": "manual_review_required",
+                "review_reason": "Table II status C: information-system evidence must not be projected as a readable philosophical corpus",
+            },
+        }
+        unmapped = {
+            relation["id"]: relation
+            for relation in graph["relations"]
+            if relation.get("predicate_mapping", {}).get("status") == "unmapped"
+        }
+        self.assertEqual(set(unmapped), set(expected_unmapped))
+        self.assertEqual(mapping["unmapped_relations"], len(expected_unmapped))
+        for relation_id, expected in expected_unmapped.items():
+            relation = unmapped[relation_id]
+            self.assertEqual(relation["source_graph"], "philosophy")
+            self.assertEqual(relation["predicate_id"], expected["predicate_id"])
+            self.assertEqual(relation["predicate_mapping"]["source_predicate_id"], expected["predicate_id"])
+            self.assertEqual(relation["predicate_mapping"]["status"], "unmapped")
+            payload = relation["source_record"]["payload"]
+            self.assertEqual(payload["source_ref"], expected["source_ref"])
+            properties = payload["properties"]
+            self.assertEqual(properties["source_record_ref"], expected["source_ref"])
+            self.assertEqual(properties["authority_posture"], expected["authority_posture"])
+            self.assertEqual(properties["canon_status"], expected["canon_status"])
+            self.assertEqual(properties.get("review_posture"), expected["review_posture"])
+            self.assertEqual(properties.get("review_reason"), expected["review_reason"])
         self.assertGreater(mapping["cross_layer_relations"], 0)
         self.assertEqual(graph["counts"]["semantic_validation"]["violations"], [])
 
