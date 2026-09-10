@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4630,
+    "tracked_surface_count": 4631,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1185,
     "human_scope": {
-      "bytes": 5968263,
-      "count": 968,
+      "bytes": 5976819,
+      "count": 969,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4603844,
-          "count": 677,
-          "lines": 76640
+          "bytes": 4612400,
+          "count": 678,
+          "lines": 76766
         }
       },
-      "lines": 100566
+      "lines": 100692
     },
     "surface_kind_counts": {
       "executable": 308,
-      "human": 968,
+      "human": 969,
       "structured": 3354
     },
-    "tracked_path_count": 5815,
-    "tracked_surface_count": 4630,
+    "tracked_path_count": 5816,
+    "tracked_surface_count": 4631,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 677,
+        "human": 678,
         "structured": 3273
       },
-      "tracked_surface_bytes": 321113660,
-      "tracked_surface_count": 3954
+      "tracked_surface_bytes": 321122216,
+      "tracked_surface_count": 3955
     },
     {
       "family_id": "access",
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "20b141bc270b6b7d9d034bb6c6beb76765ff166676847f60b39cdbe220cc3700",
+  "tracked_surface_digest": "459340a7ed7d30b6e0d2241f4f14dc5039c3f7b83f34c3cae1422d4f41c91246",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -18260,6 +18260,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-10-physical-member-structure-review.md",
       "sha256": "6821b85493a6ad935b95f1cd3db79f6324872c1d09c33b9121dc5e4bacbce1e4",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 8556,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-real-native-bilingual-alignment-return.md",
+      "sha256": "3ca341429b7ff4bdd291a9ad8565b2c06ef3f973a8139886962a9c9d9fc9b71e",
       "surface_kind": "human"
     },
     {
