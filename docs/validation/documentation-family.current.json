@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4631,
+    "tracked_surface_count": 4709,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1185,
+    "excluded_tracked_path_count": 1251,
     "human_scope": {
-      "bytes": 5976819,
-      "count": 969,
+      "bytes": 6024973,
+      "count": 978,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -76,9 +76,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 389767,
-          "count": 151,
-          "lines": 7668
+          "bytes": 403822,
+          "count": 153,
+          "lines": 7901
         },
         "memo": {
           "bytes": 4538,
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4612400,
-          "count": 678,
-          "lines": 76766
+          "bytes": 4646499,
+          "count": 685,
+          "lines": 77370
         }
       },
-      "lines": 100692
+      "lines": 101529
     },
     "surface_kind_counts": {
-      "executable": 308,
-      "human": 969,
-      "structured": 3354
+      "executable": 313,
+      "human": 978,
+      "structured": 3418
     },
-    "tracked_path_count": 5816,
-    "tracked_surface_count": 4631,
+    "tracked_path_count": 5960,
+    "tracked_surface_count": 4709,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 678,
-        "structured": 3273
+        "human": 685,
+        "structured": 3337
       },
-      "tracked_surface_bytes": 321122216,
-      "tracked_surface_count": 3955
+      "tracked_surface_bytes": 321537588,
+      "tracked_surface_count": 4026
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 79,
         "structured": 6
       },
-      "tracked_surface_bytes": 938751,
+      "tracked_surface_bytes": 943123,
       "tracked_surface_count": 85
     },
     {
@@ -218,21 +218,21 @@
     {
       "family_id": "mechanics",
       "surface_kind_counts": {
-        "executable": 77,
-        "human": 151,
+        "executable": 81,
+        "human": 153,
         "structured": 33
       },
-      "tracked_surface_bytes": 3019206,
-      "tracked_surface_count": 261
+      "tracked_surface_bytes": 3168370,
+      "tracked_surface_count": 267
     },
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 122,
+        "executable": 123,
         "human": 2
       },
-      "tracked_surface_bytes": 4092292,
-      "tracked_surface_count": 124
+      "tracked_surface_bytes": 4124119,
+      "tracked_surface_count": 125
     },
     {
       "family_id": "tests",
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 2124333,
+      "tracked_surface_bytes": 2136357,
       "tracked_surface_count": 72
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "459340a7ed7d30b6e0d2241f4f14dc5039c3f7b83f34c3cae1422d4f41c91246",
+  "tracked_surface_digest": "6e19cbd62aff8a93b7064a470a056ba2a8e92ebdf38527b589877f5ed7496e86",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -1663,11 +1663,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 43566,
+      "bytes": 43682,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/CORPUS_CONTRACTS.md",
-      "sha256": "1e4a9cf56d8dbda0704c7b286d5259d59ae87851a28815d5433661808e2a4ea2",
+      "sha256": "be8f33df4a2935d8d5a49e018e19abcc8f84a2edf356e415b6915ac25bf5df10",
       "surface_kind": "human"
     },
     {
@@ -2215,6 +2215,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 7919,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/native-page-ocr-comparison.schema.json",
+      "sha256": "c143bb7177ae045d261bfb54c2c5144bf8e938732e5d3c0863dff862d8d75974",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1885,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2447,6 +2455,22 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2778,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/public-native-text-authority.schema.json",
+      "sha256": "e50f7dce35a5499731a27dac11256e69d61d91cf9e43949b83a797bda3d2b63f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7253,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/public-native-text-create-owner.schema.json",
+      "sha256": "9ac2c338c8071bb844b7cfa651acd0212884061ba7b8b57c44d1fe18e31c1f6c",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7339,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -2527,11 +2551,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2095,
+      "bytes": 2709,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/scoped-member-structure.schema.json",
-      "sha256": "6c979b8df7a0b60f2f520fb2fc49d728ca75c6bd51d82ce3c2147f5fc47572c1",
+      "sha256": "f6e63d1e851b2f241040759d02e5352721aaacf0fd6c849ccabcb5b29faa8e71",
       "surface_kind": "structured"
     },
     {
@@ -2575,11 +2599,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 12804,
+      "bytes": 13013,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
-      "sha256": "cf0d727b0e8b22e45ffcca7c4b9d26057b6a521538075bd96b6b15587bdc612c",
+      "sha256": "9e3f68a6e2899b37f47d3ac3318ac24768e98e90644b8f6240b5273ece92cadc",
       "surface_kind": "structured"
     },
     {
@@ -2711,11 +2735,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1862,
+      "bytes": 2070,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-member-structure-claim.schema.json",
-      "sha256": "a55557beddb68ae5310dc351a08b21454fed1184ac13bb4a020b8bfbadcbd339",
+      "sha256": "a24a423ffbdb36ea18474edd38ba267e91e98f868e72b031b334b996639ef123",
       "surface_kind": "structured"
     },
     {
@@ -2743,11 +2767,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 7441,
+      "bytes": 9325,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-resource-inventory.schema.json",
-      "sha256": "609461ce122ee527b349bb60632147e88ffc7fa9c428788a992d024195509e35",
+      "sha256": "4658b53702a0f190338b038b093277393a19464b6e4b68786eb328dd002a6958",
       "surface_kind": "structured"
     },
     {
@@ -3087,11 +3111,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 10986896,
+      "bytes": 11057855,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "1d0bf87bf8b23bba880101535bc1dc176d968bf8e7d13b081cbc0a722f83377b",
+      "sha256": "9305b616d954870acbc91f5e5f24b2c2ce2d858c837eaa78f68227649de40c25",
       "surface_kind": "structured"
     },
     {
@@ -3223,11 +3247,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 48359,
+      "bytes": 50148,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "3cc1153eadbf958a2b83fe97bf222c36240e7355e89f0912b85b65a325fbe608",
+      "sha256": "fbcc0bd64d190d311b431bbc2c5cc4cdd4d188abeb9a1f30704c02cc39fb0dda",
       "surface_kind": "human"
     },
     {
@@ -3247,11 +3271,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 111677,
+      "bytes": 110751,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "9ce62a1207acc20e30d08963847075b09fc42ee3097eb528cd0dff841e591bb0",
+      "sha256": "fabd817b2e68d6c449c0be29ea31518493170d83610b6fdd721cf573a20ea372",
       "surface_kind": "human"
     },
     {
@@ -3367,11 +3391,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 118496,
+      "bytes": 119102,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "415a38f557710b08e3fed9d0c5482cd9ab874c8fa624f9d98e69b8307a4e6120",
+      "sha256": "751e996b8458861664edeed6ab13be4bc1654d13ee26653b98699929161f83f1",
       "surface_kind": "human"
     },
     {
@@ -3399,19 +3423,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 235746,
+      "bytes": 236759,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "29b179f11c586eb4bdd0b6b9a7d02b08cab50f669095c0c46cb1cf37569a6b05",
+      "sha256": "aee5b35a50dba9ae2ca249ba4807e60ed92089a3a94a4f3ac99eb62eb300bd69",
       "surface_kind": "structured"
     },
     {
-      "bytes": 327558,
+      "bytes": 329728,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "70e9e454fa9a5188770922e0193c876bad0b80bc8080d52045abcb2eea8adbda",
+      "sha256": "8353b859461172e2b5a0f52fc1796f62677d3d4f0539e4d8be33d48b12da0ab8",
       "surface_kind": "structured"
     },
     {
@@ -18247,6 +18271,30 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 5892,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-collection-member-order-review.md",
+      "sha256": "c43a380cf7994c7354195a7f4ab6e8a36dac93706353aa34131da3045abc5df5",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4531,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-foundation-current-map-review.md",
+      "sha256": "c39009b37aaee62e9e1b483b9e1bc7fd430120c22bc3d1a084f8bba636a8fc9a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2949,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-mysl-collection-order-source-reading.md",
+      "sha256": "3c1b4866a1afea1a34e231091447f696c42c32825834953c00ac62b4d78ae612",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 4059,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18263,11 +18311,35 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 7676,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-public-native-project-note-source-return.md",
+      "sha256": "5f270322ad2e402ed958ad853b2a37e314fd18edb8046e27be2d694d0ac87bf2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3487,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-public-project-native-authority.json",
+      "sha256": "b3303ccfc399078314dea8feda529fffe581d9eda35a077709b6ae8c7c47c510",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8556,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-10-real-native-bilingual-alignment-return.md",
       "sha256": "3ca341429b7ff4bdd291a9ad8565b2c06ef3f973a8139886962a9c9d9fc9b71e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 10305,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-retained-page-ocr-image-comparison-review.md",
+      "sha256": "92ed2f2cc9020897894c74bbfe17184aa993481d1bab83909f4015594d5ba7cf",
       "surface_kind": "human"
     },
     {
@@ -18299,7 +18371,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/.metadata-publication.json",
-      "sha256": "d65ad87be4fe3f948799d0073e26167cda14ebd987d1d3769887a54fa6ce225e",
+      "sha256": "71a091ce2d46107a07e4205a3cb395069365bcbd6ffb27569c1f311ee3062e91",
       "surface_kind": "structured"
     },
     {
@@ -18338,6 +18410,22 @@
       "bytes": 527,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/5ff0799b0c10aab49967eedbecb76c2d92571ac4c7fabf8642254820c275576e/completion.json",
+      "sha256": "3f273768f93b209cb2d96df65c024916f45077af087c06b2dd128227a9afdbde",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 18222,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/5ff0799b0c10aab49967eedbecb76c2d92571ac4c7fabf8642254820c275576e/manifest.json",
+      "sha256": "f24f4df2675319bf749dafaea340510468a7da63fca38204d405ff3e7d884c3c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
       "path": "ToS/source-witnesses/.metadata-transactions/64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583/completion.json",
       "sha256": "362880c566f6ed9166b72f71c1d29960233f5638961bd73e2c03b8a1e5c6db34",
       "surface_kind": "structured"
@@ -18364,6 +18452,38 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/.metadata-transactions/bd8d832083d3b488e223e3d279f82e6b3863e22350f1715f16b1a0a4cb5312e4/manifest.json",
       "sha256": "de3ba9fb2d28b1e034eb51beb3acba9b2f03ee21876c9af93b65ec7d2fb23011",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/c422c71df87198ea6d46e7d6f2e13d0f2435ff31472625e92f67ec9dec574d2c/completion.json",
+      "sha256": "efe48f959475eca6abd50c223ecbb3e38d61c8694b33c7fff1dbac95ab6eab9f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 16309,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/c422c71df87198ea6d46e7d6f2e13d0f2435ff31472625e92f67ec9dec574d2c/manifest.json",
+      "sha256": "5dff1e35665718c9aa275204c724a3104c4bc03fb756b46cec91b1293ebadf35",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 527,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/db9ada45dea3c04c8f92d8ccfaf509111c9bfbec71b553b82123fed02d31d409/completion.json",
+      "sha256": "a1bfdee92f54fa6d49ffdb74d25f2568e321d8ecc170cf230b73ca8284fed25e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 46241,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.metadata-transactions/db9ada45dea3c04c8f92d8ccfaf509111c9bfbec71b553b82123fed02d31d409/manifest.json",
+      "sha256": "9c13704fde5e947cfcff10ae758acba5f002cf3ac0b08b843cdcc7fa74657da7",
       "surface_kind": "structured"
     },
     {
@@ -18455,6 +18575,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1018,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/af858414993ec75062696d047531b34a0c18e77459251ec9bd9e1c502f66e4cb-b4827e1e117ba75190e05857132980f6066e827974b88bac90a095b627b1c2d8/manifest.json",
+      "sha256": "6d6faf71eea312ccf69c7dce87f1e7b6a89bd503d6f5bcdfd4158f48674f3396",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 19526,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18479,11 +18607,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1035,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f/manifest.json",
+      "sha256": "163f92fa78ce6859ac47e339e9b5797984360ffe9683b06532abb0606ea8cb82",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 981,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/.record-revisions/e0926bd7190f7f30d62151cccbed900792801e025bf6b23744fc4503830e47f4-6e0ebe82e1e0c40cdf1e9b99a62a3521fcb5af82a19b53c1ba98a84e20fe0308/manifest.json",
       "sha256": "f8e729300579a4cb5a79fdfb25c808056b9a6326bb56f83e63a08689896e7082",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 964,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/e29e1eaae487bd848d130f863ba01fd88b8584038090492789f87f7150f351f7-c47ba2cfb8e367538413d0816d58ffa29fae085f778b36f285eac549685b6449/manifest.json",
+      "sha256": "f36a6840017a50936b73b216db2e3d8becf01831437caffccd5bef5ff413cb89",
       "surface_kind": "structured"
     },
     {
@@ -18511,11 +18655,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 86471,
+      "bytes": 86783,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "09174cd286c036478ead0a40166f01f0c6b1941e442213809c664b3f4b09350a",
+      "sha256": "26be5a0a5f675c50e54910f62339657e1af694c4ab12fb468a23c5a04463ce4f",
       "surface_kind": "human"
     },
     {
@@ -20619,7 +20763,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "8848f09f0706608ebd27c20bb58f317014b4a95bc420f523e3a252c0ffc63c61",
+      "sha256": "3c8cc89d804aa1a1abac54889de1b535cfc8ba5da822bb51498481e4f1751852",
       "surface_kind": "structured"
     },
     {
@@ -23071,6 +23215,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 5808,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/foundation-note-corpus-use/occurrence.human-forms.json",
+      "sha256": "8d12370af4e4837c1db3e327046222c74a7e86bcd4d50cf07985f7178a456f47",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3709,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/foundation-note-corpus-use/occurrence.json",
+      "sha256": "4b44abd2cf9adb0048a97aadf10c09fa8fb37556c3db3823490bcc34f9236664",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/foundation-note-corpus-use/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1479,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/foundation-note-corpus-use/source-create-receipt.json",
+      "sha256": "1513eb90e2d5102c4083a6ac1808f0faaa211b6f581b75fb2b65adfd3ca49afe",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3957,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/lexical-descriptions/foundation-note-corpus-use/source-create-request.json",
+      "sha256": "a9c67f6b59ddc35aa589c0038a060875547bb5c2611a5c514e42f44d824be322",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 8818,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -25420,6 +25604,38 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/linguistic/source-create-request.json",
       "sha256": "c465b3f0e5d1c51cad96b134925792738bf5d3e2e6e5d25c7ea6b285e2030e8d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3977,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-claims.885408b836b8f6f740f3ffa6c780413a8e058d20fe71fef97aba59200e9b12b4.human-forms.json",
+      "sha256": "abb1add2e55b7499f24c57e8ce98aaa1ce5f3a8084ef68732843ffc85931aa5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 21902,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-create-receipt.json",
+      "sha256": "0c8ad9d62279f200fd0f7c447da059f317b57aa1b4eb6ec63f76adfca608c025",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 26193,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-create-request.json",
+      "sha256": "9f5f87bd2b7f8569d173626e416480d072359537ffcc3a9c681a22bed1225cbc",
       "surface_kind": "structured"
     },
     {
@@ -27836,6 +28052,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/server-import/plans/reader-1899-rnl-rusneb-fragment-pdf-parts.server-import.json",
       "sha256": "dd0bacd8b4188665d5ee95505855ab7b09f2ce534adad35d004b2e51d17efd5a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5760,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/server-import/plans/scoped-research-selection-note-utf8-20260910.server-import.json",
+      "sha256": "a60f84810aac0684bd4b26017a8500db2639c29f4335f661d182c8c50c300316",
       "surface_kind": "structured"
     },
     {
@@ -32015,6 +32239,350 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4146,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.human-forms.json",
+      "sha256": "b9ab36492d91c45ad228010fca51a24361a08dbee9903aaff29af7209f377005",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1092,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json",
+      "sha256": "cd89ab828f1bd8bf1096ef25004f64586f9d3d2f4982a062fe82b74d62bedd93",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6758,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/expression-edition-receipt.json",
+      "sha256": "a805c05c0d83bc3ca230b42c9ae5cfec4cb5844d54dec45422e5fee3e2ce3b9a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9620,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/edition-item-receipt.json",
+      "sha256": "37ff841806ddfc75873014e41986c5e2e51abe1a76801cfb0fd8478817a324a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 551,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/forensic-report.md",
+      "sha256": "1f5b9159b0634f18cbd3e86049325c263c828bfd4deaf9e4b9ca8ea8cf62a986",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1109,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item-deposit-receipt.json",
+      "sha256": "a22681a0a31dbc0a79098e3db248617119391698c062f0f4d2f9a146f836e7a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2100,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.human-forms.json",
+      "sha256": "336c8f9994175e57528ec4dd8adbbb4d21c73f7418d49b29b55dc4d8c5b9b757",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1093,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json",
+      "sha256": "429a4e2ee7e2c0a8dbecacd8cf981184a4ba1b94649fc849431f7437bd3060b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1701,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
+      "sha256": "375804c4b5165d12b9591a1a75c00c728f0586d8c22909e7fe44a28c2eabb37f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2228,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/resource-inventory.json",
+      "sha256": "187ea9429a5c1d45f18af8b5f0a6c7b58bf1b08a0e3330163abc02a6d3cac54f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1036,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json",
+      "sha256": "509b9cf12117343782c66e4cda06a9aa1e9e7cb7e0338c6108787851fad36aae",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1486,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/source-claims.67a935708838478f096052106d632fb13c186708024d21794349744041d3f9ad.human-forms.json",
+      "sha256": "6169f0e3f9b7234f830ee46ea8a57935f085cbea76c057b193cec4a30e0a0d6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/source-create-environment.json",
+      "sha256": "ec6e2e49d1bc39f1c9afbb56b7007246cad797133e102ae8757aea60df8659a8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/source-create-request.json",
+      "sha256": "90214e8d44a5333e2e879bd2acedecefa8c03070c4ddc5c9c7fc0d23e295a5c8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1486,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-claims.0c795243c597698034d1e27871814a22f3b4f7ea5812217336fb0dc4f1c482e5.human-forms.json",
+      "sha256": "a08097ef611578cc700053eb89fe7640e1081d947aa4de4fc7906bf05d320159",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-create-environment.json",
+      "sha256": "123346d4a012b864ddbcd6e858b133666692cacf09f24515b4ae782542e14276",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3285,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-create-request.json",
+      "sha256": "27140fe152d897649b2f08c6e8e4b8457f7cc63d968bc4985f409b4ca3bf0c0f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9489,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/source-revision-history.json",
+      "sha256": "38590f3d88a4f0cd4b3b0c763eb382dfb316240e217331bfc1b01f8d6943e399",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4179,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.human-forms.json",
+      "sha256": "51656ad8a8bee24d598a0e47c1f1cd081e99bc5eb189bab8c9e19bc8ff0de1ca",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1109,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json",
+      "sha256": "cd1fedd504f948a3c7a697abbf32b31657d5d29eecf76c7391d0d3b1ce38efda",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1486,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.d285a13c464ec786f2e1bbbe622e10d57bb1a722ef20c6bc78b92d44c62cdc11.human-forms.json",
+      "sha256": "79ffe398c8a0bae3d6d88412a49ea4b3942e8da5f9291a043008ea661d3cc784",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 325,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-environment.json",
+      "sha256": "123346d4a012b864ddbcd6e858b133666692cacf09f24515b4ae782542e14276",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3204,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-create-request.json",
+      "sha256": "3b973b9eba105ac433ded4817ee301535d3baa9af46b4ea12ef3bcdfe8fec315",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6644,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-revision-history.json",
+      "sha256": "fc31e378d4d59ed60a2522077d29ad93f4aa296a38356de1d208a82b2a124781",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6192,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/work-expression-receipt.json",
+      "sha256": "bc752269c4afee7636e98879fdfd7dfa26f8ca897350a840ad0484e335bdcac6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1453,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/source-create-receipt.json",
+      "sha256": "eef04a2a0543f57d570736ad71bca80629d7fa076298235ef6a5ae8c24ab60da",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1333,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/source-create-request.json",
+      "sha256": "2a5614e2af7d5f98e96c1c4dd708f3ff2862b1b53f940cf024ed0eb27387e829",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6548,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/source-revision-history.json",
+      "sha256": "b360f15384a87a50efa6bcb8f0df74309d9ecc30b1ca8cf9e4bbab9d687c9d53",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1903,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/public-project-note-rights.json",
+      "sha256": "3ecafddfc6f60bc8c8986dda3c85fa3544740b5921ff740fb2cca48068310187",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5930,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/construction-plan.json",
+      "sha256": "7c1b7cd3d336dc73134c380c0bd3a6d4ec9522183060e67c525103b3e6f5c34d",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 298,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/content.txt",
+      "sha256": "580c65a09d0e22470d95beb0fb56c7305e436bfea24f0ab7bf29319ded6e8d9a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 491,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/extraction-policy.json",
+      "sha256": "1e0d7ad9d02976b40a473a3d3f7b3fbee18ccbd9af7cb27c7b02baa043d67752",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1610,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/native-bindings.json",
+      "sha256": "73281119479869e23118fe75d622ded9be1c58286866dc872f865567a79c268a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1720,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-anchor.v2.json",
+      "sha256": "3e67a0746c9f73bf4e33f05edd2d61265aa9456e8217cb02578e2f20e85a930a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5306,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-create-inputs.json",
+      "sha256": "2cd41d6f5c5da04bffbddf98057b6be34f5d2bf8e0dd385df78c2a5469eeb7ac",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2277,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-create-receipt.json",
+      "sha256": "4250a898820e37b577fb82e16e1db143b7bda91cec6f762a04f562cb49bd3df0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-create-request.json",
+      "sha256": "e515117408e1ed6cd559f72ad05b8cb403dd2e79bc80120a982eaefc864adca0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4533,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-text-layer.v1.json",
+      "sha256": "6e26bd858a1cd235b144a568cae14235f8c1a9a4d1d2ecd6cc6acc51ea53bfc1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 9299,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/technical-markup/purpose-paragraph-public-v1/source-text-unit.v1.json",
+      "sha256": "b3e0248819bd54b8892de21fafd24870084be8a44cd2a3527e0edeeb7f3570d1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4113,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.human-forms.json",
+      "sha256": "a492e6c44ad7127b308d5cde143f1ff9d7191ee46a40934a947c0c75de44a92a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1011,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json",
+      "sha256": "72b2b405a67475ed5d62a93d8acc44228af9465ad959e58003827a73b44c4994",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5683,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -33335,11 +33903,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 246870,
+      "bytes": 251242,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "a7b6bf92963db98808568a6a19f6cebe7528d9824099edf2991cae4b97d570d2",
+      "sha256": "3502bf98233a6a626eab2abdad290e6aa2b6e97a521f08f508ad8e8cb9752aeb",
       "surface_kind": "structured"
     },
     {
@@ -34551,11 +35119,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 144160,
+      "bytes": 145233,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "e2429d11d99466fc4135c266f8a834c1b07f31ee022aac4d727dcdb5fad30679",
+      "sha256": "a6b6c525443a31c520a3ecdd27aa6be8f13a35b1457dff3ffbfc3029fe9dcd23",
       "surface_kind": "human"
     },
     {
@@ -34607,11 +35175,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 9476,
+      "bytes": 5578,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_IMAGE_OCR_ASSESSMENT.md",
+      "sha256": "f1bddb3a045e45156c5ab29599e156d8f45d1cb8ba7051cfefcfdec5dccd409b",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 10128,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md",
-      "sha256": "c785f61d156b68f9a02b820aba456da42d2774dff4ce15a0dbf70c53837d8903",
+      "sha256": "df364d1d6b0ac90e19dbb9c56b9b122474cf0c72d72fd99698f7bc8c2e38489f",
       "surface_kind": "human"
     },
     {
@@ -34623,19 +35199,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 11934,
+      "bytes": 12313,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_ASSESSMENT.md",
-      "sha256": "c2b1d5db731a7c271a0e83391e00f77dd46bf0c4cde286b6332e8e8e5dc95be0",
+      "sha256": "fd45de909ce5f3dae9592a6c1d66e10eb0307bbe83d4cc3ae63de4dda458244e",
       "surface_kind": "human"
     },
     {
-      "bytes": 20895,
+      "bytes": 22290,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md",
-      "sha256": "5ec5e5898febc1561244ce5cee09343eb3da6e614486fcdbebf03831f7a8c333",
+      "sha256": "aa66684fea20f5aafc39b672ca5d422158c7117c105e717fdad862fa8e0060be",
       "surface_kind": "human"
     },
     {
@@ -34663,6 +35239,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 4376,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md",
+      "sha256": "6b5b8ac6ef7f7f49113e66b377518ebe90231a96e36fdcf8b5060c6b28b85ea1",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 15836,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -34671,19 +35255,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6250,
+      "bytes": 6852,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md",
-      "sha256": "84379343270034aa63590df21f642b63e6e0d2fdb0010a1928a29263a359979f",
+      "sha256": "eee0c84b59d8e4be07e9f13c368c76678b7dcd8317ab12b38e51f748b5f8d584",
       "surface_kind": "human"
     },
     {
-      "bytes": 95197,
+      "bytes": 95871,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-      "sha256": "ae99ea21d1d7a02eed23e58dc3621ec4800f5385b4864a93d4ccac7fdfbe2d63",
+      "sha256": "9f80b8a6c97a7ad73a46619df017a64cb736ad422b748ac5fbc6ac21cae78c8d",
       "surface_kind": "executable"
     },
     {
@@ -34695,11 +35279,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 20353,
+      "bytes": 22734,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py",
-      "sha256": "19b4d5677bbebd3e88cd42a43cb09c818bd9309ddaf9d27c62ff91bf7fd452da",
+      "sha256": "1d0c0c052525c5d1eb70bb95fcee7369372e9d5631e66ef4eac7c217e9258306",
       "surface_kind": "executable"
     },
     {
@@ -34727,11 +35311,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 27223,
+      "bytes": 22680,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/native_page_ocr_assessment.py",
+      "sha256": "f2da0d40e6461583862fb1c6aa4ece9010d1c560817dc0354dc74713640b20e8",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 27562,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/native_text_layer_assessment.py",
-      "sha256": "c16fbdb135de03919a5b04e4a72ad387a5bf040df9736a584dbbd8b101077858",
+      "sha256": "329ec4c253958c639dc1eaf7e2e83eea021cee63b02b259775a30f0353138a8b",
       "surface_kind": "executable"
     },
     {
@@ -34767,11 +35359,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 32483,
+      "bytes": 32998,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
-      "sha256": "463b336cde0bc478c457b47daab7995484b2c2810356951b25269c10d769a3d9",
+      "sha256": "69788528099f8a2961870b99a26451a55a3decedccf1ea9c93851eb645162283",
       "surface_kind": "executable"
     },
     {
@@ -34791,11 +35383,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 103848,
+      "bytes": 108569,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "772253af67273d783b72c1d15f2e2ce8035573ba8a4de7e0cccabf4cfe4f1dc6",
+      "sha256": "4b09fabc15fdded7ffe1089f26adc8529d146558dc35623cd2b702d2e9abe73b",
       "surface_kind": "executable"
     },
     {
@@ -34831,11 +35423,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 26269,
+      "bytes": 26535,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_deposit.py",
-      "sha256": "c991edc861f3ce437fc595b06fd6221dbe801381bc921014473aca9114dd6abe",
+      "sha256": "9aa0911704363cfb8aa22d158d106f98b657eab506281bcfd5fb85fec8ffe02a",
       "surface_kind": "executable"
     },
     {
@@ -34879,6 +35471,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 33689,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_public_native_commands.py",
+      "sha256": "30f3e000621ecdf32cac395a4564ae078784b14c9eb9a14567fec70fa1bdc2a2",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 40217,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -34903,27 +35503,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 61072,
+      "bytes": 66849,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_layer_commands.py",
-      "sha256": "6388c80de42549217454b938fbb208a6f6c6d3169fb2d345dfb50da74220c733",
+      "sha256": "3b49c919bc58e9a3940f592c55aa243f4d9e8bde5ee81f4e63f8248418756ca0",
       "surface_kind": "executable"
     },
     {
-      "bytes": 33269,
+      "bytes": 33438,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py",
-      "sha256": "c1b3e77d48682c274147273488563fefbffbc366e4e3adb83d8dde4526d47c01",
+      "sha256": "38dec6768bd771572d604bc3cee7e877e3d6f2d4ec506e6e3ff613866c934a9a",
       "surface_kind": "executable"
     },
     {
-      "bytes": 19198,
+      "bytes": 22704,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_claim_version_reader.py",
-      "sha256": "4b31d735c74bd5216036a33c90e193f738c1a4673c812855d3687050b8d1b425",
+      "sha256": "ba7e50a67aefc4e9bfc8672fe5810df48f1d4f73b939d3ab4ecbad92920924ef",
       "surface_kind": "executable"
     },
     {
@@ -34964,6 +35564,14 @@
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_native_layer_quality_journal.py",
       "sha256": "67af4db0cde47fe7d5a80e74be5fb7db97862d002a3aeeadecec1c67fb093cc3",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 15873,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_native_page_ocr_assessment.py",
+      "sha256": "70b4f45a775b122e74ff900b4c83425dc4523bb25b36089da7c1e587fd08cece",
       "surface_kind": "executable"
     },
     {
@@ -35031,11 +35639,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 144634,
+      "bytes": 151724,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
-      "sha256": "e4bd8db5b090856bc2836da9d61076dabe6b962509257d5f93fdcc2e95ae6ce4",
+      "sha256": "4019c4cda808b14167528a25e6cdda18c2c2dfa29bbbe4bb1a6f84d996e59005",
       "surface_kind": "executable"
     },
     {
@@ -35047,11 +35655,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 13351,
+      "bytes": 13522,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
-      "sha256": "18095090f2c97aa390998e1e7513bdbedb9ae7b1b384b29ab9793560350f54da",
+      "sha256": "d1ae3c2926ceed467962bd64f46c1d275626c45656411345f6f9e5940d680cdf",
       "surface_kind": "executable"
     },
     {
@@ -35079,11 +35687,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 23150,
+      "bytes": 24524,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_item_commands.py",
-      "sha256": "c3a53c4ddb4f5b1ae5fe0170c188d606475e9e444d48030244514b133b9bf51b",
+      "sha256": "1ee0be73422f58b7fcce11ff98c20239618d31c8c2613e2f3d30116b27edba20",
       "surface_kind": "executable"
     },
     {
@@ -35135,6 +35743,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 19611,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_source_public_native_commands.py",
+      "sha256": "509c6f4ea2bb71cc7521efd2f1f202f25195dd1f86be0a566d8359aaf834783e",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 30020,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -35159,11 +35775,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 49988,
+      "bytes": 66261,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_text_layer_commands.py",
-      "sha256": "a8ea1445c0c16ae76cac265c8c22da26985cc25fa2db946609c0ffa72ddfab26",
+      "sha256": "2376a05dc239e6cb86bd815524e3118402172797595d1953a85d95a1fbc77248",
       "surface_kind": "executable"
     },
     {
@@ -35951,11 +36567,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 45114,
+      "bytes": 47416,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/build_source_resource_inventories.py",
-      "sha256": "1f87e27c0829fc2d4a42b9d0645f5abb5f01ac590eb0480d1b5a6ab09da12e5c",
+      "sha256": "ee3c5aa38f59e81af4c5eef76f3cf97f2052c00e26e71f8e2dff12327a3335bf",
       "surface_kind": "executable"
     },
     {
@@ -36175,11 +36791,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 46687,
+      "bytes": 10475,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/native_owner_ocr.py",
+      "sha256": "5a639e76acdf3ca018d2386c819057add734d13099d296c14dfa8bc431606607",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 49461,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/native_text_binding.py",
-      "sha256": "3e350e9e68f08aeb817d7e89e48af0f43ab5ded8aa0ca1d23b935d8994458863",
+      "sha256": "2e392f8f3a54c225ac3331f6a986345a8ff24488b07a1a9f7c71dc051f462a25",
       "surface_kind": "executable"
     },
     {
@@ -36391,35 +37015,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 43232,
+      "bytes": 48321,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_record_profiles.py",
-      "sha256": "943b6ad708373f8b5626af4b1ce9351669a134d35f828bcd8c4d66edad9f25a3",
+      "sha256": "875a3991446ff797f1625cb034a8d097476e82404f08cc4d3c6d6fab5bc61dde",
       "surface_kind": "executable"
     },
     {
-      "bytes": 34528,
+      "bytes": 43073,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_text_layer_proposal.py",
-      "sha256": "54222cb54de03d96655f4677ad9d1b423f239491767d8d5c42a2ba39753a8eae",
+      "sha256": "052e70f9172c01898062efdb1d100a5d89c17eaaaf3e34efcb319862c4527e61",
       "surface_kind": "executable"
     },
     {
-      "bytes": 24197,
+      "bytes": 25763,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_text_unit_proposal.py",
-      "sha256": "1791437c97d26b496d63c5f5d642b25f1cb3acc28870d9809b3995f62b0086c0",
+      "sha256": "8561f5507b0ee033d484c0637cea8667f6c61446fb8e1c59bca8cb5127e197f0",
       "surface_kind": "executable"
     },
     {
-      "bytes": 86891,
+      "bytes": 87967,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_witness_bibliographic_graph_common.py",
-      "sha256": "2f1169851e5a81090bbbce2ed8b79b3572e0dc14ae70a866402ba170dadcdaa7",
+      "sha256": "efa8225da811785e54681b79f88afca2155b2e8bccd6df96c4f7b226ae9317c1",
       "surface_kind": "executable"
     },
     {
@@ -36911,11 +37535,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 116401,
+      "bytes": 119072,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "7027a5c9c3051ee272f879a5a27f73ddb0b6dd9af712d92c89018ed6f3086047",
+      "sha256": "2a66ef1737ac2c2fbbb117df915db0f1e354e7bab9e6e7814663c9f2c38fbcd5",
       "surface_kind": "structured"
     },
     {
@@ -37079,11 +37703,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 27717,
+      "bytes": 34226,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_bibliographic_topology.py",
-      "sha256": "52e8e77f6754523fb944818e79fbcdafe33920d834c933a022dba62431b3a250",
+      "sha256": "0cb43299f91da4e889a26c957566135070e2b9084410d586cf451d43eb85beac",
       "surface_kind": "executable"
     },
     {
@@ -37119,11 +37743,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 16857,
+      "bytes": 19701,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_resource_inventories.py",
-      "sha256": "607e211a15e0d39009dd27617728d7308841f393f6e17f64fd9b59d86116d1f5",
+      "sha256": "5d897fe0abe94d7a3620c64fe39df69c08e30d664f93688dfd49e9a1526a6956",
       "surface_kind": "executable"
     },
     {
