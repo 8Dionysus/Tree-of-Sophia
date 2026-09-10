@@ -27,7 +27,7 @@ import {draftForPacket,encodeDraft} from './lens-model.mjs';
 import {pathAvailable} from './navigation-model.mjs';
 import {createPageCommandRegistry} from '../page-commands';
 import {createWebMCPAdapter} from '../webmcp';
-import {focusSpec,relationSpec,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {focusSpec,relationSpec,compileRouteCenter,localized,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {createObservatoryData} from './data-services.mjs';
 
 export function mountObservatory({host=document.getElementById('app'),data=createObservatoryData(),initialRoute=location.search}={}){
@@ -95,8 +95,8 @@ const handlers={
   'tos.page.open-view':async(input,{signal})=>{
     scene.ui.cancelPending();
     if(input.mode!=='philosophy'||(input.graph_mode&&input.graph_mode!=='nodes')||!['constellations','observatory'].includes(String(input.view_id)))throw new Error(ui("Эта линза открывается в расширенном исследовательском режиме."));
-    const packet=await client.compile(focusSpec(String(input.focus_id||DEFAULT_FOCUS)),signal);
-    signal.throwIfAborted();commit(()=>scene.port.setGraph(packet,{selectFocus:Boolean(input.focus_id)}));return {view_id:'observatory'};
+    const center=await compileRouteCenter(client,String(input.focus_id||DEFAULT_FOCUS),signal);
+    signal.throwIfAborted();commit(()=>{scene.port.setGraph(center.packet,{selectFocus:center.kind==='node'&&Boolean(input.focus_id)});if(center.kind==='relation')scene.port.selectRelation(String(input.focus_id),{rememberView:false});});return {view_id:'observatory',focus_kind:center.kind};
   },
   'tos.page.select':async(input,{signal})=>{
     scene.ui.cancelPending();

@@ -1,6 +1,6 @@
 import {ui,uiAttribute,uiChildren,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,materialDisplayForm,sourceOriginalTitle,missingReadableTitle,focusSpec,relationSpec,DEFAULT_FOCUS} from './knowledge-client.mjs';
+import {RequestSlots,RevisionError,ContractError,localized,displayTitle,displayTitleForm,materialDisplayForm,sourceOriginalTitle,missingReadableTitle,compileRouteCenter,DEFAULT_FOCUS} from './knowledge-client.mjs';
 import {decodeDraft,constructorCatalog,previewDraft} from './lens-model.mjs';
 import {formIdentity,formLanguages,validateHumanForms,claimPathFor,resolveClaimReading} from './human-forms.mjs';
 import {renderHumanForms,renderEssentialContext} from './human-forms-view.mjs';
@@ -47,12 +47,14 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
   function willSelect(){slots.cancel('scene');cancelInspector();notice('');if(port.packet)root.dataset.dataState='ready';}
   function notifyFailure(error,retry){notice(error.message||ui("Связь с данными прервалась."),retry);port.announce(error.message);}
   async function loadFocus(id,{expected=null,initial=false,depth=1,selectFocus=true}={}){
-    const spec=focusSpec(id,{depth});notice(ui("Получаю окрестность…"));root.dataset.dataState='loading';
+    notice(ui("Получаю окрестность…"));root.dataset.dataState='loading';
     try{
-      const result=await slots.run('scene',signal=>client.compile(spec,signal,expected));if(!result.current)return;
-      port.setGraph(result.value,{initial,selectFocus});root.dataset.dataState='ready';notice('');
+      const result=await slots.run('scene',signal=>compileRouteCenter(client,id,signal,expected,{depth}));if(!result.current)return;
+      port.setGraph(result.value.packet,{initial,selectFocus:selectFocus&&result.value.kind==='node'});
+      if(result.value.kind==='relation')port.selectRelation(id,{rememberView:false});
+      root.dataset.dataState='ready';notice('');
       if(selectFocus)q('#so-about-tab').focus();
-      port.announce(ui("Область загружена. Узлов: {0}. Связей: {1}.", [result.value.nodes.length, result.value.relations.length]));
+      port.announce(ui("Область загружена. Узлов: {0}. Связей: {1}.", [result.value.packet.nodes.length, result.value.packet.relations.length]));
     }catch(error){root.dataset.dataState='error';notifyFailure(error,()=>loadFocus(id,{initial,depth,selectFocus}));}
   }
   function chooseNode(id,expected){
@@ -73,10 +75,9 @@ export function attachKnowledgeUI(root,port,{client,initialFocus=DEFAULT_FOCUS,i
     notice(ui("Открываю отношение…"));root.dataset.dataState='loading';
     try{
       const result=await slots.run('scene',async signal=>{
-        const {match}=await client.inspect('relation',raw.id,signal,expected,raw.content_revision);
-        const spec=relationSpec(match),packet=await client.compile(spec,signal,expected);
-        if(!packet.relations.some(r=>r.id===match.id))throw new ContractError(ui("Выбранное отношение отсутствует в области."));
-        return {packet};
+        const center=await compileRouteCenter(client,raw.id,signal,expected);
+        if(center.kind!=='relation'||!center.packet.relations.some(r=>r.id===raw.id))throw new ContractError(ui("Выбранное отношение отсутствует в области."));
+        return {packet:center.packet};
       });
       if(!result.current)return;
       port.setGraph(result.value.packet);port.selectRelation(raw.id,{rememberView:false});

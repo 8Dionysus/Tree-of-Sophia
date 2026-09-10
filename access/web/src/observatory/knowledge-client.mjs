@@ -82,6 +82,35 @@ export function relationSpec(relation){
   spec.relation_query={filters:[{field:'id',op:'eq',value:relation.id}]};
   spec.limits={nodes:2,relations:1,groups:2};return spec;
 }
+
+// A public route may name either a node or a relation.  Relation identities
+// are intentionally opaque, so the route resolver asks the owner relation
+// endpoint first and falls back to the node lens only for an actual 404.  A
+// network, permission, revision, or contract failure must remain visible and
+// must never be mistaken for a node route.
+export async function compileRouteCenter(client,id,signal,expected=null,{depth=1}={}) {
+  if(typeof id!=='string'||!id.trim())throw new ContractError(t("Не указан центр области."));
+  let relationError=null;
+  try {
+    const identity=await client.inspect('relation',id,signal,expected);
+    const revision=identity.packet.source_revision;
+    const packet=await client.compile(relationSpec(identity.match),signal,revision);
+    if(!packet.relations.some(item=>item.id===id))throw new ContractError(t("Выбранное отношение отсутствует в области."));
+    return {packet,kind:'relation',relation:identity.match};
+  } catch(error) {
+    relationError=error;
+    if(!(error instanceof RequestError)||error.status!==404)throw error;
+  }
+  try {
+    const packet=await client.compile(focusSpec(id,{depth}),signal,expected);
+    return {packet,kind:'node'};
+  } catch(error) {
+    // Preserve the node error: it describes the requested route more
+    // accurately than the probing relation 404.
+    if(relationError&&error instanceof RequestError&&error.status===404)throw relationError;
+    throw error;
+  }
+}
 export function checkRevision(packet,expected) {
   if(!/^[a-f0-9]{64}$/.test(packet?.source_revision||''))throw new ContractError(t("Ответ не содержит версию данных."));
   if(expected&&packet.source_revision!==expected)throw new RevisionError();

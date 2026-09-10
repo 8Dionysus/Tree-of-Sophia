@@ -1,7 +1,7 @@
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -130,6 +130,33 @@ test('HTTP adapter sends the compact bounded contract and encodes opaque IDs',as
   assert.equal(calls[1].url,'/api/knowledge/nodes/'+encodeURIComponent(raw.id)+'?relation_limit=0');
   assert.equal(inspected.match.id,raw.id);
   await assert.rejects(client.inspect('node','different/id',undefined,fixture.source_revision),ContractError);
+});
+
+test('route center resolves an opaque relation as the actual scene center and falls back only on relation 404',async()=>{
+  const relation=fixture.relations[0],calls=[];
+  const relationPacket={schema:'tos_knowledge_relation_packet_v1',source_revision:fixture.source_revision,
+    matches:[relation],endpoints:fixture.nodes};
+  const client=new KnowledgeClient({fetcher:async(url,options)=>{
+    calls.push({url,options});
+    if(url.includes('/relations/'))return {ok:true,json:async()=>relationPacket};
+    return {ok:true,json:async()=>clone()};
+  }});
+  const resolved=await compileRouteCenter(client,relation.id);
+  assert.equal(resolved.kind,'relation');assert.equal(resolved.relation.id,relation.id);
+  assert.equal(resolved.packet.focus.node_id,relation.from_id);
+  assert.deepEqual(resolved.packet.relations.map(item=>item.id),[relation.id]);
+  const sent=JSON.parse(calls.find(call=>call.url.includes('/compile')).options.body);
+  assert.deepEqual(sent.relation_query.filters,[{field:'id',op:'eq',value:relation.id}]);
+
+  const fallbackCalls=[];
+  const fallback=new KnowledgeClient({fetcher:async(url,options)=>{
+    fallbackCalls.push({url,options});
+    if(url.includes('/relations/'))return {ok:false,status:404,json:async()=>({})};
+    return {ok:true,json:async()=>clone()};
+  }});
+  const node=await compileRouteCenter(fallback,'graph-a:work');
+  assert.equal(node.kind,'node');assert.equal(node.packet.focus.node_id,'graph-a:work');
+  assert.equal(fallbackCalls.filter(call=>call.url.includes('/compile')).length,1);
 });
 
 test('timeouts fail visibly and user cancellation remains cancellation',async()=>{
