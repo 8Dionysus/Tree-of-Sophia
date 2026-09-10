@@ -4,6 +4,50 @@ This directory owns the stable machine vocabulary used when ToS material is
 composed into read-only knowledge lenses. It is an interchange layer over
 source-owned meaning, not a universal ontology and not a route into canon.
 
+## Scoped composition and research corpora
+
+Entity registry 32 adds the persistent `research-corpus` source profile and two
+distinct Claim-scoped value types. Relation registry 37 connects
+`intellectual_part_composition` (IntellectualObject → qualified proper-part
+composition) and `research_corpus_membership` (ResearchCorpus → qualified
+research selection). The first accepts declared IntellectualObject subtypes;
+the latter accepts IntellectualObject, Expression, Edition, Item, Artifact,
+Collection and ResearchCorpus members. Neither is a generic Thing relation.
+
+Both reuse `structured-reference-value-v1` with the explicit
+`object_reference_set.structure_adapter: scoped-members-v1`. Concrete profile
+bounds remain authoritative: existing motif proposals still permit only 2–8
+Occurrences; these structural profiles permit 1–128 members. The shared schema
+and reader validate scope, coverage, no self membership, exact member closure,
+acyclic local precedence and comparability when total ordering is claimed.
+Unknown extensions remain uninterpreted. The detailed meaning and non-effects
+live in [Corpus Foundation](../CORPUS_FOUNDATION.md).
+
+`public-profile-create` / `source.create` and public record revision handle the
+corpus description and source-copy name/notes forms. The existing v4
+`public-claim-create-v4` and reference-value revision routes create/correct the
+whole composition Claim: both the exact value and every member role require
+current delegation. Prepare, expected dependency/version checks, atomic
+publication, replay, retained previous bytes and independently scoped
+assessment remain the same operation grammar. Discover exact handler names and
+request shapes through [source-command discovery](../../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md).
+
+Human forms bind the complete Claim and its qualified statement, not just an
+unqualified member list. The existing value-member graph edges expose every
+declared member through the Claim in either direction; they do not independently
+admit membership. Named properties expose scope, coverage, membership basis,
+order mode/basis and limitations for inspection and filtering. Source wording
+and the full ordered value remain available; free wording still needs
+source-visible quality assessment. No template infers order from labels or
+serialization. Existing publication-Collection membership remains on its
+separate `contains_work` compound-operation route.
+
+These contracts provide bounded intellectual part/research membership, not
+physical-part semantics, automatic publication-Collection order, or a global
+accepted containment DAG. A future concrete predicate can reuse the adapter
+and shared shape without adding a per-type writer or graph screen; its meaning,
+endpoint family, evidence, schema and review route must still be declared.
+
 ## Identity and vocabulary
 
 `entity-types.v1.json` gives durable `tos.entity.*` IDs to reusable entity

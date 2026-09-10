@@ -130,6 +130,88 @@ class ReferenceValueAuthorizationTests(unittest.TestCase):
 
 
 class SourceClaimCreationTests(unittest.TestCase):
+    def test_scoped_composition_create_revise_replay_and_member_focus(self):
+        """Synthetic composition of real metadata; not a historical part claim."""
+        with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):
+            for name in ('source-structured-value', 'scoped-member-structure', 'source-member-structure-claim',
+                         'source-metadata-record', 'semantic-description-record', 'textual-passage-record'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            members = ['tos.textual-fragment.synthetic.a', 'tos.textual-fragment.synthetic.b']
+            member_bytes = {}
+            for index, identity in enumerate(members):
+                record = {'schema_version': 'tos_textual_passage_record_v1', 'record_type': 'textual-fragment',
+                    'record_id': identity, 'record_version': 1, 'preferred_label': f'Synthetic part {index}',
+                    'notes': 'Only a test part. No historical existence asserted.',
+                    'field_languages': {field: {'language': 'en', 'script': 'Latn'} for field in ('preferred_label', 'notes')},
+                    'semantic_scope': {'scope_note': 'Only the test.', 'identity_criterion': 'This test referent.', 'language': 'en', 'script': 'Latn'},
+                    'semantic_content': {'fragment_account': 'Artificial part.', 'boundary_basis': 'Test-only boundary.', 'language': 'en', 'script': 'Latn'},
+                    'identity_status': 'provisional', 'source_refs': claim['evidence_refs'], 'external_identifiers': [],
+                    'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only'}
+                path = root / f'ToS/source-witnesses/textual-parts/test-{index}/textual-fragment.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(record), encoding='utf-8')
+                member_bytes[path] = path.read_bytes()
+            value = {'kind': 'intellectual-part-composition', 'members': members,
+                'source_wording': {'text': 'Synthetic partial composition, not an accepted division.', 'language': 'en', 'script': 'Latn'},
+                'source_scope': 'These two test parts only.', 'coverage': 'partial',
+                'membership_basis': 'Test construction, not a source discovery.',
+                'ordering': {'mode': 'total', 'basis': 'Test arrangement, not chronology.', 'precedes': [members]},
+                'limitations': 'No assertion about the real Work.', 'extensions': {'unknown': [False, None, 0]}}
+            claim.update(schema_version='tos_source_member_structure_claim_v1', predicate='intellectual_part_composition',
+                object=value, assertion_layer='scholarly_report', qualifiers={'statement': value['source_wording']['text'],
+                    'statement_language': 'en', 'statement_script': 'Latn'})
+            creator.update(schema_version=commands.CLAIM_REFERENCE_CONFIG, allowed_predicates=[claim['predicate']],
+                allowed_object_refs=members, allowed_object_values=[value])
+            owner.write_text(json.dumps(creator))
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create', 'claims': [claim]}
+            prepared = commands.run_local_command(owner, proposal)
+            self.assertEqual(set(prepared['source_bindings']['objects']), {claim['subject_ref'], *members})
+            request = {**proposal, 'operation': 'claims.create', 'command_id': 'synthetic:composition',
+                'expected_configuration': prepared['owner_configuration'], 'expected_revision': None,
+                'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings']}
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            old_source = (root / creator['source_path']).read_bytes()
+            reversed_value = copy.deepcopy(value)
+            reversed_value['ordering']['precedes'] = [members[::-1]]
+            reversed_value['source_wording']['text'] = 'Corrected synthetic arrangement, still only partial coverage.'
+            config = {key: creator[key] for key in ('uid', 'principal_id', 'source_root', 'source_path', 'authority_ref', 'expires_at')}
+            config.update(schema_version=commands.CLAIM_REFERENCE_REVISION_CONFIG, claim_id=claim['claim_id'],
+                allowed_operations=['claim.revise'], allowed_fields=['object', 'qualifiers'], allowed_object_values=[reversed_value],
+                allowed_object_refs=members, allowed_evidence_refs=creator['allowed_evidence_refs'],
+                allowed_form_ids=['tos.form.synthetic-composition'])
+            owner.write_text(json.dumps(config))
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'object': reversed_value, 'qualifiers': {'statement': reversed_value['source_wording']['text']}},
+                'forms': [{'form_id': 'tos.form.synthetic-composition', 'field_id': 'claim.statement'}],
+                'reason': 'Correct order in the same judgment without changing any member identity.'}
+            prepared = commands.run_local_command(owner, change)
+            correction = {**change, 'operation': 'claim.revise', 'command_id': 'synthetic:composition-revise',
+                'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
+                'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
+                'expected_inputs': prepared['source_bindings']}
+            corrected = commands.run_local_command(owner, correction)
+            self.assertEqual(corrected['source']['version'], 2)
+            self.assertEqual({form['state'] for form in corrected['materializations']}, {'ready'})
+            self.assertTrue(commands.run_local_command(owner, correction)['replayed'])
+            old = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': prepared['source']})
+            self.assertEqual(old['record'], claim)
+            archive = old['files']['source-claims.jsonl']['archive_path']
+            self.assertEqual((root / archive).read_bytes(), old_source)
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            literal = next(node for node in graph['nodes'] if node['type_id'] == 'tos.entity.intellectual-part-composition')
+            self.assertEqual(literal['attributes']['value'], reversed_value)
+            self.assertNotIn(literal['entity_id'], {claim['claim_id'], claim['subject_ref'], *members})
+            from tos_access.knowledge import focus_knowledge_node
+            for center in [claim['subject_ref'], *members]:
+                focused = focus_knowledge_node(graph, center, depth=2)
+                self.assertIn(claim['claim_id'], {node['entity_id'] for node in focused['nodes']})
+            for path, raw in member_bytes.items():
+                self.assertEqual(path.read_bytes(), raw)
+
     def test_translatability_value_grows_and_revises_without_translating_or_reidentifying(self):
         """Synthetic scoped judgment: commands do not perform or accept translation."""
         with self.creation() as (root, owner, creator, claim, _, rebuild, fixture):

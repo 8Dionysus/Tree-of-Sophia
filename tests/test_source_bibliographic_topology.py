@@ -20,13 +20,122 @@ import source_owner_claim_commands
 from source_bibliographic_topology import (
     BibliographicTopologyError, validate_current_topology, validate_work_expression_delta, validate_expression_edition_delta,
 )
-from source_record_profiles import SourceClaimProfiles
+from source_record_profiles import SourceClaimProfiles, SourceProfileError, SourceRecordProfiles
 from validate_source_witness_foundation import _legacy_topology_configuration, _topology_evidence_matches
 
 
 WORK_PATH = 'ToS/source-witnesses/works/example/work.json'
 EXPRESSION_PATH = 'ToS/source-witnesses/works/example/expressions/new/expression.json'
 WORK_ID, EXPRESSION_ID, CLAIM_ID = 'tos.work.example', 'tos.expression.new', 'tos.claim.new'
+
+
+class ScopedCompositionTests(unittest.TestCase):
+    """Shared structure invariants, independent of historical truth or admission."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.profiles = SourceClaimProfiles(ROOT)
+
+    def fixture(self, kind='intellectual-part-composition', count=3):
+        _, _, _, claim = delta()
+        members = [f'tos.textual-fragment.synthetic.{index}' for index in range(count)]
+        subject = WORK_ID if kind == 'intellectual-part-composition' else 'tos.research-corpus.synthetic'
+        value = {'kind': kind, 'members': members,
+            'source_wording': {'text': 'Synthetic scoped composition; no source truth claimed.', 'language': 'en', 'script': 'Latn'},
+            'source_scope': 'Only this synthetic selection.', 'coverage': 'partial',
+            'membership_basis': 'Declared test selection, not a discovered fact.',
+            'ordering': {'mode': 'total', 'basis': 'Synthetic editorial order, not historical chronology.',
+                         'precedes': [[a, b] for a, b in zip(members, members[1:])]},
+            'limitations': 'No admission or completeness beyond this test.',
+            'extensions': {'unknown': [None, False, 0], 'members': ['tos.agent.inert']}}
+        claim.update(schema_version='tos_source_member_structure_claim_v1', subject_ref=subject,
+            predicate=kind.replace('-', '_'), object=value, assertion_layer='scholarly_report')
+        objects = {subject: {'record_id': subject, 'record_type': 'work' if subject == WORK_ID else 'research-corpus'}}
+        objects.update({ref: {'record_id': ref, 'record_type': 'textual-fragment'} for ref in members})
+        return claim, objects
+
+    def test_typed_parts_and_corpus_members_preserve_complete_value_and_dependencies(self):
+        for kind in ('intellectual-part-composition', 'research-corpus-membership'):
+            with self.subTest(kind=kind):
+                claim, objects = self.fixture(kind)
+                original = copy.deepcopy(claim)
+                self.profiles.validate(claim, objects)
+                self.assertEqual(self.profiles.identity_refs(claim), set(objects))
+                self.assertEqual(claim, original)
+                self.assertNotIn(claim['claim_id'], self.profiles.identity_refs(claim))
+                self.assertNotIn('tos.agent.inert', self.profiles.identity_refs(claim))
+
+    def test_order_modes_are_local_and_serialization_does_not_supply_order(self):
+        claim, objects = self.fixture()
+        original = copy.deepcopy(claim)
+        claim['object']['members'].reverse()
+        self.profiles.validate(claim, objects)
+        claim['object']['ordering']['precedes'] = []
+        with self.assertRaisesRegex(SourceProfileError, 'incomparable'):
+            self.profiles.validate(claim, objects)
+        for mode in ('unordered', 'partial'):
+            claim['object']['ordering']['mode'] = mode
+            self.profiles.validate(claim, objects)
+        # Opposite complete order in a different Claim is retained as a rival,
+        # not unioned with the first Claim into an artificial global cycle.
+        rival = copy.deepcopy(original)
+        rival['claim_id'] = 'tos.claim.rival'
+        rival['object']['ordering']['precedes'] = [edge[::-1] for edge in rival['object']['ordering']['precedes']]
+        for selected in (original, rival):
+            self.profiles.validate(selected, objects)
+
+    def test_rejects_cycle_unknown_member_duplicate_self_and_false_total_order(self):
+        claim, objects = self.fixture()
+        a, b, c = claim['object']['members']
+        changes = (
+            {'ordering': {'mode': 'partial', 'basis': 'Test', 'precedes': [[a, b], [b, a]]}},
+            {'ordering': {'mode': 'unordered', 'basis': 'Test', 'precedes': [[a, b]]}},
+            {'ordering': {'mode': 'total', 'basis': 'Test', 'precedes': [[a, b]]}},
+            {'ordering': {'mode': 'partial', 'basis': 'Test', 'precedes': [[a, 'tos.work.outside']]}},
+            {'ordering': {'mode': 'partial', 'basis': 'Test', 'precedes': [[a, a]]}},
+            {'ordering': {'mode': 'partial', 'basis': 'Test', 'precedes': [[a, b], [a, b]]}},
+            {'members': [a, a, c]}, {'members': [a, b, claim['subject_ref']]}, {'members': []},
+            {'coverage': 'complete'}, {'source_scope': ' '}, {'membership_basis': None},
+            {'ordering': {'mode': 'historical', 'basis': 'Test', 'precedes': []}},
+        )
+        for change in changes:
+            with self.subTest(change=change), self.assertRaises(SourceProfileError):
+                selected = copy.deepcopy(claim)
+                selected['object'].update(change)
+                self.profiles.validate(selected, objects)
+
+    def test_bounds_and_specific_domain_range_are_enforced(self):
+        claim, objects = self.fixture(count=128)
+        self.profiles.validate(claim, objects)
+        claim129, objects129 = self.fixture(count=129)
+        with self.assertRaises(SourceProfileError):
+            self.profiles.validate(claim129, objects129)
+        for role in ('subject', 'member', 'missing'):
+            with self.subTest(role=role), self.assertRaises(SourceProfileError):
+                claim, objects = self.fixture()
+                ref = claim['subject_ref'] if role == 'subject' else claim['object']['members'][0]
+                if role == 'missing':
+                    del objects[ref]
+                else:
+                    objects[ref]['record_type'] = 'place'
+                self.profiles.validate(claim, objects)
+
+    def test_research_corpus_description_has_own_identity_and_no_inline_membership(self):
+        profiles = SourceRecordProfiles(ROOT)
+        record = {'schema_version': 'tos_research_corpus_record_v1', 'record_type': 'research-corpus',
+            'record_id': 'tos.research-corpus.synthetic', 'record_version': 1,
+            'preferred_label': 'Synthetic research selection', 'notes': 'A test corpus, not a publication.',
+            'field_languages': {key: {'language': 'en', 'script': 'Latn'} for key in ('preferred_label', 'notes')},
+            'identity_status': 'provisional', 'source_refs': ['ToS/doctrine/CORPUS_FOUNDATION.md'],
+            'external_identifiers': [], 'same_as_posture': 'no_equivalence_claim', 'visibility': 'public_metadata_only',
+            'semantic_scope': {'scope_note': 'This test only.', 'identity_criterion': 'The same research purpose across corrected descriptions.', 'language': 'en', 'script': 'Latn'},
+            'semantic_content': {'research_purpose': 'Test selection.', 'selection_criterion': 'Only artificial members.',
+                                 'coverage_account': 'Explicitly incomplete.', 'language': 'en', 'script': 'Latn'},
+            'extensions': {'unknown': [None, False, 0]}}
+        profiles.validate('research-corpus', record)
+        for change in ({'record_id': 'tos.collection.synthetic'}, {'membership_claim_refs': []}, {'semantic_content': {'language': 'en', 'script': 'Latn'}}):
+            with self.subTest(change=change), self.assertRaises(SourceProfileError):
+                profiles.validate('research-corpus', {**record, **change})
 
 
 def delta():

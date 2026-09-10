@@ -43,10 +43,42 @@ ToS uses an LRM-shaped local profile without claiming full IFLA conformance.
 | `file` | one immutable byte sequence with media type and digest | the work itself |
 | `text-layer` | one immutable, role-bearing textual representation of an exact source scope | accepted text, the source file itself, or a silently mutable OCR field |
 | `collection` | an aggregate publication or container holding multiple works/expressions | a single contained work |
+| `research-corpus` | a persistent research selection identified by its purpose, scope and continuity criterion | a publication Collection, scholarly reconstruction, directory or transient search result |
 
 Authorship, translation responsibility, edition identity, date, place, and
 container membership are claims with evidence status. A filename may seed a
 lead but cannot settle any of them.
+
+Research-corpus metadata declares the research purpose and selection criterion,
+not its exact members. `research_corpus_membership` Claims state a bounded
+selection, source scope, coverage and optional order. Existing collection
+`contains_work` packets retain their exact owner closure; a research corpus
+does not replace them. A corpus may contain another corpus in a scoped Claim,
+but no global containment hierarchy or transitive union is inferred.
+
+`intellectual_part_composition` uses the same scoped member grammar for proper
+intellectual parts of a Work, Document, textual fragment or other declared
+IntellectualObject. This is not physical containment, bibliographic embodiment,
+collection membership or identity equivalence. The whole cannot be its own
+proper part. Competing divisions remain distinct versioned Claims.
+
+The shared `scoped-members-v1` adapter treats `/object/members` as an unordered
+typed dependency set, bounded at 128 members per Claim. Its separate ordering
+is `unordered`, `partial` or `total`, with a source-stated basis and explicit
+precedence pairs. Every pair must address distinct members; cycles are rejected
+inside this Claim. A total order must compare every member transitively;
+serialization order, labels and IDs never fill gaps. Partial orders preserve
+incomparability, not equality. An editorial or research order is not historical
+time, influence or causation. Competing Claims are not merged into one DAG.
+
+Coverage is `partial`, `exhaustive-within-scope` or `undetermined`. The second
+is a source-attributed claim within the stated scope, not a validator verdict
+or a closed-world rule. Unlisted objects remain unknown, not absent or false.
+Large corpora use separately evidenced bounded membership Claims with explicit
+scopes; readers must not label their union complete or choose between rival
+scopes silently. A changed membership/order judgment creates a Claim revision;
+it neither changes the corpus identity nor rewrites member metadata. Unknown
+extension values survive without being interpreted as extra members.
 
 The identity ladder is both structurally declared and claim-addressable. A
 Work's Expressions, an Expression's Editions, and an Edition's Items remain

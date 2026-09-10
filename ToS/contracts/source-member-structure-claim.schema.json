@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/source-member-structure-claim.schema.json",
+  "title": "Qualified intellectual part composition or research-corpus membership",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
+    {"required": ["qualifiers"], "properties": {
+      "schema_version": {"const": "tos_source_member_structure_claim_v1"},
+      "claim_type": {"const": "relation"},
+      "predicate": {"enum": ["intellectual_part_composition", "research_corpus_membership"]},
+      "object": {"$ref": "https://tree-of-sophia.local/ToS/contracts/scoped-member-structure.schema.json"},
+      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script"], "properties": {
+        "statement": {"type": "string", "pattern": "\\S"},
+        "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
+        "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"}
+      }}
+    }},
+    {"if": {"properties": {"predicate": {"const": "intellectual_part_composition"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "intellectual-part-composition"}}}}}},
+    {"if": {"properties": {"predicate": {"const": "research_corpus_membership"}}}, "then": {"properties": {"object": {"properties": {"kind": {"const": "research-corpus-membership"}}}}}}
+  ],
+  "unevaluatedProperties": false
+}

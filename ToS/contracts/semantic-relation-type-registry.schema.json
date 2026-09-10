@@ -106,8 +106,9 @@
           "required": ["member_type_ids", "min_items", "max_items", "subject_is_member"],
           "properties": {
             "member_type_ids": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/typeId"}},
-            "min_items": {"type": "integer", "minimum": 1, "maximum": 8},
-            "max_items": {"type": "integer", "minimum": 1, "maximum": 8},
+            "min_items": {"type": "integer", "minimum": 1, "maximum": 128},
+            "max_items": {"type": "integer", "minimum": 1, "maximum": 128},
+            "structure_adapter": {"const": "scoped-members-v1", "description": "Execute the shared bounded composition/order contract, including no self membership, exact member closure, local acyclicity and total-order completeness. No other JSON fields select code."},
             "subject_is_member": {"type": "boolean"}
           }
         },

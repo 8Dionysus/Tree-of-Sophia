@@ -544,6 +544,64 @@ class SourceCommandTests(unittest.TestCase):
 
 
 class HistoricalCreationTests(unittest.TestCase):
+    def test_research_corpus_profile_create_correct_forms_and_reader(self):
+        with self.creation() as (root, owner, config, request, rebuild, fixture):
+            for name in ('source-metadata-record', 'semantic-description-record', 'research-corpus-record', 'provenance-event-v2'):
+                ref = 'ToS/contracts/' + name + '.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            config.pop('allowed_claim_ids')
+            config.update(schema_version=commands.PROFILE_CONFIG, profile_type_id='tos.entity.research-corpus',
+                allowed_operations=['source.create'], record_id='tos.research-corpus.synthetic-create',
+                source_path='ToS/source-witnesses/research-corpora/synthetic/research-corpus.json',
+                provenance_event_id='tos.event.synthetic-research-corpus-create')
+            (root / config['source_path']).parent.parent.mkdir(parents=True)
+            owner.write_text(json.dumps(config))
+            source = request['record']
+            source.update(schema_version='tos_research_corpus_record_v1', record_type='research-corpus',
+                record_id=config['record_id'], preferred_label='Synthetic research corpus',
+                field_languages={field: {'language': 'en', 'script': 'Latn'} for field in ('preferred_label', 'notes')},
+                semantic_scope={'scope_note': 'Only synthetic test selection.',
+                    'identity_criterion': 'The same test purpose, not a metadata revision or member count.', 'language': 'en', 'script': 'Latn'},
+                semantic_content={'research_purpose': 'Test the reusable source profile.',
+                    'selection_criterion': 'Only explicitly selected test sources.',
+                    'coverage_account': 'No members declared yet; not a claim of historical emptiness.',
+                    'language': 'en', 'script': 'Latn', 'uninterpreted': [False, None, 0]})
+            request.pop('claims')
+            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'prepare-create', 'record': source, 'forms': request['forms']})
+            request.update(operation='source.create', expected_configuration=preview['owner_configuration'],
+                expected_dependencies=preview['expected_dependencies'])
+            result = commands.run_local_command(owner, request)
+            self.assertFalse(result['grants_admission'])
+            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            original = (root / config['source_path']).read_bytes()
+            revise_config = {key: config[key] for key in ('uid', 'principal_id', 'source_root', 'source_path',
+                'authority_ref', 'allowed_form_ids', 'expires_at', 'record_id', 'profile_type_id')}
+            revise_config.update(schema_version=commands.PROFILE_REVISION_CONFIG,
+                allowed_operations=['record.revise'], allowed_fields=['notes', 'semantic_content'])
+            owner.write_text(json.dumps(revise_config))
+            change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                'fields': {'notes': 'Corrected synthetic corpus description; identity and unknown extension retained.'},
+                'forms': request['forms'], 'reason': 'Description correction, not selection change.'}
+            preview = commands.run_local_command(owner, change)
+            revision = {**change, 'operation': 'record.revise', 'command_id': 'synthetic:research-corpus-correct',
+                'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
+                'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies']}
+            corrected = commands.run_local_command(owner, revision)
+            self.assertEqual(corrected['source']['id'], source['record_id'])
+            self.assertEqual(corrected['source']['version'], 2)
+            self.assertTrue(commands.run_local_command(owner, revision)['replayed'])
+            prior = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': preview['source']})
+            self.assertEqual(prior['record'], source)
+            archive = prior['files']['research-corpus.json']['archive_path']
+            self.assertEqual((root / archive).read_bytes(), original)
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            node = next(node for node in graph['nodes'] if node['entity_id'] == source['record_id'])
+            self.assertEqual(node['type_id'], 'tos.entity.research-corpus')
+            self.assertEqual(node['attributes']['source_record']['semantic_content'], source['semantic_content'])
+            self.assertEqual({form['state'] for form in corrected['materializations']}, {'ready'})
+
     @contextmanager
     def native_creation(self, kind='agent', *, schema_version='tos_local_corpus_create_owner_v1'):
         with self.creation() as (root, owner, config, request, rebuild, fixture):

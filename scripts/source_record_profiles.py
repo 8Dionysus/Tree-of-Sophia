@@ -35,6 +35,7 @@ CLAIM_CONTRACT_REF = 'ToS/contracts/semantic-relation-type-registry.schema.json'
 CLAIM_BASE_REF = 'ToS/contracts/source-claim-record.schema.json'
 TEMPORAL_VALUE_REF = 'ToS/contracts/historical-claim.schema.json'
 STRUCTURED_VALUE_REF = 'ToS/contracts/source-structured-value.schema.json'
+MEMBER_STRUCTURE_REF = 'ToS/contracts/scoped-member-structure.schema.json'
 REFERENCE_VALUE_READER = 'structured-reference-value-v1'
 STRUCTURED_VALUE_READERS = {'structured-value-v1', REFERENCE_VALUE_READER, identity_proposals.READER}
 CLAIM_SHARED_REFS = ('ToS/contracts/claim-packet.schema.json',
@@ -123,6 +124,43 @@ def _type_ancestry(entities, type_id, visiting=frozenset()):
     for parent in entities[type_id]['parent_type_ids']:
         result.update(_type_ancestry(entities, parent, visiting | {type_id}))
     return result
+
+
+def validate_member_structure(claim):
+    """Local order consistency only; never merge competing Claim hierarchies.
+
+    Called after the shared exact shape check. Kahn's algorithm detects cycles
+    and a non-unique topological ordering detects an incomplete total order.
+    The 128-member/8128-edge contract bounds time and space; no recursion or
+    arbitrary expressions come from source data.
+    """
+    value = claim['object']
+    members = set(value['members'])
+    if claim['subject_ref'] in members:
+        raise SourceProfileError('scoped composition cannot contain its own subject')
+    order = value['ordering']
+    if order['mode'] == 'unordered' and order['precedes']:
+        raise SourceProfileError('unordered composition cannot assert precedence')
+    outgoing = {member: set() for member in members}
+    indegree = {member: 0 for member in members}
+    for before, after in order['precedes']:
+        if before not in members or after not in members:
+            raise SourceProfileError('precedence endpoint is outside the declared member set')
+        outgoing[before].add(after)
+        indegree[after] += 1
+    ready = [member for member, count in indegree.items() if count == 0]
+    visited = 0
+    while ready:
+        if order['mode'] == 'total' and len(ready) != 1:
+            raise SourceProfileError('total composition order leaves members incomparable')
+        member = ready.pop()
+        visited += 1
+        for after in outgoing[member]:
+            indegree[after] -= 1
+            if indegree[after] == 0:
+                ready.append(after)
+    if visited != len(members):
+        raise SourceProfileError('composition order is cyclic within this Claim')
 
 
 class SourceRecordProfiles:
@@ -432,6 +470,7 @@ class SourceClaimProfiles:
         self.schema_routes, self.schemas, self.validators, self.base_validators = {}, {}, {}, {}
         self.temporal_validators = {}
         self.value_validators = {}
+        self.member_structure_validators = {}
         if len({entry['relation_type_id'] for entry in self.registry['relations']}) != len(self.registry['relations']):
             raise SourceProfileError('duplicate relation type identity')
         for entry in entity_registry['types']:
@@ -568,6 +607,9 @@ class SourceClaimProfiles:
             shared_refs = (*CLAIM_SHARED_REFS, *([TEMPORAL_VALUE_REF] if self.is_temporal(claim) else []))
             if self.profiles[predicate]['reader'] in STRUCTURED_VALUE_READERS:
                 shared_refs = (*shared_refs, CORPUS_REF, STRUCTURED_VALUE_REF)
+            structured_members = self.profiles[predicate].get('object_reference_set', {}).get('structure_adapter') == 'scoped-members-v1'
+            if structured_members:
+                shared_refs = (*shared_refs, MEMBER_STRUCTURE_REF)
             self.validators[key], registry = _schema_route(self.root, self.schema_routes[key], self.input_digests,
                                                            self.schemas, shared_refs)
             self.base_validators[key] = Draft202012Validator(self.schemas[CLAIM_BASE_REF], registry=registry,
@@ -578,6 +620,9 @@ class SourceClaimProfiles:
                     registry=registry, format_checker=FormatChecker())
             if self.profiles[predicate]['reader'] in STRUCTURED_VALUE_READERS:
                 self.value_validators[key] = Draft202012Validator(self.schemas[STRUCTURED_VALUE_REF],
+                    registry=registry, format_checker=FormatChecker())
+            if structured_members:
+                self.member_structure_validators[key] = Draft202012Validator(self.schemas[MEMBER_STRUCTURE_REF],
                     registry=registry, format_checker=FormatChecker())
         try:
             if not self.validators[key].is_valid(claim) or not self.base_validators[key].is_valid(claim):
@@ -590,6 +635,10 @@ class SourceClaimProfiles:
         except Unresolvable as error:
             raise SourceProfileError('source claim schema has an undeclared dependency') from error
         members = self.reference_members(claim)
+        if key in self.member_structure_validators:
+            if not self.member_structure_validators[key].is_valid(claim['object']):
+                raise SourceProfileError('source claim violates the shared scoped member structure contract')
+            validate_member_structure(claim)
         if objects is not None:
             relation = self.relations[predicate]
             if self.profiles[predicate]['reader'] == identity_proposals.READER:
