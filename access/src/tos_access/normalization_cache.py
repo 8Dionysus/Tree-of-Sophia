@@ -36,7 +36,10 @@ def normalization_processor_digest(path: Path):
             for target in targets:
                 if isinstance(target, ast.Name):
                     definitions[target.id] = statement
-    pending = ['_normalize_node', '_normalize_relation', 'validate_knowledge_semantics', '_finalize_knowledge_node']
+    pending = [
+        '_normalize_node', '_normalize_relation', 'validate_knowledge_semantics',
+        '_finalize_knowledge_node', 'addressed_update_knowledge_graph',
+    ]
     selected = {}
     while pending:
         name = pending.pop()

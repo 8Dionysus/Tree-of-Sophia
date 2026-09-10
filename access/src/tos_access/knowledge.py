@@ -9,8 +9,9 @@ import copy
 import calendar
 from collections import Counter, defaultdict
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Iterable
-from .normalization_cache import active_cache
+from .normalization_cache import active_cache, normalization_processor_digest
 from .processing import Input
 from .lens_pagination import normalize_pagination, paginate_lens
 
@@ -50,6 +51,8 @@ MAX_RELATION_LIMIT = 2000
 MAX_GROUP_LIMIT = 200
 OVERVIEW_EXCLUDED_PREDICATES = {"has_text_unit", "has_anchor", "anchored_in", "annotation_member"}
 OVERVIEW_EXCLUDED_RELATION_TYPES = {"tos.relation.made-by", "tos.relation.generated-by"}
+ADDRESS_UPDATE_PROCESSOR_VERSION = "tos-addressed-update-v1"
+ADDRESS_UPDATE_SOURCE_GRAPHS = frozenset({"philosophy", "canon", "source-navigation", "source-claims"})
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _SOURCE_DOSSIER_REF = re.compile(r"^tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 _ATTRIBUTE_FIELD = re.compile(r"^(?:attributes|semantics)\.[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
@@ -2297,6 +2300,69 @@ def _validate_claim_navigation_carriers(bibliographic_nodes, registry, entity_en
             raise ValueError(f"claim navigation carrier differs from source-bound syntax: {claim['claim_id']}")
 
 
+def _normalization_binding(
+    entity_registry: dict[str, Any],
+    relation_registry: dict[str, Any],
+) -> dict[str, str]:
+    """Bind a graph snapshot to every input that can alter normalization.
+
+    ``source_revision`` identifies the complete source snapshot, but it is not
+    sufficient to safely reuse normalized carriers: registry labels, mappings,
+    or the normalizer itself can change while a caller supplies a new source
+    revision. Keep this compact, explicit binding on the graph so bounded
+    replacement can reject a mixed old/new dictionary or processor state.
+    The processor digest is supplied by the cache owner and therefore also
+    covers any transitive readable-context dependency registered there.
+    """
+    configuration = {
+        "schema": "tos_knowledge_graph_v1",
+        "knowledge_sources": list(KNOWLEDGE_SOURCES),
+        "address_update_source_graphs": sorted(ADDRESS_UPDATE_SOURCE_GRAPHS),
+        "entity_registry_ref": ENTITY_REGISTRY_REF,
+        "relation_registry_ref": RELATION_REGISTRY_REF,
+        "overview_excluded_predicates": sorted(OVERVIEW_EXCLUDED_PREDICATES),
+        "overview_excluded_relation_types": sorted(OVERVIEW_EXCLUDED_RELATION_TYPES),
+    }
+    return {
+        "schema": "tos_knowledge_graph_normalization_binding_v1",
+        "processor_digest": normalization_processor_digest(Path(__file__).resolve()),
+        "entity_registry_digest": _stable_digest(entity_registry),
+        "relation_registry_digest": _stable_digest(relation_registry),
+        "configuration_digest": _stable_digest(configuration),
+    }
+
+
+def knowledge_source_revision(
+    corpus: dict[str, Any],
+    philosophy: dict[str, Any],
+    bibliographic_claims: dict[str, Any] | None = None,
+    entity_type_registry: dict[str, Any] | None = None,
+    relation_type_registry: dict[str, Any] | None = None,
+) -> str:
+    """Return the exact digest framing used by a complete graph build.
+
+    The source owner may compute this digest before asking the access core to
+    publish an addressed successor. Keep the framing in one helper so the
+    publication guard and the full builder cannot drift on field names or
+    wrapper shape.
+    """
+    return _stable_digest(
+        {
+            "corpus": corpus,
+            "philosophy": philosophy,
+            "bibliographic_claims": (
+                bibliographic_claims if isinstance(bibliographic_claims, dict) else {}
+            ),
+            "entity_type_registry": (
+                entity_type_registry if isinstance(entity_type_registry, dict) else {}
+            ),
+            "relation_type_registry": (
+                relation_type_registry if isinstance(relation_type_registry, dict) else {}
+            ),
+        }
+    )
+
+
 def build_knowledge_graph(
     corpus: dict[str, Any],
     philosophy: dict[str, Any],
@@ -2316,14 +2382,12 @@ def build_knowledge_graph(
             raise ValueError("invalid semantic registry: " + "; ".join(registry_report["violations"]))
     entity_entries, entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
     relation_entries, relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
-    source_revision = _stable_digest(
-        {
-            "corpus": corpus,
-            "philosophy": philosophy,
-            "bibliographic_claims": bibliographic,
-            "entity_type_registry": entity_registry,
-            "relation_type_registry": relation_registry,
-        }
+    source_revision = knowledge_source_revision(
+        corpus,
+        philosophy,
+        bibliographic,
+        entity_registry,
+        relation_registry,
     )
     nodes: list[dict[str, Any]] = []
     for item in _objects(philosophy.get("nodes")):
@@ -2879,6 +2943,7 @@ def build_knowledge_graph(
     graph = {
         "schema": "tos_knowledge_graph_v1",
         "source_revision": source_revision,
+        "normalization_binding": _normalization_binding(entity_registry, relation_registry),
         "query_properties": [{key: copy.deepcopy(definition[key]) for key in
                               ('property_id', 'field', 'value_type', 'applies_to', 'inherited', 'operators')}
                              for definition in entity_registry.get('property_definitions', [])],
@@ -2921,6 +2986,451 @@ def build_knowledge_graph(
             raise ValueError("knowledge semantic invariant violation: " + "; ".join(semantic_report["violations"][:20]))
         graph["counts"]["semantic_validation"] = semantic_report
     return graph
+
+
+class AddressedUpdateError(ValueError):
+    """The bounded update cannot prove that its addressed scope is sufficient."""
+
+
+def _addressed_record_ids(record: dict[str, Any]) -> set[str]:
+    return {
+        value
+        for key in ("node_id", "id", "path")
+        for value in (_string(record.get(key)),)
+        if value is not None
+    }
+
+
+def _addressed_relation_identity(relation: dict[str, Any]) -> str | None:
+    source_graph = _string(relation.get("source_graph"))
+    relation_id = _string(relation.get("id"))
+    native_id = _string(relation.get("native_id"))
+    if not source_graph or not relation_id or not native_id:
+        return None
+    prefix = source_graph + ":"
+    if not relation_id.startswith(prefix):
+        return None
+    identity = relation_id[len(prefix):]
+    return None if identity == native_id else identity
+
+
+def _addressed_query_properties(entity_registry: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {key: copy.deepcopy(definition[key]) for key in
+         ("property_id", "field", "value_type", "applies_to", "inherited", "operators")}
+        for definition in entity_registry.get("property_definitions", [])
+        if isinstance(definition, dict)
+        and all(key in definition for key in
+                ("property_id", "field", "value_type", "applies_to", "inherited", "operators"))
+    ]
+
+
+def _addressed_graph_counts(
+    nodes: list[dict[str, Any]],
+    relations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    source_counts = Counter(str(item.get("source_graph")) for item in nodes)
+    node_summary_states = Counter(
+        str((item.get("display") or {}).get("summary_state")) for item in nodes
+    )
+    relation_explanation_states = Counter(
+        str((item.get("display") or {}).get("explanation_state")) for item in relations
+    )
+    nodes_without_source_summary = sum(
+        (item.get("display") or {}).get("provenance", {}).get("source_summary_available") is False
+        for item in nodes
+    )
+    relations_without_source_explanation = sum(
+        (item.get("display") or {}).get("provenance", {}).get("source_explanation_available") is False
+        for item in relations
+    )
+    return {
+        "nodes": len(nodes),
+        "relations": len(relations),
+        "sources": dict(sorted(source_counts.items())),
+        "display_coverage": {
+            "node_titles": len(nodes),
+            "node_summaries": len(nodes),
+            "node_summary_states": dict(sorted(node_summary_states.items())),
+            "nodes_without_source_summary": nodes_without_source_summary,
+            "relation_labels": len(relations),
+            "relation_statements": len(relations),
+            "relation_explanations": len(relations),
+            "relation_explanation_states": dict(sorted(relation_explanation_states.items())),
+            "relations_without_source_explanation": relations_without_source_explanation,
+        },
+        "semantic_mapping": {
+            "mapped_nodes": sum(
+                (item.get("type_mapping") or {}).get("status") == "mapped" for item in nodes
+            ),
+            "unmapped_nodes": sum(
+                (item.get("type_mapping") or {}).get("status") == "unmapped" for item in nodes
+            ),
+            "mapped_relations": sum(
+                (item.get("predicate_mapping") or {}).get("status") == "mapped"
+                for item in relations
+            ),
+            "unmapped_relations": sum(
+                (item.get("predicate_mapping") or {}).get("status") == "unmapped"
+                for item in relations
+            ),
+            "cross_layer_relations": sum(
+                item.get("source_graph") == "semantic-interchange" for item in relations
+            ),
+        },
+    }
+
+
+def _addressed_structural_report(
+    nodes: list[dict[str, Any]],
+    relations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Check immutable graph shape without treating it as semantic acceptance."""
+    violations: list[str] = []
+    if any(not isinstance(item, dict) for item in nodes):
+        violations.append("knowledge node array contains a non-object item")
+    if any(not isinstance(item, dict) for item in relations):
+        violations.append("knowledge relation array contains a non-object item")
+    object_nodes = [item for item in nodes if isinstance(item, dict)]
+    object_relations = [item for item in relations if isinstance(item, dict)]
+    node_ids = [str(item.get("id")) for item in object_nodes]
+    relation_ids = [str(item.get("id")) for item in object_relations]
+    duplicates = sorted(identifier for identifier, count in Counter(node_ids).items() if count > 1)
+    if duplicates:
+        violations.append("duplicate knowledge node ids: " + ", ".join(duplicates[:8]))
+    duplicate_relations = sorted(
+        identifier for identifier, count in Counter(relation_ids).items() if count > 1
+    )
+    if duplicate_relations:
+        violations.append("duplicate knowledge relation ids: " + ", ".join(duplicate_relations[:8]))
+    node_set = set(node_ids)
+    for relation in object_relations:
+        for endpoint in ("from_id", "to_id"):
+            identifier = relation.get(endpoint)
+            if identifier not in node_set:
+                violations.append(
+                    f"relation {relation.get('id')} has unresolved normalized endpoint {identifier!r}"
+                )
+    return {
+        "valid": not violations,
+        "violations": sorted(set(violations)),
+        "checked_nodes": len(object_nodes),
+        "checked_relations": len(object_relations),
+    }
+
+
+def addressed_update_knowledge_graph(
+    previous_graph: dict[str, Any],
+    source_graph: str,
+    source_id: str,
+    source_record: dict[str, Any],
+    entity_type_registry: dict[str, Any] | None = None,
+    relation_type_registry: dict[str, Any] | None = None,
+    *,
+    entity_registry: dict[str, Any] | None = None,
+    relation_registry: dict[str, Any] | None = None,
+    source_revision: str | None = None,
+    target_source_revision: str | None = None,
+    operation: str = "replace",
+    return_report: bool = False,
+) -> dict[str, Any]:
+    """Replace one exact source carrier in an immutable normalized snapshot.
+
+    This is deliberately narrower than :func:`build_knowledge_graph`.  It
+    accepts only a single existing source record from one of the direct carrier
+    graphs, re-normalizes that carrier and relations incident to its normalized
+    ID, and then runs the same global structural/semantic checks.  Source
+    discovery, claim/view assembly, relation discovery and deletion/addition
+    are not guessed here: callers must use the full builder when those
+    dependencies may have changed.
+
+    ``source_revision`` is an exact revision obtained from the owner of the
+    complete source snapshot.  It is required: a bounded lineage digest is
+    useful for diagnostics but is not a complete source snapshot revision and
+    must not be returned as an ordinary graph revision.
+    """
+    if not isinstance(previous_graph, dict) or previous_graph.get("schema") != "tos_knowledge_graph_v1":
+        raise AddressedUpdateError("addressed update requires a tos_knowledge_graph_v1 snapshot")
+    if not isinstance(source_graph, str) or source_graph not in ADDRESS_UPDATE_SOURCE_GRAPHS:
+        raise AddressedUpdateError(
+            "addressed update supports only direct source carriers: "
+            + ", ".join(sorted(ADDRESS_UPDATE_SOURCE_GRAPHS))
+        )
+    if not isinstance(source_id, str) or not source_id.strip():
+        raise AddressedUpdateError("source_id must be a non-empty exact owner id")
+    if operation != "replace":
+        raise AddressedUpdateError(
+            "addressed update is replace-only; additions and removals require full source assembly"
+        )
+    if not isinstance(source_record, dict):
+        raise AddressedUpdateError("source_record must be the exact replacement object")
+    if entity_registry is not None:
+        if entity_type_registry is not None and entity_type_registry != entity_registry:
+            raise AddressedUpdateError("entity registry aliases disagree")
+        entity_type_registry = entity_registry
+    if relation_registry is not None:
+        if relation_type_registry is not None and relation_type_registry != relation_registry:
+            raise AddressedUpdateError("relation registry aliases disagree")
+        relation_type_registry = relation_registry
+    entity_registry = entity_type_registry if isinstance(entity_type_registry, dict) else {}
+    relation_registry = relation_type_registry if isinstance(relation_type_registry, dict) else {}
+    if target_source_revision is not None:
+        if source_revision is not None and source_revision != target_source_revision:
+            raise AddressedUpdateError("source_revision aliases disagree")
+        source_revision = target_source_revision
+    if source_revision is None:
+        raise AddressedUpdateError(
+            "addressed update requires an exact target source_revision; "
+            "bounded lineage is not a complete knowledge snapshot revision"
+        )
+    for revision, name in ((previous_graph.get("source_revision"), "previous source_revision"),
+                           (source_revision, "source_revision")):
+        if revision is not None and (
+            not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{64}", revision)
+        ):
+            raise AddressedUpdateError(f"{name} must be an exact lowercase sha256 revision")
+
+    old_nodes = previous_graph.get("nodes")
+    old_relations = previous_graph.get("relations")
+    if not isinstance(old_nodes, list) or not isinstance(old_relations, list):
+        raise AddressedUpdateError("addressed update requires complete nodes and relations arrays")
+    matches = [
+        (position, node)
+        for position, node in enumerate(old_nodes)
+        if isinstance(node, dict)
+        and node.get("source_graph") == source_graph
+        and (node.get("id") == source_id
+             or node.get("native_id") == source_id
+             or node.get("id") == f"{source_graph}:{source_id}")
+    ]
+    if len(matches) != 1:
+        raise AddressedUpdateError(
+            f"source address {source_graph}:{source_id} resolved to {len(matches)} normalized nodes"
+        )
+    node_position, old_node = matches[0]
+    old_node_id = _string(old_node.get("id"))
+    old_native_id = _string(old_node.get("native_id"))
+    if not old_node_id or not old_native_id:
+        raise AddressedUpdateError("addressed source carrier has no stable normalized/native id")
+    if old_native_id not in _addressed_record_ids(source_record):
+        raise AddressedUpdateError(
+            f"replacement source record does not carry the addressed native id {old_native_id}"
+        )
+    if source_graph in {"source-navigation", "source-claims"}:
+        candidate = _source_dossier_candidate(source_record, source_graph)
+        if candidate != old_node.get("source_dossier_ref"):
+            raise AddressedUpdateError(
+                "source dossier binding changed; rerun complete source-navigation/claim assembly"
+            )
+        semantic_kind = _string(source_record.get("node_kind"))
+        if semantic_kind in {"claim", "record-version"} or old_node.get("kind_id") in {"claim", "record-version"}:
+            raise AddressedUpdateError(
+                "claim and record-version carriers require complete source claim/view assembly"
+            )
+    if old_node.get("semantics", {}).get("claim"):
+        raise AddressedUpdateError("claim-enriched carriers require complete claim-trace assembly")
+
+    entity_entries, entity_mappings, fallback_type_id = _entity_registry_indexes(entity_registry)
+    relation_entries, relation_mappings, fallback_relation_type_id = _relation_registry_indexes(relation_registry)
+    expected_binding = _normalization_binding(entity_registry, relation_registry)
+    previous_binding = previous_graph.get("normalization_binding")
+    if previous_binding != expected_binding:
+        if not isinstance(previous_binding, dict):
+            raise AddressedUpdateError(
+                "previous snapshot lacks an exact normalization dependency binding; "
+                "run a complete graph build"
+            )
+        changed = sorted(
+            key for key in set(previous_binding) | set(expected_binding)
+            if previous_binding.get(key) != expected_binding.get(key)
+        )
+        raise AddressedUpdateError(
+            "normalization dependency binding changed; run a complete graph build "
+            "instead of mixing registry/processor state (fields: " + ", ".join(changed) + ")"
+        )
+    old_semantic_report = (previous_graph.get("counts") or {}).get("semantic_validation")
+    if old_semantic_report is not None and not (entity_registry and relation_registry):
+        raise AddressedUpdateError(
+            "a semantically validated snapshot requires both exact registries for addressed revalidation"
+        )
+    identity_tail = old_node_id[len(source_graph) + 1:] if old_node_id.startswith(source_graph + ":") else None
+    identity_id = None if identity_tail in {None, old_native_id} else identity_tail
+    replacement_material = copy.deepcopy(source_record)
+    if source_graph == "source-claims":
+        # build_knowledge_graph marks every bibliographic carrier with the
+        # projection layer before normalization.  Keep that owned derivation
+        # local to this addressed path; callers still provide the exact raw
+        # source carrier, never a pre-normalized node.
+        replacement_material["graph_layers"] = sorted({
+            *_strings(replacement_material.get("graph_layers")),
+            "bibliographic-claim",
+        })
+    replacement_base = _normalize_node(
+        replacement_material,
+        source_graph,
+        native_id=old_native_id,
+        identity_id=identity_id,
+        source_dossier_ref=old_node.get("source_dossier_ref"),
+        entity_type_entries=entity_entries,
+        entity_type_mappings=entity_mappings,
+        fallback_type_id=fallback_type_id,
+    )
+    if replacement_base.get("id") != old_node_id:
+        raise AddressedUpdateError(
+            "replacement changed the normalized address; use a source-owner revision/full rebuild"
+        )
+
+    updated_nodes = copy.deepcopy(old_nodes)
+    updated_relations = copy.deepcopy(old_relations)
+    nodes_by_id = {str(node.get("id")): node for node in updated_nodes if isinstance(node, dict)}
+    # Use the replacement's display title while rebuilding incident relation
+    # statements. Finalization adds only claim/views, not endpoint identity.
+    nodes_by_id[old_node_id] = replacement_base
+    incident_relation_ids: list[str] = []
+    for position, old_relation in enumerate(old_relations):
+        if not isinstance(old_relation, dict):
+            raise AddressedUpdateError("snapshot contains a non-object relation")
+        if old_node_id not in {old_relation.get("from_id"), old_relation.get("to_id")}:
+            continue
+        relation_id = _string(old_relation.get("id"))
+        raw_envelope = old_relation.get("source_record")
+        raw_relation = raw_envelope.get("payload") if isinstance(raw_envelope, dict) else None
+        relation_source = _string(old_relation.get("source_graph"))
+        native_relation = _string(old_relation.get("native_id"))
+        if not relation_id or not relation_source or not native_relation or not isinstance(raw_relation, dict):
+            raise AddressedUpdateError(
+                f"incident relation {relation_id or '<missing>'} lacks an exact source payload"
+            )
+        old_contexts = (old_relation.get("semantics") or {}).get("assertion_contexts")
+        if old_contexts is not None and not isinstance(old_contexts, list):
+            raise AddressedUpdateError(f"incident relation {relation_id} has malformed assertion contexts")
+        direct_context = _assertion_context(raw_relation)
+        residual_contexts = [
+            context for context in (old_contexts or [])
+            if not isinstance(direct_context, dict)
+            or _validation_digest(context) != _validation_digest(direct_context)
+        ]
+        if residual_contexts:
+            raise AddressedUpdateError(
+                f"incident relation {relation_id} has referenced claim context outside addressed scope"
+            )
+        replacement_relation = _normalize_relation(
+            copy.deepcopy(raw_relation),
+            relation_source,
+            nodes_by_id,
+            native_id=native_relation,
+            identity_id=_addressed_relation_identity(old_relation),
+            relation_type_entries=relation_entries,
+            relation_type_mappings=relation_mappings,
+            fallback_relation_type_id=fallback_relation_type_id,
+        )
+        if replacement_relation.get("id") != relation_id:
+            raise AddressedUpdateError(f"incident relation {relation_id} changed its normalized address")
+        if (replacement_relation.get("from_id"), replacement_relation.get("to_id")) != (
+            old_relation.get("from_id"), old_relation.get("to_id")
+        ):
+            raise AddressedUpdateError(
+                f"incident relation {relation_id} changed endpoints; rerun complete relation assembly"
+            )
+        updated_relations[position] = replacement_relation
+        incident_relation_ids.append(relation_id)
+
+    inherited_views = sorted({
+        view_id
+        for relation in updated_relations
+        if isinstance(relation, dict)
+        and old_node_id in {relation.get("from_id"), relation.get("to_id")}
+        for view_id in _strings(relation.get("view_ids"))
+    })
+    replacement_node = _finalize_knowledge_node(replacement_base, None, inherited_views)
+    if replacement_node.get("id") != old_node_id:
+        raise AddressedUpdateError("finalized addressed node changed its normalized address")
+    updated_nodes[node_position] = replacement_node
+
+    structural = _addressed_structural_report(updated_nodes, updated_relations)
+    if not structural["valid"]:
+        raise AddressedUpdateError("addressed update produced invalid graph shape: " + "; ".join(structural["violations"][:20]))
+    if replacement_node.get("content_revision") != _content_revision(replacement_node):
+        raise AddressedUpdateError("addressed node content revision is not self-consistent")
+    for relation in updated_relations:
+        if relation.get("id") in incident_relation_ids and relation.get("content_revision") != _content_revision(relation):
+            raise AddressedUpdateError(
+                f"addressed relation {relation.get('id')} content revision is not self-consistent"
+            )
+
+    previous_revision = previous_graph.get("source_revision")
+    lineage = {
+        "schema": "tos_addressed_update_lineage_v1",
+        "processor": ADDRESS_UPDATE_PROCESSOR_VERSION,
+        "operation": operation,
+        "parent_source_revision": previous_revision,
+        "address": {"source_graph": source_graph, "source_id": source_id, "normalized_id": old_node_id},
+        "before_content_revision": old_node.get("content_revision"),
+        "replacement_source_digest": _stable_digest(source_record),
+        "incident_relation_ids": sorted(incident_relation_ids),
+    }
+    bounded_revision = _stable_digest(lineage)
+    next_revision = source_revision or bounded_revision
+    result = copy.deepcopy(previous_graph)
+    result["source_revision"] = next_revision
+    result["nodes"] = updated_nodes
+    result["relations"] = updated_relations
+    result["query_properties"] = (
+        _addressed_query_properties(entity_registry)
+        if entity_registry
+        else copy.deepcopy(previous_graph.get("query_properties", []))
+    )
+    result["counts"] = _addressed_graph_counts(updated_nodes, updated_relations)
+    if entity_registry and relation_registry:
+        semantic_report = validate_knowledge_semantics(result, entity_registry, relation_registry)
+        if not semantic_report["valid"]:
+            raise AddressedUpdateError(
+                "addressed update failed global semantic validation: "
+                + "; ".join(semantic_report["violations"][:20])
+            )
+        result["counts"]["semantic_validation"] = semantic_report
+    elif old_semantic_report is not None:
+        # Guard is above; this is defensive if the report shape changes.
+        raise AddressedUpdateError("addressed update cannot preserve semantic validation without registries")
+
+    report = {
+        "schema": "tos_addressed_update_report_v1",
+        "processor": ADDRESS_UPDATE_PROCESSOR_VERSION,
+        "source_revision": next_revision,
+        "source_revision_mode": "provided-exact" if source_revision else "bounded-lineage",
+        "lineage_revision": bounded_revision,
+        "address": {"source_graph": source_graph, "source_id": source_id, "normalized_id": old_node_id},
+        "recomputed": {"nodes": [old_node_id], "relations": sorted(incident_relation_ids)},
+        "reused": {
+            "nodes": max(0, len(updated_nodes) - 1),
+            "relations": max(0, len(updated_relations) - len(incident_relation_ids)),
+        },
+        "input_traversal": {
+            "submitted_source_records": 1,
+            "retained_relation_payloads_read": len(incident_relation_ids),
+            "source_records_indexed": 0,
+            "source_assembly": "not-run",
+            "normalized_nodes_scanned": len(updated_nodes),
+            "normalized_relations_scanned": len(updated_relations),
+            "bounded_recompute": "one-node-plus-incident-relations",
+            "global_validation": "full-snapshot-scan",
+        },
+        "validation": {
+            "local": {"node_ids": [old_node_id], "relation_ids": sorted(incident_relation_ids)},
+            "global": "semantic" if entity_registry and relation_registry else "structural",
+            "structural": structural,
+            "semantic": result["counts"].get("semantic_validation"),
+        },
+        "snapshot": {"previous_snapshot_mutated": False},
+        "is_semantic_acceptance": False,
+    }
+    return {"graph": result, "report": report} if return_report else result
+
+
+# Short aliases keep the owner-facing operation discoverable without making a
+# second implementation (both names retain the same fail-closed contract).
+update_knowledge_graph_addressed = addressed_update_knowledge_graph
+apply_addressed_knowledge_update = addressed_update_knowledge_graph
 
 
 def _finalize_knowledge_node(node, claim_update, inherited_views, claim_contexts=None):

@@ -13,7 +13,12 @@ ACCESS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ACCESS / 'src'))
 from tos_access.processing import Input, Task, ProcessingScheduler, processing_input_changes
 from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest
-from tos_access.knowledge import build_knowledge_graph, validate_knowledge_semantics
+from tos_access.knowledge import (
+    AddressedUpdateError,
+    addressed_update_knowledge_graph,
+    build_knowledge_graph,
+    validate_knowledge_semantics,
+)
 
 
 class ProcessingTests(unittest.TestCase):
@@ -371,6 +376,107 @@ class ProcessingTests(unittest.TestCase):
             db=sqlite3.connect(path)
             self.assertEqual(db.execute('SELECT run_id FROM processing_publication').fetchone()[0],smaller.scheduler.run_id)
             db.close()
+
+    def test_addressed_update_matches_full_rebuild_and_preserves_previous_snapshot(self):
+        from test_knowledge_contract import KnowledgeContractTests
+        KnowledgeContractTests.setUpClass()
+        entities = copy.deepcopy(KnowledgeContractTests.entity_type_registry)
+        relations = copy.deepcopy(KnowledgeContractTests.relation_type_registry)
+        corpus, philosophy = KnowledgeContractTests().fixture()
+        baseline = build_knowledge_graph(corpus, philosophy, {}, entities, relations)
+        previous = copy.deepcopy(baseline)
+        replacement = copy.deepcopy(philosophy['nodes'][0])
+        replacement['label'] = 'Альфа — addressed edit'
+        changed_philosophy = copy.deepcopy(philosophy)
+        changed_philosophy['nodes'][0] = replacement
+        full = build_knowledge_graph(corpus, changed_philosophy, {}, entities, relations)
+
+        updated = addressed_update_knowledge_graph(
+            baseline, 'philosophy', 'a', replacement, entities, relations,
+            source_revision=full['source_revision'], return_report=True,
+        )
+        self.assertEqual(updated['graph'], full)
+        self.assertEqual(baseline, previous)
+        self.assertEqual(updated['report']['source_revision_mode'], 'provided-exact')
+        self.assertEqual(updated['report']['input_traversal'], {
+            'submitted_source_records': 1,
+            'retained_relation_payloads_read': 1,
+            'source_records_indexed': 0,
+            'source_assembly': 'not-run',
+            'normalized_nodes_scanned': len(full['nodes']),
+            'normalized_relations_scanned': len(full['relations']),
+            'bounded_recompute': 'one-node-plus-incident-relations',
+            'global_validation': 'full-snapshot-scan',
+        })
+        self.assertEqual(updated['report']['recomputed'], {
+            'nodes': ['philosophy:a'], 'relations': ['philosophy:e'],
+        })
+        self.assertEqual(updated['report']['validation']['global'], 'semantic')
+        self.assertFalse(updated['report']['is_semantic_acceptance'])
+
+        # A changed registry label is still structurally valid, but it
+        # changes the meaning of every reused carrier.  The addressed
+        # path must reject that mixed dictionary state before touching the
+        # source node; a new source revision alone is not an admission.
+        drifted_entities = copy.deepcopy(entities)
+        drifted_entities['types'][0]['labels']['en'] = 'Unrelated vocabulary drift'
+        drifted_full = build_knowledge_graph(
+            corpus, changed_philosophy, {}, drifted_entities, relations
+        )
+        with self.assertRaisesRegex(AddressedUpdateError, 'normalization dependency binding changed'):
+            addressed_update_knowledge_graph(
+                baseline, 'philosophy', 'a', replacement, drifted_entities, relations,
+                source_revision=drifted_full['source_revision'],
+            )
+
+        with self.assertRaisesRegex(AddressedUpdateError, 'exact target source_revision'):
+            addressed_update_knowledge_graph(
+                baseline, 'philosophy', 'a', replacement, entities, relations,
+            )
+
+    def test_addressed_update_reuses_cache_lineage_and_rejects_ambiguous_scope(self):
+        from test_knowledge_contract import KnowledgeContractTests
+        KnowledgeContractTests.setUpClass()
+        entities = copy.deepcopy(KnowledgeContractTests.entity_type_registry)
+        relations = copy.deepcopy(KnowledgeContractTests.relation_type_registry)
+        corpus, philosophy = KnowledgeContractTests().fixture()
+        replacement = copy.deepcopy(philosophy['nodes'][0])
+        replacement['label'] = 'Альфа — cache edit'
+        changed_philosophy = copy.deepcopy(philosophy)
+        changed_philosophy['nodes'][0] = replacement
+        full = build_knowledge_graph(corpus, changed_philosophy, {}, entities, relations)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'steps.sqlite'
+            with NormalizationCache(path, 'addressed-v1') as first:
+                baseline = build_knowledge_graph(corpus, philosophy, {}, entities, relations)
+            with NormalizationCache(path, 'addressed-v1') as changed:
+                result = addressed_update_knowledge_graph(
+                    baseline, 'philosophy', 'a', replacement, entities, relations,
+                    source_revision=full['source_revision'], return_report=True,
+                )
+            self.assertEqual(result['graph'], full)
+            steps = changed.processing_report['steps_by_kind']
+            self.assertEqual(steps['node']['executed'], 1)
+            self.assertEqual(steps['final-node']['executed'], 1)
+            self.assertEqual(steps['relation']['executed'], 1)
+            self.assertGreater(steps['validate-node']['reused'], 0)
+            self.assertGreater(steps['validate-relation']['reused'], 0)
+
+            broken = copy.deepcopy(baseline)
+            incident = next(item for item in broken['relations'] if item['id'] == 'philosophy:e')
+            incident['source_record'].pop('payload')
+            before = copy.deepcopy(broken)
+            with self.assertRaisesRegex(AddressedUpdateError, 'lacks an exact source payload'):
+                addressed_update_knowledge_graph(
+                    broken, 'philosophy', 'a', replacement, entities, relations,
+                    source_revision=full['source_revision'],
+                )
+            self.assertEqual(broken, before)
+            with self.assertRaisesRegex(AddressedUpdateError, 'replace-only'):
+                addressed_update_knowledge_graph(
+                    baseline, 'philosophy', 'a', replacement, entities, relations,
+                    operation='delete',
+                )
 
     def test_processor_digest_tracks_normalizers_and_helpers_not_lens_queries(self):
         # Source fragments are sufficient: hashing does not execute code.

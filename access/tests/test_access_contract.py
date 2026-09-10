@@ -339,6 +339,471 @@ def write_fixture(root: Path) -> None:
 
 
 class CoreContractTests(unittest.TestCase):
+    def test_core_exposes_exact_owner_addressed_update_call(self) -> None:
+        from copy import deepcopy
+        from tos_access.knowledge import build_knowledge_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            philosophy = deepcopy(core.philosophy_projection())
+            replacement = deepcopy(philosophy['nodes'][0])
+            replacement['label'] = 'Core addressed edit'
+            philosophy['nodes'][0] = replacement
+            full = build_knowledge_graph(
+                core.index(), philosophy, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            core.philosophy_graph_projection_path.write_text(
+                json.dumps(philosophy, ensure_ascii=False), encoding="utf-8"
+            )
+
+            result = core.knowledge_graph_addressed(
+                baseline, 'philosophy', replacement['node_id'], replacement,
+                source_revision=full['source_revision'], return_report=True,
+            )
+            self.assertEqual(result['graph'], full)
+            self.assertEqual(result['report']['address']['source_id'], replacement['node_id'])
+            self.assertEqual(result['report']['input_traversal']['source_assembly'], 'exact-transition-checked')
+            self.assertIs(core.knowledge_graph(), result['graph'])
+            search = core.knowledge_search('Core addressed edit')
+            self.assertEqual(search['source_revision'], full['source_revision'])
+            self.assertEqual(search['counts']['matching_nodes'], 1)
+            inspected = core.knowledge_node('philosophy:a')
+            self.assertEqual(inspected['source_revision'], full['source_revision'])
+            self.assertEqual(inspected['matches'][0]['display']['title']['default'], 'Core addressed edit')
+            focused = core.knowledge_focus('philosophy:a', depth=1)
+            self.assertEqual(focused['source_revision'], full['source_revision'])
+            stat = core.index_path.stat()
+            os.utime(core.index_path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1))
+            rebuilt = core.knowledge_graph()
+            self.assertIsNot(rebuilt, result['graph'])
+            self.assertEqual(rebuilt['source_revision'], full['source_revision'])
+
+    def test_source_edit_then_addressed_publish_reaches_every_consumer_and_restart(self) -> None:
+        """A durable owner edit is published without a pre-publication full build."""
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest, build_knowledge_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+
+            projection = core.philosophy_graph_projection_path
+            edited_source = json.loads(projection.read_text(encoding="utf-8"))
+            replacement = deepcopy(edited_source["nodes"][0])
+            replacement["label"] = "Durable addressed edit"
+            edited_source["nodes"][0] = replacement
+            projection.write_text(json.dumps(edited_source, ensure_ascii=False), encoding="utf-8")
+
+            # The source owner supplies the exact target revision from the
+            # complete carrier set.  This is only digest framing; the test
+            # deliberately does not build a target graph before publication.
+            target_revision = _stable_digest(
+                {
+                    "corpus": core.index(),
+                    "philosophy": edited_source,
+                    "bibliographic_claims": core.bibliographic_graph(),
+                    "entity_type_registry": core.entity_type_registry(),
+                    "relation_type_registry": core.relation_type_registry(),
+                }
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, "does not match the complete"):
+                core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision="0" * 64,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertIs(core._published_graph, baseline)
+            published = core.knowledge_graph_addressed(
+                baseline,
+                "philosophy",
+                replacement["node_id"],
+                replacement,
+                source_revision=target_revision,
+                expected_parent_revision=baseline["source_revision"],
+            )
+            self.assertEqual(published["source_revision"], target_revision)
+
+            relation_id = published["relations"][0]["id"]
+            consumers = (
+                core.knowledge_catalog(),
+                core.knowledge_search("Durable addressed edit"),
+                core.knowledge_node("philosophy:a"),
+                core.knowledge_relation(relation_id),
+                core.knowledge_focus("philosophy:a", depth=1),
+                core.knowledge_explore({"focus_node_id": "philosophy:a", "max_depth": 1}),
+            )
+            self.assertTrue(all(packet.get("source_revision") == target_revision for packet in consumers))
+            self.assertEqual(consumers[0]["counts"], published["counts"])
+            self.assertEqual(
+                consumers[0]["capabilities"]["sources"],
+                [
+                    "philosophy",
+                    "canon",
+                    "candidate-intake",
+                    "source-navigation",
+                    "source-claims",
+                    "semantic-interchange",
+                    "repository",
+                ],
+            )
+            self.assertEqual(consumers[2]["matches"][0]["display"]["title"]["default"], "Durable addressed edit")
+
+            # The disk edit is the restart input.  A fresh core must perform a
+            # complete build and converge to the already published successor.
+            restarted = ToSAccessCore.discover(root).knowledge_graph()
+            expected = build_knowledge_graph(
+                core.index(),
+                edited_source,
+                core.bibliographic_graph(),
+                core.entity_type_registry(),
+                core.relation_type_registry(),
+            )
+            self.assertEqual(restarted, expected)
+            self.assertEqual(restarted, published)
+
+            # Supplying the current revision string cannot make an old graph a
+            # valid parent.  CAS binds both the expected revision and the exact
+            # currently published snapshot object.
+            stale_previous = deepcopy(baseline)
+            stale_previous["source_revision"] = published["source_revision"]
+            with self.assertRaisesRegex(AddressedUpdateError, "parent is stale"):
+                core.knowledge_graph_addressed(
+                    stale_previous,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision=target_revision,
+                    expected_parent_revision=published["source_revision"],
+                )
+            self.assertIs(core.knowledge_graph(), published)
+
+    def test_same_size_same_mtime_atomic_replacement_invalidates_graph_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            path = core.philosophy_graph_projection_path
+            original = path.read_bytes()
+            replacement = original.replace(b'"Alpha"', b'"Omega"', 1)
+            self.assertEqual(len(replacement), len(original))
+            stat = path.stat()
+            # First cover a same-inode rewrite whose mtime is restored. ctime
+            # must still invalidate the parsed carrier.
+            path.write_bytes(replacement)
+            os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+
+            refreshed = core.knowledge_graph()
+            self.assertNotEqual(refreshed["source_revision"], baseline["source_revision"])
+            node = next(item for item in refreshed["nodes"] if item["id"] == "philosophy:a")
+            self.assertEqual(node["display"]["title"]["default"], "Omega")
+
+            # Then cover an atomic same-size replacement with the old mtime;
+            # inode identity must also invalidate it.
+            temporary = path.with_name(path.name + ".replacement")
+            temporary.write_bytes(original)
+            os.utime(temporary, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            os.replace(temporary, path)
+            restored = core.knowledge_graph()
+            node = next(item for item in restored["nodes"] if item["id"] == "philosophy:a")
+            self.assertEqual(node["display"]["title"]["default"], "Alpha")
+
+    def test_concurrent_addressed_writers_share_one_cas_parent(self) -> None:
+        from concurrent.futures import ThreadPoolExecutor
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            original = core.philosophy_projection()
+            source = deepcopy(original)
+            replacement = deepcopy(source["nodes"][0])
+            replacement["label"] = "writer one"
+            source["nodes"][0] = replacement
+            core.philosophy_graph_projection_path.write_text(
+                json.dumps(source, ensure_ascii=False), encoding="utf-8"
+            )
+            common = {
+                "corpus": core.index(),
+                "philosophy": source,
+                "bibliographic_claims": core.bibliographic_graph(),
+                "entity_type_registry": core.entity_type_registry(),
+                "relation_type_registry": core.relation_type_registry(),
+            }
+            revision = _stable_digest(common)
+            candidates = [(deepcopy(replacement), revision), (deepcopy(replacement), revision)]
+
+            def publish(candidate):
+                replacement, revision = candidate
+                try:
+                    return core.knowledge_graph_addressed(
+                        baseline,
+                        "philosophy",
+                        replacement["node_id"],
+                        replacement,
+                        source_revision=revision,
+                        expected_parent_revision=baseline["source_revision"],
+                    )
+                except AddressedUpdateError as error:
+                    return error
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(publish, candidates))
+            self.assertEqual(sum(isinstance(result, AddressedUpdateError) for result in results), 1)
+            winner = next(result for result in results if isinstance(result, dict))
+            loser = next(result for result in results if isinstance(result, AddressedUpdateError))
+            self.assertIn("parent is stale", str(loser))
+            self.assertIs(core.knowledge_graph(), winner)
+
+    def test_addressed_publication_rejects_undeclared_source_deltas(self) -> None:
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            projection = core.philosophy_graph_projection_path
+            index_path = core.index_path
+            original_philosophy = deepcopy(core.philosophy_projection())
+            original_index = deepcopy(core.index())
+
+            # Two changes in the addressed carrier cannot be silently folded
+            # into a one-record replacement.
+            two_edits = deepcopy(original_philosophy)
+            first = deepcopy(two_edits["nodes"][0])
+            second = deepcopy(two_edits["nodes"][1])
+            first["label"] = "first declared edit"
+            second["label"] = "second undeclared edit"
+            two_edits["nodes"][0] = first
+            two_edits["nodes"][1] = second
+            projection.write_text(json.dumps(two_edits, ensure_ascii=False), encoding="utf-8")
+            target_revision = _stable_digest(
+                {
+                    "corpus": original_index,
+                    "philosophy": two_edits,
+                    "bibliographic_claims": core.bibliographic_graph(),
+                    "entity_type_registry": core.entity_type_registry(),
+                    "relation_type_registry": core.relation_type_registry(),
+                }
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, "undeclared carrier changes"):
+                core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    first["node_id"],
+                    first,
+                    source_revision=target_revision,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertIs(core._published_graph, baseline)
+
+            # A submitted philosophy edit cannot consume an unrelated corpus
+            # projection edit by merely naming the new complete revision.
+            projection.write_text(json.dumps(original_philosophy, ensure_ascii=False), encoding="utf-8")
+            unrelated_index = deepcopy(original_index)
+            unrelated_index["nodes"][0]["label"] = "unrelated corpus edit"
+            one_edit = deepcopy(original_philosophy)
+            replacement = deepcopy(one_edit["nodes"][0])
+            replacement["label"] = "one declared edit"
+            one_edit["nodes"][0] = replacement
+            index_path.write_text(json.dumps(unrelated_index, ensure_ascii=False), encoding="utf-8")
+            projection.write_text(json.dumps(one_edit, ensure_ascii=False), encoding="utf-8")
+            target_revision = _stable_digest(
+                {
+                    "corpus": unrelated_index,
+                    "philosophy": one_edit,
+                    "bibliographic_claims": core.bibliographic_graph(),
+                    "entity_type_registry": core.entity_type_registry(),
+                    "relation_type_registry": core.relation_type_registry(),
+                }
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, "undeclared carrier changes"):
+                core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision=target_revision,
+                    expected_parent_revision=baseline["source_revision"],
+                )
+            self.assertIs(core._published_graph, baseline)
+
+            projection.write_text(json.dumps(original_philosophy, ensure_ascii=False), encoding="utf-8")
+            index_path.write_text(json.dumps(original_index, ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(core.knowledge_graph(), baseline)
+
+    def test_addressed_publication_rejects_python_equal_json_type_deltas(self) -> None:
+        """Exact source transitions must distinguish JSON number/boolean types."""
+        from copy import deepcopy
+        from tos_access.knowledge import AddressedUpdateError, _stable_digest
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            projection = core.philosophy_graph_projection_path
+            original = deepcopy(core.philosophy_projection())
+
+            for field, first_value, second_value in (
+                ("nested_boolean", False, 0),
+                ("nested_number", 1, 1.0),
+            ):
+                candidate = deepcopy(original)
+                declared = deepcopy(candidate["nodes"][0])
+                undeclared = deepcopy(candidate["nodes"][1])
+                declared["label"] = f"declared {field}"
+                declared.setdefault("properties", {})[field] = first_value
+                undeclared.setdefault("properties", {})[field] = second_value
+                candidate["nodes"][0] = declared
+                candidate["nodes"][1] = undeclared
+                projection.write_text(json.dumps(candidate, ensure_ascii=False), encoding="utf-8")
+                target_revision = _stable_digest(
+                    {
+                        "corpus": core.index(),
+                        "philosophy": candidate,
+                        "bibliographic_claims": core.bibliographic_graph(),
+                        "entity_type_registry": core.entity_type_registry(),
+                        "relation_type_registry": core.relation_type_registry(),
+                    }
+                )
+                with self.assertRaisesRegex(AddressedUpdateError, "undeclared carrier changes"):
+                    core.knowledge_graph_addressed(
+                        baseline,
+                        "philosophy",
+                        declared["node_id"],
+                        declared,
+                        source_revision=target_revision,
+                        expected_parent_revision=baseline["source_revision"],
+                    )
+                self.assertIs(core._published_graph, baseline)
+                projection.write_text(json.dumps(original, ensure_ascii=False), encoding="utf-8")
+                baseline = core.knowledge_graph()
+                self.assertEqual(baseline, core.knowledge_graph())
+
+    def test_addressed_publication_uses_one_snapshot_cas_and_source_race_guard(self) -> None:
+        from copy import deepcopy
+        from tos_access import core as core_module
+        from tos_access.knowledge import AddressedUpdateError, build_knowledge_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            baseline = core.knowledge_graph()
+            source = deepcopy(core.philosophy_projection())
+            replacement = deepcopy(source['nodes'][0])
+            replacement['label'] = 'CAS addressed edit'
+            source['nodes'][0] = replacement
+            full = build_knowledge_graph(
+                core.index(), source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            core.philosophy_graph_projection_path.write_text(
+                json.dumps(source, ensure_ascii=False), encoding='utf-8'
+            )
+            published = core.knowledge_graph_addressed(
+                baseline, 'philosophy', replacement['node_id'], replacement,
+                source_revision=full['source_revision'],
+                expected_parent_revision=baseline['source_revision'],
+            )
+
+            # Every ordinary consumer observes the same addressed revision,
+            # including the aggregate catalog and resumable exploration.
+            catalog = core.knowledge_catalog()
+            search = core.knowledge_search('CAS addressed edit')
+            node = core.knowledge_node('philosophy:a')
+            relation = core.knowledge_relation(published['relations'][0]['id'])
+            focus = core.knowledge_focus('philosophy:a', depth=1)
+            explored = core.knowledge_explore({'focus_node_id': 'philosophy:a', 'max_depth': 1})
+            packets = (catalog, search, node, relation, focus, explored)
+            self.assertTrue(all(packet.get('source_revision') == full['source_revision'] for packet in packets))
+            self.assertEqual(catalog['counts'], published['counts'])
+            self.assertEqual(node['matches'][0]['display']['title']['default'], 'CAS addressed edit')
+
+            # A second writer based on the old parent must not overwrite the
+            # published successor, even if it supplies a valid replacement.
+            stale_source = deepcopy(source)
+            stale_source['nodes'][0]['label'] = 'stale writer'
+            stale_full = build_knowledge_graph(
+                core.index(), stale_source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            with self.assertRaisesRegex(AddressedUpdateError, 'parent is stale'):
+                core.knowledge_graph_addressed(
+                    baseline, 'philosophy', replacement['node_id'], stale_source['nodes'][0],
+                    source_revision=stale_full['source_revision'],
+                    expected_parent_revision=baseline['source_revision'],
+                )
+            self.assertIs(core.knowledge_graph(), published)
+
+            # Change a real disposable projection while the bounded operation is
+            # in flight. The before/after source state check refuses publication;
+            # it must not silently bind the stale result to the new file tuple.
+            race_source = deepcopy(source)
+            race_source['nodes'][0]['label'] = 'race attempt'
+            projection = core.philosophy_graph_projection_path
+            # The submitted replacement must be the already-written owner
+            # carrier; the worker below then performs a second edit while the
+            # addressed recomputation is in flight.
+            projection.write_text(json.dumps(race_source, ensure_ascii=False), encoding='utf-8')
+            entered = threading.Event()
+            changed = threading.Event()
+            original_update = core_module.addressed_update_knowledge_graph
+
+            def mutate_source() -> None:
+                entered.wait(5)
+                disk = json.loads(projection.read_text(encoding='utf-8'))
+                disk['nodes'][0]['label'] = 'race source edit'
+                projection.write_text(json.dumps(disk, ensure_ascii=False), encoding='utf-8')
+                changed.set()
+
+            def delayed_update(*args, **kwargs):
+                entered.set()
+                self.assertTrue(changed.wait(5))
+                return original_update(*args, **kwargs)
+
+            worker = threading.Thread(target=mutate_source)
+            worker.start()
+            try:
+                with patch.object(core_module, 'addressed_update_knowledge_graph', side_effect=delayed_update):
+                    with self.assertRaisesRegex(AddressedUpdateError, 'changed during addressed update'):
+                        core.knowledge_graph_addressed(
+                            published, 'philosophy', replacement['node_id'], race_source['nodes'][0],
+                            source_revision=stale_full['source_revision'],
+                            expected_parent_revision=published['source_revision'],
+                        )
+            finally:
+                worker.join(5)
+            self.assertFalse(worker.is_alive())
+            self.assertIs(core._addressed_graph, published)
+
+            # A fresh core after the real source edit agrees with a full build;
+            # the addressed in-memory successor never becomes restart state.
+            disk_source = json.loads(projection.read_text(encoding='utf-8'))
+            expected = build_knowledge_graph(
+                core.index(), disk_source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
+            rebuilt = core.knowledge_graph()
+            restarted = ToSAccessCore.discover(root).knowledge_graph()
+            self.assertEqual(rebuilt, expected)
+            self.assertEqual(restarted, expected)
+
     def test_core_inspection_reuses_and_replaces_one_snapshot_index(self) -> None:
         from concurrent.futures import ThreadPoolExecutor
         from copy import deepcopy

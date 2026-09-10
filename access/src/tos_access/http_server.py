@@ -184,8 +184,9 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                     except (KeyError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
                         errors.append(f"philosophy projection invalid: {exc}")
                     try:
-                        knowledge = core.knowledge_graph()
-                        catalog = core.knowledge_catalog()
+                        snapshot = core.knowledge_snapshot()
+                        knowledge = snapshot["graph"]
+                        catalog = snapshot["catalog"]
                         counts = knowledge.get("counts", {})
                         coverage = counts.get("display_coverage", {}) if isinstance(counts, dict) else {}
                         knowledge_schema = str(knowledge.get("schema") or "")

@@ -342,6 +342,20 @@ This avoids repeated whole-graph scans, not the initial normalization/index
 build. It does not add historical snapshot retention, change LensSpec/search
 execution, or materialize a Cloudflare/D1 index.
 
+For an owner that already has one immutable graph and one exact replacement
+carrier, `ToSAccessCore.knowledge_graph_addressed(...)` publishes a bounded
+in-memory successor for the replace-only case. The caller must provide the
+complete target `source_revision`; the core checks the graph's exact
+normalization binding (processor, registries, and configuration), rebuilds the
+changed node plus incident relations, and then reuses the result for ordinary
+`knowledge_search`, `knowledge_node`, `knowledge_relation`, and
+`knowledge_focus` calls. Additions, removals, dossier/Claim assembly, source
+writes, semantic assessment, and publication remain on their owner routes.
+The report distinguishes one submitted replacement from retained incident
+payload reads and the full normalized graph scan used for global validation.
+If any source input file changes, the in-memory successor is discarded and the
+next graph read returns to complete builder assembly.
+
 ### Resumable neighborhood exploration
 
 Unlike delivery pagination, `POST /api/knowledge/explore` continues an actual

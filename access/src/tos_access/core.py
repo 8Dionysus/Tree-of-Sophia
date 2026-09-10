@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import os
@@ -7,19 +8,22 @@ import sys
 from collections import deque
 from dataclasses import dataclass, field
 from functools import lru_cache
-from threading import Lock
+from threading import Lock, RLock
 from pathlib import Path
 from typing import Any
 
 from .knowledge import (
+    AddressedUpdateError,
     KnowledgeGraphIndex,
     KnowledgeSearchIndex,
+    addressed_update_knowledge_graph,
     build_knowledge_graph,
     execute_knowledge_lens,
     focus_knowledge_node,
     inspect_knowledge_node,
     inspect_knowledge_relation,
     knowledge_catalog as build_knowledge_catalog,
+    knowledge_source_revision,
     search_knowledge_graph,
 )
 from .exploration import ExplorationService, exploration_capabilities
@@ -91,8 +95,13 @@ def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
 
 
 @lru_cache(maxsize=8)
-def _read_json_version(path_text: str, mtime_ns: int, size: int) -> dict[str, Any]:
-    del mtime_ns, size
+def _read_json_version(
+    path_text: str, mtime_ns: int, size: int, inode: int, ctime_ns: int
+) -> dict[str, Any]:
+    # Atomic same-size replacements can preserve both mtime and size while
+    # changing the source bytes. Include inode and ctime in the cache key so a
+    # replacement or same-inode rewrite never reuses the old parsed carrier.
+    del mtime_ns, size, inode, ctime_ns
     path = Path(path_text)
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -102,7 +111,9 @@ def _read_json_version(path_text: str, mtime_ns: int, size: int) -> dict[str, An
 
 def _read_json(path: Path) -> dict[str, Any]:
     stat = path.stat()
-    return _read_json_version(path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size)
+    return _read_json_version(
+        path.resolve().as_posix(), stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns
+    )
 
 
 @lru_cache(maxsize=8)
@@ -110,35 +121,59 @@ def _knowledge_graph_version(
     index_path_text: str,
     index_mtime_ns: int,
     index_size: int,
+    index_inode: int,
+    index_ctime_ns: int,
     philosophy_path_text: str,
     philosophy_mtime_ns: int,
     philosophy_size: int,
+    philosophy_inode: int,
+    philosophy_ctime_ns: int,
     bibliographic_path_text: str,
     bibliographic_mtime_ns: int,
     bibliographic_size: int,
+    bibliographic_inode: int,
+    bibliographic_ctime_ns: int,
     entity_registry_path_text: str,
     entity_registry_mtime_ns: int,
     entity_registry_size: int,
+    entity_registry_inode: int,
+    entity_registry_ctime_ns: int,
     relation_registry_path_text: str,
     relation_registry_mtime_ns: int,
     relation_registry_size: int,
+    relation_registry_inode: int,
+    relation_registry_ctime_ns: int,
 ) -> dict[str, Any]:
-    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
-    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    corpus = _read_json_version(
+        index_path_text, index_mtime_ns, index_size, index_inode, index_ctime_ns
+    )
+    philosophy = _read_json_version(
+        philosophy_path_text,
+        philosophy_mtime_ns,
+        philosophy_size,
+        philosophy_inode,
+        philosophy_ctime_ns,
+    )
     bibliographic = _read_json_version(
         bibliographic_path_text,
         bibliographic_mtime_ns,
         bibliographic_size,
+        bibliographic_inode,
+        bibliographic_ctime_ns,
     )
     entity_registry = _read_json_version(
         entity_registry_path_text,
         entity_registry_mtime_ns,
         entity_registry_size,
+        entity_registry_inode,
+        entity_registry_ctime_ns,
     )
     relation_registry = _read_json_version(
         relation_registry_path_text,
         relation_registry_mtime_ns,
         relation_registry_size,
+        relation_registry_inode,
+        relation_registry_ctime_ns,
     )
     return build_knowledge_graph(
         corpus,
@@ -154,47 +189,79 @@ def _knowledge_catalog_version(
     index_path_text: str,
     index_mtime_ns: int,
     index_size: int,
+    index_inode: int,
+    index_ctime_ns: int,
     philosophy_path_text: str,
     philosophy_mtime_ns: int,
     philosophy_size: int,
+    philosophy_inode: int,
+    philosophy_ctime_ns: int,
     bibliographic_path_text: str,
     bibliographic_mtime_ns: int,
     bibliographic_size: int,
+    bibliographic_inode: int,
+    bibliographic_ctime_ns: int,
     entity_registry_path_text: str,
     entity_registry_mtime_ns: int,
     entity_registry_size: int,
+    entity_registry_inode: int,
+    entity_registry_ctime_ns: int,
     relation_registry_path_text: str,
     relation_registry_mtime_ns: int,
     relation_registry_size: int,
+    relation_registry_inode: int,
+    relation_registry_ctime_ns: int,
 ) -> dict[str, Any]:
-    corpus = _read_json_version(index_path_text, index_mtime_ns, index_size)
-    philosophy = _read_json_version(philosophy_path_text, philosophy_mtime_ns, philosophy_size)
+    corpus = _read_json_version(
+        index_path_text, index_mtime_ns, index_size, index_inode, index_ctime_ns
+    )
+    philosophy = _read_json_version(
+        philosophy_path_text,
+        philosophy_mtime_ns,
+        philosophy_size,
+        philosophy_inode,
+        philosophy_ctime_ns,
+    )
     entity_registry = _read_json_version(
         entity_registry_path_text,
         entity_registry_mtime_ns,
         entity_registry_size,
+        entity_registry_inode,
+        entity_registry_ctime_ns,
     )
     relation_registry = _read_json_version(
         relation_registry_path_text,
         relation_registry_mtime_ns,
         relation_registry_size,
+        relation_registry_inode,
+        relation_registry_ctime_ns,
     )
     graph = _knowledge_graph_version(
         index_path_text,
         index_mtime_ns,
         index_size,
+        index_inode,
+        index_ctime_ns,
         philosophy_path_text,
         philosophy_mtime_ns,
         philosophy_size,
+        philosophy_inode,
+        philosophy_ctime_ns,
         bibliographic_path_text,
         bibliographic_mtime_ns,
         bibliographic_size,
+        bibliographic_inode,
+        bibliographic_ctime_ns,
         entity_registry_path_text,
         entity_registry_mtime_ns,
         entity_registry_size,
+        entity_registry_inode,
+        entity_registry_ctime_ns,
         relation_registry_path_text,
         relation_registry_mtime_ns,
         relation_registry_size,
+        relation_registry_inode,
+        relation_registry_ctime_ns,
     )
     return build_knowledge_catalog(
         graph,
@@ -443,6 +510,22 @@ class ToSAccessCore:
     _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
     _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
     _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _snapshot_lock: Any = field(default_factory=RLock, init=False, repr=False, compare=False)
+    # The last graph returned to consumers is the CAS parent.  It is kept
+    # separately from the on-disk source state because an owner may edit one
+    # source carrier first and then publish its bounded replacement without
+    # forcing an unrelated full rebuild before the addressed call.
+    _published_graph: dict[str, Any] | None = field(default=None, init=False, repr=False, compare=False)
+    _published_source_inputs: dict[str, bytes] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _addressed_graph: dict[str, Any] | None = field(default=None, init=False, repr=False, compare=False)
+    _addressed_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _published_source_state: tuple[tuple[str, int, int, int, int], ...] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self):
         self._exploration = ExplorationService(self.knowledge_graph)
@@ -957,53 +1040,351 @@ class ToSAccessCore:
 
     def knowledge_graph(self) -> dict[str, Any]:
         """Return a public read model with display fields, not a content-completeness verdict."""
-        index_stat = self.index_path.stat()
-        philosophy_stat = self.philosophy_graph_projection_path.stat()
-        bibliographic_stat = self.bibliographic_graph_path.stat()
-        entity_registry_stat = self.entity_type_registry_path.stat()
-        relation_registry_stat = self.relation_type_registry_path.stat()
-        return _knowledge_graph_version(
-            self.index_path.resolve().as_posix(),
-            index_stat.st_mtime_ns,
-            index_stat.st_size,
-            self.philosophy_graph_projection_path.resolve().as_posix(),
-            philosophy_stat.st_mtime_ns,
-            philosophy_stat.st_size,
-            self.bibliographic_graph_path.resolve().as_posix(),
-            bibliographic_stat.st_mtime_ns,
-            bibliographic_stat.st_size,
-            self.entity_type_registry_path.resolve().as_posix(),
-            entity_registry_stat.st_mtime_ns,
-            entity_registry_stat.st_size,
-            self.relation_type_registry_path.resolve().as_posix(),
-            relation_registry_stat.st_mtime_ns,
-            relation_registry_stat.st_size,
+        with self._snapshot_lock:
+            input_state = self._knowledge_input_state()
+            if self._published_graph is not None and input_state == self._published_source_state:
+                return self._published_graph
+            # A source projection changed after an in-memory addressed update;
+            # the owner must re-enter the complete builder for the new source
+            # snapshot rather than layering edits across unknown inputs.
+            self._addressed_graph = None
+            self._addressed_source_state = None
+
+            # A full build reads several independently written source
+            # projections. Do not publish a graph under a state tuple that was
+            # observed only after a source changed during the build.
+            for _attempt in range(3):
+                state_before = self._knowledge_input_state()
+                graph = _knowledge_graph_version(*self._knowledge_graph_version_args(state_before))
+                source_inputs = self._knowledge_source_inputs()
+                state_after = self._knowledge_input_state()
+                if state_before == state_after:
+                    self._published_graph = graph
+                    self._published_source_inputs = self._canonical_source_inputs(source_inputs)
+                    self._published_source_state = state_after
+                    return graph
+            raise RuntimeError("ToS knowledge source projections changed during graph build")
+
+    def _knowledge_input_state(self) -> tuple[tuple[str, int, int, int, int], ...]:
+        """Return the source-file state that bounds an in-memory addressed snapshot."""
+        paths = self._knowledge_input_paths()
+        state = []
+        for path in paths:
+            stat = path.stat()
+            state.append(
+                (
+                    path.resolve().as_posix(),
+                    stat.st_mtime_ns,
+                    stat.st_size,
+                    stat.st_ino,
+                    stat.st_ctime_ns,
+                )
+            )
+        return tuple(state)
+
+    def _knowledge_input_paths(self) -> tuple[Path, ...]:
+        return (
+            self.index_path,
+            self.philosophy_graph_projection_path,
+            self.bibliographic_graph_path,
+            self.entity_type_registry_path,
+            self.relation_type_registry_path,
         )
+
+    def _knowledge_source_inputs(self) -> dict[str, dict[str, Any]]:
+        """Read the complete direct carrier set for exact owner transitions."""
+        return {
+            "corpus": _read_json(self.index_path),
+            "philosophy": _read_json(self.philosophy_graph_projection_path),
+            "bibliographic": _read_json(self.bibliographic_graph_path),
+            "entity_type_registry": _read_json(self.entity_type_registry_path),
+            "relation_type_registry": _read_json(self.relation_type_registry_path),
+        }
+
+    @staticmethod
+    def _canonical_source_inputs(
+        inputs: dict[str, dict[str, Any]],
+    ) -> dict[str, bytes]:
+        """Keep immutable compact carrier snapshots for the next CAS delta."""
+        return {
+            name: ToSAccessCore._canonical_json_bytes(payload)
+            for name, payload in inputs.items()
+        }
+
+    @staticmethod
+    def _canonical_json_bytes(value: Any) -> bytes:
+        """Encode JSON with the same type-sensitive canonical contract."""
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+
+    @staticmethod
+    def _addressed_source_collection(
+        inputs: dict[str, dict[str, Any]], source_graph: str
+    ) -> tuple[dict[str, Any], str]:
+        if source_graph == "philosophy":
+            return inputs["philosophy"], "nodes"
+        if source_graph == "canon":
+            return inputs["corpus"], "nodes"
+        if source_graph == "source-navigation":
+            return inputs["corpus"]["source_navigation"], "nodes"
+        if source_graph == "source-claims":
+            return inputs["bibliographic"], "nodes"
+        raise AddressedUpdateError(f"unsupported addressed source graph: {source_graph}")
+
+    @staticmethod
+    def _source_record_matches(record: Any, source_id: str) -> bool:
+        return isinstance(record, dict) and any(
+            record.get(key) == source_id for key in ("node_id", "id", "path")
+        )
+
+    def _validate_addressed_source_transition(
+        self,
+        previous_inputs: dict[str, bytes],
+        current_inputs: dict[str, dict[str, Any]],
+        source_graph: str,
+        source_id: str,
+        source_record: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Require that the disk delta is exactly the submitted one carrier.
+
+        A stat tuple detects races, but cannot prove that a second source edit
+        was not bundled into a one-record addressed publication. Compare the
+        complete parsed carrier set against a copy of the previous inputs with
+        only the addressed record replaced. This is a bounded owner-side scan
+        of direct source carriers, not semantic acceptance or a graph rebuild.
+        """
+        try:
+            before = {
+                name: json.loads(payload.decode("utf-8"))
+                for name, payload in previous_inputs.items()
+            }
+        except (UnicodeDecodeError, json.JSONDecodeError, AttributeError) as exc:
+            raise AddressedUpdateError(
+                "addressed update parent source snapshot is unreadable; run a complete graph build"
+            ) from exc
+        after = current_inputs
+        if set(before) != set(after):
+            raise AddressedUpdateError(
+                "addressed source transition changed the complete carrier set; "
+                "submit one exact replacement or run complete source assembly"
+            )
+        before_doc, before_field = self._addressed_source_collection(before, source_graph)
+        after_doc, after_field = self._addressed_source_collection(after, source_graph)
+        before_records = before_doc.get(before_field)
+        after_records = after_doc.get(after_field)
+        if not isinstance(before_records, list) or not isinstance(after_records, list):
+            raise AddressedUpdateError(
+                f"addressed source {source_graph} does not expose a record collection"
+            )
+        before_matches = [
+            position
+            for position, record in enumerate(before_records)
+            if self._source_record_matches(record, source_id)
+        ]
+        after_matches = [
+            position
+            for position, record in enumerate(after_records)
+            if self._source_record_matches(record, source_id)
+        ]
+        if len(before_matches) != 1 or len(after_matches) != 1:
+            raise AddressedUpdateError(
+                f"addressed source transition for {source_graph}:{source_id} must retain one exact carrier"
+            )
+        after_record = after_records[after_matches[0]]
+        try:
+            expected_record_bytes = self._canonical_json_bytes(source_record)
+            after_record_bytes = self._canonical_json_bytes(after_record)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise AddressedUpdateError(
+                "addressed source record is not canonical JSON; run complete source assembly"
+            ) from exc
+        if after_record_bytes != expected_record_bytes:
+            raise AddressedUpdateError(
+                "addressed source record does not match the current on-disk owner carrier"
+            )
+        if before_matches[0] != after_matches[0]:
+            raise AddressedUpdateError(
+                "addressed source carrier moved position; run complete source assembly"
+            )
+        # ``before`` came from JSON decoding, so replacing only this one record
+        # is enough to build the expected carrier set. Compare canonical bytes,
+        # not Python equality: JSON distinguishes false/0 and 1/1.0 at this
+        # owner boundary even though Python considers those values equal.
+        before_doc[before_field][before_matches[0]] = copy.deepcopy(source_record)
+        if any(
+            self._canonical_json_bytes(before[name])
+            != self._canonical_json_bytes(after[name])
+            for name in before
+        ):
+            raise AddressedUpdateError(
+                "addressed source transition contains undeclared carrier changes; "
+                "submit one exact replacement or run complete source assembly"
+            )
+        return {
+            "mode": "exact-single-record-delta",
+            "source_graph": source_graph,
+            "source_id": source_id,
+            "changed_records": 1,
+            "source_scan": "complete-direct-carrier-set",
+        }
+
+    @staticmethod
+    def _knowledge_graph_version_args(
+        state: tuple[tuple[str, int, int, int, int], ...],
+    ) -> tuple[Any, ...]:
+        args: list[Any] = []
+        for path_text, mtime_ns, size, inode, ctime_ns in state:
+            args.extend((path_text, mtime_ns, size, inode, ctime_ns))
+        return tuple(args)
+
+    def knowledge_graph_addressed(
+        self,
+        previous_graph: dict[str, Any],
+        source_graph: str,
+        source_id: str,
+        source_record: dict[str, Any],
+        *,
+        source_revision: str,
+        expected_parent_revision: str | None = None,
+        return_report: bool = False,
+    ) -> dict[str, Any]:
+        """Apply one owner-supplied replacement to an existing graph snapshot.
+
+        This is the core owner call site for the bounded projection fast path.
+        The caller supplies the exact replacement carrier and complete target
+        source revision; additions, removals, source assembly, and source
+        writes remain on the full builder/owner routes.
+        """
+        with self._snapshot_lock:
+            # Resolve the CAS parent from the last published snapshot before
+            # looking at source files.  A source owner may have already written
+            # the exact replacement carrier; rebuilding here would consume the
+            # edit and make the bounded publication path appear stale.
+            current = self._published_graph
+            if current is None:
+                current = self.knowledge_graph()
+            if previous_graph is not current:
+                raise AddressedUpdateError(
+                    "addressed update parent is stale; previous snapshot is not the current published snapshot"
+                )
+            expected = expected_parent_revision
+            if expected is None:
+                expected = previous_graph.get("source_revision") if isinstance(previous_graph, dict) else None
+            if expected != current.get("source_revision"):
+                raise AddressedUpdateError(
+                    "addressed update parent is stale; current snapshot revision is "
+                    f"{current.get('source_revision')!r}, expected {expected!r}"
+                )
+
+            # The source state must bracket every registry read and bounded
+            # recomputation. Never bind a successor to the post-build tuple if
+            # a source file changed while it was running.
+            state_before = self._knowledge_input_state()
+            if self._published_source_inputs is None:
+                raise AddressedUpdateError(
+                    "addressed update parent has no captured source inputs; run a complete graph build"
+                )
+            source_inputs = self._knowledge_source_inputs()
+            actual_source_revision = knowledge_source_revision(
+                source_inputs["corpus"],
+                source_inputs["philosophy"],
+                source_inputs["bibliographic"],
+                source_inputs["entity_type_registry"],
+                source_inputs["relation_type_registry"],
+            )
+            if source_revision != actual_source_revision:
+                raise AddressedUpdateError(
+                    "addressed update target source_revision does not match the complete "
+                    "current source carrier set; previous snapshot remains published"
+                )
+            source_transition = self._validate_addressed_source_transition(
+                self._published_source_inputs,
+                source_inputs,
+                source_graph,
+                source_id,
+                source_record,
+            )
+            source_after_read = self._knowledge_input_state()
+            if state_before != source_after_read:
+                raise AddressedUpdateError(
+                    "ToS knowledge source projections changed while reading the addressed source transition; "
+                    "previous snapshot remains published"
+                )
+            entity_registry = self.entity_type_registry()
+            relation_registry = self.relation_type_registry()
+            updated = addressed_update_knowledge_graph(
+                previous_graph,
+                source_graph,
+                source_id,
+                source_record,
+                entity_registry,
+                relation_registry,
+                source_revision=source_revision,
+                return_report=return_report,
+            )
+            state_after = self._knowledge_input_state()
+            if state_before != state_after:
+                raise AddressedUpdateError(
+                    "ToS knowledge source projections changed during addressed update; "
+                    "previous snapshot remains published"
+                )
+
+            graph = updated["graph"] if return_report else updated
+            if return_report:
+                updated["report"]["source_transition"] = source_transition
+                updated["report"]["input_traversal"]["source_assembly"] = "exact-transition-checked"
+                updated["report"]["input_traversal"]["source_scan"] = "complete-direct-carrier-set"
+            self._published_source_inputs = self._canonical_source_inputs(source_inputs)
+            self._published_graph = graph
+            self._addressed_graph = graph
+            self._addressed_source_state = state_after
+            self._published_source_state = state_after
+            # Search/inspection indexes are identity-bound and lazily rebuild on
+            # the next query against this newly published in-memory snapshot.
+            self._search_index = None
+            with self._graph_index_lock:
+                self._graph_index = None
+            return updated
 
     def knowledge_catalog(self) -> dict[str, Any]:
         """Describe the compositional grammar, vocabulary, and stored lens specs."""
-        index_stat = self.index_path.stat()
-        philosophy_stat = self.philosophy_graph_projection_path.stat()
-        bibliographic_stat = self.bibliographic_graph_path.stat()
-        entity_registry_stat = self.entity_type_registry_path.stat()
-        relation_registry_stat = self.relation_type_registry_path.stat()
-        return _knowledge_catalog_version(
-            self.index_path.resolve().as_posix(),
-            index_stat.st_mtime_ns,
-            index_stat.st_size,
-            self.philosophy_graph_projection_path.resolve().as_posix(),
-            philosophy_stat.st_mtime_ns,
-            philosophy_stat.st_size,
-            self.bibliographic_graph_path.resolve().as_posix(),
-            bibliographic_stat.st_mtime_ns,
-            bibliographic_stat.st_size,
-            self.entity_type_registry_path.resolve().as_posix(),
-            entity_registry_stat.st_mtime_ns,
-            entity_registry_stat.st_size,
-            self.relation_type_registry_path.resolve().as_posix(),
-            relation_registry_stat.st_mtime_ns,
-            relation_registry_stat.st_size,
-        )
+        return self.knowledge_snapshot()["catalog"]
+
+    def knowledge_snapshot(self) -> dict[str, dict[str, Any]]:
+        """Return one graph/catalog pair bound to the same published snapshot.
+
+        Aggregate consumers must not fetch a catalog and then independently
+        resolve a graph: an addressed publication can occur between those two
+        reads.  Keep both products under the snapshot lock and recheck the
+        complete source state after reading their carriers.
+        """
+        with self._snapshot_lock:
+            for _attempt in range(3):
+                graph = self.knowledge_graph()
+                state_before = self._knowledge_input_state()
+                if self._published_source_state != state_before:
+                    continue
+                corpus = self.index()
+                philosophy = self.philosophy_projection()
+                entity_registry = self.entity_type_registry()
+                relation_registry = self.relation_type_registry()
+                state_after = self._knowledge_input_state()
+                if state_before != state_after:
+                    continue
+                catalog = build_knowledge_catalog(
+                    graph,
+                    corpus,
+                    philosophy,
+                    entity_registry,
+                    relation_registry,
+                )
+                return {"graph": graph, "catalog": catalog}
+            raise RuntimeError("ToS knowledge source projections changed during catalog build")
 
     def knowledge_contracts(self) -> dict[str, Any]:
         """Return the executable API map and JSON Schemas through one public read route."""
@@ -1105,14 +1486,21 @@ class ToSAccessCore:
 
     def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
         """Compile one source-backed stored lens through the same generic engine."""
-        catalog = self.knowledge_catalog()
+        snapshot = self.knowledge_snapshot()
         spec = next(
-            (item for item in catalog.get("lenses", []) if isinstance(item, dict) and item.get("lens_id") == lens_id),
+            (
+                item
+                for item in snapshot["catalog"].get("lenses", [])
+                if isinstance(item, dict) and item.get("lens_id") == lens_id
+            ),
             None,
         )
         if spec is None:
             raise KeyError(f"unknown ToS knowledge lens: {lens_id}")
-        return self.compile_knowledge_lens(spec)
+        # Execute against the exact graph used to derive the lens catalog.
+        # Calling compile_knowledge_lens would resolve the graph a second time
+        # and could mix a newly published snapshot with the selected spec.
+        return execute_knowledge_lens(snapshot["graph"], spec)
 
     def status(self) -> dict[str, Any]:
         exists = self.index_exists()

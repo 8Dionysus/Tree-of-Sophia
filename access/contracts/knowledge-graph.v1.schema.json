@@ -8,6 +8,7 @@
   "properties": {
     "schema": {"const": "tos_knowledge_graph_v1"},
     "source_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "normalization_binding": {"$ref": "#/$defs/normalizationBinding"},
     "query_properties": {"type": "array", "description": "Source-registry query bindings included in this graph snapshot; no request can override them.", "items": {
       "type": "object", "additionalProperties": false,
       "required": ["property_id", "field", "value_type", "applies_to", "inherited", "operators"],
@@ -381,6 +382,17 @@
         "writes_to_tree": {"const": false},
         "source_owner": {"const": "Tree-of-Sophia"},
         "note": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "normalizationBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "processor_digest", "entity_registry_digest", "relation_registry_digest", "configuration_digest"],
+      "properties": {
+        "schema": {"const": "tos_knowledge_graph_normalization_binding_v1"},
+        "processor_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "entity_registry_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "relation_registry_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "configuration_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
     }
   }
