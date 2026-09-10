@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4612,
+    "tracked_surface_count": 4617,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 1181,
     "human_scope": {
-      "bytes": 5936659,
-      "count": 964,
+      "bytes": 5956505,
+      "count": 966,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -76,9 +76,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 377060,
-          "count": 150,
-          "lines": 7453
+          "bytes": 389093,
+          "count": 151,
+          "lines": 7658
         },
         "memo": {
           "bytes": 4538,
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4584947,
-          "count": 674,
-          "lines": 76345
+          "bytes": 4592760,
+          "count": 675,
+          "lines": 76468
         }
       },
-      "lines": 100056
+      "lines": 100384
     },
     "surface_kind_counts": {
-      "executable": 306,
-      "human": 964,
-      "structured": 3342
+      "executable": 308,
+      "human": 966,
+      "structured": 3343
     },
-    "tracked_path_count": 5793,
-    "tracked_surface_count": 4612,
+    "tracked_path_count": 5798,
+    "tracked_surface_count": 4617,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,11 +164,11 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 674,
-        "structured": 3261
+        "human": 675,
+        "structured": 3262
       },
-      "tracked_surface_bytes": 320959489,
-      "tracked_surface_count": 3939
+      "tracked_surface_bytes": 320977838,
+      "tracked_surface_count": 3941
     },
     {
       "family_id": "access",
@@ -186,7 +186,7 @@
         "human": 79,
         "structured": 6
       },
-      "tracked_surface_bytes": 936735,
+      "tracked_surface_bytes": 938751,
       "tracked_surface_count": 85
     },
     {
@@ -218,12 +218,12 @@
     {
       "family_id": "mechanics",
       "surface_kind_counts": {
-        "executable": 75,
-        "human": 150,
+        "executable": 77,
+        "human": 151,
         "structured": 33
       },
-      "tracked_surface_bytes": 2929666,
-      "tracked_surface_count": 258
+      "tracked_surface_bytes": 3015087,
+      "tracked_surface_count": 261
     },
     {
       "family_id": "scripts",
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 2121828,
+      "tracked_surface_bytes": 2123124,
       "tracked_surface_count": 72
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "99825fbef0b9999b1b11fae562e41f2161f8e8d03cb96d37ca71a73581035a09",
+  "tracked_surface_digest": "cd961a5fcecea872095b7299e70e1f615821e39b2f15210382b57ceb63c904b9",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -323,7 +323,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "31d0d521061c7e4a7f2155015a1cdbac3e403c161b48a2214f50494e069dd883",
+      "sha256": "2230c8457d91c15b8e71d9794ea05bd67d9ca07af7f627d2115df4f2b1c855ca",
       "surface_kind": "structured"
     },
     {
@@ -2263,6 +2263,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 10536,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/native-translation-alignment-record-v1.schema.json",
+      "sha256": "d20212239b0c77c07ea4c56fe70ce85830eec99f5ecf7e948c2334957337a2c7",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 9005,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -3215,11 +3223,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 46518,
+      "bytes": 47316,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/CORPUS_FOUNDATION.md",
-      "sha256": "86bb627f3e080ee0e7ce4e2ae4afbae0a5caa3014501930241d6095c9a24771d",
+      "sha256": "1fc13c11e79f28e48c0b52ab342260f0f4f0cd64b19ce9c5e50337df6ff67370",
       "surface_kind": "human"
     },
     {
@@ -18148,6 +18156,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-09-native-text-layer-quality-review.md",
       "sha256": "98f145ea4a649db95b454c3e584ec12073ff47fe8433c1649d77fca96b564f84",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7015,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-09-native-translation-alignment-review.md",
+      "sha256": "3959dece0b0cf31bf4a8b5b1214e27dd333998d1d3796221b241ae27b44f1467",
       "surface_kind": "human"
     },
     {
@@ -33207,11 +33223,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 244854,
+      "bytes": 246870,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "1996ac176ae488d709b12a5df0537c9319049a2d77cf05d45d4f9fcbc6a712b8",
+      "sha256": "a7b6bf92963db98808568a6a19f6cebe7528d9824099edf2991cae4b97d570d2",
       "surface_kind": "structured"
     },
     {
@@ -34423,11 +34439,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 143717,
+      "bytes": 144160,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "1964445f2a8b49d1902df4ec94e2033b2bc71e27f1a827f0a0a564dfa1cf7ea1",
+      "sha256": "e2429d11d99466fc4135c266f8a834c1b07f31ee022aac4d727dcdb5fad30679",
       "surface_kind": "human"
     },
     {
@@ -34511,6 +34527,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 11099,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TRANSLATION_ALIGNMENT.md",
+      "sha256": "622ec99e55a03a8d2a9ed27ca7bd24a55bd822b5dedf8ff01916b66441d734c8",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 6978,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -34535,11 +34559,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5759,
+      "bytes": 6250,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_COMMAND_DISCOVERY.md",
-      "sha256": "61b3d12c3ad1840a47b55cc944f342b96623438017733b9cd2a36011f7b209c6",
+      "sha256": "84379343270034aa63590df21f642b63e6e0d2fdb0010a1928a29263a359979f",
       "surface_kind": "human"
     },
     {
@@ -34615,6 +34639,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 43659,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_alignment_commands.py",
+      "sha256": "c933c0e4ffa76c5f8ffe3e6bfc1befef78496b42db0fd0319aaedc4e9d1674c0",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 23407,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -34647,11 +34679,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 102330,
+      "bytes": 103848,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "a156d2775a9cfa88ccd256e3f321a5b185b223e18d89e5f8f5a1f5e24d30fe77",
+      "sha256": "772253af67273d783b72c1d15f2e2ce8035573ba8a4de7e0cccabf4cfe4f1dc6",
       "surface_kind": "executable"
     },
     {
@@ -34767,11 +34799,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 33135,
+      "bytes": 33269,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_text_unit_commands.py",
-      "sha256": "3a4694fde4afbbb305c1532a20577588fd6f4d057e2fc38bb1be0dc36d530031",
+      "sha256": "c1b3e77d48682c274147273488563fefbffbc366e4e3adb83d8dde4526d47c01",
       "surface_kind": "executable"
     },
     {
@@ -34871,6 +34903,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 28026,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_source_alignment_commands.py",
+      "sha256": "c87104ff3c7a147981bd2f4f53bb6a0d2470baacbb1a937c5a60001b2694de1b",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 18093,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
@@ -34895,11 +34935,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 13300,
+      "bytes": 13351,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
-      "sha256": "315db41fadab98ff4ddb65205943896e26c309ceec182cab25ac970a85591e32",
+      "sha256": "18095090f2c97aa390998e1e7513bdbedb9ae7b1b384b29ab9793560350f54da",
       "surface_kind": "executable"
     },
     {
@@ -36759,11 +36799,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 115105,
+      "bytes": 116401,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "720454284bd5d4e40b48898546e06e2f1a82363f36de50202f70daeb6c8f38e8",
+      "sha256": "7027a5c9c3051ee272f879a5a27f73ddb0b6dd9af712d92c89018ed6f3086047",
       "surface_kind": "structured"
     },
     {
