@@ -201,14 +201,33 @@ class _Plan:
                 args.extend((_compact(sorted(k.OVERVIEW_EXCLUDED_PREDICATES)), _compact(sorted(k.OVERVIEW_EXCLUDED_RELATION_TYPES))))
         return where, args
 
-    def scan(self, kind):
+    def scan(self, kind, node_ids=()):
         # General native evaluation has an explicit finite candidate ceiling;
         # it is not a hidden materialized graph or an approximate selector.
         after = ""
         where, args = _source_where("r", self.spec["sources"])
         while True:
-            rows = self.read.query(f"SELECT r.id FROM knowledge_{kind}s r WHERE {where} AND r.id>? ORDER BY r.id LIMIT ?",
-                                   (*args, after, self.block))
+            if node_ids:
+                # A selector seed means ALL exact/entity/native matches, unlike
+                # focus resolution's representative/ambiguity rules. Bound
+                # each identity range before the union; unrelated source rows
+                # must not consume the native candidate ceiling.
+                seed_json = _compact(sorted(node_ids))
+                scope, scope_args = _source_where('n', self.spec['sources'])
+                branches, seed_args = [], []
+                for field, index in (('id', 'sqlite_autoindex_knowledge_nodes_1'),
+                                     ('native_id', 'knowledge_nodes_native_idx'),
+                                     ('entity_id', 'knowledge_nodes_identity_seek')):
+                    branches.append('SELECT id FROM (SELECT n.id FROM knowledge_nodes n '
+                        f'INDEXED BY {index} WHERE n.{field} IN (SELECT value FROM json_each(?)) '
+                        f'AND n.id>? AND {scope} ORDER BY n.id LIMIT ?)')
+                    seed_args.extend((seed_json, after, *scope_args, self.block))
+                rows = self.read.query(
+                    'WITH candidates AS (' + ' UNION '.join(branches) + ') '
+                    'SELECT id FROM candidates ORDER BY id LIMIT ?', (*seed_args, self.block))
+            else:
+                rows = self.read.query(f"SELECT r.id FROM knowledge_{kind}s r WHERE {where} AND r.id>? ORDER BY r.id LIMIT ?",
+                                       (*args, after, self.block))
             if not rows:
                 return
             items = self.payloads.load(kind, [row["id"] for row in rows])
@@ -278,7 +297,7 @@ class _Plan:
         heap = []
         focus_proof = {}
         selected_ids, text = set(seed["node_ids"]), seed["text_query"].lower()
-        for node in self.scan("node"):
+        for node in self.scan("node", selected_ids):
             if selected_ids and not selected_ids.intersection({str(node[key]) for key in ("id", "native_id", "entity_id")}):
                 continue
             if text and text not in self.budget.call(k._searchable, node):

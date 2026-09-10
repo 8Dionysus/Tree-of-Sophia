@@ -341,6 +341,8 @@ histograms plus Python-lowercase order keys and local incidence indices. This
 keeps default focus and dimensional/default-sort lenses off whole-graph scans.
 General filters, native Unicode/scalar/list operations, mixed sorts and path
 witnesses evaluate through bounded Python callbacks and keyset candidate streams.
+Explicit seed IDs first use the exact/entity/native identity-index union, retaining
+all source-scoped aliases rather than applying focus's representative selection.
 The default ceilings are 2,048 candidates, 32,768 callbacks, 16 MiB decoded row
 bytes, 4 MiB sort-key bytes, 100,000 path steps, and a 64-entry/2 MiB row cache;
 reader row/byte/SQLite-work ceilings also apply. These are logical budgets, not

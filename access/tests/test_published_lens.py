@@ -216,8 +216,15 @@ class PublishedLensTests(unittest.TestCase):
 
     def test_unrelated_rows_and_high_degree_do_not_scale_default_focus_reads(self):
         observations = []
+        seeded_observations = []
+        seeded_spec = lens(seed={'node_ids': ['philosophy:n01']},
+            node_query={'filters': [{'property_id': 'tos.property.synthetic-score', 'op': 'eq', 'value': 1}]},
+            relation_query={'enabled': False},
+            path_query=[{'path_id': 'typed-neighbor', 'steps': [{'node_query': {'filters': [
+                {'property_id': 'tos.property.synthetic-score', 'op': 'eq', 'value': 2}]}}]}])
         for size in (5000, 10000):
             shutil.copyfile(self.seed, self.path)
+            oracle = copy.deepcopy(self.graph)
             with closing(sqlite3.connect(self.path)) as db:
                 # Lean synthetic emitted rows isolate index pressure. The
                 # compared focus's selected full rows remain the actual builder
@@ -229,6 +236,8 @@ class PublishedLensTests(unittest.TestCase):
                     edge_id = f'zz:edge:{index:05d}'
                     edge = dict(id=edge_id, native_id=edge_id, from_id='philosophy:n00', to_id=identifier,
                                 source_graph='philosophy', predicate_id='supports', relation_type_id='tos.relation.supports')
+                    oracle['nodes'].append(node)
+                    oracle['relations'].append(edge)
                     db.execute('INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?,?)',
                                (*[node[key] for key in ('id', 'entity_id', 'native_id', 'source_graph', 'kind_id', 'type_id')], '', '', '', _compact(node)))
                     db.execute('INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?,?)',
@@ -262,10 +271,30 @@ class PublishedLensTests(unittest.TestCase):
             with patch.object(_Read, 'query', query):
                 result = PublishedLensService(reader).focus('n00', node_limit=3, relation_limit=5)
             self.assertEqual(result['counts']['available_nodes'], len(self.graph['nodes']) + size)
+            self.assertEqual(result, k.focus_knowledge_node(oracle, 'n00', node_limit=3, relation_limit=5))
             observations.append(captured[-1])
+            captured.clear()
+            with patch.object(_Read, 'query', query):
+                seeded = PublishedLensService(reader).execute(seeded_spec)
+            self.assertEqual(seeded, k.execute_knowledge_lens(oracle, seeded_spec))
+            self.assertEqual([node['id'] for node in seeded['nodes']], ['philosophy:n01'])
+            seeded_observations.append(captured[-1])
         self.assertEqual(observations[0][0], observations[1][0])
         self.assertLessEqual(observations[1][1] - observations[0][1], 10)
         self.assertLessEqual(observations[1][2] - observations[0][2], 1000)
+        self.assertEqual(seeded_observations[0][0], seeded_observations[1][0])
+        self.assertLessEqual(seeded_observations[1][1] - seeded_observations[0][1], 10)
+        self.assertLessEqual(seeded_observations[1][2] - seeded_observations[0][2], 1000)
+
+    def test_seed_identity_union_preserves_all_aliases_dedup_and_sources(self):
+        for identifiers in (['n13'], ['tos.synthetic.subject.0'],
+                            ['philosophy:n01', 'n01', 'tos.synthetic.subject.0'], ['absent']):
+            for sources in (['philosophy', 'repository'], ['repository']):
+                with self.subTest(identifiers=identifiers, sources=sources):
+                    spec = lens(seed={'node_ids': identifiers}, sources=sources, relation_query={'enabled': False})
+                    expected = k.execute_knowledge_lens(self.graph, spec)
+                    actual = PublishedLensService(self.reader, limits=PublishedLensLimits(block_size=1)).execute(spec)
+                    self.assertEqual(actual, expected)
 
     def test_complete_eligible_stream_cannot_hide_missing_order_rows(self):
         with closing(sqlite3.connect(self.path)) as db:
