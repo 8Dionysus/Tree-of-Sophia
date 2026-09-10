@@ -641,7 +641,17 @@ class CoreContractTests(unittest.TestCase):
 
             current = core.knowledge_node(node_id)
             self.assertEqual(current["matches"][0]["display"]["title"]["default"], "Omega")
-            self.assertIs(core._graph_index.graph, successor)
+            current_graph_index = core._graph_index
+            self.assertIs(current_graph_index.graph, successor)
+            # A delayed cleanup for the prior publication must not evict the
+            # newer index that was installed after the successor became live.
+            core._invalidate_snapshot_indexes(old_graph)
+            self.assertIs(core._graph_index, current_graph_index)
+
+            core.knowledge_search("Omega")
+            current_search_index = core._search_index
+            core._invalidate_snapshot_indexes(old_graph)
+            self.assertIs(core._search_index, current_search_index)
 
     def test_concurrent_addressed_writers_share_one_cas_parent(self) -> None:
         from concurrent.futures import ThreadPoolExecutor

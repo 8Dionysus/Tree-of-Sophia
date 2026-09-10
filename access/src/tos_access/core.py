@@ -1017,13 +1017,23 @@ class ToSAccessCore:
         return published_graph
 
     def _invalidate_snapshot_indexes(self, graph: dict[str, Any]) -> None:
-        """Drop only indexes that do not belong to the current published graph."""
+        """Drop only indexes that do not belong to the current published graph.
+
+        ``graph`` may already be superseded by a later publication before this
+        cleanup gets the index lock.  Re-read the authoritative current graph
+        while holding each respective index lock so an older cleanup cannot
+        evict a newer index.
+        """
         with self._search_lock:
-            if self._search_index is not None and self._search_index.graph is not graph:
-                self._search_index = None
+            with self._snapshot_lock:
+                current = self._published_graph
+                if current is not None and self._search_index is not None and self._search_index.graph is not current:
+                    self._search_index = None
         with self._graph_index_lock:
-            if self._graph_index is not None and self._graph_index.graph is not graph:
-                self._graph_index = None
+            with self._snapshot_lock:
+                current = self._published_graph
+                if current is not None and self._graph_index is not None and self._graph_index.graph is not current:
+                    self._graph_index = None
 
     def _knowledge_input_state(self) -> tuple[tuple[str, int, int, int, int], ...]:
         """Return the source-file state that bounds an in-memory addressed snapshot."""
