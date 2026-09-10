@@ -74,10 +74,66 @@ the new layer starts unreviewed and does not inherit citation admission.
 The declared Unicode normalization ran and happened to preserve this paragraph's
 bytes; this is not evidence of correction or improved quality. A fresh scoped
 read produced the complete source/lineage comparison and found it mechanically
-eligible for judgment, not approved. The source-visible linguistic assessment
-and any new scoped admission remain separate work. No restricted text or
+eligible for judgment, not approved at that checkpoint. No restricted text or
 private operator/execution record is included in this public review.
 
 The integration owner owns
 post-union validation and landing; no CI, merge, deployment, runtime installation,
 OCR execution or Foundation-wide completion is claimed here.
+
+## Subsequent real scoped assessment
+
+On 2026-09-10 UTC, the source-visible reviewer reread the complete selected
+English paragraph, adjacent context, both representations, full lineage,
+operations, policies and rights. The issuer separately reviewed the entire
+result and independently checked the actual native model/effort metadata.
+The observer did not make the selected layer. Prior read-only adapter review
+and the same model family limit independence: this is not second-model or
+independent historical corroboration.
+
+A fresh exact competence/authority issuance bound the new subject, method and
+citation purpose. The earlier twelve correlated English controls remain twelve
+controls, with eleven literal agreements and one preserved justified label
+difference; no new accuracy score or general normalization qualification is
+claimed. The earlier assessment's corrected out-of-scope language error remains
+in its private history. Full first-batch issuer audit remains necessary for
+this narrow qualification. No new human review or human signature was required.
+
+The separate assessment was qualified and committed as `admitted-with-limits`
+for citation of the exact local English representation. It does not grant
+translation fidelity, semantic or linguistic analysis, general correction/OCR
+quality, identity issuance, canon or publication. Identical bytes did not
+transfer a predecessor's admission; a new journal event owns this decision.
+Its grants expire, and current rights, source, competence and scope continue
+to govern use. The reported usable state is the observation at this checkpoint,
+not a permanent permission derived from this note.
+
+Actual command replay returned the same journal revision, with one batch and
+no invalid assessment. A fresh describe/inspect/describe sequence agreed on
+the current state; the three commands took 4.499 seconds together, with a
+31.5 MiB transient-unit peak and no swap. This is a bounded local canary,
+not a throughput or growing-corpus benchmark. The predecessor and new raw
+layer metadata retained their exact bytes and unreviewed fields: no embedded
+human review, accepted use or promotion flag was rewritten.
+
+Two preparatory invocation errors were corrected without weakening production
+checks: the initial preparation used incorrect request field names, and the
+first CLI append supplied a relative rather than required absolute protected
+configuration path. Both refused before a journal append. Their failed outputs
+remain private; the successful current request and exact replay were checked
+separately. No failed attempt is counted as a successful admission.
+
+## Disclosure result
+
+The `aoa-knowledge-stewardship` sanitized-share mode shaped this local,
+public-safe maintainer derivative in the ToS review ledger. It retains contract
+behavior, aggregate verification and limitations only. Restricted text,
+selectors, exact private identities/digests, grants, paths, actor/session
+identifiers and execution configuration remain with their existing source
+custodian, unchanged. The destination is this dated review note under the
+source-owner review route, not an exported payload or durable-memory object.
+Manual rereading checked direct disclosure and reconstructive combinations;
+the general operation and timings can still correlate with this project.
+Local artifact creation is the only sharing effect here: independent public
+reproduction of confidential assessment is not promised, and neither private
+publication nor deployment is authorized by this derivative.
