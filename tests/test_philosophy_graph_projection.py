@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import sys
 import unittest
 from pathlib import Path
@@ -18,6 +19,9 @@ from philosophy_graph_projection_common import (  # noqa: E402
     _node_matches_filters,
     _stable_digest,
     _view_fingerprint_material,
+    _retain_authored_material,
+    _build_snapshot_review,
+    _pick_view_material,
     build_payload,
     render_payload,
 )
@@ -184,6 +188,96 @@ class PhilosophyGraphProjectionTest(unittest.TestCase):
         self.assertIn("candidate-relation", nodes["candidate-node:table-i-a01-node-001"]["graph_layers"])
         self.assertIn("edge:candidate-relation:table-i-a01-relation-001", edges)
         self.assertIn("script-decipherment", edges["edge:candidate-relation:table-i-a01-relation-001"]["view_ids"])
+
+    def test_authored_candidates_are_not_lost_when_no_lens_selects_them(self) -> None:
+        payload = self.load_projection()
+        atlas = json.loads((REPO_ROOT / 'ToS/derived-exports/philosophy_atlas_projection.min.json').read_bytes())
+        nodes = {row['node_id']: row for row in payload['nodes']}
+        edges = {row['edge_id']: row for row in payload['edges']}
+        for kind, identity, records, carriers in (
+                ('candidate-node', 'node_id', atlas['nodes'], nodes),
+                (None, 'edge_id', atlas['edges'], edges)):
+            for record in records:
+                if (record.get('node_type') != kind if kind else
+                        not record['edge_id'].startswith('edge:candidate-relation:')):
+                    continue
+                self.assertEqual(carriers[record[identity]]['properties'], record['properties'], record[identity])
+        unlensed_nodes = {key for key, node in nodes.items() if not node['view_ids']}
+        unlensed_edges = {key for key, edge in edges.items() if not edge['view_ids']}
+        self.assertIn('candidate-node:table-i-a02-node-027', unlensed_nodes)
+        self.assertIn('edge:candidate-relation:table-i-a02-relation-028', unlensed_edges)
+        for edge in payload['edges']:
+            self.assertIn(edge['from_id'], nodes)
+            self.assertIn(edge['to_id'], nodes)
+        atlas_nodes = {row['node_id']: row for row in atlas['nodes']}
+        contracts = json.loads((REPO_ROOT / 'ToS/philosophy/graph-workbench/views/view-contracts.json').read_bytes())
+        views = {view['view_id']: view for view in payload['views']}
+        for contract in contracts['views']:
+            view_nodes, view_edges, diagnostics = _pick_view_material(contract, atlas_nodes, atlas['edges'])
+            view = views[contract['view_id']]
+            self.assertFalse(diagnostics)
+            self.assertEqual(view['node_ids'], [node['node_id'] for node in view_nodes])
+            self.assertEqual(view['edge_ids'], [edge['edge_id'] for edge in view_edges])
+            self.assertFalse(unlensed_nodes.intersection(view['node_ids']))
+            self.assertFalse(unlensed_edges.intersection(view['edge_ids']))
+        for cluster in payload['clusters']:
+            self.assertFalse(unlensed_nodes.intersection(cluster['member_node_ids']))
+            self.assertFalse(unlensed_edges.intersection(cluster['member_edge_ids']))
+
+    def test_ordinary_readers_inspect_previously_unlensed_source_bodies_without_admission(self) -> None:
+        access_source = REPO_ROOT / 'access/src'
+        if str(access_source) not in sys.path:
+            sys.path.insert(0, str(access_source))
+        from tos_access.core import ToSAccessCore
+        from tos_access.knowledge import build_knowledge_graph, select_human_forms
+        payload = self.load_projection()
+        registries = [json.loads((REPO_ROOT / 'ToS/doctrine/semantic-interchange' / name).read_bytes())
+                      for name in ('entity-types.v1.json', 'relation-types.v1.json')]
+        # The actual philosophy projection and normal semantic normalizers are
+        # exercised without rebuilding unrelated corpus/witness adapters here.
+        graph = build_knowledge_graph({}, payload, {}, *registries)
+        core = ToSAccessCore.discover(tos_root=REPO_ROOT)
+        node_id = 'candidate-node:table-i-a02-node-027'
+        edge_id = 'edge:candidate-relation:table-i-a02-relation-028'
+        with patch.object(ToSAccessCore, 'philosophy_projection', return_value=payload), \
+                patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph):
+            for identity in (node_id, 'atlas-row:A01', 'atlas-dossier:A01', 'atlas-table:table-i'):
+                direct = core.philosophy_node(identity)['node']
+                normalized = core.knowledge_node('philosophy:' + identity)['matches'][0]
+                self.assertEqual(normalized['attributes']['source_record'], direct['properties']['source_record'])
+                self.assertEqual(normalized['attributes']['source_file_sha256'], direct['properties']['source_file_sha256'])
+                self.assertEqual(normalized['source_record']['field_map']['attributes.source_record'], '/properties/source_record')
+                self.assertTrue(all(role['state'] == 'missing' for role in select_human_forms(normalized)['roles'].values()))
+            direct = core.philosophy_edge(edge_id)['edge']
+            normalized = core.knowledge_relation('philosophy:' + edge_id)['matches'][0]
+            self.assertEqual(normalized['attributes']['source_record'], direct['properties']['source_record'])
+            self.assertEqual(normalized['attributes']['canon_status'], 'pre-canon')
+            self.assertEqual(normalized['view_ids'], [])
+            self.assertEqual(core.knowledge_node('philosophy:' + node_id)['matches'][0]['view_ids'], [])
+
+    def test_unlensed_retention_preserves_unknown_fields_but_never_includes_pressure_edges(self) -> None:
+        candidate = {'node_id': 'candidate-node:new', 'node_type': 'candidate-node',
+                     'properties': {'canon_status': 'pre-canon', 'unknown': {'value': None, 'flag': False}}}
+        endpoint = {'node_id': 'candidate-endpoint:new', 'node_type': 'candidate-endpoint', 'properties': {}}
+        relation = {'edge_id': 'edge:candidate-relation:new', 'from_id': candidate['node_id'],
+                    'to_id': endpoint['node_id'], 'predicate_id': 'unknown_predicate', 'properties': {'canon_status': 'pre-canon'}}
+        pressure = {**relation, 'edge_id': 'edge:atlas:pressure', 'predicate_id': 'has_node_type_pressure'}
+        original = copy.deepcopy([candidate, endpoint, relation, pressure])
+        nodes, edges = {}, {}
+        _retain_authored_material({row['node_id']: row for row in (candidate, endpoint)}, [relation, pressure], nodes, edges)
+        self.assertEqual(set(nodes), {candidate['node_id'], endpoint['node_id']})
+        self.assertEqual(set(edges), {relation['edge_id']})
+        self.assertTrue(all(row['view_ids'] == set() for row in [*nodes.values(), *edges.values()]))
+        self.assertEqual([candidate, endpoint, relation, pressure], original)
+        with self.assertRaisesRegex(ValueError, 'existing atlas endpoint'):
+            _retain_authored_material({candidate['node_id']: candidate}, [relation], {}, {})
+
+    def test_global_fingerprint_binds_unlensed_content_not_only_ids(self) -> None:
+        node = {'node_id': 'candidate-node:unlensed', 'view_ids': [], 'properties': {'unknown': None}}
+        original = _build_snapshot_review(views=[], nodes=[node], edges=[], clusters=[])
+        changed = _build_snapshot_review(views=[], nodes=[{**node, 'properties': {'unknown': False}}], edges=[], clusters=[])
+        self.assertNotEqual(original['current_snapshot']['projection_fingerprint'], changed['current_snapshot']['projection_fingerprint'])
+        self.assertEqual(original['current_snapshot']['count_fingerprint'], changed['current_snapshot']['count_fingerprint'])
 
     def test_graph_projection_retains_table_ii_review_gates_and_resolved_endpoints(self) -> None:
         payload = self.load_projection()

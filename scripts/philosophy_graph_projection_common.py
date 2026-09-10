@@ -12,6 +12,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from philosophy_multilingual_common import content_language_contract, multilingual_label
+from philosophy_atlas_projection_common import validate_authored_source_context
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -223,6 +224,7 @@ def _projection_node(
     view_ids: set[str],
     graph_layers: set[str],
 ) -> dict[str, Any]:
+    validate_authored_source_context(atlas_node)
     properties = atlas_node.get("properties") if isinstance(atlas_node.get("properties"), dict) else {}
     return {
         "node_id": atlas_node["node_id"],
@@ -248,6 +250,7 @@ def _projection_edge(
     view_ids: set[str],
     graph_layers: set[str],
 ) -> dict[str, Any]:
+    validate_authored_source_context(atlas_edge)
     return {
         "edge_id": atlas_edge["edge_id"],
         "from_id": atlas_edge["from_id"],
@@ -258,6 +261,29 @@ def _projection_edge(
         "source_ref": atlas_edge["source_ref"],
         "properties": atlas_edge.get("properties") if isinstance(atlas_edge.get("properties"), dict) else {},
     }
+
+
+def _retain_authored_material(atlas_nodes_by_id, atlas_edges, node_membership, edge_membership):
+    """Keep source candidates inspectable even when no authored lens selects them.
+
+    This is global source return, not lens inclusion, cluster membership, new
+    identity, or semantic admission. Structural pressure edges remain derived
+    atlas navigation and are not added by this route.
+    """
+    for node_id, node in atlas_nodes_by_id.items():
+        if node.get('node_type') == 'candidate-node':
+            node_membership.setdefault(node_id, {'view_ids': set(), 'graph_layers': _node_semantic_layers(node)})
+    for edge in atlas_edges:
+        edge_id = str(edge.get('edge_id') or '')
+        if not edge_id.startswith('edge:candidate-relation:'):
+            continue
+        edge_membership.setdefault(edge_id, {'view_ids': set(), 'graph_layers': _edge_semantic_layers(edge)})
+        for key in ('from_id', 'to_id'):
+            endpoint = edge.get(key)
+            if endpoint not in atlas_nodes_by_id:
+                raise ValueError('authored candidate relation has no existing atlas endpoint')
+            node_membership.setdefault(endpoint, {'view_ids': set(),
+                'graph_layers': _node_semantic_layers(atlas_nodes_by_id[endpoint])})
 
 
 def _source_refs(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> list[str]:
@@ -768,6 +794,11 @@ def _build_snapshot_review(
         "edge_ids": sorted(str(edge["edge_id"]) for edge in edges),
         "cluster_ids": sorted(str(cluster["cluster_id"]) for cluster in clusters),
         "view_fingerprints": view_fingerprints,
+        # View fingerprints cannot bind a source body outside every lens.
+        "unlensed_records": {
+            "nodes": _stable_items([node for node in nodes if not node.get('view_ids')], 'node_id'),
+            "edges": _stable_items([edge for edge in edges if not edge.get('view_ids')], 'edge_id'),
+        },
     }
     count_material = {
         "views": len(views),
@@ -946,6 +977,7 @@ def build_payload() -> dict[str, Any]:
             }
         )
 
+    _retain_authored_material(atlas_nodes_by_id, atlas_edges, node_membership, edge_membership)
     edge_by_id = {
         str(edge.get("edge_id")): edge
         for edge in atlas_edges
@@ -967,7 +999,11 @@ def build_payload() -> dict[str, Any]:
         )
         for edge_id, membership in sorted(edge_membership.items())
     ]
-    clusters, unresolved_review_surfaces = _build_clusters(cluster_contract, nodes=nodes, edges=edges)
+    # Existing lenses and their cluster denominators keep their source-owned
+    # membership. A globally inspectable candidate is not silently in a lens.
+    clusters, unresolved_review_surfaces = _build_clusters(cluster_contract,
+        nodes=[node for node in nodes if node['view_ids']],
+        edges=[edge for edge in edges if edge['view_ids']])
     graph_layers = graph_view_catalog.get("graph_layers", [])
     if not isinstance(graph_layers, list):
         raise ValueError(f"{GRAPH_VIEW_CATALOG_REF} graph_layers must be a list")
@@ -1034,6 +1070,8 @@ def build_payload() -> dict[str, Any]:
             "unresolved_review_surfaces": len(unresolved_review_surfaces),
             "view_node_references": view_node_reference_count,
             "view_edge_references": view_edge_reference_count,
+            "unlensed_nodes": sum(not node['view_ids'] for node in nodes),
+            "unlensed_edges": sum(not edge['view_ids'] for edge in edges),
         },
         "visibility_model": {
             "default_payload_mode": "cluster-first",

@@ -64,6 +64,28 @@ The philosophy graph projection materializes the atlas projection once as a
 source-ref-preserving node/edge set. Each graph view carries stable node/edge
 ID membership over that set, avoiding a second full copy of the same records
 inside every lens while keeping runtime access subordinate to ToS authority.
+
+The atlas/graph readers retain complete public authored atlas manifests,
+master rows, dossier index rows, proposed nodes and proposed relations in
+`properties.source_record`. `source_record_ref` and `source_file_sha256`
+bind the exact parsed file; `source_record_sha256` separately binds the
+canonical JSON object. JSONL `source_row` counts nonblank records, while
+`source_line` is the physical line. Whole JSON manifests use `source_pointer`
+with the empty root pointer and invent no row number. Original DOCX table/row
+indexes remain inside the unchanged source object, not those JSONL locators.
+Unknown nested fields, null, false, empty and absent values stay distinct.
+Applied endpoint aliases also retain their complete owner packet, claim limit
+and selected alias pointers. These envelopes are not native Corpus Record
+identity, source assessment, publication clearance or canon admission.
+
+Every existing authored candidate node/relation remains globally inspectable,
+including candidates selected by no current lens and their existing endpoint
+closure. Such records have `view_ids: []`; source-owned view filters, view
+membership and cluster denominators do not expand. Global fingerprints bind
+unlensed bodies as well as IDs. Separate source-anchor, term and transmission
+backlogs retain their existing atlas owner routes; this return does not invent
+new identity families or claim those backlogs have a complete graph grammar.
+
 The epistemic evidence projection joins two bounded, public-safe research
 scenes to explicit source, review, canon, claim, and rights return routes. It
 does not copy source text or infer closure: the Zarathustra scene distinguishes

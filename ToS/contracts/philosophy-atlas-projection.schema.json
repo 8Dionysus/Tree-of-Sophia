@@ -97,6 +97,38 @@
     }
   },
   "$defs": {
+    "authoredSourceProperties": {
+      "description": "Lossless public philosophy input, not a native Corpus Record. JSONL source_row is a parsed-record ordinal, source_line a physical line; file and canonical record digests remain distinct.",
+      "type": "object",
+      "properties": {
+        "source_record": {"type": "object"},
+        "source_record_ref": {"type": "string", "pattern": "^ToS/philosophy/"},
+        "source_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_record_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_format": {"enum": ["json", "jsonl"]},
+        "source_row": {"type": "integer", "minimum": 1},
+        "source_line": {"type": "integer", "minimum": 1},
+        "source_pointer": {"const": ""},
+        "endpoint_alias_source": {"$ref": "#/$defs/authoredSourceProperties"},
+        "endpoint_alias_pointers": {"type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^/aliases/[0-9]+$"}}
+      },
+      "dependentRequired": {
+        "source_record": ["source_record_ref", "source_file_sha256", "source_record_sha256", "source_format"],
+        "source_format": ["source_record"],
+        "endpoint_alias_source": ["endpoint_alias_ref", "endpoint_alias_pointers"]
+      },
+      "allOf": [
+        {
+          "if": {"required": ["source_format"], "properties": {"source_format": {"const": "jsonl"}}},
+          "then": {"required": ["source_row", "source_line"], "not": {"required": ["source_pointer"]}}
+        },
+        {
+          "if": {"required": ["source_format"], "properties": {"source_format": {"const": "json"}}},
+          "then": {"required": ["source_pointer"], "not": {"anyOf": [{"required": ["source_row"]}, {"required": ["source_line"]}]}}
+        }
+      ]
+    },
     "node": {
       "type": "object",
       "additionalProperties": false,
@@ -122,7 +154,7 @@
           "minLength": 1
         },
         "properties": {
-          "type": "object"
+          "$ref": "#/$defs/authoredSourceProperties"
         }
       }
     },
@@ -152,7 +184,7 @@
           "minLength": 1
         },
         "properties": {
-          "type": "object"
+          "$ref": "#/$defs/authoredSourceProperties"
         }
       }
     },

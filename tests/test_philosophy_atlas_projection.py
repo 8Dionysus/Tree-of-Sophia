@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
+import tempfile
 import unittest
 from collections import defaultdict
 from pathlib import Path
@@ -15,10 +17,101 @@ if str(SCRIPTS) not in sys.path:
 
 from philosophy_atlas_projection_common import (  # noqa: E402
     ENDPOINT_ALIASES_REF,
+    AuthoredAtlasSnapshot,
+    CANDIDATE_NODES_REFS,
+    CANDIDATE_RELATIONS_REFS,
     PROJECTION_PATH,
     build_payload,
     render_payload,
+    validate_authored_source_context,
 )
+
+
+class AuthoredAtlasSnapshotTest(unittest.TestCase):
+    def test_both_owner_schemas_keep_the_same_unknown_preserving_locator_contract(self):
+        from jsonschema import Draft202012Validator
+        schemas = [json.loads((REPO_ROOT / 'ToS/contracts' / name).read_bytes())
+                   for name in ('philosophy-atlas-projection.schema.json', 'philosophy-graph-projection.schema.json')]
+        self.assertEqual(schemas[0]['$defs']['authoredSourceProperties'], schemas[1]['$defs']['authoredSourceProperties'])
+        context = {'source_record': {'unknown': [None, False, '', {}, []]},
+            'source_record_ref': 'ToS/philosophy/atlas/example.jsonl', 'source_file_sha256': '0' * 64,
+            'source_record_sha256': '1' * 64, 'source_format': 'jsonl', 'source_row': 1, 'source_line': 2}
+        for schema in schemas:
+            validator = Draft202012Validator({'$defs': schema['$defs'], '$ref': '#/$defs/authoredSourceProperties'})
+            validator.validate(context)
+            for altered in ({**context, 'source_row': True}, {**context, 'source_file_sha256': 'not-a-digest'},
+                            {**context, 'source_format': 'json'}, {**context, 'source_record': []}):
+                self.assertFalse(validator.is_valid(altered))
+
+    def test_jsonl_preserves_unknown_nested_values_and_distinct_file_record_locators(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ref = 'ToS/philosophy/atlas/example.jsonl'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            records = [{'row_id': 'first', 'unknown': {'null': None, 'false': False, 'empty': [], 'text': ''}},
+                       {'row_id': 'second', 'source_ref': ref, 'text': 'line one\nline two'}]
+            raw = ('\n' + json.dumps(records[0]) + '\n\n' + json.dumps(records[1]) + '\n').encode()
+            path.write_bytes(raw)
+            snapshot = AuthoredAtlasSnapshot(root)
+            rows = snapshot.rows(ref, 'row_id')
+            self.assertEqual([record for record, context in rows], records)
+            self.assertEqual([context['source_row'] for record, context in rows], [1, 2])
+            self.assertEqual([context['source_line'] for record, context in rows], [2, 4])
+            for record, context in rows:
+                self.assertEqual(context['source_record'], record)
+                self.assertEqual(context['source_file_sha256'], hashlib.sha256(raw).hexdigest())
+                canonical = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+                self.assertEqual(context['source_record_sha256'], hashlib.sha256(canonical).hexdigest())
+                validate_authored_source_context({'source_ref': ref, 'properties': context})
+                self.assertNotIn('record_id', record)
+                self.assertNotIn('schema_version', record)
+            rows[0][1]['source_record']['unknown']['null'] = 'changed copy'
+            self.assertIsNone(rows[0][0]['unknown']['null'])
+            snapshot.verify_current()
+            self.assertEqual(path.read_bytes(), raw)
+            path.write_bytes(raw + b'\n')
+            with self.assertRaisesRegex(ValueError, 'source changed'):
+                snapshot.verify_current()
+
+    def test_whole_json_return_has_no_invented_row_or_native_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ref = 'ToS/philosophy/atlas/example.json'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            path.write_text('{"atlas_id":"prepared","constraints":{"unresolved":true,"value":null}}')
+            record, context = AuthoredAtlasSnapshot(root).object(ref)
+            self.assertEqual(context['source_record'], record)
+            self.assertEqual(context['source_pointer'], '')
+            self.assertEqual(context['source_format'], 'json')
+            self.assertNotIn('source_row', context)
+            self.assertNotIn('source_line', context)
+            validate_authored_source_context({'source_ref': ref, 'properties': context})
+            for altered in ({**context, 'source_record': {**record, 'invented': True}},
+                            {**context, 'source_record_ref': 'ToS/philosophy/another.json'},
+                            {**context, 'source_row': True}):
+                with self.assertRaises(ValueError):
+                    validate_authored_source_context({'source_ref': ref, 'properties': altered})
+
+    def test_duplicate_or_unbound_source_rows_fail_without_source_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ref = 'ToS/philosophy/atlas/example.jsonl'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            for raw in (b'{"row_id":"one","row_id":"two"}\n', b'{"row_id":"one"}\n{"row_id":"one"}',
+                        b'{"row_id":"one","unbound":NaN}', b'{"row_id":null}',
+                        b'{"row_id":"one","source_ref":"ToS/private.jsonl"}'):
+                path.write_bytes(raw)
+                with self.subTest(raw=raw), self.assertRaises(ValueError):
+                    AuthoredAtlasSnapshot(root).rows(ref, 'row_id')
+                self.assertEqual(path.read_bytes(), raw)
+            retained = path.with_name('other.jsonl')
+            path.rename(retained)
+            path.symlink_to(retained.name)
+            with self.assertRaisesRegex(ValueError, 'exact regular'):
+                AuthoredAtlasSnapshot(root).rows(ref, 'row_id')
 
 
 class PhilosophyAtlasProjectionTest(unittest.TestCase):
@@ -50,6 +143,67 @@ class PhilosophyAtlasProjectionTest(unittest.TestCase):
         self.assertEqual(payload["counts"]["candidate_nodes"], 7193)
         self.assertEqual(payload["counts"]["candidate_relations"], 8564)
         self.assertEqual(payload["counts"]["candidate_endpoint_placeholders"], 458)
+
+    def test_every_existing_source_row_and_manifest_returns_exact_full_context(self) -> None:
+        payload = json.loads(PROJECTION_PATH.read_bytes())
+        nodes = {row['node_id']: row for row in payload['nodes']}
+        edges = {row['edge_id']: row for row in payload['edges']}
+        atlas_ref = 'ToS/philosophy/atlas/atlas.manifest.json'
+        atlas = json.loads((REPO_ROOT / atlas_ref).read_bytes())
+        sources = [(table['rows'], 'row_id', 'atlas-row:', nodes) for table in atlas['master_tables']]
+        sources += [('ToS/philosophy/atlas/dossiers/index.jsonl', 'dossier_id', 'atlas-dossier:', nodes)]
+        sources += [(ref, 'candidate_id', 'candidate-node:', nodes) for ref in CANDIDATE_NODES_REFS]
+        sources += [(ref, 'candidate_id', 'edge:candidate-relation:', edges) for ref in CANDIDATE_RELATIONS_REFS]
+        checked = 0
+        for ref, identity, prefix, carriers in sources:
+            raw = (REPO_ROOT / ref).read_bytes()
+            file_digest = hashlib.sha256(raw).hexdigest()
+            row_number = 0
+            for line_number, line in enumerate(raw.splitlines(), start=1):
+                if not line.strip():
+                    continue
+                row_number += 1
+                record = json.loads(line)
+                carrier = carriers[prefix + record[identity]]
+                context = carrier['properties']
+                self.assertEqual(context['source_record'], record, prefix + record[identity])
+                self.assertEqual(context['source_record_ref'], ref)
+                self.assertEqual(carrier['source_ref'], ref)
+                self.assertEqual(context['source_file_sha256'], file_digest)
+                self.assertEqual(context['source_row'], row_number)
+                self.assertEqual(context['source_line'], line_number)
+                validate_authored_source_context(carrier)
+                checked += 1
+        self.assertEqual(checked, 190 + 190 + 7193 + 8564)
+        for node_id, ref in [('philosophy.atlas', atlas_ref),
+                             *[('atlas-table:' + table['table_id'], table['manifest']) for table in atlas['master_tables']]]:
+            raw = (REPO_ROOT / ref).read_bytes()
+            context = nodes[node_id]['properties']
+            self.assertEqual(context['source_record'], json.loads(raw))
+            self.assertEqual(context['source_record_ref'], ref)
+            self.assertEqual(context['source_file_sha256'], hashlib.sha256(raw).hexdigest())
+            self.assertEqual(context['source_pointer'], '')
+            self.assertNotIn('source_row', context)
+
+    def test_applied_endpoint_alias_context_retains_owner_limits_and_exact_selection(self) -> None:
+        payload = json.loads(PROJECTION_PATH.read_bytes())
+        raw = (REPO_ROOT / ENDPOINT_ALIASES_REF).read_bytes()
+        source = json.loads(raw)
+        selected = set()
+        for edge in payload['edges']:
+            context = edge['properties'].get('endpoint_alias_source')
+            if context is None:
+                continue
+            self.assertEqual(context['source_record'], source)
+            self.assertEqual(context['source_file_sha256'], hashlib.sha256(raw).hexdigest())
+            self.assertEqual(context['source_record_ref'], ENDPOINT_ALIASES_REF)
+            for pointer in edge['properties']['endpoint_alias_pointers']:
+                alias = source['aliases'][int(pointer.rsplit('/', 1)[1])]
+                record = edge['properties']['source_record']
+                self.assertEqual(alias['origin_dossier_id'], record['dossier_id'])
+                self.assertEqual(alias['endpoint_label'], record[alias['endpoint_role'] + '_endpoint_label'])
+                selected.add(pointer)
+        self.assertEqual(selected, {f'/aliases/{index}' for index in range(len(source['aliases']))})
 
     def test_projection_keeps_runtime_owner_downstream(self) -> None:
         payload = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
