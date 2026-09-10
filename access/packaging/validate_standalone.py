@@ -896,10 +896,15 @@ print(json.dumps({"ok": True, "doctor": report, "view_id": view_id}))
         if not with_mcp:
             install_command.append("--no-deps")
         install_command.append(install_target)
+        # The wheel build creates source .egg-info. Exposing that source via
+        # PYTHONPATH can make pip mistake it for an installed distribution and
+        # skip installation of the wheel into this fresh virtual environment.
+        installed_env = env.copy()
+        installed_env.pop("PYTHONPATH", None)
         install = subprocess.run(
             install_command,
             cwd=outside,
-            env=env,
+            env=installed_env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -907,8 +912,6 @@ print(json.dumps({"ok": True, "doctor": report, "view_id": view_id}))
         )
         if install.returncode:
             raise RuntimeError(f"standalone package install failed: {install.stdout}\n{install.stderr}")
-        installed_env = env.copy()
-        installed_env.pop("PYTHONPATH", None)
         installed_command = [venv_python.as_posix(), "-m", "tos_access"]
         installed_command.extend(["verify", "--profile", "standalone", "--json"] if with_mcp else ["doctor", "--json"])
         installed_doctor = subprocess.run(
