@@ -980,6 +980,7 @@ class ToSAccessCore:
 
     def knowledge_graph(self) -> dict[str, Any]:
         """Return a public read model with display fields, not a content-completeness verdict."""
+        published_graph: dict[str, Any] | None = None
         with self._snapshot_lock:
             input_state = self._knowledge_input_state()
             if self._published_graph is not None and input_state == self._published_source_state:
@@ -1005,8 +1006,24 @@ class ToSAccessCore:
                     self._published_catalog = None
                     self._published_catalog_graph = None
                     self._published_catalog_source_state = None
-                    return graph
-            raise RuntimeError("ToS knowledge source projections changed during graph build")
+                    published_graph = graph
+                    break
+            if published_graph is None:
+                raise RuntimeError("ToS knowledge source projections changed during graph build")
+        # Do not retain an index for a superseded graph.  This runs after the
+        # snapshot lock is released so index readers can take their own lock
+        # without creating a snapshot/index lock-order cycle.
+        self._invalidate_snapshot_indexes(published_graph)
+        return published_graph
+
+    def _invalidate_snapshot_indexes(self, graph: dict[str, Any]) -> None:
+        """Drop only indexes that do not belong to the current published graph."""
+        with self._search_lock:
+            if self._search_index is not None and self._search_index.graph is not graph:
+                self._search_index = None
+        with self._graph_index_lock:
+            if self._graph_index is not None and self._graph_index.graph is not graph:
+                self._graph_index = None
 
     def _knowledge_input_state(self) -> tuple[tuple[str, int, int, int, int], ...]:
         """Return the source-file state that bounds an in-memory addressed snapshot."""
@@ -1290,12 +1307,12 @@ class ToSAccessCore:
             self._addressed_graph = graph
             self._addressed_source_state = state_after
             self._published_source_state = state_after
-            # Search/inspection indexes are identity-bound and lazily rebuild on
-            # the next query against this newly published in-memory snapshot.
-            self._search_index = None
-            with self._graph_index_lock:
-                self._graph_index = None
-            return updated
+        # Search/inspection indexes are identity-bound and lazily rebuild on
+        # the next query against this newly published in-memory snapshot. Run
+        # the invalidation after releasing the snapshot lock so readers can
+        # take their respective index lock without a lock-order cycle.
+        self._invalidate_snapshot_indexes(graph)
+        return updated
 
     def knowledge_catalog(self) -> dict[str, Any]:
         """Describe the compositional grammar, vocabulary, and stored lens specs."""
@@ -1377,10 +1394,7 @@ class ToSAccessCore:
     ) -> dict[str, Any]:
         """Search the normalized human/agent knowledge surface without choosing a legacy mode."""
         graph = self.knowledge_graph()
-        with self._search_lock:
-            if self._search_index is None or self._search_index.graph is not graph:
-                self._search_index = KnowledgeSearchIndex(graph)
-            index = self._search_index
+        index = self._search_index_for_snapshot(graph)
         return search_knowledge_graph(
             graph,
             query,
@@ -1391,6 +1405,23 @@ class ToSAccessCore:
             limit=limit,
             search_index=index,
         )
+
+    def _search_index_for_snapshot(self, graph: dict[str, Any]) -> KnowledgeSearchIndex:
+        """Return an index without recaching a graph superseded in-flight."""
+        with self._search_lock:
+            # Keep lock order search -> snapshot for cache checks. Release the
+            # snapshot lock while the index is built so publication is not
+            # blocked by an in-flight reader, then recheck before caching.
+            with self._snapshot_lock:
+                current = self._published_graph
+                cacheable = current is None or current is graph
+                if cacheable and self._search_index is not None and self._search_index.graph is graph:
+                    return self._search_index
+            index = KnowledgeSearchIndex(graph)
+            with self._snapshot_lock:
+                if self._published_graph is None or self._published_graph is graph:
+                    self._search_index = index
+            return index
 
     def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
         """Inspect one normalized node (or all namespaced matches for a native ID)."""
@@ -1409,9 +1440,19 @@ class ToSAccessCore:
 
     def _current_graph_index(self, graph: dict[str, Any]) -> KnowledgeGraphIndex:
         with self._graph_index_lock:
-            if self._graph_index is None or self._graph_index.graph is not graph:
-                self._graph_index = KnowledgeGraphIndex(graph)
-            return self._graph_index
+            # Keep lock order graph-index -> snapshot for cache checks. Release
+            # the snapshot lock while the index is built so publication is not
+            # blocked by an in-flight reader, then recheck before caching.
+            with self._snapshot_lock:
+                current = self._published_graph
+                cacheable = current is None or current is graph
+                if cacheable and self._graph_index is not None and self._graph_index.graph is graph:
+                    return self._graph_index
+            index = KnowledgeGraphIndex(graph)
+            with self._snapshot_lock:
+                if self._published_graph is None or self._published_graph is graph:
+                    self._graph_index = index
+            return index
 
     def knowledge_focus(
         self,

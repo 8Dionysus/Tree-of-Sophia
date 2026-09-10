@@ -16,6 +16,7 @@ from unittest.mock import patch
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 from jsonschema import Draft202012Validator
 
@@ -304,6 +305,7 @@ def write_fixture(root: Path) -> None:
     for name in (
         "knowledge-api.v1.json",
         "knowledge-graph.v1.schema.json",
+        "readable-context.v1.schema.json",
         "lens-spec.v1.schema.json",
         "lens-result.v1.schema.json",
         "temporal-comparison-request.v1.schema.json",
@@ -559,6 +561,87 @@ class CoreContractTests(unittest.TestCase):
             self.assertEqual(cached_state, (stat.st_mtime_ns, stat.st_size, stat.st_ino, stat.st_ctime_ns))
             self.assertEqual(cached_payload["nodes"][0]["label"], "Omega")
             self.assertFalse(hasattr(core_module._knowledge_graph_version, "cache_info"))
+
+    def test_inflight_old_index_stays_local_after_snapshot_supersession(self) -> None:
+        from tos_access import core as core_module
+        from tos_access.knowledge import KnowledgeGraphIndex
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            old_graph = core.knowledge_graph()
+            node_id = "philosophy:a"
+            path = core.philosophy_graph_projection_path
+            replacement = path.read_bytes().replace(b'"Alpha"', b'"Omega"', 1)
+            self.assertEqual(len(replacement), path.stat().st_size)
+
+            index_started = threading.Event()
+            release_old_index = threading.Event()
+            successor_published = threading.Event()
+            worker_result: dict[str, Any] = {}
+            publisher_result: dict[str, Any] = {}
+
+            def delayed_index(graph: dict[str, Any]) -> KnowledgeGraphIndex:
+                if graph is old_graph:
+                    index_started.set()
+                    self.assertTrue(release_old_index.wait(5))
+                return KnowledgeGraphIndex(graph)
+
+            original_invalidate = core._invalidate_snapshot_indexes
+
+            def signal_publication(graph: dict[str, Any]) -> None:
+                successor_published.set()
+                original_invalidate(graph)
+
+            def read_old_snapshot() -> None:
+                try:
+                    worker_result["packet"] = core.knowledge_node(node_id)
+                except BaseException as error:  # pragma: no cover - surfaced below
+                    worker_result["error"] = error
+
+            def publish_successor() -> None:
+                try:
+                    publisher_result["graph"] = core.knowledge_graph()
+                except BaseException as error:  # pragma: no cover - surfaced below
+                    publisher_result["error"] = error
+
+            with patch.object(core_module, "KnowledgeGraphIndex", side_effect=delayed_index), \
+                    patch.object(ToSAccessCore, "_invalidate_snapshot_indexes", side_effect=signal_publication):
+                reader = threading.Thread(target=read_old_snapshot)
+                reader.start()
+                self.assertTrue(index_started.wait(5))
+
+                path.write_bytes(replacement)
+                publisher = threading.Thread(target=publish_successor)
+                publisher.start()
+                self.assertTrue(successor_published.wait(5))
+
+                release_old_index.set()
+                reader.join(5)
+                publisher.join(5)
+
+            self.assertFalse(reader.is_alive())
+            self.assertFalse(publisher.is_alive())
+            self.assertNotIn("error", worker_result)
+            self.assertNotIn("error", publisher_result)
+            successor = publisher_result["graph"]
+            self.assertIs(core._published_graph, successor)
+            self.assertEqual(
+                worker_result["packet"]["matches"][0]["display"]["title"]["default"],
+                "Alpha",
+            )
+            self.assertEqual(
+                next(item for item in successor["nodes"] if item["id"] == node_id)["display"]["title"]["default"],
+                "Omega",
+            )
+            # The in-flight old reader returned a private index; publication
+            # did not leave that superseded graph in the shared cache.
+            self.assertIsNone(core._graph_index)
+
+            current = core.knowledge_node(node_id)
+            self.assertEqual(current["matches"][0]["display"]["title"]["default"], "Omega")
+            self.assertIs(core._graph_index.graph, successor)
 
     def test_concurrent_addressed_writers_share_one_cas_parent(self) -> None:
         from concurrent.futures import ThreadPoolExecutor
@@ -880,6 +963,7 @@ class CoreContractTests(unittest.TestCase):
             # the immutable graph instance, not just that convenient string.
             with patch('tos_access.core.KnowledgeGraphIndex', wraps=KnowledgeGraphIndex) as prepare:
                 for graph, count in ((initial, 1), (changed, 2)):
+                    core._published_graph = graph
                     with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph):
                         with ThreadPoolExecutor(max_workers=4) as pool:
                             packets = list(pool.map(core.knowledge_node, [identifier] * 8))
@@ -904,10 +988,12 @@ class CoreContractTests(unittest.TestCase):
             changed = deepcopy(initial)
             changed['nodes'][0]['attributes']['search_probe'] = 'new-snapshot-only'
             with patch('tos_access.core.KnowledgeSearchIndex', wraps=KnowledgeSearchIndex) as prepare:
+                core._published_graph = initial
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=initial):
                     for query in ('Alpha', 'Альфа', 'missing'):
                         self.assertEqual(core.knowledge_search(query), search_knowledge_graph(initial, query))
                     self.assertEqual(prepare.call_count, 1)
+                core._published_graph = changed
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=changed):
                     packet = core.knowledge_search('new-snapshot-only')
                     self.assertEqual(packet, search_knowledge_graph(changed, 'new-snapshot-only'))
@@ -1019,6 +1105,7 @@ class CoreContractTests(unittest.TestCase):
                 {
                     "api",
                     "knowledge_graph",
+                    "readable_context",
                     "lens_spec",
                     "lens_result",
                     "temporal_comparison_request",
