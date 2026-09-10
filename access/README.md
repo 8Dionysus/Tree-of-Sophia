@@ -278,6 +278,46 @@ absence of publication/runtime authority. Neither performs a fresh assessment
 or authenticates a model invocation. The source owner controls currentness and
 publication; see [local assessed snapshots](../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots).
 
+## Explicit prepared local reader
+
+Python callers can opt into the published SQLite read model already emitted by
+the edge producer, using both `ToSAccessCore.discover(...,
+published_read_model_path=..., published_read_model_expected=...)` arguments.
+The expected value is an independently owner-selected snapshot binding framed
+by `published_snapshot_binding(top, publication_epoch)`: read-model schema,
+source/data revisions, normalization binding, small-header checksum, and the
+actual `knowledge_exploration_clock` epoch. Merely trusting the database's own
+header does not establish current source or policy authority.
+
+This first prepared slice supports catalog and full node/relation inspect,
+including identity aliases, exact incident counts and endpoint closure. It opens
+read-only query transactions, verifies the small header and selected-row emitted
+JSON checksums, and never builds a graph, normalizes sources, or creates an
+offline normalization cache. Catalog bytes are loaded and checked only for a
+catalog request. Full packets retain human forms, source pointers, provenance,
+unknown fields and typed false/zero values. No compact response substitutes for
+the full inspected record. Checksums detect accidental byte drift; they do not
+authenticate a writer holding the same producer/filesystem authority.
+
+Publication must include the prepared metadata and row digests through the
+normal producer and apply the existing exploration-clock/seek-index migration.
+Missing, corrupt, stale or concurrently replaced publications refuse explicitly;
+there is no request-time migration, repair, revision reselection or full-graph
+fallback. Staleness is relative to the supplied expected binding: the reader
+does not rehash live source files or independently discover policy revocation.
+The serving owner must preserve or advance its clock across restore. Recreating
+identical header bytes with a reset clock is not distinguishable after restart.
+Row, byte and SQLite-work budgets refuse oversized exact inspections
+instead of returning approximate counts. Readers keep no connection or graph
+across requests/restarts. SQLite may use its ordinary WAL coordination sidecars;
+`mode=ro` and `query_only` prohibit database writes, not SQLite's filesystem
+coordination protocol.
+
+Search, lens, focus and exploration are not yet supported by this opt-in slice;
+exploration reports unavailable. The default, without these two arguments,
+retains the existing compatibility route. This is not completion of the broader
+cold-reader or addressed-source publication work, nor a production activation.
+
 ## Constructor boundaries
 
 Construction coverage is deliberately bounded: selectors, type ancestry,

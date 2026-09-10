@@ -43,6 +43,7 @@ from .search_read_model import (
 )
 from .exploration import ExplorationService, exploration_capabilities
 from .temporal_comparison import compare_temporal_claims
+from .published_read_model import PublishedKnowledgeReadModel, PublishedReadModelError
 
 
 INDEX_RELATIVE_PATH = Path("ToS/derived-exports/tos_corpus_index.min.json")
@@ -482,6 +483,9 @@ class ToSAccessCore:
     search_read_model_max_bytes: int = SEARCH_READ_MODEL_DEFAULT_MAX_BYTES
     search_read_model_max_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS
     search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS
+    published_read_model_path: Path | None = None
+    published_read_model_expected: dict[str, Any] | None = None
+    _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
     _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
     _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
@@ -515,6 +519,13 @@ class ToSAccessCore:
     )
 
     def __post_init__(self):
+        if (self.published_read_model_path is None) != (self.published_read_model_expected is None):
+            raise ValueError("prepared reader requires both a path and an exact expected snapshot binding")
+        if self.published_read_model_path is not None:
+            path = Path(self.published_read_model_path).expanduser()
+            if not path.is_absolute():
+                path = self.tos_root / path
+            self._prepared_reader = PublishedKnowledgeReadModel(path, self.published_read_model_expected)
         if self.search_read_model_path is None:
             self.search_read_model_path = _default_search_read_model_path(self.tos_root)
         else:
@@ -529,8 +540,11 @@ class ToSAccessCore:
         return self._exploration.explore(request)
 
     def knowledge_exploration_contracts(self) -> dict[str, Any]:
+        capabilities = exploration_capabilities()
+        if self._prepared_reader is not None:
+            capabilities["available"] = False
         return {
-            "capabilities": exploration_capabilities(),
+            "capabilities": capabilities,
             "request": _read_json(self.tos_root / "access/contracts/exploration-request.v1.schema.json"),
             "result": _read_json(self.tos_root / "access/contracts/exploration-result.v1.schema.json"),
             "request_v2": _read_json(self.tos_root / "access/contracts/exploration-request.v2.schema.json"),
@@ -552,7 +566,15 @@ class ToSAccessCore:
         search_read_model_max_bytes: int | None = None,
         search_read_model_max_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS,
         search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
+        published_read_model_path: str | Path | None = None,
+        published_read_model_expected: dict[str, Any] | None = None,
     ) -> "ToSAccessCore":
+        """Select legacy carrier reads, or explicitly pin the prepared reader.
+
+        The prepared route currently serves catalog and full node/relation
+        inspection only. Other knowledge operations refuse instead of silently
+        rebuilding the graph. No environment variable activates this opt-in.
+        """
         root = _discover_root(tos_root)
         index = Path(
             index_path
@@ -627,6 +649,8 @@ class ToSAccessCore:
             search_read_model_max_bytes=configured_budget,
             search_read_model_max_postings=search_read_model_max_postings,
             search_read_model_max_verify_chars=search_read_model_max_verify_chars,
+            published_read_model_path=Path(published_read_model_path) if published_read_model_path is not None else None,
+            published_read_model_expected=published_read_model_expected,
         )
 
     def index_exists(self) -> bool:
@@ -1054,6 +1078,11 @@ class ToSAccessCore:
 
     def knowledge_graph(self) -> dict[str, Any]:
         """Return a public read model with display fields, not a content-completeness verdict."""
+        if self._prepared_reader is not None:
+            raise PublishedReadModelError(
+                "prepared reader does not materialize a full graph; this operation is not yet available "
+                "on the prepared route (legacy compatibility must be selected explicitly)"
+            )
         published_graph: dict[str, Any] | None = None
         with self._snapshot_lock:
             input_state = self._knowledge_input_state()
@@ -1405,6 +1434,8 @@ class ToSAccessCore:
 
     def knowledge_catalog(self) -> dict[str, Any]:
         """Describe the compositional grammar, vocabulary, and stored lens specs."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.catalog()
         return self.knowledge_snapshot()["catalog"]
 
     def knowledge_snapshot(self) -> dict[str, dict[str, Any]]:
@@ -1689,11 +1720,15 @@ class ToSAccessCore:
 
     def knowledge_node(self, node_id: str, relation_limit: int = 200) -> dict[str, Any]:
         """Inspect one normalized node (or all namespaced matches for a native ID)."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.node(node_id, relation_limit)
         graph = self.knowledge_graph()
         return inspect_knowledge_node(graph, node_id, relation_limit, graph_index=self._current_graph_index(graph))
 
     def knowledge_relation(self, relation_id: str) -> dict[str, Any]:
         """Inspect one normalized relation and its display-complete endpoints."""
+        if self._prepared_reader is not None:
+            return self._prepared_reader.relation(relation_id)
         graph = self.knowledge_graph()
         return inspect_knowledge_relation(graph, relation_id, graph_index=self._current_graph_index(graph))
 
