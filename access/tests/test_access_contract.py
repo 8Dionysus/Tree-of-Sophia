@@ -385,6 +385,7 @@ class CoreContractTests(unittest.TestCase):
     def test_source_edit_then_addressed_publish_reaches_every_consumer_and_restart(self) -> None:
         """A durable owner edit is published without a pre-publication full build."""
         from copy import deepcopy
+        from tos_access import core as core_module
         from tos_access.knowledge import AddressedUpdateError, _stable_digest, build_knowledge_graph
 
         with tempfile.TemporaryDirectory() as raw:
@@ -422,14 +423,21 @@ class CoreContractTests(unittest.TestCase):
                     expected_parent_revision=baseline["source_revision"],
                 )
             self.assertIs(core._published_graph, baseline)
-            published = core.knowledge_graph_addressed(
-                baseline,
-                "philosophy",
-                replacement["node_id"],
-                replacement,
-                source_revision=target_revision,
-                expected_parent_revision=baseline["source_revision"],
-            )
+            # Addressed publication must not fall back to the complete graph
+            # builder after the parent snapshot has already been published.
+            with patch.object(
+                core_module,
+                "_knowledge_graph_version",
+                side_effect=AssertionError("addressed publication invoked the full graph builder"),
+            ):
+                published = core.knowledge_graph_addressed(
+                    baseline,
+                    "philosophy",
+                    replacement["node_id"],
+                    replacement,
+                    source_revision=target_revision,
+                    expected_parent_revision=baseline["source_revision"],
+                )
             self.assertEqual(published["source_revision"], target_revision)
 
             relation_id = published["relations"][0]["id"]
@@ -655,7 +663,6 @@ class CoreContractTests(unittest.TestCase):
             root = Path(raw)
             write_fixture(root)
             core = ToSAccessCore.discover(root)
-            baseline = core.knowledge_graph()
             projection = core.philosophy_graph_projection_path
             original = deepcopy(core.philosophy_projection())
 
@@ -663,7 +670,12 @@ class CoreContractTests(unittest.TestCase):
                 ("nested_boolean", False, 0),
                 ("nested_number", 1, 1.0),
             ):
-                candidate = deepcopy(original)
+                baseline_source = deepcopy(original)
+                baseline_source["nodes"][0].setdefault("properties", {})[field] = first_value
+                baseline_source["nodes"][1].setdefault("properties", {})[field] = first_value
+                projection.write_text(json.dumps(baseline_source, ensure_ascii=False), encoding="utf-8")
+                baseline = core.knowledge_graph()
+                candidate = deepcopy(baseline_source)
                 declared = deepcopy(candidate["nodes"][0])
                 undeclared = deepcopy(candidate["nodes"][1])
                 declared["label"] = f"declared {field}"
@@ -761,6 +773,10 @@ class CoreContractTests(unittest.TestCase):
             # carrier; the worker below then performs a second edit while the
             # addressed recomputation is in flight.
             projection.write_text(json.dumps(race_source, ensure_ascii=False), encoding='utf-8')
+            race_full = build_knowledge_graph(
+                core.index(), race_source, core.bibliographic_graph(),
+                core.entity_type_registry(), core.relation_type_registry(),
+            )
             entered = threading.Event()
             changed = threading.Event()
             original_update = core_module.addressed_update_knowledge_graph
@@ -784,7 +800,7 @@ class CoreContractTests(unittest.TestCase):
                     with self.assertRaisesRegex(AddressedUpdateError, 'changed during addressed update'):
                         core.knowledge_graph_addressed(
                             published, 'philosophy', replacement['node_id'], race_source['nodes'][0],
-                            source_revision=stale_full['source_revision'],
+                            source_revision=race_full['source_revision'],
                             expected_parent_revision=published['source_revision'],
                         )
             finally:
