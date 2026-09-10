@@ -791,6 +791,39 @@ def _initial_source_record(config, source, profiles=None):
     return Record.from_payload(source['record_id'], 1, source)
 
 
+def _form_identity_inputs(root, allocated, *, records=None, claims=None, own=None):
+    """Reserve current and prior IDs through finite public source locators.
+
+    This is identity inspection, not historical schema admission or a write
+    grant. Callers retain their own source grammar and transaction readset.
+    """
+    from build_source_witness_catalog import collect_records, collect_claims
+    from source_record_profiles import SOURCE_CLAIM_BASENAME
+    from source_historical_claims import is_path as historical_claim_path
+    root = Path(root)
+    if records is None:
+        records = [row for rows in collect_records(root).values() for row in rows]
+    if claims is None:
+        claims = collect_claims(root)
+    paths = {Path(row['source_record_ref']).with_name(Path(row['source_record_ref']).stem + '.human-forms.json')
+             for row in records}
+    paths.update(claim_forms_path(Path(row['source_claim_file_ref']), row['claim_id'])
+                 for row in claims if Path(row['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME
+                 or historical_claim_path(Path(row['source_claim_file_ref'])))
+    allocated, inputs = set(allocated), {}
+    for relative in sorted(paths - ({Path(own)} if own is not None else set())):
+        try:
+            raw = _read(root / relative, MAX_SET_BYTES)
+        except FileNotFoundError:
+            continue
+        forms = _json_object(raw)
+        _validate_history(forms)
+        if allocated & {form['form_id'] for form in [*forms['forms'], *forms['prior_forms']]}:
+            raise JournalConflict('form identity already exists on another subject')
+        inputs[relative.as_posix()] = _digest(raw)
+    return inputs
+
+
 def _prepare_creation(config, request):
     """Shared initial metadata serialization; historical claims stay optional.
 
@@ -822,26 +855,8 @@ def _prepare_creation(config, request):
             prior = profiles.load('sign', row['source_record_ref'])
             if prior['promotion_basis']['candidate']['id'] == config['promotion_candidate_id']:
                 raise JournalConflict('candidate already has a Sign identity; revision or explicit lineage is required')
-    form_inputs = {}
     new_form_ids = {selection['form_id'] for selection in selections}
-    adjacent_forms = set()
-    for row in objects.values():
-        path = root / row['source_record_ref']
-        adjacent_forms.add(path.with_name(path.stem + '.human-forms.json'))
-    from source_record_profiles import SOURCE_CLAIM_BASENAME
-    for claim in existing_claims:
-        path = root / claim['source_claim_file_ref']
-        if path.name == SOURCE_CLAIM_BASENAME:
-            adjacent_forms.add(claim_forms_path(path, claim['claim_id']))
-    for adjacent in sorted(adjacent_forms):
-        if not adjacent.exists():
-            continue
-        raw = _read(adjacent, MAX_SET_BYTES)
-        forms = _json_object(raw)
-        _validate_history(forms)
-        if new_form_ids.intersection(form['form_id'] for form in [*forms['forms'], *forms['prior_forms']]):
-            raise JournalConflict('form identity already exists on another subject')
-        form_inputs[adjacent.relative_to(root).as_posix()] = _digest(raw)
+    form_inputs = _form_identity_inputs(root, new_form_ids, records=objects.values(), claims=existing_claims)
     objects[source['record_id']] = {'record_type': source['record_type'],
         'source_record_ref': config['source_path'], 'record_sha256': _digest(_canonical(source))[7:]}
     claim_ids = {claim['claim_id'] for claim in existing_claims}
@@ -925,6 +940,7 @@ def _prepare_creation(config, request):
             'ToS/doctrine/semantic-interchange/relation-types.v1.json')},
         'implementation': {ref: _digest(_read(ROOT / ref, MAX_SET_BYTES)) for ref in (
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
+            'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py',
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
             'scripts/source_witness_human_forms.py', 'scripts/build_source_witness_catalog.py',

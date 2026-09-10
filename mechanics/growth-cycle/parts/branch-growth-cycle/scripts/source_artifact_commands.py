@@ -176,7 +176,7 @@ def _read_inputs(root, record, bindings):
 
 def prepare_creation(config, request):
     from build_source_witness_catalog import collect_records, collect_claims
-    from source_record_profiles import SourceRecordProfiles, SOURCE_CLAIM_BASENAME
+    from source_record_profiles import SourceRecordProfiles
     from source_witness_bibliographic_graph_common import _scan_index
     root = Path(config['source_root'])
     record, selections = request['record'], request['forms']
@@ -201,21 +201,7 @@ def prepare_creation(config, request):
     if (any(not isinstance(value, str) or value not in config['allowed_form_ids'] for value in form_ids)
             or len(form_ids) != len(set(form_ids))):
         raise PermissionError('Artifact creation form identities are not separately delegated')
-    adjacent = {Path(row['source_record_ref']).with_name(Path(row['source_record_ref']).stem + '.human-forms.json')
-                for row in objects}
-    adjacent.update(source.claim_forms_path(Path(row['source_claim_file_ref']), row['claim_id'])
-                    for row in claims if Path(row['source_claim_file_ref']).name == SOURCE_CLAIM_BASENAME)
-    form_inputs = {}
-    for relative in sorted(adjacent):
-        try:
-            raw = source._read(root / relative, source.MAX_SET_BYTES)
-        except FileNotFoundError:
-            continue
-        forms = source._json_object(raw)
-        source._validate_history(forms)
-        if set(form_ids).intersection(item['form_id'] for item in [*forms['forms'], *forms['prior_forms']]):
-            raise source.JournalConflict('Artifact form identity already belongs to another source')
-        form_inputs[relative.as_posix()] = source._digest(raw)
+    form_inputs = source._form_identity_inputs(root, form_ids, records=objects, claims=claims)
     forms = source._apply(None, subject, [source.prepare_metadata_change(record, None, config['principal_id'], **selection)
                                          for selection in selections])
     views = source.materialize_metadata_forms(record, forms, access_allowed=True)
@@ -228,6 +214,7 @@ def prepare_creation(config, request):
     contract_refs = (SCHEMA_REF, 'ToS/contracts/provenance-event-v2.schema.json')
     implementation_refs = (MODULE_REF, contract.MODULE_REF,
         'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py',
+        'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py',
         'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py',
         'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py',
         'scripts/build_source_witness_catalog.py', 'scripts/source_record_profiles.py',

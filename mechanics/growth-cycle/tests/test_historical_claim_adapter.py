@@ -20,6 +20,102 @@ import test_source_commands as fixtures
 
 
 class HistoricalClaimAdapterTests(unittest.TestCase):
+    def reserve_historical_form(self, root, identity, *, retained_prior):
+        """Seed a public synthetic legacy locator, not a captured write grant."""
+        from build_source_witness_catalog import collect_claims
+        entry = next(row for row in collect_claims(root) if legacy.is_path(row['source_claim_file_ref']))
+        path = root / entry['source_claim_file_ref']
+        rows = [json.loads(line) for line in path.read_bytes().splitlines() if line.strip()]
+        claim = next(row for row in rows if row['claim_id'] == entry['claim_id'])
+        claim.setdefault('qualifiers', {}).update(statement='Synthetic reserved identity; not historical evidence.',
+                                                 statement_language='en', statement_script='Latn')
+        path.write_bytes(b''.join(source._canonical(row) + b'\n' for row in rows))
+        change = source.prepare_claim_change(claim, None, 'test:reservation', identity, 'claim.statement')
+        forms = source._apply(None, claims._subject(claim), [change])
+        if retained_prior:
+            successor = source.prepare_claim_change(claim, forms, 'test:reservation', identity, 'claim.statement')
+            forms = source._apply(forms, claims._subject(claim), [successor])
+            self.assertEqual(forms['prior_forms'][0]['form_id'], identity)
+            self.assertEqual(forms['forms'][0]['form_version'], 2)
+        source._validate_history(forms)
+        target = source.claim_forms_path(path, claim['claim_id'])
+        target.write_bytes(packages._encode(forms))
+        return target
+
+    def test_native_and_artifact_creation_reserve_current_and_prior_historical_ids(self):
+        import test_source_artifact_commands as artifact_fixtures
+        for kind in ('metadata', 'artifact'):
+            for retained_prior in (False, True):
+                with self.subTest(kind=kind, retained_prior=retained_prior):
+                    factory = (fixtures.HistoricalCreationTests().native_creation() if kind == 'metadata' else
+                               artifact_fixtures.ArtifactCreationTests().fixture())
+                    with factory as (root, owner, config, original, *_):
+                        proposal = ({key: original[key] for key in ('record', 'forms')}
+                                    if kind == 'metadata' else copy.deepcopy(original))
+                        reserved = config['allowed_form_ids'][0]
+                        target = self.reserve_historical_form(root, reserved, retained_prior=retained_prior)
+                        retained = target.read_bytes()
+                        with self.assertRaisesRegex(source.JournalConflict, 'form identity'):
+                            source.run_local_command(owner, {'schema_version': contract_request,
+                                'operation': 'prepare-create', **proposal})
+                        self.assertFalse((root / config['source_path']).exists())
+                        self.assertEqual(target.read_bytes(), retained)
+                        fresh = 'tos.form.synthetic-fresh-creation-name'
+                        config['allowed_form_ids'][0] = fresh
+                        proposal['forms'][0]['form_id'] = fresh
+                        owner.write_text(json.dumps(config))
+                        preview = source.run_local_command(owner, {'schema_version': contract_request,
+                            'operation': 'prepare-create', **proposal})
+                        request = {'schema_version': contract_request,
+                            'operation': 'source.create',
+                            'command_id': 'test:finite-identity-create', 'expected_source': None,
+                            'expected_revision': None, 'expected_configuration': preview['owner_configuration'],
+                            'expected_dependencies': preview['expected_dependencies'], **proposal}
+                        # A noncolliding observed form still participates in CAS.
+                        target.write_bytes(retained + b'\n')
+                        with self.assertRaisesRegex(source.JournalConflict, 'dependencies'):
+                            source.run_local_command(owner, request)
+                        target.write_bytes(retained)
+                        result = source.run_local_command(owner, request)
+                        self.assertFalse(result['replayed'])
+                        self.assertTrue(source.run_local_command(owner, request)['replayed'])
+
+    def test_native_claim_correction_reserves_historical_ids_and_keeps_own_successors(self):
+        import test_source_claim_commands as native_fixtures
+        for retained_prior in (False, True):
+            with self.subTest(retained_prior=retained_prior), native_fixtures.SourceClaimCreationTests().correction() as (
+                    root, owner, config, _, request):
+                target = self.reserve_historical_form(root, config['allowed_form_ids'][0], retained_prior=retained_prior)
+                retained = target.read_bytes()
+                proposal = {key: request[key] for key in ('fields', 'forms', 'reason')}
+                with self.assertRaisesRegex(source.JournalConflict, 'form identity'):
+                    source.run_local_command(owner, {'schema_version': contract_request,
+                        'operation': 'prepare-revise', **proposal})
+                with self.assertRaisesRegex(source.JournalConflict, 'form identity'):
+                    source.run_local_command(owner, request)
+                fresh = 'tos.form.synthetic-fresh-correction'
+                # An unused broader grant is not an attempt to take that ID.
+                config['allowed_form_ids'].append(fresh)
+                proposal['forms'][0]['form_id'] = fresh
+                owner.write_text(json.dumps(config))
+                for version in (2, 3):
+                    proposal['fields']['qualifiers']['statement'] = f'Условная тестовая атрибуция, редакция {version}.'
+                    preview = source.run_local_command(owner, {'schema_version': contract_request,
+                        'operation': 'prepare-revise', **proposal})
+                    request = {'schema_version': contract_request, 'operation': 'claim.revise',
+                        'command_id': f'test:finite-identity-correction-{version}',
+                        'expected_source': preview['source'], 'expected_revision': preview['revision'],
+                        'expected_configuration': preview['owner_configuration'],
+                        'expected_dependencies': preview['expected_dependencies'],
+                        'expected_inputs': preview['source_bindings'], **proposal}
+                    target.write_bytes(retained + b'\n')
+                    with self.assertRaisesRegex(source.JournalConflict, 'dependencies|snapshot'):
+                        source.run_local_command(owner, request)
+                    target.write_bytes(retained)
+                    result = source.run_local_command(owner, request)
+                    self.assertEqual(result['source']['version'], version)
+                    self.assertTrue(source.run_local_command(owner, request)['replayed'])
+
     @contextmanager
     def fixture(self):
         with fixtures.HistoricalCreationTests().creation() as (root, owner, config, request, rebuild, fixture):

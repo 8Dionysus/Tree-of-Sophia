@@ -201,7 +201,7 @@ def reference_replay_snapshot(config, records):
         _ground_claims(config, [record], initial=False)[1] for record in selected]))
 
 
-def _ground_claims(config, claims, *, initial):
+def _ground_claims(config, claims, *, initial, selected_form_ids=None):
     """Source grounding shared by separately authorized creation and correction.
 
     This function grants no write scope. Callers validate their own exact
@@ -215,6 +215,10 @@ def _ground_claims(config, claims, *, initial):
     objects = {record['record_id']: record for rows in records.values() for record in rows}
     input_digests = {}
     prior_claims = collect_claims(root, input_digests=input_digests)
+    form_inputs = (source._form_identity_inputs(root, selected_form_ids,
+        records=objects.values(), claims=prior_claims,
+        own=source.claim_forms_path(Path(config['source_path']), config['claim_id']))
+        if selected_form_ids is not None else {})
     identifiers = set(objects) | {claim['claim_id'] for claim in prior_claims}
     profiles = SourceClaimProfiles(root)
     events = _scan_index(root, filename_pattern='*provenance*.jsonl', id_field='event_id')
@@ -295,7 +299,7 @@ def _ground_claims(config, claims, *, initial):
     dependencies = source._digest(source._canonical({'records': records, 'claims': prior_claims,
         'source_profiles': source._profile_input_snapshot(metadata), 'existing_claim_profiles': input_digests,
         'new_claim_profiles': profiles.input_digests, 'events': events, 'anchors': anchors, 'evidence': evidence,
-        'selected_source_bindings': source_bindings,
+        'selected_source_bindings': source_bindings, 'forms': form_inputs,
         'provenance_contract': source._digest(source._read(root / 'ToS/contracts/provenance-event-v2.schema.json', source.MAX_SET_BYTES)),
         'implementation': {ref: source._digest(source._read(source.ROOT / ref, source.MAX_SET_BYTES)) for ref in
             (MODULE_REF, 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py', contract.MODULE_REF,
@@ -304,6 +308,7 @@ def _ground_claims(config, claims, *, initial):
              'scripts/source_record_profiles.py', identity_proposals.MODULE_REF, document_catalogue.MODULE_REF,
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py',
              'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py',
+             'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py',
              'scripts/native_text_binding.py', 'scripts/source_owner_context.py',
              'scripts/build_source_witness_catalog.py',
              'scripts/source_witness_bibliographic_graph_common.py')}}))

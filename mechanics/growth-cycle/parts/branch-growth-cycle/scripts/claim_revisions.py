@@ -371,7 +371,8 @@ def _proposal(config, path, files, record, request):
     from source_claim_commands import _ground_claims
     family = _family(config)
     _, grounding, bindings = (family.ground(config, revised) if family is not None else
-                              _ground_claims(config, [revised], initial=False))
+                              _ground_claims(config, [revised], initial=False,
+                                  selected_form_ids=[item['form_id'] for item in request['forms']]))
     if family is not None:
         responsibility_implementations = (*responsibility_implementations, family.MODULE_REF)
     dependencies = source._digest(source._canonical({'grounding': grounding,
@@ -392,7 +393,8 @@ def _proposal(config, path, files, record, request):
     for name, raw in files.items():
         if name.endswith('.human-forms.json') and name != formname:
             sibling = source._json_object(raw)
-            if selected_ids & {f['form_id'] for f in sibling['forms']}:
+            source._validate_history(sibling)
+            if selected_ids & {f['form_id'] for f in [*sibling['forms'], *sibling['prior_forms']]}:
                 raise source.JournalConflict('Claim correction cannot reuse a sibling form identity')
     changes = [source.prepare_claim_change(revised, payload, config['principal_id'], **item,
                allowed_field_ids=source._claim_form_field_ids(config)) for item in request['forms']]

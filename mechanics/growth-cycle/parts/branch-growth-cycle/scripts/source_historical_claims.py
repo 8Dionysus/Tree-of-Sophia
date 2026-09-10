@@ -130,30 +130,9 @@ def inspect(config, path, files, record):
 
 def form_identity_inputs(config, objects=None):
     """Check allocated IDs through public source locators, never private scans."""
-    from build_source_witness_catalog import collect_claims, collect_records
-    root = Path(config['source_root'])
-    if objects is None:
-        records = collect_records(root)
-        objects = {entry['record_id']: entry for rows in records.values() for entry in rows}
-    paths = {Path(entry['source_record_ref']).with_name(Path(entry['source_record_ref']).stem + '.human-forms.json')
-             for entry in objects.values()}
-    for entry in collect_claims(root):
-        relative = Path(entry['source_claim_file_ref'])
-        if relative.name == 'source-claims.jsonl' or is_path(relative):
-            paths.add(source.claim_forms_path(relative, entry['claim_id']))
     own = source.claim_forms_path(Path(config['source_path']), config['claim_id'])
-    allocated, inputs = set(config['allowed_form_ids']), {}
-    for relative in sorted(paths - {own}):
-        try:
-            raw = source._read(root / relative, source.MAX_SET_BYTES)
-        except FileNotFoundError:
-            continue
-        forms = source._json_object(raw)
-        source._validate_history(forms)
-        if allocated & {form['form_id'] for form in [*forms['forms'], *forms['prior_forms']]}:
-            raise source.JournalConflict('historical Claim form identity is already owned by another source')
-        inputs[relative.as_posix()] = source._digest(raw)
-    return inputs
+    return source._form_identity_inputs(config['source_root'], config['allowed_form_ids'],
+        records=objects.values() if objects is not None else None, own=own)
 
 
 def creation_lineage(root, source_path, files, request, *, archive_reader=None):

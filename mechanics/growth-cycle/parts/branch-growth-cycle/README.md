@@ -1742,9 +1742,19 @@ role word or metadata creation receipt cannot supply them.
 
 Initial creation checks allocated form IDs against both metadata form sets
 and declared Claim form sets, including retained predecessors. The consumed
+sets include native Claims and finite public `history/**/historical-claims.jsonl`
+locators without treating historical schemas as native write grants. Consumed
 sets enter the preparation dependency digest, so new collisions or observed
 changes before publication fail. This is still a metadata scan, not proof of
 an indexed or incremental writer.
+
+The same current/prior identity reservation covers native Claim correction,
+excluding only that Claim's own adjacent set so legitimate successors remain
+writable. It uses the existing public catalog locator authority: an incomplete
+source root cannot establish ecosystem-wide uniqueness or confer authority
+outside that root. Generic standalone form writers and partial-root metadata
+correction retain their existing contracts; this finite companion does not
+turn them into globally coordinated registries.
 
 ### Historical creation retries
 
@@ -2258,7 +2268,8 @@ Selected source paths, raw/canonical digests and versions survive in request
 and receipt, not just an opaque dependency digest. Existing selected-Claim
 forms must all be explicitly rebound; source copies include a ready statement
 and the full qualified Claim context. Prior forms and exact prior source refs
-remain retained. A sibling's form identity cannot be reused. This route does
+remain retained. Another catalog subject's current or prior form identity
+cannot be reused, including historical Claims. This route does
 not turn a newly written form into a calibrated or admitted interpretation.
 
 Only the selected JSONL row is serialized; all other rows retain exact bytes
