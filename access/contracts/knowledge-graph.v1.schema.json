@@ -618,16 +618,19 @@
           "type": "object", "additionalProperties": false,
           "required": ["mode", "node_id", "content_revision", "wording_pointer", "wording_state", "context_pointers", "relation_context_ids", "standalone"],
           "properties": {
-            "mode": {"const": "claim-with-mandatory-context"},
+            "mode": {"enum": ["claim-with-mandatory-context", "claim-with-shared-form-context-v2"]},
             "node_id": {"type": "string", "minLength": 1},
             "content_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-            "wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/display_selection/fields/summary", "/display_selection/fields/title"]},
+            "wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/human_form_selection/roles/caption", "/human_form_selection/roles/statement", "/human_form_selection/roles/hover", "/display_selection/fields/summary", "/display_selection/fields/title"], "description": "The v1 mode points to an intact packet or a display field. The explicit shared-form v2 mode points to a raw v2 role envelope, whose full source packet must be reconstructed with the selection's packet_base and shared_limits before reading; the role delta is never standalone wording."},
             "wording_state": {"enum": ["available", "missing"]},
             "context_pointers": {"const": ["/semantics", "/epistemic"]},
             "relation_context_ids": {"$ref": "#/$defs/sceneIds"},
             "standalone": {"const": false}
           },
-          "allOf": [{"if": {"properties": {"wording_state": {"const": "missing"}}},
+          "allOf": [{"if": {"properties": {"mode": {"const": "claim-with-mandatory-context"}}},
+            "then": {"properties": {"wording_pointer": {"enum": [null, "/human_form_selection/roles/caption/packet", "/human_form_selection/roles/statement/packet", "/human_form_selection/roles/hover/packet", "/display_selection/fields/summary", "/display_selection/fields/title"]}}},
+            "else": {"properties": {"wording_pointer": {"enum": [null, "/human_form_selection/roles/caption", "/human_form_selection/roles/statement", "/human_form_selection/roles/hover"]}}}},
+            {"if": {"properties": {"wording_state": {"const": "missing"}}},
             "then": {"properties": {"wording_pointer": {"type": "null"}}},
             "else": {"properties": {"wording_pointer": {"type": "string"}}}}]
         }
@@ -652,6 +655,10 @@
         "else": {"properties": {"packet": {"type": "null"}}}}]
     },
     "humanFormSelection": {
+      "description": "Versioned bounded delivery, not a new materialization or assessment. V1 carries intact packets; V2 losslessly factors exact common values and is decoded before semantic consumption.",
+      "oneOf": [{"$ref": "#/$defs/humanFormSelectionV1"}, {"$ref": "#/$defs/humanFormSelectionV2"}]
+    },
+    "humanFormSelectionV1": {
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "content_revision", "requested_language", "source_ref", "state", "roles", "candidates", "issues", "performs_translation", "performs_assessment"],
       "properties": {
@@ -674,6 +681,39 @@
         "issues": {"type": "array", "items": {"type": "string"}},
         "performs_translation": {"const": false}, "performs_assessment": {"const": false}
       }
+    },
+    "humanFormRoleSelectionV2": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "reason", "form", "packet_delta"],
+      "properties": {
+        "state": {"$ref": "#/$defs/humanFormRoleSelection/properties/state"},
+        "reason": {"$ref": "#/$defs/humanFormRoleSelection/properties/reason"},
+        "form": {"$ref": "#/$defs/humanFormRoleSelection/properties/form"},
+        "packet_delta": {"type": ["object", "null"], "not": {"type": "object", "required": ["form"]}, "description": "Exact complementary fields, not a source materialization. Recursively merge with packet_base without overwriting a leaf, restore the packet's form from this role's equal exact form reference, then restore ordered admission.limits from admission.limit_refs and shared_limits. Inline form is forbidden in base and delta. Null means no delivered ready packet; an empty object is a valid delta only for ready state."}
+      },
+      "allOf": [{"if": {"properties": {"state": {"const": "ready"}}},
+        "then": {"properties": {"form": {"$ref": "#/$defs/exactFormRef"}, "packet_delta": {"type": "object"}}},
+        "else": {"properties": {"packet_delta": {"type": "null"}}}}]
+    },
+    "humanFormSelectionV2": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "content_revision", "requested_language", "source_ref", "state", "roles", "candidates", "issues", "performs_translation", "performs_assessment", "packet_base", "shared_limits"],
+      "properties": {
+        "schema_version": {"const": "tos_human_form_selection_v2"},
+        "content_revision": {"$ref": "#/$defs/humanFormSelectionV1/properties/content_revision"},
+        "requested_language": {"$ref": "#/$defs/humanFormSelectionV1/properties/requested_language"},
+        "source_ref": {"$ref": "#/$defs/humanFormSelectionV1/properties/source_ref"},
+        "state": {"$ref": "#/$defs/humanFormSelectionV1/properties/state"},
+        "roles": {"type": "object", "required": ["name", "caption", "hover", "statement", "grounds", "history", "technical"],
+          "propertyNames": {"enum": ["name", "caption", "hover", "statement", "grounds", "history", "technical"]},
+          "additionalProperties": {"$ref": "#/$defs/humanFormRoleSelectionV2"}},
+        "candidates": {"$ref": "#/$defs/humanFormSelectionV1/properties/candidates"},
+        "issues": {"$ref": "#/$defs/humanFormSelectionV1/properties/issues"},
+        "performs_translation": {"const": false}, "performs_assessment": {"const": false},
+        "packet_base": {"type": "object", "not": {"required": ["form"]}, "description": "Recursive intersection of JSON-identical fields in every delivered ready packet after exact form-reference factoring and limits encoding. Packet form is restored from the role's equal exact reference, never from this base. No semantic unification, array reordering, missing/null conflation, assessment or admission is performed."},
+        "shared_limits": {"type": "array", "maxItems": 512, "uniqueItems": true, "items": {"type": "string"}, "description": "Literal strings, indexed in stable role and original limit order. References restore each packet's own limits, including their order and repetitions; they never union different admissions."}
+      },
+      "description": "The complete encoded envelope remains within the existing 16384-byte conservative JSON budget. Codec validation additionally bounds depth, members, exact reconstructed packets to 65536 bytes each and the expanded selection to 524288 bytes; rejects malformed references, unused pool entries, and conflicting leaves; and preserves every JSON value and type. ToS materialization and exact inspection remain v1. See human-form-delivery.md."
     },
     "sourceRecord": {
       "type": "object", "additionalProperties": false,

@@ -31,6 +31,89 @@ from tos_access.knowledge import (  # noqa: E402
 
 
 class KnowledgeContractTests(unittest.TestCase):
+    def test_human_form_delivery_schema_keeps_versions_and_ready_states_distinct(self):
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        validator = Draft202012Validator({'$ref': schema['$id'] + '#/$defs/humanFormSelection'},
+                                        registry=self.registry)
+        empty = {'state': 'missing', 'reason': 'no-ready-form', 'form': None, 'packet': None}
+        inline = {'schema_version': 'tos_human_form_selection_v1', 'content_revision': 'a' * 64,
+            'requested_language': 'ru', 'source_ref': 'synthetic:delivery-contract',
+            'state': 'available', 'roles': {role: copy.deepcopy(empty) for role in
+                ('name', 'caption', 'hover', 'statement', 'grounds', 'history', 'technical')},
+            'candidates': [], 'issues': [], 'performs_translation': False, 'performs_assessment': False}
+        ref = {'id': 'tos.form.synthetic-delivery', 'version': 1, 'digest': 'sha256:' + 'b' * 64}
+        inline['roles']['caption'] = {'state': 'ready', 'reason': 'exact-language',
+                                      'form': ref, 'packet': {'form': ref, 'synthetic_only': True}}
+        shared = copy.deepcopy(inline)
+        shared.update(schema_version='tos_human_form_selection_v2',
+                      packet_base={'synthetic_only': True}, shared_limits=[])
+        for role in shared['roles'].values():
+            packet = role.pop('packet')
+            role['packet_delta'] = {} if packet is not None else None
+        validator.validate(inline)
+        validator.validate(shared)
+        mutations = [
+            lambda value: value.update(schema_version='tos_human_form_selection_v3'),
+            lambda value: value['roles'].pop('technical'),
+            lambda value: value['roles']['caption'].update(packet={}),
+            lambda value: value['roles']['caption'].update(packet_delta=None),
+            lambda value: value['roles']['caption'].update(state='missing'),
+            lambda value: value['roles']['caption'].update(form=None),
+            lambda value: value['roles']['caption']['packet_delta'].update(form=ref),
+            lambda value: value['packet_base'].update(form=ref),
+            lambda value: value.update(shared_limits=['same', 'same']),
+            lambda value: value.update(shared_limits=[False]),
+            lambda value: value.update(performs_assessment=True),
+        ]
+        for index, mutate in enumerate(mutations):
+            with self.subTest(case=index):
+                broken = copy.deepcopy(shared)
+                mutate(broken)
+                self.assertFalse(validator.is_valid(broken))
+        broken = copy.deepcopy(inline)
+        broken['packet_base'] = {}
+        self.assertFalse(validator.is_valid(broken))
+
+    def test_compact_claim_reading_schema_binds_pointer_to_delivery_version(self):
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        validator = Draft202012Validator(
+            {'$ref': schema['$id'] + '#/$defs/compactClaimPath/properties/reading'}, registry=self.registry)
+        reading = {'mode': 'claim-with-mandatory-context', 'node_id': 'synthetic:claim',
+            'content_revision': 'a' * 64, 'wording_pointer': '/human_form_selection/roles/caption/packet',
+            'wording_state': 'available', 'context_pointers': ['/semantics', '/epistemic'],
+            'relation_context_ids': ['synthetic:subject', 'synthetic:object'], 'standalone': False}
+        for mode, pointers in (
+            ('claim-with-mandatory-context', ['/human_form_selection/roles/caption/packet',
+                                            '/display_selection/fields/summary']),
+            ('claim-with-shared-form-context-v2', ['/human_form_selection/roles/caption',
+                                                '/human_form_selection/roles/statement'])):
+            for pointer in pointers:
+                with self.subTest(mode=mode, pointer=pointer):
+                    value = {**reading, 'mode': mode, 'wording_pointer': pointer}
+                    validator.validate(value)
+                    other = ('claim-with-shared-form-context-v2' if mode == 'claim-with-mandatory-context'
+                             else 'claim-with-mandatory-context')
+                    self.assertFalse(validator.is_valid({**value, 'mode': other}))
+                    self.assertFalse(validator.is_valid({**value, 'standalone': True}))
+                    self.assertFalse(validator.is_valid({**value, 'wording_state': 'missing'}))
+                    self.assertFalse(validator.is_valid({**value, 'context_pointers': ['/semantics']}))
+            validator.validate({**reading, 'mode': mode, 'wording_state': 'missing', 'wording_pointer': None})
+
+    def test_human_form_delivery_discovery_exposes_source_and_wire_versions_separately(self):
+        api = json.loads((ACCESS_ROOT / 'contracts/knowledge-api.v1.json').read_text(encoding='utf-8'))
+        delivery = next(value for value in api['extensions']
+                        if value['extension_id'] == 'tos.knowledge.human-form-delivery.v2')
+        self.assertEqual(delivery['recognized_versions'],
+                         ['tos_human_form_selection_v1', 'tos_human_form_selection_v2'])
+        self.assertEqual(delivery['source_materialization_version'], 'tos_human_form_materialization_v1')
+        self.assertIn(delivery['lens_carrier_version'], delivery['recognized_versions'])
+        self.assertLess(delivery['wire_budget_conservative_bytes'], delivery['packet_budget_conservative_bytes'])
+        self.assertLessEqual(delivery['packet_budget_conservative_bytes'],
+                             delivery['expanded_selection_budget_conservative_bytes'])
+        self.assertTrue((ACCESS_ROOT / 'contracts' / delivery['migration']).is_file())
+        schema = self.schemas['knowledge-graph.v1.schema.json']
+        Draft202012Validator.check_schema(schema)
+
     def test_coverage_observes_every_carrier_without_accepting_placeholder_or_mapping(self):
         from tos_access.coverage import coverage_report
         corpus, philosophy = self.fixture()
@@ -3093,11 +3176,14 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertTrue(all(form['context'] and form['admission'] is None
                             for form in projected_identity['attributes']['human_forms']))
         from tos_access.knowledge import _lens_carrier
+        from tos_access.human_form_codec import decode_human_form_selection
         selected_identity = _lens_carrier(projected_identity, 'compact', language='ru')
         self.assertEqual(selected_identity['attributes'], {})
-        self.assertEqual(selected_identity['human_form_selection']['roles']['name']['packet'],
+        self.assertEqual(selected_identity['human_form_selection']['schema_version'], 'tos_human_form_selection_v2')
+        decoded_selection = decode_human_form_selection(selected_identity['human_form_selection'])
+        self.assertEqual(decoded_selection['roles']['name']['packet'],
                          source_identity['properties']['human_forms'][1])
-        self.assertEqual(selected_identity['human_form_selection']['roles']['hover']['packet'],
+        self.assertEqual(decoded_selection['roles']['hover']['packet'],
                          source_identity['properties']['human_forms'][2])
         Draft202012Validator({'$ref': self.schemas['knowledge-graph.v1.schema.json']['$id'] + '#/$defs/node'},
                             registry=self.registry).validate(selected_identity)

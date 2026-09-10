@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_knowledge_api_v1",
-  "execution_version": "tos-lens-execution-v6",
+  "execution_version": "tos-lens-execution-v7",
   "owner": "Tree-of-Sophia/access",
   "purpose": "transport-neutral backend contract for human and agent construction of bounded read-only knowledge lenses",
   "data_contracts": {
@@ -92,6 +92,23 @@
   ],
   "extensions": [
     {
+      "extension_id": "tos.knowledge.human-form-delivery.v2",
+      "schema_ref": "knowledge-graph.v1.schema.json#/$defs/humanFormSelection",
+      "recognized_versions": ["tos_human_form_selection_v1", "tos_human_form_selection_v2"],
+      "lens_carrier_version": "tos_human_form_selection_v2",
+      "source_materialization_version": "tos_human_form_materialization_v1",
+      "packet_form_source": "equal exact roles.<role>.form; inline packet form is forbidden in v2 base/delta",
+      "wire_budget_conservative_bytes": 16384,
+      "expanded_selection_budget_conservative_bytes": 524288,
+      "packet_budget_conservative_bytes": 65536,
+      "maximum_depth": 64,
+      "maximum_members": 30000,
+      "maximum_shared_limits": 512,
+      "reading_modes": ["claim-with-mandatory-context", "claim-with-shared-form-context-v2"],
+      "consumer_law": "Keep the raw versioned envelope; reconstruct complete packets before semantic consumption and apply existing exact form, subject, revision, context and admission checks. Deltas are never standalone wording or a new admission.",
+      "migration": "human-form-delivery.md"
+    },
+    {
       "extension_id": "tos.knowledge.exploration.v1",
       "availability": ["local-http", "native-mcp", "cloudflare-worker-with-migration-and-compatible-read-model"],
       "unavailable": ["one-shot-cli"],
@@ -127,6 +144,7 @@
     "lens_display_selection_reports_language_fallback_without_translation": true,
     "lens_display_selection_binds_content_revision": true,
     "lens_source_form_selection_preserves_complete_context_or_returns_exact_ref": true,
+    "shared_form_delivery_is_lossless_and_decoded_before_semantic_consumption": true,
     "lens_source_form_selection_does_not_adjudicate_competing_forms": true,
     "lens_source_form_selection_does_not_reevaluate_snapshot_admission": true,
     "source_declared_assertion_context_survives_compact_delivery": true,

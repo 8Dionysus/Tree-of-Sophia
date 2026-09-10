@@ -607,6 +607,15 @@ readable context and verify its vocabulary and bindings before using it.
 Vocabulary/processor changes invalidate the derived stage. Carriers without
 context bypass that stage and do not acquire a duplicate cache record.
 
+Lens carriers deliver selected HumanForms using the explicit, lossless
+`tos_human_form_selection_v2` envelope. Common context and literal admission
+limits are transmitted once, then reconstructed before reading; source
+materializations and exact inspection remain v1. The complete wire selection
+keeps its 16 KiB conservative budget. Consumers support both versions,
+retain raw envelopes for saved places, and validate complete decoded packets
+before using wording. See the [delivery and migration contract](contracts/human-form-delivery.md)
+for bounds, exact reconstruction, compact Claim pointers and rollback.
+
 Cold normalization preserves the existing public revision byte protocol. A
 bounded in-process cache reuses at most 4,096 short string tokens (up to 256
 characters); longer values are streamed without retention in that cache.
