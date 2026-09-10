@@ -136,6 +136,11 @@ def compile_knowledge_store(root, output=None, *, allow_legacy=False, search_acc
     storage = None
     reader_closures = []
     try:
+        # This unpublished file is discarded in full on every error; no caller
+        # can observe or resume a partial transaction. Avoid a second multi-GB
+        # rollback copy during VACUUM. The prior published snapshot remains
+        # untouched until integrity/input checks pass and atomic replacement.
+        db.execute('PRAGMA journal_mode=OFF')
         db.execute('PRAGMA temp_store=FILE')
         db.execute('PRAGMA cache_size=-8192')
         # This database is private compiler scratch state.  Final VACUUM
