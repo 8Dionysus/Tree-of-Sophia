@@ -22,6 +22,7 @@ import {
   knowledgeNodeD1,
   knowledgeRelationD1,
   knowledgeSearchD1,
+  knowledgeSearchD1Indexed,
   knowledgeTemporalCompareD1,
 } from "./knowledge-store";
 import { SourceNavigationError, sourceDescend, sourceDossier } from "./source-navigation";
@@ -223,6 +224,19 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   if (fixedAsset) return staticApi(env, request, fixedAsset);
 
   if (path === "/api/knowledge/search") {
+    const mode = search.get("mode") ?? "legacy";
+    if (mode === "indexed") {
+      if (boundedInt(search.get("offset"), 0, 0, 100_000) !== 0) throw new HttpError(400, "indexed knowledge search uses cursor continuation, not offset");
+      return jsonResponse(await knowledgeSearchD1Indexed(env.DB, {
+        query: search.get("query") ?? "",
+        sources: listParam(search, "sources").length ? listParam(search, "sources") : null,
+        kindIds: listParam(search, "kind_ids"),
+        predicateIds: listParam(search, "predicate_ids"),
+        cursor: search.get("cursor"),
+        limit: boundedInt(search.get("limit"), 40, 1, 100),
+      }), 200, method);
+    }
+    if (mode !== "legacy") throw new HttpError(400, "knowledge search mode must be legacy or indexed");
     return jsonResponse(await knowledgeSearchD1(env.DB, {
       query: search.get("query") ?? "",
       sources: listParam(search, "sources").length ? listParam(search, "sources") : null,

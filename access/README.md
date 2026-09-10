@@ -130,7 +130,14 @@ The read-only operations are available through all backend adapters:
   Schemas, and semantic registries consumed by constructor clients, so neither
   a UI nor an agent must infer LensSpec shape or type meaning from examples;
 - `GET /api/knowledge/search`, `/nodes/{id}`, and `/relations/{id}` search and
-  inspect the normalized graph;
+  inspect the normalized graph. The default search remains the exact-count,
+  offset-based `tos_knowledge_search_v1` route. An explicit
+  `mode=indexed` request uses the source-revision-bound trigram carrier and
+  cursor continuation (`tos_knowledge_search_indexed_v2`); short queries and
+  over-budget candidate sets fail closed rather than silently falling back to a
+  full scan. The projection page keeps its separate `tos.page.search` v1
+  semantics, while the browser exposes the indexed route as
+  `tos.page.knowledge-search`.
 - `GET /api/knowledge/focus/{node_id}` resolves an exact normalized ID, a
   stable entity ID, or one unambiguous native ID and returns a bounded radial neighborhood with an
   explicit `focus` object. Ambiguous native IDs fail closed so the caller can

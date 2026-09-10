@@ -21,6 +21,10 @@ import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNo
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const PAGE_SIZE = 2000;
+const SEARCH_NGRAM_SIZE = 3;
+const SEARCH_MAX_CANDIDATES = 50_000;
+const SEARCH_MAX_VERIFY_CHARS = 16_000_000;
+const SEARCH_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v1";
 
 async function consistentRead(db: D1Database, read: () => Promise<Item>): Promise<Item> {
   const before = await meta<Item>(db, "data_revision");
@@ -36,6 +40,13 @@ export async function executeKnowledgeLensD1(db: D1Database, specValue: unknown)
 
 export async function knowledgeSearchD1(db: D1Database, options: Parameters<typeof knowledgeSearchD1Unchecked>[1]): Promise<Item> {
   return consistentRead(db, () => knowledgeSearchD1Unchecked(db, options));
+}
+
+export async function knowledgeSearchD1Indexed(
+  db: D1Database,
+  options: Parameters<typeof knowledgeSearchD1IndexedUnchecked>[1],
+): Promise<Item> {
+  return consistentRead(db, () => knowledgeSearchD1IndexedUnchecked(db, options));
 }
 
 export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit: number): Promise<Item> {
@@ -566,6 +577,361 @@ function searchRank(
       ...Array(prefix.length).fill(needle),
       ...Array(visible.length).fill(needle),
     ],
+  };
+}
+
+function indexedCursorEncode(value: Item): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+function indexedCursorDecode(value: string): Item {
+  if (!value || value.length > 8192) throw new HttpError(400, "invalid indexed knowledge search cursor");
+  try {
+    const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - (value.length % 4)) % 4);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
+    if ((parsed as Item).schema !== SEARCH_CURSOR_SCHEMA) throw new Error("wrong cursor schema");
+    return parsed as Item;
+  } catch {
+    throw new HttpError(400, "invalid indexed knowledge search cursor");
+  }
+}
+
+function indexedRankExpression(alias: string): string {
+  const exact = `${alias}.id_lower = ? OR ${alias}.native_id_lower = ? OR EXISTS (SELECT 1 FROM json_each(${alias}.identity_values) v WHERE v.value = ?)`;
+  const prefix = `instr(${alias}.id_lower, ?) = 1 OR instr(${alias}.native_id_lower, ?) = 1 OR EXISTS (SELECT 1 FROM json_each(${alias}.identity_values) v WHERE instr(v.value, ?) = 1)`;
+  const visible = `EXISTS (SELECT 1 FROM json_each(${alias}.visible_values) v WHERE instr(v.value, ?) > 0)`;
+  return `CASE WHEN ${exact} THEN 0 WHEN ${prefix} THEN 1 WHEN ${visible} THEN 2 ELSE 3 END`;
+}
+
+function indexedRankBindings(needle: string): string[] {
+  return [needle, needle, needle, needle, needle, needle, needle];
+}
+
+function indexedQueryGrams(needle: string): string[] {
+  const codePoints = [...needle];
+  const grams: string[] = [];
+  for (let index = 0; index <= codePoints.length - SEARCH_NGRAM_SIZE; index += 1) {
+    const gram = codePoints.slice(index, index + SEARCH_NGRAM_SIZE).join("");
+    if (!grams.includes(gram)) grams.push(gram);
+  }
+  return grams;
+}
+
+type IndexedSearchOptions = {
+  query: string;
+  sources: string[] | null;
+  kindIds: string[];
+  predicateIds: string[];
+  cursor?: string | null;
+  limit: number;
+};
+
+type IndexedPage = {
+  rows: Item[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  work: { candidate_rows: number; verified_chars: number; sql_pages: number; selection_rows_read?: number };
+};
+
+type IndexedFilters = {
+  sources: string[];
+  kind_ids: string[];
+  predicate_ids: string[];
+};
+
+function indexedFilters(value: unknown): value is IndexedFilters {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const keys = Object.keys(candidate).sort();
+  if (JSON.stringify(keys) !== JSON.stringify(["kind_ids", "predicate_ids", "sources"])) return false;
+  return (["sources", "kind_ids", "predicate_ids"] as const).every((key) =>
+    Array.isArray(candidate[key]) && candidate[key].every((item) => typeof item === "string")
+  );
+}
+
+function indexedFiltersEqual(value: unknown, expected: IndexedFilters): boolean {
+  return indexedFilters(value)
+    && JSON.stringify(value) === JSON.stringify(expected);
+}
+
+function indexedRowsRead(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+}
+
+async function indexedKindPage(
+  db: D1Database,
+  options: IndexedSearchOptions,
+  kind: "nodes" | "relations",
+  cursor: string | null,
+  sourceRevision: string,
+): Promise<IndexedPage> {
+  const query = options.query.trim();
+  if (query.length > 256) throw new HttpError(400, "knowledge search query exceeds 256 characters");
+  const needle = query.toLowerCase();
+  if ([...needle].length < SEARCH_NGRAM_SIZE) {
+    throw new HttpError(400, "indexed knowledge search requires a query of at least three characters");
+  }
+  const sources = normalizedSources(options.sources);
+  const filters = {
+    sources: [...new Set(sources)].sort(),
+    kind_ids: [...new Set(options.kindIds)].sort(),
+    predicate_ids: [...new Set(options.predicateIds)].sort(),
+  };
+  let cursorRank = -1;
+  let cursorId = "";
+  let cursorPosition = -1;
+  if (cursor) {
+    const decoded = indexedCursorDecode(cursor);
+    const expectedKeys = ["filters", "id", "kind", "position", "query", "rank", "schema", "source_revision"];
+    if (JSON.stringify(Object.keys(decoded).sort()) !== JSON.stringify(expectedKeys.sort())) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
+    if (
+      decoded.source_revision !== sourceRevision
+      || decoded.kind !== kind
+      || decoded.query !== needle
+      || !indexedFiltersEqual(decoded.filters, filters)
+    ) {
+      throw new HttpError(409, "indexed knowledge search cursor does not match the current snapshot/query");
+    }
+    if (
+      typeof decoded.rank !== "number"
+      || !Number.isSafeInteger(decoded.rank)
+      || Number(decoded.rank) < 0
+      || Number(decoded.rank) > 3
+      || typeof decoded.id !== "string"
+      || decoded.id.length === 0
+      || decoded.id !== decoded.id.toLowerCase()
+      || typeof decoded.position !== "number"
+      || !Number.isSafeInteger(decoded.position)
+      || Number(decoded.position) < 0
+    ) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
+    cursorRank = decoded.rank;
+    cursorId = decoded.id;
+    cursorPosition = decoded.position;
+  }
+  const grams = indexedQueryGrams(needle);
+  const stats = await Promise.all(grams.map(async (gram) => {
+    const row = await db.prepare(
+      "SELECT postings FROM knowledge_search_gram_stats WHERE kind=? AND n=? AND gram=?",
+    ).bind(kind, SEARCH_NGRAM_SIZE, gram).first<{ postings: number }>();
+    return { gram, postings: Number(row?.postings ?? 0) };
+  }));
+  const selected = stats.reduce((best, candidate) => candidate.postings < best.postings ? candidate : best);
+  if (selected.postings === 0) return { rows: [], nextCursor: null, hasMore: false, work: { candidate_rows: 0, verified_chars: 0, sql_pages: grams.length } };
+  if (selected.postings > SEARCH_MAX_CANDIDATES) {
+    throw new HttpError(413, "indexed knowledge search candidate budget exceeded; narrow the query or use the legacy route");
+  }
+  const rankExpression = indexedRankExpression("s");
+  const baseTable = kind === "nodes" ? "knowledge_nodes" : "knowledge_relations";
+  const filterSql: string[] = ["g.kind = ?", "g.n = ?", "g.gram = ?"];
+  const filterBindings: unknown[] = [kind, SEARCH_NGRAM_SIZE, selected.gram];
+  if (filters.sources.length) {
+    filterSql.push(`s.source_graph IN (SELECT value FROM json_each(?))`);
+    filterBindings.push(JSON.stringify(filters.sources));
+  }
+  if (kind === "nodes" && filters.kind_ids.length) {
+    filterSql.push(`s.kind_id IN (SELECT value FROM json_each(?))`);
+    filterBindings.push(JSON.stringify(filters.kind_ids));
+  }
+  if (kind === "relations" && filters.predicate_ids.length) {
+    filterSql.push(`s.predicate_id IN (SELECT value FROM json_each(?))`);
+    filterBindings.push(JSON.stringify(filters.predicate_ids));
+  }
+  const continuationSql = cursor
+    ? ` AND (${rankExpression} > ? OR (${rankExpression} = ? AND (s.id_lower > ? OR (s.id_lower = ? AND s.position > ?))))`
+    : "";
+  const continuationBindings = cursor
+    ? [...indexedRankBindings(needle), cursorRank, ...indexedRankBindings(needle), cursorRank, cursorId, cursorId, cursorPosition]
+    : [];
+  const preflightSql = `SELECT COUNT(*) AS candidate_rows, COALESCE(SUM(s.document_chars), 0) AS verified_chars
+    FROM knowledge_search_grams g
+    JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
+    WHERE ${filterSql.join(" AND ")}`;
+  let preflight;
+  try {
+    // This is deliberately a carrier-only budget gate. Do not evaluate the
+    // rank expression/continuation (which walks JSON rank fields) until the
+    // total candidate-document budget is known to be bounded.
+    preflight = await db.prepare(preflightSql).bind(...filterBindings)
+      .all<{ candidate_rows: number; verified_chars: number }>();
+  } catch (error) {
+    throw new HttpError(503, `indexed knowledge search read model is unavailable: ${String(error)}`);
+  }
+  const aggregate = preflight.results[0];
+  const candidateRows = Number(aggregate?.candidate_rows ?? 0);
+  const verifiedChars = Number(aggregate?.verified_chars ?? 0);
+  if (
+    !Number.isSafeInteger(candidateRows)
+    || candidateRows < 0
+    || !Number.isSafeInteger(verifiedChars)
+    || verifiedChars < 0
+  ) {
+    throw new HttpError(503, "indexed knowledge search carrier has invalid document budgets");
+  }
+  const preflightRowsRead = indexedRowsRead(preflight.meta?.rows_read);
+  if (verifiedChars > SEARCH_MAX_VERIFY_CHARS) {
+    throw new HttpError(413, "indexed knowledge search verification budget exceeded; narrow the query or use the legacy route");
+  }
+  if (candidateRows === 0) {
+    return {
+      rows: [],
+      nextCursor: null,
+      hasMore: false,
+      work: {
+        candidate_rows: 0,
+        verified_chars: 0,
+        sql_pages: grams.length + 1,
+        ...(preflightRowsRead === undefined ? {} : { selection_rows_read: preflightRowsRead }),
+      },
+    };
+  }
+  const sql = `SELECT b.json, s.position, ${rankExpression} AS search_rank
+    FROM knowledge_search_grams g
+    JOIN knowledge_search_documents s ON s.kind=g.kind AND s.position=g.position
+    JOIN ${baseTable} b ON b.id=s.id
+    WHERE ${filterSql.join(" AND ")} AND instr(b.search_text, ?) > 0${continuationSql}
+    ORDER BY search_rank, s.id_lower, s.position LIMIT ?`;
+  const bindings: unknown[] = [...indexedRankBindings(needle), ...filterBindings, needle, ...continuationBindings, options.limit + 1];
+  let result;
+  try {
+    result = await db.prepare(sql).bind(...bindings).all<{ json: string; position: number; search_rank: number }>();
+  } catch (error) {
+    throw new HttpError(503, `indexed knowledge search read model is unavailable: ${String(error)}`);
+  }
+  const selectedRows = result.results.slice(0, options.limit);
+  const rowsValue = selectedRows.map((row) => parseItem(row.json));
+  const hasMore = result.results.length > options.limit;
+  const last = selectedRows[selectedRows.length - 1];
+  const nextCursor = hasMore && last
+    ? indexedCursorEncode({ schema: SEARCH_CURSOR_SCHEMA, source_revision: sourceRevision, kind, query: needle, filters, rank: last.search_rank, id: String(rowsValue.at(-1)?.id ?? "").toLowerCase(), position: last.position })
+    : null;
+  const resultRowsRead = indexedRowsRead(result.meta?.rows_read);
+  const rowsRead = preflightRowsRead === undefined || resultRowsRead === undefined
+    ? undefined
+    : preflightRowsRead + resultRowsRead;
+  return {
+    rows: rowsValue,
+    nextCursor,
+    hasMore,
+    work: {
+      candidate_rows: candidateRows,
+      verified_chars: verifiedChars,
+      sql_pages: grams.length + 2,
+      // This excludes the independent gram-stat, metadata, and consistency
+      // reads; it is not a total query-cost counter.
+      ...(rowsRead === undefined ? {} : { selection_rows_read: rowsRead }),
+    },
+  };
+}
+
+async function knowledgeSearchD1IndexedUnchecked(db: D1Database, options: IndexedSearchOptions): Promise<Item> {
+  const query = options.query.trim();
+  if (query.length > 256) throw new HttpError(400, "knowledge search query exceeds 256 characters");
+  const needle = query.toLowerCase();
+  const limit = bounded(options.limit, "limit", 1, 100);
+  if (options.kindIds.length > 100 || options.predicateIds.length > 100) {
+    throw new HttpError(400, "knowledge search kind and predicate filters must contain at most 100 values");
+  }
+  const knowledgeTop = await meta<Item>(db, "knowledge_top");
+  const sourceRevision = String(knowledgeTop.source_revision ?? "");
+  const filters: IndexedFilters = {
+    sources: [...new Set(normalizedSources(options.sources))].sort(),
+    kind_ids: [...new Set(options.kindIds)].sort(),
+    predicate_ids: [...new Set(options.predicateIds)].sort(),
+  };
+  const decodedCursor = options.cursor ? indexedCursorDecode(options.cursor) : null;
+  let nodeExhausted = false;
+  let relationExhausted = false;
+  let nodeCursor: string | null = null;
+  let relationCursor: string | null = null;
+  if (decodedCursor) {
+    if (
+      decodedCursor?.source_revision !== sourceRevision
+      || decodedCursor?.query !== needle
+      || !indexedFiltersEqual(decodedCursor.filters, filters)
+    ) {
+      throw new HttpError(409, "indexed knowledge search cursor does not match the current snapshot/query");
+    }
+    const expectedKeys = [
+      "filters", "nodes", "nodes_exhausted", "query", "relations", "relations_exhausted", "schema", "source_revision",
+    ];
+    if (JSON.stringify(Object.keys(decodedCursor).sort()) !== JSON.stringify(expectedKeys.sort())) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
+    if (typeof decodedCursor.nodes_exhausted !== "boolean" || typeof decodedCursor.relations_exhausted !== "boolean") {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    }
+    nodeExhausted = decodedCursor.nodes_exhausted;
+    relationExhausted = decodedCursor.relations_exhausted;
+    const rawNodeCursor = decodedCursor.nodes;
+    const rawRelationCursor = decodedCursor.relations;
+    if (nodeExhausted) {
+      if (rawNodeCursor !== null) throw new HttpError(400, "invalid indexed knowledge search cursor");
+    } else if (typeof rawNodeCursor !== "string" || rawNodeCursor.length === 0) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    } else {
+      nodeCursor = rawNodeCursor;
+    }
+    if (relationExhausted) {
+      if (rawRelationCursor !== null) throw new HttpError(400, "invalid indexed knowledge search cursor");
+    } else if (typeof rawRelationCursor !== "string" || rawRelationCursor.length === 0) {
+      throw new HttpError(400, "invalid indexed knowledge search cursor");
+    } else {
+      relationCursor = rawRelationCursor;
+    }
+  }
+  const emptyPage = (): IndexedPage => ({
+    rows: [],
+    nextCursor: null,
+    hasMore: false,
+    work: { candidate_rows: 0, verified_chars: 0, sql_pages: 0 },
+  });
+  const [nodes, relations] = await Promise.all([
+    nodeExhausted
+      ? Promise.resolve(emptyPage())
+      : indexedKindPage(db, {...options, limit}, "nodes", nodeCursor, sourceRevision),
+    relationExhausted
+      ? Promise.resolve(emptyPage())
+      : indexedKindPage(db, {...options, limit}, "relations", relationCursor, sourceRevision),
+  ]);
+  const nextCursor = nodes.nextCursor || relations.nextCursor
+    ? indexedCursorEncode({
+      schema: SEARCH_CURSOR_SCHEMA,
+      source_revision: sourceRevision,
+      query: query.toLowerCase(),
+      filters,
+      nodes: nodes.nextCursor,
+      relations: relations.nextCursor,
+      nodes_exhausted: nodes.nextCursor === null,
+      relations_exhausted: relations.nextCursor === null,
+    })
+    : null;
+  return {
+    schema: "tos_knowledge_search_indexed_v2",
+    source_revision: sourceRevision,
+    query: options.query,
+    filters,
+    page: { cursor: options.cursor ?? null, next_cursor: nextCursor, limit_per_kind: limit, ordering_scope: "global-rank", has_more: nextCursor !== null },
+    counts: {
+      matching_nodes: !options.cursor && !nodes.hasMore ? nodes.rows.length : null,
+      matching_relations: !options.cursor && !relations.hasMore ? relations.rows.length : null,
+      returned_nodes: nodes.rows.length,
+      returned_relations: relations.rows.length,
+      scope: "exact-if-kind-exhausted-without-continuation",
+    },
+    nodes: nodes.rows,
+    relations: relations.rows,
+    authority_boundary: knowledgeTop.authority_boundary ?? {},
+    work: {nodes: nodes.work, relations: relations.work},
   };
 }
 

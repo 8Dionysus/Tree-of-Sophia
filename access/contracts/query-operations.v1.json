@@ -6,6 +6,7 @@
     {"operation_id": "tos.status", "input": {}, "result": "status packet"},
     {"operation_id": "tos.snapshot", "input": {}, "result": "current philosophy projection fingerprints for traceable local proposal binding"},
     {"operation_id": "tos.search", "input": {"mode": "philosophy|corpus", "query": "string", "limit": "1..100"}, "result": "search packet"},
+    {"operation_id": "tos.knowledge.search", "input": {"query": "string", "limit": "1..100", "cursor": "string|null", "sources": "string[]", "kind_ids": "string[]", "predicate_ids": "string[]"}, "result": "explicit indexed tos_knowledge_search_indexed_v2 packet with source-revision-bound cursor continuation; projection search remains tos.search"},
     {"operation_id": "tos.source-gaps.search", "input": {"query": "string", "limit": "1..100"}, "result": "bounded public source-access gap records; not a completeness or legal conclusion"},
     {"operation_id": "tos.source.descend", "input": {"node_id": "era, region, tradition, planting, or source object ID", "max_depth": "1..8", "limit": "1..300"}, "result": "bounded source-navigation descent with evidence-bearing edges"},
     {"operation_id": "tos.dossier.inspect", "input": {"object_id": "Work, Expression, Edition, Item, File, or Link ID", "limit": "1..300"}, "result": "compact object dossier with chain, links, rights posture, gaps, and source refs"},

@@ -269,6 +269,8 @@ type AppState = {
   relationItems: AnyItem[];
   expandedCluster: Cluster | null;
   searchQuery: string;
+  knowledgeSearchQuery: string;
+  knowledgeSearchNextCursor: string | null;
   neighborhood: NeighborhoodPayload | null;
   pathStartNodeId: string | null;
   pathPacket: PathPayload | null;
@@ -319,6 +321,8 @@ const uiText: Record<Language, Record<string, string>> = {
     "mode.corpus": "Library",
     "search.placeholder": "Find a work, witness, tradition, or idea",
     "button.search": "Search",
+    "button.knowledgeSearch": "Indexed knowledge search",
+    "button.knowledgeMore": "More indexed results",
     "button.sync": "Sync",
     "section.views": "Views",
     "section.layers": "Layers",
@@ -467,6 +471,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "caption.links": "links",
     "selection.scaleExportUrl": "Scale export URL",
     "selection.search": "Search",
+    "selection.knowledgeSearch": "Indexed knowledge",
     "selection.reviewPacket": "Review packet",
     "selection.unresolved": "Unresolved",
     "load.failed": "Load failed",
@@ -479,6 +484,8 @@ const uiText: Record<Language, Record<string, string>> = {
     "mode.corpus": "Библиотека",
     "search.placeholder": "Найдите произведение, свидетельство, традицию или идею",
     "button.search": "Поиск",
+    "button.knowledgeSearch": "Индексированный поиск знаний",
+    "button.knowledgeMore": "Ещё из индекса",
     "button.sync": "Синхронизировать",
     "section.views": "Виды",
     "section.layers": "Слои",
@@ -627,6 +634,7 @@ const uiText: Record<Language, Record<string, string>> = {
     "caption.links": "связей",
     "selection.scaleExportUrl": "URL масштабного экспорта",
     "selection.search": "Поиск",
+    "selection.knowledgeSearch": "Индекс знаний",
     "selection.reviewPacket": "Пакет ревью",
     "selection.unresolved": "Нерешенное",
     "load.failed": "Загрузка не удалась",
@@ -889,6 +897,8 @@ const state: AppState = {
   relationItems: [],
   expandedCluster: null,
   searchQuery: "",
+  knowledgeSearchQuery: "",
+  knowledgeSearchNextCursor: null,
   neighborhood: null,
   pathStartNodeId: null,
   pathPacket: null,
@@ -1193,6 +1203,99 @@ function mergeLocalizedSearchResults(query: string, remoteResults: AnyItem[], li
   return merged.slice(0, limit);
 }
 
+function knowledgeDisplayText(display: AnyItem, field: string, language: Language): string {
+  const value = display[field];
+  if (typeof value === "string") return value.trim();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const values = value as AnyItem;
+  return text(values[language] || values.default || values.original || values.en || values.ru).trim();
+}
+
+function knowledgeDisplayForm(display: AnyItem, field: string): AnyItem {
+  const value = display[field];
+  if (value && typeof value === "object" && !Array.isArray(value)) return value as AnyItem;
+  const fallback = typeof value === "string" ? value : "";
+  return { default: fallback, ru: fallback, en: fallback };
+}
+
+function adaptKnowledgeSearchItem(item: AnyItem, kind: "node" | "relation"): AnyItem {
+  const display = item.display && typeof item.display === "object" && !Array.isArray(item.display)
+    ? item.display as AnyItem
+    : {};
+  const attributes = item.attributes && typeof item.attributes === "object" && !Array.isArray(item.attributes)
+    ? item.attributes as AnyItem
+    : {};
+  const existingProperties = item.properties && typeof item.properties === "object" && !Array.isArray(item.properties)
+    ? item.properties as AnyItem
+    : {};
+  const sourceRefs = stringList(item.source_refs);
+  const technicalId = text(item.id || item.native_id);
+  const knowledgeSearch = {
+    kind,
+    source_graph: text(item.source_graph),
+    native_id: text(item.native_id),
+    technical_id: technicalId,
+    rank: Number.isFinite(Number(item.search_rank)) ? Number(item.search_rank) : undefined,
+  };
+  if (kind === "node") {
+    // IDs remain available in the technical search metadata, but are not
+    // presented as if they were a human-readable title.
+    const label = knowledgeDisplayText(display, "title", state.language)
+      || humanKind(item.kind_id || item.type_id || "knowledge-node");
+    return {
+      ...item,
+      node_id: text(item.id),
+      label,
+      node_type: text(item.kind_id || item.type_id || "knowledge-node"),
+      source_refs: sourceRefs,
+      properties: { ...existingProperties, ...attributes, knowledge_search: knowledgeSearch },
+      knowledge_search_kind: kind,
+    };
+  }
+  const labelForm = knowledgeDisplayForm(display, "label");
+  const label = knowledgeDisplayText(display, "label", state.language)
+    || humanKind(item.predicate_id || "relation");
+  const relationDisplay = existingProperties.display && typeof existingProperties.display === "object" && !Array.isArray(existingProperties.display)
+    ? existingProperties.display as AnyItem
+    : {};
+  return {
+    ...item,
+    edge_id: text(item.id),
+    label,
+    from_id: text(item.from_id),
+    to_id: text(item.to_id),
+    from_label: text(item.from_label || item.from_display_label || "source"),
+    to_label: text(item.to_label || item.to_display_label || "target"),
+    predicate_id: text(item.predicate_id || "related_to"),
+    source_refs: sourceRefs,
+    properties: {
+      ...existingProperties,
+      ...attributes,
+      display: {
+        ...relationDisplay,
+        label_ru: text(labelForm.ru || labelForm.default || label),
+        label_en: text(labelForm.en || labelForm.default || label),
+      },
+      knowledge_search: knowledgeSearch,
+    },
+    knowledge_search_kind: kind,
+  };
+}
+
+function adaptKnowledgeSearchResults(payload: AnyItem): { nodes: AnyItem[]; relations: AnyItem[] } {
+  const nodes = Array.isArray(payload.nodes)
+    ? payload.nodes.filter((item): item is AnyItem => Boolean(item && typeof item === "object" && !Array.isArray(item)))
+      .map((item) => adaptKnowledgeSearchItem(item, "node"))
+      .filter(isPublicAtlasItem)
+    : [];
+  const relations = Array.isArray(payload.relations)
+    ? payload.relations.filter((item): item is AnyItem => Boolean(item && typeof item === "object" && !Array.isArray(item)))
+      .map((item) => adaptKnowledgeSearchItem(item, "relation"))
+      .filter(isPublicAtlasItem)
+    : [];
+  return { nodes, relations };
+}
+
 function compactGraphLabel(item: AnyItem): string {
   const kind = text(item.cluster_kind || item.node_type || item.predicate_id);
   if (text(item.node_id)) return short(displayTitle(item), 30);
@@ -1489,6 +1592,7 @@ function renderShell(): void {
         <div class="reader-search">
           <input id="search" type="search" placeholder="${t("search.placeholder")}" />
           <button id="search-button" type="button" aria-label="${t("button.search")}">↵</button>
+          <button id="knowledge-search-button" type="button" aria-label="${t("button.knowledgeSearch")}" title="${t("button.knowledgeSearch")}">⌕</button>
         </div>
         <div class="reader-header-actions">
           <details id="agent-surface" class="agent-surface">
@@ -1671,6 +1775,7 @@ function bindShellEvents(): void {
   byId("inspector-open").addEventListener("click", () => setInspectorOpen(true));
   byId("inspector-close").addEventListener("click", () => setInspectorOpen(false));
   byId("search-button").addEventListener("click", () => invokePageCommandFromUi("tos.page.search", { query: searchInput.value }));
+  byId("knowledge-search-button").addEventListener("click", () => invokePageCommandFromUi("tos.page.knowledge-search", { query: searchInput.value }));
   const searchInput = byId("search") as HTMLInputElement;
   searchInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") invokePageCommandFromUi("tos.page.search", { query: searchInput.value });
@@ -2065,6 +2170,9 @@ function renderInspector(): void {
       ),
     );
   }
+  if (state.knowledgeSearchNextCursor) {
+    cards.push(`<button id="knowledge-search-more" class="result-card" type="button"><span class="result-title">${escapeHtml(t("button.knowledgeMore"))}</span><span class="result-subtitle">${escapeHtml(t("selection.knowledgeSearch"))}</span></button>`);
+  }
   if (state.relationItems.length) {
     cards.push(`<div class="section-title">${t("detail.relations")}</div>`);
     cards.push(
@@ -2083,6 +2191,11 @@ function renderInspector(): void {
     button.addEventListener("click", () => {
       if (inspectorSelectionAllowed()) selectItem(state.results[Number(button.dataset.result)]);
     });
+  });
+  byId("knowledge-search-more")?.addEventListener("click", () => {
+    const cursor = state.knowledgeSearchNextCursor;
+    if (!cursor || !state.knowledgeSearchQuery) return;
+    invokePageCommandFromUi("tos.page.knowledge-search", { query: state.knowledgeSearchQuery, cursor });
   });
   byId("detail-list").querySelectorAll<HTMLButtonElement>("[data-relation]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -4252,6 +4365,70 @@ async function loadView(
   commitPreparedView(prepared, requestedFocusId);
 }
 
+async function knowledgeSearch(
+  requestedQuery?: string,
+  requestedCursor?: string,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const requestRevision = ++searchRevision;
+  const input = byId("search") as HTMLInputElement;
+  const query = (requestedQuery === undefined ? input.value : requestedQuery).trim();
+  if (!query) throw new Error("query is required for indexed knowledge search");
+  const cursor = requestedCursor?.trim() || undefined;
+  const payload = await queryOperations.invoke("tos.knowledge.search", {
+    query,
+    limit: 40,
+    ...(cursor ? { cursor } : {}),
+  }, { signal });
+  signal?.throwIfAborted();
+  if (requestRevision !== searchRevision) throw new DOMException("superseded search request", "AbortError");
+  const adapted = adaptKnowledgeSearchResults(payload);
+  const pageNodes = adapted.nodes;
+  const pageRelations = adapted.relations;
+  const appending = Boolean(cursor && state.knowledgeSearchQuery === query);
+  state.searchQuery = query;
+  state.knowledgeSearchQuery = query;
+  input.value = query;
+  state.epistemicPacket = null;
+  state.interpretationComparison = null;
+  state.selectedGraphId = null;
+  if (appending) {
+    state.results = [...state.results, ...adapted.nodes];
+    state.relationItems = [...state.relationItems, ...adapted.relations];
+  } else {
+    state.results = adapted.nodes;
+    state.relationItems = adapted.relations;
+  }
+  const page = payload.page && typeof payload.page === "object" && !Array.isArray(payload.page)
+    ? payload.page as AnyItem
+    : {};
+  state.knowledgeSearchNextCursor = text(page.next_cursor).trim() || null;
+  state.selected = {
+    title: `${t("selection.knowledgeSearch")}: ${query}`,
+    results: state.results.length + state.relationItems.length,
+    search_schema: text(payload.schema || "tos_knowledge_search_indexed_v2"),
+  };
+  state.inspectorOpen = true;
+  renderInspector();
+  syncPublicRoute();
+  scrollInspectorTop();
+  return {
+    schema: text(payload.schema || "tos_knowledge_search_indexed_v2"),
+    query,
+    // Return the current page to agents.  The browser keeps cumulative
+    // results for its inspector, but replaying that state here would hide
+    // later cursor pages behind the first page's six-item WebMCP envelope.
+    result_count: pageNodes.length + pageRelations.length,
+    cumulative_result_count: state.results.length + state.relationItems.length,
+    nodes: pageNodes.slice(0, 80).map(agentItemSummary),
+    relations: pageRelations.slice(0, 80).map(agentItemSummary),
+    counts: payload.counts,
+    page,
+    source_revision: payload.source_revision,
+    authority_boundary: payload.authority_boundary,
+  };
+}
+
 async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ query: string; result_count: number; results: Record<string, unknown>[] }> {
   const requestRevision = ++searchRevision;
   const requestMode = state.mode;
@@ -4260,6 +4437,9 @@ async function search(requestedQuery?: string, signal?: AbortSignal): Promise<{ 
   const query = (requestedQuery === undefined ? input.value : requestedQuery).trim();
   input.value = query;
   state.searchQuery = query;
+  state.knowledgeSearchQuery = "";
+  state.knowledgeSearchNextCursor = null;
+  if (state.relationItems.some((item) => Boolean(item.knowledge_search_kind))) state.relationItems = [];
   state.epistemicPacket = null;
   state.interpretationComparison = null;
   const payload = (await queryOperations.invoke("tos.search", {
@@ -4377,6 +4557,11 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     return { mode: state.mode, view_id: state.currentViewId, focus_id: state.selectedGraphId };
   },
   "tos.page.search": async (input, execution) => search(commandString(input, "query"), execution.signal),
+  "tos.page.knowledge-search": async (input, execution) => knowledgeSearch(
+    commandString(input, "query"),
+    commandString(input, "cursor") || undefined,
+    execution.signal,
+  ),
   "tos.page.find-source-gaps": async (input, execution) => {
     const query = commandString(input, "query");
     const payload = await queryOperations.invoke("tos.source-gaps.search", {

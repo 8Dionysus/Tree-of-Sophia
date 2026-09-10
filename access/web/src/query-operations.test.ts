@@ -153,4 +153,35 @@ describe("ToS query operations", () => {
     expect(dossier.pathname).toBe("/api/source/dossiers/tos.link.cdli.cdlb-2006-1.pdf");
     expect(Object.fromEntries(dossier.searchParams)).toEqual({ limit: "80" });
   });
+
+  it("routes indexed knowledge search through its explicit cursor API", async () => {
+    let requestedUrl = "";
+    const controller = new AbortController();
+    const operations = createToSQueryOperations(async <T>(url: string, options?: RequestInit) => {
+      requestedUrl = url;
+      expect(options?.signal).toBe(controller.signal);
+      return { schema: "tos_knowledge_search_indexed_v2" } as T;
+    });
+
+    await operations.invoke("tos.knowledge.search", {
+      query: "fate",
+      limit: 12,
+      cursor: "next-cursor",
+      sources: ["canon", "philosophy"],
+      kind_ids: ["concept"],
+      predicate_ids: ["relates"],
+    }, { signal: controller.signal });
+
+    const url = new URL(requestedUrl, "http://tos.local");
+    expect(url.pathname).toBe("/api/knowledge/search");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      mode: "indexed",
+      query: "fate",
+      limit: "12",
+      cursor: "next-cursor",
+      sources: "canon,philosophy",
+      kind_ids: "concept",
+      predicate_ids: "relates",
+    });
+  });
 });

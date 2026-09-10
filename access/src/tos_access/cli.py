@@ -33,6 +33,8 @@ def _parser() -> argparse.ArgumentParser:
     search.add_argument("--predicate", action="append", dest="predicate_ids")
     search.add_argument("--offset", type=int, default=0)
     search.add_argument("--limit", type=int, default=40)
+    search.add_argument("--mode", choices=("legacy", "indexed"), default="legacy")
+    search.add_argument("--cursor")
     node = knowledge_sub.add_parser("node", help="Inspect one normalized node")
     node.add_argument("node_id")
     node.add_argument("--relation-limit", type=int, default=200)
@@ -85,14 +87,26 @@ def main(argv: list[str] | None = None) -> None:
         elif args.knowledge_command == "contracts":
             packet = core.knowledge_contracts()
         elif args.knowledge_command == "search":
-            packet = core.knowledge_search(
-                args.query,
-                sources=args.sources,
-                kind_ids=args.kind_ids,
-                predicate_ids=args.predicate_ids,
-                offset=args.offset,
-                limit=args.limit,
-            )
+            if args.mode == "indexed":
+                if args.offset:
+                    raise SystemExit("indexed knowledge search uses --cursor, not --offset")
+                packet = core.knowledge_search_indexed(
+                    args.query,
+                    sources=args.sources,
+                    kind_ids=args.kind_ids,
+                    predicate_ids=args.predicate_ids,
+                    cursor=args.cursor,
+                    limit=args.limit,
+                )
+            else:
+                packet = core.knowledge_search(
+                    args.query,
+                    sources=args.sources,
+                    kind_ids=args.kind_ids,
+                    predicate_ids=args.predicate_ids,
+                    offset=args.offset,
+                    limit=args.limit,
+                )
         elif args.knowledge_command == "node":
             packet = core.knowledge_node(args.node_id, args.relation_limit)
         elif args.knowledge_command == "relation":

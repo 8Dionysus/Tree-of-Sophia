@@ -122,6 +122,47 @@ describe("WebMCP page-command binding", () => {
     adapter.stop();
   });
 
+  it("keeps indexed search cursors opaque and returns the current page", async () => {
+    const current: PageContextSnapshot = {
+      mode: "philosophy", view_id: "chronology", graph_mode: "nodes", selected: null,
+      path_start_node_id: null, active_layers: [], active_predicates: [], deep_link: "http://tos.local/",
+      research_workspace: workspaceSummary(),
+    };
+    const cursor = "cursor:" + "x".repeat(5000);
+    const registry = createPageCommandRegistry(() => current, {
+      "tos.page.knowledge-search": (input) => ({
+        schema: "tos_knowledge_search_indexed_v2",
+        query: input.query,
+        result_count: 1,
+        nodes: [{ id: input.cursor ? "node:later" : "node:first", kind: "node", label: input.cursor ? "Later" : "First" }],
+        relations: [],
+        counts: { matching_nodes: null },
+        page: { next_cursor: input.cursor ? null : cursor, has_more: !input.cursor },
+        source_revision: "revision:test",
+      }),
+      "tos.page.select": vi.fn(),
+      "tos.page.show-neighborhood": vi.fn(),
+      "tos.page.start-path": vi.fn(),
+      "tos.page.find-path": vi.fn(),
+      "tos.page.reroute-without-selection": vi.fn(),
+      "tos.page.inspect-epistemic": vi.fn(),
+      "tos.page.clear-focus": vi.fn(),
+      ...workspaceNoopHandlers,
+    });
+    const tools = new Map<string, RegisteredTool>();
+    const modelContext = { registerTool: vi.fn(async (tool: RegisteredTool) => { tools.set(tool.name, tool); }) };
+    const adapter = createWebMCPAdapter(registry, { modelContext } as unknown as WebMCPDocument);
+    await adapter.start();
+    const tool = tools.get("tos.page.knowledge-search")!;
+    const first = JSON.parse((await tool.execute({ query: "fate" }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+    expect(first.nodes.map((item: { id: string }) => item.id)).toEqual(["node:first"]);
+    expect(first.next_cursor).toBe(cursor);
+    const second = JSON.parse((await tool.execute({ query: "fate", cursor: first.next_cursor }, { signal: new AbortController().signal }) as { content: Array<{ text: string }> }).content[0].text);
+    expect(second.nodes.map((item: { id: string }) => item.id)).toEqual(["node:later"]);
+    expect(second.next_cursor).toBeNull();
+    adapter.stop();
+  });
+
   it("keeps a large neighborhood on the page while returning a bounded agent envelope", async () => {
     const current: PageContextSnapshot = {
       mode: "philosophy", view_id: "chronology", graph_mode: "nodes",

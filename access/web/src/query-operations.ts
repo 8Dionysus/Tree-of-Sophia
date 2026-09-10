@@ -4,6 +4,7 @@ export type ToSQueryOperationId =
   | "tos.status"
   | "tos.snapshot"
   | "tos.search"
+  | "tos.knowledge.search"
   | "tos.source-gaps.search"
   | "tos.source.descend"
   | "tos.dossier.inspect"
@@ -86,6 +87,23 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         const query = String(input.query || "").trim();
         const limit = boundedInt(input.limit, 20, 1, 100);
         return fetchJson<ToSQueryResult>(`/api/${mode}/search${params({ query, limit })}`, request);
+      }
+      case "tos.knowledge.search": {
+        const query = String(input.query || "").trim();
+        const limit = boundedInt(input.limit, 40, 1, 100);
+        const sources = Array.isArray(input.sources) ? list(input.sources) : undefined;
+        const kindIds = Array.isArray(input.kind_ids) ? list(input.kind_ids) : undefined;
+        const predicateIds = Array.isArray(input.predicate_ids) ? list(input.predicate_ids) : undefined;
+        const cursor = optionalString(input.cursor);
+        return fetchJson<ToSQueryResult>(`/api/knowledge/search${params({
+          mode: "indexed",
+          query,
+          limit,
+          sources,
+          kind_ids: kindIds,
+          predicate_ids: predicateIds,
+          cursor,
+        })}`, request);
       }
       case "tos.source-gaps.search": {
         const query = String(input.query || "").trim();

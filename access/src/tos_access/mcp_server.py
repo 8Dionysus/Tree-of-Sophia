@@ -114,8 +114,23 @@ def build_server(
         predicate_ids: list[str] | None = None,
         offset: int = 0,
         limit: int = 40,
+        mode: str = "legacy",
+        cursor: str | None = None,
     ) -> dict[str, Any]:
         """Search the unified display-complete graph without choosing a philosophy/corpus legacy mode."""
+        if mode == "indexed":
+            if offset:
+                raise ValueError("indexed knowledge search uses cursor continuation, not offset")
+            return current_state().knowledge_search_indexed(
+                query,
+                sources=sources,
+                kind_ids=kind_ids,
+                predicate_ids=predicate_ids,
+                cursor=cursor,
+                limit=limit,
+            )
+        if mode != "legacy":
+            raise ValueError("knowledge search mode must be legacy or indexed")
         return current_state().knowledge_search(
             query,
             sources=sources,

@@ -2488,6 +2488,7 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.status",
             "tos.snapshot",
             "tos.search",
+            "tos.knowledge.search",
             "tos.source-gaps.search",
             "tos.source.descend",
             "tos.dossier.inspect",

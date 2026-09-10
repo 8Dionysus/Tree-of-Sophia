@@ -22,6 +22,7 @@ from tos_access.core import ToSAccessCore, KNOWLEDGE_CONTRACT_RELATIVE_PATHS  # 
 from tos_access import core as access_core  # noqa: E402
 from tos_access.normalization_cache import NormalizationCache, normalization_processor_digest  # noqa: E402
 from tos_access.processing import DEFAULT_CACHE_BYTES, DEFAULT_CACHE_ENTRIES  # noqa: E402
+from tos_access.search_read_model import SEARCH_NGRAM_SIZE, SQLiteKnowledgeSearchReadModel  # noqa: E402
 _builder_dir = str(Path(__file__).resolve().parent)
 if _builder_dir not in sys.path:
     sys.path.insert(0, _builder_dir)
@@ -36,6 +37,8 @@ SQL_CHUNK_BYTES = 32_000
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
 READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v6"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
+SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
+SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
 
 
 def compact_json(value: Any) -> str:
@@ -339,6 +342,31 @@ def append_chunkable_insert(
             )
 
 
+def append_batched_inserts(
+    writer: SqlStatementWriter,
+    table: str,
+    columns: tuple[str, ...],
+    rows: Iterable[tuple[str, ...]],
+) -> None:
+    """Write compact bounded multi-value INSERTs for posting carriers."""
+    prefix = f"INSERT INTO {table} ({','.join(columns)}) VALUES "
+    batch: list[str] = []
+    size = len(prefix.encode("utf-8")) + 1
+    for values in rows:
+        value_sql = "(" + ",".join(values) + ")"
+        extra = len(value_sql.encode("utf-8")) + (1 if batch else 0)
+        if batch and size + extra + 1 > MAX_D1_SQL_STATEMENT_BYTES:
+            writer.append(prefix + ",".join(batch) + ";")
+            batch = []
+            size = len(prefix.encode("utf-8")) + 1
+        if len(value_sql.encode("utf-8")) + len(prefix.encode("utf-8")) + 2 > MAX_D1_SQL_STATEMENT_BYTES:
+            raise RuntimeError(f"{table} posting row exceeds D1 SQL statement budget")
+        batch.append(value_sql)
+        size += extra
+    if batch:
+        writer.append(prefix + ",".join(batch) + ";")
+
+
 def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> dict[str, Any]:
     philosophy = core.philosophy_projection()
     corpus = core.index()
@@ -386,6 +414,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "DROP TABLE IF EXISTS corpus_packs_next;",
         "DROP TABLE IF EXISTS knowledge_nodes_next;",
         "DROP TABLE IF EXISTS knowledge_relations_next;",
+        "DROP TABLE IF EXISTS knowledge_search_documents_next;",
+        "DROP TABLE IF EXISTS knowledge_search_grams_next;",
+        "DROP TABLE IF EXISTS knowledge_search_gram_stats_next;",
         "CREATE TABLE edge_meta_next (key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (key, part));",
         "CREATE TABLE philosophy_nodes_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
         "CREATE TABLE philosophy_edges_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
@@ -399,6 +430,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "CREATE TABLE corpus_packs_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, json TEXT NOT NULL);",
         "CREATE TABLE knowledge_nodes_next (id TEXT PRIMARY KEY, entity_id TEXT NOT NULL, native_id TEXT NOT NULL, source_graph TEXT NOT NULL, kind_id TEXT NOT NULL, type_id TEXT NOT NULL, title_text TEXT NOT NULL, summary_text TEXT NOT NULL, search_text TEXT NOT NULL, json TEXT NOT NULL);",
         "CREATE TABLE knowledge_relations_next (id TEXT PRIMARY KEY, native_id TEXT NOT NULL, source_graph TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, relation_type_id TEXT NOT NULL, label_text TEXT NOT NULL, explanation_text TEXT NOT NULL, search_text TEXT NOT NULL, json TEXT NOT NULL);",
+        "CREATE TABLE knowledge_search_documents_next (kind TEXT NOT NULL, position INTEGER NOT NULL, id TEXT NOT NULL, source_graph TEXT NOT NULL, kind_id TEXT NOT NULL, predicate_id TEXT NOT NULL, id_lower TEXT NOT NULL, native_id_lower TEXT NOT NULL, identity_values TEXT NOT NULL, visible_values TEXT NOT NULL, document_chars INTEGER NOT NULL, document_digest TEXT NOT NULL, PRIMARY KEY (kind, position));",
+        "CREATE TABLE knowledge_search_grams_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (kind, n, gram, position));",
+        "CREATE TABLE knowledge_search_gram_stats_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, postings INTEGER NOT NULL, PRIMARY KEY (kind, n, gram));",
     ))
 
     philosophy_top = {
@@ -437,6 +471,12 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "knowledge_exploration_top": {
             "source_revision": knowledge["source_revision"],
             "authority_boundary": knowledge.get("authority_boundary", {}),
+        },
+        "knowledge_search_top": {
+            "schema": SEARCH_READ_MODEL_SCHEMA_VERSION,
+            "source_revision": knowledge["source_revision"],
+            "ngram_size": SEARCH_NGRAM_SIZE,
+            "matching_counts": "unknown-until-indexed-page-exhaustion",
         },
     }
     for key, value in metadata.items():
@@ -692,7 +732,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         summary = display.get("summary") if isinstance(display.get("summary"), dict) else {}
         item_id = str(normalized.get("id") or "")
         summary_text = str(summary.get("default") or "")
-        search_text = item_json.lower()
+        search_text = SQLiteKnowledgeSearchReadModel._searchable(normalized)
         columns = ("id", "entity_id", "native_id", "source_graph", "kind_id", "type_id", "title_text", "summary_text", "search_text", "json")
         values = (
             sql_text(item_id),
@@ -728,7 +768,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         explanation = display.get("explanation") if isinstance(display.get("explanation"), dict) else {}
         item_id = str(normalized.get("id") or "")
         explanation_text = str(explanation.get("default") or "")
-        search_text = item_json.lower()
+        search_text = SQLiteKnowledgeSearchReadModel._searchable(normalized)
         columns = ("id", "native_id", "source_graph", "from_id", "to_id", "predicate_id", "relation_type_id", "label_text", "explanation_text", "search_text", "json")
         values = (
             sql_text(item_id),
@@ -756,6 +796,54 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             },
         )
 
+    # The indexed search plane stores only compact rank carriers and complete
+    # 3-gram postings. The source JSON/search_text rows above remain the
+    # legacy v1 compatibility plane and are also used for exact substring
+    # verification after a posting candidate is selected.
+    search_posting_count = 0
+    for kind, source_items in (("nodes", knowledge_nodes), ("relations", knowledge_relations)):
+        for position, item in enumerate(source_items):
+            normalized = normalize_paths(item, REPO_ROOT)
+            document = SQLiteKnowledgeSearchReadModel._searchable(normalized)
+            id_lower, native_id_lower, identity_values, visible_values = SQLiteKnowledgeSearchReadModel._rank_fields(
+                normalized, relation=kind == "relations"
+            )
+            item_id = str(normalized.get("id") or "")
+            document_bytes = document.encode("utf-8", "surrogatepass")
+            append_chunkable_insert(
+                statements,
+                "knowledge_search_documents_next",
+                (
+                    "kind", "position", "id", "source_graph", "kind_id", "predicate_id",
+                    "id_lower", "native_id_lower", "identity_values", "visible_values",
+                    "document_chars", "document_digest",
+                ),
+                (
+                    sql_text(kind), str(position), sql_text(item_id),
+                    sql_text(str(normalized.get("source_graph") or "")),
+                    sql_text(str(normalized.get("kind_id") or "")),
+                    sql_text(str(normalized.get("predicate_id") or "")),
+                    sql_text(id_lower), sql_text(native_id_lower), sql_text(identity_values),
+                    sql_text(visible_values), str(len(document)),
+                    sql_text(hashlib.sha256(document_bytes).hexdigest()),
+                ),
+                selector_sql=f"kind = {sql_text(kind)} AND position = {position}",
+                chunked_text={},
+            )
+            grams = tuple(dict.fromkeys(
+                document[offset : offset + SEARCH_NGRAM_SIZE]
+                for offset in range(len(document) - SEARCH_NGRAM_SIZE + 1)
+            ))
+            search_posting_count += len(grams)
+            if search_posting_count > SEARCH_READ_MODEL_MAX_POSTINGS:
+                raise RuntimeError("knowledge search posting budget exceeded")
+            append_batched_inserts(
+                statements,
+                "knowledge_search_grams_next",
+                ("kind", "n", "gram", "position"),
+                ((sql_text(kind), str(SEARCH_NGRAM_SIZE), sql_text(gram), str(position)) for gram in grams),
+            )
+
     for table in (
         "edge_meta",
         "philosophy_nodes",
@@ -770,6 +858,9 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "corpus_packs",
         "knowledge_nodes",
         "knowledge_relations",
+        "knowledge_search_documents",
+        "knowledge_search_grams",
+        "knowledge_search_gram_stats",
     ):
         statements.append(f"DROP TABLE IF EXISTS {table};")
         statements.append(f"ALTER TABLE {table}_next RENAME TO {table};")
@@ -793,6 +884,10 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             "CREATE INDEX knowledge_relations_source_type_idx ON knowledge_relations(source_graph, relation_type_id);",
             "CREATE INDEX knowledge_relations_from_idx ON knowledge_relations(from_id);",
             "CREATE INDEX knowledge_relations_to_idx ON knowledge_relations(to_id);",
+            "CREATE INDEX knowledge_search_grams_lookup_idx ON knowledge_search_grams(kind,n,gram,position);",
+            "CREATE INDEX knowledge_search_documents_source_kind_idx ON knowledge_search_documents(kind,source_graph,kind_id,position);",
+            "CREATE INDEX knowledge_search_documents_source_predicate_idx ON knowledge_search_documents(kind,source_graph,predicate_id,position);",
+            "INSERT INTO knowledge_search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,COUNT(*) FROM knowledge_search_grams GROUP BY kind,n,gram;",
             "PRAGMA optimize;",
         )
     )
@@ -816,6 +911,8 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "corpus_packs": len(corpus_packs),
         "knowledge_nodes": len(knowledge_nodes),
         "knowledge_relations": len(knowledge_relations),
+        "knowledge_search_postings": search_posting_count,
+        "knowledge_search_schema": SEARCH_READ_MODEL_SCHEMA_VERSION,
         "sql_statements": statements.count,
         "delta": delta.summary(),
     }
@@ -825,6 +922,7 @@ def data_revision(core: ToSAccessCore) -> str:
     digest = hashlib.sha256()
     digest.update(READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(READ_MODEL_CONTENT_VERSION.encode("utf-8"))
+    digest.update(SEARCH_READ_MODEL_SCHEMA_VERSION.encode("utf-8"))
     digest.update(b"\0")
     knowledge = core.knowledge_graph()
     digest.update(str(knowledge.get("source_revision") or "").encode("utf-8"))

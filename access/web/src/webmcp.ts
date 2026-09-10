@@ -142,6 +142,42 @@ function compactSearchResult(result: Record<string, unknown>): unknown {
   };
 }
 
+function compactKnowledgeSearchResult(result: Record<string, unknown>): unknown {
+  const value = result.value as Record<string, unknown> | undefined;
+  const context = result.context as Record<string, unknown> | undefined;
+  const compactItems = (items: unknown): unknown[] => (Array.isArray(items) ? items : [])
+    .slice(0, 6)
+    .map((item) => {
+      const source = item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, unknown> : {};
+      return {
+        id: identity(source.id),
+        kind: clipped(source.semantic_kind || source.kind || source.knowledge_search_kind, 48),
+        label: clipped(source.label, 120),
+        subtitle: clipped(source.subtitle || source.node_type || source.predicate_id, 80),
+        from_id: identity(source.from_id) || undefined,
+        to_id: identity(source.to_id) || undefined,
+        source_refs: Array.isArray(source.source_refs) ? source.source_refs.slice(0, 3).map(identity) : [],
+      };
+    });
+  const page = value?.page && typeof value.page === "object" ? value.page as Record<string, unknown> : {};
+  return {
+    schema: value?.schema || "tos_knowledge_search_indexed_v2",
+    query: clipped(value?.query, 160),
+    result_count: Number(value?.result_count || 0),
+    nodes: compactItems(value?.nodes),
+    relations: compactItems(value?.relations),
+    counts: value?.counts,
+    // Cursors are opaque continuation state.  Do not truncate them while
+    // compacting the human-readable result envelope.
+    next_cursor: typeof page.next_cursor === "string" && page.next_cursor ? page.next_cursor : null,
+    has_more: page.has_more === true,
+    source_revision: clipped(value?.source_revision, 96),
+    context_revision: result.context_revision,
+    deep_link: context?.deep_link,
+    next_action: page.has_more === true ? "invoke this tool again with next_cursor" : "select one returned stable id",
+  };
+}
+
 function compactSourceGapResult(result: Record<string, unknown>): unknown {
   const value = result.value as Record<string, unknown> | undefined;
   const context = result.context as Record<string, unknown> | undefined;
@@ -409,6 +445,16 @@ function stableTools(registry: PageCommandRegistry): WebMCPTool[] {
       inputSchema: objectSchema({ query: { type: "string" } }, ["query"]),
       annotations: { readOnlyHint: false },
     }, undefined, compactSearchResult),
+    commandTool(registry, "tos.page.knowledge-search", {
+      name: "tos.page.knowledge-search",
+      title: "Search the indexed ToS knowledge carrier",
+      description: "Search normalized Tree of Sophia nodes and relations through the explicit source-revision-bound indexed carrier. This is a derived access view; projection search remains available through tos.page.search.",
+      inputSchema: objectSchema({
+        query: { type: "string", minLength: 3, maxLength: 256 },
+        cursor: { type: "string", maxLength: 8192 },
+      }, ["query"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, undefined, compactKnowledgeSearchResult),
     commandTool(registry, "tos.page.find-source-gaps", {
       name: "tos.page.find-source-gaps",
       title: "Find recorded source-access gaps",

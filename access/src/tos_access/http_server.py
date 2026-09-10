@@ -221,6 +221,19 @@ def build_handler(core: ToSAccessCore, web_root: Path) -> type[BaseHTTPRequestHa
                 if path == "/api/knowledge/explore/contracts": self._json(core.knowledge_exploration_contracts()); return
                 if path == "/api/knowledge/contracts": self._json(core.knowledge_contracts()); return
                 if path == "/api/knowledge/search":
+                    mode = _single(query, "mode", "legacy")
+                    if mode == "indexed":
+                        if _integer(query, "offset", 0, 0, 100_000) != 0:
+                            raise ValueError("indexed knowledge search uses cursor continuation, not offset")
+                        self._json(core.knowledge_search_indexed(
+                            _single(query, "query"),
+                            sources=_list(query, "sources") or None,
+                            kind_ids=_list(query, "kind_ids") or None,
+                            predicate_ids=_list(query, "predicate_ids") or None,
+                            cursor=_single(query, "cursor") or None,
+                            limit=_integer(query, "limit", 40, 1, 100),
+                        )); return
+                    if mode != "legacy": raise ValueError("knowledge search mode must be legacy or indexed")
                     self._json(core.knowledge_search(
                         _single(query, "query"),
                         sources=_list(query, "sources") or None,
