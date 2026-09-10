@@ -104,6 +104,55 @@ class ReadableContextTests(unittest.TestCase):
         item['attributes']['source_record']['schema_version'] = 'tos_future_source_v999'
         self.assertTrue(all(e['category'] == 'unclassified' for e in self.build(item)['contexts'][0]['entries']))
 
+    def test_retained_historical_claim_gets_known_labels_without_reinterpreting_values(self):
+        source = ROOT / 'ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.jsonl'
+        record = next(json.loads(line) for line in source.read_text().splitlines()
+                      if json.loads(line)['claim_id'] == 'tos.claim.jenseits-1886-commission.date')
+        item = _normalize_node({'node_id': 'claim:' + record['claim_id'], 'node_type': 'claim',
+                                'properties': {'source_claim': record}}, 'source-claims')
+        before = copy.deepcopy(item)
+        result = self.build(item)
+        self.assertEqual(result['state'], 'complete')
+        direct = next(c for c in result['contexts'] if c['origin_pointer'] == '/attributes/source_claim')
+        entries = {e['key']: e for e in direct['entries']}
+        for field in ('schema_version', 'claim_id', 'claim_version'):
+            self.assertEqual(entries[field]['category'], 'technical')
+        for field in ('object', 'qualifiers', 'epistemic_status', 'review_status', 'evidence_refs'):
+            self.assertEqual(entries[field]['category'], 'governing')
+            self.assertEqual(entries[field]['value'], record[field])
+        self.assertEqual(entries['object']['value']['source_wording'], record['object']['source_wording'])
+        self.assertIsNone(entries['object']['language'])  # No whole-object language is declared.
+        self.assertFalse(entries['qualifiers']['value']['primary_letter_inspected'])
+        self.assertEqual(item, before)
+
+        # Synthetic unknown extension and schema controls are not historical facts.
+        item['attributes']['source_claim']['extensions'] = {'negation': False, 'calendar': None}
+        extensions = next(e for c in self.build(item)['contexts']
+                          if c['origin_pointer'] == '/attributes/source_claim'
+                          for e in c['entries'] if e['key'] == 'extensions')
+        self.assertEqual(extensions['category'], 'unclassified')
+        self.assertEqual(extensions['value'], {'negation': False, 'calendar': None})
+        item['attributes']['source_claim']['schema_version'] = 'tos_historical_claim_v999'
+        unknown = next(c for c in self.build(item)['contexts']
+                       if c['origin_pointer'] == '/attributes/source_claim')
+        self.assertTrue(all(e['category'] == 'unclassified' for e in unknown['entries']))
+
+    def test_claim_context_reference_is_visible_and_not_an_identity_or_admission(self):
+        payload = {'claim_ref': 'tos.claim.test.context-subject'}
+        item = {'attributes': {}, 'source_record': {'payload': payload, 'digest': _stable_digest(payload)},
+                'semantics': {'assertion_contexts': [{'schema_version': 'tos_assertion_context_v1',
+                    'binding_role': 'carrier', 'source_record_digest': _stable_digest(payload),
+                    'source_refs': ['test:synthetic-claim-reference'],
+                    'interpretation': 'source-declared-not-semantic-assessment',
+                    'fields': {'claim_ref': {'value': payload['claim_ref'], 'source_pointer': '/claim_ref'}},
+                    'conflicts': []}]}}
+        result = self.build(item)
+        entry, = result['contexts'][0]['entries']
+        self.assertEqual(entry['category'], 'governing')
+        self.assertEqual(entry['value'], payload['claim_ref'])
+        self.assertEqual(entry['binding']['source_pointer'], '/claim_ref')
+        self.assertFalse(result['performs_semantic_assessment'])
+
     def test_budget_returns_exact_roots_and_no_partial_ready(self):
         item = real_freedom()
         registry = copy.deepcopy(self.registry)

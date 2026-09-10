@@ -79,6 +79,15 @@ An unknown value is `unclassified`, never guessed from its name or ID. False,
 zero, null, empty values and absence remain distinct. Human-readable labels do
 not reduce mandatory context or make a nonstandalone form standalone.
 
+The vocabulary's explicit schema selectors include the retained historical
+Claim carrier as well as the shared native Claim profiles. Their same declared
+fields receive the same labels whether read directly from an exact Claim or
+through its assertion context. This is field presentation, not interpretation
+of a date, attribution or qualifier. A `claim_ref` remains governing context:
+it identifies the assertion being discussed, not an endorsement. Unrecognized
+schemas and extension fields remain unclassified; the reader does not infer
+schema support from a matching field name or from an ID prefix.
+
 `complete` means coverage of the returned context, not understanding, quality,
 acceptance or semantic completeness of the source. The bounded companion
 refuses partial readiness: excess context produces `requires-exact-context`

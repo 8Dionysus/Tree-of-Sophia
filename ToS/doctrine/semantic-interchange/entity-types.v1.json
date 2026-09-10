@@ -1,11 +1,11 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 36,
+  "registry_version": 37,
   "context_presentation": {
     "schema_version": "tos_context_presentation_v1",
     "presentation_id": "tos.context-presentation.governing",
-    "presentation_version": 1,
+    "presentation_version": 2,
     "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
     "purpose": "source-context-reading-not-assessment",
     "default_language": "ru",
@@ -22,6 +22,7 @@
       "tos_corpus_record_v1",
       "tos_document_record_v1",
       "tos_formation_relation_claim_v1",
+      "tos_historical_claim_v1",
       "tos_historical_context_claim_v1",
       "tos_historical_context_record_v1",
       "tos_historical_record_v1",
@@ -445,6 +446,23 @@
           "en": "Claim type"
         },
         "explanation": null,
+        "value_labels": null
+      },
+      {
+        "field": "claim_ref",
+        "targets": [
+          "record",
+          "assertion"
+        ],
+        "category": "governing",
+        "label": {
+          "ru": "Утверждение, к которому относится контекст",
+          "en": "Assertion addressed by this context"
+        },
+        "explanation": {
+          "ru": "Ссылка сохраняет предмет контекста; она не подтверждает утверждение и не объединяет его с другим предметом.",
+          "en": "The reference preserves the context's subject; it neither endorses the assertion nor identifies it with another subject."
+        },
         "value_labels": null
       },
       {
