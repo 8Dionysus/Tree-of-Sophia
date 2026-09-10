@@ -8,6 +8,7 @@
   "extension_schema_refs": [
     "ToS/contracts/artifact-source-witness-v2.schema.json",
     "ToS/contracts/artifact-source-witness.schema.json",
+    "ToS/contracts/document-catalogue-claim.schema.json",
     "ToS/contracts/document-record.schema.json",
     "ToS/contracts/formation-relation-claim.schema.json",
     "ToS/contracts/historical-claim.schema.json",
@@ -110,7 +111,7 @@
   "claim_file": "ToS/source-witnesses/catalog/claims.jsonl",
   "counts": {
     "agent": 55,
-    "place": 5,
+    "place": 6,
     "organization": 11,
     "work": 44,
     "expression": 30,
@@ -172,17 +173,17 @@
     "lexeme": 5,
     "sense": 3,
     "artifact": 20,
-    "object_total": 310,
-    "claim": 370,
-    "total": 680
+    "object_total": 311,
+    "claim": 373,
+    "total": 684
   },
-  "catalog_sha256": "69b218d791acb9a5c19e234de2028ac1a9c2b6f309f96444cd97628ca2f0f90b",
+  "catalog_sha256": "3505b97bc1f2a9ace162935a0406ed452b4ebd1d136ec938d7946f28b2d388f7",
   "selected_metadata_publication": {
     "protocol": "tos_selected_source_metadata_v1",
     "token": "sha256:82f2ae7b74027e27069b14f529e2f228089172ef50e02743ee74ec5ac75e48f3",
     "files": {
       "ToS/source-witnesses/catalog/agents.jsonl": "b480f477729b65a5843e0dc0061359f7359e1c37fb856918e432906d5239a107",
-      "ToS/source-witnesses/catalog/places.jsonl": "90f7836d778f56d6a3b2d9702db0f6f4f99306af0324b3d80df73c43ce84f818",
+      "ToS/source-witnesses/catalog/places.jsonl": "71765bf8a3760915ec080b2c863f5eab607b3f2203e2072a7ef61f9d0c005e8b",
       "ToS/source-witnesses/catalog/organizations.jsonl": "a49a50c213166489c4ff6d4e7cd72af1c14cc139ea719d43cd54dcc654b11b3e",
       "ToS/source-witnesses/catalog/works.jsonl": "98c400f3e0bb618b9afc48a0e3fa7831fc3ecc779ce1574325de0bdd27b3123b",
       "ToS/source-witnesses/catalog/expressions.jsonl": "f6ec590f1e637b46be4b20ee2b90efcdf207cca73a61b639ddde8d8d8f567d34",
@@ -244,7 +245,7 @@
       "ToS/source-witnesses/catalog/lexemes.jsonl": "d4a4c5a288e163aa24e0b32c3bc7771d1d409557bde6bb6c8f6ead610b5bfaf2",
       "ToS/source-witnesses/catalog/senses.jsonl": "2ff19bc8a61cb1df35c0e67649f47cbd237daf3908fe923577bca6bc73dccfa1",
       "ToS/source-witnesses/catalog/artifacts.jsonl": "0c92fd0e4a2d0161f5e64ca2d3514526c9da29f96136a00f3931f81f6fe4696c",
-      "ToS/source-witnesses/catalog/claims.jsonl": "ec9333770861770044248e183204002b49e0d87a9095b660c27ad4995605d91f"
+      "ToS/source-witnesses/catalog/claims.jsonl": "2cc15f1d0c2152a3984c0aa490dbdc60aa1682768139a1ae1669fd5e8c53be14"
     }
   },
   "authority_boundary": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"

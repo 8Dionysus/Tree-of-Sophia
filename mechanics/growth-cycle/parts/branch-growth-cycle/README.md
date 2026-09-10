@@ -527,7 +527,7 @@ competence or actual corpus admission.
 
 The existing bibliographic and corpus-index builders accept an explicit
 protected source-bound assessment configuration and a bounded selection of
-freeform IDs. Without these flags they keep the ordinary metadata-only public
+form IDs present on that builder's carriers. Without these flags they keep the ordinary metadata-only public
 build and its source-parity check. With them, a separate new local JSON target
 is mandatory; no standard export or other repository source can be overwritten.
 
@@ -550,7 +550,7 @@ writes nothing. These are local research candidates, not public-safe artifact
 bundles, live grants, reader switches or publication decisions. The ordinary
 source-parity query reader intentionally does not load them as standard exports.
 
-For coherent in-process assembly, create one
+For overlapping metadata forms in coherent in-process assembly, create one
 `source_witness_human_forms.AssessedFormSnapshot(owner_config, form_ids)` and
 pass that same instance as `assessed_forms` to both existing `build_payload`
 functions (`source_witness_bibliographic_graph_common` and
@@ -560,6 +560,15 @@ before returning or persisting the result. Separate CLI invocations are not a
 transaction across both files; common-reader carrier parity rejects a mixed
 pair. Double collection observes source/configuration and committed per-form
 journal changes; it is not a lock across all subjects or a runtime lease.
+
+Claim forms belong to the bibliographic projection's reified Claim nodes;
+the corpus's source-navigation projection carries metadata forms, not duplicate
+Claim nodes. For a Claim-only selection, build the assessed bibliographic input
+and the ordinary corpus input, join them through the same common reader, and
+verify the assessment snapshot before returning the joint result. A selection
+not present on a builder's own carriers fails closed. This route distinction
+does not relax equality for an assessed form that actually occurs in both
+inputs, and does not authorize reading a local candidate as a public export.
 
 For public owner v2, this same snapshot now uses an invocation-local
 `assessment_journal.PublicSourceReadSession(owner_config, subject_ids)`.
