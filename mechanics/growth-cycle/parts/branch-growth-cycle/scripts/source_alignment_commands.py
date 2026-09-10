@@ -228,7 +228,9 @@ def validate_record(resolver, body, *, verify_content=False, visiting=(), cache=
             if positions != sorted(positions):
                 raise NativeTextBindingError('monotonic alignment reverses a declared native anchor order')
     def read_previous(ref):
-        key = ref['record_ref'], ref['sha256']
+        # Cache the entire asserted immutable reference. Equal bytes/path do
+        # not validate a different claimed record identity or version.
+        key = ref['record_ref'], ref['sha256'], ref['record_id'], ref['record_version']
         if key not in cache:
             raw = resolver._read(ref['record_ref'], expected=ref['sha256'])
             prior = source._json_object(raw)

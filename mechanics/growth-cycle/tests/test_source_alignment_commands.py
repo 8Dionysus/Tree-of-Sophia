@@ -316,6 +316,23 @@ class NativeAlignmentCommandTests(unittest.TestCase):
         self.assertEqual((self.private / previous['record_ref']).read_bytes(), old_raw)
         self.assertNotEqual(competitor['alignment_id'], initial['alignment_id'])
 
+        # A repeated immutable source ref must recheck its asserted identity,
+        # even after another edge populated the validated-history cache.
+        for field, value in (('record_version', 2),
+                ('record_id', 'tos.translation-alignment-record.sid-' + '9' * 32)):
+            with self.subTest(cached_reference_field=field):
+                changed = copy.deepcopy(competitor)
+                changed['competing_records'].append({**previous, field: value})
+                original_read, opened = NativeTextBindingResolver._read, []
+                def traced(resolver, ref, **kwargs):
+                    if kwargs.get('content'):
+                        opened.append(ref)
+                    return original_read(resolver, ref, **kwargs)
+                with patch.object(NativeTextBindingResolver, '_read', traced):
+                    with self.assertRaisesRegex(ValueError, 'predecessor identity/version differs'):
+                        align.validate_record(self.resolver(), changed, verify_content=True)
+                self.assertEqual(opened, [])
+
     def test_partial_stage_resumes_from_the_retained_exact_plan(self):
         self.prepare()
         real = layers._write_new

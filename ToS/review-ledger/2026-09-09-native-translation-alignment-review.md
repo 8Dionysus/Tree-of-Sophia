@@ -91,3 +91,23 @@ The integration owner owns final union, KAG/index-budget/currentness rebuild,
 full release/CI validation and landing. No CI, merge, deployment, installation,
 real-corpus write, bilingual assessment or Foundation-wide completion is
 claimed by this source review.
+
+## Integration review correction, 2026-09-10 UTC
+
+The parent source reviewer (`agent:codex-tos-foundation`, GPT-6 Astra/high,
+session `01a06cc7-0452-77f2-b89a-fb77fb86c3bf`) inspected the complete native
+handler and its contract at `54e390de55ac5fd81ec76717f37f55c84c1386a9`.
+It found and reproduced an exact-reference cache defect: two competing refs
+with the same path and digest but different asserted record ID or version
+could reuse one cached validation. Both negative controls failed before the
+fix. Byte identity did not validate the second ref's claimed record identity.
+
+The cache now keys the whole immutable reference, including record ID and
+version. Both forged refs are rejected before any representation content
+read. The existing competition test retains its positive old-source
+preservation check and adds these two negative controls. The full 15-test
+native alignment module passed in 119.374 seconds after the fix; managed unit
+`abyss-machine-generic-medium-1a088dcf789-357967` reported 31.1 MiB peak memory
+and 7.5 MiB swap. This corrects a reusable reference invariant, not a
+historical or translation judgment. Real source growth and bilingual
+assessment remain separate outstanding work.
