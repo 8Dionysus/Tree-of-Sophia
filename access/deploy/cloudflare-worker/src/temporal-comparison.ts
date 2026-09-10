@@ -12,6 +12,15 @@ type Operand = { claim: Item; value: Item | null; normalized_time: Item | null }
 type CheckedOperand = { packet: Operand; status: Status; issues: string[] };
 type Lookup = (identifier: string) => Promise<Item[]>;
 type Reason = { side: 'left' | 'right' | 'pair'; code: string };
+const SOURCE_JSON = Symbol('temporal exact row JSON');
+const MAX_SOURCE_BYTES = 262144;
+
+export function temporalNodeFromJson(text: string): Item {
+  const node = object(JSON.parse(text));
+  if (!node) throw new HttpError(503, 'selected normalized carrier is not an object');
+  Object.defineProperty(node, SOURCE_JSON, { value: text });
+  return node;
+}
 
 function object(value: unknown): Item | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Item : null;
@@ -65,6 +74,124 @@ function sameJson(left: unknown, right: unknown): boolean {
   return left === right;
 }
 
+// Retain producer JSON number spelling (1.0 and large integers included).
+// JSON.parse validates the whole document first; this scanner only finds exact
+// top-level member spans, without reparsing or inventing canonical bytes.
+function memberText(text: string, selected: string): string | null {
+  let start = 1, depth = 0, quoted = false, escaped = false;
+  const parts: string[] = [];
+  for (let pos = 1; pos < text.length; pos++) {
+    const char = text[pos];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') quoted = false;
+    } else if (char === '"') quoted = true;
+    else if (char === '[' || char === '{') depth++;
+    else if (char === ']' || (char === '}' && depth > 0)) depth--;
+    else if ((char === ',' || char === '}') && depth === 0) {
+      parts.push(text.slice(start, pos)); start = pos + 1;
+    }
+  }
+  const prefix = JSON.stringify(selected);
+  const found = parts.map(part => part.trim()).filter(part => part.startsWith(prefix)
+    && /^\s*:/.test(part.slice(prefix.length)));
+  return found.length === 1 ? found[0]!.slice(prefix.length).replace(/^\s*:\s*/, '') : null;
+}
+
+// Canonicalize already validated JSON while preserving every number token.
+// This is not numeric coercion: the Python producer owns canonical spelling.
+function canonicalText(text: string): string {
+  const tokens = text.match(/"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/g) ?? [];
+  let index = 0;
+  function read(): string {
+    const token = tokens[index++];
+    if (token === '{') {
+      const members = new Map<string, string>();
+      while (tokens[index] !== '}') {
+        const key = JSON.parse(tokens[index++]!) as string;
+        if (typeof key !== 'string' || tokens[index++] !== ':' || members.has(key)) throw new Error('invalid object');
+        members.set(key, read());
+        if (tokens[index] !== ',') break;
+        index++;
+      }
+      if (tokens[index++] !== '}') throw new Error('invalid object');
+      const order = (a: string, b: string): number => {
+        const left = [...a].map(c => c.codePointAt(0)!), right = [...b].map(c => c.codePointAt(0)!);
+        for (let i = 0; i < Math.min(left.length, right.length); i++) if (left[i] !== right[i]) return left[i]! - right[i]!;
+        return left.length - right.length;
+      };
+      return '{' + [...members.keys()].sort(order).map(key => JSON.stringify(key) + ':' + members.get(key)).join(',') + '}';
+    }
+    if (token === '[') {
+      const values: string[] = [];
+      while (tokens[index] !== ']') { values.push(read()); if (tokens[index] !== ',') break; index++; }
+      if (tokens[index++] !== ']') throw new Error('invalid array');
+      return '[' + values.join(',') + ']';
+    }
+    if (!token) throw new Error('missing value');
+    return token.startsWith('"') ? JSON.stringify(JSON.parse(token)) : token;
+  }
+  const result = read();
+  if (index !== tokens.length) throw new Error('trailing values');
+  return result;
+}
+
+function exactNodeMember(node: Item, path: string[]): string | null {
+  let text = (node as Item & { [SOURCE_JSON]?: string })[SOURCE_JSON];
+  if (text === undefined) return null;
+  for (const part of path) { text = memberText(text, part) ?? undefined; if (text === undefined) return null; }
+  try { return canonicalText(text); } catch { return null; }
+}
+
+async function hashText(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function documentCatalogueBinding(claim: Item, value: Item, source: Item,
+  semantics: Item, time: Item, lookup: Lookup): Promise<string | null> {
+  const profile = fields(semantics.source_claim_profile), schemas = profile.schemas;
+  const attribution = fields(fields(source.qualifiers).catalogue_attribution), raw = fields(source.object);
+  if (source.predicate !== 'document_catalogue_date' || source.schema_version !== 'tos_document_catalogue_claim_v1'
+      || source.assertion_layer !== 'bibliographic_assertion' || semantics.relation_type_id !== 'tos.relation.document-catalogue-date'
+      || profile.reader !== 'document-catalogue-temporal-v1' || !sameJson(profile.assertion_layers, ['bibliographic_assertion'])
+      || !Array.isArray(schemas) || schemas.length !== 1 || !object(schemas[0])
+      || schemas[0].schema_version !== source.schema_version || schemas[0].schema_ref !== 'ToS/contracts/document-catalogue-claim.schema.json'
+      || raw.role !== 'catalogue-assigned-document-date' || time.role !== raw.role
+      || typeof raw.kind !== 'string' || !['date-assertion', 'interval-assertion', 'unknown-date'].includes(raw.kind)
+      || attribution.field_role !== 'assigned-date' || typeof attribution.source_field !== 'string' || !attribution.source_field.trim()
+      || !Array.isArray(source.evidence_refs) || !source.evidence_refs.includes(attribution.evidence_ref)
+      || !sameJson(attribution.source_wording, raw.source_wording)) return 'document-catalogue-profile-binding-inconsistent';
+  const subjects = typeof semantics.subject_node_id === 'string' ? await lookup(semantics.subject_node_id) : [];
+  if (subjects.length !== 1 || subjects[0]!.entity_id !== source.subject_ref || subjects[0]!.source_graph !== 'source-claims'
+      || fields(subjects[0]!.type_mapping).status !== 'mapped'
+      || !stringArray(fields(subjects[0]!.semantics).type_ancestors).includes('tos.entity.document')) {
+    return 'document-catalogue-subject-binding-inconsistent';
+  }
+  const inconsistent = 'document-catalogue-exact-source-binding-inconsistent';
+  const canonical = semantics.source_canonical_json;
+  if (typeof canonical !== 'string' || new TextEncoder().encode(canonical).length > MAX_SOURCE_BYTES) return inconsistent;
+  let parsed: unknown;
+  try { parsed = JSON.parse(canonical); } catch { return inconsistent; }
+  if (!object(parsed) || !sameJson(parsed, source)) return inconsistent;
+  const rawText = memberText(canonical, 'object');
+  const claimIdText = memberText(canonical, 'claim_id');
+  if (rawText === null || claimIdText === null) return inconsistent;
+  if (exactNodeMember(claim, ['attributes', 'source_claim']) !== canonical
+      || exactNodeMember(value, ['attributes', 'value']) !== rawText
+      || exactNodeMember(value, ['semantics', 'time', 'raw']) !== rawText) return inconsistent;
+  const digest = await hashText(canonical), valueDigest = await hashText(rawText);
+  const literalDigest = await hashText('{"claim_ref":' + claimIdText + ',"value":' + rawText + '}');
+  const left = fields(claim.attributes), right = fields(value.attributes);
+  if (left.source_sha256 !== digest || right.source_sha256 !== digest || right.value_sha256 !== valueDigest
+      || !sameJson(JSON.parse(rawText), right.value) || !sameJson(JSON.parse(rawText), time.raw)
+      || value.native_id !== 'literal:sha256:' + literalDigest
+      || !Number.isSafeInteger(left.source_line) || Number(left.source_line) < 1 || right.source_line !== left.source_line
+      || !sameJson(claim.source_refs, value.source_refs)) return inconsistent;
+  return null;
+}
+
 async function operand(ref: Selection, lookup: Lookup): Promise<CheckedOperand> {
   const matches = await lookup(ref.node_id);
   if (matches.length !== 1) throw new HttpError(404, `expected one exact knowledge node: ${ref.node_id}`);
@@ -92,13 +219,19 @@ async function operand(ref: Selection, lookup: Lookup): Promise<CheckedOperand> 
   if (value.source_graph !== 'source-claims' || value.type_id !== 'tos.entity.temporal-assertion'
       || fields(value.type_mapping).status !== 'mapped') return stop('unsupported', ['claim-object-is-not-a-declared-temporal-assertion']);
   const attributes = fields(value.attributes);
-  if (attributes.claim_ref !== source.claim_id || !Object.hasOwn(attributes, 'value') || !sameJson(attributes.value, source.object)) {
+  const documentary = source.predicate === 'document_catalogue_date' || source.schema_version === 'tos_document_catalogue_claim_v1'
+    || fields(fields(value.semantics).time).role === 'catalogue-assigned-document-date';
+  if (attributes.claim_ref !== source.claim_id || !Object.hasOwn(attributes, 'value') || (!documentary && !sameJson(attributes.value, source.object))) {
     return stop('undetermined', ['temporal-object-source-binding-inconsistent']);
   }
   const time = object(fields(value.semantics).time);
   if (!time) return stop('undetermined', ['temporal-normalization-unavailable']);
   packet.normalized_time = structuredClone(time);
-  if (!Object.hasOwn(time, 'raw') || !sameJson(time.raw, attributes.value)) return stop('undetermined', ['temporal-normalization-source-binding-inconsistent']);
+  if (!Object.hasOwn(time, 'raw') || (!documentary && !sameJson(time.raw, attributes.value))) return stop('undetermined', ['temporal-normalization-source-binding-inconsistent']);
+  if (documentary) {
+    const issue = await documentCatalogueBinding(claim, value, source, semantics, time, lookup);
+    if (issue) return stop('undetermined', [issue]);
+  }
   const rawIssues = time.issues ?? [];
   if ((Object.hasOwn(time, 'issues') && time.issues === null) || !Array.isArray(rawIssues)
       || rawIssues.some(issue => typeof issue !== 'string' || !issue)) return stop('unsupported', ['temporal-normalization-issues-invalid']);
@@ -147,7 +280,7 @@ export async function compareTemporalOperands(sourceRevision: unknown, requestVa
       status = 'undetermined'; reasons.push({ side: 'pair', code: 'time-role-unavailable' });
     } else if (leftTime.role !== rightTime.role) {
       status = 'unsupported'; reasons.push({ side: 'pair', code: 'different-time-roles' });
-    } else if (leftTime.role !== 'historical-time') {
+    } else if (!['historical-time', 'catalogue-assigned-document-date'].includes(leftTime.role)) {
       status = 'unsupported'; reasons.push({ side: 'pair', code: 'unsupported-time-role' });
     } else relation = envelopeRelation(leftTime, rightTime);
   }

@@ -301,15 +301,124 @@ class TemporalComparisonTests(unittest.TestCase):
             elif case == 'time-container-null': value['semantics']['time'] = None
             fixtures.append((case, (graph, KnowledgeGraphIndex(graph), request)))
         fixtures.append(('real-basel-no-calendar', self.basel_fixture()))
+        fixtures.extend(self.document_transport_fixtures())
         cases = []
         for name, (graph, index, request) in fixtures:
-            case = {'name': name, 'graph': graph, 'request': request}
+            # Exercise exact-ID reads, not a repeated registry/corpus export.
+            identifiers = {request[side]['node_id'] for side in ('left', 'right')}
+            for node in graph['nodes']:
+                if node['id'] not in identifiers: continue
+                semantics = node.get('semantics')
+                claim = semantics.get('claim') if isinstance(semantics, dict) else None
+                if isinstance(claim, dict):
+                    identifiers.update(claim[key] for key in ('object_node_id', 'subject_node_id') if isinstance(claim.get(key), str))
+            nodes = [node for node in graph['nodes'] if node['id'] in identifiers]
+            case = {'name': name, 'graph': {'source_revision': graph['source_revision'], 'nodes': nodes}, 'request': request,
+                    'raw_nodes': [json.dumps(node, ensure_ascii=False, separators=(',', ':')) for node in nodes]}
             try:
                 case['expected'] = compare_temporal_claims(graph, request, graph_index=index)
             except TemporalReadModelInvalid as error:
                 case.update(error_status=503, error=str(error))
             cases.append(case)
         return cases
+
+    def document_transport_fixtures(self):
+        """Native public source -> source builder -> normalizer, not hand-built semantics.
+
+        The copied Letter is a Document identity. Dates, catalogue wording and
+        arbitrary numeric extensions below are synthetic, never source evidence.
+        """
+        sys.path.insert(0, str(ROOT / 'tests'))
+        from test_source_witness_bibliographic_graph import SourceWitnessBibliographicGraphTest
+        fixture = SourceWitnessBibliographicGraphTest()
+        with fixture.historical_fixture() as (root, history, _, claims, rebuild):
+            for name in ('source-claim-record', 'document-record', 'source-metadata-record', 'document-catalogue-claim'):
+                ref = f'ToS/contracts/{name}.schema.json'
+                (root / ref).write_bytes((ROOT / ref).read_bytes())
+            ref = 'ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json'
+            path = root / ref
+            path.parent.mkdir(parents=True)
+            path.write_bytes((ROOT / ref).read_bytes())
+            letter = json.loads(path.read_bytes())
+            baseline = copy.deepcopy(claims[0])
+            claims.clear()
+            for pos, day in enumerate(('1886-06-03', '1886-06-04', '1886-06-04')):
+                value = date(day, role='catalogue-assigned-document-date',
+                    source_wording={'text': f'Synthetic catalogue date {pos}; not dispatch.', 'language': 'en'},
+                    extensions={'float': 1.0, 'large_integer': 9007199254740993, 'negative_zero': -0.0,
+                                'nested': [{'escape': 'quoted " / } , Ω', 'value': 1e-7}], '\U00010000': False, '\ue000': None})
+                if pos == 2: value.update(calendar=None, year_numbering=None)
+                claim = {**copy.deepcopy(baseline), 'schema_version': 'tos_document_catalogue_claim_v1',
+                    'claim_id': f'tos.claim.synthetic-document-date-{pos}', 'subject_ref': letter['record_id'],
+                    'predicate': 'document_catalogue_date', 'assertion_layer': 'bibliographic_assertion', 'object': value,
+                    'qualifiers': {'statement': value['source_wording']['text'], 'statement_language': 'en', 'statement_script': 'Latn',
+                        'catalogue_attribution': {'evidence_ref': baseline['evidence_refs'][0], 'source_field': 'Synthetic field',
+                            'field_role': 'assigned-date', 'source_wording': copy.deepcopy(value['source_wording'])}}}
+                claims.append(claim)
+            claims.append({**copy.deepcopy(baseline), 'claim_id': 'tos.claim.synthetic-historical-date',
+                'predicate': 'historical_dating', 'object': date('1886-06-04')})
+            selected_claims = copy.deepcopy(claims)
+            native_path = root / 'ToS/source-witnesses/relations/synthetic-document-dates/source-claims.jsonl'
+            native_path.parent.mkdir(parents=True)
+            native_path.write_text(''.join(json.dumps(claim, ensure_ascii=False) + '\n' for claim in claims[:3]))
+            claims[:] = [claims[-1]]
+            graph, _, _ = fixture.historical_knowledge(root, rebuild())
+            claims = selected_claims
+        def prepare(graph, right=1):
+            index = KnowledgeGraphIndex(graph)
+            selected = [next(n for n in graph['nodes'] if n.get('entity_id') == claims[pos]['claim_id']) for pos in (0, right)]
+            req = {'schema_version': 'tos_temporal_comparison_request_v1', 'source_revision': graph['source_revision'],
+                **{side: {'node_id': node['id'], 'content_revision': node['content_revision']}
+                    for side, node in zip(('left', 'right'), selected)}}
+            return graph, index, req
+        fixtures = [('document-native-numbers', prepare(graph)),
+                    ('document-unknown-calendar', prepare(graph, 2)), ('document-cross-role', prepare(graph, 3))]
+        for case in ('profile', 'subject', 'subject-duplicate', 'source-digest', 'value-digest', 'literal',
+                     'source-line', 'source-refs', 'field-role', 'wording', 'canonical-missing', 'canonical-invalid',
+                     'source-number-spelling', 'value-number-spelling', 'source-large-number', 'bool-number'):
+            changed = copy.deepcopy(graph)
+            _, index, request = prepare(changed)
+            claim = index.node_ids[request['left']['node_id']][0]
+            semantics = claim['semantics']['claim']
+            source = claim['attributes']['source_claim']
+            value = index.node_ids[semantics['object_node_id']][0]
+            subject = index.node_ids[semantics['subject_node_id']][0]
+            if case == 'profile': semantics['source_claim_profile']['reader'] = 'historical-temporal-v1'
+            elif case == 'subject': subject['semantics']['type_ancestors'] = ['tos.entity.historical-situation']
+            elif case == 'subject-duplicate': changed['nodes'].append(copy.deepcopy(subject))
+            elif case == 'source-digest': claim['attributes']['source_sha256'] = '0' * 64
+            elif case == 'value-digest': value['attributes']['value_sha256'] = '0' * 64
+            elif case == 'literal': value['native_id'] = 'literal:sha256:' + '0' * 64
+            elif case == 'source-line': value['attributes']['source_line'] += 1
+            elif case == 'source-refs': value['source_refs'] = ['test:foreign-source']
+            elif case == 'field-role': source['qualifiers']['catalogue_attribution']['field_role'] = 'origin'
+            elif case == 'wording': source['qualifiers']['catalogue_attribution']['source_wording']['text'] = 'Not exact wording'
+            elif case == 'canonical-missing': semantics.pop('source_canonical_json')
+            elif case == 'canonical-invalid': semantics['source_canonical_json'] = '{bad JSON'
+            elif case == 'source-number-spelling': source['object']['extensions']['float'] = 1
+            elif case == 'value-number-spelling': value['attributes']['value']['extensions']['float'] = 1
+            elif case == 'source-large-number': source['object']['extensions']['large_integer'] = 9007199254740992
+            elif case == 'bool-number': source['object']['extensions']['float'] = True
+            fixtures.append(('document-' + case, (changed, KnowledgeGraphIndex(changed), request)))
+        return fixtures
+
+    def test_document_native_transport_binding_and_number_spelling(self):
+        for name, (graph, index, request) in self.document_transport_fixtures():
+            result = compare_temporal_claims(graph, request, graph_index=index)
+            expected = ('comparable' if name == 'document-native-numbers' else
+                        'unsupported' if name == 'document-cross-role' else 'undetermined')
+            with self.subTest(name=name):
+                self.assertEqual(result['comparison']['status'], expected, result['comparison'])
+                if expected == 'comparable': self.assertEqual(result['comparison']['relation'], 'before')
+                else: self.assertIsNone(result['comparison']['relation'])
+
+    def test_document_canonical_companion_limit_counts_utf8_bytes(self):
+        from tos_access.knowledge import _temporal_source_canonical
+        overhead = len(_temporal_source_canonical({'text': ''}).encode('utf-8'))
+        exact = {'text': 'x' * (262144 - overhead)}
+        self.assertEqual(len(_temporal_source_canonical(exact).encode('utf-8')), 262144)
+        self.assertIsNone(_temporal_source_canonical({'text': exact['text'] + 'x'}))
+        self.assertIsNone(_temporal_source_canonical({'text': 'Ω' * 131072}))
 
     def test_transport_controls_preserve_json_types_and_invalid_issue_states(self):
         cases = {case['name']: case for case in self.transport_cases()}

@@ -732,7 +732,10 @@
         "assertion_contexts": {"type": "array", "items": {"$ref": "#/$defs/assertionContext"}},
         "type_ancestors": {"type": "array", "items": {"type": "string"}},
         "annotation": {"type": "object"},
-        "claim": {"type": "object"},
+        "claim": {"type": "object", "properties": {
+          "source_canonical_json": {"type": ["string", "null"], "maxLength": 262144,
+            "description": "Only the document-catalogue-temporal-v1 reader: exact source-owner canonical Claim bytes, at most 262144 UTF-8 bytes. Null, absent, over-budget or inconsistent material cannot authorize comparison. Original Claim remains in attributes.source_claim; this companion is not a new identity or assessment."}
+        }},
         "record_version": {
           "type": "object", "additionalProperties": false,
           "required": ["schema_version", "record_ref", "record_kind", "status", "reason", "version_status", "record_pointer", "grants_current_use", "performs_assessment"],

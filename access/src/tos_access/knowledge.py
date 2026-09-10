@@ -1738,6 +1738,12 @@ def _normalize_node(
     return normalized
 
 
+def _temporal_source_canonical(source):
+    """Bounded exact-byte companion for the explicit documentary reader only."""
+    text = json.dumps(source, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    return text if len(text.encode('utf-8')) <= 262144 else None
+
+
 def _source_record(item: dict[str, Any], attributes: dict[str, Any]) -> dict[str, Any]:
     """Lossless envelope of the supplied public input, never a private-file read."""
     properties = item.get("properties") if isinstance(item.get("properties"), dict) else {}
@@ -2991,7 +2997,8 @@ def build_knowledge_graph(
             "source_predicate_id": source_predicate_id,
             "relation_type_id": relation_type_id,
             "predicate_mapping_status": "mapped" if relation_type_id != fallback_relation_type_id else "unmapped",
-            **({'source_claim_profile': copy.deepcopy(relation_entries[relation_type_id]['source_claim_profile'])}
+            **({'source_claim_profile': copy.deepcopy(relation_entries[relation_type_id]['source_claim_profile']),
+                'source_canonical_json': _temporal_source_canonical(claim_node.get('attributes', {}).get('source_claim'))}
                if relation_entries.get(relation_type_id, {}).get('source_claim_profile', {}).get('reader') == 'document-catalogue-temporal-v1' else {}),
             "subject_node_id": subject_id,
             "subject_entity_id": (subject or {}).get("entity_id"),

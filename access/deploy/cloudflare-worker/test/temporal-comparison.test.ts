@@ -6,39 +6,42 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { HttpError, type Item } from '../src/common.ts';
 import { KnowledgeRevisionConflict } from '../src/lens-pagination.ts';
-import { compareTemporalOperands, normalizeTemporalComparisonRequest, type TemporalRequest } from '../src/temporal-comparison.ts';
+import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson, type TemporalRequest } from '../src/temporal-comparison.ts';
 import { knowledgeTemporalCompareD1 } from '../src/knowledge-store.ts';
 
 type Fixture = { name: string; graph: { source_revision: string; nodes: Item[] };
+  raw_nodes: string[];
   request: TemporalRequest; expected?: Item; error_status?: number; error?: string };
 
+let cachedFixtures: Fixture[] | undefined;
 function fixtures(): Fixture[] {
   // Reuse the actual Python normalizer and its source-binding controls.
   // These are disposable arithmetic fixtures plus the unchanged Basel pair,
   // not admitted historical Claims or a full corpus readiness check.
-  return JSON.parse(execFileSync('python3', ['-c', [
+  return cachedFixtures ??= JSON.parse(execFileSync('python3', ['-c', [
     "import sys,json;sys.path[:0]=['access/tests','access/src']",
     'from test_temporal_comparison import TemporalComparisonTests',
     'TemporalComparisonTests.setUpClass()',
     'print(json.dumps(TemporalComparisonTests().transport_cases()))',
   ].join(';')], { cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
-    encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
+    encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }));
 }
 
 test('exact temporal envelopes and all retained context match Python', async t => {
   for (const fixture of fixtures()) {
     await t.test(fixture.name, async () => {
       const original = structuredClone(fixture.graph);
+      const nodes = fixture.raw_nodes.map(temporalNodeFromJson);
       const reads: string[] = [];
       const read = () => compareTemporalOperands(fixture.graph.source_revision, fixture.request, async id => {
         reads.push(id);
-        return fixture.graph.nodes.filter(node => node.id === id);
+        return nodes.filter(node => node.id === id);
       });
       if (fixture.error_status) await assert.rejects(read(), (error: unknown) =>
         error instanceof HttpError && error.status === fixture.error_status && error.message === fixture.error);
       else assert.deepEqual(await read(), fixture.expected);
       assert.deepEqual(fixture.graph, original);
-      assert.ok(reads.length <= 4);
+      assert.ok(reads.length <= (fixture.name.startsWith('document-') ? 6 : 4));
     });
   }
   const fixture = fixtures()[0]!;
@@ -79,7 +82,7 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
           db.prepare('DELETE FROM edge_meta'), db.prepare('DELETE FROM knowledge_nodes'),
           db.prepare("INSERT INTO edge_meta VALUES ('data_revision', 0, ?)").bind(JSON.stringify({ sha256: fixture.graph.source_revision })),
           db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top', 0, ?)").bind(JSON.stringify({ source_revision: fixture.graph.source_revision })),
-          ...fixture.graph.nodes.map(node => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?)').bind(node.id, JSON.stringify(node))),
+          ...fixture.raw_nodes.map(raw => db.prepare('INSERT INTO knowledge_nodes VALUES (?,?)').bind(JSON.parse(raw).id, raw)),
         ]);
         const reads: string[] = [];
         const observed = new Proxy(db, { get(target, key) {
@@ -90,7 +93,7 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
         if (fixture.error_status) await assert.rejects(knowledgeTemporalCompareD1(observed, fixture.request), (error: unknown) =>
           error instanceof HttpError && error.status === fixture.error_status && error.message === fixture.error);
         else assert.deepEqual(await knowledgeTemporalCompareD1(observed, fixture.request), fixture.expected);
-        assert.ok(reads.length <= 7);
+        assert.ok(reads.length <= (fixture.name.startsWith('document-') ? 9 : 7));
         assert.ok(reads.filter(sql => sql.includes('knowledge_nodes')).every(sql => sql === 'SELECT json FROM knowledge_nodes WHERE id = ? LIMIT 2'));
         assert.ok(reads.every(sql => !sql.includes('knowledge_relations')));
         const response = await mf.dispatchFetch('http://localhost/api/knowledge/temporal/compare', {
@@ -101,7 +104,12 @@ test('Worker HTTP and indexed D1 agree; stale or malformed selections fail close
         if (fixture.error_status) {
           assert.equal(packet.error, fixture.error);
           assert.equal(packet.comparison, undefined);
-        } else assert.deepEqual(packet, fixture.expected);
+        } else {
+          // The public JSON framing has IEEE-754 numbers (including -0 -> 0).
+          // Exact source number spelling remains in the unchanged canonical
+          // string; compare that as part of the full packet, never rehash it.
+          assert.deepEqual(packet, JSON.parse(JSON.stringify(fixture.expected)));
+        }
       });
     }
     const fixture = all.at(-1)!;

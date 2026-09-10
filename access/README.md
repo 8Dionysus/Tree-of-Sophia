@@ -144,6 +144,13 @@ The read-only operations are available through all backend adapters:
   only with the same role after exact Document/profile/source/value binding.
   It does not compare a letter's catalogue date as an event date. Unknown
   calendar or year numbering returns `undetermined`, never an inferred date;
+  this new reader carries a source-owner canonical JSON companion in
+  `semantics.claim.source_canonical_json`, bounded to 262144 UTF-8 bytes.
+  Missing, over-budget or mismatched bytes return `undetermined`. Python and
+  the Worker bind the whole Claim, value and literal identity; the Worker
+  preserves number tokens from the actual D1 row instead of reconstructing
+  source hashes with `JSON.stringify`. Existing historical carriers do not
+  acquire the documentary role or require this companion;
 - `POST /api/knowledge/lenses/compile` executes an arbitrary validated
   LensSpec. This `POST` carries structured query data only and creates no
   server state;

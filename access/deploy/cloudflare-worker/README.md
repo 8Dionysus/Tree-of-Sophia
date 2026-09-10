@@ -69,6 +69,25 @@ in the staged row before table swap. Contract tests use isolated synthetic D1
 databases, not a corpus import; `load:local` and the revision-aware sync are final
 read-model checks rather than inner-loop steps.
 
+Temporal comparison retains the old historical role and the separately
+declared `catalogue-assigned-document-date` role. The latter requires the exact
+Document subject, current source profile, full Claim/value hashes and literal
+identity. A bounded `semantics.claim.source_canonical_json` companion preserves
+source canonical bytes (262144 UTF-8 bytes maximum); a missing or inconsistent
+companion refuses comparison as `undetermined`. The temporal D1 adapter checks
+the actual row JSON number tokens, including floats and large integers, without
+reconstructing source hashes through JavaScript numbers. Original metadata and
+its roles remain unchanged. Unknown calendars stay unknown; two different
+otherwise-comparable roles are `unsupported`.
+
+This route still uses exact indexed node lookups only: at most six node reads
+for a documentary pair (the two Document-subject checks included), versus four
+for a historical pair, plus the existing snapshot metadata checks. The native
+source-builder fixtures exercise Python, D1 and Worker HTTP together. These
+checks do not import the corpus or deploy the Worker. A row-changing normalizer
+update requires the matching read-model rebuild under the normal publication
+route; old document rows without the companion fail closed until then.
+
 Generated `dist/`, `runtime/`, local D1 state, and dependencies are ignored.
 Only source, configuration, lockfiles, tests, and generated binding types are
 tracked.

@@ -17,7 +17,7 @@ import {
   type QueryProperty,
 } from "./knowledge.ts";
 import { jsonRows, meta, rows } from "./store.ts";
-import { compareTemporalOperands, normalizeTemporalComparisonRequest } from './temporal-comparison.ts';
+import { compareTemporalOperands, normalizeTemporalComparisonRequest, temporalNodeFromJson } from './temporal-comparison.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const PAGE_SIZE = 2000;
@@ -50,8 +50,9 @@ export async function knowledgeTemporalCompareD1(db: D1Database, request: unknow
   const normalized = normalizeTemporalComparisonRequest(request);
   return consistentRead(db, async () => {
     const top = await meta<Item>(db, 'knowledge_top');
-    return compareTemporalOperands(top.source_revision, normalized, identifier =>
-      jsonRows(db, 'SELECT json FROM knowledge_nodes WHERE id = ? LIMIT 2', identifier));
+    return compareTemporalOperands(top.source_revision, normalized, async identifier =>
+      (await rows<{ json: string }>(db, 'SELECT json FROM knowledge_nodes WHERE id = ? LIMIT 2', identifier))
+        .map(row => temporalNodeFromJson(row.json)));
   });
 }
 

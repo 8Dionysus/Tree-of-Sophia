@@ -126,17 +126,19 @@ def _operand(ref, lookup):
             or _fields(value.get('type_mapping')).get('status') != 'mapped'):
         return packet, 'unsupported', ['claim-object-is-not-a-declared-temporal-assertion']
     attributes = _fields(value.get('attributes'))
-    if attributes.get('claim_ref') != source['claim_id'] or 'value' not in attributes or not _same_json(attributes['value'], source.get('object')):
+    documentary = (source.get('predicate') == 'document_catalogue_date'
+        or source.get('schema_version') == 'tos_document_catalogue_claim_v1'
+        or _fields(_fields(value.get('semantics')).get('time')).get('role') == 'catalogue-assigned-document-date')
+    if (attributes.get('claim_ref') != source['claim_id'] or 'value' not in attributes
+            or (not documentary and not _same_json(attributes['value'], source.get('object')))):
         return packet, 'undetermined', ['temporal-object-source-binding-inconsistent']
     time = _fields(value.get('semantics')).get('time')
     if not isinstance(time, dict):
         return packet, 'undetermined', ['temporal-normalization-unavailable']
     packet['normalized_time'] = copy.deepcopy(time)
-    if 'raw' not in time or not _same_json(time['raw'], attributes['value']):
+    if 'raw' not in time or (not documentary and not _same_json(time['raw'], attributes['value'])):
         return packet, 'undetermined', ['temporal-normalization-source-binding-inconsistent']
-    if (source.get('predicate') == 'document_catalogue_date'
-            or source.get('schema_version') == 'tos_document_catalogue_claim_v1'
-            or time.get('role') == 'catalogue-assigned-document-date'):
+    if documentary:
         issue = _document_catalogue_binding(claim, value, source, semantics, time, lookup)
         if issue:
             return packet, 'undetermined', [issue]
@@ -219,8 +221,10 @@ def _document_catalogue_binding(claim, value, source, semantics, time, lookup):
         return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
             separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
     digest, value_digest = digest_of(source), digest_of(raw)
+    canonical = json.dumps(source, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
     left, right = _fields(claim.get('attributes')), _fields(value.get('attributes'))
-    if (left.get('source_sha256') != digest or right.get('source_sha256') != digest
+    if (len(canonical.encode('utf-8')) > 262144 or semantics.get('source_canonical_json') != canonical
+            or left.get('source_sha256') != digest or right.get('source_sha256') != digest
             or right.get('value_sha256') != value_digest or digest_of(right.get('value')) != value_digest
             or digest_of(time.get('raw')) != value_digest
             or value.get('native_id') != 'literal:sha256:' + digest_of({'claim_ref': source['claim_id'], 'value': raw})
