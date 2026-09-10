@@ -23,6 +23,7 @@ PRIMARY_KEYS = {
     'knowledge_search_documents': ('kind', 'position'),
     'knowledge_search_grams': ('kind', 'n', 'gram', 'position'),
     'knowledge_search_gram_stats': ('kind', 'n', 'gram'),
+    'knowledge_lens_order': ('kind', 'id'),
 }
 INSERT = re.compile(r'^INSERT INTO (\w+)_next \(([^)]+)\) VALUES (.*);$', re.S)
 

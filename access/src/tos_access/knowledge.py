@@ -4082,7 +4082,11 @@ def _bind_query_properties(graph: dict[str, Any], spec: dict[str, Any]) -> dict[
     Internal binding details never replace the caller's semantic LensSpec.
     Older graphs without a binding cannot guess the meaning of a property ID.
     """
-    definitions = graph.get('query_properties', [])
+    return bind_lens_query_properties(graph.get('query_properties', []), spec)
+
+
+def bind_lens_query_properties(definitions: list[dict[str, Any]], spec: dict[str, Any]) -> dict[str, Any]:
+    """Bind an already selected snapshot's property definitions, not request metadata."""
     bindings = {d['property_id']: d for d in definitions}
     if len(bindings) != len(definitions):
         raise ValueError('ambiguous snapshot property identity')
@@ -4963,7 +4967,36 @@ def execute_knowledge_lens(
         if left in selected_nodes and right in selected_nodes:
             selected_relations.append(relation)
 
-    final_nodes = _sort_items(selected_nodes.values(), spec["composition"]["sort_nodes"])
+    matched_node_ids = {str(item["id"]) for item in candidates}
+    if focus_node is not None:
+        matched_node_ids.add(str(focus_node["id"]))
+    return finalize_knowledge_lens(
+        public_spec, selected_nodes.values(), selected_relations,
+        source_revision=graph.get("source_revision"),
+        authority_boundary=graph.get("authority_boundary", {}),
+        execution_counts={"available_nodes": len(nodes), "available_relations": len(relations),
+                          "matched_nodes": len(matched_node_ids), "matched_relations": len(relation_candidates),
+                          "eligible_relations": eligible_relation_count,
+                          "identity_expansion_limited": identity_expansion_limited},
+        focus_node=focus_node, inclusion=inclusion, traversed_relation_ids=traversed_relation_ids,
+    )
+
+
+def finalize_knowledge_lens(
+    public_spec: dict[str, Any], selected_nodes: Iterable[dict[str, Any]],
+    selected_relations: Iterable[dict[str, Any]], *, source_revision: str,
+    authority_boundary: dict[str, Any], execution_counts: dict[str, Any],
+    focus_node: dict[str, Any] | None = None, inclusion: dict[str, Any] | None = None,
+    traversed_relation_ids: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Shape an exact bounded selection; selection/count authority stays with its executor."""
+    spec = public_spec
+    inclusion = {} if inclusion is None else inclusion
+    traversed_relation_ids = set(traversed_relation_ids)
+    endpoint_policy = spec["composition"]["endpoint_policy"]
+    eligible_relation_count = execution_counts["eligible_relations"]
+    identity_expansion_limited = execution_counts["identity_expansion_limited"]
+    final_nodes = _sort_items(selected_nodes, spec["composition"]["sort_nodes"])
     final_relations = _sort_items(selected_relations, spec["composition"]["sort_relations"])
     focus = _focus_payload(spec, final_nodes, focus_node)
     groups = _groups(final_nodes, final_relations, spec["composition"]["group_by"], spec["limits"]["groups"])
@@ -4978,14 +5011,11 @@ def execute_knowledge_lens(
         item["display"]["provenance"].get("source_explanation_available") is False
         for item in final_relations
     )
-    matched_node_ids = {str(item["id"]) for item in candidates}
-    if focus_node is not None:
-        matched_node_ids.add(str(focus_node["id"]))
-    truncated_nodes = max(0, len(matched_node_ids) - spec["limits"]["nodes"])
+    truncated_nodes = max(0, execution_counts['matched_nodes'] - spec["limits"]["nodes"])
     truncated_relations = max(0, eligible_relation_count - len(final_relations))
     fingerprint_material = {
         "execution_version": "tos-lens-execution-v7",
-        "source_revision": graph.get("source_revision"),
+        "source_revision": source_revision,
         "lens": {k: v for k, v in public_spec.items() if k != 'pagination'},
         "nodes": [[item["id"], item["content_revision"]] for item in final_nodes],
         "relations": [[item["id"], item["content_revision"]] for item in final_relations],
@@ -4993,7 +5023,7 @@ def execute_knowledge_lens(
     }
     result = paginate_lens({
         "schema": "tos_lens_result_v1",
-        "source_revision": str(graph.get("source_revision") or ""),
+        "source_revision": str(source_revision or ""),
         "lens": public_spec,
         "fingerprint": _stable_digest(fingerprint_material),
         "presentation": spec["presentation"],
@@ -5011,10 +5041,10 @@ def execute_knowledge_lens(
             "sources": dict(sorted(Counter(str(item["source_graph"]) for item in final_nodes).items())),
         },
         "counts": {
-            "available_nodes": len(nodes),
-            "available_relations": len(relations),
-            "matched_nodes": len(matched_node_ids),
-            "matched_relations": len(relation_candidates),
+            "available_nodes": execution_counts["available_nodes"],
+            "available_relations": execution_counts["available_relations"],
+            "matched_nodes": execution_counts['matched_nodes'],
+            "matched_relations": execution_counts['matched_relations'],
             "eligible_relations": eligible_relation_count,
             "nodes": len(final_nodes),
             "relations": len(final_relations),
@@ -5037,7 +5067,7 @@ def execute_knowledge_lens(
             *( [f"node selector exceeded its bounded result by {truncated_nodes} nodes"] if truncated_nodes else [] ),
             *( [f"relation selector exceeded its bounded result by {truncated_relations} relations"] if truncated_relations else [] ),
         ],
-        "authority_boundary": dict(graph.get("authority_boundary") or {}),
+        "authority_boundary": dict(authority_boundary or {}),
         "agent_summary": {
             "lens_id": spec["lens_id"],
             "focus_node_id": focus["node_id"] if focus is not None else None,
@@ -5088,14 +5118,26 @@ def focus_knowledge_node(
     graph_index: KnowledgeGraphIndex | None = None,
 ) -> dict[str, Any]:
     """Build one radial LensSpec around an exact or uniquely namespaced node identity."""
+    return execute_knowledge_lens(
+        graph, focus_lens_spec(node_id, sources=sources, depth=depth, direction=direction,
+                               predicate_ids=predicate_ids, node_limit=node_limit,
+                               relation_limit=relation_limit, profile=profile),
+        graph_index=graph_index,
+    )
+
+
+def focus_lens_spec(
+    node_id: str, *, sources: list[str] | None = None, depth: int = 1,
+    direction: str = "either", predicate_ids: list[str] | None = None,
+    node_limit: int = 200, relation_limit: int = 400, profile: str = "overview",
+) -> dict[str, Any]:
+    """The unchanged declarative focus request shared by all local executors."""
     identifier = _string(node_id)
     if identifier is None:
         raise ValueError("knowledge focus node id is required")
     source_set = _normalized_source_filter(sources)
     selected_sources = [source for source in KNOWLEDGE_SOURCES if source in source_set]
-    return execute_knowledge_lens(
-        graph,
-        {
+    return {
             "schema_version": "tos_lens_spec_v1",
             "lens_id": "focus-neighborhood",
             "title": {"default": f"Focus: {identifier}"},
@@ -5126,9 +5168,7 @@ def focus_knowledge_node(
                 "inspector_fields": ["display", "epistemic", "source_refs", "attributes"],
             },
             "limits": {"nodes": node_limit, "relations": relation_limit, "groups": 100},
-        },
-        graph_index=graph_index,
-    )
+        }
 
 
 def _layout_from_hint(value: Any) -> str:

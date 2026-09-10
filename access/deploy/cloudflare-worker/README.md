@@ -139,13 +139,22 @@ byte offset; the next file is not written until the caller has consumed the
 previous file. Owned scratch is removed on completion, error or cancellation.
 Python is therefore also required by this large-file deploy path. No giant
 JavaScript string is introduced, and the bounded statement framing and key
-grammar remain stable. Producer read-model v8 emits search posting and
+grammar remain stable. Producer read-model v9 retains the v8 search posting and
 gram-stat rows as bounded multi-row `_next` inserts so the incremental recorder
 can stage them, and publishes the cold-reader metadata/catalog plus exact
 emitted-JSON digests for each knowledge node and relation through the same
 chunked `edge_meta` transaction. The corresponding schema version invalidates
 older row baselines. Already-generated multiline SQL remains compatible with
 the local bootstrap parser.
+V9 additionally publishes checksum-bound `knowledge_lens_top` dimensional count
+metadata and `knowledge_lens_order` native-order/incidence carriers. They are
+derived from the same normalized rows and staged/swapped with those rows, not
+maintained by request-time writes. Python Unicode version and native execution
+version are explicit metadata, and the data revision includes these bytes.
+V8-to-v9 requires a normal full schema bootstrap; subsequent v9 row deltas
+include changed/deleted order carriers and changed histogram metadata in the
+existing atomic compare-and-swap publication. This schema change does not
+activate a remote deployment or give D1 the Python native lens executor.
 Input must remain the trusted, immutable producer file throughout the import.
 The chunker rejects observed file replacement or metadata changes between reads;
 framing alone is not SQL syntax/safety validation or a cryptographic integrity

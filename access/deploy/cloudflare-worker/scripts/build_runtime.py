@@ -27,6 +27,8 @@ from tos_access.published_read_metadata import (  # noqa: E402
     emitted_row_digest,
     published_reader_metadata,
     published_row_digest_key,
+    published_lens_metadata,
+    lens_order_row,
 )
 _builder_dir = str(Path(__file__).resolve().parent)
 if _builder_dir not in sys.path:
@@ -40,7 +42,7 @@ STATIC_PHILOSOPHY_LIMITS = (1, 1000)
 STATIC_CORPUS_LIMITS = (1, 100, 700, 1000)
 SQL_CHUNK_BYTES = 32_000
 MAX_D1_SQL_STATEMENT_BYTES = 100_000
-READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v8"
+READ_MODEL_SCHEMA_VERSION = "tos_cloudflare_edge_read_model_v9"
 READ_MODEL_CONTENT_VERSION = "tos_cloudflare_edge_content_v2"
 SEARCH_READ_MODEL_SCHEMA_VERSION = "tos_knowledge_search_read_model_v3"
 SEARCH_READ_MODEL_MAX_POSTINGS = 10_000_000
@@ -424,6 +426,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "DROP TABLE IF EXISTS knowledge_search_documents_next;",
         "DROP TABLE IF EXISTS knowledge_search_grams_next;",
         "DROP TABLE IF EXISTS knowledge_search_gram_stats_next;",
+        "DROP TABLE IF EXISTS knowledge_lens_order_next;",
         "CREATE TABLE edge_meta_next (key TEXT NOT NULL, part INTEGER NOT NULL, json_chunk TEXT NOT NULL, PRIMARY KEY (key, part));",
         "CREATE TABLE philosophy_nodes_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
         "CREATE TABLE philosophy_edges_next (id TEXT PRIMARY KEY, ord INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, predicate_id TEXT NOT NULL, view_mask INTEGER NOT NULL, layer_mask INTEGER NOT NULL, json TEXT NOT NULL, search_text TEXT NOT NULL);",
@@ -440,6 +443,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "CREATE TABLE knowledge_search_documents_next (kind TEXT NOT NULL, position INTEGER NOT NULL, id TEXT NOT NULL, source_graph TEXT NOT NULL, kind_id TEXT NOT NULL, predicate_id TEXT NOT NULL, id_lower TEXT NOT NULL, native_id_lower TEXT NOT NULL, identity_values TEXT NOT NULL, visible_values TEXT NOT NULL, document_chars INTEGER NOT NULL, document_digest TEXT NOT NULL, PRIMARY KEY (kind, position));",
         "CREATE TABLE knowledge_search_grams_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (kind, n, gram, position));",
         "CREATE TABLE knowledge_search_gram_stats_next (kind TEXT NOT NULL, n INTEGER NOT NULL, gram TEXT NOT NULL, postings INTEGER NOT NULL, PRIMARY KEY (kind, n, gram));",
+        "CREATE TABLE knowledge_lens_order_next (kind TEXT NOT NULL, id TEXT NOT NULL, sort_key TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, PRIMARY KEY (kind, id));",
     ))
 
     philosophy_top = {
@@ -498,6 +502,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         normalize_paths(knowledge_catalog, REPO_ROOT),
         READ_MODEL_SCHEMA_VERSION,
         revision,
+        lens_metadata=published_lens_metadata(knowledge),
     )
     metadata.update(reader_metadata)
     for key, value in metadata.items():
@@ -835,6 +840,12 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
                 )
             )
 
+    for kind, items in (("node", knowledge_nodes), ("relation", knowledge_relations)):
+        for item in items:
+            statements.append(sql_insert("knowledge_lens_order_next",
+                ("kind", "id", "sort_key", "from_id", "to_id"),
+                tuple(sql_text(value) for value in lens_order_row(kind, item))))
+
     # The indexed search plane stores only compact rank carriers and complete
     # 3-gram postings. The source JSON/search_text rows above remain the
     # legacy v1 compatibility plane and are also used for exact substring
@@ -913,6 +924,7 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
         "knowledge_search_documents",
         "knowledge_search_grams",
         "knowledge_search_gram_stats",
+        "knowledge_lens_order",
     ):
         statements.append(f"DROP TABLE IF EXISTS {table};")
         statements.append(f"ALTER TABLE {table}_next RENAME TO {table};")
@@ -939,6 +951,10 @@ def build_read_model_sql(core: ToSAccessCore, target: Path, revision: str) -> di
             "CREATE INDEX knowledge_search_grams_lookup_idx ON knowledge_search_grams(kind,n,gram,position);",
             "CREATE INDEX knowledge_search_documents_source_kind_idx ON knowledge_search_documents(kind,source_graph,kind_id,position);",
             "CREATE INDEX knowledge_search_documents_source_predicate_idx ON knowledge_search_documents(kind,source_graph,predicate_id,position);",
+            "CREATE INDEX knowledge_lens_order_sort ON knowledge_lens_order(kind,sort_key,id);",
+            "CREATE INDEX knowledge_lens_order_from ON knowledge_lens_order(kind,from_id,sort_key,id);",
+            "CREATE INDEX knowledge_lens_order_to ON knowledge_lens_order(kind,to_id,sort_key,id);",
+            "CREATE INDEX knowledge_lens_order_pair ON knowledge_lens_order(kind,from_id,to_id,id);",
             "PRAGMA optimize;",
         )
     )
@@ -983,6 +999,8 @@ def data_revision(core: ToSAccessCore) -> str:
     # Query bindings are serving metadata, not row content. A code-only
     # introduction/removal of this plane must not skip its D1 metadata update.
     digest.update(compact_json(knowledge.get('query_properties', [])).encode('utf-8'))
+    digest.update(b"\0")
+    digest.update(compact_json(published_lens_metadata(knowledge)).encode('utf-8'))
     digest.update(b"\0")
     for collection in ("nodes", "relations"):
         digest.update(collection.encode("utf-8"))

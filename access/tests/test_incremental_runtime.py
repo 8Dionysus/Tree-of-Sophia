@@ -140,6 +140,7 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 'knowledge_search_documents',
                 'knowledge_search_grams',
                 'knowledge_search_gram_stats',
+                'knowledge_lens_order',
             )
             snapshot = {}
             for table in tables:
@@ -180,6 +181,7 @@ class IncrementalRuntimeTests(unittest.TestCase):
                 added['native_id'] = 'fixture:added-node'
                 added['display']['title']['default'] = 'Added fixture node'
                 graph_v2['nodes'].append(added)
+                graph_v2['relations'][0]['to_id'] = added['id']
 
                 first_sql = runtime / 'read-model.v1.sql'
                 with patch.object(ToSAccessCore, 'knowledge_graph', return_value=graph_v1):
@@ -193,7 +195,7 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     before = serving_snapshot(database)
                     before_ids = {row[2] for row in before['knowledge_search_documents']}
                     reader_top = edge_meta_packet(database, "knowledge_reader_top")
-                    self.assertEqual(reader_top["schema"], "tos_published_knowledge_reader_v1")
+                    self.assertEqual(reader_top["schema"], "tos_published_knowledge_reader_v2")
                     self.assertEqual(reader_top["read_model_schema"], builder.READ_MODEL_SCHEMA_VERSION)
                     self.assertEqual(reader_top["data_revision"], revision_v1)
                     self.assertEqual(
@@ -265,6 +267,8 @@ class IncrementalRuntimeTests(unittest.TestCase):
                     self.assertNotEqual(stale_baseline, after)
                     self.assertIn('fixture:added-node', {row[2] for row in after['knowledge_search_documents']})
                     self.assertNotIn(deleted_id, {row[2] for row in after['knowledge_search_documents']})
+                    order_rows = {row[1]: row for row in after['knowledge_lens_order'] if row[0] == 'relation'}
+                    self.assertEqual(order_rows[graph_v2['relations'][0]['id']][4], added['id'])
                     replayed = serving_snapshot(database)
                     database.executescript(delta_text)
                     self.assertEqual(replayed, serving_snapshot(database))

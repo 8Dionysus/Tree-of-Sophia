@@ -323,10 +323,41 @@ across requests/restarts. SQLite may use its ordinary WAL coordination sidecars;
 `mode=ro` and `query_only` prohibit database writes, not SQLite's filesystem
 coordination protocol.
 
-Search, lens and focus are not yet supported by this opt-in slice.
-Exploration uses the prepared service described below. The default, without these two arguments,
+Search integration is separate from these services. Lens/focus and exploration
+use the prepared services described below. The default, without these two arguments,
 retains the existing compatibility route. This is not completion of the broader
 cold-reader or addressed-source publication work, nor a production activation.
+
+`PublishedLensService(reader, limits=PublishedLensLimits(...))` executes native-v7
+lens and focus semantics over an owner-published v9 snapshot. `execute(spec)` and
+`focus(node_id, **options)` share the native property binder, focus specification
+and final packet builder: query normalization, human forms, fingerprints,
+inclusion reasons, grouping, ordering and stateless pagination remain identical.
+Each page re-executes the complete bounded selection; it never substitutes a
+subgraph for global `available`, `matched` or `eligible` counts.
+
+The producer owns small exact source/kind/type and source/predicate/relation-type
+histograms plus Python-lowercase order keys and local incidence indices. This
+keeps default focus and dimensional/default-sort lenses off whole-graph scans.
+General filters, native Unicode/scalar/list operations, mixed sorts and path
+witnesses evaluate through bounded Python callbacks and keyset candidate streams.
+The default ceilings are 2,048 candidates, 32,768 callbacks, 16 MiB decoded row
+bytes, 4 MiB sort-key bytes, 100,000 path steps, and a 64-entry/2 MiB row cache;
+reader row/byte/SQLite-work ceilings also apply. These are logical budgets, not
+an RSS guarantee. Exact internal-edge counts use equality probes over the bounded
+selected basis, avoiding unrelated high-degree edges; a large local basis can
+itself hit the VM ceiling. Exhaustion refuses the entire request: no partial match count,
+false negative path witness or approximate successful packet escapes. No SQLite
+UDF invokes an unmetered native callback. Selected full rows check their emitted
+digests and order-carrier mirrors. Header-bound histograms are producer evidence,
+not a request-time recount or authentication of a same-authority writer.
+
+Lens execution checks its native execution version and Python Unicode database
+version. Old v8 publications retain catalog/inspect/explore support but cannot
+serve lens/focus until the owner publishes v9. `reader.status()` only checks the
+selected publication metadata and required indices, never all source rows; its
+packet explicitly says `verifies_all_rows: false`. No service builds or migrates
+a missing publication while handling a request.
 
 `PublishedExplorationService(reader, ...)` provides native-v6
 exploration over the same pinned reader. Each page uses bounded identity and
