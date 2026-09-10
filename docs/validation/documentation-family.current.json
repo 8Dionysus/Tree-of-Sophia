@@ -29,21 +29,21 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 4718,
+    "tracked_surface_count": 4795,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
-    "excluded_tracked_path_count": 1252,
+    "excluded_tracked_path_count": 1347,
     "human_scope": {
-      "bytes": 6068913,
-      "count": 983,
+      "bytes": 6217912,
+      "count": 1004,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 132664,
-          "count": 8,
-          "lines": 2073
+          "bytes": 142926,
+          "count": 9,
+          "lines": 2235
         },
         "agents-other": {
           "bytes": 9111,
@@ -51,9 +51,9 @@
           "lines": 155
         },
         "docs": {
-          "bytes": 588588,
-          "count": 79,
-          "lines": 9422
+          "bytes": 613688,
+          "count": 82,
+          "lines": 9759
         },
         "evals": {
           "bytes": 18219,
@@ -76,9 +76,9 @@
           "lines": 44
         },
         "mechanics": {
-          "bytes": 404654,
+          "bytes": 415113,
           "count": 153,
-          "lines": 7913
+          "lines": 8072
         },
         "memo": {
           "bytes": 4538,
@@ -111,20 +111,20 @@
           "lines": 60
         },
         "tos": {
-          "bytes": 4687283,
-          "count": 690,
-          "lines": 77989
+          "bytes": 4790461,
+          "count": 707,
+          "lines": 79660
         }
       },
-      "lines": 102193
+      "lines": 104522
     },
     "surface_kind_counts": {
-      "executable": 315,
-      "human": 983,
-      "structured": 3420
+      "executable": 324,
+      "human": 1004,
+      "structured": 3467
     },
-    "tracked_path_count": 5970,
-    "tracked_surface_count": 4718,
+    "tracked_path_count": 6142,
+    "tracked_surface_count": 4795,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -164,30 +164,30 @@
       "family_id": "tos",
       "surface_kind_counts": {
         "executable": 4,
-        "human": 690,
-        "structured": 3338
+        "human": 707,
+        "structured": 3385
       },
-      "tracked_surface_bytes": 321962275,
-      "tracked_surface_count": 4032
+      "tracked_surface_bytes": 322912636,
+      "tracked_surface_count": 4096
     },
     {
       "family_id": "access",
       "surface_kind_counts": {
-        "executable": 38,
-        "human": 8,
+        "executable": 42,
+        "human": 9,
         "structured": 27
       },
-      "tracked_surface_bytes": 1640077,
-      "tracked_surface_count": 73
+      "tracked_surface_bytes": 1827149,
+      "tracked_surface_count": 78
     },
     {
       "family_id": "docs",
       "surface_kind_counts": {
-        "human": 79,
+        "human": 82,
         "structured": 6
       },
-      "tracked_surface_bytes": 943280,
-      "tracked_surface_count": 85
+      "tracked_surface_bytes": 971570,
+      "tracked_surface_count": 88
     },
     {
       "family_id": "evals",
@@ -218,21 +218,21 @@
     {
       "family_id": "mechanics",
       "surface_kind_counts": {
-        "executable": 81,
+        "executable": 85,
         "human": 153,
         "structured": 33
       },
-      "tracked_surface_bytes": 3181276,
-      "tracked_surface_count": 267
+      "tracked_surface_bytes": 3361561,
+      "tracked_surface_count": 271
     },
     {
       "family_id": "scripts",
       "surface_kind_counts": {
-        "executable": 123,
+        "executable": 124,
         "human": 2
       },
-      "tracked_surface_bytes": 4131022,
-      "tracked_surface_count": 125
+      "tracked_surface_bytes": 4149301,
+      "tracked_surface_count": 126
     },
     {
       "family_id": "tests",
@@ -241,7 +241,7 @@
         "human": 2,
         "structured": 1
       },
-      "tracked_surface_bytes": 2136357,
+      "tracked_surface_bytes": 2157081,
       "tracked_surface_count": 72
     },
     {
@@ -276,7 +276,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "1a22f8633518004f1654635a4f99718e0bd539ee1a26320f4b395a85cfcaf161",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "e5a820e42a469c554fb5a0ea902750c3db7d45fad1aca28eafe7df31952723d8",
+  "tracked_surface_digest": "deddebafab1bc78b83e4c6d9f02bbd2ed102ea6fdaafc017667e6b53f994d6ac",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -1719,6 +1719,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1878,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/claim-display-fields.schema.json",
+      "sha256": "1a9e70f4b89bd947321825f210b1a7994743425da203b71bf7ce551831aaa753",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 5632,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -1756,6 +1764,14 @@
       "family_id": "tos",
       "path": "ToS/contracts/critical-edition-witness-admission.schema.json",
       "sha256": "a05e3b7503f259be9b75e6d7dc980825ed631909b7207212e337750666fd919b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4665,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/contracts/document-catalogue-claim.schema.json",
+      "sha256": "5a22da3a68d4726e055811dae0a42225cad36c18400b1e7726966f607ea41f69",
       "surface_kind": "structured"
     },
     {
@@ -2599,11 +2615,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 13065,
+      "bytes": 13663,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/semantic-relation-type-registry.schema.json",
-      "sha256": "9758472aabaf3c178e707a27057e65e08d5580a224ece1314b313483f461cf88",
+      "sha256": "30e5dbf2d6cef54b8b1a5d4fbfd266709be69bd40f522beaa74eba4f077d6cf4",
       "surface_kind": "structured"
     },
     {
@@ -2815,11 +2831,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 15531,
+      "bytes": 16986,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
-      "sha256": "fad0175883c8cfd58c318e003db6c14d8a95cc19421257e81718552f693a9c97",
+      "sha256": "cc419b62d25cd9fa6772206e52725eb78840b4ea6cbd446e6811974b6022a591",
       "surface_kind": "structured"
     },
     {
@@ -3119,11 +3135,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 11246462,
+      "bytes": 11826593,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-      "sha256": "fb5840f9d535d469fc741c3df7a85525012887bc90b7dfd7eb6e1134153d3b40",
+      "sha256": "3bc66e3c3f1c0e6c22346792fd380d013f61ef28b07c09580bd8465a8c4e1efd",
       "surface_kind": "structured"
     },
     {
@@ -3279,19 +3295,19 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 112559,
+      "bytes": 114962,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/FOUNDATION_V1.md",
-      "sha256": "b537e71d6555b44457db2d44e1672777875d75526446728dd2bca9d9e0c337b8",
+      "sha256": "48d5f96eb67acab5fdaeda32807dc6ced5e141d1c338b013433ca67e14da8c52",
       "surface_kind": "human"
     },
     {
-      "bytes": 35568,
+      "bytes": 41578,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/HUMAN_FORMS.md",
-      "sha256": "7afe4239792c4f90e7e394b93bb86b0c7b4f656bd632f28d0ceda4b5ba8dcb94",
+      "sha256": "216008c66b2bfa424b576287a14b741e0f48af0c6e845b62828ffd94a7121e39",
       "surface_kind": "human"
     },
     {
@@ -3399,11 +3415,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 122007,
+      "bytes": 124055,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/README.md",
-      "sha256": "9431f8267ac23219adc7595065de348be62d4f4690d5d68081094c1aadf23c70",
+      "sha256": "1bb1e6642ab590d514a7ab272b97d4d5d0a62e504e9f7123d00ee6ee3cd34e9a",
       "surface_kind": "human"
     },
     {
@@ -3431,19 +3447,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 267750,
+      "bytes": 268583,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-      "sha256": "0a15ffdca9938c309c03790945f76f2d2c3b13f39e57a3a33478d98604bbb821",
+      "sha256": "c6b393113a4c293436cc79ff0c1d6691b83fa1215bb75da2f66224201b6c5e1d",
       "surface_kind": "structured"
     },
     {
-      "bytes": 333875,
+      "bytes": 338910,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-      "sha256": "4bd3de7e760369ed47793a776a7be64aeb89b73dd8f530d44cf77cf03a39752a",
+      "sha256": "93614250e1ad43647a19db22fab6cab234861ab623d46a79bf9fd2cfd0f74841",
       "surface_kind": "structured"
     },
     {
@@ -15167,6 +15183,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 6313,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_ARCHIVE_METADATA_2026_09_10.md",
+      "sha256": "cd330647ba8f3b33ed78648b3010dbe5e4347879cbb165e346a52c48b865b76d",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 3758,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -15188,6 +15212,14 @@
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md",
       "sha256": "00f2929f81a458d08629000e433c9674f42782c8b00f20d40ad2ec59504cf99d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 2389,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/research-packets/foundation-laboratory-2026-07/LETTER_705_CATALOGUE_FIELD_SELECTION_2026_09_10.md",
+      "sha256": "f2b0f1498980b76eccaa9e7695ea2619ef81c241ae2c12c51733969563f51cbf",
       "surface_kind": "human"
     },
     {
@@ -18175,6 +18207,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3128,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-09-native-owner-ocr-recording-review.md",
+      "sha256": "bb2cfd9275ec4d2eaddf532f4410ea67ede04a776992aec93ffb54291a6bdc3d",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 5465,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18295,6 +18335,46 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 4298,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-document-catalogue-grammar-review.md",
+      "sha256": "b7cf8d0684aa3772b9c672ac76f6287f3527a49ba0ac9abd814ed0c79074dbd7",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3514,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-document-date-compact-binding-review.md",
+      "sha256": "1f3f3afe35043190cf4c026edab30cad49f79bf29bd1505e580336529313152f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4690,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-document-date-worker-parity-review.md",
+      "sha256": "07286fedde2769b32cc9fb183e3b14b20b3e9800bc3c99409234e6d804811473",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4314,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-evidence-readable-review.md",
+      "sha256": "fccfd78b19b7c386625aed6f4e9eeb7f7b9efd095e40df1944a1843980e6ea2a",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 5018,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-finite-historical-form-identity-review.md",
+      "sha256": "8d849f32d4e969d09ef9195a0173cb705912163e8e5b55c8717c8544a2899dbb",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 4531,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18316,6 +18396,54 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-10-foundation-union-map-review.md",
       "sha256": "f91fe20dcd5b13a04fde3fddd058ab8edb40e612bf1aec9edba2e41e0104f29e",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4872,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-historical-claim-assessment-consumer-review.md",
+      "sha256": "71b48f8cd9f1c75cb31a11d72dc12ca2bc9db7dcf56ce78939687723b4dc03a2",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4304,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-historical-claim-display-review.md",
+      "sha256": "4624253db874d836bcb2d4395326ce125a963d18be9253aa37822388ec573a38",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4805,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-historical-claim-readable-context.md",
+      "sha256": "026bb7e1a7e49cb5027548a1016d773c6cd9e18c7e97655f660e5c9dd09af609",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6047,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-legacy-historical-claim-adapter-review.md",
+      "sha256": "b3b1d1a2dab29203e92c7858d84a3c63434e6417c0dc7652357b7e8a105ce394",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 9791,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-letter-705-carrier-source-route.md",
+      "sha256": "434a3bc5195162f79472cd53acd3d9530cd5d51c00e829a8ef1731ffb6da58db",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 6528,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-letter-705-claim-display-review.md",
+      "sha256": "5777b0102781a8e18cf3b902f815bb0229c494c30bb5ac0dfc13eeac7b41d351",
       "surface_kind": "human"
     },
     {
@@ -18367,6 +18495,14 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 9913,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-real-historical-forms-reader-review.md",
+      "sha256": "04baecf959c4787deeb3aadaa0d7fb597f153b9d44a6c89df5f94485e62f8298",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 8556,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18380,6 +18516,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-10-retained-page-ocr-image-comparison-review.md",
       "sha256": "92ed2f2cc9020897894c74bbfe17184aa993481d1bab83909f4015594d5ba7cf",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 7842,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-scoped-claim-display-review.md",
+      "sha256": "d83e92a69647a52df106fca0b104f37250727f807b1c272d49ce27e5a700138e",
       "surface_kind": "human"
     },
     {
@@ -18404,6 +18548,14 @@
       "family_id": "tos",
       "path": "ToS/review-ledger/2026-09-10-semantic-identity-proposals-review.md",
       "sha256": "96ec5c1b070bd29dcdc55967a73d9fe8d959d803858b56dab0a30236d86f1348",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 3238,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/review-ledger/2026-09-10-temporal-claim-navigation-review.md",
+      "sha256": "969c19de8ae3ef2022747bc1023a342f737532fb4b4a9fc2817d477bb390e9ed",
       "surface_kind": "human"
     },
     {
@@ -18559,6 +18711,30 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 1658,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/221bfcc7fc9f65c63ffdd361506f91edc8130b9475f3b3c272ef6fe4980fb4e5-babdd285ba275492edcb51984808cac53ae609d5e6b874dd66d75cf8a5a67b5e/manifest.json",
+      "sha256": "76fbd7294acadbe7391bb5dbf615483f496608086d719864373c21ef4cd08b6a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2274,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/25b689d525e37d151097c839d57239cc4638db9eaadc99c1d8bbb7102e2f68cf-ec84e609996af1f296d3a4d1fcab758656225ff36814071c1330b470904b8dd3/manifest.json",
+      "sha256": "9b21e9b8737369b8d8746c8c60f121ff2ae4be87132722941d121e6a1b3c02d8",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1958,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/manifest.json",
+      "sha256": "51eb9d225373ac2c5cadf13f37ce6f54023fc61fd4647e53f73cbcc2efdbd914",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 1314,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18575,6 +18751,30 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2223,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/44d9df298477980a33dcb31f3a219a2d8a2912b656e6be162f32ad06d55c0b1c-ca0283e97039d11bb62723ba1e9c9dd361a09e9ea56be009daa3a4fa100324e3/manifest.json",
+      "sha256": "022e0fc101520a5df36e9416582bb6de8bd8f0ef2618c3ebe00b1df4b0b0b273",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2565,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/4ad96451aba00fea963c09fccfb1129ec388e641d3b95a978120a59fd158ec8e-5af81e662e3b36dbb291fccfb8f41b3ca90a9ba60592d7f8c94d1b56135e2a66/manifest.json",
+      "sha256": "2bcfb8d4b7376d755a05a76b9e552cc6071080d16acf75cbdd21b9db29a19f1a",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2815,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/59ac2d7de67c8cc48e7537acc03fcffb7dd072829f8eb4f2dca80f3b2fe2c99c-21b86d3dcf99322786e2dfbd4ba9072279f450413b116c5dc766f9b3b3b2bbe2/manifest.json",
+      "sha256": "2a9815b9514857c61b9731cb1e7b02474b00db76f94bfd95acc5ebb93b2ef53b",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 19525,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18588,6 +18788,22 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/.record-revisions/5c157832cf71b50c008545bd944283fc30640f800e3070fa997c057a582314f0-07e90f496aa9e05a32b7d289817a1a9bbb039aefe8c06627c27c620e718c4774/manifest.json",
       "sha256": "37d5514b5c6d91aa211717715b1bc8cf050393e888cf2d00d73dd38d1f89c274",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2819,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/6376bfba334f2f29608f78669d1a8a36705d3be3c1d558ca8e8e54dddb59a8fd-222775139ce41394e61a576596f3e5af721dedb04b6ea7bccedd3a0a4a206f4d/manifest.json",
+      "sha256": "c9c9fc2fdb6f9f31025e2542295cf0e420b1e02d6e097de40b880c4614c19955",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3265,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/67c3fe6a8b81fdaff6141f7b04b949a59b516740b4fdd22e6cd3a002fb645c9a-558339953846aee99e4bc604c1bbec9c44bcc337995013a699683a4bc19c53d8/manifest.json",
+      "sha256": "5c6086f427010242179ce1ab3833d178c0f5e72a28bd2d785fce13e35e4dcfc4",
       "surface_kind": "structured"
     },
     {
@@ -18639,11 +18855,27 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2399,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/bba70eecf874707b7da0cfa67d057692c222fc73bf258e5b89f5432d9bbfdd5e-c0759aa4f2f7a9ac4307173acf2fca97958a04168e667359f5b95d6d56f53a96/manifest.json",
+      "sha256": "028530bcb4de1a8a528b7c5c3440761812dbf4f33b5389dd68abc86095398323",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 19287,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/.record-revisions/c63bcbcb1f49ccdda4a95b7c909ecbe30fe8a2969f28cca208d5818b825ba8d4-b3c03655508ab06046cee5429eeaf63a9f0cb5ed9127ee932afad627a8b13c75/manifest.json",
       "sha256": "3ae472b67f45cf48178da40100fbf25b44d48e721060d64441344187ceabbe20",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1665,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/cdbc484e141776b39eacdf73a5dc47d44b9ea60b281537d49a70d8097bc42259-e4b367a5b2aef8cbd7a9b0d8ecd15199f0dbf35e38369a585064a453ef6e7a25/manifest.json",
+      "sha256": "bbaa49f0d2a60c399f08b80b621dfa25fde9eef9a30c605f470cdaf5305c1376",
       "surface_kind": "structured"
     },
     {
@@ -18687,6 +18919,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 2950,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/.record-revisions/fb8f366f4358fe15fe26a738c35feecd58b0e477525d421201d57e25ba7bf1ba-c6a9e14a824365fa3673a984638eb6dd88f32c1db61ac06a09f9531a65e72cdb/manifest.json",
+      "sha256": "b32720f3c83400904568614403e70c23b7c50b1b40a2fa05115ba0e4d4b14799",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7461,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -18703,11 +18943,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 86783,
+      "bytes": 88496,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "26be5a0a5f675c50e54910f62339657e1af694c4ab12fb468a23c5a04463ce4f",
+      "sha256": "9acbe872a3db16d5659db55eec2ea62c350df4ce1ed0bad77ac038ee3f3a2d60",
       "surface_kind": "human"
     },
     {
@@ -20543,6 +20783,46 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 3740,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/nietzsche-correspondence/weimar/gsa-71-bw-291-1-leaf-8/artifact-witness.human-forms.json",
+      "sha256": "a26ef1de3b2c60455f05c4b2e81ae1d4c56aa08d10873049427dea3b65d29e96",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6049,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/nietzsche-correspondence/weimar/gsa-71-bw-291-1-leaf-8/artifact-witness.json",
+      "sha256": "e544948aae98353dcea22a869a43f83517ed10fe38bf434ad26e9865ea19933e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/nietzsche-correspondence/weimar/gsa-71-bw-291-1-leaf-8/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1538,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/nietzsche-correspondence/weimar/gsa-71-bw-291-1-leaf-8/source-create-receipt.json",
+      "sha256": "2be9803b66de55b6d48c2c7b9b5a2be5386876415cf38e037bf18b3eff4b14dd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 6574,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/artifacts/nietzsche-correspondence/weimar/gsa-71-bw-291-1-leaf-8/source-create-request.json",
+      "sha256": "79a3946aaed02b7aa120c2fa1e3d196d690fa01e58835f1946a943ced8e8ad05",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 7787,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -20807,11 +21087,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 17179,
+      "bytes": 17237,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/catalog/catalog.manifest.json",
-      "sha256": "0a09de9d3740e3bcbda4c20e8dc213e979aaf9150f3b62af77c9b59e554c59ae",
+      "sha256": "eec36b2c6a115cfe586d2eb432f76572484b68dd107a646f7b0c76be5e91e6b6",
       "surface_kind": "structured"
     },
     {
@@ -21815,6 +22095,14 @@
       "surface_kind": "structured"
     },
     {
+      "bytes": 4756,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/discovery/runs/nietzsche-letter-705-carrier-metadata.2026-09-10.v1.json",
+      "sha256": "9223ad53cef04c0902fd79e3b1c3d849fd6397070aefc040bdee75a3d37d5405",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 14871,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
@@ -22572,6 +22860,38 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/history/basel-research/basel-teaching/source-create-request.json",
       "sha256": "f38174e86cbb2fcedde9075ee3a98ae7d5204cfa060302a04d3988b974bf82c0",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 27275,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/claim-revision-history.json",
+      "sha256": "62131ca8f9de3bd406cbeeb7ccb43cc1d237329df63b47292e15eda6f7ab68b6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4996,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.67c3fe6a8b81fdaff6141f7b04b949a59b516740b4fdd22e6cd3a002fb645c9a.human-forms.json",
+      "sha256": "937665edf6237ac6c37ba93452e0838d233e97fd1bdba1c47d3a2c499e9dd58e",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5081,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.bba70eecf874707b7da0cfa67d057692c222fc73bf258e5b89f5432d9bbfdd5e.human-forms.json",
+      "sha256": "79bf539f8f62b50fb1a36f1da831033fc9517bff2aa8a759c2c8b66f43190e1f",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4996,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-commission/historical-claims.fb8f366f4358fe15fe26a738c35feecd58b0e477525d421201d57e25ba7bf1ba.human-forms.json",
+      "sha256": "c823c42033ed7067ab26819be67bdcc789bc50c08cde0555bc8332a61f6ad407",
       "surface_kind": "structured"
     },
     {
@@ -24004,6 +24324,46 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/places/moscow/place.json",
       "sha256": "65de66df5d91254c273e9463f45414cf8f6646506166763df7db2076d4564530",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3701,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/naumburg-an-der-saale/place.human-forms.json",
+      "sha256": "5bdd7948f4ce97b5d944aedcb7d360b17a4cc1025d4ddcfc5a424fb0d78b0f5b",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1940,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/naumburg-an-der-saale/place.json",
+      "sha256": "88e1b010910526035ad66384d8ef8353abff95ee6c0329ffc1de7e40b2a5abbd",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/naumburg-an-der-saale/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 1439,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/naumburg-an-der-saale/source-create-receipt.json",
+      "sha256": "fddd195438d471932ce985114450ababce75dfb107a81f125ae1ef63ae26f2f3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2414,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/places/naumburg-an-der-saale/source-create-request.json",
+      "sha256": "6c54835cb28b97bf95dcd26a2300129edc570420b93ce2f136c844fcd2b62109",
       "surface_kind": "structured"
     },
     {
@@ -25687,11 +26047,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3501,
+      "bytes": 8607,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/claim-revision-history.json",
+      "sha256": "e9031585649493a34ce0091b17c93d7bc667e2c79330ddc9a304cd1d21121482",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8404,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25.human-forms.json",
-      "sha256": "637fbeb41a4cd470dd174c7da35e09a34ddd53f86db5ccaa11c81ea89bdb5d50",
+      "sha256": "3f5a0dac1b7781e3c5ecc1ec6b742402ab9e422cb4500bc75a9f999258054b84",
       "surface_kind": "structured"
     },
     {
@@ -25719,27 +26087,163 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3498,
+      "bytes": 9579,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-carrier/claim-revision-history.json",
+      "sha256": "c07d5869d73b7ddb4133be21475ab01945aaf04fd58aa32777335d907b21d7e1",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8416,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-carrier/source-claims.25b689d525e37d151097c839d57239cc4638db9eaadc99c1d8bbb7102e2f68cf.human-forms.json",
+      "sha256": "600f00fede2485e78da2766f5bae0f217ae953984a850b7946309fc536e3babf",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-carrier/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2950,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-carrier/source-create-receipt.json",
+      "sha256": "5787804409dbe10d9804205e908e580e5f0f45309a1049f8879cad4d9ba1eb03",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 4545,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-carrier/source-create-request.json",
+      "sha256": "cebd7d69c0abfc60e253be6a3ef5d22912f3316e4b1b12e0b2c72f7eabbe2bf4",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 10731,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/claim-revision-history.json",
+      "sha256": "7727cf8aac358bdf68eac76ed0a600e7c1fd01650f6dbbc9cca90f282bddb6bb",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5062,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-claims.221bfcc7fc9f65c63ffdd361506f91edc8130b9475f3b3c272ef6fe4980fb4e5.human-forms.json",
+      "sha256": "377e0642a11be3f68e53110730c259f7df737be71bd53466c565d287214a6d40",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3275,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-create-receipt.json",
+      "sha256": "f422fd7da057c32e6064015749e09425156291204b252fced53681f8a30aefe9",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5233,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-date/source-create-request.json",
+      "sha256": "75897b296b8c4524c72972e0daa3d431402ed5683db959b8fde6edfc05af65c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 20461,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/claim-revision-history.json",
+      "sha256": "49ada2bf86cdb516dd37fc7926289d7a14b781cd99e6856c4faa6eb508ae4892",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5181,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/source-claims.44d9df298477980a33dcb31f3a219a2d8a2912b656e6be162f32ad06d55c0b1c.human-forms.json",
+      "sha256": "ec038f8e49c8ca49b918560c4695f2ffbac7077c9b794b841e8ad02c411aceb2",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 5096,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/source-claims.cdbc484e141776b39eacdf73a5dc47d44b9ea60b281537d49a70d8097bc42259.human-forms.json",
+      "sha256": "dec2c9814179128b9ff4f167d51ed57d275aed29299b6c911bdc4a3fb2256a01",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 244,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/source-create-environment.json",
+      "sha256": "0976562dbd82ac21a81cda5c4ccbb0b8c545c54bb686181fc225a32aed6170b3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 3746,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/source-create-receipt.json",
+      "sha256": "54dfc301e7de08e2b308c41c93093162da5b0068455ef1f08c39b4ba7043bf1c",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 7734,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705-catalogue-direction/source-create-request.json",
+      "sha256": "2c1b4abe60160647f9d0c83587e24cb2e9278d75eb1f3dbe668fe8624d471919",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 27462,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/relations/nietzsche-letter-705/claim-revision-history.json",
+      "sha256": "8cda3ed64f89229978c75afdd18368ca1290cf11a1945b06bcc7c82d87325734",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 8350,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.4ad96451aba00fea963c09fccfb1129ec388e641d3b95a978120a59fd158ec8e.human-forms.json",
-      "sha256": "c852340453732df836ec659de17f1885c731ae77e10c3d6b89c75e4a306fc18c",
+      "sha256": "ad975ce1f0fe832c110428509d37c4b3c523ceaae3b3a05a72be4f8c0a4b0361",
       "surface_kind": "structured"
     },
     {
-      "bytes": 3567,
+      "bytes": 8555,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.59ac2d7de67c8cc48e7537acc03fcffb7dd072829f8eb4f2dca80f3b2fe2c99c.human-forms.json",
-      "sha256": "79f29f28d9e70a83b9948b934f375b19bfaf4b1073b6d5485035b5118252896d",
+      "sha256": "8bdb07f0d171fc7c14e1422f69f52c1628c35f48ca035aed0b3290f314011fb3",
       "surface_kind": "structured"
     },
     {
-      "bytes": 3582,
+      "bytes": 8621,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/relations/nietzsche-letter-705/source-claims.6376bfba334f2f29608f78669d1a8a36705d3be3c1d558ca8e8e54dddb59a8fd.human-forms.json",
-      "sha256": "470aee638b2fa240272e7382e78f980e71493541672479d936bea1e70b251f0d",
+      "sha256": "76a33a4f2f104ec19fbc82d928bdeb3bebf16380d3ec020ae5104bc22531d245",
       "surface_kind": "structured"
     },
     {
@@ -25996,6 +26500,14 @@
       "family_id": "tos",
       "path": "ToS/source-witnesses/research-corpora/foundation-source-routes/source-create-request.json",
       "sha256": "2220f70dd98956f140f9fdaf8f3a19f8f9db87c6feb70eb9aee674d65fa534c6",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2360,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "tos",
+      "path": "ToS/source-witnesses/rights/nietzsche-letter-705-carrier-metadata.2026-09-10.json",
+      "sha256": "20fef8ee6b9cf16f815ae39dc002b4b7ad33a419a188e18e25bcd632cf5d31f1",
       "surface_kind": "structured"
     },
     {
@@ -32735,11 +33247,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 46874,
+      "bytes": 48947,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "8c55b66c9ce54b3e2465b9311a8c52d4129a122ef2261179a41e5a61b6dd39a7",
+      "sha256": "3043491a2aaebff68fb736ce76714d853c7f19623d3243c0cdbeb4566aed3639",
       "surface_kind": "human"
     },
     {
@@ -32799,19 +33311,27 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 9540,
+      "bytes": 6699,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/contracts/human-form-delivery.md",
+      "sha256": "dee17bd405d55bb6986cd3081484aa8962d66b9ba6809167c2a9187f29afd12d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 11264,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/knowledge-api.v1.json",
-      "sha256": "0433f7e12960469fdf1bb5d41c7923da26341fa9f6f403d42f830d8610b10f6e",
+      "sha256": "c59c20291f15c3e81956b6dec581668031a91a0878513cf23e12aeba27d5e093",
       "surface_kind": "structured"
     },
     {
-      "bytes": 43834,
+      "bytes": 49454,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/knowledge-graph.v1.schema.json",
-      "sha256": "458703f6b50427b3f900837d1bb681f5236d8cbd6d52716fcd52234e59c600ad",
+      "sha256": "29172d323d0d9a9a991a96ad8362f2d0cd9f0a9b1c7d586a86dcb6008b95f948",
       "surface_kind": "structured"
     },
     {
@@ -32839,11 +33359,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 2920,
+      "bytes": 3270,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/contracts/query-operations.v1.json",
-      "sha256": "a2c00ec5ee3393f270b22e1a72832d914a10175adbf2c337fd35d457cabca5b6",
+      "sha256": "c20d0afeffd583f347b4fd42f32e97194c2adaa4eda9056960d98c21af6a9990",
       "surface_kind": "structured"
     },
     {
@@ -32919,11 +33439,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 18622,
+      "bytes": 20112,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/README.md",
-      "sha256": "ebf8d2bc9221bc24ce94c4164cf5eb63d419046a24d63fb4528b1a399031e8f4",
+      "sha256": "2a872e8add4c986549beb5e6b5aa13eb466e5cfbd85f1a0ecb13da9d155fad71",
       "surface_kind": "human"
     },
     {
@@ -32943,11 +33463,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 49019,
+      "bytes": 55028,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/deploy/cloudflare-worker/scripts/build_runtime.py",
-      "sha256": "5f0e06d55fe0c8fcb4f8c63877701c09ea2d6d262643e1b6a899c2fb77fba3b8",
+      "sha256": "f4c294c72f37b5e6b71435f181dbf9e873887793218b10391b102547d08ff777",
       "surface_kind": "executable"
     },
     {
@@ -33039,11 +33559,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 26877,
+      "bytes": 26905,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/packaging/validate_standalone.py",
-      "sha256": "3c07c4acace5584f4feae0c179ac08f926dc0428eff6e4f95c2c3330b9e8c644",
+      "sha256": "48f851760f9bf8a5380729c07aaed94daa2a1ff8a669876abc7c336c8e19f41b",
       "surface_kind": "executable"
     },
     {
@@ -33087,19 +33607,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 6897,
+      "bytes": 7554,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/cli.py",
-      "sha256": "f5c640cc7d67c8a66235cd462934d99cd03ceb965fa4dc9395cb23c589bc766b",
+      "sha256": "def82c889eb62a4a1b322f1ddf5c304f8e4f1782e334de4559712af002b0ec6a",
       "surface_kind": "executable"
     },
     {
-      "bytes": 142855,
+      "bytes": 157941,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/core.py",
-      "sha256": "ef848901351aec3607f7e2b3fb81c5a61d29a02e0b04e90d706d7d70bc897515",
+      "sha256": "2dbb4747f252d3a20d8eeee800b3f260264df3783e28be096979c356b383815a",
       "surface_kind": "executable"
     },
     {
@@ -33135,19 +33655,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 25492,
+      "bytes": 26403,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/http_server.py",
-      "sha256": "9ab4e7b03e319a239d1f3a800a8e4685ffb7a364b995d6b18430e0a95a2394f7",
+      "sha256": "ad44dce6131c4f55c5a3082e0f729a6ea33313f348ac932d9953c6f371173cbf",
       "surface_kind": "executable"
     },
     {
-      "bytes": 306837,
+      "bytes": 9636,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/src/tos_access/human_form_codec.py",
+      "sha256": "6de4946157eb4367dfcc91ee708143d39c998ba4ee44ade1c49ae88a0f2e1808",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 313125,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/knowledge.py",
-      "sha256": "d5f9e16ef0c6cdbcb78dc549bee38e1243a76499aa0497d10fbe4fffcfd2b1b0",
+      "sha256": "c0085bc25f21f49e7f23a9fe8d49ebc7e6fc67e1853dd91ccd851d8e3947e644",
       "surface_kind": "executable"
     },
     {
@@ -33159,11 +33687,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22060,
+      "bytes": 22656,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/src/tos_access/mcp_server.py",
-      "sha256": "931fe8e26e44b8e02e614be18e2d8007fa6f748da44dea48fa5de46bdd2918ad",
+      "sha256": "298271702f3d1596d845f2a77af549f19bd19b8a1b1c4361da614f248f69ea25",
       "surface_kind": "executable"
     },
     {
@@ -33191,19 +33719,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 12664,
+      "bytes": 51342,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
-      "path": "access/src/tos_access/temporal_comparison.py",
-      "sha256": "7ad5f47801f8c755c25bf925c36ffff273281035f5eb6fbf9d2cd95cf6772b8f",
+      "path": "access/src/tos_access/search_read_model.py",
+      "sha256": "15e8bed6c81199b26eb3814ccf261f148e9e1a8c339830de5db44dc512672128",
       "surface_kind": "executable"
     },
     {
-      "bytes": 122308,
+      "bytes": 17033,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/src/tos_access/temporal_comparison.py",
+      "sha256": "0d2b553a81c759f33bd886d9b8dd855c622b89da81d22d88dd224bccd065ed17",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 134903,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_access_contract.py",
-      "sha256": "7b62fa11d8c113f91bf077f5ad0f931739c22e5a72dfcb964b742ef5503c235d",
+      "sha256": "6acad8f023e6008cadbee52cc012afaa13ae5eeee155ec3e4f49860fd5d561a6",
       "surface_kind": "executable"
     },
     {
@@ -33239,6 +33775,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 11427,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/tests/test_human_form_codec.py",
+      "sha256": "426b20ab25e7479c9a7e34aa0d6a9c88569d1996a10c87758a54368c7e3abea0",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 24975,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
@@ -33247,11 +33791,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 212611,
+      "bytes": 227886,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_knowledge_contract.py",
-      "sha256": "cdee7296627cbb499dbe5cbfd065b8385970d775d1c83f9a35405d63e913359b",
+      "sha256": "ede4969d298f18847b5ee6401ec617d1d9047e3997a8ed873a775d180f8b06fc",
       "surface_kind": "executable"
     },
     {
@@ -33263,19 +33807,27 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 16306,
+      "bytes": 22134,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_readable_context.py",
-      "sha256": "63d2c4e50510a859f94ef3cbc5a8d5a302439cc39c527617a14820ede4e71929",
+      "sha256": "516d73bbd2dad2f7946ea47fa09e802342719898b14faa68076ff9d5f58d8690",
       "surface_kind": "executable"
     },
     {
-      "bytes": 29748,
+      "bytes": 19342,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "access",
+      "path": "access/tests/test_search_read_model.py",
+      "sha256": "eb3624e176e6c687589de3a5d826ae6e3a6ef219802eeb7eec941a48c2f69cfa",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 39475,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/tests/test_temporal_comparison.py",
-      "sha256": "232f9f1764586d0bacaa06058d58d1ce67963dd19c5faeb7c2b91f1607f57cf6",
+      "sha256": "693fe387bba38f0e253deedd8d267b7772aa0a5a8bf99d4ae5fed2a22b22946a",
       "surface_kind": "executable"
     },
     {
@@ -33815,11 +34367,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 5116,
+      "bytes": 5520,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/TOS-D-0057-source-owned-claim-navigation.md",
-      "sha256": "86613c8b6cba525f02f62ab4e718a283d04bad8e6eb73145bd25f151fee9c4df",
+      "sha256": "3248206713c84b895859a3bd6e6d12971d960bdcaf012069ea2252cc50e65ed8",
       "surface_kind": "human"
     },
     {
@@ -33855,6 +34407,30 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 3799,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0062-typed-time-claim-navigation.md",
+      "sha256": "e0656086a27d0a4b57495d26c7d37255ff72253c8f4e75d1ad7eb3f30265011f",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4874,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0063-document-catalogue-attributions.md",
+      "sha256": "69489695e54738af5d1f2863eb5ea458975b4879291227645c9c93e3f40cbecc",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 4597,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "docs",
+      "path": "docs/decisions/TOS-D-0064-scoped-claim-display-fields.md",
+      "sha256": "92e543e1d87d265dc4714e140920a0f70496295240012c79cb3ce4aee030f3d8",
+      "surface_kind": "human"
+    },
+    {
       "bytes": 483,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
@@ -33863,51 +34439,51 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 11522,
+      "bytes": 12115,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-date.md",
-      "sha256": "788b8559c69230f9432676a8f6804e7446d2d5a1361b0fac93cf310958cc66f4",
+      "sha256": "9ebfba2f73a8359893fc47f45e5b3b5d099cb6fe9d2a671ca5eb87ed7d962ec9",
       "surface_kind": "human"
     },
     {
-      "bytes": 51830,
+      "bytes": 54586,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-guard.md",
-      "sha256": "4434b19775bfec2669d6b39b981f8a7df54297f9caf720af4b23868b40977596",
+      "sha256": "1caa186ec6404d3c26687c619cdea39c0366774dd448f6936f185aa82b3a234f",
       "surface_kind": "human"
     },
     {
-      "bytes": 29584,
+      "bytes": 31110,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-number.md",
-      "sha256": "2821683939a9b166f5c5a942da82039b6ff936883c8cfff17d276dabf8f26552",
+      "sha256": "8b37bed05b5acfd3ddf0124b3149eada1730888805266d9146234eb24a587cac",
       "surface_kind": "human"
     },
     {
-      "bytes": 45329,
+      "bytes": 47471,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-surface.md",
-      "sha256": "bcb9ecc5f8185861fc32ff6a18076d2242d9fb03e02605b28de0be1a637a3c97",
+      "sha256": "d96477f3bcd70f87018110094de1ec282f6cd4fa98fe8e3205d9c5ccd2e90455",
       "surface_kind": "human"
     },
     {
-      "bytes": 48187,
+      "bytes": 50878,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tos-layer.md",
-      "sha256": "e6b0362ab09b923a77fa77fedd47b97d5086b306b24e5086271f6ec7b20c7501",
+      "sha256": "bd1879c300928af7dc6047bc1cfa784a5c71496e41e6a179515ff2726e7a426a",
       "surface_kind": "human"
     },
     {
-      "bytes": 42155,
+      "bytes": 43873,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/decisions/indexes/by-tree-class.md",
-      "sha256": "c28782b0d7d2c0a029574f8f37951f871dffd8ab048011f63b075a5a834004a7",
+      "sha256": "6739308ad91bd1b1503ea32fe587e20ad321246b625e3044bb59a42336eb1859",
       "surface_kind": "human"
     },
     {
@@ -33975,11 +34551,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 251399,
+      "bytes": 254589,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/script_inventory.json",
-      "sha256": "fd84179238b5b663c91b44f8baa8f69606b848b38785f9d42df8a83c5f9cb6a0",
+      "sha256": "79a52e5be3f75f9a86d534499637a5083266a5fc026f8c55de3ccf38f9d4f1c7",
       "surface_kind": "structured"
     },
     {
@@ -35191,11 +35767,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 146065,
+      "bytes": 156524,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/README.md",
-      "sha256": "eba2865fae6a92849f7d77b3975a64bdeec5b8d06ead8ab7c99b71cd52ee4474",
+      "sha256": "5af5e491d47909624fb080fe8452c72004e69e205171cf3ff716aafa521a5ca4",
       "surface_kind": "human"
     },
     {
@@ -35335,27 +35911,27 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 95906,
+      "bytes": 118399,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
-      "sha256": "07e27cccd2421b26d48cb102444f1029e7db8ef73f03dca55b63444fab09f46f",
+      "sha256": "af5dd24abd85217acfeba8a00bcff02ccbbb1f4fde9a53ef08a3380f1adb56c7",
       "surface_kind": "executable"
     },
     {
-      "bytes": 32165,
+      "bytes": 38474,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
-      "sha256": "c490fc12b6e8fa8d89fe1048ee7cb1ed409f1ccf6ae6d59313f5d8fff83847d5",
+      "sha256": "0348b69120a20875582790b10690c462b80b02331581eeba79acce54aac5368a",
       "surface_kind": "executable"
     },
     {
-      "bytes": 22734,
+      "bytes": 24119,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py",
-      "sha256": "1d0c0c052525c5d1eb70bb95fcee7369372e9d5631e66ef4eac7c217e9258306",
+      "sha256": "14dac6d934f29c0914ede1e1b0c470c103410fbd276606ddf2d43154495b1c18",
       "surface_kind": "executable"
     },
     {
@@ -35423,19 +35999,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 24233,
+      "bytes": 23494,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py",
-      "sha256": "28e4d25d1d3f27c2c4d9ada0c1f2c996ee51ed4cd771e1502b8d2132ad6b0ecb",
+      "sha256": "6bfebbccb61bbf6622709f6cd8192b5355327633c00fb47a3057219f5f436326",
       "surface_kind": "executable"
     },
     {
-      "bytes": 33247,
+      "bytes": 34819,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
-      "sha256": "d50cb35b473270fba788d561d2c21936f5cda7999993492bab756759baf3061b",
+      "sha256": "9850de43e8be3524c66efb3b75331871d4672554594ba537bfe4cc5c2bcd6b72",
       "surface_kind": "executable"
     },
     {
@@ -35455,11 +36031,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 108569,
+      "bytes": 115659,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
-      "sha256": "4b09fabc15fdded7ffe1089f26adc8529d146558dc35623cd2b702d2e9abe73b",
+      "sha256": "fa0a98334bdfaaf0252604df904684808af3c03a10283cf4b37e811d86f26af3",
       "surface_kind": "executable"
     },
     {
@@ -35484,6 +36060,14 @@
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py",
       "sha256": "16a19f42ab39c2b721ab7dcfa99bb2d8244862014347d0e475d8f04df69438cc",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 23530,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+      "sha256": "99aff97f518a93dccd0f7b7f1a236d97b72668f5e13b48412f5780b667d3b8d6",
       "surface_kind": "executable"
     },
     {
@@ -35527,11 +36111,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 51269,
+      "bytes": 52513,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_owner_claim_commands.py",
-      "sha256": "a1cca8aac2162ddedeb495f53a441d1c53dd262d1d46a691c1c2cf89f2738400",
+      "sha256": "f17c421935ecbccf17462693d556b8d02f10edda2352dde2449984c399dcb312",
       "surface_kind": "executable"
     },
     {
@@ -35591,11 +36175,35 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 22704,
+      "bytes": 22505,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_assessment_read_batch.py",
+      "sha256": "d5865c1e563731353d148fe4b72efd6a2f78e300207b8489f771b16ac3520b9f",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 23514,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_claim_version_reader.py",
-      "sha256": "ba7e50a67aefc4e9bfc8672fe5810df48f1d4f73b939d3ab4ecbad92920924ef",
+      "sha256": "8cfa1798c7fcc63bfdef572a366a44884d18a95ea6d8f4184934a3aaf0ffe3af",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 29238,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_historical_claim_adapter.py",
+      "sha256": "e533089207a14d2322cb6625bb154295e352c799f157d50d91a0782a71610b43",
+      "surface_kind": "executable"
+    },
+    {
+      "bytes": 16880,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "mechanics",
+      "path": "mechanics/growth-cycle/tests/test_historical_claim_assessment.py",
+      "sha256": "5a2c4cf1791138154338ef4395cefc13d66aaa0086e7ff08a22834fe1acc1559",
       "surface_kind": "executable"
     },
     {
@@ -35711,11 +36319,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 151724,
+      "bytes": 182681,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_claim_commands.py",
-      "sha256": "4019c4cda808b14167528a25e6cdda18c2c2dfa29bbbe4bb1a6f84d996e59005",
+      "sha256": "4184900d6b639ca03fe5afd777e3a481bb0e0e0e26e40e4cd48746c8df257739",
       "surface_kind": "executable"
     },
     {
@@ -35727,11 +36335,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 13630,
+      "bytes": 13812,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_command_discovery.py",
-      "sha256": "2ace62536936c27271a6c9a2f7afe7774d45cbf8977c5ba86efe23ec3b2e0854",
+      "sha256": "fb62415bd21f76ceded9c7d80a811718cd17cae5e732a282fa8342645e220fc5",
       "surface_kind": "executable"
     },
     {
@@ -35799,11 +36407,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 39022,
+      "bytes": 45392,
       "currentness": "tracked_source_snapshot",
       "family_id": "mechanics",
       "path": "mechanics/growth-cycle/tests/test_source_owner_claim_commands.py",
-      "sha256": "ee6bcd54e3397b62a73a6105e373b2115997186b230bba0752d1677da7c4e85b",
+      "sha256": "501f48a27dc0ed9b267c78e30ba898d9344706fc7ce4a0140e930bb1974b0c96",
       "surface_kind": "executable"
     },
     {
@@ -37039,6 +37647,14 @@
       "surface_kind": "executable"
     },
     {
+      "bytes": 1639,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "scripts",
+      "path": "scripts/source_document_catalogue.py",
+      "sha256": "ec109209caf59f299c185ecd7de1089e31610b77eb3cda604f083151bade2670",
+      "surface_kind": "executable"
+    },
+    {
       "bytes": 13224,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
@@ -37087,11 +37703,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 49420,
+      "bytes": 52031,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_record_profiles.py",
-      "sha256": "e5631972abc93c1b7093eb949714c51bcdf7b84aa5505cdef8233654ea062509",
+      "sha256": "868b8c59582acb63057d02730c07360949634176daa0eda839075be568078344",
       "surface_kind": "executable"
     },
     {
@@ -37111,19 +37727,19 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 87967,
+      "bytes": 97312,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_witness_bibliographic_graph_common.py",
-      "sha256": "efa8225da811785e54681b79f88afca2155b2e8bccd6df96c4f7b226ae9317c1",
+      "sha256": "0c4748b02116b20a24fef8d4f89f73b1815939f2ac765e5d4bf401e44b24c792",
       "surface_kind": "executable"
     },
     {
-      "bytes": 23783,
+      "bytes": 28467,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/source_witness_human_forms.py",
-      "sha256": "094968f839bae81dbd35ddf7036a037a3dda1f5ab8dfcf02254fca6a5f45e269",
+      "sha256": "1685486e704ef971e6ccc012a66a140207ed681e3ef4dc083fcdc84d0c74a19a",
       "surface_kind": "executable"
     },
     {
@@ -37607,11 +38223,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 119072,
+      "bytes": 126786,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_inventory.json",
-      "sha256": "2a66ef1737ac2c2fbbb117df915db0f1e354e7bab9e6e7814663c9f2c38fbcd5",
+      "sha256": "113b3a0bd16450e9fa26097472c40739ad9fd80ab49d0a3f5fb6fd55ea9600c5",
       "surface_kind": "structured"
     },
     {
@@ -37839,11 +38455,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 396829,
+      "bytes": 409839,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_source_witness_bibliographic_graph.py",
-      "sha256": "8f8f377b17f90aa7a17664409ac04c9bdf4dea82d8eeb7a8237f4ca663c38b66",
+      "sha256": "cc14d5cdc424135466e72d128f2dd5d158ed5ef7fe0d137932a37f57047dcf24",
       "surface_kind": "executable"
     },
     {
