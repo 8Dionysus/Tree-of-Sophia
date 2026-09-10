@@ -1,13 +1,28 @@
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import test from "node:test";
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import { executeKnowledgeLensD1, knowledgeSearchD1, knowledgeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
 
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
+
+function decodeIndexedCursor(value: string): Record<string, unknown> {
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Record<string, unknown>;
+}
+
+function encodeIndexedCursor(value: Record<string, unknown>): string {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function hasHttpStatus(status: number) {
+  return (error: unknown): boolean => Boolean(
+    error && typeof error === "object" && "status" in error && (error as { status?: unknown }).status === status,
+  );
+}
 
 function realFormNode(): KnowledgeGraph['nodes'][number] {
   return JSON.parse(execFileSync('python3', ['-c',
@@ -516,6 +531,193 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       }
     }
   } finally { await mf.dispose(); }
+});
+
+test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Python packet order", async () => {
+  const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
+    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
+  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0]!.text, d1Databases: ["DB"] }));
+  try {
+    const db = await mf.getD1Database("DB");
+    const indexedGraph = structuredClone(graph);
+    indexedGraph.nodes.push(
+      {...indexedGraph.nodes[1]!, id: "philosophy:alpha-extra-1", native_id: "alpha-extra-1",
+        display: {...indexedGraph.nodes[1]!.display, title: {default: "Alpha extra one"}, summary: {default: "Alpha extra one"}}},
+      {...indexedGraph.nodes[2]!, id: "philosophy:alpha-extra-2", native_id: "alpha-extra-2",
+        display: {...indexedGraph.nodes[2]!.display, title: {default: "Alpha extra two"}, summary: {default: "Alpha extra two"}}},
+    );
+    const searchable = (item: Record<string, unknown>) => JSON.stringify(item).toLowerCase();
+    const grams = (value: string) => {
+      const result = new Set<string>();
+      for (let index = 0; index <= value.length - 3; index += 1) result.add(value.slice(index, index + 3));
+      return [...result];
+    };
+    const documentRows: D1PreparedStatement[] = [];
+    const gramRows: D1PreparedStatement[] = [];
+    const stats = new Map<string, number>();
+    for (const [kind, items] of [["nodes", indexedGraph.nodes], ["relations", indexedGraph.relations]] as const) {
+      items.forEach((item, position) => {
+        const json = JSON.stringify(item);
+        const lower = searchable(item as unknown as Record<string, unknown>);
+        const display = item.display as Record<string, unknown>;
+        const primary = kind === "nodes"
+          ? JSON.stringify([((display.title as Record<string, unknown>)?.default ?? "").toString().toLowerCase()])
+          : JSON.stringify([((display.label as Record<string, unknown>)?.default ?? "").toString().toLowerCase()]);
+        const visible = kind === "nodes"
+          ? JSON.stringify([((display.title as Record<string, unknown>)?.default ?? "").toString().toLowerCase()])
+          : JSON.stringify([((display.label as Record<string, unknown>)?.default ?? "").toString().toLowerCase()]);
+        documentRows.push(db.prepare("INSERT INTO knowledge_search_documents VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+          .bind(kind, position, item.id, item.source_graph, item.kind_id ?? "", item.predicate_id ?? "",
+            String(item.id).toLowerCase(), String(item.native_id).toLowerCase(), primary, visible, lower.length, ""));
+        for (const gram of grams(lower)) {
+          gramRows.push(db.prepare("INSERT INTO knowledge_search_grams VALUES (?,?,?,?)").bind(kind, 3, gram, position));
+          const key = `${kind}\0${gram}`;
+          stats.set(key, (stats.get(key) ?? 0) + 1);
+        }
+      });
+    }
+    await db.batch([
+      db.prepare("CREATE TABLE edge_meta (key TEXT, part INTEGER, json_chunk TEXT)"),
+      db.prepare("CREATE TABLE knowledge_nodes (id TEXT PRIMARY KEY, entity_id TEXT, native_id TEXT, source_graph TEXT, kind_id TEXT, type_id TEXT, title_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_relations (id TEXT PRIMARY KEY, native_id TEXT, source_graph TEXT, from_id TEXT, to_id TEXT, predicate_id TEXT, relation_type_id TEXT, label_text TEXT, search_text TEXT, json TEXT)"),
+      db.prepare("CREATE TABLE knowledge_search_documents (kind TEXT, position INTEGER, id TEXT, source_graph TEXT, kind_id TEXT, predicate_id TEXT, id_lower TEXT, native_id_lower TEXT, identity_values TEXT, visible_values TEXT, document_chars INTEGER, document_digest TEXT, PRIMARY KEY(kind,position))"),
+      db.prepare("CREATE TABLE knowledge_search_grams (kind TEXT, n INTEGER, gram TEXT, position INTEGER, PRIMARY KEY(kind,n,gram,position))"),
+      db.prepare("CREATE TABLE knowledge_search_gram_stats (kind TEXT, n INTEGER, gram TEXT, postings INTEGER, PRIMARY KEY(kind,n,gram))"),
+      db.prepare("INSERT INTO edge_meta VALUES ('data_revision',0,?)").bind(JSON.stringify({sha256: indexedGraph.source_revision})),
+      db.prepare("INSERT INTO edge_meta VALUES ('knowledge_top',0,?)").bind(JSON.stringify({source_revision: indexedGraph.source_revision, authority_boundary: indexedGraph.authority_boundary})),
+      ...indexedGraph.nodes.map(n => db.prepare("INSERT INTO knowledge_nodes VALUES (?,?,?,?,?,?,?,?,?)").bind(n.id,n.entity_id,n.native_id,n.source_graph,n.kind_id,n.type_id,n.display.title.default.toLowerCase(),searchable(n),JSON.stringify(n))),
+      ...indexedGraph.relations.map(r => db.prepare("INSERT INTO knowledge_relations VALUES (?,?,?,?,?,?,?,?,?,?)").bind(r.id,r.native_id,r.source_graph,r.from_id,r.to_id,r.predicate_id,r.relation_type_id,r.display.label.default.toLowerCase(),searchable(r),JSON.stringify(r))),
+      ...documentRows,
+      ...gramRows,
+      ...[...stats.entries()].map(([key, postings]) => {
+        const [kind, gram] = key.split("\0");
+        return db.prepare("INSERT INTO knowledge_search_gram_stats VALUES (?,?,?,?)").bind(kind, 3, gram, postings);
+      }),
+    ]);
+
+    const first = await knowledgeSearchD1Indexed(db, {query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1});
+    assert.deepEqual((first.nodes as {id:string}[]).map(item => item.id), ["philosophy:a"]);
+    assert.deepEqual((first.relations as {id:string}[]).map(item => item.id), ["philosophy:e"]);
+    assert.equal((first.counts as {matching_nodes:number|null}).matching_nodes, null);
+    assert.equal((first.counts as {matching_relations:number|null}).matching_relations, 1);
+    assert.ok((first.page as {next_cursor:string|null}).next_cursor);
+
+    const second = await knowledgeSearchD1Indexed(db, {
+      query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      cursor: (first.page as {next_cursor:string}).next_cursor,
+    });
+    assert.deepEqual((second.nodes as {id:string}[]).map(item => item.id), ["philosophy:alpha-extra-1"]);
+    assert.deepEqual(second.relations, []);
+    assert.equal((second.counts as {matching_nodes:number|null}).matching_nodes, null);
+    assert.equal((second.counts as {matching_relations:number|null}).matching_relations, null);
+    const third = await knowledgeSearchD1Indexed(db, {
+      query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      cursor: (second.page as {next_cursor:string}).next_cursor,
+    });
+    assert.deepEqual((third.nodes as {id:string}[]).map(item => item.id), ["philosophy:alpha-extra-2"]);
+    assert.equal((third.page as {next_cursor:string|null}).next_cursor, null);
+
+    // Compare the bounded packet semantics against the pure Python engine on
+    // this same synthetic graph. Indexed page/work counters and opaque cursor
+    // carriers are backend mechanics, so the comparison intentionally omits
+    // them while retaining source, filters, authority, and complete packets.
+    const python = JSON.parse(execFileSync('python3', ['-c', [
+      "import json,sys;sys.path.insert(0,'access/src');from tos_access.knowledge import search_knowledge_graph",
+      "p=json.load(sys.stdin);print(json.dumps(search_knowledge_graph(p['graph'],p['query'],sources=p['sources'],kind_ids=p['kind_ids'],predicate_ids=p['predicate_ids'],limit=p['limit'])))",
+    ].join(';')], {
+      cwd: fileURLToPath(new URL('../../../../', import.meta.url)),
+      input: JSON.stringify({graph: indexedGraph, query: "alpha", sources: null, kind_ids: [], predicate_ids: [], limit: 100}),
+      encoding: 'utf8',
+    }));
+    const packet = (value: Record<string, unknown>) => ({
+      source_revision: value.source_revision,
+      query: value.query,
+      filters: value.filters,
+      nodes: value.nodes,
+      relations: value.relations,
+      authority_boundary: value.authority_boundary,
+    });
+    assert.deepEqual(packet({
+      source_revision: first.source_revision,
+      query: first.query,
+      filters: first.filters,
+      nodes: [...(first.nodes as unknown[]), ...(second.nodes as unknown[]), ...(third.nodes as unknown[])],
+      relations: [...(first.relations as unknown[]), ...(second.relations as unknown[]), ...(third.relations as unknown[])],
+      authority_boundary: first.authority_boundary,
+    }), packet(python));
+
+    const firstCursor = (first.page as {next_cursor:string}).next_cursor;
+    const decodedOuter = decodeIndexedCursor(firstCursor);
+    assert.equal(decodedOuter.relations_exhausted, true);
+    assert.equal(typeof decodedOuter.nodes, "string");
+    const malformedOuter = {...decodedOuter};
+    delete malformedOuter.nodes_exhausted;
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1, cursor: encodeIndexedCursor(malformedOuter),
+      }),
+      hasHttpStatus(400),
+    );
+
+    const malformedInner = decodeIndexedCursor(decodedOuter.nodes as string);
+    malformedInner.rank = 4;
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+        cursor: encodeIndexedCursor({...decodedOuter, nodes: encodeIndexedCursor(malformedInner)}),
+      }),
+      hasHttpStatus(400),
+    );
+
+    // The relation kind is already exhausted in this cursor. Filter changes
+    // must still invalidate the whole envelope before skipping that kind.
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: ["concept"], predicateIds: [], limit: 1, cursor: firstCursor,
+      }),
+      hasHttpStatus(409),
+    );
+
+    // A valid continuation can have no rows left after its key. The outer
+    // cursor must close both kinds rather than restarting the node scan.
+    const zeroCandidateInner = decodeIndexedCursor(decodedOuter.nodes as string);
+    Object.assign(zeroCandidateInner, {rank: 3, id: "zzzzzz", position: Number.MAX_SAFE_INTEGER - 1});
+    const zeroCandidate = await knowledgeSearchD1Indexed(db, {
+      query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      cursor: encodeIndexedCursor({...decodedOuter, nodes: encodeIndexedCursor(zeroCandidateInner)}),
+    });
+    assert.deepEqual(zeroCandidate.nodes, []);
+    assert.deepEqual(zeroCandidate.relations, []);
+    assert.equal((zeroCandidate.page as {next_cursor:string|null}).next_cursor, null);
+    const zeroWork = zeroCandidate.work as {nodes:{candidate_rows:number; verified_chars:number}};
+    assert.ok(zeroWork.nodes.candidate_rows > 0);
+    assert.ok(zeroWork.nodes.verified_chars > 0);
+
+    const firstWork = first.work as {
+      nodes: {candidate_rows:number; verified_chars:number; selection_rows_read?:number};
+      relations: {candidate_rows:number; verified_chars:number; selection_rows_read?:number};
+    };
+    assert.ok(firstWork.nodes.candidate_rows > (first.nodes as unknown[]).length);
+    assert.ok(firstWork.nodes.verified_chars >= String(JSON.stringify((first.nodes as unknown[])[0])).length);
+    for (const work of [firstWork.nodes, firstWork.relations]) {
+      if (work.selection_rows_read !== undefined) assert.ok(Number.isSafeInteger(work.selection_rows_read));
+    }
+
+    // The budget preflight must reject from carrier metadata before rank JSON
+    // fields or source search_text are evaluated. An invalid rank carrier is
+    // intentional: reaching rank evaluation would be a different failure.
+    await db.prepare(
+      "UPDATE knowledge_search_documents SET document_chars=?, identity_values=? WHERE kind='nodes' AND position=0",
+    ).bind(16_000_001, "not-json").run();
+    await assert.rejects(
+      () => knowledgeSearchD1Indexed(db, {
+        query: "alpha", sources: null, kindIds: [], predicateIds: [], limit: 1,
+      }),
+      hasHttpStatus(413),
+    );
+  } finally {
+    await mf.dispose();
+  }
 });
 
 test('assessed forms preserve snapshot limits and reject malformed authority across Python and Worker', () => {

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import copy
+import base64
+import binascii
+import hashlib
 import importlib.util
 import json
 import os
 import sys
+import tempfile
 from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from threading import Lock, RLock
@@ -15,6 +19,7 @@ from .knowledge import (
     AddressedUpdateError,
     KnowledgeGraphIndex,
     KnowledgeSearchIndex,
+    KNOWLEDGE_SOURCES,
     addressed_update_knowledge_graph,
     build_knowledge_graph,
     execute_knowledge_lens,
@@ -24,6 +29,17 @@ from .knowledge import (
     knowledge_catalog as build_knowledge_catalog,
     knowledge_source_revision,
     search_knowledge_graph,
+)
+from .search_read_model import (
+    SEARCH_READ_MODEL_DEFAULT_BYTES,
+    SEARCH_READ_MODEL_MAX_POSTINGS,
+    SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
+    SEARCH_READ_MODEL_PAGE_SIZE,
+    SearchReadModelError,
+    SearchReadModelPage,
+    SearchReadModelSnapshotError,
+    SQLiteKnowledgeSearchReadModel,
+    normalize_search_query,
 )
 from .exploration import ExplorationService, exploration_capabilities
 from .temporal_comparison import compare_temporal_claims
@@ -74,10 +90,36 @@ PHILOSOPHY_CHALLENGE_PREDICATES = {
     "polemicizes_with",
 }
 JSON_VERSION_CACHE_MAX_PATHS = 32
+SEARCH_READ_MODEL_DEFAULT_MAX_BYTES = 512 * 1024 * 1024
+SEARCH_READ_MODEL_CURSOR_SCHEMA = "tos_knowledge_search_indexed_cursor_v1"
 _json_version_cache_lock = Lock()
 _json_version_cache: OrderedDict[
     str, tuple[tuple[int, int, int, int], dict[str, Any]]
 ] = OrderedDict()
+
+
+def _default_search_read_model_path(root: Path) -> Path:
+    """Choose a restart-surviving cache path without writing into the repo."""
+    root_digest = hashlib.sha256(root.resolve().as_posix().encode("utf-8")).hexdigest()[:24]
+    return Path(tempfile.gettempdir()) / "tos-access-search" / f"{root_digest}.sqlite"
+
+
+def _indexed_search_cursor_encode(payload: dict[str, Any]) -> str:
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _indexed_search_cursor_decode(value: str) -> dict[str, Any]:
+    if not isinstance(value, str) or not value or len(value) > 8192:
+        raise SearchReadModelError("invalid indexed knowledge search cursor")
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        decoded = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+    except (ValueError, UnicodeError, binascii.Error, json.JSONDecodeError) as error:
+        raise SearchReadModelError("invalid indexed knowledge search cursor") from error
+    if not isinstance(decoded, dict) or decoded.get("schema") != SEARCH_READ_MODEL_CURSOR_SCHEMA:
+        raise SearchReadModelError("invalid indexed knowledge search cursor")
+    return decoded
 
 
 def _unavailable_word_analysis_capability(reason: str) -> dict[str, Any]:
@@ -436,9 +478,14 @@ class ToSAccessCore:
     relation_type_registry_path: Path
     philosophy_post_planting_audit_path: Path
     evidence_projection_path: Path
+    search_read_model_path: Path | None = None
+    search_read_model_max_bytes: int = SEARCH_READ_MODEL_DEFAULT_MAX_BYTES
+    search_read_model_max_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS
+    search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS
     _exploration: ExplorationService = field(init=False, repr=False, compare=False)
     _search_index: KnowledgeSearchIndex | None = field(default=None, init=False, repr=False, compare=False)
     _search_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
+    _search_read_model: SQLiteKnowledgeSearchReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _graph_index: KnowledgeGraphIndex | None = field(default=None, init=False, repr=False, compare=False)
     _graph_index_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
     _snapshot_lock: Any = field(default_factory=RLock, init=False, repr=False, compare=False)
@@ -468,6 +515,14 @@ class ToSAccessCore:
     )
 
     def __post_init__(self):
+        if self.search_read_model_path is None:
+            self.search_read_model_path = _default_search_read_model_path(self.tos_root)
+        else:
+            self.search_read_model_path = Path(self.search_read_model_path).expanduser()
+            if not self.search_read_model_path.is_absolute():
+                self.search_read_model_path = self.tos_root / self.search_read_model_path
+        if self.search_read_model_max_bytes < 4096:
+            raise ValueError("search_read_model_max_bytes must be at least one SQLite page")
         self._exploration = ExplorationService(self.knowledge_graph)
 
     def knowledge_explore(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -493,6 +548,10 @@ class ToSAccessCore:
         relation_type_registry_path: str | Path | None = None,
         philosophy_post_planting_audit_path: str | Path | None = None,
         evidence_projection_path: str | Path | None = None,
+        search_read_model_path: str | Path | None = None,
+        search_read_model_max_bytes: int | None = None,
+        search_read_model_max_postings: int = SEARCH_READ_MODEL_MAX_POSTINGS,
+        search_read_model_max_verify_chars: int = SEARCH_READ_MODEL_MAX_VERIFY_CHARS,
     ) -> "ToSAccessCore":
         root = _discover_root(tos_root)
         index = Path(
@@ -544,6 +603,17 @@ class ToSAccessCore:
         ).expanduser()
         if not evidence_projection.is_absolute():
             evidence_projection = root / evidence_projection
+        search_path = Path(
+            search_read_model_path
+            or os.environ.get("TOS_SEARCH_READ_MODEL_PATH")
+            or _default_search_read_model_path(root)
+        ).expanduser()
+        if not search_path.is_absolute():
+            search_path = root / search_path
+        configured_budget = search_read_model_max_bytes
+        if configured_budget is None:
+            raw_budget = os.environ.get("TOS_SEARCH_READ_MODEL_MAX_BYTES")
+            configured_budget = int(raw_budget) if raw_budget else SEARCH_READ_MODEL_DEFAULT_MAX_BYTES
         return cls(
             tos_root=root,
             index_path=index.resolve(),
@@ -553,6 +623,10 @@ class ToSAccessCore:
             relation_type_registry_path=relation_registry.resolve(),
             philosophy_post_planting_audit_path=philosophy_audit.resolve(),
             evidence_projection_path=evidence_projection.resolve(),
+            search_read_model_path=search_path.resolve(),
+            search_read_model_max_bytes=configured_budget,
+            search_read_model_max_postings=search_read_model_max_postings,
+            search_read_model_max_verify_chars=search_read_model_max_verify_chars,
         )
 
     def index_exists(self) -> bool:
@@ -1029,6 +1103,11 @@ class ToSAccessCore:
                 current = self._published_graph
                 if current is not None and self._search_index is not None and self._search_index.graph is not current:
                     self._search_index = None
+                if current is not None and self._search_read_model is not None and self._search_read_model.graph is not current:
+                    # Do not close the old connection here: a concurrent
+                    # reader may still hold it.  The immutable path is
+                    # replaced atomically by the next snapshot owner.
+                    self._search_read_model = None
         with self._graph_index_lock:
             with self._snapshot_lock:
                 current = self._published_graph
@@ -1415,6 +1494,181 @@ class ToSAccessCore:
             limit=limit,
             search_index=index,
         )
+
+    def _search_read_model_for_snapshot(
+        self, graph: dict[str, Any]
+    ) -> SQLiteKnowledgeSearchReadModel:
+        """Open or atomically build the persistent carrier for one snapshot."""
+        with self._search_lock:
+            current = self._search_read_model
+            if current is not None and current.graph is graph:
+                return current
+            path = self.search_read_model_path
+            if path is None:  # pragma: no cover - __post_init__ supplies it
+                raise SearchReadModelError("search read-model path is not configured")
+            try:
+                model = SQLiteKnowledgeSearchReadModel.open(graph, path)
+            except (OSError, SearchReadModelSnapshotError):
+                model = SQLiteKnowledgeSearchReadModel.build(
+                    graph,
+                    path,
+                    max_bytes=self.search_read_model_max_bytes,
+                    max_postings=self.search_read_model_max_postings,
+                )
+            with self._snapshot_lock:
+                if self._published_graph is None or self._published_graph is graph:
+                    self._search_read_model = model
+            return model
+
+    def knowledge_search_indexed(
+        self,
+        query: str = "",
+        *,
+        sources: list[str] | None = None,
+        kind_ids: list[str] | None = None,
+        predicate_ids: list[str] | None = None,
+        cursor: str | None = None,
+        limit: int = 40,
+    ) -> dict[str, Any]:
+        """Search through the persistent bounded carrier (explicit v2 mode)."""
+        # Validate the transport query before touching the graph/read-model
+        # path.  In particular, a rejected overlong/non-string query must not
+        # cold-build a snapshot merely to fail at the indexed boundary.
+        normalized_query = normalize_search_query(query)
+        bounded_limit = _bounded_int(limit, 40, 1, 100)
+
+        if sources:
+            if any(not isinstance(value, str) for value in sources):
+                raise SearchReadModelError("knowledge search filters must contain strings")
+            unknown_sources = sorted(set(sources) - set(KNOWLEDGE_SOURCES))
+            if unknown_sources:
+                raise SearchReadModelError(
+                    f"unsupported knowledge sources: {', '.join(unknown_sources)}"
+                )
+            normalized_sources = sorted(set(sources))
+        else:
+            normalized_sources = sorted(KNOWLEDGE_SOURCES)
+        graph = self.knowledge_graph()
+        request_filters = {
+            "sources": normalized_sources,
+            "kind_ids": sorted(set(kind_ids or ())),
+            "predicate_ids": sorted(set(predicate_ids or ())),
+        }
+        node_cursor = relation_cursor = None
+        node_exhausted = relation_exhausted = False
+        if cursor is not None:
+            payload = _indexed_search_cursor_decode(cursor)
+            if (
+                payload.get("source_revision") != graph.get("source_revision")
+                or payload.get("query") != normalized_query
+                or payload.get("filters") != request_filters
+            ):
+                raise SearchReadModelSnapshotError("indexed knowledge search cursor does not match the snapshot/query")
+            expected_keys = {
+                "filters",
+                "nodes",
+                "nodes_exhausted",
+                "query",
+                "relations",
+                "relations_exhausted",
+                "schema",
+                "source_revision",
+            }
+            if set(payload) != expected_keys:
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+            if not isinstance(payload["nodes_exhausted"], bool) or not isinstance(
+                payload["relations_exhausted"], bool
+            ):
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+            node_cursor = payload.get("nodes")
+            relation_cursor = payload.get("relations")
+            node_exhausted = payload["nodes_exhausted"]
+            relation_exhausted = payload["relations_exhausted"]
+            if node_exhausted:
+                if node_cursor is not None:
+                    raise SearchReadModelError("invalid indexed knowledge search cursor")
+            elif not isinstance(node_cursor, str) or not node_cursor:
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+            if relation_exhausted:
+                if relation_cursor is not None:
+                    raise SearchReadModelError("invalid indexed knowledge search cursor")
+            elif not isinstance(relation_cursor, str) or not relation_cursor:
+                raise SearchReadModelError("invalid indexed knowledge search cursor")
+
+        model = self._search_read_model_for_snapshot(graph)
+        empty_page = lambda: SearchReadModelPage((), 0, 0, False, None, ordering_scope="global-rank")
+        node_page = (
+            empty_page()
+            if node_exhausted
+            else model.ranked_page(
+                "nodes", query, sources=normalized_sources, kind_ids=kind_ids, cursor=node_cursor,
+                page_size=bounded_limit, max_verify_chars=self.search_read_model_max_verify_chars,
+            )
+        )
+        relation_page = (
+            empty_page()
+            if relation_exhausted
+            else model.ranked_page(
+                "relations", query, sources=normalized_sources, predicate_ids=predicate_ids, cursor=relation_cursor,
+                page_size=bounded_limit, max_verify_chars=self.search_read_model_max_verify_chars,
+            )
+        )
+
+        def items(kind: str, page: Any) -> list[dict[str, Any]]:
+            result: list[dict[str, Any]] = []
+            for row in page.rows:
+                position = int(row["position"])
+                result.append(model.source_item(kind, position))
+            return result
+
+        next_cursor = None
+        if node_page.next_cursor is not None or relation_page.next_cursor is not None:
+            next_node_exhausted = node_page.next_cursor is None
+            next_relation_exhausted = relation_page.next_cursor is None
+            next_cursor = _indexed_search_cursor_encode(
+                {
+                    "schema": SEARCH_READ_MODEL_CURSOR_SCHEMA,
+                    "source_revision": graph.get("source_revision"),
+                    "query": normalized_query,
+                    "filters": request_filters,
+                    "nodes": node_page.next_cursor,
+                    "relations": relation_page.next_cursor,
+                    "nodes_exhausted": next_node_exhausted,
+                    "relations_exhausted": next_relation_exhausted,
+                }
+            )
+        return {
+            "schema": "tos_knowledge_search_indexed_v2",
+            "source_revision": graph["source_revision"],
+            "query": query,
+            "filters": request_filters,
+            "page": {
+                "cursor": cursor,
+                "next_cursor": next_cursor,
+                "limit_per_kind": bounded_limit,
+                "ordering_scope": "global-rank",
+                "has_more": next_cursor is not None,
+            },
+            "counts": {
+                "matching_nodes": (
+                    len(node_page.rows)
+                    if cursor is None and not node_page.has_more
+                    else None
+                ),
+                "matching_relations": (
+                    len(relation_page.rows)
+                    if cursor is None and not relation_page.has_more
+                    else None
+                ),
+                "returned_nodes": len(node_page.rows),
+                "returned_relations": len(relation_page.rows),
+                "scope": "exact-if-kind-exhausted-without-continuation",
+            },
+            "nodes": items("nodes", node_page),
+            "relations": items("relations", relation_page),
+            "authority_boundary": graph.get("authority_boundary", {}),
+            "work": {"nodes": node_page.as_dict()["work"], "relations": relation_page.as_dict()["work"]},
+        }
 
     def _search_index_for_snapshot(self, graph: dict[str, Any]) -> KnowledgeSearchIndex:
         """Return an index without recaching a graph superseded in-flight."""

@@ -34,7 +34,11 @@
       "http": {"method": "GET", "path": "/api/knowledge/search"},
       "mcp_tool": "tos_knowledge_search",
       "cli": "tos knowledge search",
-      "result": "paginated display-complete node and relation matches"
+      "result": "paginated display-complete node and relation matches",
+      "modes": {
+        "legacy": {"schema": "tos_knowledge_search_v1", "pagination": "offset", "counts": "exact", "default": true},
+        "indexed": {"schema": "tos_knowledge_search_indexed_v2", "query_parameter": "mode=indexed", "pagination": "source-revision-bound cursor", "counts": "exact only for a kind exhausted on the first page; null on continuation pages or while that kind has more results", "short_query": "fails closed at the indexed boundary; use legacy mode explicitly"}
+      }
     },
     {
       "operation_id": "tos.knowledge.node.inspect",

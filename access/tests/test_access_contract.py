@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import base64
 import hashlib
 import json
 import os
@@ -28,6 +29,7 @@ from tos_access.core import ToSAccessCore  # noqa: E402
 from tos_access.doctor import doctor_report  # noqa: E402
 from tos_access.http_server import _scale_rows, make_server  # noqa: E402
 from tos_access.mcp_server import build_server  # noqa: E402
+from tos_access.search_read_model import SearchReadModelError  # noqa: E402
 
 # Keep local fixture shutdown responsive; the production server keeps its
 # standard serve_forever default.
@@ -1009,6 +1011,114 @@ class CoreContractTests(unittest.TestCase):
                     self.assertEqual(packet, search_knowledge_graph(changed, 'new-snapshot-only'))
                     self.assertEqual(packet['counts']['matching_nodes'], 1)
                     self.assertEqual(prepare.call_count, 2)
+
+    def test_indexed_core_search_keeps_exhausted_kind_exhausted_across_cursor_pages(self) -> None:
+        from copy import deepcopy
+        from tos_access.knowledge import KNOWLEDGE_SOURCES
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(
+                tos_root=root,
+                search_read_model_path=Path(raw) / "indexed-search.sqlite",
+                search_read_model_max_bytes=4 * 1024 * 1024,
+            )
+            graph = deepcopy(core.knowledge_graph())
+            graph["source_revision"] = "indexed-pagination-fixture"
+            graph["nodes"] = []
+            for index in range(3):
+                graph["nodes"].append(
+                    {
+                        "id": f"fixture:node:{index}",
+                        "native_id": f"node:{index}",
+                        "source_graph": "philosophy",
+                        "kind_id": "concept",
+                        "display": {
+                            "title": {"default": f"Indexed pagination node {index}"},
+                            "kind_label": {"default": "concept"},
+                            "summary": {"default": "Indexed pagination"},
+                        },
+                    }
+                )
+            relation = deepcopy(core.knowledge_graph()["relations"][0])
+            relation.update(
+                {
+                    "id": "fixture:relation:only",
+                    "native_id": "relation:only",
+                    "source_graph": "philosophy",
+                    "display": {
+                        "label": {"default": "Indexed pagination relation"},
+                        "statement": {"default": "Indexed pagination relation"},
+                        "explanation": {"default": "Indexed pagination relation"},
+                    },
+                }
+            )
+            graph["relations"] = [relation]
+            with patch.object(ToSAccessCore, "knowledge_graph", return_value=graph):
+                first = core.knowledge_search_indexed("pagination", limit=1)
+                self.assertEqual(len(first["nodes"]), 1)
+                self.assertEqual(len(first["relations"]), 1)
+                self.assertIsNone(first["counts"]["matching_nodes"])
+                self.assertEqual(first["counts"]["matching_relations"], 1)
+                self.assertEqual(first["filters"]["sources"], sorted(KNOWLEDGE_SOURCES))
+                empty_sources = core.knowledge_search_indexed("pagination", sources=[], limit=1)
+                self.assertEqual(empty_sources["filters"], first["filters"])
+                cursor = first["page"]["next_cursor"]
+                self.assertIsInstance(cursor, str)
+
+                second = core.knowledge_search_indexed("pagination", limit=1, cursor=cursor)
+                self.assertEqual(second["relations"], [])
+                self.assertIsNone(second["counts"]["matching_nodes"])
+                self.assertIsNone(second["counts"]["matching_relations"])
+                cursor = second["page"]["next_cursor"]
+                self.assertIsInstance(cursor, str)
+
+                third = core.knowledge_search_indexed("pagination", limit=1, cursor=cursor)
+                self.assertEqual(third["relations"], [])
+                self.assertIsNone(third["page"]["next_cursor"])
+
+    def test_indexed_core_search_rejects_malformed_outer_cursor_envelope(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            write_fixture(root)
+            core = ToSAccessCore.discover(
+                tos_root=root,
+                search_read_model_path=Path(raw) / "indexed-search.sqlite",
+                search_read_model_max_bytes=4 * 1024 * 1024,
+            )
+            graph = core.knowledge_graph()
+            with patch.object(ToSAccessCore, "knowledge_graph", return_value=graph):
+                first = core.knowledge_search_indexed("alpha", limit=1)
+                cursor = first["page"]["next_cursor"]
+                self.assertIsInstance(cursor, str)
+
+                def decode(value: str) -> dict[str, Any]:
+                    padded = value + "=" * (-len(value) % 4)
+                    return json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+
+                def encode(value: dict[str, Any]) -> str:
+                    raw_value = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
+                    return base64.urlsafe_b64encode(raw_value).decode("ascii").rstrip("=")
+
+                valid = decode(cursor)
+                malformed = [
+                    {key: value for key, value in valid.items() if key != "nodes_exhausted"},
+                    {**valid, "nodes_exhausted": None},
+                    {**valid, "nodes_exhausted": False, "nodes": None},
+                    {**valid, "relations_exhausted": False, "relations": ""},
+                    {**valid, "unexpected": True},
+                ]
+                for payload in malformed:
+                    with self.subTest(payload=payload):
+                        with self.assertRaises(SearchReadModelError):
+                            core.knowledge_search_indexed("alpha", limit=1, cursor=encode(payload))
+
+            # Query validation is transport-local and must happen before a
+            # cold graph/read-model build.
+            with patch.object(ToSAccessCore, "knowledge_graph", side_effect=AssertionError("graph must not build")):
+                with self.assertRaises(SearchReadModelError):
+                    core.knowledge_search_indexed("x" * 257, limit=1)
 
     def test_knowledge_graph_normalizes_every_item_for_humans_and_agents(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
