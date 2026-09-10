@@ -989,6 +989,44 @@ class CoreContractTests(unittest.TestCase):
                         self.assertEqual(prepare.call_count, count)
                         self.assertIs(core._graph_index.graph, graph)
 
+    def test_core_lenses_reuse_snapshot_index_and_pin_stored_catalog(self) -> None:
+        from tos_access import core as core_module
+        from tos_access.knowledge import KnowledgeGraphIndex, execute_knowledge_lens, focus_knowledge_node
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_fixture(root)
+            core = ToSAccessCore.discover(root)
+            initial = core.knowledge_snapshot()
+            spec = next(item for item in initial['catalog']['lenses'] if item['lens_id'] == 'chronology')
+            expected = execute_knowledge_lens(initial['graph'], spec)
+            with patch.object(core_module, 'KnowledgeGraphIndex', wraps=KnowledgeGraphIndex) as prepare:
+                self.assertEqual(core.compile_knowledge_lens(spec), expected)
+                index = core._graph_index
+                self.assertEqual(core.knowledge_focus('philosophy:a', depth=1),
+                                 focus_knowledge_node(initial['graph'], 'philosophy:a', depth=1))
+                self.assertEqual(core.stored_knowledge_lens('chronology'), expected)
+                self.assertIs(core._graph_index, index)
+                self.assertEqual(prepare.call_count, 1)
+
+                path = core.philosophy_graph_projection_path
+                path.write_bytes(path.read_bytes().replace(b'"Alpha"', b'"Omega"', 1))
+                current = core.knowledge_graph()
+                self.assertIsNot(current, initial['graph'])
+                self.assertEqual(core.compile_knowledge_lens(spec), execute_knowledge_lens(current, spec))
+                current_index = core._graph_index
+                self.assertIs(current_index.graph, current)
+                self.assertEqual(prepare.call_count, 2)
+
+                # A stored-lens request may have borrowed the prior catalog
+                # before publication. Keep its graph and private index paired;
+                # never replace the newer shared index with that old borrower.
+                with patch.object(ToSAccessCore, 'knowledge_snapshot', return_value=initial), patch.object(
+                        ToSAccessCore, 'knowledge_graph', side_effect=AssertionError('stored lens re-resolved graph')):
+                    self.assertEqual(core.stored_knowledge_lens('chronology'), expected)
+                self.assertIs(core._graph_index, current_index)
+                self.assertEqual(prepare.call_count, 3)
+
     def test_core_search_reuses_only_its_current_snapshot(self) -> None:
         from unittest.mock import patch
         from copy import deepcopy

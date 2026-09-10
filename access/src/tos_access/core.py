@@ -1766,8 +1766,9 @@ class ToSAccessCore:
         profile: str = "overview",
     ) -> dict[str, Any]:
         """Construct a bounded radial lens around one exact or unambiguous node identity."""
+        graph = self.knowledge_graph()
         return focus_knowledge_node(
-            self.knowledge_graph(),
+            graph,
             node_id,
             sources=sources,
             depth=depth,
@@ -1776,11 +1777,13 @@ class ToSAccessCore:
             node_limit=node_limit,
             relation_limit=relation_limit,
             profile=profile,
+            graph_index=self._current_graph_index(graph),
         )
 
     def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict[str, Any]:
         """Compile and execute a bounded read-only lens supplied by a human or agent."""
-        return execute_knowledge_lens(self.knowledge_graph(), spec)
+        graph = self.knowledge_graph()
+        return execute_knowledge_lens(graph, spec, graph_index=self._current_graph_index(graph))
 
     def stored_knowledge_lens(self, lens_id: str) -> dict[str, Any]:
         """Compile one source-backed stored lens through the same generic engine."""
@@ -1798,7 +1801,8 @@ class ToSAccessCore:
         # Execute against the exact graph used to derive the lens catalog.
         # Calling compile_knowledge_lens would resolve the graph a second time
         # and could mix a newly published snapshot with the selected spec.
-        return execute_knowledge_lens(snapshot["graph"], spec)
+        graph = snapshot["graph"]
+        return execute_knowledge_lens(graph, spec, graph_index=self._current_graph_index(graph))
 
     def status(self) -> dict[str, Any]:
         exists = self.index_exists()

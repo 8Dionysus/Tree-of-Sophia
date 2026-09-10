@@ -278,6 +278,16 @@ absence of publication/runtime authority. Neither performs a fresh assessment
 or authenticates a model invocation. The source owner controls currentness and
 publication; see [local assessed snapshots](../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots).
 
+The in-memory compatibility reader reuses snapshot-bound adjacency and lens
+plans for focus, supplied lenses and stored lenses. Plans retain references, not
+copies of full packets; at most four source scopes and two relation plans per
+scope are cached. Publication replaces the current index while an in-flight
+reader may finish with its borrowed old snapshot. Human-form delivery and
+pagination are still computed per request. These are plan-count bounds, not a
+hard byte ceiling; first-use planning and global selectors can still scan the
+in-memory snapshot. This optimization does not establish cold prepared-query
+performance or remove the compatibility reader's initial graph construction.
+
 ## Explicit prepared local reader
 
 Python callers can opt into the published SQLite read model already emitted by
